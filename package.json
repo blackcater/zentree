@@ -3,15 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev:desktop": "pnpm --filter desktop dev",
+    "dev:desktop": "turbo run dev --filter=@codescope/* --filter=@codescope-app/desktop",
     "test": "vitest run"
   },
   "devDependencies": {
     "@types/node": "^24",
     "oxfmt": "^0.32.0",
     "oxlint": "^1.47.0",
+    "turbo": "^2.8.7",
     "typescript": "^5.9.3",
     "vite": "^7.2.6",
     "vitest": "^4.0.18"
-  }
+  },
+  "packageManager": "pnpm@10.29.3"
 }

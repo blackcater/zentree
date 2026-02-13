@@ -1,0 +1,4 @@
+@import 'tailwindcss';
+@import '@codescope/ui/styles/index.css';
+
+@source "../../../node_modules/@codescope/ui";
