@@ -5,7 +5,8 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "declaration": true,
-    "declarationMap": true,
+    "declarationMap": false,
+    "sourceMap": false,
     "composite": true,
     "baseUrl": ".",
     "paths": {

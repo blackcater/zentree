@@ -5,45 +5,40 @@ export class Container {
 		this.#registry = new Map()
 	}
 
-	/**
-	 * Register a singleton dependency, same token will only create one instance
-	 *
-	 * @template T Dependency type
-	 *
-	 * @param token - Dependency identifier
-	 * @param factory - Dependency factory function
-	 */
-	singleton<T>(token: Container.Injectable<T>, factory: () => T) {
-		this.#registry.set(token, { factory, singleton: true })
+	singleton<T>(token: Container.Constructable<T>): this
+	singleton<T>(token: Container.Injectable<T>, factory: () => T): this
+	singleton<T>(token: Container.Injectable<T>, factory?: () => T): this {
+		if (factory) {
+			this.#registry.set(token, { factory, singleton: true })
+		} else {
+			const Constructable = token as Container.Constructable<T>
+			this.#registry.set(token, {
+				factory: () => new Constructable(),
+				singleton: true,
+			})
+		}
+
+		return this
 	}
 
-	/**
-	 * Register a transient dependency, new instance created on each injection
-	 *
-	 * @template T Dependency type
-	 *
-	 * @param token - Dependency identifier
-	 * @param factory - Dependency factory function
-	 */
-	transient<T>(token: Container.Injectable<T>, factory: () => T) {
-		this.#registry.set(token, { factory, singleton: false })
+	transient<T>(token: Container.Constructable<T>): this
+	transient<T>(token: Container.Injectable<T>, factory: () => T): this
+	transient<T>(token: Container.Injectable<T>, factory?: () => T): this {
+		if (factory) {
+			this.#registry.set(token, { factory, singleton: false })
+		} else {
+			const Constructable = token as Container.Constructable<T>
+			this.#registry.set(token, {
+				factory: () => new Constructable(),
+				singleton: false,
+			})
+		}
+
+		return this
 	}
 
-	/**
-	 * Inject dependency
-	 *
-	 * @template T Dependency type
-	 *
-	 * @param token - Dependency identifier
-	 * @param must - Whether resolution must succeed, defaults to true
-	 *
-	 * @returns Dependency instance or undefined (when must is false and dependency is not registered)
-	 *
-	 * @throws Error when must is true and dependency is not registered
-	 */
 	inject<T>(token: Container.Injectable<T>): T
 	inject<T>(token: Container.Injectable<T>, must: false): T | undefined
-
 	inject<T>(token: Container.Injectable<T>, must = true) {
 		const entry = this.#registry.get(token)
 

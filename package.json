@@ -2,7 +2,9 @@
   "name": "root",
   "version": "0.1.0",
   "private": true,
-  "scripts": {},
+  "scripts": {
+    "test": "vitest run"
+  },
   "devDependencies": {
     "@types/node": "^24",
     "oxfmt": "^0.32.0",
