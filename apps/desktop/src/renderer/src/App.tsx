@@ -1,4 +1,4 @@
-import { Button } from '@codescope/ui'
+import { Button } from '@codescope/ui/foundation'
 
 function App(): React.JSX.Element {
 	return (

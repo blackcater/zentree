@@ -63,9 +63,9 @@ importers:
         specifier: ^1.6.0
         version: 1.6.0
     devDependencies:
-      '@electron-toolkit/tsconfig':
-        specifier: ^2.0.0
-        version: 2.0.0(@types/node@24.10.13)
+      '@codescope/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
       '@types/node':
         specifier: ^24
         version: 24.10.13
@@ -111,6 +111,8 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+
+  packages/tsconfig: {}
 
   packages/types:
     devDependencies:
@@ -320,11 +322,6 @@ packages:
     resolution: {integrity: sha512-TWWPToXd8qPRfSXwzf5KVhpXMfONaUuRAZJHsKthKgZR/+LqX1dZVSSClQ8OTAEduvLGdecljCsoT2jSshfoUg==}
     peerDependencies:
       electron: '>=13.0.0'
-
-  '@electron-toolkit/tsconfig@2.0.0':
-    resolution: {integrity: sha512-AdPsP770WhW7b260h13SHMdmjEEHJL6xFtgi3jwgdsSQbJOkJLeNnnpZW9qxTPCvmRI6vmdzWz5K3gibFS6SNg==}
-    peerDependencies:
-      '@types/node': '*'
 
   '@electron-toolkit/utils@4.0.0':
     resolution: {integrity: sha512-qXSntwEzluSzKl4z5yFNBknmPGjPa3zFhE4mp9+h0cgokY5ornAeP+CJQDBhKsL1S58aOQfcwkD3NwLZCl+64g==}
@@ -2437,10 +2434,6 @@ snapshots:
   '@electron-toolkit/preload@3.0.2(electron@40.4.0)':
     dependencies:
       electron: 40.4.0
-
-  '@electron-toolkit/tsconfig@2.0.0(@types/node@24.10.13)':
-    dependencies:
-      '@types/node': 24.10.13
 
   '@electron-toolkit/utils@4.0.0(electron@40.4.0)':
     dependencies:

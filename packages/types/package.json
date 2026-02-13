@@ -6,6 +6,7 @@
   "scripts": {},
   "dependencies": {},
   "devDependencies": {
+    "@codescope/tsconfig": "workspace:*",
     "@types/node": "^24",
     "typescript": "^5.9.3"
   }

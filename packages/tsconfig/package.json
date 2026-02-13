@@ -1,0 +1,12 @@
+{
+  "name": "@codescope/tsconfig",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    ".": "./base.json",
+    "./package.json": "./package.json",
+    "./base": "./base.json",
+    "./node": "./node.json",
+    "./web": "./web.json"
+  }
+}

@@ -13,6 +13,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
+    "@codescope/tsconfig": "workspace:*",
     "@types/node": "^24",
     "tsdown": "^0.20.3",
     "typescript": "^5.9.3",
