@@ -1,0 +1,6 @@
+{
+  "$schema": "https://www.schemastore.org/nodemon.json",
+  "watch": ["src/main", "src/preload"],
+  "ext": "ts,json,html",
+  "exec": "pnpm electron-vite dev"
+}

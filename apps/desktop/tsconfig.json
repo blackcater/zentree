@@ -2,6 +2,9 @@
   "files": [],
   "references": [
     { "path": "./tsconfig.node.json" },
-    { "path": "./tsconfig.web.json" }
+    { "path": "./tsconfig.web.json" },
+    { "path": "../../packages/types/tsconfig.json" },
+    { "path": "../../packages/ui/tsconfig.json" },
+    { "path": "../../packages/utils/tsconfig.json" }
   ]
 }

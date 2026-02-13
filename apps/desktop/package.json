@@ -5,13 +5,16 @@
   "main": "./out/main/index.js",
   "scripts": {
     "start": "electron-vite preview",
-    "dev": "electron-vite dev",
+    "dev": "nodemon",
     "build": "npm run typecheck && electron-vite build",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false"
   },
   "dependencies": {
+    "@codescope/types": "workspace:*",
+    "@codescope/ui": "workspace:*",
+    "@codescope/utils": "workspace:*",
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "electron-context-menu": "^4.1.1",
@@ -30,6 +33,7 @@
     "electron": "^40.4.0",
     "electron-devtools-installer": "^4.0.0",
     "electron-vite": "^5.0.0",
+    "nodemon": "^3.1.9",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "typescript": "^5.9.3",

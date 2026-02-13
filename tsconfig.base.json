@@ -12,6 +12,7 @@
     "paths": {
       "@codescope/types": ["packages/types/src/index.ts"],
       "@codescope/ui": ["packages/ui/src/index.ts"],
+      "@codescope/ui/*": ["packages/ui/src/*"],
       "@codescope/utils": ["packages/utils/src/index.ts"],
       "@codescope/utils/*": ["packages/utils/src/*"]
     }
