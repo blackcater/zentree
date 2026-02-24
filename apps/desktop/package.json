@@ -26,18 +26,18 @@
   },
   "devDependencies": {
     "@codescope/tsconfig": "workspace:*",
-    "@tailwindcss/vite": "^4.1.18",
+    "@tailwindcss/vite": "^4.2.1",
     "@types/node": "^24",
-    "@types/react": "^19.2.7",
+    "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.1",
-    "electron": "^40.4.0",
+    "@vitejs/plugin-react": "^5.1.4",
+    "electron": "^40.6.0",
     "electron-devtools-installer": "^4.0.0",
     "electron-vite": "^5.0.0",
-    "nodemon": "^3.1.9",
-    "react": "^19.2.1",
-    "react-dom": "^19.2.1",
+    "nodemon": "^3.1.13",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "typescript": "^5.9.3",
-    "vite": "^7.2.6"
+    "vite": "^7.3.1"
   }
 }

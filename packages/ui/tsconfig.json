@@ -2,7 +2,6 @@
   "extends": "@codescope/tsconfig/web",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
     "jsx": "react-jsx"
   },
   "include": ["src"]

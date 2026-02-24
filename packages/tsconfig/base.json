@@ -13,15 +13,6 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitAny": false,
-    "noImplicitReturns": true,
-    "baseUrl": ".",
-    "paths": {
-      "@codescope/types": ["../../packages/types/src/index.ts"],
-      "@codescope/ui": ["../../packages/ui/src/index.ts"],
-      "@codescope/ui/foundation": ["../../packages/ui/src/foundation/index.ts"],
-      "@codescope/ui/hooks": ["../../packages/ui/src/hooks/index.ts"],
-      "@codescope/ui/utils": ["../../packages/ui/src/utils/index.ts"],
-      "@codescope/utils": ["../../packages/utils/src/index.ts"]
-    }
+    "noImplicitReturns": true
   }
 }

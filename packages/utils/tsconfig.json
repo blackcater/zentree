@@ -1,8 +1,7 @@
 {
   "extends": "@codescope/tsconfig/node",
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src"
+    "outDir": "dist"
   },
   "include": ["src"]
 }

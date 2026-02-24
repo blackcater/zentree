@@ -1,7 +1,7 @@
 export class Container {
 	readonly #registry: Map<Container.Injectable, Container.Entry>
 
-	private constructor() {
+	constructor() {
 		this.#registry = new Map()
 	}
 
@@ -38,21 +38,22 @@ export class Container {
 	}
 
 	inject<T>(token: Container.Injectable<T>): T
+	inject<T>(token: Container.Injectable<T>, must: true): T
 	inject<T>(token: Container.Injectable<T>, must: false): T | undefined
-	inject<T>(token: Container.Injectable<T>, must = true) {
+	inject<T>(token: Container.Injectable<T>, must: boolean = true) {
 		const entry = this.#registry.get(token)
 
 		if (entry) {
 			if (entry.singleton) {
 				if (entry.instance) {
-					return entry.instance.value
+					return entry.instance.value as T
 				}
 
 				entry.instance = { value: entry.factory() }
 
-				return entry.instance.value
+				return entry.instance.value as T
 			} else {
-				return entry.factory()
+				return entry.factory() as T
 			}
 		}
 
@@ -61,6 +62,8 @@ export class Container {
 				`Dependency with name '${token.name}' could not be resolved.`
 			)
 		}
+
+		return undefined
 	}
 
 	static readonly #global = new Container()
@@ -97,6 +100,14 @@ export class Container {
 		Container.#global
 	)
 }
+
+// Global container instances
+export const Container$ = new Container()
+export const $Container = Container$
+export const Container$$ = new Container()
+export const $$Container = Container$$
+export const Container$$$ = new Container()
+export const $$$Container = Container$$$
 
 export namespace Container {
 	/**
