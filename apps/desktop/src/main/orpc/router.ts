@@ -16,21 +16,18 @@ export const ping = os.ping.handler(async () => 'pong')
 /**
  * GetAppInfo handler - Returns application metadata.
  */
-export const getAppInfo = os.getAppInfo.handler(async () => {
-	return {
-		name: 'desktop',
-		version: '0.1.0',
-		platform: process.platform,
-	}
-})
+export const getAppInfo = os.getAppInfo.handler(async () => ({
+	name: 'desktop',
+	version: '0.1.0',
+	platform: process.platform,
+}))
 
 /**
  * Greet handler - Returns a personalized greeting.
  */
-export const greet = os.greet.handler(async ({ input }) => {
-	console.log('call greet')
-	return `Hello, ${input.name}!`
-})
+export const greet = os.greet.handler(
+	async ({ input }) => `Hello, ${input.name}!`
+)
 
 /**
  * Divide handler - Performs division with error handling.

@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge } from 'electron'
 
 import { electronAPI } from '@electron-toolkit/preload'
 
@@ -12,14 +12,6 @@ if (process.contextIsolated) {
 	try {
 		contextBridge.exposeInMainWorld('electron', electronAPI)
 		contextBridge.exposeInMainWorld('api', api)
-
-		// Setup orpc bridge
-		window.addEventListener('message', (event) => {
-			if (event.data === 'start-orpc-client') {
-				const [serverPort] = event.ports
-				ipcRenderer.postMessage('start-orpc-server', null, [serverPort])
-			}
-		})
 	} catch (error) {
 		console.error(error)
 	}
