@@ -1,6 +1,6 @@
 import { implement, type ClientContext, type RouterClient } from '@orpc/server'
 
-import { contracts } from '~/contracts'
+import { contracts } from '@/contracts'
 
 /**
  * Create an oRPC implementer from the contract.

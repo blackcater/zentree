@@ -4,8 +4,9 @@
     "baseUrl": ".",
     "types": ["electron-vite/node"],
     "paths": {
-      "~/*": ["./src/*"],
-      "@/*": ["./src/main/*"],
+      "~/*": ["./*"],
+      "@/*": ["./src/*"],
+      "@main/*": ["./src/main/*"],
       "@renderer/*": ["./src/renderer/src/*"]
     }
   },

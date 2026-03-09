@@ -1,4 +1,4 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 
 import { electronAPI } from '@electron-toolkit/preload'
 
@@ -21,3 +21,11 @@ if (process.contextIsolated) {
 	// @ts-ignore (define in dts)
 	window.api = api
 }
+
+// oRPC bridge - forward MessagePort to main process
+window.addEventListener('message', (event) => {
+	if (event.data === 'start-orpc-client') {
+		const [serverPort] = event.ports
+		ipcRenderer.postMessage('start-orpc-server', null, [serverPort])
+	}
+})

@@ -1,13 +1,17 @@
 {
   "permissions": {
     "allow": [
+      "Bash(git commit:*)",
       "Bash(pnpm add:*)",
       "Bash(pnpm install:*)",
       "Bash(pnpm run:*)",
       "Bash(npx tsc:*)",
       "Skill(commit-commands:commit)",
       "mcp__plugin_context7_context7__resolve-library-id",
-      "mcp__plugin_context7_context7__query-docs"
+      "mcp__plugin_context7_context7__query-docs",
+      "Bash(pnpm typecheck:*)",
+      "Bash(timeout 15 pnpm dev:*)",
+      "Bash(pkill:*)"
     ]
   }
 }

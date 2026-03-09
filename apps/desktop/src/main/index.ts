@@ -6,11 +6,13 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { onError } from '@orpc/server'
 import { RPCHandler } from '@orpc/server/message-port'
 
-import icon from '../../resources/icon.png?asset'
+import icon from '~/resources/icon.png?asset'
+
 import { router } from './orpc/router'
 
+// Setup oRPC handler
 const handler = new RPCHandler(router, {
-	interceptors: [onError((error) => console.error('RPC Error:', error))],
+	interceptors: [onError((error) => console.error('ORPC Error:', error))],
 })
 
 function createWindow(): void {
@@ -62,7 +64,7 @@ app.whenReady().then(() => {
 	// IPC test
 	ipcMain.on('ping', () => console.log('pong'))
 
-	// Setup orpc handler
+	// oRPC server handler
 	ipcMain.on('start-orpc-server', (event) => {
 		const [serverPort] = event.ports
 		handler.upgrade(serverPort)
