@@ -9,15 +9,20 @@
   "sortImports": {
     "customGroups": [
       {
-        "elementNamePattern": ["@cue/*"],
-        "groupName": "cue"
+        "elementNamePattern": ["react", "react-*"],
+        "groupName": "react"
+      },
+      {
+        "elementNamePattern": ["@acme/*"],
+        "groupName": "acme"
       }
     ],
     "groups": [
       "type-import",
       ["type-builtin", "value-builtin"],
+      ["react", "acme"],
       ["type-external", "value-external"],
-      ["cue", "type-internal", "value-internal"],
+      ["type-internal", "value-internal"],
       [
         "type-parent",
         "value-parent",

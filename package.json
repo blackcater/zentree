@@ -2,11 +2,9 @@
   "name": "root",
   "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "scripts": {},
+  "scripts": {
+    "dev:desktop": "pnpm run --filter=desktop dev"
+  },
   "devDependencies": {
     "@types/node": "^25",
     "oxfmt": "^0.36.0",
