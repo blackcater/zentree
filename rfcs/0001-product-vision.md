@@ -1,77 +1,181 @@
-# RFC 0001: Product Vision & Overview
+# RFC 0001: 产品愿景与 MVP 定义
 
-## Summary
+## 概述
 
-This document defines the vision, goals, and core positioning for **Acme** — a unified desktop client for AI coding assistants that supports multiple providers including OpenAI Codex, Anthropic Claude Code, and OpenCode.
+定义 Acme 桌面应用的产品愿景、核心价值和 MVP 版本的功能范围。
 
-## Motivation
+| 属性     | 值         |
+| -------- | ---------- |
+| RFC ID   | 0001       |
+| 状态     | 草稿       |
+| 作者     | BlackCater |
+| 创建日期 | 2026-03-11 |
+| 最终更新 | 2026-03-11 |
 
-The AI coding assistant landscape is fragmented. Each provider offers excellent CLI tools, but:
+## 背景
 
-1. **No unified interface**: Users must switch between different apps/CLIs for different providers
-2. **Feature inconsistency**: Each provider's desktop experience differs in capabilities
-3. **Workflow fragmentation**:跨 provider 的工作流难以整合
+### 项目起源
 
-This project aims to create a single, powerful desktop application that abstracts the differences between AI coding assistants while providing a cohesive, production-quality experience.
+Acme 起源于开发者对统一 AI 编码助手体验的需求。当前市场上有多种优秀的 AI 编码助手，如 Anthropic 的 Claude Code、OpenAI 的 Codex 等，但它们各自独立运行，缺乏统一的界面和管理体验。
 
-## Product Vision
+### 问题陈述
 
-**"One desktop, all AI coding assistants"**
+1. **碎片化**: 开发者需要安装多个应用来使用不同的 AI 编码助手
+2. **不一致性**: 每个工具都有不同的界面、配置方式和快捷键
+3. **缺乏整合**: 难以在不同的 AI 模型之间切换和比较结果
+4. **本地优先缺失**: 大多数解决方案依赖云服务，数据可控性差
 
-Acme is a unified desktop workspace that:
-- Connects to multiple AI coding providers (Codex, Claude Code, OpenCode)
-- Provides native desktop features (projects, threads, worktrees, Git integration)
-- Offers extensibility through MCP servers and custom skills
-- Enables automation for routine development tasks
+## 产品愿景
 
-## Target Users
+> **愿景**: 成为开发者与 AI 编码助手之间的统一桥梁，提供一致、本地优先的生产级体验。
 
-1. **Individual developers** who use multiple AI coding assistants
-2. **Development teams** with diverse tool preferences
-3. **Organizations** requiring centralized AI tooling management
+### 核心价值
 
-## Core Principles
+1. **统一**: 一个应用支持多种 AI 编码助手和模型
+2. **本地优先**: 数据存储在本地，尊重用户隐私
+3. **可扩展**: 通过 MCP 和 Skills 轻松扩展功能
+4. **专业**: 为开发者打造的生产力工具
 
-1. **Provider agnostic**: Abstraction layer ensures any AI coding assistant can be integrated
-2. **Desktop native**: Full desktop integration (windows, menus, system tray)
-3. **Project aware**: Deep understanding of codebase structure and conventions
-4. **Extensible**: MCP servers, skills, and automations for customization
-5. **Secure by default**: Sandboxed execution, approval workflows, local-first data
+### 设计原则
 
-## Feature Comparison Matrix
+1. **简洁优先**: 功能以实用为导向，避免过度设计
+2. **性能至上**: 快速响应，最小化等待时间
+3. **本地存储**: 所有数据默认存储在本地
+4. **开放架构**: 支持第三方扩展和自定义
 
-| Feature                | Official Codex App | Claude Code CLI | Acme (Target) |
-| ---------------------- | ------------------ | --------------- | ------------- |
-| Multi-provider support | ❌                  | ❌               | ✅             |
-| Projects/Workspaces    | ✅                  | Limited         | ✅             |
-| Thread management      | ✅                  | Session-based   | ✅             |
-| Worktree isolation     | ✅                  | Manual          | ✅             |
-| Git integration        | ✅                  | Via tools       | ✅             |
-| MCP support            | ✅                  | ✅               | ✅             |
-| Skills                 | ✅                  | ✅               | ✅             |
-| Automations            | ✅                  | ❌               | ✅             |
-| Integrated terminal    | ✅                  | ❌               | ✅             |
-| Voice dictation        | ✅                  | ❌               | ✅             |
-| Multi-window           | ✅                  | ❌               | ✅             |
-| Cross-platform         | macOS/Windows      | All             | All           |
+## MVP 定义
 
-## Success Metrics
+### MVP 目标
 
-- Support at least 3 AI coding providers (Codex, Claude Code, OpenCode)
-- Parity with official Codex app features on core functionality
-- Cross-platform availability (macOS, Windows, Linux)
-- Sub-100ms response time for UI interactions
-- Support for 100+ concurrent threads
+MVP (Minimum Viable Product) 版本专注于实现核心价值，提供可用但功能受限的初始版本。
 
-## Open Questions
+### MVP 功能列表
 
-1. Should we support cloud-based AI services directly (API), or only local CLI tools?
-2. What is the minimum supported Node.js/Rust version?
-3. Should we target Electron or Tauri for the desktop shell?
+#### P0 - 必须实现
 
----
+| 功能             | 描述                                      | 优先级 |
+| ---------------- | ----------------------------------------- | ------ |
+| 多 Provider 支持 | 支持 Anthropic、OpenAI、Google 等主流模型 | P0     |
+| Chat 模式        | 基础的多轮对话功能                        | P0     |
+| Provider 管理    | 添加、编辑、删除模型 Provider 配置        | P0     |
+| Thread 管理      | 创建、切换、删除会话                      | P0     |
+| 本地存储         | 基于 SQLite 的本地数据存储                | P0     |
+| 桌面集成         | 窗口管理、系统托盘、快捷键                | P0     |
 
-**Status**: Draft
-**RFC PR**: (to be created)
-**Primary Author**: Architecture Team
-**Reviewers**: (to be assigned)
+#### P1 - 应该实现
+
+| 功能          | 描述                               | 优先级 |
+| ------------- | ---------------------------------- | ------ |
+| Agent 模式    | 基于 Claude Agent SDK 的自主 Agent | P1     |
+| MCP 支持      | 连接 MCP Server 并使用工具         | P1     |
+| Settings 面板 | 应用设置、主题切换                 | P1     |
+| 自动更新      | 应用的自动更新机制                 | P1     |
+
+#### P2 - 可以实现
+
+| 功能          | 描述                 | 优先级 |
+| ------------- | -------------------- | ------ |
+| Skills 支持   | 自定义 Skill 扩展    | P2     |
+| Terminal 集成 | 内置终端面板         | P2     |
+| Git 集成      | 基本 Git 操作        | P2     |
+| 记忆功能      | 跨会话的用户偏好记忆 | P2     |
+
+### MVP 非目标
+
+以下功能不会在 MVP 版本中实现：
+
+- 云端同步
+- 团队协作功能
+- 插件市场
+- 高级分析功能
+
+## 目标用户
+
+### 主要用户群体
+
+1. **个人开发者**: 使用 AI 辅助编程的独立开发者
+2. **小型团队**: 2-10 人的开发团队
+3. **技术爱好者**: 对 AI 编程工具感兴趣的技术人员
+
+### 用户画像
+
+```
+用户 A: 前端开发者
+- 日常使用 React、TypeScript
+- 使用 Claude Code 进行代码辅助
+- 重视数据隐私
+- 期待统一的 AI 工具管理体验
+
+用户 B: 全栈开发者
+- 使用多种编程语言和框架
+- 需要在不同的 AI 模型之间切换
+- 期待本地优先的数据管理
+- 需要 MCP 工具集成
+```
+
+## 成功指标
+
+### 商业指标
+
+| 指标             | 目标 (MVP 发布后 3 个月) |
+| ---------------- | ------------------------ |
+| 活跃用户         | 1,000+                   |
+| 日活跃用户       | 100+                     |
+| 用户留存率 (7天) | 30%+                     |
+
+### 技术指标
+
+| 指标         | 目标               |
+| ------------ | ------------------ |
+| 应用启动时间 | < 3 秒             |
+| 对话响应延迟 | < 500ms (流式开始) |
+| 崩溃率       | < 1%               |
+| 内存占用     | < 500MB (空闲)     |
+
+### 功能指标
+
+| 指标                | 目标  |
+| ------------------- | ----- |
+| Provider 配置成功率 | > 95% |
+| 消息发送成功率      | > 99% |
+| MCP 工具调用成功率  | > 90% |
+
+## 路线图
+
+### Phase 1: MVP (v0.1.0)
+
+- 基础框架搭建
+- 多 Provider 支持
+- Chat 模式
+- Thread 管理
+- 桌面集成
+
+### Phase 2: 增强 (v0.2.0)
+
+- Agent 模式
+- MCP 支持
+- 主题系统
+- 自动更新
+
+### Phase 3: 完善 (v0.3.0)
+
+- Skills 支持
+- Terminal 集成
+- Git 集成
+- 记忆功能
+
+## 风险与注意事项
+
+### 已知风险
+
+| 风险                  | 影响 | 缓解措施                   |
+| --------------------- | ---- | -------------------------- |
+| Claude Agent SDK 变更 | 高   | 关注官方更新，保持灵活适配 |
+| Provider API 变更     | 中   | 抽象层设计，版本兼容       |
+| 性能瓶颈              | 中   | 持续性能测试和优化         |
+
+### 待定问题
+
+- 如何处理 Provider 的 rate limiting？
+- 是否支持离线模式？
+- 如何设计数据导出/导入功能？

@@ -1,69 +1,84 @@
-# RFC XXXX: Title
+# RFC {{number}}: {{title}}
 
-## Summary
+## 概述
 
-Brief description of the RFC (1-2 sentences).
+> 一句话总结这个 RFC 的核心内容
 
-## Motivation
+| 属性 | 值 |
+|------|-----|
+| RFC ID | {{number}} |
+| 状态 | 草稿 |
+| 作者 | {{author}} |
+| 创建日期 | {{date}} |
+| 最终更新 | {{date}} |
 
-Why is this needed? What problem does it solve?
+## 背景
 
-## Detailed Design
+### 问题描述
 
-### Subsection 1
+> 描述这个 RFC 要解决的问题或要实现的功能
 
-Detailed explanation...
+### 相关链接
 
-### Subsection 2
+- 相关 Issue: [链接]
+- 相关 PR: [链接]
+- 参考文档: [链接]
 
-Detailed explanation...
+## 详细设计
 
-## Architecture/Diagrams
+### 架构图
 
+```mermaid
+{{mermaid}}
 ```
-┌─────────────────────────────────────────┐
-│           Diagram description            │
-└─────────────────────────────────────────┘
-```
 
-## Type Definitions
+### 核心 API
 
 ```typescript
-// If applicable
-interface Example {
-  field: string;
-}
+{{api}}
 ```
 
-## User Experience
+### 数据结构
 
-How does this feature look and feel to users?
+```typescript
+{{types}}
+```
 
-## Security Considerations
+## 兼容性
 
-Any security implications?
+### 向后兼容性
 
-## Performance
+> 描述此 RFC 如何处理向后兼容性问题
 
-Any performance considerations?
+### 迁移策略
 
-## Open Questions
+> 描述如何从旧版本迁移到新版本
 
-1. Question 1?
-2. Question 2?
+## 替代方案
 
-## Alternatives Considered
+### 方案 A
 
-What other approaches were considered and why they were rejected?
+> 描述替代方案及其优缺点
 
-## Implementation Plan
+### 方案 B
 
-Suggested phases (if applicable):
-1. Phase 1: ...
-2. Phase 2: ...
+> 描述替代方案及其优缺点
 
----
+## 验收标准
 
-**Status**: Draft
-**Related RFCs**: (list related RFCs)
-**Reviewers**: (to be assigned)
+- [ ] 标准 1
+- [ ] 标准 2
+- [ ] 标准 3
+
+## 风险与注意事项
+
+### 已知风险
+
+| 风险 | 影响 | 缓解措施 |
+|------|------|----------|
+| 风险 1 | 高 | 缓解措施 |
+
+### 待定问题
+
+- 待定问题 1
+- 待定问题 2

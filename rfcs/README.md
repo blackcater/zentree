@@ -1,62 +1,69 @@
-# RFC Index
+# Acme RFCs
 
-This document serves as an index to all Acme RFCs.
+> 请求评论 (Request for Comments) 文档库
 
-## RFC List
+## 简介
 
-| RFC # | Title                          | Status | Description                                       |
-| ----- | ------------------------------ | ------ | ------------------------------------------------- |
-| 0001  | Product Vision & Overview      | Draft  | Product goals, target users, core principles      |
-| 0002  | System Architecture            | Draft  | Tech stack, layers, directory structure           |
-| 0003  | Multi-Provider Abstraction     | Draft  | Unified provider interface, capability model      |
-| 0004  | Core Data Models               | Draft  | Database schema, TypeScript interfaces            |
-| 0005  | Project & Workspace Management | Draft  | Project CRUD, sidebar, context management         |
-| 0006  | Thread & Session Management    | Draft  | Thread lifecycle, message flow, checkpoints       |
-| 0007  | Worktree & Isolation           | Draft  | Worktree lifecycle, merge, clone                  |
-| 0008  | Git Integration                | Draft  | Git features, GitHub integration                  |
-| 0009  | MCP & Skills System            | Draft  | MCP servers, custom skills, marketplace           |
-| 0010  | Automation System              | Draft  | Scheduled tasks, permissions, worktree isolation  |
-| 0011  | Terminal Integration           | Draft  | PTY management, actions, terminal panel           |
-| 0012  | UI/UX Design System            | Draft  | Design tokens, components, accessibility          |
-| 0013  | Desktop Shell                  | Draft  | Electron, window management, menus, tray          |
-| 0014  | Voice & Input Methods          | Draft  | Voice dictation, autocomplete, attachments        |
-| 0015  | Window Management              | Draft  | Pop-out windows, multi-monitor, state persistence |
+本目录包含 Acme 项目的 RFC 文档，用于记录架构决策和设计讨论。
 
-## RFC Process
+## 核心概念
 
-1. **Draft**: Initial version by author
-2. **Review**: Assigned reviewers provide feedback
-3. **Discussion**: RFC PR open for comments
-4. **Accepted**: Consensus reached, marked as accepted
-5. **Implemented**: Code ships with RFC reference
-6. **Superseded**: Replaced by newer RFC
+- **Vault**: 工作空间，类似 Obsidian 的概念
+- **Thread**: 会话，名字来源于 Codex
+- **@acme/runtime**: Runtime Server，提供 WebSocket 和 REST API
+- **@acme/acp**: Agent Client Protocol 支持
 
-## Contributing
+## 什么是 RFC?
 
-To create a new RFC:
+RFC (Request for Comments) 是一种用于记录软件设计和架构决策的文档格式。在 Acme 项目中，我们使用 RFC 来：
 
-1. Copy `rfcs/0000-template.md` to `rfcs/XXXX-title.md`
-2. Fill in the RFC content
-3. Open a PR with `[RFC]` prefix
-4. Address feedback from reviewers
-5. Merge when accepted
+- 记录重要的技术决策
+- 促进团队讨论和审查
+- 追踪架构演变历史
+- 帮助新成员理解系统设计
 
-## Open Questions
+## RFC 生命周期
 
-The following RFCs have unresolved questions marked as "Open Questions":
+1. **草稿 (Draft)**: 初始版本，正在积极讨论中
+2. **审查 (Review)**: 完成设计，正在接受社区反馈
+3. **已批准 (Approved)**: 已通过审查，将被实现
+4. **已实现 (Implemented)**: 已在代码中实现
+5. **已弃用 (Deprecated)**: 已被新 RFC 取代
 
-- 0001: Provider support scope, tech stack decision
-- 0002: Plugin system, separate AI process
-- 0003: Provider file format migration, third-party plugins
-- 0004: Soft delete, encryption
-- 0005: Monorepo support, SSHFS
-- 0006: Thread limits, long thread handling
-- 0007: Auto-cleanup, templates
-- 0008: Other Git providers, conflict resolution
-- 0009: Skill versioning, sharing
-- 0010: Webhooks, chaining
-- 0011: Profiles, task runner integration
-- 0012: Custom themes, high DPI
-- 0013: Linux packaging, Windows sandbox
-- 0014: (none)
-- 0015: Multiple main windows, tabs
+## 目录
+
+| RFC | 标题 | 状态 |
+|-----|------|------|
+| [0001](./0001-product-vision.md) | 产品愿景与 MVP 定义 | 草稿 |
+| [0002](./0002-system-architecture.md) | 系统架构设计 | 草稿 |
+| [0003](./0003-data-models.md) | 数据模型设计 | 草稿 |
+| [0004](./0004-multi-provider-abstraction.md) | 多 Provider 抽象层 | 草稿 |
+| [0005](./0005-desktop-core-features.md) | 桌面应用核心功能 | 草稿 |
+| [0006](./0006-session-message-management.md) | 会话与消息管理 | 草稿 |
+| [0007](./0007-mcp-integration.md) | MCP 集成 | 草稿 |
+| [0008](./0008-local-storage.md) | 本地存储设计 | 草稿 |
+| [0009](./0009-ui-ux-design.md) | UI/UX 设计系统 | 草稿 |
+| [0010](./0010-agent-runtime.md) | Agent 运行时集成 | 草稿 |
+
+## 贡献指南
+
+### 创建新 RFC
+
+1. 复制 `0000-template.md` 作为模板
+2. 使用下一个可用的 RFC 编号
+3. 填写所有必需部分
+4. 提交 PR 进行审查
+
+### RFC 审查要点
+
+- 清晰度：文档是否易于理解？
+- 完整性：是否涵盖所有重要方面？
+- 一致性：是否与项目整体架构一致？
+- 可行性：设计是否可以在合理时间内实现？
+
+## 格式规范
+
+- 使用中文编写（技术术语可保留英文）
+- 使用 Mermaid 绘制架构图
+- 使用 TypeScript 定义类型
+- 保持文档简洁，优先使用列表而非长段落
