@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react'
 import { codeInspectorPlugin } from 'code-inspector-plugin'
 import dotenv from 'dotenv'
 import { defineConfig } from 'electron-vite'
+import tsconfigPathsPlugin from 'vite-tsconfig-paths'
 
 // Load environment variables from root .env file
 dotenv.config({
@@ -17,18 +18,21 @@ dotenv.config({
 const env = (await import('./src/main/env.main')).env
 const isDev = env.NODE_ENV === 'development'
 
+console.log(import.meta.dirname)
+
 // Plugin configs
+const tsconfigPaths = tsconfigPathsPlugin({ root: import.meta.dirname })
 const codeInspector = codeInspectorPlugin({ bundler: 'vite', editor: 'code' })
 
 export default defineConfig({
 	main: {
+		plugins: [tsconfigPaths],
 		define: {},
-		resolve: {
-			tsconfigPaths: true,
-			// alias: {
-			// 	'@xxx/yyy': '@xxx/yyy/a/b/c/index.ts',
-			// },
-		},
+		// resolve: {
+		// 	alias: {
+		// 		'@xxx/yyy': '@xxx/yyy/a/b/c/index.ts',
+		// 	},
+		// },
 		build: {
 			sourcemap: isDev,
 			outDir: resolve('./out/main'),
@@ -41,10 +45,8 @@ export default defineConfig({
 	},
 
 	preload: {
+		plugins: [tsconfigPaths],
 		define: {},
-		resolve: {
-			tsconfigPaths: true,
-		},
 		build: {
 			sourcemap: isDev,
 			outDir: resolve('./out/preload'),
@@ -60,11 +62,8 @@ export default defineConfig({
 	},
 
 	renderer: {
-		plugins: [codeInspector, tailwindcss(), react()],
+		plugins: [tsconfigPaths, codeInspector, tailwindcss(), react()],
 		define: {},
-		resolve: {
-			tsconfigPaths: true,
-		},
 		publicDir: resolve('./src/renderer/public'),
 		build: {
 			sourcemap: isDev,
