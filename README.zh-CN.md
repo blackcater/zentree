@@ -1,10 +1,10 @@
 <p align="center">
   <a href="https://acme.blackcater.dev">
-    <img src="./assets/acme-app.svg" alt="acme logo" width="128">
+    <img src="./assets/acme.svg" alt="acme logo" width="128">
   </a>
 </p>
 
-<h1 align="center">ACME</h1>
+<h1 align="center">Acme</h1>
 
 <p align="center">
   <em>本地优先的多智能体协作应用</em>
