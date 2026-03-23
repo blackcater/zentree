@@ -46,7 +46,7 @@ export function initAgentHandlers(runtime: AgentRuntime): void {
 	})
 
 	// agent:status
-	router.register('agent:status', async (input, windowId) => {
+	router.register('agent:status', async (input, _windowId) => {
 		agentContracts.getStatus.input.parse(input)
 		handlerLog.debug('agent:status called')
 
