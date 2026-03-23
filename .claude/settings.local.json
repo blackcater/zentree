@@ -4,11 +4,11 @@
       "Bash(bun install:*)",
       "Bash(bun run:*)",
       "Bash(bun test:*)",
+      "Bash(bunx oxfmt:*)",
+      "Bash(bunx oxlint:*)",
       "Bash(bunx tsc:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(npx oxfmt:*)",
-      "Bash(npx oxlint:*)",
       "Skill(commit-commands:commit)",
       "mcp__plugin_context7_context7__resolve-library-id",
       "mcp__plugin_context7_context7__query-docs"
