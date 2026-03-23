@@ -5,6 +5,7 @@ import { handlerLog } from '../lib/logger'
 interface PendingRequest {
 	resolve: (value: unknown) => void
 	reject: (error: Error) => void
+	windowId: string
 }
 
 interface HandlerEntry {
@@ -16,6 +17,7 @@ interface IncomingMessage {
 	channel?: string
 	requestId?: string
 	payload?: unknown
+	data?: unknown
 	error?: string
 }
 
@@ -184,6 +186,25 @@ export class MessageChannelRouter {
 				break
 			}
 
+			case 'message': {
+				// Handle one-way messages sent via sendToWindow
+				// These are notifications without expecting a response
+				const { channel, data } = message
+				if (!channel) {
+					handlerLog.warn(`Invalid message from ${windowId}: missing channel`)
+					return
+				}
+
+				const handler = this.handlers.get(channel)
+				if (handler) {
+					// Fire and forget - handlers can async but we don't wait for response
+					handler.handler(data, windowId).catch((error) => {
+						handlerLog.error(`Handler error for channel ${channel}:`, error)
+					})
+				}
+				break
+			}
+
 			default:
 				handlerLog.warn(`Unknown message type from ${windowId}:`, message.type)
 		}
@@ -233,7 +254,7 @@ export class MessageChannelRouter {
 		const requestId = this.generateRequestId()
 
 		return new Promise((resolve, reject) => {
-			this.pendingRequests.set(requestId, { resolve: resolve as (value: unknown) => void, reject })
+			this.pendingRequests.set(requestId, { resolve: resolve as (value: unknown) => void, reject, windowId })
 
 			port.postMessage({
 				type: 'request',
@@ -266,6 +287,14 @@ export class MessageChannelRouter {
 		if (port) {
 			port.close()
 			this.windowPorts.delete(windowId)
+		}
+
+		// Clean up pending requests for this window to prevent memory leaks
+		for (const [requestId, pending] of this.pendingRequests.entries()) {
+			if (pending.windowId === windowId) {
+				pending.reject(new Error(`Window ${windowId} removed`))
+				this.pendingRequests.delete(requestId)
+			}
 		}
 
 		handlerLog.debug(`Removed window: ${windowId}`)
