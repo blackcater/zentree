@@ -1,6 +1,14 @@
 interface ToolbarProps {
-	activePanel: 'files' | 'git' | 'browser' | 'preview' | 'settings' | undefined
-	onPanelChange: (panel: 'files' | 'git' | 'browser' | 'preview' | 'settings') => void
+	activePanel:
+		| 'files'
+		| 'git'
+		| 'browser'
+		| 'preview'
+		| 'settings'
+		| undefined
+	onPanelChange: (
+		panel: 'files' | 'git' | 'browser' | 'preview' | 'settings'
+	) => void
 }
 
 const toolbarButtons = [
@@ -8,7 +16,12 @@ const toolbarButtons = [
 		id: 'files' as const,
 		label: 'Files',
 		icon: (
-			<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="h-5 w-5">
+			<svg
+				fill="none"
+				stroke="currentColor"
+				viewBox="0 0 24 24"
+				className="h-5 w-5"
+			>
 				<path
 					strokeLinecap="round"
 					strokeLinejoin="round"
@@ -22,7 +35,12 @@ const toolbarButtons = [
 		id: 'git' as const,
 		label: 'Git',
 		icon: (
-			<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="h-5 w-5">
+			<svg
+				fill="none"
+				stroke="currentColor"
+				viewBox="0 0 24 24"
+				className="h-5 w-5"
+			>
 				<path
 					strokeLinecap="round"
 					strokeLinejoin="round"
@@ -36,7 +54,12 @@ const toolbarButtons = [
 		id: 'browser' as const,
 		label: 'Browser',
 		icon: (
-			<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="h-5 w-5">
+			<svg
+				fill="none"
+				stroke="currentColor"
+				viewBox="0 0 24 24"
+				className="h-5 w-5"
+			>
 				<path
 					strokeLinecap="round"
 					strokeLinejoin="round"
@@ -50,7 +73,12 @@ const toolbarButtons = [
 		id: 'preview' as const,
 		label: 'Preview',
 		icon: (
-			<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="h-5 w-5">
+			<svg
+				fill="none"
+				stroke="currentColor"
+				viewBox="0 0 24 24"
+				className="h-5 w-5"
+			>
 				<path
 					strokeLinecap="round"
 					strokeLinejoin="round"
@@ -70,7 +98,12 @@ const toolbarButtons = [
 		id: 'settings' as const,
 		label: 'Settings',
 		icon: (
-			<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="h-5 w-5">
+			<svg
+				fill="none"
+				stroke="currentColor"
+				viewBox="0 0 24 24"
+				className="h-5 w-5"
+			>
 				<path
 					strokeLinecap="round"
 					strokeLinejoin="round"
@@ -93,7 +126,7 @@ export function Toolbar({
 	onPanelChange,
 }: Readonly<ToolbarProps>): React.JSX.Element {
 	return (
-		<div className="flex h-full w-12 flex-col items-center border-l border-border bg-gray-800 py-4">
+		<div className="border-border flex h-full w-12 flex-col items-center border-l bg-gray-800 py-4">
 			{toolbarButtons.map((button) => (
 				<button
 					key={button.id}

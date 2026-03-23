@@ -35,17 +35,19 @@ export function ChatInput({
 	const canSend = threadId && message.trim() && !isSending && !disabled
 
 	return (
-		<form onSubmit={handleSubmit} className="border-t border-border p-4">
+		<form onSubmit={handleSubmit} className="border-border border-t p-4">
 			<div className="mx-auto flex max-w-3xl items-end gap-3">
 				<textarea
 					value={message}
 					onChange={(e) => setMessage(e.target.value)}
 					placeholder={
-						threadId ? 'Type your message...' : 'Select a thread to start chatting'
+						threadId
+							? 'Type your message...'
+							: 'Select a thread to start chatting'
 					}
 					disabled={!threadId || disabled}
 					rows={1}
-					className="flex-1 resize-none rounded-lg border border-input bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+					className="border-input bg-background focus:ring-ring flex-1 resize-none rounded-lg border px-4 py-3 focus:ring-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 					style={{
 						minHeight: '48px',
 						maxHeight: '200px',
@@ -60,7 +62,7 @@ export function ChatInput({
 				<button
 					type="submit"
 					disabled={!canSend}
-					className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+					className="bg-primary text-primary-foreground hover:bg-primary/90 flex h-12 w-12 items-center justify-center rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					{isSending ? (
 						<svg

@@ -18,8 +18,6 @@ dotenv.config({
 const env = (await import('./src/main/env.main')).env
 const isDev = env.NODE_ENV === 'development'
 
-console.log(import.meta.dirname)
-
 // Plugin configs
 const tsconfigPaths = tsconfigPathsPlugin({ root: import.meta.dirname })
 const codeInspector = codeInspectorPlugin({ bundler: 'vite', editor: 'code' })
@@ -28,11 +26,6 @@ export default defineConfig({
 	main: {
 		plugins: [tsconfigPaths],
 		define: {},
-		// resolve: {
-		// 	alias: {
-		// 		'@xxx/yyy': '@xxx/yyy/a/b/c/index.ts',
-		// 	},
-		// },
 		build: {
 			sourcemap: isDev,
 			outDir: resolve('./out/main'),

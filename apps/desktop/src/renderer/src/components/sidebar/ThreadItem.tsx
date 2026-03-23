@@ -18,7 +18,9 @@ export function ThreadItem({
 			type="button"
 			onClick={onClick}
 			className={`flex h-8 w-full items-center gap-2 rounded-md px-3 text-sm ${
-				isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+				isSelected
+					? 'bg-primary text-primary-foreground'
+					: 'hover:bg-accent'
 			}`}
 		>
 			<span

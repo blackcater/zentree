@@ -12,7 +12,10 @@ interface ChatHeaderProps {
 	onStop: () => void
 }
 
-export function ChatHeader({ threadId, onStop }: Readonly<ChatHeaderProps>): React.JSX.Element {
+export function ChatHeader({
+	threadId,
+	onStop,
+}: Readonly<ChatHeaderProps>): React.JSX.Element {
 	const [thread, setThread] = useState<Thread | null>(null)
 	const [isRunning, setIsRunning] = useState(false)
 
@@ -31,18 +34,23 @@ export function ChatHeader({ threadId, onStop }: Readonly<ChatHeaderProps>): Rea
 		})
 
 		// Request initial status
-		window.api.invoke<AgentStatus>('agent:status').then((status) => {
-			if (threadId) {
-				setIsRunning(status.running.includes(threadId))
-			}
-		}).catch(console.error)
+		window.api
+			.invoke<AgentStatus>('agent:status')
+			.then((status) => {
+				if (threadId) {
+					setIsRunning(status.running.includes(threadId))
+				}
+			})
+			.catch(console.error)
 
 		return unsubscribe
 	}, [threadId])
 
 	async function loadThread(): Promise<void> {
 		try {
-			const result = await window.api.invoke<Thread>('thread:get', { threadId })
+			const result = await window.api.invoke<Thread>('thread:get', {
+				threadId,
+			})
 			setThread(result)
 		} catch (error) {
 			console.error('Failed to load thread:', error)
@@ -64,8 +72,10 @@ export function ChatHeader({ threadId, onStop }: Readonly<ChatHeaderProps>): Rea
 
 	if (!threadId) {
 		return (
-			<div className="flex h-14 items-center border-b border-border px-4">
-				<span className="text-muted-foreground">Select a thread to start chatting</span>
+			<div className="border-border flex h-14 items-center border-b px-4">
+				<span className="text-muted-foreground">
+					Select a thread to start chatting
+				</span>
 			</div>
 		)
 	}
@@ -73,9 +83,11 @@ export function ChatHeader({ threadId, onStop }: Readonly<ChatHeaderProps>): Rea
 	const badge = thread ? getAgentBadge(thread.agentId) : null
 
 	return (
-		<div className="flex h-14 items-center justify-between border-b border-border px-4">
+		<div className="border-border flex h-14 items-center justify-between border-b px-4">
 			<div className="flex items-center gap-3">
-				<h2 className="font-semibold">{thread?.title ?? 'Loading...'}</h2>
+				<h2 className="font-semibold">
+					{thread?.title ?? 'Loading...'}
+				</h2>
 				{badge && (
 					<span
 						className={`rounded px-2 py-0.5 text-xs font-medium text-white ${badge.color}`}
@@ -84,7 +96,7 @@ export function ChatHeader({ threadId, onStop }: Readonly<ChatHeaderProps>): Rea
 					</span>
 				)}
 				{isRunning && (
-					<span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+					<span className="text-muted-foreground flex items-center gap-1.5 text-sm">
 						<span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
 						Running
 					</span>
@@ -95,7 +107,7 @@ export function ChatHeader({ threadId, onStop }: Readonly<ChatHeaderProps>): Rea
 				<button
 					type="button"
 					onClick={onStop}
-					className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-accent"
+					className="border-border hover:bg-accent rounded-lg border px-3 py-1.5 text-sm"
 				>
 					Stop
 				</button>

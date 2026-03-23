@@ -1,6 +1,10 @@
 type LogLevel = 'info' | 'warn' | 'error'
 
-const formatMessage = (level: LogLevel, message: string, meta?: object): string => {
+const formatMessage = (
+	level: LogLevel,
+	message: string,
+	meta?: object
+): string => {
 	const timestamp = new Date().toISOString()
 	const metaStr = meta ? ` ${JSON.stringify(meta)}` : ''
 	return `[${timestamp}] [${level.toUpperCase()}] ${message}${metaStr}`

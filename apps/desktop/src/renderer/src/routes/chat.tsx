@@ -1,7 +1,7 @@
 import { useAtom } from 'jotai'
 
-import { ChatHeader, ChatMessages, ChatInput } from '../components/chat'
 import { threadIdAtom } from '../atoms'
+import { ChatHeader, ChatMessages, ChatInput } from '../components/chat'
 
 export function ChatPage(): React.JSX.Element {
 	const [threadId] = useAtom(threadIdAtom)
@@ -18,7 +18,10 @@ export function ChatPage(): React.JSX.Element {
 
 		// Get thread info to find agentId
 		try {
-			const thread = await window.api.invoke<{ agentId: string }>('thread:get', { threadId })
+			const thread = await window.api.invoke<{ agentId: string }>(
+				'thread:get',
+				{ threadId }
+			)
 			await window.api.invoke('agent:stop', { agentId: thread.agentId })
 		} catch (error) {
 			console.error('Failed to stop agent:', error)

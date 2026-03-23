@@ -38,15 +38,19 @@ export function VaultSelector({
 			<button
 				type="button"
 				onClick={() => setIsOpen(!isOpen)}
-				className="flex h-10 w-full items-center justify-between rounded-lg border border-border bg-card px-3 text-sm hover:bg-accent"
+				className="border-border bg-card hover:bg-accent flex h-10 w-full items-center justify-between rounded-lg border px-3 text-sm"
 			>
 				<span className="truncate">
 					{isLoading ? (
-						<span className="text-muted-foreground">Loading...</span>
+						<span className="text-muted-foreground">
+							Loading...
+						</span>
 					) : selectedVault ? (
 						selectedVault.name
 					) : (
-						<span className="text-muted-foreground">Select vault</span>
+						<span className="text-muted-foreground">
+							Select vault
+						</span>
 					)}
 				</span>
 				<svg
@@ -55,16 +59,26 @@ export function VaultSelector({
 					stroke="currentColor"
 					viewBox="0 0 24 24"
 				>
-					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+					<path
+						strokeLinecap="round"
+						strokeLinejoin="round"
+						strokeWidth={2}
+						d="M19 9l-7 7-7-7"
+					/>
 				</svg>
 			</button>
 
 			{isOpen && (
 				<>
-					<div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-					<div className="absolute left-0 top-full z-20 mt-1 w-full rounded-lg border border-border bg-popover py-1 shadow-lg">
+					<div
+						className="fixed inset-0 z-10"
+						onClick={() => setIsOpen(false)}
+					/>
+					<div className="border-border bg-popover absolute top-full left-0 z-20 mt-1 w-full rounded-lg border py-1 shadow-lg">
 						{vaults.length === 0 && !isLoading ? (
-							<div className="px-3 py-2 text-sm text-muted-foreground">No vaults found</div>
+							<div className="text-muted-foreground px-3 py-2 text-sm">
+								No vaults found
+							</div>
 						) : (
 							vaults.map((vault) => (
 								<button
@@ -74,11 +88,15 @@ export function VaultSelector({
 										onVaultSelect(vault.id)
 										setIsOpen(false)
 									}}
-									className={`flex w-full items-center px-3 py-2 text-sm hover:bg-accent ${
-										vault.id === selectedVaultId ? 'bg-accent' : ''
+									className={`hover:bg-accent flex w-full items-center px-3 py-2 text-sm ${
+										vault.id === selectedVaultId
+											? 'bg-accent'
+											: ''
 									}`}
 								>
-									<span className="truncate">{vault.name}</span>
+									<span className="truncate">
+										{vault.name}
+									</span>
 								</button>
 							))
 						)}

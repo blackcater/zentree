@@ -1,10 +1,9 @@
+import { Outlet } from '@tanstack/react-router'
 import { useAtom } from 'jotai'
 
-import { Outlet } from '@tanstack/react-router'
-
+import { activePanelAtom, threadIdAtom, vaultIdAtom } from '../atoms'
 import { VaultSelector, ProjectTree } from '../components/sidebar'
 import { Toolbar } from '../components/toolbar'
-import { activePanelAtom, threadIdAtom, vaultIdAtom } from '../atoms'
 
 export function RootComponent(): React.JSX.Element {
 	const [vaultId, setVaultId] = useAtom(vaultIdAtom)
@@ -14,10 +13,13 @@ export function RootComponent(): React.JSX.Element {
 	return (
 		<div className="flex h-screen">
 			{/* Left Sidebar */}
-			<aside className="flex h-full w-[260px] flex-col border-r border-border bg-sidebar">
+			<aside className="border-border bg-sidebar flex h-full w-[260px] flex-col border-r">
 				{/* Vault Selector */}
-				<div className="border-b border-border p-3">
-					<VaultSelector selectedVaultId={vaultId} onVaultSelect={setVaultId} />
+				<div className="border-border border-b p-3">
+					<VaultSelector
+						selectedVaultId={vaultId}
+						onVaultSelect={setVaultId}
+					/>
 				</div>
 
 				{/* Project Tree */}

@@ -1,9 +1,11 @@
-import { mkdir, readFile, writeFile, rm, readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
+import { mkdir, readFile, writeFile, rm, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
+
 import { createId } from '@paralleldrive/cuid2'
-import type { Thread } from '../types'
+
 import { log } from '../lib/logger'
+import type { Thread } from '../types'
 
 export class ThreadStore {
 	readonly #basePath: string
@@ -20,7 +22,9 @@ export class ThreadStore {
 		return join(this.getThreadDir(threadId), 'config.json')
 	}
 
-	async create(data: Omit<Thread, 'id' | 'createdAt' | 'updatedAt'>): Promise<Thread> {
+	async create(
+		data: Omit<Thread, 'id' | 'createdAt' | 'updatedAt'>
+	): Promise<Thread> {
 		const now = new Date()
 		const thread: Thread = {
 			...data,

@@ -1,9 +1,11 @@
-import { mkdir, readFile, writeFile, unlink, readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
+import { mkdir, readFile, writeFile, unlink, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
+
 import { createId } from '@paralleldrive/cuid2'
-import type { Folder } from '../types'
+
 import { log } from '../lib/logger'
+import type { Folder } from '../types'
 
 export class FolderStore {
 	readonly #basePath: string
@@ -65,7 +67,9 @@ export class FolderStore {
 		try {
 			const entries = await readdir(foldersDir, { withFileTypes: true })
 			const folderPaths = entries
-				.filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+				.filter(
+					(entry) => entry.isFile() && entry.name.endsWith('.json')
+				)
 				.map((entry) => join(foldersDir, entry.name))
 
 			const folders: Folder[] = []
@@ -77,7 +81,9 @@ export class FolderStore {
 				}
 			}
 
-			return folders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+			return folders.sort(
+				(a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+			)
 		} catch (error) {
 			log.error('Failed to list folders by project', { projectId, error })
 			return []

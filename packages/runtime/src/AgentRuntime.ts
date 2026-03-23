@@ -1,8 +1,9 @@
 import { EventEmitter } from 'node:events'
+
 import { CodeAgentProcess } from './CodeAgentProcess'
-import { ThreadStore } from './stores/ThreadStore'
-import { MessageStore } from './stores/MessageStore'
 import { log } from './lib/logger'
+import { MessageStore } from './stores/MessageStore'
+import { ThreadStore } from './stores/ThreadStore'
 import type { AgentStatus, AgentProcessOptions } from './types'
 
 export interface RuntimeConfig {
@@ -105,7 +106,10 @@ export class AgentRuntime extends EventEmitter {
 		}
 	}
 
-	async sendMessage(threadId: string, content: string): Promise<string | null> {
+	async sendMessage(
+		threadId: string,
+		content: string
+	): Promise<string | null> {
 		const agentId = this.#threadAgentMap.get(threadId)
 		if (!agentId) {
 			log.warn('No agent running for thread', { threadId })

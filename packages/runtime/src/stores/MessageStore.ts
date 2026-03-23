@@ -1,9 +1,11 @@
-import { mkdir, appendFile, readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
+import { mkdir, appendFile, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+
 import { createId } from '@paralleldrive/cuid2'
-import type { Message } from '../types'
+
 import { log } from '../lib/logger'
+import type { Message } from '../types'
 
 export class MessageStore {
 	readonly #basePath: string
@@ -37,7 +39,10 @@ export class MessageStore {
 		const line = JSON.stringify(message) + '\n'
 		await appendFile(messagesPath, line, 'utf-8')
 
-		log.info('Message appended', { messageId: message.id, threadId: message.threadId })
+		log.info('Message appended', {
+			messageId: message.id,
+			threadId: message.threadId,
+		})
 		return message
 	}
 
@@ -50,7 +55,9 @@ export class MessageStore {
 
 		try {
 			const content = await readFile(messagesPath, 'utf-8')
-			const lines = content.split('\n').filter((line) => line.trim() !== '')
+			const lines = content
+				.split('\n')
+				.filter((line) => line.trim() !== '')
 			const messages = lines.map((line) => JSON.parse(line) as Message)
 
 			if (limit !== undefined && limit > 0) {

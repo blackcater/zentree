@@ -7,6 +7,7 @@
       "Bash(bunx oxfmt:*)",
       "Bash(bunx oxlint:*)",
       "Bash(bunx tsc:*)",
+      "Bash(git:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Skill(commit-commands:commit)",
