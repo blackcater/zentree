@@ -11,16 +11,15 @@ A unified RPC framework for desktop applications with two transport implementati
 ```
 desktop/src/shared/rpc/
 ├── types.ts           # Core type definitions
-├── RpcError.ts        # Unified error structure
-├── RpcServer.ts       # Server class
-├── RpcClient.ts       # Client class
-├── transports/        # Transport implementations
-│   ├── electron/      # Electron IPC transport
-│   │   └── ElectronIpcTransport.ts
-│   └── http/          # HTTP + SSE transport
-│       ├── HttpRpcTransport.ts
-│       └── sse.ts
-└── index.ts          # Unified exports
+├── RpcError.ts       # Unified error structure
+├── RpcServer.ts      # Server class (abstract)
+├── RpcClient.ts      # Client class (abstract)
+├── electron/         # Electron IPC implementation
+│   ├── ElectronRpcServer.ts
+│   └── ElectronRpcClient.ts
+└── http/            # HTTP + SSE implementation
+    ├── HttpRpcServer.ts
+    └── HttpRpcClient.ts
 ```
 
 ## Core Interfaces
@@ -28,32 +27,32 @@ desktop/src/shared/rpc/
 ### RpcServer
 
 ```typescript
-interface RpcServer {
+abstract class RpcServer {
   // Register event handler (supports sync and streaming responses)
-  handle(event: string, handler: (args: unknown) => unknown | AsyncIterator): void
+  abstract handle(event: string, handler: (args: unknown) => unknown | AsyncIterator): void
 
   // Push event to clients
-  push(event: string, target: Target, ...args: unknown[]): void
+  abstract push(event: string, target: Target, ...args: unknown[]): void
 
   // Listen for client events
-  onEvent(listener: (client: RpcClient, event: string, ...args: unknown[]) => void): void
+  abstract onEvent(listener: (client: RpcClient, event: string, ...args: unknown[]) => void): void
 }
 ```
 
 ### RpcClient
 
 ```typescript
-interface RpcClient {
-  readonly groupId: string
+abstract class RpcClient {
+  abstract readonly groupId: string
 
   // Request-response call
-  call(method: string, args: unknown): Promise<unknown>
+  abstract call(method: string, args: unknown): Promise<unknown>
 
   // Streaming call (returns AsyncIterator)
-  stream(method: string, args: unknown): AsyncIterator
+  abstract stream(method: string, args: unknown): AsyncIterator
 
   // Listen for server pushes
-  onEvent(listener: (event: string, ...args: unknown[]) => void): void
+  abstract onEvent(listener: (event: string, ...args: unknown[]) => void): void
 }
 ```
 
@@ -81,18 +80,18 @@ interface RpcError {
 
 Electron IPC does not automatically propagate errors across process boundaries. Therefore, the framework defines a unified `RpcError` structure that all transports must use to serialize and transmit errors back to the client.
 
-### 2. Transport-Agnostic API
+### 2. Separate Implementation Classes
 
-Users explicitly create transport instances and pass them to `RpcServer`/`RpcClient`:
+Each transport has its own concrete `RpcServer` and `RpcClient` implementation:
 
 ```typescript
 // Electron scenario
-const ipcTransport = new ElectronIpcTransport()
-const server = new RpcServer(ipcTransport)
+const server = new ElectronRpcServer()
+const client = new ElectronRpcClient({ groupId: 'agents' })
 
 // HTTP scenario
-const httpTransport = new HttpRpcTransport('http://server/rpc')
-const client = new RpcClient(httpTransport, { groupId: 'agents' })
+const server = new HttpRpcServer({ port: 4096 })
+const client = new HttpRpcClient({ url: 'http://localhost:4096', groupId: 'agents' })
 ```
 
 ### 3. Streaming with AsyncIterator
@@ -127,7 +126,7 @@ for await (const chunk of client.stream('streamOutput', { taskId })) {
 Clients identify themselves by `groupId` during construction. This allows the server to route pushes to specific groups without requiring explicit window IDs.
 
 ```typescript
-const client = new RpcClient(transport, { groupId: 'agents' })
+const client = new ElectronRpcClient({ groupId: 'agents' })
 ```
 
 ### 6. Multi-Window Support
@@ -152,9 +151,9 @@ For Electron multi-window scenarios:
 
 ## Testing Strategy (TDD)
 
-1. Write interface tests first
-2. Implement `RpcServer` and `RpcClient` with `ElectronIpcTransport` using mock IPC
-3. Implement `RpcServer` and `RpcClient` with `HttpRpcTransport` using mock HTTP/SSE
+1. Write interface tests against `RpcServer` and `RpcClient` abstract classes
+2. Implement `ElectronRpcServer` and `ElectronRpcClient` with mock IPC
+3. Implement `HttpRpcServer` and `HttpRpcClient` with mock HTTP/SSE
 4. All tests run with `bun test`
 
 ## Usage Examples
@@ -162,8 +161,7 @@ For Electron multi-window scenarios:
 ### Electron Main Process
 
 ```typescript
-const ipcTransport = new ElectronIpcTransport()
-const server = new RpcServer(ipcTransport)
+const server = new ElectronRpcServer()
 
 server.handle('getStatus', async () => {
   return { status: 'ok' }
@@ -183,8 +181,7 @@ server.onEvent((client, event, ...args) => {
 ### Electron Renderer Process
 
 ```typescript
-const ipcTransport = new ElectronIpcTransport()
-const client = new RpcClient(ipcTransport, { groupId: 'renderer' })
+const client = new ElectronRpcClient({ groupId: 'renderer' })
 
 const status = await client.call('getStatus', {})
 console.log(status) // { status: 'ok' }
@@ -198,11 +195,20 @@ client.onEvent((event, ...args) => {
 })
 ```
 
+### Cross-Machine HTTP Server
+
+```typescript
+const server = new HttpRpcServer({ port: 4096 })
+
+server.handle('getInfo', async () => {
+  return { version: '1.0.0' }
+})
+```
+
 ### Cross-Machine HTTP Client
 
 ```typescript
-const httpTransport = new HttpRpcTransport('http://192.168.1.100:4096')
-const client = new RpcClient(httpTransport, { groupId: 'remote-agent' })
+const client = new HttpRpcClient({ url: 'http://192.168.1.100:4096', groupId: 'remote-agent' })
 
-const result = await client.call('someMethod', { arg: 'value' })
+const result = await client.call('getInfo', {})
 ```
