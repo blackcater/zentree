@@ -2,7 +2,7 @@
   "extends": "@acme-ai/tsconfig/electron.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "types": ["electron-vite/node"],
+    "types": ["@types/bun", "electron-vite/node"],
     "allowImportingTsExtensions": true,
     "paths": {
       "~/*": ["./*"],

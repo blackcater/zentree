@@ -1,9 +1,13 @@
 import type { IpcMainEvent } from 'electron'
 
-import { RpcClient } from '../RpcClient'
 import { RpcError } from '../RpcError'
-import { RpcServer } from '../RpcServer'
-import type { Target, RpcResponse, RpcStreamChunk } from '../types'
+import type {
+	RpcTarget,
+	RpcResponse,
+	RpcStreamChunk,
+	RpcServer,
+	RpcClient,
+} from '../types'
 
 type Handler = (
 	args: unknown
@@ -25,7 +29,7 @@ async function getIpcMain(): Promise<IpcMainLike | undefined> {
 	}
 }
 
-export class ElectronRpcServer extends RpcServer {
+export class ElectronRpcServer implements RpcServer {
 	private handlers = new Map<string, Handler>()
 	private clients = new Set<RpcClient>()
 	private eventListeners = new Set<
@@ -34,7 +38,6 @@ export class ElectronRpcServer extends RpcServer {
 	private ipcMain: IpcMainLike | undefined
 
 	constructor(ipcMainLike?: IpcMainLike) {
-		super()
 		this.ipcMain = ipcMainLike
 
 		if (this.ipcMain) {
@@ -64,7 +67,7 @@ export class ElectronRpcServer extends RpcServer {
 		this.handlers.set(event, handler)
 	}
 
-	push(event: string, target: Target, ...args: unknown[]): void {
+	push(event: string, target: RpcTarget, ...args: unknown[]): void {
 		if (target.type === 'broadcast') {
 			// Send to all clients
 			this.clients.forEach((client) => {

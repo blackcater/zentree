@@ -1,13 +1,12 @@
-import { RpcClient } from '../RpcClient'
 import { RpcError } from '../RpcError'
-import type { RpcRequest, RpcResponse } from '../types'
+import type { RpcClient, RpcRequest, RpcResponse } from '../types'
 
 interface ClientOptions {
 	url: string
 	groupId: string
 }
 
-export class HttpRpcClient extends RpcClient {
+export class HttpRpcClient implements RpcClient {
 	readonly groupId: string
 	private readonly baseUrl: string
 	private eventSource: EventSource | null = null
@@ -16,7 +15,6 @@ export class HttpRpcClient extends RpcClient {
 	>()
 
 	constructor(options: ClientOptions) {
-		super()
 		this.groupId = options.groupId
 		this.baseUrl = options.url
 	}
@@ -60,7 +58,11 @@ export class HttpRpcClient extends RpcClient {
 			},
 		}
 
-		return chunks[Symbol.asyncIterator]() as AsyncIterator<unknown, unknown, unknown>
+		return chunks[Symbol.asyncIterator]() as AsyncIterator<
+			unknown,
+			unknown,
+			unknown
+		>
 	}
 
 	onEvent(listener: (event: string, ...args: unknown[]) => void): void {

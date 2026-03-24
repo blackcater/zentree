@@ -1,12 +1,16 @@
 // Types
-export { type Target, type RpcRequest, type RpcResponse, type RpcStreamChunk, type RpcPushMessage } from './types'
+export {
+	type RpcTarget,
+	type RpcClient,
+	type RpcServer,
+	type RpcRequest,
+	type RpcResponse,
+	type RpcStreamChunk,
+	type RpcPushMessage,
+} from './types'
 
 // Error
 export { RpcError } from './RpcError'
-
-// Abstract classes
-export { RpcServer } from './RpcServer'
-export { RpcClient } from './RpcClient'
 
 // Electron implementation
 export { ElectronRpcServer } from './electron/ElectronRpcServer'

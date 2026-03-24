@@ -1,6 +1,5 @@
-import { RpcClient } from '../RpcClient'
 import { RpcError } from '../RpcError'
-import type { RpcResponse, RpcStreamChunk } from '../types'
+import type { RpcClient, RpcResponse, RpcStreamChunk } from '../types'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type IpcListener = (...args: any[]) => void
@@ -16,7 +15,7 @@ interface ClientOptions {
 	ipcRenderer?: IpcRendererLike
 }
 
-export class ElectronRpcClient extends RpcClient {
+export class ElectronRpcClient implements RpcClient {
 	readonly groupId: string
 
 	private pendingCalls = new Map<
@@ -33,7 +32,6 @@ export class ElectronRpcClient extends RpcClient {
 	private ipc: IpcRendererLike
 
 	constructor(options: ClientOptions) {
-		super()
 		this.groupId = options.groupId
 		this.ipc = options.ipcRenderer ?? this.getIpcRenderer()
 
@@ -80,13 +78,11 @@ export class ElectronRpcClient extends RpcClient {
 		return iterator
 	}
 
-	override onEvent(
-		listener: (event: string, ...args: unknown[]) => void
-	): void {
+	onEvent(listener: (event: string, ...args: unknown[]) => void): void {
 		this.eventListeners.add(listener)
 	}
 
-	override send(event: string, ...args: unknown[]): void {
+	send(event: string, ...args: unknown[]): void {
 		this.ipc.send('rpc:push', event, ...args)
 	}
 
