@@ -14,9 +14,12 @@
 
 ```typescript
 export interface RpcServer {
-    // 注册同步或异步 handler，event 使用 / 分隔命名空间
+    // 注册同步或异步 handler
     handle(event: string, handler: Rpc.HandlerFn): void
     handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
+
+    // 创建命名空间路由，用于代码组织
+    router(namespace: string): RpcRouter
 
     // 向指定目标推送事件
     push(event: string, target: Rpc.Target, ...args: unknown[]): void
@@ -25,6 +28,15 @@ export interface RpcServer {
 
 **Event 命名规范**：使用 `/` 分隔层级，如 `conversation/create`、`filesystem/read`
 
+**代码组织**：有两种注册方式，效果等价：
+```typescript
+// 方式 1：直接注册
+server.handle('filesystem/read', handler)
+
+// 方式 2：通过 router 组织（等价）
+server.router('filesystem').handle('read', handler)
+```
+
 ### 2.2 RpcClient
 
 ```typescript
@@ -32,7 +44,7 @@ export interface RpcClient {
     readonly clientId: string
     readonly groupId?: string
 
-    // 单次调用，event 使用 / 分隔命名空间
+    // 单次调用，event 使用 / 分隔路径
     call<T>(event: string, ...args: unknown[]): Promise<T>
 
     // 流式调用
@@ -110,6 +122,19 @@ export class RpcError extends Error {
 }
 ```
 
+### 2.3 RpcRouter
+
+命名空间路由接口，用于代码组织：
+
+```typescript
+export interface RpcRouter {
+    // event 为相对路径，会与 namespace 拼接
+    handle(event: string, handler: Rpc.HandlerFn): void
+    handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
+    router(namespace: string): RpcRouter
+}
+```
+
 ## 3. 目录结构
 
 ```
@@ -140,6 +165,8 @@ export class ElectronRpcServer implements RpcServer {
 
     handle(event: string, handler: Rpc.HandlerFn): void
     handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
+
+    router(namespace: string): RpcRouter
 
     // 向渲染进程推送事件
     push(event: string, target: Rpc.Target, ...args: unknown[]): void
@@ -175,6 +202,7 @@ export class HttpRpcServer implements RpcServer {
     handle(event: string, handler: Rpc.HandlerFn): void
     handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
 
+    router(namespace: string): RpcRouter
     push(event: string, target: Rpc.Target, ...args: unknown[]): void
 }
 ```
