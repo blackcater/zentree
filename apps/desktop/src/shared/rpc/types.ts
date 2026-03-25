@@ -1,37 +1,60 @@
-export interface IRpcErrorDefinition {
+import type { StandardSchemaV1 } from '@standard-schema/spec'
+
+export interface IRpcErrorDefinition<Data = unknown> {
 	readonly code: string
 	readonly message: string
-	readonly data?: unknown
+	readonly data?: Data
 }
 
 export namespace Rpc {
-	export type HandlerFn = <T>(
+	export type HandlerFn<T = unknown> = (
 		ctx: RequestContext,
-		...args: any[]
+		...args: unknown[]
 	) => T | Promise<T> | AsyncIterator<T>
 
 	export type CancelFn = () => void
 
-	export interface RequestContext {
-		clientId: string
-		vaultId?: string
-	}
-
 	export type Target =
 		| { type: 'broadcast' }
 		| { type: 'group'; groupId: string }
+		| { type: 'client'; clientId: string }
+
+	export interface RequestContext {
+		readonly clientId: string
+		readonly vaultId?: string
+	}
+
+	export type StreamResult<T> = {
+		[Symbol.asyncIterator](): AsyncIterator<T>
+		cancel(): void
+	}
+}
+
+export interface HandleOptions {
+	schema?: StandardSchemaV1
 }
 
 export interface RpcServer {
 	handle(event: string, handler: Rpc.HandlerFn): void
+	handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
 
+	router(namespace: string): RpcRouter
 	push(event: string, target: Rpc.Target, ...args: unknown[]): void
 }
 
+export interface RpcRouter {
+	handle(event: string, handler: Rpc.HandlerFn): void
+	handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
+
+	router(namespace: string): RpcRouter
+}
+
 export interface RpcClient {
-	call<T>(event: string, ...args: any[]): Promise<T>
+	readonly clientId: string
+	readonly groupId?: string
 
-	stream<T>(event: string, ...args: any[]): AsyncIterator<T>
-
-	onEvent(event: string, listener: (...args: any[]) => void): Rpc.CancelFn
+	call<T>(event: string, ...args: unknown[]): Promise<T>
+	stream<T>(event: string, ...args: unknown[]): Rpc.StreamResult<T>
+	onEvent(event: string, listener: (...args: unknown[]) => void): Rpc.CancelFn
+	abort(): void
 }

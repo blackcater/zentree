@@ -5,6 +5,7 @@ Acme Desktop (ADA) 是一款基于 Electron 的桌面应用程序，为 Code Age
 Claude Code、Codex 以及任何兼容 ACP 协议的 Agent。
 
 **核心功能：**
+
 - 多 Vault 项目管理，本地优先存储
 - 多窗口模型，支持浮动线程窗口
 - MCP (Model Context Protocol) 服务器集成
