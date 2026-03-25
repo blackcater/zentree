@@ -1,5 +1,10 @@
-import type { IRpcErrorDefinition } from './types'
 import { extractRpcErrorMsg } from './utils'
+
+export interface IRpcErrorDefinition<Data = unknown> {
+	readonly code: string
+	readonly message: string
+	readonly data?: Data
+}
 
 export class RpcError extends Error {
 	constructor(

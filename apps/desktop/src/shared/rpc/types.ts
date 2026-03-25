@@ -1,16 +1,14 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 
-export interface IRpcErrorDefinition<Data = unknown> {
-	readonly code: string
-	readonly message: string
-	readonly data?: Data
-}
-
 export namespace Rpc {
 	export type HandlerFn<T = unknown> = (
 		ctx: RequestContext,
 		...args: unknown[]
 	) => T | Promise<T> | AsyncIterator<T>
+
+	export interface HandleOptions {
+		schema?: StandardSchemaV1
+	}
 
 	export type CancelFn = () => void
 
@@ -30,23 +28,28 @@ export namespace Rpc {
 	}
 }
 
-export interface HandleOptions {
-	schema?: StandardSchemaV1
-}
-
 export interface RpcServer {
-	handle(event: string, handler: Rpc.HandlerFn): void
-	handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
-
 	router(namespace: string): RpcRouter
+
+	handle(event: string, handler: Rpc.HandlerFn): void
+	handle(
+		event: string,
+		options: Rpc.HandleOptions,
+		handler: Rpc.HandlerFn
+	): void
+
 	push(event: string, target: Rpc.Target, ...args: unknown[]): void
 }
 
 export interface RpcRouter {
-	handle(event: string, handler: Rpc.HandlerFn): void
-	handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
+	group(namespace: string): RpcRouter
 
-	router(namespace: string): RpcRouter
+	handle(event: string, handler: Rpc.HandlerFn): void
+	handle(
+		event: string,
+		options: Rpc.HandleOptions,
+		handler: Rpc.HandlerFn
+	): void
 }
 
 export interface RpcClient {
@@ -56,5 +59,4 @@ export interface RpcClient {
 	call<T>(event: string, ...args: unknown[]): Promise<T>
 	stream<T>(event: string, ...args: unknown[]): Rpc.StreamResult<T>
 	onEvent(event: string, listener: (...args: unknown[]) => void): Rpc.CancelFn
-	abort(): void
 }

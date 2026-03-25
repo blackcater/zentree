@@ -1,7 +1,8 @@
-import type { IpcMain, WebContents, IpcMainEvent } from 'electron'
+import type { IpcMain, WebContents } from 'electron'
 
 import { RpcError } from '../RpcError'
-import type { RpcServer, RpcRouter, Rpc, HandleOptions } from '../types'
+import type { RpcServer, RpcRouter, Rpc } from '../types'
+import { ElectronRpcRouter } from './ElectronRpcRouter'
 
 // Injected by app layer to manage webContents
 export interface WebContentsManager {
@@ -9,56 +10,29 @@ export interface WebContentsManager {
 	getWebContents(clientId: string): WebContents | null
 }
 
-class ElectronRpcRouterImpl implements RpcRouter {
+export class ElectronRpcServer implements RpcServer {
 	constructor(
-		private server: ElectronRpcServer,
-		private prefix: string
+		private readonly ipcMain: IpcMain,
+		private readonly webContentsManager: WebContentsManager
 	) {}
 
-	handle(event: string, handler: Rpc.HandlerFn): void
-	handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
-	handle(
-		event: string,
-		optionsOrHandler: HandleOptions | Rpc.HandlerFn,
-		maybeHandler?: Rpc.HandlerFn
-	): void {
-		const fullPath = `${this.prefix}/${event}`
-		if (typeof optionsOrHandler === 'function') {
-			this.server.handle(fullPath, optionsOrHandler)
-		} else {
-			this.server.handle(fullPath, optionsOrHandler, maybeHandler!)
-		}
-	}
-
 	router(namespace: string): RpcRouter {
-		return new ElectronRpcRouterImpl(
-			this.server,
-			`${this.prefix}/${namespace}`
-		)
-	}
-}
-
-export class ElectronRpcServer implements RpcServer {
-	private ipcMain: IpcMain
-	private webContentsManager: WebContentsManager | null = null
-
-	constructor(ipcMain: IpcMain) {
-		this.ipcMain = ipcMain
-	}
-
-	// Set WebContents manager for push and event delivery
-	setWebContentsManager(manager: WebContentsManager): void {
-		this.webContentsManager = manager
+		const prefix = this._normalizeEvent(namespace)
+		return new ElectronRpcRouter(this, prefix)
 	}
 
 	handle(event: string, handler: Rpc.HandlerFn): void
-	handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
 	handle(
 		event: string,
-		optionsOrHandler: HandleOptions | Rpc.HandlerFn,
+		options: Rpc.HandleOptions,
+		handler: Rpc.HandlerFn
+	): void
+	handle(
+		event: string,
+		optionsOrHandler: Rpc.HandleOptions | Rpc.HandlerFn,
 		maybeHandler?: Rpc.HandlerFn
 	): void {
-		const eventPath = this.normalizeEvent(event)
+		const eventPath = this._normalizeEvent(event)
 		const handlerFn =
 			typeof optionsOrHandler === 'function'
 				? optionsOrHandler
@@ -67,10 +41,7 @@ export class ElectronRpcServer implements RpcServer {
 		// Listen on invoke:xxx channel for client calls
 		this.ipcMain.on(
 			`rpc:invoke:${eventPath}`,
-			async (
-				e: IpcMainEvent,
-				payload: { invokeId: string; args: unknown[] }
-			) => {
+			async (e, payload: { invokeId: string; args: unknown[] }) => {
 				const { invokeId, args } = payload
 				const clientId = `client-${e.sender.id}`
 
@@ -120,20 +91,8 @@ export class ElectronRpcServer implements RpcServer {
 		)
 	}
 
-	router(namespace: string): RpcRouter {
-		const prefix = this.normalizeEvent(namespace)
-		return new ElectronRpcRouterImpl(this, prefix)
-	}
-
 	push(event: string, target: Rpc.Target, ...args: unknown[]): void {
-		if (!this.webContentsManager) {
-			console.warn(
-				'ElectronRpcServer: WebContentsManager not set, push() will not work'
-			)
-			return
-		}
-
-		const eventPath = this.normalizeEvent(event)
+		const eventPath = this._normalizeEvent(event)
 
 		if (target.type === 'broadcast') {
 			this.webContentsManager.send('*', `rpc:event:${eventPath}`, ...args)
@@ -152,7 +111,7 @@ export class ElectronRpcServer implements RpcServer {
 		}
 	}
 
-	private normalizeEvent(event: string): string {
-		return event.replace(/\/+/g, '/').replace(/^\/|\/$/g, '')
+	private _normalizeEvent(event: string): string {
+		return event.replaceAll(/\/+/g, '/').replaceAll(/^\/|\/$/g, '')
 	}
 }
