@@ -73,14 +73,20 @@ describe('ElectronRpcClient', () => {
 	describe('call()', () => {
 		it('should send RPC call and resolve on response', async () => {
 			const mockSend = vi.fn()
-			const mockOn = vi.fn()
+			let ipcMessageHandler:
+				| ((channel: string, ...args: unknown[]) => void)
+				| null = null
+			const mockOn = vi.fn((channel: string, handler: any) => {
+				if (channel === 'ipc-message') {
+					ipcMessageHandler = handler
+				}
+			})
 			const mockWebContents = {
 				send: mockSend,
 				id: 1,
 				on: mockOn,
 			}
 
-			// Re-initialize to capture the handler
 			const client2 = new ElectronRpcClient(
 				mockWebContents as unknown as WebContents
 			)
@@ -90,17 +96,18 @@ describe('ElectronRpcClient', () => {
 				'arg1'
 			)
 
-			// Simulate receiving a response
-			const invokeId = 'invoke-1'
-			const responsePayload = { result: { message: 'success' } }
+			// Extract invokeId from the send call
+			const invokeCall = mockSend.mock.calls.find(
+				(call) => call[0] === 'rpc:invoke:test'
+			)
+			expect(invokeCall).toBeDefined()
+			const invokeId = invokeCall![1].invokeId
 
-			// Simulate the server sending back the response
-			// We need to manually trigger the internal handler
-			const pending = (client2 as any).pendingCalls.get(invokeId)
-			expect(pending).toBeDefined()
-
-			// Directly resolve the pending call
-			pending.resolve(responsePayload.result)
+			// Simulate the server sending back the response via ipc-message handler
+			expect(ipcMessageHandler).not.toBeNull()
+			ipcMessageHandler!(`rpc:response:${invokeId}`, {
+				result: { message: 'success' },
+			})
 
 			const result = await callPromise
 			expect(result).toEqual({ message: 'success' })
@@ -184,10 +191,18 @@ describe('ElectronRpcClient', () => {
 	describe('error handling', () => {
 		it('should handle RPC errors in call()', async () => {
 			const mockSend = vi.fn()
+			let ipcMessageHandler:
+				| ((channel: string, ...args: unknown[]) => void)
+				| null = null
+			const mockOn = vi.fn((channel: string, handler: any) => {
+				if (channel === 'ipc-message') {
+					ipcMessageHandler = handler
+				}
+			})
 			const mockWebContents = {
 				send: mockSend,
 				id: 1,
-				on: vi.fn(),
+				on: mockOn,
 			}
 
 			const client = new ElectronRpcClient(
@@ -196,9 +211,18 @@ describe('ElectronRpcClient', () => {
 
 			const callPromise = client.call<unknown>('/error/event')
 
-			// Get the pending call and reject it with an error
-			const pending = (client as any).pendingCalls.values().next().value
-			pending.reject(new Error('Server error'))
+			// Extract invokeId from the send call
+			const invokeCall = mockSend.mock.calls.find(
+				(call) => call[0] === 'rpc:invoke:error/event'
+			)
+			expect(invokeCall).toBeDefined()
+			const invokeId = invokeCall![1].invokeId
+
+			// Simulate the server sending back an error response
+			expect(ipcMessageHandler).not.toBeNull()
+			ipcMessageHandler!(`rpc:response:${invokeId}`, {
+				error: { code: 'ERR_SERVER_ERROR', message: 'Server error' },
+			})
 
 			await expect(callPromise).rejects.toThrow('Server error')
 		})

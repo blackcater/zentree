@@ -9,8 +9,8 @@ describe('HttpRpcServer', () => {
 		const app = new Hono()
 		const server = new HttpRpcServer(app)
 
-		server.handle('test/echo', async (ctx, msg: string) => {
-			return { echoed: msg }
+		server.handle('test/echo', async (_ctx, ...args) => {
+			return { echoed: args[0] }
 		})
 
 		// Test the endpoint
@@ -29,8 +29,8 @@ describe('HttpRpcServer', () => {
 		const app = new Hono()
 		const server = new HttpRpcServer(app)
 
-		server.router('conversation').handle('create', async (ctx, params) => {
-			return { id: 'conv-1', ...params }
+		server.router('conversation').handle('create', async (_ctx, params) => {
+			return { id: 'conv-1', ...(params as object) }
 		})
 
 		const response = await app.request('/rpc/conversation/create', {
@@ -46,7 +46,7 @@ describe('HttpRpcServer', () => {
 
 	it('should return 404 for unregistered handler', async () => {
 		const app = new Hono()
-		const server = new HttpRpcServer(app)
+		new HttpRpcServer(app)
 
 		const response = await app.request('/rpc/unknown/path', {
 			method: 'POST',
