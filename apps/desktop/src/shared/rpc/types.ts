@@ -4,61 +4,34 @@ export interface IRpcErrorDefinition {
 	readonly data?: unknown
 }
 
+export namespace Rpc {
+	export type HandlerFn = <T>(
+		ctx: RequestContext,
+		...args: any[]
+	) => T | Promise<T> | AsyncIterator<T>
+
+	export type CancelFn = () => void
+
+	export interface RequestContext {
+		clientId: string
+		vaultId?: string
+	}
+
+	export type Target =
+		| { type: 'broadcast' }
+		| { type: 'group'; groupId: string }
+}
+
 export interface RpcServer {
-	handle(
-		event: string,
-		handler: <T = unknown>(
-			args: unknown
-		) => T | AsyncIterator<T, unknown, unknown>
-	): void
+	handle(event: string, handler: Rpc.HandlerFn): void
 
-	push(event: string, target: RpcTarget, ...args: unknown[]): void
-
-	onEvent(
-		listener: (client: RpcClient, event: string, ...args: unknown[]) => void
-	): void
+	push(event: string, target: Rpc.Target, ...args: unknown[]): void
 }
 
 export interface RpcClient {
-	groupId: string
+	call<T>(event: string, ...args: any[]): Promise<T>
 
-	call(method: string, args: unknown): Promise<unknown>
+	stream<T>(event: string, ...args: any[]): AsyncIterator<T>
 
-	stream(
-		method: string,
-		args: unknown
-	): AsyncIterator<unknown, unknown, unknown>
-
-	onEvent(listener: (event: string, ...args: unknown[]) => void): void
-
-	/** @deprecated Only needed for Electron. HTTP uses SSE connections directly. */
-	send?(event: string, ...args: unknown[]): void
-}
-
-export type RpcTarget =
-	| { type: 'broadcast' }
-	| { type: 'group'; groupId: string }
-
-export interface RpcRequest {
-	id: string
-	method: string
-	args: unknown
-}
-
-export interface RpcResponse {
-	id: string
-	result?: unknown
-	error?: IRpcErrorDefinition
-}
-
-export interface RpcStreamChunk {
-	id: string
-	chunk: unknown
-	done?: boolean
-}
-
-export interface RpcPushMessage {
-	event: string
-	target: RpcTarget
-	args: unknown[]
+	onEvent(event: string, listener: (...args: any[]) => void): Rpc.CancelFn
 }

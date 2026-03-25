@@ -1,7 +1,6 @@
 import { RpcError } from '../RpcError'
 import type { RpcClient, RpcResponse, RpcStreamChunk } from '../types'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type IpcListener = (...args: any[]) => void
 
 interface IpcRendererLike {

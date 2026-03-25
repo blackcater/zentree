@@ -1,4 +1,5 @@
 import type { IRpcErrorDefinition } from './types'
+import { extractRpcErrorMsg } from './utils'
 
 export class RpcError extends Error {
 	constructor(
@@ -22,9 +23,16 @@ export class RpcError extends Error {
 		if (error instanceof RpcError) {
 			return error
 		}
+
 		if (error instanceof Error) {
-			return new RpcError('INTERNAL_ERROR', error.message)
+			return new RpcError(RpcError.INTERNAL_ERROR, error.message)
 		}
-		return new RpcError('UNKNOWN_ERROR', 'An unknown error occurred')
+
+		return new RpcError(RpcError.UNKNOWN_ERROR, extractRpcErrorMsg(error))
 	}
+}
+
+export namespace RpcError {
+	export const INTERNAL_ERROR = 'INTERNAL_ERROR'
+	export const UNKNOWN_ERROR = 'UNKNOWN_ERROR'
 }
