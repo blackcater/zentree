@@ -14,17 +14,16 @@
 
 ```typescript
 export interface RpcServer {
-    // 注册同步或异步 handler
+    // 注册同步或异步 handler，event 使用 / 分隔命名空间
     handle(event: string, handler: Rpc.HandlerFn): void
     handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
-
-    // 创建命名空间路由
-    router(namespace: string): RpcRouter
 
     // 向指定目标推送事件
     push(event: string, target: Rpc.Target, ...args: unknown[]): void
 }
 ```
+
+**Event 命名规范**：使用 `/` 分隔层级，如 `conversation/create`、`filesystem/read`
 
 ### 2.2 RpcClient
 
@@ -33,7 +32,7 @@ export interface RpcClient {
     readonly clientId: string
     readonly groupId?: string
 
-    // 单次调用
+    // 单次调用，event 使用 / 分隔命名空间
     call<T>(event: string, ...args: unknown[]): Promise<T>
 
     // 流式调用
@@ -111,20 +110,6 @@ export class RpcError extends Error {
 }
 ```
 
-### 2.5 RpcRouter
-
-命名空间路由接口，与 RpcServer 的 handle 方法签名保持一致：
-
-```typescript
-export interface RpcRouter {
-    handle(event: string, handler: Rpc.HandlerFn): void
-    handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
-    router(namespace: string): RpcRouter
-}
-```
-
-**注意**：命名空间路由与 flat handler 不允许冲突。当 `server.handle('foo', handler)` 注册后，不允许再 `server.router('foo').handle(...)`，反之亦然。
-
 ## 3. 目录结构
 
 ```
@@ -155,8 +140,6 @@ export class ElectronRpcServer implements RpcServer {
 
     handle(event: string, handler: Rpc.HandlerFn): void
     handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
-
-    router(namespace: string): RpcRouter
 
     // 向渲染进程推送事件
     push(event: string, target: Rpc.Target, ...args: unknown[]): void
@@ -192,7 +175,6 @@ export class HttpRpcServer implements RpcServer {
     handle(event: string, handler: Rpc.HandlerFn): void
     handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
 
-    router(namespace: string): RpcRouter
     push(event: string, target: Rpc.Target, ...args: unknown[]): void
 }
 ```
@@ -218,7 +200,7 @@ export class HttpRpcClient implements RpcClient {
 ## 5. 设计原则
 
 1. **接口驱动**：核心接口 (RpcServer/RpcClient) 定义传输抽象，具体实现负责通信细节
-2. **命名空间路由**：通过 `router(namespace)` 支持嵌套路由，如 `router('filesystem').handle('read', ...)`
+2. **命名空间路径**：event 使用 `/` 分隔层级，如 `conversation/create`、`filesystem/read`
 3. **流式支持**：通过 `AsyncIterator` 接口支持流式响应
 4. **目标推送**：`push()` 支持广播、群组、单客户端三种推送目标
 5. **错误封装**：所有错误通过 `RpcError` 统一封装
@@ -230,11 +212,11 @@ export class HttpRpcClient implements RpcClient {
 ```typescript
 const server = new ElectronRpcServer(ipcMain)
 
-server.router('conversation').handle('create', async (ctx, params) => {
+server.handle('conversation/create', async (ctx, params) => {
     return { id: 'conv-1', ... }
 })
 
-server.router('conversation').handle('send', async (ctx, convId, message) => {
+server.handle('conversation/send', async (ctx, convId, message) => {
     // 返回异步迭代器实现流式
     return async function* () {
         for (const token of streamTokens(message)) {
@@ -253,10 +235,10 @@ server.push('notification', { type: 'broadcast' }, { msg: 'hello' })
 const client = new ElectronRpcClient(webContents)
 
 // 单次调用
-const conv = await client.call('conversation.create', { title: 'Test' })
+const conv = await client.call('conversation/create', { title: 'Test' })
 
 // 流式调用
-for await (const chunk of client.stream('conversation.send', 'conv-1', 'hello')) {
+for await (const chunk of client.stream('conversation/send', 'conv-1', 'hello')) {
     console.log(chunk)
 }
 
@@ -271,7 +253,7 @@ const cancel = client.onEvent('notification', (data) => {
 ```typescript
 const client = new HttpRpcClient('http://192.168.1.100:8080')
 
-const result = await client.call('filesystem.read', '/path/to/file')
+const result = await client.call('filesystem/read', '/path/to/file')
 ```
 
 ## 7. 未解决的问题
