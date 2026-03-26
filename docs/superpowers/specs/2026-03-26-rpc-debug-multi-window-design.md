@@ -48,31 +48,37 @@ Extend the rpc-debug page to support multi-window broadcast testing. Create mult
 | Handler | Description |
 |---------|-------------|
 | `POST /debug/window/create` | Create new BrowserWindow with optional group |
+| `POST /debug/window/info` | Return current window's clientId and groupId |
 | `POST /debug/push/send-to-all` | Push event to all windows |
 | `POST /debug/push/send-to-group` | Push event to specific group |
 | `POST /debug/push/send-to-client` | Push event to specific clientId |
+| `POST /debug/push/trigger-event` | Trigger a named event, simulating push message (used by sendToX to test event delivery) |
 
 ### UI Components
 
-1. **WindowInfoCard** — Displays clientId and groupId
+1. **WindowInfoCard** — Displays clientId and groupId (fetched from `/debug/window/info`)
 2. **WindowManagerCard** — Group selection + spawn button
 3. **BroadcastCard** — sendToAll, sendToGroup (with group selector), sendToClient (with clientId input)
-4. **EventListenerCard** — Enhanced to show event source (which window sent)
+4. **EventListenerCard** — Enhanced to show received event with metadata: event name, args, sender clientId (passed via event payload `{ eventName, args, senderClientId }`)
 
 ### API Shape
 
 ```typescript
 // createWindow
-api.createWindow(groupId?: string): Promise<{ clientId: string; windowId: number }>
+// groupId: string | null (null = no group)
+api.createWindow(groupId: string | null): Promise<{ clientId: string; windowId: number }>
 
-// sendToAll
-client.call('/debug/push/send-to-all', eventName: string, ...args)
+// window info
+client.call<{ clientId: string; groupId: string | null }>('/debug/window/info')
+
+// sendToAll: args are sent as separate positional arguments
+client.call('/debug/push/send-to-all', eventName: string, ...args: unknown[])
 
 // sendToGroup
-client.call('/debug/push/send-to-group', groupId: string, eventName: string, ...args)
+client.call('/debug/push/send-to-group', groupId: string, eventName: string, ...args: unknown[])
 
 // sendToClient
-client.call('/debug/push/send-to-client', clientId: string, eventName: string, ...args)
+client.call('/debug/push/send-to-client', clientId: string, eventName: string, ...args: unknown[])
 ```
 
 ## Files to Modify
@@ -87,3 +93,8 @@ client.call('/debug/push/send-to-client', clientId: string, eventName: string, .
 2. Send to group-a → only 2 windows receive
 3. Send to all → all 3 windows receive
 4. Send to specific clientId → only that window receives
+
+**Edge cases:**
+- Sending to non-existent group → no-op (silently ignored)
+- Sending to non-existent clientId → no-op (silently ignored)
+- `createWindow(null)` → window created with no group
