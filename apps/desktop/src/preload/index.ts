@@ -7,25 +7,13 @@ import { ElectronRpcClient } from '../shared/rpc'
 // Lazy-initialized RPC client
 let rpcClient: ElectronRpcClient | null = null
 
-// Get current webContents in renderer process
-const getCurrentWebContents = () => {
-	// eslint-disable-next-line @typescript-eslint/no-require-imports
-	const { webContents } = require('electron')
-	return webContents.getFocusedWebContents()
-}
-
 const api = {
-	// Get the current webContents
-	getCurrentWebContents,
-
 	// Factory function to create/retrieve RPC client
+	// window.webContents is available in preload context (main world)
 	getRpcClient: () => {
 		if (!rpcClient) {
-			const webContents = getCurrentWebContents()
-			if (!webContents) {
-				throw new Error('Cannot get webContents')
-			}
-			rpcClient = new ElectronRpcClient(webContents)
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			rpcClient = new ElectronRpcClient(window.webContents as any)
 		}
 		return rpcClient
 	},
