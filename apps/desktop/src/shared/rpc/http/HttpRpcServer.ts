@@ -16,41 +16,46 @@ export class HttpRpcServer implements RpcServer {
 		this._setupRoutes()
 	}
 
+	private async _handleRPC(path: string, args: unknown[], ctx: Rpc.RequestContext) {
+		const handler = this._handlers.get(path)
+
+		if (!handler) {
+			throw new RpcError('NOT_FOUND', `Handler not found: ${path}`)
+		}
+
+		// Schema validation
+		if (handler.options?.schema) {
+			const schema = handler.options.schema
+			const result = await schema['~standard'].validate(args)
+
+			if ('issues' in result) {
+				throw new RpcError('INVALID_PARAMS', 'Schema validation failed', result.issues)
+			}
+
+			// result.value is the standardized output, use it directly as args
+			return handler.handler(ctx, result.value as unknown[])
+		}
+
+		return handler.handler(ctx, ...args)
+	}
+
 	private _setupRoutes() {
 		// POST /rpc/** - RPC invocation (wildcard catches all paths under /rpc/)
 		this.app.post('/rpc/**', async (c: Context) => {
-			// Extract path after /rpc/ using the full path
 			const fullPath = c.req.path
 			const rpcIndex = fullPath.indexOf('/rpc/')
 			const path = rpcIndex >= 0 ? fullPath.slice(rpcIndex + 5) : fullPath
 			const args = await c.req.json().catch(() => [])
-
-			const handler = this._handlers.get(path)
-			if (!handler) {
-				return c.json(
-					{
-						error: {
-							code: 'NOT_FOUND',
-							message: `Handler not found: ${path}`,
-						},
-					},
-					404
-				)
-			}
 
 			const ctx: Rpc.RequestContext = {
 				clientId: this._getClientId(c),
 			}
 
 			try {
-				const result = await handler.handler(ctx, ...args)
+				const result = await this._handleRPC(path, args, ctx)
 
-				// Handle async iterator (streaming) - collect all chunks
-				if (
-					result &&
-					typeof result === 'object' &&
-					Symbol.asyncIterator in result
-				) {
+				// Handle async iterator (streaming)
+				if (result && typeof result === 'object' && Symbol.asyncIterator in result) {
 					const chunks: unknown[] = []
 					for await (const chunk of result as unknown as AsyncIterable<unknown>) {
 						chunks.push(chunk)
@@ -61,7 +66,7 @@ export class HttpRpcServer implements RpcServer {
 				return c.json({ result })
 			} catch (err) {
 				const rpcError = RpcError.from(err)
-				return c.json({ error: rpcError.toJSON() }, 500)
+				return c.json({ error: rpcError.toJSON() }, rpcError.code === 'NOT_FOUND' ? 404 : 500)
 			}
 		})
 	}
