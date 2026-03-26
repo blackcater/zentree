@@ -290,35 +290,12 @@ private async _handleRPC(path: string, args: unknown[], ctx: Rpc.RequestContext)
 
 ### 4.4 使用示例
 
-`@standard-schema/spec` 是接口定义，实际使用需要配合具体实现如 Zod：
+Zod 的 `z.ZodSchema` 原生实现了 `StandardSchemaV1` 接口，可以直接使用：
 
 ```typescript
 import { z } from 'zod'
-import type { StandardSchemaV1 } from '@standard-schema/spec'
 
-// Zod schema 转 StandardSchemaV1 适配器
-function zodToStandardSchema<T>(schema: z.ZodSchema<T>): StandardSchemaV1<unknown, T> {
-  return {
-    '~standard': {
-      version: 1,
-      vendor: 'zod-adapter',
-      validate(value) {
-        const result = schema.safeParse(value)
-        if (!result.success) {
-          return {
-            issues: result.error.issues.map((issue) => ({
-              message: issue.message,
-              path: issue.path.map(String),
-            })),
-          }
-        }
-        return { value: result.data }
-      },
-    },
-  }
-}
-
-// 使用
+// Zod schema 直接实现 StandardSchemaV1
 const createConversationSchema = z.object({
   title: z.string(),
   mode: z.enum(['chat', 'agent']).optional(),
@@ -326,7 +303,7 @@ const createConversationSchema = z.object({
 
 server.handle(
   'conversation/create',
-  { schema: zodToStandardSchema(createConversationSchema) },
+  { schema: createConversationSchema },
   async (ctx, ...args) => {
     // args 已通过 schema 校验，类型为 { title: string; mode?: 'chat' | 'agent' }
     const { title, mode } = args[0]
@@ -334,6 +311,8 @@ server.handle(
   }
 )
 ```
+
+**支持的 Schema 类型**：`z.string()`、`z.number()`、`z.object()`、`z.array()` 等所有 Zod 类型。
 
 ## 5. 超时机制
 
