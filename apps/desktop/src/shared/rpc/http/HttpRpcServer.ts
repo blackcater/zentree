@@ -1,4 +1,6 @@
 import type { Context, Hono } from 'hono'
+import { streamSSE } from 'hono/streaming'
+import type { SSEStreamingApi } from 'hono/streaming'
 
 import { RpcError } from '../RpcError'
 import type { RpcServer, RpcRouter, Rpc } from '../types'
@@ -11,9 +13,11 @@ interface RegisteredHandler {
 
 export class HttpRpcServer implements RpcServer {
 	private readonly _handlers = new Map<string, RegisteredHandler>()
+	private readonly _sseClients = new Map<string, Set<{ stream: SSEStreamingApi; clientId: string }>>()
 
 	constructor(private readonly app: Hono) {
 		this._setupRoutes()
+		this._setupSSERoutes()
 	}
 
 	private async _handleRPC(path: string, args: unknown[], ctx: Rpc.RequestContext) {
@@ -71,6 +75,30 @@ export class HttpRpcServer implements RpcServer {
 		})
 	}
 
+	private _setupSSERoutes() {
+		// GET /rpc/events - SSE event stream
+		this.app.get('/rpc/events', (c: Context) => {
+			const clientId = this._getClientId(c)
+
+			return streamSSE(c, async (stream) => {
+				const controller = { stream, clientId }
+				if (!this._sseClients.has(clientId)) {
+					this._sseClients.set(clientId, new Set())
+				}
+				this._sseClients.get(clientId)!.add(controller)
+
+				await stream.writeSSE({ event: 'connected', data: JSON.stringify({ clientId }) })
+
+				stream.onAbort(() => {
+					this._sseClients.get(clientId)?.delete(controller)
+					if (this._sseClients.get(clientId)?.size === 0) {
+						this._sseClients.delete(clientId)
+					}
+				})
+			})
+		})
+	}
+
 	router(namespace: string): RpcRouter {
 		const prefix = this._normalizeEvent(namespace)
 		return new HttpRpcRouter(this, prefix)
@@ -98,9 +126,38 @@ export class HttpRpcServer implements RpcServer {
 		}
 	}
 
-	push(_event: string, _target: Rpc.Target, ..._args: unknown[]): void {
-		// HTTP push is deferred - would require SSE or WebSocket
-		console.warn('HttpRpcServer: push() is not implemented (deferred)')
+	push(event: string, target: Rpc.Target, ...args: unknown[]): void {
+		const eventData = JSON.stringify({ event, args })
+
+		if (target.type === 'broadcast') {
+			this._broadcastSSE('push', eventData)
+		} else if (target.type === 'client' && target.clientId) {
+			this._sendSSEToClient(target.clientId, 'push', eventData)
+		} else if (target.type === 'group' && target.groupId) {
+			this._sendSSEToGroup(target.groupId, 'push', eventData)
+		}
+	}
+
+	private _broadcastSSE(event: string, data: string) {
+		for (const [, controllers] of this._sseClients) {
+			for (const controller of controllers) {
+				controller.stream.writeSSE({ event, data })
+			}
+		}
+	}
+
+	private _sendSSEToClient(clientId: string, event: string, data: string) {
+		const controllers = this._sseClients.get(clientId)
+		if (controllers) {
+			for (const controller of controllers) {
+				controller.stream.writeSSE({ event, data })
+			}
+		}
+	}
+
+	private _sendSSEToGroup(_groupId: string, event: string, data: string) {
+		// HTTP has no group concept, broadcast directly
+		this._broadcastSSE(event, data)
 	}
 
 	private _getClientId(c: Context): string {
