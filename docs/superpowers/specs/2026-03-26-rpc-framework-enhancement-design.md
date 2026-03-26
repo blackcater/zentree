@@ -235,9 +235,26 @@ onEvent(event: string, listener: (...args: unknown[]) => void): CancelFn {
 
 原 `HandleOptions` 已引用 `@standard-schema/spec`，但未实现具体校验逻辑。
 
-### 4.2 实现
+### 4.2 StandardSchemaV1 接口
 
-`StandardSchemaV1` 接口定义的是 `validate()` 方法而非 `parse()`。实现时需要注意：
+```typescript
+export interface StandardSchemaV1<Input = unknown, Output = Input> {
+  readonly '~standard': {
+    readonly version: 1
+    readonly vendor: string
+    readonly validate: (
+      value: unknown,
+      options?: unknown
+    ) => Result<Output> | Promise<Result<Output>>
+  }
+}
+
+type Result<T> =
+  | { value: T; issues?: undefined }
+  | { issues: Array<{ message: string; path?: Array<string | number> }> }
+```
+
+### 4.3 实现
 
 ```typescript
 import type { StandardSchemaV1 } from '@standard-schema/spec'
@@ -256,19 +273,22 @@ private async _handleRPC(path: string, args: unknown[], ctx: Rpc.RequestContext)
 
   // Schema 校验
   if (handler.options?.schema) {
-    // StandardSchemaV1 使用 validate() 方法
-    const result = handler.options.schema['~validate']?.(args)
-    if (result instanceof Error || (result && 'issues' in result)) {
-      throw new RpcError('INVALID_PARAMS', 'Schema validation failed', result)
+    const schema = handler.options.schema
+    const result = await schema['~standard'].validate(args)
+
+    if ('issues' in result) {
+      throw new RpcError('INVALID_PARAMS', 'Schema validation failed', result.issues)
     }
-    return handler.handler(ctx, ...(Array.isArray(result) ? result : [result]))
+
+    // 校验成功后，args 被转换为标准化输出
+    return handler.handler(ctx, ...(Array.isArray(result.value) ? result.value : [result.value]))
   }
 
   return handler.handler(ctx, ...args)
 }
 ```
 
-### 4.3 使用示例
+### 4.4 使用示例
 
 `@standard-schema/spec` 是接口定义，实际使用需要配合具体实现如 Zod：
 
@@ -277,16 +297,25 @@ import { z } from 'zod'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 
 // Zod schema 转 StandardSchemaV1 适配器
-function zodToStandardSchema<T>(schema: z.ZodSchema<T>): StandardSchemaV1 {
+function zodToStandardSchema<T>(schema: z.ZodSchema<T>): StandardSchemaV1<unknown, T> {
   return {
-    '~validate'(data) {
-      const result = schema.safeParse(data)
-      if (!result.success) {
-        return { issues: result.error.issues }
-      }
-      return result.data
-    }
-  } as StandardSchemaV1
+    '~standard': {
+      version: 1,
+      vendor: 'zod-adapter',
+      validate(value) {
+        const result = schema.safeParse(value)
+        if (!result.success) {
+          return {
+            issues: result.error.issues.map((issue) => ({
+              message: issue.message,
+              path: issue.path.map(String),
+            })),
+          }
+        }
+        return { value: result.data }
+      },
+    },
+  }
 }
 
 // 使用
@@ -298,7 +327,7 @@ const createConversationSchema = z.object({
 server.handle(
   'conversation/create',
   { schema: zodToStandardSchema(createConversationSchema) },
-  async (ctx, args) => {
+  async (ctx, ...args) => {
     // args 已通过 schema 校验，类型为 { title: string; mode?: 'chat' | 'agent' }
     const { title, mode } = args[0]
     // ...
