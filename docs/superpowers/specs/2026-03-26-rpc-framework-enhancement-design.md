@@ -23,20 +23,32 @@
 import type { WebContents } from 'electron'
 
 export interface WindowRegistry {
+  // 窗口注册
+  registerWindow(clientId: string, window: BrowserWindow): void
+  unregisterWindow(clientId: string): void
+
+  // 群组管理
+  joinGroup(clientId: string, groupId: string): void
+  leaveGroup(clientId: string, groupId: string): void
+
+  // 消息发送
   sendToClient(clientId: string, channel: string, ...args: unknown[]): void
   sendToGroup(groupId: string, channel: string, ...args: unknown[]): void
   sendToAll(channel: string, ...args: unknown[]): void
+
+  // 查询
   getWebContentsByClientId(clientId: string): WebContents | null
   getClientIdByWebContents(webContents: WebContents): string | null
 }
 ```
 
 **职责划分**：
-- `sendToClient`：向指定 clientId 的窗口发送消息
-- `sendToGroup`：向指定群组的所有窗口发送消息
-- `sendToAll`：向所有窗口广播消息
+- `registerWindow`：注册窗口，建立 clientId 与 BrowserWindow 的映射
+- `unregisterWindow`：注销窗口，清理映射关系
+- `joinGroup`/`leaveGroup`：客户端加群/退群
+- `sendToClient`/`sendToGroup`/`sendToAll`：消息发送
 - `getWebContentsByClientId`：通过 clientId 查询 WebContents
-- `getClientIdByWebContents`：通过 WebContents 查询 clientId（用于 IPC 事件中反查发送者身份）
+- `getClientIdByWebContents`：通过 WebContents 查询 clientId
 
 ### 2.3 ElectronRpcServer 改造
 
@@ -465,39 +477,42 @@ class AppWindowRegistry implements WindowRegistry {
   private groups = new Map<string, Set<string>>() // groupId -> Set<clientId>
   private webContentsToClientId = new Map<WebContents, string>() // reverse index
 
-  registerWindow(clientId: string, window: BrowserWindow) {
+  registerWindow(clientId: string, window: BrowserWindow): void {
     this.windows.set(clientId, window)
     this.webContentsToClientId.set(window.webContents, clientId)
   }
 
-  unregisterWindow(clientId: string) {
+  unregisterWindow(clientId: string): void {
     const window = this.windows.get(clientId)
     if (window) {
       this.webContentsToClientId.delete(window.webContents)
-      window.close()
       this.windows.delete(clientId)
+    }
+    // 从所有群组中移除
+    for (const [_, clientIds] of this.groups) {
+      clientIds.delete(clientId)
     }
   }
 
-  joinGroup(clientId: string, groupId: string) {
+  joinGroup(clientId: string, groupId: string): void {
     if (!this.groups.has(groupId)) {
       this.groups.set(groupId, new Set())
     }
     this.groups.get(groupId)!.add(clientId)
   }
 
-  leaveGroup(clientId: string, groupId: string) {
+  leaveGroup(clientId: string, groupId: string): void {
     this.groups.get(groupId)?.delete(clientId)
   }
 
-  sendToClient(clientId: string, channel: string, ...args: unknown[]) {
+  sendToClient(clientId: string, channel: string, ...args: unknown[]): void {
     const window = this.windows.get(clientId)
     if (window && !window.isDestroyed()) {
       window.webContents.send(channel, ...args)
     }
   }
 
-  sendToGroup(groupId: string, channel: string, ...args: unknown[]) {
+  sendToGroup(groupId: string, channel: string, ...args: unknown[]): void {
     const clientIds = this.groups.get(groupId)
     if (clientIds) {
       for (const clientId of clientIds) {
@@ -506,7 +521,7 @@ class AppWindowRegistry implements WindowRegistry {
     }
   }
 
-  sendToAll(channel: string, ...args: unknown[]) {
+  sendToAll(channel: string, ...args: unknown[]): void {
     for (const [clientId] of this.windows) {
       this.sendToClient(clientId, channel, ...args)
     }
@@ -533,6 +548,12 @@ const server = new ElectronRpcServer(registry, ipcMain)
 appWindow.on('ready-to-show', () => {
   const clientId = `client-${appWindow.id}`
   registry.registerWindow(clientId, appWindow)
+})
+
+// 关闭窗口时注销
+appWindow.on('closed', () => {
+  const clientId = `client-${appWindow.id}`
+  registry.unregisterWindow(clientId)
 })
 ```
 
