@@ -11,8 +11,8 @@ those boundaries, Codex can keep moving without stopping for confirmation. When
 it needs to go beyond them, Codex falls back to the approval flow.
 
 Sandboxing and approvals are different controls that work together. The
-  sandbox defines technical boundaries. The approval policy decides when Codex
-  must stop and ask before crossing them.
+sandbox defines technical boundaries. The approval policy decides when Codex
+must stop and ask before crossing them.
 
 ## What the sandbox does
 

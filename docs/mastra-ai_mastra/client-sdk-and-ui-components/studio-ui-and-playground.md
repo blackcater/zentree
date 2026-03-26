@@ -40,7 +40,7 @@ The following files were used as context for generating this wiki page:
 - [packages/deployer/CHANGELOG.md](packages/deployer/CHANGELOG.md)
 - [packages/deployer/package.json](packages/deployer/package.json)
 - [packages/deployer/src/build/analyze.ts](packages/deployer/src/build/analyze.ts)
-- [packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap](packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap)
+- [packages/deployer/src/build/analyze/**snapshots**/analyzeEntry.test.ts.snap](packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap)
 - [packages/deployer/src/build/analyze/analyzeEntry.test.ts](packages/deployer/src/build/analyze/analyzeEntry.test.ts)
 - [packages/deployer/src/build/analyze/analyzeEntry.ts](packages/deployer/src/build/analyze/analyzeEntry.ts)
 - [packages/deployer/src/build/analyze/bundleExternals.test.ts](packages/deployer/src/build/analyze/bundleExternals.test.ts)
@@ -51,7 +51,7 @@ The following files were used as context for generating this wiki page:
 - [packages/deployer/src/build/watcher.test.ts](packages/deployer/src/build/watcher.test.ts)
 - [packages/deployer/src/build/watcher.ts](packages/deployer/src/build/watcher.ts)
 - [packages/deployer/src/bundler/index.ts](packages/deployer/src/bundler/index.ts)
-- [packages/deployer/src/server/__tests__/option-studio-base.test.ts](packages/deployer/src/server/__tests__/option-studio-base.test.ts)
+- [packages/deployer/src/server/**tests**/option-studio-base.test.ts](packages/deployer/src/server/__tests__/option-studio-base.test.ts)
 - [packages/deployer/src/server/index.ts](packages/deployer/src/server/index.ts)
 - [packages/mcp-docs-server/CHANGELOG.md](packages/mcp-docs-server/CHANGELOG.md)
 - [packages/mcp-docs-server/package.json](packages/mcp-docs-server/package.json)
@@ -71,8 +71,6 @@ The following files were used as context for generating this wiki page:
 - [pnpm-lock.yaml](pnpm-lock.yaml)
 
 </details>
-
-
 
 This document covers the Mastra Studio UI and Playground system, which provides a visual interface for building, testing, and managing agents, workflows, datasets, and experiments. Studio is a web application that runs during development (`mastra dev`) and can be deployed alongside your API in production.
 
@@ -94,43 +92,43 @@ graph TB
         DEVBUNDLER["DevBundler<br/>Rollup watch mode"]
         VITE["Vite Dev Server<br/>localhost:5173"]
     end
-    
+
     subgraph "Studio Application"
         PLAYGROUND["@internal/playground<br/>React Router SPA"]
         QUERY["@tanstack/react-query<br/>Server state cache"]
     end
-    
+
     subgraph "Component Library"
         PLAYGROUNDUI["@mastra/playground-ui<br/>Design system + domain components"]
         TOKENS["tokens.es.js<br/>Design tokens"]
         PRESET["tailwind.preset.es.js<br/>Tailwind config"]
     end
-    
+
     subgraph "Client SDK"
         CLIENTJS["@mastra/client-js<br/>HTTP client"]
         REACT["@mastra/react<br/>React hooks"]
     end
-    
+
     subgraph "Backend"
         SERVER["@mastra/server<br/>Hono HTTP API"]
         MASTRA["Mastra Instance<br/>agents, workflows, tools"]
     end
-    
+
     CLI --> DEVBUNDLER
     DEVBUNDLER --> SERVER
     CLI --> VITE
     VITE --> PLAYGROUND
-    
+
     PLAYGROUND --> QUERY
     PLAYGROUND --> PLAYGROUNDUI
     PLAYGROUNDUI --> TOKENS
     PLAYGROUNDUI --> PRESET
-    
+
     PLAYGROUND --> REACT
     REACT --> CLIENTJS
     CLIENTJS --> SERVER
     SERVER --> MASTRA
-    
+
     style PLAYGROUND fill:#e1f5ff
     style PLAYGROUNDUI fill:#fff4e1
     style SERVER fill:#ffe1ff
@@ -148,13 +146,13 @@ Sources: [packages/playground/package.json](), [packages/playground-ui/package.j
 
 The `@mastra/playground-ui` package exports:
 
-| Export | Type | Purpose |
-|--------|------|---------|
-| `.` | ES/UMD | React components |
-| `./style.css` | CSS | Component styles |
-| `./tokens` | ES/CJS | Design tokens (colors, spacing, typography) |
-| `./tailwind-preset` | ES/CJS | Tailwind configuration preset |
-| `./utils` | ES/CJS | Utility functions |
+| Export              | Type   | Purpose                                     |
+| ------------------- | ------ | ------------------------------------------- |
+| `.`                 | ES/UMD | React components                            |
+| `./style.css`       | CSS    | Component styles                            |
+| `./tokens`          | ES/CJS | Design tokens (colors, spacing, typography) |
+| `./tailwind-preset` | ES/CJS | Tailwind configuration preset               |
+| `./utils`           | ES/CJS | Utility functions                           |
 
 Key dependencies:
 
@@ -172,6 +170,7 @@ Sources: [packages/playground-ui/package.json:1-191]()
 The standalone application that consumes the UI library. Built with Vite and uses React Router for navigation.
 
 Key routes (inferred from typical Studio structure):
+
 - `/agents` — Agent list and detail pages
 - `/workflows` — Workflow list and graph visualization
 - `/datasets` — Dataset management and comparison
@@ -194,6 +193,7 @@ mastra dev
 ```
 
 This command:
+
 1. Bundles the Mastra project using `DevBundler` with Rollup watch mode
 2. Starts the HTTP server with hot reload
 3. Launches Vite dev server for Studio at `http://localhost:5173`
@@ -209,12 +209,12 @@ graph LR
     RESTART["Server Restart<br/>New code loaded"]
     VITE["Vite HMR<br/>UI updates"]
     BROWSER["Browser<br/>localhost:5173"]
-    
+
     FILESYS -->|detects| ROLLUP
     ROLLUP -->|triggers| RESTART
     FILESYS -->|detects| VITE
     VITE -->|pushes| BROWSER
-    
+
     style ROLLUP fill:#e1f5ff
     style VITE fill:#fff4e1
 ```
@@ -242,6 +242,7 @@ Sources: [packages/cli/CHANGELOG.md:11]()
 ### Agent Builder
 
 The agent builder provides:
+
 - **Agent list view** — Table with status badges (Published, Draft, hasDraft)
 - **Agent detail page** — Edit instructions, model configuration, tools, memory settings
 - **Version combobox** — Switch between versions with status indicators
@@ -255,6 +256,7 @@ Sources: [packages/cli/CHANGELOG.md:37-38](), [packages/playground-ui/CHANGELOG.
 ### Workflow Visualization
 
 Workflows are rendered using `@xyflow/react` with:
+
 - **Node types** — Step, Parallel, Branch, Loop, Foreach
 - **Edge routing** — Control flow visualization
 - **Run history** — Step-by-step execution path tracking
@@ -267,6 +269,7 @@ Sources: [packages/playground-ui/package.json:111](), [packages/core/CHANGELOG.m
 ### Dataset Management
 
 Studio provides dataset operations:
+
 - **List datasets** — Searchable combobox header for quick filtering
 - **Compare items** — Side-by-side diff view for dataset entries
 - **Compare versions** — Track changes across dataset versions
@@ -281,10 +284,12 @@ Sources: [packages/create-mastra/CHANGELOG.md:19-29]()
 Experiment pages include:
 
 **Summary tab:**
+
 - `ExperimentScorerSummary` — Per-scorer average scores
 - Aggregated metrics across all runs
 
 **Results tab:**
+
 - Master-detail column layout
 - Score columns in results list
 - `ExperimentScorePanel` — Opens as column when clicking score row
@@ -303,7 +308,7 @@ graph LR
     RESULTDETAIL["Result Detail Panel"]
     SCOREPANEL["Score Panel<br/>value, reason, prompts"]
     TRACEPANEL["Trace Panel<br/>execution details"]
-    
+
     EXPLIST -->|select| EXPDETAIL
     EXPDETAIL -->|Results tab| RESULTSLIST
     RESULTSLIST -->|select| RESULTDETAIL
@@ -311,7 +316,7 @@ graph LR
     RESULTDETAIL -->|click trace| TRACEPANEL
     SCOREPANEL -.->|closes| TRACEPANEL
     TRACEPANEL -.->|closes| SCOREPANEL
-    
+
     style EXPDETAIL fill:#e1f5ff
     style SCOREPANEL fill:#fff4e1
     style TRACEPANEL fill:#fff4e1
@@ -329,15 +334,16 @@ Studio integrates with the editor version system:
 
 ### Version State Badges
 
-| State | Color | Meaning |
-|-------|-------|---------|
-| Published | Green | Active version, served by default |
-| Draft | — | Editable, not active |
-| hasDraft | Colored | Published version has unpublished changes |
+| State     | Color   | Meaning                                   |
+| --------- | ------- | ----------------------------------------- |
+| Published | Green   | Active version, served by default         |
+| Draft     | —       | Editable, not active                      |
+| hasDraft  | Colored | Published version has unpublished changes |
 
 ### Version Combobox
 
 The version selector allows:
+
 - Listing all versions with status filtering (`?status=draft/published/archived`)
 - Switching between versions
 - Activating draft versions (updates `activeVersionId`)
@@ -396,7 +402,7 @@ graph TB
     LOGIN["Redirect to<br/>Login Page"]
     FORBIDDEN["403 Forbidden<br/>PermissionDenied"]
     ALLOWED["Render<br/>Component"]
-    
+
     REQUEST --> AUTHCHECK
     AUTHCHECK -->|Yes| LOGGEDIN
     AUTHCHECK -->|No| ALLOWED
@@ -404,7 +410,7 @@ graph TB
     LOGGEDIN -->|Yes| PERMISSION
     PERMISSION -->|No| FORBIDDEN
     PERMISSION -->|Yes| ALLOWED
-    
+
     style LOGIN fill:#ffe1e1
     style FORBIDDEN fill:#ffe1e1
     style ALLOWED fill:#e1ffe1
@@ -431,11 +437,11 @@ The `mastra build` command can include Studio in the deployment:
 Enable Studio as static assets served from Edge CDN:
 
 ```typescript
-import { VercelDeployer } from '@mastra/deployer-vercel';
+import { VercelDeployer } from '@mastra/deployer-vercel'
 
 new VercelDeployer({
   studio: true,
-});
+})
 ```
 
 Studio files are written to `.vercel/output/static/` and served without invoking serverless functions.
@@ -462,6 +468,7 @@ MASTRA_STUDIO_BASE_PATH=/studio
 ```
 
 Used by:
+
 - Router base URL
 - Static asset paths
 - API endpoint prefix
@@ -486,7 +493,7 @@ Sources: [packages/cli/CHANGELOG.md:37-38]()
 Studio includes PostHog for telemetry:
 
 ```typescript
-import { PosthogProvider } from '@posthog/react';
+import { PosthogProvider } from '@posthog/react'
 
 // Telemetry events:
 // - cli_command
@@ -526,12 +533,12 @@ The `@mastra/playground-ui/tailwind-preset` export configures:
 External projects can extend this preset:
 
 ```javascript
-import mastraPreset from '@mastra/playground-ui/tailwind-preset';
+import mastraPreset from '@mastra/playground-ui/tailwind-preset'
 
 export default {
   presets: [mastraPreset],
   content: ['./src/**/*.{ts,tsx}'],
-};
+}
 ```
 
 Sources: [packages/playground-ui/package.json:31-40]()
@@ -549,10 +556,11 @@ Studio uses `@tanstack/react-query` for server state:
 const { data: agents } = useQuery({
   queryKey: ['agents'],
   queryFn: () => client.agents.list(),
-});
+})
 ```
 
 React Query handles:
+
 - Caching
 - Automatic refetching
 - Loading and error states
@@ -563,18 +571,18 @@ React Query handles:
 Forms use `react-hook-form` with Zod schema validation:
 
 ```typescript
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
 
 const schema = z.object({
   name: z.string().min(1),
   instructions: z.string(),
-});
+})
 
 const form = useForm({
   resolver: zodResolver(schema),
-});
+})
 ```
 
 The `@autoform/react` library generates forms from Zod schemas automatically for structured output configuration.
@@ -593,11 +601,11 @@ graph LR
     REACTHOOKS["@mastra/react<br/>useAgent, useWorkflow"]
     CLIENTJS["@mastra/client-js<br/>HTTP client"]
     ROUTES["Server Routes<br/>/api/agents, /api/workflows"]
-    
+
     STUDIOUI --> REACTHOOKS
     REACTHOOKS --> CLIENTJS
     CLIENTJS -->|HTTP| ROUTES
-    
+
     style STUDIOUI fill:#e1f5ff
     style CLIENTJS fill:#fff4e1
 ```
@@ -605,6 +613,7 @@ graph LR
 **Diagram: Studio Communication Stack**
 
 The client SDK handles:
+
 - Credential management (API keys, session tokens)
 - Request retries with exponential backoff
 - SSE stream parsing for agent responses
@@ -619,6 +628,7 @@ Sources: [client-sdks/client-js/package.json:1-72](), [client-sdks/react/package
 The Studio build process follows these steps:
 
 1. **UI Library Build**
+
    ```bash
    cd packages/playground-ui
    pnpm build
@@ -626,6 +636,7 @@ The Studio build process follows these steps:
    ```
 
 2. **Application Build**
+
    ```bash
    cd packages/playground
    pnpm build
@@ -640,6 +651,7 @@ The Studio build process follows these steps:
    ```
 
 The built Studio assets are optimized for production:
+
 - Tree-shaking removes unused components
 - CSS is minified and scoped
 - Static assets are hashed for caching

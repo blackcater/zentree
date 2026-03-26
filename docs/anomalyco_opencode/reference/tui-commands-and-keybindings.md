@@ -24,8 +24,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page is a complete reference for all slash commands, command palette entries, and keybindings available in the opencode Terminal User Interface. It documents command names, aliases, categories, associated keybindings, and behavior for each command and keyboard shortcut.
 
 For general TUI layout and navigation, see [3.1. Terminal User Interface (TUI)](). For configuration schema including keybinding customization, see [9.3. Configuration Schema Reference](). For provider configuration referenced by `/connect`, see [9.1. Providers & Models]().
@@ -75,12 +73,13 @@ flowchart TD
     PreventDefault --> OnSelect["option.onSelect(dialog)"]
     Match -- No --> NextCommand["Check next command"]
     NextCommand --> MatchLoop
-    
+
     LeaderHandler --> LeaderMatch{"Second key pressed"}
     LeaderMatch --> MatchLoop
 ```
 
 The `useKeybind` hook provides:
+
 - `match(key: KeybindKey, evt: KeyEvent): boolean` — Tests if an event matches a keybind name
 - `print(key: KeybindKey): string` — Returns human-readable key combination (e.g., "Ctrl+P")
 - `leader` — Tracks if leader key sequence is active
@@ -93,21 +92,21 @@ Sources: [packages/opencode/src/cli/cmd/tui/component/dialog-command.tsx:60-70](
 
 The prompt textarea supports standard text editing shortcuts. These are handled by `useTextareaKeybindings()` and do not route through the command system.
 
-| Keybinding | Action |
-|---|---|
-| `Ctrl+A` or `Home` | Move cursor to start of line |
-| `Ctrl+E` or `End` | Move cursor to end of line |
-| `Ctrl+K` | Delete from cursor to end of line |
-| `Ctrl+U` | Delete from cursor to start of line |
-| `Ctrl+W` | Delete word before cursor |
-| `Alt+Backspace` | Delete word before cursor |
-| `Up` or `Ctrl+P` | Navigate prompt history (when at start of input) |
-| `Down` or `Ctrl+N` | Navigate prompt history (when at end of input) |
-| `Ctrl+V` | Paste (special handling for images) |
-| `Ctrl+C` | Interrupt session (when active) or exit shell mode |
-| `Escape` | Exit shell mode |
-| `Enter` | Submit prompt |
-| `Shift+Enter` | Insert newline |
+| Keybinding         | Action                                             |
+| ------------------ | -------------------------------------------------- |
+| `Ctrl+A` or `Home` | Move cursor to start of line                       |
+| `Ctrl+E` or `End`  | Move cursor to end of line                         |
+| `Ctrl+K`           | Delete from cursor to end of line                  |
+| `Ctrl+U`           | Delete from cursor to start of line                |
+| `Ctrl+W`           | Delete word before cursor                          |
+| `Alt+Backspace`    | Delete word before cursor                          |
+| `Up` or `Ctrl+P`   | Navigate prompt history (when at start of input)   |
+| `Down` or `Ctrl+N` | Navigate prompt history (when at end of input)     |
+| `Ctrl+V`           | Paste (special handling for images)                |
+| `Ctrl+C`           | Interrupt session (when active) or exit shell mode |
+| `Escape`           | Exit shell mode                                    |
+| `Enter`            | Submit prompt                                      |
+| `Shift+Enter`      | Insert newline                                     |
 
 Sources: [packages/opencode/src/cli/cmd/tui/component/prompt/index.tsx:850-928](), [packages/opencode/src/cli/cmd/tui/component/textarea-keybindings.tsx]()
 
@@ -115,13 +114,13 @@ Sources: [packages/opencode/src/cli/cmd/tui/component/prompt/index.tsx:850-928](
 
 When the autocomplete dropdown is visible (triggered by `@` or `/`):
 
-| Keybinding | Action |
-|---|---|
-| `Up` or `Ctrl+P` | Move selection up |
-| `Down` or `Ctrl+N` | Move selection down |
-| `Enter` | Select current item |
-| `Tab` | Select current item (or expand directory) |
-| `Escape` | Close autocomplete |
+| Keybinding         | Action                                    |
+| ------------------ | ----------------------------------------- |
+| `Up` or `Ctrl+P`   | Move selection up                         |
+| `Down` or `Ctrl+N` | Move selection down                       |
+| `Enter`            | Select current item                       |
+| `Tab`              | Select current item (or expand directory) |
+| `Escape`           | Close autocomplete                        |
 
 Sources: [packages/opencode/src/cli/cmd/tui/component/prompt/autocomplete.tsx:543-582]()
 
@@ -129,19 +128,19 @@ Sources: [packages/opencode/src/cli/cmd/tui/component/prompt/autocomplete.tsx:54
 
 These keybindings control scrolling and navigation within the message timeline:
 
-| Keybinding | Command Value | Action |
-|---|---|---|
-| `messages_page_up` | `session.page.up` | Scroll up half viewport height |
-| `messages_page_down` | `session.page.down` | Scroll down half viewport height |
-| `messages_half_page_up` | `session.half.page.up` | Scroll up quarter viewport height |
-| `messages_half_page_down` | `session.half.page.down` | Scroll down quarter viewport height |
-| `messages_first` | `session.first` | Jump to first message |
-| `messages_last` | `session.last` | Jump to last message |
-| `messages_last_user` | `session.messages_last_user` | Jump to most recent user message |
-| `messages_next` | `session.message.next` | Jump to next visible message |
-| `messages_previous` | `session.message.previous` | Jump to previous visible message |
-| `messages_line_up` | `session.line.up` | Scroll up one line (disabled) |
-| `messages_line_down` | `session.line.down` | Scroll down one line (disabled) |
+| Keybinding                | Command Value                | Action                              |
+| ------------------------- | ---------------------------- | ----------------------------------- |
+| `messages_page_up`        | `session.page.up`            | Scroll up half viewport height      |
+| `messages_page_down`      | `session.page.down`          | Scroll down half viewport height    |
+| `messages_half_page_up`   | `session.half.page.up`       | Scroll up quarter viewport height   |
+| `messages_half_page_down` | `session.half.page.down`     | Scroll down quarter viewport height |
+| `messages_first`          | `session.first`              | Jump to first message               |
+| `messages_last`           | `session.last`               | Jump to last message                |
+| `messages_last_user`      | `session.messages_last_user` | Jump to most recent user message    |
+| `messages_next`           | `session.message.next`       | Jump to next visible message        |
+| `messages_previous`       | `session.message.previous`   | Jump to previous visible message    |
+| `messages_line_up`        | `session.line.up`            | Scroll up one line (disabled)       |
+| `messages_line_down`      | `session.line.down`          | Scroll down one line (disabled)     |
 
 These commands use the `ScrollBoxRenderable` API to calculate positions and scroll offsets. The "next/previous message" commands filter for messages with non-synthetic, non-ignored text parts.
 
@@ -151,19 +150,19 @@ Sources: [packages/opencode/src/cli/cmd/tui/routes/session/index.tsx:658-792]()
 
 Fast access to common operations:
 
-| Keybinding | Command Value | Action |
-|---|---|---|
-| `session_interrupt` | `session.interrupt` | Abort running session (press twice within 5s) |
-| `session_share` | `session.share` | Create/copy share link |
-| `session_compact` | `session.compact` | Summarize session context |
-| `session_rename` | `session.rename` | Rename current session |
-| `session_timeline` | `session.timeline` | Open timeline dialog |
-| `session_fork` | `session.fork` | Fork from message |
-| `session_export` | `session.export` | Export session transcript |
-| `messages_undo` | `session.undo` | Revert last message |
-| `messages_redo` | `session.redo` | Redo reverted message |
-| `messages_copy` | `messages.copy` | Copy last assistant message |
-| `sidebar_toggle` | `session.sidebar.toggle` | Show/hide sidebar |
+| Keybinding          | Command Value            | Action                                        |
+| ------------------- | ------------------------ | --------------------------------------------- |
+| `session_interrupt` | `session.interrupt`      | Abort running session (press twice within 5s) |
+| `session_share`     | `session.share`          | Create/copy share link                        |
+| `session_compact`   | `session.compact`        | Summarize session context                     |
+| `session_rename`    | `session.rename`         | Rename current session                        |
+| `session_timeline`  | `session.timeline`       | Open timeline dialog                          |
+| `session_fork`      | `session.fork`           | Fork from message                             |
+| `session_export`    | `session.export`         | Export session transcript                     |
+| `messages_undo`     | `session.undo`           | Revert last message                           |
+| `messages_redo`     | `session.redo`           | Redo reverted message                         |
+| `messages_copy`     | `messages.copy`          | Copy last assistant message                   |
+| `sidebar_toggle`    | `session.sidebar.toggle` | Show/hide sidebar                             |
 
 Sources: [packages/opencode/src/cli/cmd/tui/routes/session/index.tsx:359-636]()
 
@@ -171,17 +170,17 @@ Sources: [packages/opencode/src/cli/cmd/tui/routes/session/index.tsx:359-636]()
 
 These keybindings cycle through models and agents without opening a dialog:
 
-| Keybinding | Command Value | Action |
-|---|---|---|
-| `model_list` | `model.list` | Open model selection dialog |
-| `model_cycle_recent` | `model.cycle_recent` | Cycle to next recent model |
-| `model_cycle_recent_reverse` | `model.cycle_recent_reverse` | Cycle to previous recent model |
-| `model_cycle_favorite` | `model.cycle_favorite` | Cycle to next favorite model |
+| Keybinding                     | Command Value                  | Action                           |
+| ------------------------------ | ------------------------------ | -------------------------------- |
+| `model_list`                   | `model.list`                   | Open model selection dialog      |
+| `model_cycle_recent`           | `model.cycle_recent`           | Cycle to next recent model       |
+| `model_cycle_recent_reverse`   | `model.cycle_recent_reverse`   | Cycle to previous recent model   |
+| `model_cycle_favorite`         | `model.cycle_favorite`         | Cycle to next favorite model     |
 | `model_cycle_favorite_reverse` | `model.cycle_favorite_reverse` | Cycle to previous favorite model |
-| `agent_list` | `agent.list` | Open agent selection dialog |
-| `agent_cycle` | `agent.cycle` | Cycle to next agent |
-| `agent_cycle_reverse` | `agent.cycle.reverse` | Cycle to previous agent |
-| `variant_cycle` | `variant.cycle` | Cycle model variant |
+| `agent_list`                   | `agent.list`                   | Open agent selection dialog      |
+| `agent_cycle`                  | `agent.cycle`                  | Cycle to next agent              |
+| `agent_cycle_reverse`          | `agent.cycle.reverse`          | Cycle to previous agent          |
+| `variant_cycle`                | `variant.cycle`                | Cycle model variant              |
 
 The "favorite" cycle commands require at least one model to be marked as favorite. If no favorites exist, a toast notification is shown.
 
@@ -191,11 +190,11 @@ Sources: [packages/opencode/src/cli/cmd/tui/app.tsx:428-520](), [packages/openco
 
 When viewing a subagent (child) session, these keybindings navigate between parent and sibling sessions:
 
-| Keybinding | Command Value | Action |
-|---|---|---|
-| `session_parent` | `session.parent` | Navigate to parent session |
-| `session_child_first` | `session.child.first` | Navigate to first child session |
-| `session_child_cycle` | `session.child.next` | Navigate to next sibling session |
+| Keybinding                    | Command Value            | Action                               |
+| ----------------------------- | ------------------------ | ------------------------------------ |
+| `session_parent`              | `session.parent`         | Navigate to parent session           |
+| `session_child_first`         | `session.child.first`    | Navigate to first child session      |
+| `session_child_cycle`         | `session.child.next`     | Navigate to next sibling session     |
 | `session_child_cycle_reverse` | `session.child.previous` | Navigate to previous sibling session |
 
 These commands are only enabled when `session()?.parentID` exists and the dialog stack is empty.
@@ -206,33 +205,33 @@ Sources: [packages/opencode/src/cli/cmd/tui/routes/session/index.tsx:927-978]()
 
 Control what's visible in the session view:
 
-| Keybinding | Command Value | Action |
-|---|---|---|
-| `display_thinking` | `session.toggle.thinking` | Show/hide reasoning blocks |
-| `tool_details` | `session.toggle.actions` | Show/hide tool call details |
-| `messages_toggle_conceal` | `session.toggle.conceal` | Enable/disable code concealment |
-| `scrollbar_toggle` | `session.toggle.scrollbar` | Show/hide scrollbar |
-| `terminal_title_toggle` | `terminal.title.toggle` | Enable/disable terminal title updates |
+| Keybinding                | Command Value              | Action                                |
+| ------------------------- | -------------------------- | ------------------------------------- |
+| `display_thinking`        | `session.toggle.thinking`  | Show/hide reasoning blocks            |
+| `tool_details`            | `session.toggle.actions`   | Show/hide tool call details           |
+| `messages_toggle_conceal` | `session.toggle.conceal`   | Enable/disable code concealment       |
+| `scrollbar_toggle`        | `session.toggle.scrollbar` | Show/hide scrollbar                   |
+| `terminal_title_toggle`   | `terminal.title.toggle`    | Enable/disable terminal title updates |
 
 Sources: [packages/opencode/src/cli/cmd/tui/routes/session/index.tsx:605-658](), [packages/opencode/src/cli/cmd/tui/app.tsx:645-658]()
 
 ### System Keybindings
 
-| Keybinding | Command Value | Action |
-|---|---|---|
-| `command_list` | — | Open command palette (Ctrl+P) |
-| `session_list` | `session.list` | Open session list |
-| `session_new` | `session.new` | Create new session |
-| `status_view` | `opencode.status` | View system status |
-| `theme_list` | `theme.switch` | Open theme selector |
-| `editor_open` | `prompt.editor` | Open $EDITOR for prompt |
-| `input_submit` | `prompt.submit` | Submit prompt (Enter) |
-| `input_paste` | `prompt.paste` | Paste from clipboard |
-| `input_clear` | — | Clear prompt input |
-| `history_previous` | — | Navigate prompt history backward |
-| `history_next` | — | Navigate prompt history forward |
+| Keybinding         | Command Value      | Action                            |
+| ------------------ | ------------------ | --------------------------------- |
+| `command_list`     | —                  | Open command palette (Ctrl+P)     |
+| `session_list`     | `session.list`     | Open session list                 |
+| `session_new`      | `session.new`      | Create new session                |
+| `status_view`      | `opencode.status`  | View system status                |
+| `theme_list`       | `theme.switch`     | Open theme selector               |
+| `editor_open`      | `prompt.editor`    | Open $EDITOR for prompt           |
+| `input_submit`     | `prompt.submit`    | Submit prompt (Enter)             |
+| `input_paste`      | `prompt.paste`     | Paste from clipboard              |
+| `input_clear`      | —                  | Clear prompt input                |
+| `history_previous` | —                  | Navigate prompt history backward  |
+| `history_next`     | —                  | Navigate prompt history forward   |
 | `terminal_suspend` | `terminal.suspend` | Suspend terminal (Ctrl+Z on Unix) |
-| `app_exit` | — | Exit application |
+| `app_exit`         | —                  | Exit application                  |
 
 Sources: [packages/opencode/src/cli/cmd/tui/app.tsx:126-136](), [packages/opencode/src/cli/cmd/tui/component/prompt/index.tsx:172-244]()
 
@@ -304,18 +303,18 @@ Slash commands are grouped by where they are registered. All slash commands also
 
 Registered in `app.tsx` via `command.register()`. Available at all times regardless of the current route.
 
-| Slash Command | Aliases | Command Value | Keybind | Description |
-|---|---|---|---|---|
-| `/sessions` | `resume`, `continue` | `session.list` | `session_list` | Opens `DialogSessionList` to switch sessions |
-| `/new` | `clear` | `session.new` | `session_new` | Navigates to the home screen; preserves current prompt text |
-| `/models` | — | `model.list` | `model_list` | Opens `DialogModel` to select a provider and model |
-| `/agents` | — | `agent.list` | `agent_list` | Opens `DialogAgent` to switch the active agent |
-| `/mcps` | — | `mcp.list` | — | Opens `DialogMcp` to enable/disable MCP servers |
-| `/connect` | — | `provider.connect` | — | Opens `DialogProviderList` to add provider credentials |
-| `/status` | — | `opencode.status` | `status_view` | Opens `DialogStatus` showing server diagnostics |
-| `/themes` | — | `theme.switch` | `theme_list` | Opens `DialogThemeList` to pick a theme |
-| `/help` | — | `help.show` | — | Opens `DialogHelp` |
-| `/exit` | `quit`, `q` | `app.exit` | — | Exits the application |
+| Slash Command | Aliases              | Command Value      | Keybind        | Description                                                 |
+| ------------- | -------------------- | ------------------ | -------------- | ----------------------------------------------------------- |
+| `/sessions`   | `resume`, `continue` | `session.list`     | `session_list` | Opens `DialogSessionList` to switch sessions                |
+| `/new`        | `clear`              | `session.new`      | `session_new`  | Navigates to the home screen; preserves current prompt text |
+| `/models`     | —                    | `model.list`       | `model_list`   | Opens `DialogModel` to select a provider and model          |
+| `/agents`     | —                    | `agent.list`       | `agent_list`   | Opens `DialogAgent` to switch the active agent              |
+| `/mcps`       | —                    | `mcp.list`         | —              | Opens `DialogMcp` to enable/disable MCP servers             |
+| `/connect`    | —                    | `provider.connect` | —              | Opens `DialogProviderList` to add provider credentials      |
+| `/status`     | —                    | `opencode.status`  | `status_view`  | Opens `DialogStatus` showing server diagnostics             |
+| `/themes`     | —                    | `theme.switch`     | `theme_list`   | Opens `DialogThemeList` to pick a theme                     |
+| `/help`       | —                    | `help.show`        | —              | Opens `DialogHelp`                                          |
+| `/exit`       | `quit`, `q`          | `app.exit`         | —              | Exits the application                                       |
 
 Sources: [packages/opencode/src/cli/cmd/tui/app.tsx:361-577]()
 
@@ -325,20 +324,20 @@ Sources: [packages/opencode/src/cli/cmd/tui/app.tsx:361-577]()
 
 Registered in `session/index.tsx`. Available when viewing a session. Most operate on the current `sessionID`.
 
-| Slash Command | Aliases | Command Value | Keybind | Description |
-|---|---|---|---|---|
-| `/share` | — | `session.share` | `session_share` | Creates a share link; if one exists, copies it to clipboard |
-| `/unshare` | — | `session.unshare` | `session_unshare` | Removes the share link (only enabled when session is shared) |
-| `/rename` | — | `session.rename` | `session_rename` | Opens `DialogSessionRename` |
-| `/timeline` | — | `session.timeline` | `session_timeline` | Opens `DialogTimeline` to jump to or fork from a message |
-| `/fork` | — | `session.fork` | `session_fork` | Opens `DialogForkFromTimeline` to create a fork from a selected message |
-| `/compact` | `summarize` | `session.compact` | `session_compact` | Calls `sdk.client.session.summarize()` with the current model |
-| `/undo` | — | `session.undo` | `messages_undo` | Aborts any in-progress generation, then calls `sdk.client.session.revert()` to the last user message; restores that message text into the prompt |
-| `/redo` | — | `session.redo` | `messages_redo` | Re-applies the most recently reverted message |
-| `/timestamps` | `toggle-timestamps` | `session.toggle.timestamps` | — | Toggles display of per-message timestamps |
-| `/thinking` | `toggle-thinking` | `session.toggle.thinking` | `display_thinking` | Toggles display of AI reasoning/thinking blocks |
-| `/copy` | — | `session.copy` | — | Copies full formatted session transcript to clipboard via `formatTranscript()` |
-| `/export` | — | `session.export` | `session_export` | Opens `DialogExportOptions`, writes transcript to a file, and optionally opens it in `$EDITOR` |
+| Slash Command | Aliases             | Command Value               | Keybind            | Description                                                                                                                                      |
+| ------------- | ------------------- | --------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/share`      | —                   | `session.share`             | `session_share`    | Creates a share link; if one exists, copies it to clipboard                                                                                      |
+| `/unshare`    | —                   | `session.unshare`           | `session_unshare`  | Removes the share link (only enabled when session is shared)                                                                                     |
+| `/rename`     | —                   | `session.rename`            | `session_rename`   | Opens `DialogSessionRename`                                                                                                                      |
+| `/timeline`   | —                   | `session.timeline`          | `session_timeline` | Opens `DialogTimeline` to jump to or fork from a message                                                                                         |
+| `/fork`       | —                   | `session.fork`              | `session_fork`     | Opens `DialogForkFromTimeline` to create a fork from a selected message                                                                          |
+| `/compact`    | `summarize`         | `session.compact`           | `session_compact`  | Calls `sdk.client.session.summarize()` with the current model                                                                                    |
+| `/undo`       | —                   | `session.undo`              | `messages_undo`    | Aborts any in-progress generation, then calls `sdk.client.session.revert()` to the last user message; restores that message text into the prompt |
+| `/redo`       | —                   | `session.redo`              | `messages_redo`    | Re-applies the most recently reverted message                                                                                                    |
+| `/timestamps` | `toggle-timestamps` | `session.toggle.timestamps` | —                  | Toggles display of per-message timestamps                                                                                                        |
+| `/thinking`   | `toggle-thinking`   | `session.toggle.thinking`   | `display_thinking` | Toggles display of AI reasoning/thinking blocks                                                                                                  |
+| `/copy`       | —                   | `session.copy`              | —                  | Copies full formatted session transcript to clipboard via `formatTranscript()`                                                                   |
+| `/export`     | —                   | `session.export`            | `session_export`   | Opens `DialogExportOptions`, writes transcript to a file, and optionally opens it in `$EDITOR`                                                   |
 
 #### `/compact` behavior
 
@@ -355,6 +354,7 @@ Sources: [packages/opencode/src/cli/cmd/tui/routes/session/index.tsx:504-540]()
 #### `/export` options
 
 The export dialog (`DialogExportOptions`) allows the user to:
+
 - Set the output filename (default: `session-<id-prefix>.md`)
 - Toggle inclusion of thinking blocks, tool details, and assistant metadata
 - Choose to open the transcript in `$EDITOR` without writing to disk
@@ -367,10 +367,10 @@ Sources: [packages/opencode/src/cli/cmd/tui/routes/session/index.tsx:866-925]()
 
 Registered in `prompt/index.tsx`. These interact with the prompt input itself.
 
-| Slash Command | Aliases | Command Value | Keybind | Description |
-|---|---|---|---|---|
-| `/editor` | — | `prompt.editor` | `editor_open` | Opens `$EDITOR` with the current prompt text; on close, the edited text replaces the prompt |
-| `/skills` | — | `prompt.skills` | — | Opens `DialogSkill` to pick a skill; selecting one prefills `/skillname ` in the prompt |
+| Slash Command | Aliases | Command Value   | Keybind       | Description                                                                                 |
+| ------------- | ------- | --------------- | ------------- | ------------------------------------------------------------------------------------------- |
+| `/editor`     | —       | `prompt.editor` | `editor_open` | Opens `$EDITOR` with the current prompt text; on close, the edited text replaces the prompt |
+| `/skills`     | —       | `prompt.skills` | —             | Opens `DialogSkill` to pick a skill; selecting one prefills `/skillname ` in the prompt     |
 
 Sources: [packages/opencode/src/cli/cmd/tui/component/prompt/index.tsx:245-356]()
 
@@ -392,55 +392,55 @@ Sources: [packages/opencode/src/cli/cmd/tui/component/prompt/autocomplete.tsx:35
 
 The following commands appear in the palette (`Ctrl+P`) but are not invokable via a slash prefix in the prompt.
 
-| Title | Command Value | Keybind | Description |
-|---|---|---|---|
-| Toggle sidebar | `session.sidebar.toggle` | `sidebar_toggle` | Shows or hides the session sidebar |
-| Enable/Disable code concealment | `session.toggle.conceal` | `messages_toggle_conceal` | Toggles syntax-highlighted code block concealment |
-| Show/Hide tool details | `session.toggle.actions` | `tool_details` | Toggles expanded display of tool calls |
-| Toggle session scrollbar | `session.toggle.scrollbar` | `scrollbar_toggle` | Shows or hides the scroll bar in the message view |
-| Show/Hide header | `session.toggle.header` | — | Toggles the session header bar |
-| Show/Hide generic tool output | `session.toggle.generic_tool_output` | — | Toggles output for tools without a custom renderer |
-| Toggle appearance | `theme.switch_mode` | — | Switches between dark and light mode |
-| Copy last assistant message | `messages.copy` | `messages_copy` | Copies the most recent assistant response to clipboard |
-| Stash prompt | `prompt.stash` | — | Saves current prompt to the stash stack (only enabled when prompt is non-empty) |
-| Stash pop | `prompt.stash.pop` | — | Restores the most recently stashed prompt |
-| Stash list | `prompt.stash.list` | — | Opens `DialogStash` to browse all stashed prompts |
-| Enable/Disable terminal title | `terminal.title.toggle` | `terminal_title_toggle` | Controls whether the terminal window title is updated |
-| Enable/Disable animations | `app.toggle.animations` | — | Toggles spinner and other animations |
-| Enable/Disable diff wrapping | `app.toggle.diffwrap` | — | Toggles word-wrap mode in diff views |
-| Open docs | `docs.open` | — | Opens `https://opencode.ai/docs` in the system browser |
-| Toggle debug panel | `app.debug` | — | Toggles the opentui debug overlay |
-| Toggle console | `app.console` | — | Toggles the opentui developer console |
+| Title                           | Command Value                        | Keybind                   | Description                                                                     |
+| ------------------------------- | ------------------------------------ | ------------------------- | ------------------------------------------------------------------------------- |
+| Toggle sidebar                  | `session.sidebar.toggle`             | `sidebar_toggle`          | Shows or hides the session sidebar                                              |
+| Enable/Disable code concealment | `session.toggle.conceal`             | `messages_toggle_conceal` | Toggles syntax-highlighted code block concealment                               |
+| Show/Hide tool details          | `session.toggle.actions`             | `tool_details`            | Toggles expanded display of tool calls                                          |
+| Toggle session scrollbar        | `session.toggle.scrollbar`           | `scrollbar_toggle`        | Shows or hides the scroll bar in the message view                               |
+| Show/Hide header                | `session.toggle.header`              | —                         | Toggles the session header bar                                                  |
+| Show/Hide generic tool output   | `session.toggle.generic_tool_output` | —                         | Toggles output for tools without a custom renderer                              |
+| Toggle appearance               | `theme.switch_mode`                  | —                         | Switches between dark and light mode                                            |
+| Copy last assistant message     | `messages.copy`                      | `messages_copy`           | Copies the most recent assistant response to clipboard                          |
+| Stash prompt                    | `prompt.stash`                       | —                         | Saves current prompt to the stash stack (only enabled when prompt is non-empty) |
+| Stash pop                       | `prompt.stash.pop`                   | —                         | Restores the most recently stashed prompt                                       |
+| Stash list                      | `prompt.stash.list`                  | —                         | Opens `DialogStash` to browse all stashed prompts                               |
+| Enable/Disable terminal title   | `terminal.title.toggle`              | `terminal_title_toggle`   | Controls whether the terminal window title is updated                           |
+| Enable/Disable animations       | `app.toggle.animations`              | —                         | Toggles spinner and other animations                                            |
+| Enable/Disable diff wrapping    | `app.toggle.diffwrap`                | —                         | Toggles word-wrap mode in diff views                                            |
+| Open docs                       | `docs.open`                          | —                         | Opens `https://opencode.ai/docs` in the system browser                          |
+| Toggle debug panel              | `app.debug`                          | —                         | Toggles the opentui debug overlay                                               |
+| Toggle console                  | `app.console`                        | —                         | Toggles the opentui developer console                                           |
 
 The following commands are registered but `hidden: true` (they do not appear in the palette; they are only reachable via keybind):
 
-| Title | Command Value | Keybind |
-|---|---|---|
-| Page up | `session.page.up` | `messages_page_up` |
-| Page down | `session.page.down` | `messages_page_down` |
-| Half page up | `session.half.page.up` | `messages_half_page_up` |
-| Half page down | `session.half.page.down` | `messages_half_page_down` |
-| First message | `session.first` | `messages_first` |
-| Last message | `session.last` | `messages_last` |
-| Jump to last user message | `session.messages_last_user` | `messages_last_user` |
-| Next message | `session.message.next` | `messages_next` |
-| Previous message | `session.message.previous` | `messages_previous` |
-| Go to child session | `session.child.first` | `session_child_first` |
-| Go to parent session | `session.parent` | `session_parent` |
-| Next child session | `session.child.next` | `session_child_cycle` |
-| Previous child session | `session.child.previous` | `session_child_cycle_reverse` |
-| Model cycle | `model.cycle_recent` | `model_cycle_recent` |
-| Model cycle reverse | `model.cycle_recent_reverse` | `model_cycle_recent_reverse` |
-| Favorite cycle | `model.cycle_favorite` | `model_cycle_favorite` |
-| Favorite cycle reverse | `model.cycle_favorite_reverse` | `model_cycle_favorite_reverse` |
-| Agent cycle | `agent.cycle` | `agent_cycle` |
-| Agent cycle reverse | `agent.cycle.reverse` | `agent_cycle_reverse` |
-| Variant cycle | `variant.cycle` | `variant_cycle` |
-| Interrupt session | `session.interrupt` | `session_interrupt` |
-| Suspend terminal | `terminal.suspend` | `terminal_suspend` |
-| Submit prompt | `prompt.submit` | `input_submit` |
-| Clear prompt | `prompt.clear` | — |
-| Paste image | `prompt.paste` | `input_paste` |
+| Title                     | Command Value                  | Keybind                        |
+| ------------------------- | ------------------------------ | ------------------------------ |
+| Page up                   | `session.page.up`              | `messages_page_up`             |
+| Page down                 | `session.page.down`            | `messages_page_down`           |
+| Half page up              | `session.half.page.up`         | `messages_half_page_up`        |
+| Half page down            | `session.half.page.down`       | `messages_half_page_down`      |
+| First message             | `session.first`                | `messages_first`               |
+| Last message              | `session.last`                 | `messages_last`                |
+| Jump to last user message | `session.messages_last_user`   | `messages_last_user`           |
+| Next message              | `session.message.next`         | `messages_next`                |
+| Previous message          | `session.message.previous`     | `messages_previous`            |
+| Go to child session       | `session.child.first`          | `session_child_first`          |
+| Go to parent session      | `session.parent`               | `session_parent`               |
+| Next child session        | `session.child.next`           | `session_child_cycle`          |
+| Previous child session    | `session.child.previous`       | `session_child_cycle_reverse`  |
+| Model cycle               | `model.cycle_recent`           | `model_cycle_recent`           |
+| Model cycle reverse       | `model.cycle_recent_reverse`   | `model_cycle_recent_reverse`   |
+| Favorite cycle            | `model.cycle_favorite`         | `model_cycle_favorite`         |
+| Favorite cycle reverse    | `model.cycle_favorite_reverse` | `model_cycle_favorite_reverse` |
+| Agent cycle               | `agent.cycle`                  | `agent_cycle`                  |
+| Agent cycle reverse       | `agent.cycle.reverse`          | `agent_cycle_reverse`          |
+| Variant cycle             | `variant.cycle`                | `variant_cycle`                |
+| Interrupt session         | `session.interrupt`            | `session_interrupt`            |
+| Suspend terminal          | `terminal.suspend`             | `terminal_suspend`             |
+| Submit prompt             | `prompt.submit`                | `input_submit`                 |
+| Clear prompt              | `prompt.clear`                 | —                              |
+| Paste image               | `prompt.paste`                 | `input_paste`                  |
 
 Sources: [packages/opencode/src/cli/cmd/tui/app.tsx:361-660](), [packages/opencode/src/cli/cmd/tui/routes/session/index.tsx:554-960](), [packages/opencode/src/cli/cmd/tui/component/prompt/index.tsx:171-355]()
 
@@ -476,11 +476,11 @@ Sources: [packages/opencode/src/cli/cmd/tui/component/prompt/autocomplete.tsx:22
 
 The following literal text strings, entered as the entire prompt and submitted, are handled before any network call is made:
 
-| Input | Behavior |
-|---|---|
+| Input  | Behavior                         |
+| ------ | -------------------------------- |
 | `exit` | Calls `exit()` (same as `/exit`) |
-| `quit` | Calls `exit()` |
-| `:q` | Calls `exit()` |
+| `quit` | Calls `exit()`                   |
+| `:q`   | Calls `exit()`                   |
 
 Sources: [packages/opencode/src/cli/cmd/tui/component/prompt/index.tsx:533-537]()
 

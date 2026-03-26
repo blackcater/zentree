@@ -18,8 +18,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the two non-interactive execution modes in `pi-coding-agent`:
 
 1. **Print Mode** — Single-shot execution with text or JSON output. Processes prompts and exits immediately after completion.
@@ -83,11 +81,13 @@ flowchart TD
 Sources: [packages/coding-agent/src/main.ts:663-779](), [packages/coding-agent/src/modes/print-mode.ts:30-124]()
 
 **Text mode** (`-p` or default when stdin piped):
+
 - Subscribes to events for session persistence only.
 - After all prompts complete, extracts text content from the final `AssistantMessage` and writes it to stdout.
 - Exits with code 1 if `stopReason === "error" || "aborted"`.
 
 **JSON mode** (`--mode json`):
+
 - First line: `SessionHeader` JSON (session metadata).
 - Subsequent lines: each `AgentSessionEvent` as a JSON object.
 - Events include `agent_start`, `message_update` (streaming deltas), `tool_execution_start`, `tool_execution_end`, `agent_end`, etc.
@@ -113,10 +113,10 @@ Sources: [packages/coding-agent/src/modes/print-mode.ts:30-124]()
 
 ```typescript
 interface PrintModeOptions {
-  mode: "text" | "json";
-  messages?: string[];           // Additional prompts after initialMessage
-  initialMessage?: string;       // First prompt (may contain @file content)
-  initialImages?: ImageContent[];
+  mode: 'text' | 'json'
+  messages?: string[] // Additional prompts after initialMessage
+  initialMessage?: string // First prompt (may contain @file content)
+  initialImages?: ImageContent[]
 }
 ```
 
@@ -166,7 +166,7 @@ sequenceDiagram
     RPC->>Session: session.prompt(...)
     RPC-->>Host: '{"id":"r1","type":"response","command":"prompt","success":true}\
 '
-    
+
     Note over Session,LLM: Streaming events
     Session->>LLM: stream request
     LLM-->>Session: text delta
@@ -217,7 +217,7 @@ flowchart TD
     C --> D["session.subscribe(event => output(event))"]
     D --> E["attachJsonlLineReader(stdin, handleInputLine)"]
     E --> F["Keep process alive: new Promise(() => {})"]
-    
+
     subgraph "handleInputLine"
         G["Parse JSON line"] --> H{"type?"}
         H -- "extension_ui_response" --> I["Resolve pending UI request"]
@@ -226,7 +226,7 @@ flowchart TD
         K --> L["output(RpcResponse)"]
         L --> M["checkShutdownRequested()"]
     end
-    
+
     subgraph "ExtensionUIContext methods"
         N["select/confirm/input/editor"] --> O["createDialogPromise(...)"]
         O --> P["output extension_ui_request"]
@@ -254,6 +254,7 @@ Sources: [packages/coding-agent/src/modes/rpc/rpc-mode.ts:45-115](), [packages/c
 ### RPC Commands
 
 All commands are defined in the `RpcCommand` union type at [packages/coding-agent/src/modes/rpc/rpc-types.ts:18-67](). Each command is a JSON object with:
+
 - `type`: Command name
 - `id`: Optional string for correlating responses
 - Additional fields specific to the command
@@ -314,44 +315,44 @@ Sources: [packages/coding-agent/src/modes/rpc/rpc-types.ts:18-67]()
 
 #### Command Reference Table
 
-| Command | Key Fields | Response Data | Notes |
-|---|---|---|---|
-| **Prompting** |
-| `prompt` | `message`, `images?`, `streamingBehavior?` | None | Fire-and-forget; events stream async |
-| `steer` | `message`, `images?` | None | Interrupt after current tool |
-| `follow_up` | `message`, `images?` | None | Queue until agent idle |
-| `abort` | — | None | Cancel current operation |
-| `new_session` | `parentSession?` | `{cancelled}` | Start fresh session |
-| **State** |
-| `get_state` | — | `RpcSessionState` | Current session state |
-| `get_messages` | — | `{messages}` | All messages in session |
-| `get_commands` | — | `{commands: RpcSlashCommand[]}` | Available slash commands |
-| **Model** |
-| `set_model` | `provider`, `modelId` | `Model` | Switch to specified model |
-| `cycle_model` | — | `{model, thinkingLevel, isScoped}` or `null` | Next scoped model |
-| `get_available_models` | — | `{models}` | Models with API keys |
-| `set_thinking_level` | `level` | None | Set thinking level |
-| `cycle_thinking_level` | — | `{level}` or `null` | Next thinking level |
-| **Session** |
-| `get_session_stats` | — | `SessionStats` | Token/cost/entry counts |
-| `export_html` | `outputPath?` | `{path}` | Export to HTML file |
-| `switch_session` | `sessionPath` | `{cancelled}` | Load different session |
-| `fork` | `entryId` | `{text, cancelled}` | Create new session from entry |
-| `get_fork_messages` | — | `{messages}` | User messages for forking |
-| `get_last_assistant_text` | — | `{text}` | Last assistant text |
-| `set_session_name` | `name` | None | Set display name |
-| **Compaction** |
-| `compact` | `customInstructions?` | `CompactionResult` | Manually compact context |
-| `set_auto_compaction` | `enabled` | None | Toggle auto-compaction |
-| **Retry** |
-| `set_auto_retry` | `enabled` | None | Toggle auto-retry |
-| `abort_retry` | — | None | Cancel pending retry |
-| **Bash** |
-| `bash` | `command` | `BashResult` | Execute shell command |
-| `abort_bash` | — | None | Cancel running command |
-| **Queue** |
-| `set_steering_mode` | `mode: "all" \| "one-at-a-time"` | None | Set steering delivery mode |
-| `set_follow_up_mode` | `mode: "all" \| "one-at-a-time"` | None | Set follow-up delivery mode |
+| Command                   | Key Fields                                 | Response Data                                | Notes                                |
+| ------------------------- | ------------------------------------------ | -------------------------------------------- | ------------------------------------ |
+| **Prompting**             |
+| `prompt`                  | `message`, `images?`, `streamingBehavior?` | None                                         | Fire-and-forget; events stream async |
+| `steer`                   | `message`, `images?`                       | None                                         | Interrupt after current tool         |
+| `follow_up`               | `message`, `images?`                       | None                                         | Queue until agent idle               |
+| `abort`                   | —                                          | None                                         | Cancel current operation             |
+| `new_session`             | `parentSession?`                           | `{cancelled}`                                | Start fresh session                  |
+| **State**                 |
+| `get_state`               | —                                          | `RpcSessionState`                            | Current session state                |
+| `get_messages`            | —                                          | `{messages}`                                 | All messages in session              |
+| `get_commands`            | —                                          | `{commands: RpcSlashCommand[]}`              | Available slash commands             |
+| **Model**                 |
+| `set_model`               | `provider`, `modelId`                      | `Model`                                      | Switch to specified model            |
+| `cycle_model`             | —                                          | `{model, thinkingLevel, isScoped}` or `null` | Next scoped model                    |
+| `get_available_models`    | —                                          | `{models}`                                   | Models with API keys                 |
+| `set_thinking_level`      | `level`                                    | None                                         | Set thinking level                   |
+| `cycle_thinking_level`    | —                                          | `{level}` or `null`                          | Next thinking level                  |
+| **Session**               |
+| `get_session_stats`       | —                                          | `SessionStats`                               | Token/cost/entry counts              |
+| `export_html`             | `outputPath?`                              | `{path}`                                     | Export to HTML file                  |
+| `switch_session`          | `sessionPath`                              | `{cancelled}`                                | Load different session               |
+| `fork`                    | `entryId`                                  | `{text, cancelled}`                          | Create new session from entry        |
+| `get_fork_messages`       | —                                          | `{messages}`                                 | User messages for forking            |
+| `get_last_assistant_text` | —                                          | `{text}`                                     | Last assistant text                  |
+| `set_session_name`        | `name`                                     | None                                         | Set display name                     |
+| **Compaction**            |
+| `compact`                 | `customInstructions?`                      | `CompactionResult`                           | Manually compact context             |
+| `set_auto_compaction`     | `enabled`                                  | None                                         | Toggle auto-compaction               |
+| **Retry**                 |
+| `set_auto_retry`          | `enabled`                                  | None                                         | Toggle auto-retry                    |
+| `abort_retry`             | —                                          | None                                         | Cancel pending retry                 |
+| **Bash**                  |
+| `bash`                    | `command`                                  | `BashResult`                                 | Execute shell command                |
+| `abort_bash`              | —                                          | None                                         | Cancel running command               |
+| **Queue**                 |
+| `set_steering_mode`       | `mode: "all" \| "one-at-a-time"`           | None                                         | Set steering delivery mode           |
+| `set_follow_up_mode`      | `mode: "all" \| "one-at-a-time"`           | None                                         | Set follow-up delivery mode          |
 
 Sources: [packages/coding-agent/src/modes/rpc/rpc-types.ts:18-67](), [packages/coding-agent/src/modes/rpc/rpc-mode.ts:321-583]()
 
@@ -401,18 +402,18 @@ sequenceDiagram
     participant Ext["Extension"]
     participant RPC["runRpcMode"]
     participant Host["Host Process"]
-    
+
     Note over Ext,Host: Interactive method (select/confirm/input/editor)
     Ext->>RPC: ctx.ui.confirm(title, message)
     RPC->>Host: extension_ui_request<br/>{"id":"u1","method":"confirm",...}
     Host->>RPC: extension_ui_response<br/>{"id":"u1","confirmed":true}
     RPC->>Ext: return true
-    
+
     Note over Ext,Host: Fire-and-forget methods
     Ext->>RPC: ctx.ui.notify(message, "info")
     RPC->>Host: extension_ui_request<br/>{"id":"u2","method":"notify",...}
     Note over Host: No response needed
-    
+
     Ext->>RPC: ctx.ui.setStatus(key, text)
     RPC->>Host: extension_ui_request<br/>{"id":"u3","method":"setStatus",...}
     Note over Host: No response needed
@@ -422,19 +423,20 @@ Sources: [packages/coding-agent/src/modes/rpc/rpc-mode.ts:119-275]()
 
 **`RpcExtensionUIRequest`** types (stdout):
 
-| Method | Fields | Wait for Response? |
-|---|---|---|
-| `select` | `title`, `options: string[]`, `timeout?` | Yes → `{value}` or `{cancelled}` |
-| `confirm` | `title`, `message`, `timeout?` | Yes → `{confirmed}` or `{cancelled}` |
-| `input` | `title`, `placeholder?`, `timeout?` | Yes → `{value}` or `{cancelled}` |
-| `editor` | `title`, `prefill?` | Yes → `{value}` or `{cancelled}` |
-| `notify` | `message`, `notifyType?` | No |
-| `setStatus` | `statusKey`, `statusText` | No |
-| `setWidget` | `widgetKey`, `widgetLines?`, `widgetPlacement?` | No |
-| `setTitle` | `title` | No |
-| `set_editor_text` | `text` | No |
+| Method            | Fields                                          | Wait for Response?                   |
+| ----------------- | ----------------------------------------------- | ------------------------------------ |
+| `select`          | `title`, `options: string[]`, `timeout?`        | Yes → `{value}` or `{cancelled}`     |
+| `confirm`         | `title`, `message`, `timeout?`                  | Yes → `{confirmed}` or `{cancelled}` |
+| `input`           | `title`, `placeholder?`, `timeout?`             | Yes → `{value}` or `{cancelled}`     |
+| `editor`          | `title`, `prefill?`                             | Yes → `{value}` or `{cancelled}`     |
+| `notify`          | `message`, `notifyType?`                        | No                                   |
+| `setStatus`       | `statusKey`, `statusText`                       | No                                   |
+| `setWidget`       | `widgetKey`, `widgetLines?`, `widgetPlacement?` | No                                   |
+| `setTitle`        | `title`                                         | No                                   |
+| `set_editor_text` | `text`                                          | No                                   |
 
 **`RpcExtensionUIResponse`** (stdin):
+
 ```typescript
 {
   type: "extension_ui_response",
@@ -494,23 +496,24 @@ Sources: [packages/coding-agent/src/modes/rpc/rpc-client.ts:54-510]()
 
 **Key methods:**
 
-| Method | Return Type | Description |
-|---|---|---|
-| `start()` | `Promise<void>` | Spawn subprocess, wire stdin/stdout |
-| `stop()` | `Promise<void>` | Send SIGTERM, wait for exit |
-| `prompt(message, images?)` | `Promise<void>` | Send prompt command |
-| `steer(message, images?)` | `Promise<void>` | Send steer command |
-| `followUp(message, images?)` | `Promise<void>` | Send follow_up command |
-| `abort()` | `Promise<void>` | Send abort command |
-| `getState()` | `Promise<RpcSessionState>` | Get session state |
-| `setModel(provider, modelId)` | `Promise<Model>` | Switch model |
-| `compact(instructions?)` | `Promise<CompactionResult>` | Compact context |
-| `bash(command)` | `Promise<BashResult>` | Execute shell command |
-| `waitForIdle(timeout?)` | `Promise<void>` | Wait for `agent_end` event |
-| `promptAndWait(msg, imgs?, timeout?)` | `Promise<AgentEvent[]>` | Send and collect events until done |
-| `onEvent(listener)` | `() => void` | Subscribe to events; returns unsubscribe |
+| Method                                | Return Type                 | Description                              |
+| ------------------------------------- | --------------------------- | ---------------------------------------- |
+| `start()`                             | `Promise<void>`             | Spawn subprocess, wire stdin/stdout      |
+| `stop()`                              | `Promise<void>`             | Send SIGTERM, wait for exit              |
+| `prompt(message, images?)`            | `Promise<void>`             | Send prompt command                      |
+| `steer(message, images?)`             | `Promise<void>`             | Send steer command                       |
+| `followUp(message, images?)`          | `Promise<void>`             | Send follow_up command                   |
+| `abort()`                             | `Promise<void>`             | Send abort command                       |
+| `getState()`                          | `Promise<RpcSessionState>`  | Get session state                        |
+| `setModel(provider, modelId)`         | `Promise<Model>`            | Switch model                             |
+| `compact(instructions?)`              | `Promise<CompactionResult>` | Compact context                          |
+| `bash(command)`                       | `Promise<BashResult>`       | Execute shell command                    |
+| `waitForIdle(timeout?)`               | `Promise<void>`             | Wait for `agent_end` event               |
+| `promptAndWait(msg, imgs?, timeout?)` | `Promise<AgentEvent[]>`     | Send and collect events until done       |
+| `onEvent(listener)`                   | `() => void`                | Subscribe to events; returns unsubscribe |
 
 **Internal flow:**
+
 1. `send(commandBody)` auto-increments `nextId`, creates a pending promise, writes `{"id":"...","type":"...",..."}\
 ` to stdin.
 2. `handleLine(line)` parses JSON, dispatches to `pendingRequests.get(id)` for responses, or calls all `eventListeners` for events.
@@ -521,30 +524,30 @@ Sources: [packages/coding-agent/src/modes/rpc/rpc-client.ts:163-510]()
 **Usage example:**
 
 ```typescript
-import { RpcClient } from "@mariozechner/pi-coding-agent";
+import { RpcClient } from '@mariozechner/pi-coding-agent'
 
 const client = new RpcClient({
-  cliPath: "./dist/cli.js",
-  provider: "anthropic",
-  model: "claude-sonnet-4-5",
-});
+  cliPath: './dist/cli.js',
+  provider: 'anthropic',
+  model: 'claude-sonnet-4-5',
+})
 
-await client.start();
+await client.start()
 
 // Subscribe to events
 client.onEvent((event) => {
-  if (event.type === "message_update") {
-    const delta = event.assistantMessageEvent;
-    if (delta.type === "text_delta") {
-      process.stdout.write(delta.delta);
+  if (event.type === 'message_update') {
+    const delta = event.assistantMessageEvent
+    if (delta.type === 'text_delta') {
+      process.stdout.write(delta.delta)
     }
   }
-});
+})
 
 // Send prompt and wait for completion
-const events = await client.promptAndWait("List files in src/");
+const events = await client.promptAndWait('List files in src/')
 
-await client.stop();
+await client.stop()
 ```
 
 Sources: [packages/coding-agent/src/modes/rpc/rpc-client.ts:54-510](), [packages/coding-agent/test/rpc.test.ts:14-45]()
@@ -553,15 +556,15 @@ Sources: [packages/coding-agent/src/modes/rpc/rpc-client.ts:54-510](), [packages
 
 ## SDK vs RPC Mode Comparison
 
-| | SDK (direct) | RPC Mode (subprocess) |
-|---|---|---|
-| Language | TypeScript/Node.js only | Any language |
-| Access | `createAgentSession()` | `pi --mode rpc` |
-| Events | `session.subscribe()` | JSON lines on stdout |
-| Commands | Method calls on `AgentSession` | JSON lines to stdin |
-| Extension UI | `ExtensionUIContext` callbacks | `extension_ui_request` / `extension_ui_response` messages |
-| Process isolation | None | Full subprocess isolation |
-| Typed client | `AgentSession` directly | `RpcClient` (Node.js wrapper) |
-| Session persistence | Controlled via `SessionManager` | Same; `--no-session` disables |
+|                     | SDK (direct)                    | RPC Mode (subprocess)                                     |
+| ------------------- | ------------------------------- | --------------------------------------------------------- |
+| Language            | TypeScript/Node.js only         | Any language                                              |
+| Access              | `createAgentSession()`          | `pi --mode rpc`                                           |
+| Events              | `session.subscribe()`           | JSON lines on stdout                                      |
+| Commands            | Method calls on `AgentSession`  | JSON lines to stdin                                       |
+| Extension UI        | `ExtensionUIContext` callbacks  | `extension_ui_request` / `extension_ui_response` messages |
+| Process isolation   | None                            | Full subprocess isolation                                 |
+| Typed client        | `AgentSession` directly         | `RpcClient` (Node.js wrapper)                             |
+| Session persistence | Controlled via `SessionManager` | Same; `--no-session` disables                             |
 
 Sources: [packages/coding-agent/src/core/sdk.ts:41-72](), [packages/coding-agent/src/modes/rpc/rpc-mode.ts:1-12](), [packages/coding-agent/docs/rpc.md:1-10]()

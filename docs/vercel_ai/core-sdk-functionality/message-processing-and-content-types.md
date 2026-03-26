@@ -16,8 +16,8 @@ The following files were used as context for generating this wiki page:
 - [examples/ai-e2e-next/app/api/chat/tool-approval-options/route.ts](examples/ai-e2e-next/app/api/chat/tool-approval-options/route.ts)
 - [examples/ai-e2e-next/app/chat/test-tool-approval-options/page.tsx](examples/ai-e2e-next/app/chat/test-tool-approval-options/page.tsx)
 - [examples/ai-e2e-next/components/tool/dynamic-tool-with-approval-view.tsx](examples/ai-e2e-next/components/tool/dynamic-tool-with-approval-view.tsx)
-- [packages/ai/src/generate-text/__snapshots__/generate-text.test.ts.snap](packages/ai/src/generate-text/__snapshots__/generate-text.test.ts.snap)
-- [packages/ai/src/generate-text/__snapshots__/stream-text.test.ts.snap](packages/ai/src/generate-text/__snapshots__/stream-text.test.ts.snap)
+- [packages/ai/src/generate-text/**snapshots**/generate-text.test.ts.snap](packages/ai/src/generate-text/__snapshots__/generate-text.test.ts.snap)
+- [packages/ai/src/generate-text/**snapshots**/stream-text.test.ts.snap](packages/ai/src/generate-text/__snapshots__/stream-text.test.ts.snap)
 - [packages/ai/src/generate-text/content-part.ts](packages/ai/src/generate-text/content-part.ts)
 - [packages/ai/src/generate-text/execute-tool-call.test.ts](packages/ai/src/generate-text/execute-tool-call.test.ts)
 - [packages/ai/src/generate-text/execute-tool-call.ts](packages/ai/src/generate-text/execute-tool-call.ts)
@@ -52,8 +52,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the message structures, content part types, and processing flows used throughout the AI SDK. Messages serve as the primary data structure for conversations between users and AI models, both in UI frameworks and in the core generation functions.
 
 For information about tool calling and multi-step execution, see [Tool Calling and Multi-Step Agents](#2.3). For structured output generation, see [Structured Output (Output API)](#2.2).
@@ -79,25 +77,25 @@ classDiagram
         +METADATA metadata
         +Array~UIMessagePart~ parts
     }
-    
+
     class UIMessagePart {
         <<interface>>
     }
-    
+
     class TextUIPart {
         +type: "text"
         +string text
         +state: "streaming" | "done"
         +ProviderMetadata providerMetadata
     }
-    
+
     class ReasoningUIPart {
         +type: "reasoning"
         +string text
         +state: "streaming" | "done"
         +ProviderMetadata providerMetadata
     }
-    
+
     class ToolUIPart {
         +type: "tool-{toolName}"
         +string toolCallId
@@ -107,21 +105,21 @@ classDiagram
         +string errorText
         +boolean providerExecuted
     }
-    
+
     class FileUIPart {
         +type: "file"
         +string url
         +string mediaType
         +string filename
     }
-    
+
     class SourceUrlUIPart {
         +type: "source-url"
         +string sourceId
         +string url
         +string title
     }
-    
+
     class SourceDocumentUIPart {
         +type: "source-document"
         +string sourceId
@@ -129,16 +127,16 @@ classDiagram
         +string title
         +string filename
     }
-    
+
     class DataUIPart {
         +type: "data-{dataType}"
         +unknown data
     }
-    
+
     class StepStartUIPart {
         +type: "step-start"
     }
-    
+
     UIMessage --> UIMessagePart
     UIMessagePart <|-- TextUIPart
     UIMessagePart <|-- ReasoningUIPart
@@ -151,6 +149,7 @@ classDiagram
 ```
 
 **UIMessage Properties**:
+
 - `id`: Unique identifier for the message
 - `role`: One of `"system"`, `"user"`, or `"assistant"`
 - `metadata`: Optional typed metadata (defined by `METADATA` generic)
@@ -160,10 +159,10 @@ Sources: [packages/ai/src/ui/ui-messages.ts:42-73]()
 
 ### Role-Specific Part Constraints
 
-| Role | Allowed Part Types |
-|------|-------------------|
-| `system` | `text` |
-| `user` | `text`, `file` |
+| Role        | Allowed Part Types                                                                             |
+| ----------- | ---------------------------------------------------------------------------------------------- |
+| `system`    | `text`                                                                                         |
+| `user`      | `text`, `file`                                                                                 |
 | `assistant` | `text`, `reasoning`, `tool-*`, `file`, `source-url`, `source-document`, `data-*`, `step-start` |
 
 Sources: [packages/ai/src/ui/ui-messages.ts:42-73](), [packages/ai/src/ui/validate-ui-messages.ts:1-20]()
@@ -174,14 +173,15 @@ Sources: [packages/ai/src/ui/ui-messages.ts:42-73](), [packages/ai/src/ui/valida
 
 ```typescript
 type TextUIPart = {
-  type: 'text';
-  text: string;
-  state?: 'streaming' | 'done';
-  providerMetadata?: ProviderMetadata;
+  type: 'text'
+  text: string
+  state?: 'streaming' | 'done'
+  providerMetadata?: ProviderMetadata
 }
 ```
 
 Text parts represent natural language content. The `state` field tracks streaming progress:
+
 - `'streaming'`: Content is still being generated
 - `'done'`: Content generation is complete
 - `undefined`: State not tracked (typically for completed messages)
@@ -192,10 +192,10 @@ Sources: [packages/ai/src/ui/ui-messages.ts:89-109]()
 
 ```typescript
 type ReasoningUIPart = {
-  type: 'reasoning';
-  text: string;
-  state?: 'streaming' | 'done';
-  providerMetadata?: ProviderMetadata;
+  type: 'reasoning'
+  text: string
+  state?: 'streaming' | 'done'
+  providerMetadata?: ProviderMetadata
 }
 ```
 
@@ -218,33 +218,43 @@ stateDiagram-v2
 ```
 
 **Static Tool Parts** (type-safe):
+
 ```typescript
 type ToolUIPart<TOOLS extends UITools> = {
-  type: `tool-${keyof TOOLS & string}`;
-  toolCallId: string;
-  state: 'input-streaming' | 'input-available' | 'output-available' | 'output-error';
-  input: TOOLS[NAME]['input'];
-  output?: TOOLS[NAME]['output'];
-  errorText?: string;
-  providerExecuted?: boolean;
-  title?: string;
-  callProviderMetadata?: ProviderMetadata;
-  resultProviderMetadata?: ProviderMetadata;
+  type: `tool-${keyof TOOLS & string}`
+  toolCallId: string
+  state:
+    | 'input-streaming'
+    | 'input-available'
+    | 'output-available'
+    | 'output-error'
+  input: TOOLS[NAME]['input']
+  output?: TOOLS[NAME]['output']
+  errorText?: string
+  providerExecuted?: boolean
+  title?: string
+  callProviderMetadata?: ProviderMetadata
+  resultProviderMetadata?: ProviderMetadata
 }
 ```
 
 **Dynamic Tool Parts** (runtime-typed):
+
 ```typescript
 type DynamicToolUIPart = {
-  type: 'tool-dynamic';
-  toolName: string;
-  toolCallId: string;
-  state: 'input-streaming' | 'input-available' | 'output-available' | 'output-error';
-  input: unknown;
-  output?: unknown;
-  errorText?: string;
-  providerExecuted?: boolean;
-  title?: string;
+  type: 'tool-dynamic'
+  toolName: string
+  toolCallId: string
+  state:
+    | 'input-streaming'
+    | 'input-available'
+    | 'output-available'
+    | 'output-error'
+  input: unknown
+  output?: unknown
+  errorText?: string
+  providerExecuted?: boolean
+  title?: string
 }
 ```
 
@@ -256,14 +266,15 @@ Sources: [packages/ai/src/ui/ui-messages.ts:144-236]()
 
 ```typescript
 type FileUIPart = {
-  type: 'file';
-  url: string;
-  mediaType: string;
-  filename?: string;
+  type: 'file'
+  url: string
+  mediaType: string
+  filename?: string
 }
 ```
 
 File parts represent attachments in user messages or generated files in assistant messages. The `url` can be:
+
 - Base64 data URL (`data:image/png;base64,...`)
 - HTTP/HTTPS URL
 - Object URL (for browser File objects)
@@ -273,25 +284,27 @@ Sources: [packages/ai/src/ui/ui-messages.ts:238-249]()
 ### Source Parts
 
 **URL Sources**:
+
 ```typescript
 type SourceUrlUIPart = {
-  type: 'source-url';
-  sourceId: string;
-  url: string;
-  title?: string;
-  providerMetadata?: ProviderMetadata;
+  type: 'source-url'
+  sourceId: string
+  url: string
+  title?: string
+  providerMetadata?: ProviderMetadata
 }
 ```
 
 **Document Sources**:
+
 ```typescript
 type SourceDocumentUIPart = {
-  type: 'source-document';
-  sourceId: string;
-  mediaType: string;
-  title?: string;
-  filename?: string;
-  providerMetadata?: ProviderMetadata;
+  type: 'source-document'
+  sourceId: string
+  mediaType: string
+  title?: string
+  filename?: string
+  providerMetadata?: ProviderMetadata
 }
 ```
 
@@ -303,8 +316,8 @@ Sources: [packages/ai/src/ui/ui-messages.ts:133-142](), [packages/ai/src/ui/ui-m
 
 ```typescript
 type DataUIPart<DATA_TYPES extends UIDataTypes> = {
-  type: `data-${keyof DATA_TYPES & string}`;
-  data: DATA_TYPES[KEY];
+  type: `data-${keyof DATA_TYPES & string}`
+  data: DATA_TYPES[KEY]
 }
 ```
 
@@ -315,10 +328,10 @@ const chat = new Chat({
   dataPartSchemas: {
     'user-sentiment': z.object({
       sentiment: z.enum(['positive', 'negative', 'neutral']),
-      confidence: z.number()
-    })
-  }
-});
+      confidence: z.number(),
+    }),
+  },
+})
 ```
 
 Sources: [packages/ai/src/ui/ui-messages.ts:266-272]()
@@ -327,7 +340,7 @@ Sources: [packages/ai/src/ui/ui-messages.ts:266-272]()
 
 ```typescript
 type StepStartUIPart = {
-  type: 'step-start';
+  type: 'step-start'
 }
 ```
 
@@ -344,19 +357,19 @@ flowchart TD
     UIMessages["UIMessage[]<br/>(from useChat)"]
     Converter["convertToModelMessages()"]
     ModelMessages["ModelMessage[]<br/>(for generateText/streamText)"]
-    
+
     UIMessages --> Converter
-    
+
     Converter --> ValidateRole["Validate role-specific parts"]
     ValidateRole --> ConvertSystem["Convert system messages"]
     ValidateRole --> ConvertUser["Convert user messages"]
     ValidateRole --> ConvertAssistant["Convert assistant messages"]
-    
+
     ConvertSystem --> SystemMsg["SystemModelMessage<br/>{role: 'system', content: string}"]
     ConvertUser --> UserMsg["UserModelMessage<br/>{role: 'user', content: string | Part[]}"]
     ConvertAssistant --> AssistantMsg["AssistantModelMessage<br/>{role: 'assistant', content: Part[]}"]
     AssistantMsg --> ToolMsg["ToolModelMessage<br/>{role: 'tool', content: ToolResultPart[]}"]
-    
+
     SystemMsg --> ModelMessages
     UserMsg --> ModelMessages
     AssistantMsg --> ModelMessages
@@ -377,6 +390,7 @@ Sources: [packages/ai/src/ui/convert-to-model-messages.ts:42-241]()
 ### Conversion Example
 
 **Input UIMessage**:
+
 ```typescript
 {
   id: 'msg-1',
@@ -396,8 +410,9 @@ Sources: [packages/ai/src/ui/convert-to-model-messages.ts:42-241]()
 ```
 
 **Output ModelMessages**:
+
 ```typescript
-[
+;[
   {
     role: 'assistant',
     content: [
@@ -406,10 +421,10 @@ Sources: [packages/ai/src/ui/convert-to-model-messages.ts:42-241]()
         type: 'tool-call',
         toolCallId: 'call-123',
         toolName: 'weather',
-        input: { location: 'San Francisco' }
+        input: { location: 'San Francisco' },
       },
-      { type: 'text', text: 'The weather is 72°F and sunny.' }
-    ]
+      { type: 'text', text: 'The weather is 72°F and sunny.' },
+    ],
   },
   {
     role: 'tool',
@@ -418,10 +433,10 @@ Sources: [packages/ai/src/ui/convert-to-model-messages.ts:42-241]()
         type: 'tool-result',
         toolCallId: 'call-123',
         toolName: 'weather',
-        result: { temperature: 72, conditions: 'sunny' }
-      }
-    ]
-  }
+        result: { temperature: 72, conditions: 'sunny' },
+      },
+    ],
+  },
 ]
 ```
 
@@ -443,27 +458,28 @@ flowchart TD
     Processor["processUIMessageStream()"]
     State["StreamingUIMessageState"]
     UIMsg["UIMessage (updated incrementally)"]
-    
+
     ChunkStream --> Processor
     Processor --> State
-    
+
     State --> ActiveTextParts["activeTextParts:<br/>Record<id, TextUIPart>"]
     State --> ActiveReasoningParts["activeReasoningParts:<br/>Record<id, ReasoningUIPart>"]
     State --> PartialToolCalls["partialToolCalls:<br/>Record<id, ToolCallInfo>"]
     State --> Message["message: UIMessage"]
-    
+
     ActiveTextParts --> Message
     ActiveReasoningParts --> Message
     PartialToolCalls --> Message
-    
+
     Message --> UIMsg
-    
+
     Processor --> Callbacks["Callback Invocations"]
     Callbacks --> OnToolCall["onToolCall()"]
     Callbacks --> OnData["onData()"]
 ```
 
 **StreamingUIMessageState Structure**:
+
 - `message`: The UIMessage being built
 - `activeTextParts`: Map of streaming text parts by chunk ID
 - `activeReasoningParts`: Map of streaming reasoning parts by chunk ID
@@ -477,10 +493,10 @@ Sources: [packages/ai/src/ui/process-ui-message-stream.ts:33-74]()
 ```mermaid
 stateDiagram-v2
     [*] --> start: UIMessageChunk arrives
-    
+
     state "Chunk Type Router" as router
     start --> router
-    
+
     router --> text_start: type="text-start"
     router --> text_delta: type="text-delta"
     router --> text_end: type="text-end"
@@ -491,39 +507,39 @@ stateDiagram-v2
     router --> reasoning_start: type="reasoning-start"
     router --> source: type="source"
     router --> finish: type="finish"
-    
+
     text_start --> create_text_part: Create TextUIPart
     create_text_part --> update_message: Add to message.parts
-    
+
     text_delta --> append_text: Append to active part
     append_text --> update_message
-    
+
     text_end --> finalize_text: Set state="done"
     finalize_text --> update_message
-    
+
     tool_call --> create_tool_part: Create ToolUIPart
     create_tool_part --> update_message
-    
+
     tool_input_start --> init_partial: Initialize partialToolCalls
     init_partial --> update_message
-    
+
     tool_input_delta --> parse_json: Parse partial JSON
     parse_json --> update_tool_input: Update input field
     update_tool_input --> update_message
-    
+
     tool_result --> create_result: Update tool state
     create_result --> invoke_callback: Call onToolCall if needed
     invoke_callback --> update_message
-    
+
     reasoning_start --> create_reasoning: Create ReasoningUIPart
     create_reasoning --> update_message
-    
+
     source --> create_source: Create SourceUIPart
     create_source --> update_message
-    
+
     finish --> set_finish: Set finishReason
     set_finish --> update_message
-    
+
     update_message --> write: Call write callback
     write --> [*]
 ```
@@ -541,6 +557,7 @@ Sources: [packages/ai/src/ui/process-ui-message-stream.ts:76-550]()
 ### Tool Call Streaming Example
 
 **Chunk sequence**:
+
 ```typescript
 // 1. Tool call announced
 { type: 'tool-call', toolName: 'weather', toolCallId: 'call-1' }
@@ -561,15 +578,16 @@ Sources: [packages/ai/src/ui/process-ui-message-stream.ts:76-550]()
 ```
 
 **Resulting UIMessage parts**:
+
 ```typescript
-[
+;[
   {
     type: 'tool-weather',
     toolCallId: 'call-1',
     state: 'output-available',
     input: { location: 'SF' },
-    output: { temp: 72 }
-  }
+    output: { temp: 72 },
+  },
 ]
 ```
 
@@ -583,23 +601,23 @@ Sources: [packages/ai/src/ui/process-ui-message-stream.ts:226-398](), [packages/
 flowchart TD
     Messages["UIMessage[]"]
     Validate["validateUIMessages()"]
-    
+
     Messages --> Validate
-    
+
     Validate --> ValidateMetadata["Validate message metadata"]
     Validate --> ValidateParts["Validate message parts"]
-    
+
     ValidateParts --> ValidateText["Validate text parts"]
     ValidateParts --> ValidateReasoning["Validate reasoning parts"]
     ValidateParts --> ValidateTool["Validate tool parts"]
     ValidateParts --> ValidateFile["Validate file parts"]
     ValidateParts --> ValidateSource["Validate source parts"]
     ValidateParts --> ValidateData["Validate data parts"]
-    
+
     ValidateMetadata --> CheckSchema["Check against messageMetadataSchema"]
     ValidateTool --> CheckToolSchema["Check against tool input/output schemas"]
     ValidateData --> CheckDataSchema["Check against dataPartSchemas"]
-    
+
     CheckSchema --> Result["ValidationResult"]
     CheckToolSchema --> Result
     CheckDataSchema --> Result
@@ -607,12 +625,13 @@ flowchart TD
     ValidateReasoning --> Result
     ValidateFile --> Result
     ValidateSource --> Result
-    
+
     Result --> Success["success: true<br/>value: UIMessage[]"]
     Result --> Failure["success: false<br/>issues: TypeValidationIssue[]"]
 ```
 
 **Validation Scopes**:
+
 - **Message metadata**: Validated against `messageMetadataSchema` if provided
 - **Tool inputs**: Validated against tool's `inputSchema` when in `input-available` or later states
 - **Tool outputs**: Validated against tool's `outputSchema` when in `output-available` state
@@ -628,12 +647,12 @@ const result = safeValidateUIMessages({
   messages,
   messageMetadataSchema,
   dataPartSchemas,
-  tools
-});
+  tools,
+})
 
 if (!result.success) {
   for (const issue of result.issues) {
-    console.error(`Validation error at ${issue.path.join('.')}:`, issue.message);
+    console.error(`Validation error at ${issue.path.join('.')}:`, issue.message)
   }
 }
 ```
@@ -646,14 +665,14 @@ Sources: [packages/ai/src/ui/validate-ui-messages.ts:230-250]()
 
 Provider metadata flows through message parts to preserve provider-specific information:
 
-| Part Type | Metadata Fields |
-|-----------|----------------|
-| Text | `providerMetadata` |
-| Reasoning | `providerMetadata` |
-| Tool (call) | `callProviderMetadata` |
+| Part Type     | Metadata Fields          |
+| ------------- | ------------------------ |
+| Text          | `providerMetadata`       |
+| Reasoning     | `providerMetadata`       |
+| Tool (call)   | `callProviderMetadata`   |
 | Tool (result) | `resultProviderMetadata` |
-| Source | `providerMetadata` |
-| File | `providerMetadata` |
+| Source        | `providerMetadata`       |
+| File          | `providerMetadata`       |
 
 During `convertToModelMessages()`, provider metadata from multiple parts is merged and attached to the corresponding `ModelMessage` as `providerOptions`.
 
@@ -670,8 +689,8 @@ const { messages } = useChat({
   onToolCall: async ({ toolCall }) => {
     // Automatically invoked when tool-call chunk arrives
     // Can return tool output for immediate execution
-  }
-});
+  },
+})
 ```
 
 Messages flow: Server → UIMessageChunk stream → `processUIMessageStream()` → UIMessage → React state
@@ -686,10 +705,10 @@ Core generation functions produce `ContentPart[]` which are converted to UIMessa
 const result = streamText({
   model,
   tools,
-  prompt
-});
+  prompt,
+})
 
-return result.toUIMessageStreamResponse();
+return result.toUIMessageStreamResponse()
 ```
 
 Content flow: LLM response → `ContentPart[]` → `runToolsTransformation()` → `TextStreamPart[]` → UIMessageChunk stream

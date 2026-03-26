@@ -8,7 +8,7 @@ The following files were used as context for generating this wiki page:
 - [examples/bird-checker-with-express/src/index.ts](examples/bird-checker-with-express/src/index.ts)
 - [examples/bird-checker-with-nextjs-and-eval/src/lib/mastra/actions.ts](examples/bird-checker-with-nextjs-and-eval/src/lib/mastra/actions.ts)
 - [packages/core/src/action/index.ts](packages/core/src/action/index.ts)
-- [packages/core/src/agent/__tests__/utils.test.ts](packages/core/src/agent/__tests__/utils.test.ts)
+- [packages/core/src/agent/**tests**/utils.test.ts](packages/core/src/agent/__tests__/utils.test.ts)
 - [packages/core/src/agent/agent-legacy.ts](packages/core/src/agent/agent-legacy.ts)
 - [packages/core/src/agent/agent.test.ts](packages/core/src/agent/agent.test.ts)
 - [packages/core/src/agent/agent.ts](packages/core/src/agent/agent.ts)
@@ -35,8 +35,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document covers the configuration and execution architecture of agents in Mastra. It details the `AgentConfig` interface, agent initialization process, the `generate()` and `stream()` execution methods, execution options, and the internal `prepare-stream` workflow pipeline that orchestrates agent execution.
@@ -53,26 +51,26 @@ The `AgentConfig` interface defines all configuration options for creating an ag
 
 **Key Configuration Fields**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | `string` | Yes | Unique identifier for the agent |
-| `name` | `string` | Yes | Display name for the agent |
-| `description` | `string` | No | Purpose and capabilities description |
-| `instructions` | `DynamicArgument<AgentInstructions>` | Yes | System instructions guiding agent behavior |
-| `model` | `MastraModelConfig \| DynamicModel \| ModelWithRetries[]` | Yes | Language model configuration |
-| `maxRetries` | `number` | No | Maximum retries for model calls (default: 0) |
-| `tools` | `DynamicArgument<ToolsInput>` | No | Tools available to the agent |
-| `workflows` | `DynamicArgument<Record<string, Workflow>>` | No | Workflows the agent can execute |
-| `memory` | `DynamicArgument<MastraMemory>` | No | Memory module for stateful context |
-| `workspace` | `DynamicArgument<Workspace>` | No | File storage and code execution environment |
-| `inputProcessors` | `DynamicArgument<InputProcessorOrWorkflow[]>` | No | Pre-processing pipeline |
-| `outputProcessors` | `DynamicArgument<OutputProcessorOrWorkflow[]>` | No | Post-processing pipeline |
-| `maxProcessorRetries` | `number` | No | Maximum processor retry attempts |
-| `scorers` | `DynamicArgument<MastraScorers>` | No | Evaluation scorers for observability |
-| `agents` | `DynamicArgument<Record<string, Agent>>` | No | Sub-agents for delegation |
-| `voice` | `MastraVoice` | No | Speech input/output capabilities |
-| `defaultOptions` | `DynamicArgument<AgentExecutionOptions>` | No | Default execution options |
-| `requestContextSchema` | `ZodSchema` | No | Schema for validating request context |
+| Field                  | Type                                                      | Required | Description                                  |
+| ---------------------- | --------------------------------------------------------- | -------- | -------------------------------------------- |
+| `id`                   | `string`                                                  | Yes      | Unique identifier for the agent              |
+| `name`                 | `string`                                                  | Yes      | Display name for the agent                   |
+| `description`          | `string`                                                  | No       | Purpose and capabilities description         |
+| `instructions`         | `DynamicArgument<AgentInstructions>`                      | Yes      | System instructions guiding agent behavior   |
+| `model`                | `MastraModelConfig \| DynamicModel \| ModelWithRetries[]` | Yes      | Language model configuration                 |
+| `maxRetries`           | `number`                                                  | No       | Maximum retries for model calls (default: 0) |
+| `tools`                | `DynamicArgument<ToolsInput>`                             | No       | Tools available to the agent                 |
+| `workflows`            | `DynamicArgument<Record<string, Workflow>>`               | No       | Workflows the agent can execute              |
+| `memory`               | `DynamicArgument<MastraMemory>`                           | No       | Memory module for stateful context           |
+| `workspace`            | `DynamicArgument<Workspace>`                              | No       | File storage and code execution environment  |
+| `inputProcessors`      | `DynamicArgument<InputProcessorOrWorkflow[]>`             | No       | Pre-processing pipeline                      |
+| `outputProcessors`     | `DynamicArgument<OutputProcessorOrWorkflow[]>`            | No       | Post-processing pipeline                     |
+| `maxProcessorRetries`  | `number`                                                  | No       | Maximum processor retry attempts             |
+| `scorers`              | `DynamicArgument<MastraScorers>`                          | No       | Evaluation scorers for observability         |
+| `agents`               | `DynamicArgument<Record<string, Agent>>`                  | No       | Sub-agents for delegation                    |
+| `voice`                | `MastraVoice`                                             | No       | Speech input/output capabilities             |
+| `defaultOptions`       | `DynamicArgument<AgentExecutionOptions>`                  | No       | Default execution options                    |
+| `requestContextSchema` | `ZodSchema`                                               | No       | Schema for validating request context        |
 
 Sources: [packages/core/src/agent/types.ts:133-275]()
 
@@ -91,8 +89,8 @@ const agent = new Agent({
   // or
   model: openai('gpt-4o'),
   // or
-  model: { provider: 'openai', modelId: 'gpt-4o' }
-});
+  model: { provider: 'openai', modelId: 'gpt-4o' },
+})
 ```
 
 **2. Dynamic Model Selection**
@@ -103,10 +101,10 @@ const agent = new Agent({
   name: 'Adaptive Agent',
   instructions: 'You adapt to user preferences',
   model: ({ requestContext }) => {
-    const tier = requestContext.get('userTier');
-    return tier === 'premium' ? 'openai/gpt-4o' : 'openai/gpt-3.5-turbo';
-  }
-});
+    const tier = requestContext.get('userTier')
+    return tier === 'premium' ? 'openai/gpt-4o' : 'openai/gpt-3.5-turbo'
+  },
+})
 ```
 
 **3. Model Fallback Array**
@@ -119,9 +117,9 @@ const agent = new Agent({
   model: [
     { model: 'openai/gpt-4o', maxRetries: 2 },
     { model: 'anthropic/claude-3-5-sonnet-20241022', maxRetries: 2 },
-    { model: 'google/gemini-1.5-pro', maxRetries: 2 }
-  ]
-});
+    { model: 'google/gemini-1.5-pro', maxRetries: 2 },
+  ],
+})
 ```
 
 When using a fallback array, the agent attempts each model in order. If a model fails after its `maxRetries`, the agent moves to the next model. The array is stored internally as `ModelFallbacks` with generated IDs and enabled flags.
@@ -133,8 +131,13 @@ Sources: [packages/core/src/agent/agent.ts:211-237](), [packages/core/src/agent/
 Many configuration fields accept `DynamicArgument<T>`, which can be either a static value or a function that receives `requestContext`:
 
 ```typescript
-type DynamicArgument<T, TRequestContext = unknown> = 
-  T | (({ requestContext }: { requestContext: RequestContext<TRequestContext> }) => T | Promise<T>)
+type DynamicArgument<T, TRequestContext = unknown> =
+  | T
+  | (({
+      requestContext,
+    }: {
+      requestContext: RequestContext<TRequestContext>
+    }) => T | Promise<T>)
 ```
 
 This enables context-aware configuration:
@@ -144,16 +147,16 @@ const agent = new Agent({
   id: 'multi-tenant-agent',
   name: 'Multi-tenant Agent',
   instructions: ({ requestContext }) => {
-    const tenant = requestContext.get('tenantId');
-    return `You are an assistant for ${tenant}. Follow their specific guidelines...`;
+    const tenant = requestContext.get('tenantId')
+    return `You are an assistant for ${tenant}. Follow their specific guidelines...`
   },
   tools: ({ requestContext }) => {
-    const permissions = requestContext.get('permissions');
-    return permissions.includes('admin') 
+    const permissions = requestContext.get('permissions')
+    return permissions.includes('admin')
       ? { ...regularTools, ...adminTools }
-      : regularTools;
-  }
-});
+      : regularTools
+  },
+})
 ```
 
 Sources: [packages/core/src/agent/types.ts:133-275](), [packages/core/src/types.ts:82-86]()
@@ -180,7 +183,7 @@ graph TD
 **Constructor Steps** ([packages/core/src/agent/agent.ts:186-305]()):
 
 1. **Model Validation**: Throws `MastraError` if `model` is missing or if model array is empty
-2. **Model Processing**: 
+2. **Model Processing**:
    - Single model: stored as-is
    - Model array: converted to `ModelFallbacks` with IDs and retry counts
 3. **Default Options**: Stores `defaultOptions`, `defaultGenerateOptionsLegacy`, `defaultStreamOptionsLegacy`, `defaultNetworkOptions`
@@ -225,12 +228,12 @@ Agents provide two primary execution APIs: **Legacy** (AI SDK v4) and **VNext** 
 
 ### Method Comparison
 
-| Method | AI SDK Version | Return Type | Primary Use Case |
-|--------|----------------|-------------|------------------|
-| `generateLegacy()` | v4 | `Promise<GenerateTextResult>` | Legacy applications, maxSteps control |
-| `streamLegacy()` | v4 | `Promise<StreamTextResult>` | Legacy streaming with stepwise control |
-| `generate()` | v5 | `Promise<FullOutput>` | Modern synchronous execution |
-| `stream()` | v5 | `Promise<MastraModelOutput>` | Modern streaming execution |
+| Method             | AI SDK Version | Return Type                   | Primary Use Case                       |
+| ------------------ | -------------- | ----------------------------- | -------------------------------------- |
+| `generateLegacy()` | v4             | `Promise<GenerateTextResult>` | Legacy applications, maxSteps control  |
+| `streamLegacy()`   | v4             | `Promise<StreamTextResult>`   | Legacy streaming with stepwise control |
+| `generate()`       | v5             | `Promise<FullOutput>`         | Modern synchronous execution           |
+| `stream()`         | v5             | `Promise<MastraModelOutput>`  | Modern streaming execution             |
 
 ### Generate Method Signatures
 
@@ -241,7 +244,7 @@ The modern `generate()` method has multiple overloads for different use cases:
 ```typescript
 // Basic text generation
 async generate(
-  messages: MessageListInput, 
+  messages: MessageListInput,
   options?: StreamParamsBaseWithoutMessages
 ): Promise<FullOutput<undefined>>
 
@@ -255,6 +258,7 @@ async generate<OUTPUT extends {}>(
 ```
 
 **Key Features**:
+
 - First parameter is `messages` (array of messages or `MessageList`)
 - Second parameter is `options` object (no messages in options)
 - Returns `FullOutput<OUTPUT>` with complete response data
@@ -277,6 +281,7 @@ async generateLegacy<Output extends ZodSchema | JSONSchema7>(
 ```
 
 **Key Features**:
+
 - Single parameter combining prompt and options (AI SDK v4 pattern)
 - Returns `GenerateTextResult` with text, toolCalls, usage
 - `maxSteps` controls multi-turn tool calling
@@ -304,6 +309,7 @@ async stream<OUTPUT extends {}>(
 ```
 
 **Returns**: `MastraModelOutput` instance with:
+
 - `fullStream`: Complete stream of all chunk types
 - `textStream`: Text-only stream
 - `objectStream`: Structured output stream
@@ -320,6 +326,7 @@ async streamLegacy(
 ```
 
 **Returns**: `StreamTextResult` with:
+
 - `textStream`: AsyncIterable of text deltas
 - `fullStream`: Complete event stream
 - `onFinish`: Callback when streaming completes
@@ -339,15 +346,16 @@ const result = await agent.generate('Change the theme to dark mode', {
       inputSchema: z.object({ theme: z.enum(['light', 'dark']) }),
       execute: async ({ theme }) => {
         // Executes in client browser
-        document.body.className = theme;
-        return { success: true };
-      }
-    })
-  }
-});
+        document.body.className = theme
+        return { success: true }
+      },
+    }),
+  },
+})
 ```
 
 The execution flow for client tools:
+
 1. Agent generates tool call with `finishReason: 'tool-calls'`
 2. Client SDK (`@mastra/client-js`) detects client tools
 3. Client executes the tool locally
@@ -366,35 +374,35 @@ The `AgentExecutionOptions` interface defines options for VNext methods (`genera
 
 **Core Options**
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `memory` | `AgentMemoryOption` | Thread and resource identifiers for memory |
-| `instructions` | `SystemMessage` | Override agent's default instructions |
-| `context` | `CoreMessage[]` | Additional context messages |
-| `maxSteps` | `number` | Maximum steps for multi-turn execution |
-| `toolChoice` | `'auto' \| 'none' \| 'required' \| { type: 'tool', toolName: string }` | Tool selection strategy |
-| `stopWhen` | `(params: StopWhenParams) => boolean` | Custom stopping condition |
-| `structuredOutput` | `StructuredOutputOptions` | Schema for validated output |
-| `clientTools` | `ToolsInput` | Tools executed on client side |
+| Option             | Type                                                                   | Description                                |
+| ------------------ | ---------------------------------------------------------------------- | ------------------------------------------ |
+| `memory`           | `AgentMemoryOption`                                                    | Thread and resource identifiers for memory |
+| `instructions`     | `SystemMessage`                                                        | Override agent's default instructions      |
+| `context`          | `CoreMessage[]`                                                        | Additional context messages                |
+| `maxSteps`         | `number`                                                               | Maximum steps for multi-turn execution     |
+| `toolChoice`       | `'auto' \| 'none' \| 'required' \| { type: 'tool', toolName: string }` | Tool selection strategy                    |
+| `stopWhen`         | `(params: StopWhenParams) => boolean`                                  | Custom stopping condition                  |
+| `structuredOutput` | `StructuredOutputOptions`                                              | Schema for validated output                |
+| `clientTools`      | `ToolsInput`                                                           | Tools executed on client side              |
 
 **Processing and Tracing**
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `inputProcessors` | `InputProcessorOrWorkflow[]` | Override agent's input processors |
-| `outputProcessors` | `OutputProcessorOrWorkflow[]` | Override agent's output processors |
-| `maxProcessorRetries` | `number` | Max processor retry attempts |
-| `tracingContext` | `TracingContext` | Span hierarchy for distributed tracing |
-| `tracingOptions` | `TracingOptions` | Options for starting new traces |
+| Option                | Type                          | Description                            |
+| --------------------- | ----------------------------- | -------------------------------------- |
+| `inputProcessors`     | `InputProcessorOrWorkflow[]`  | Override agent's input processors      |
+| `outputProcessors`    | `OutputProcessorOrWorkflow[]` | Override agent's output processors     |
+| `maxProcessorRetries` | `number`                      | Max processor retry attempts           |
+| `tracingContext`      | `TracingContext`              | Span hierarchy for distributed tracing |
+| `tracingOptions`      | `TracingOptions`              | Options for starting new traces        |
 
 **Model Settings**
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `modelSettings.temperature` | `number` | Sampling temperature |
-| `modelSettings.topP` | `number` | Nucleus sampling parameter |
-| `modelSettings.maxTokens` | `number` | Maximum output tokens |
-| `providerOptions` | `ProviderOptions` | Provider-specific options (e.g., reasoning effort) |
+| Option                      | Type              | Description                                        |
+| --------------------------- | ----------------- | -------------------------------------------------- |
+| `modelSettings.temperature` | `number`          | Sampling temperature                               |
+| `modelSettings.topP`        | `number`          | Nucleus sampling parameter                         |
+| `modelSettings.maxTokens`   | `number`          | Maximum output tokens                              |
+| `providerOptions`           | `ProviderOptions` | Provider-specific options (e.g., reasoning effort) |
 
 Sources: [packages/core/src/agent/agent.types.ts:1-137]()
 
@@ -403,6 +411,7 @@ Sources: [packages/core/src/agent/agent.types.ts:1-137]()
 Legacy options for `generateLegacy()` method:
 
 **Key Differences from VNext**:
+
 - Uses `threadId` and `resourceId` fields (deprecated) instead of `memory` object
 - Uses `onStepFinish` callback instead of separate processor pipeline
 - Uses `output` for structured output instead of `structuredOutput`
@@ -411,26 +420,26 @@ Legacy options for `generateLegacy()` method:
 ```typescript
 interface AgentGenerateOptions<OUTPUT, EXPERIMENTAL_OUTPUT> {
   // Memory (deprecated pattern)
-  threadId?: string;
-  resourceId?: string;
-  memory?: AgentMemoryOption; // New pattern
-  
+  threadId?: string
+  resourceId?: string
+  memory?: AgentMemoryOption // New pattern
+
   // Execution control
-  maxSteps?: number;
-  toolChoice?: 'auto' | 'none' | 'required' | { type: 'tool', toolName: string };
-  
+  maxSteps?: number
+  toolChoice?: 'auto' | 'none' | 'required' | { type: 'tool'; toolName: string }
+
   // Callbacks
-  onStepFinish?: GenerateTextOnStepFinishCallback;
-  
+  onStepFinish?: GenerateTextOnStepFinishCallback
+
   // Structured output
-  output?: OutputType | OUTPUT;
-  experimental_output?: EXPERIMENTAL_OUTPUT;
-  
+  output?: OutputType | OUTPUT
+  experimental_output?: EXPERIMENTAL_OUTPUT
+
   // Additional options
-  instructions?: SystemMessage;
-  toolsets?: ToolsetsInput;
-  context?: CoreMessage[];
-  savePerStep?: boolean;
+  instructions?: SystemMessage
+  toolsets?: ToolsetsInput
+  context?: CoreMessage[]
+  savePerStep?: boolean
 }
 ```
 
@@ -442,10 +451,10 @@ The `memory` option provides thread and resource identification:
 
 ```typescript
 type AgentMemoryOption = {
-  thread: string | (Partial<StorageThreadType> & { id: string });
-  resource: string;
-  options?: MemoryConfig;
-};
+  thread: string | (Partial<StorageThreadType> & { id: string })
+  resource: string
+  options?: MemoryConfig
+}
 ```
 
 **Usage Patterns**:
@@ -455,9 +464,9 @@ type AgentMemoryOption = {
 await agent.generate('Hello', {
   memory: {
     thread: 'thread-123',
-    resource: 'user-456'
-  }
-});
+    resource: 'user-456',
+  },
+})
 
 // Thread with metadata
 await agent.generate('Hello', {
@@ -465,12 +474,12 @@ await agent.generate('Hello', {
     thread: {
       id: 'thread-123',
       title: 'Customer Support Session',
-      metadata: { customerId: 'cust-789', priority: 'high' }
+      metadata: { customerId: 'cust-789', priority: 'high' },
     },
     resource: 'user-456',
-    options: { readOnly: false }
-  }
-});
+    options: { readOnly: false },
+  },
+})
 ```
 
 If `memory` is not provided, agents can still use memory if configured at agent level, but messages won't be persisted to storage.
@@ -489,20 +498,20 @@ All agent execution (both `generate()` and `stream()`, Legacy and VNext) flows t
 graph TB
     Start["Agent.generate() or Agent.stream()"] --> CreateWF["Create prepare-stream workflow"]
     CreateWF --> Fork{{"Parallel Execution"}}
-    
+
     Fork --> PrepTools["prepare-tools-step"]
     Fork --> PrepMem["prepare-memory-step"]
-    
+
     PrepTools --> ResolveTools["Resolve dynamic tools"]
     PrepTools --> BuildCoreTools["Convert to CoreTool format"]
     PrepTools --> InjectWorkspace["Inject workspace tools"]
-    
+
     PrepMem --> LoadThread["Load or create thread"]
     PrepMem --> BuildMessageList["Build MessageList from args"]
     PrepMem --> AddInstructions["Add system instructions"]
     PrepMem --> RunInputProc["Run input processors"]
     PrepMem --> CreateTripwire["Create tripwire if needed"]
-    
+
     ResolveTools --> Map["map-results-step"]
     BuildCoreTools --> Map
     InjectWorkspace --> Map
@@ -511,10 +520,10 @@ graph TB
     AddInstructions --> Map
     RunInputProc --> Map
     CreateTripwire --> Map
-    
+
     Map --> BuildArgs["Build ModelLoopStreamArgs"]
     BuildArgs --> Stream["stream-step"]
-    
+
     Stream --> ExecuteLLM["Execute LLM.stream()"]
     ExecuteLLM --> StreamChunks["Stream chunks to client"]
     StreamChunks --> RunOutputProc["Run output processors"]
@@ -523,6 +532,7 @@ graph TB
 ```
 
 **Pipeline Characteristics**:
+
 - **Parallel Preparation**: Tools and memory are prepared concurrently for optimal performance
 - **Type Safety**: Each step has defined input/output schemas using Zod
 - **Error Handling**: Pipeline catches errors and wraps in `MastraError` with context
@@ -561,8 +571,8 @@ graph TD
 
 ```typescript
 prepareToolsStepOutputSchema = z.object({
-  convertedTools: z.record(z.string(), z.custom<InternalCoreTool>())
-});
+  convertedTools: z.record(z.string(), z.custom<InternalCoreTool>()),
+})
 ```
 
 Sources: [packages/core/src/agent/workflows/prepare-stream/prepare-tools-step.ts:1-140]()
@@ -576,21 +586,21 @@ graph TD
     Start["Input: messages + memory config"] --> CheckThread{"Thread specified?"}
     CheckThread -->|Yes| LoadThread["Load thread from storage"]
     CheckThread -->|No| NoThread["threadExists = false"]
-    
+
     LoadThread --> BuildList["Create MessageList from args"]
     NoThread --> BuildList
-    
+
     BuildList --> AddSystem["Add system instructions"]
     AddSystem --> AddContext["Add context messages if provided"]
     AddContext --> ProcessorCheck{"Input processors?"}
-    
+
     ProcessorCheck -->|Yes| RunProcessors["Run input processor workflow"]
     ProcessorCheck -->|No| SkipProcessors["Skip processors"]
-    
+
     RunProcessors --> CheckAbort{"Processor abort?"}
     CheckAbort -->|Yes| ThrowError["Throw AbortError"]
     CheckAbort -->|No| ApplyFeedback["Apply processor feedback to messages"]
-    
+
     ApplyFeedback --> CreateTripwire["Create tripwire if processors present"]
     SkipProcessors --> CreateTripwire
     ThrowError --> End
@@ -599,10 +609,9 @@ graph TD
 
 **Key Operations**:
 
-1. **Thread Loading**: 
+1. **Thread Loading**:
    - If `memory.thread` provided, load from storage or prepare for creation
    - Thread existence tracked in `threadExists` flag
-   
 2. **MessageList Construction**:
    - Convert input messages to internal `MessageList` format
    - Add system instructions at the beginning
@@ -627,8 +636,8 @@ prepareMemoryStepOutputSchema = z.object({
   thread: z.custom<StorageThreadType>().nullable(),
   threadExists: z.boolean(),
   tripwire: z.custom<TripWire>().nullable(),
-  processorStates: z.custom<Map<string, ProcessorState>>().optional()
-});
+  processorStates: z.custom<Map<string, ProcessorState>>().optional(),
+})
 ```
 
 Sources: [packages/core/src/agent/workflows/prepare-stream/prepare-memory-step.ts:1-228]()
@@ -650,6 +659,7 @@ graph TD
 **Callback Configuration**:
 
 The `onStepFinish` callback handles:
+
 - **Thread Creation**: Creates thread on first step if not exists
 - **Message Persistence**: Saves messages if `savePerStep: true`
 - **User Callback**: Invokes user-provided `onStepFinish` if defined
@@ -657,16 +667,17 @@ The `onStepFinish` callback handles:
 **Tripwire Integration**:
 
 If processors are configured, adds tripwire to LLM arguments:
+
 ```typescript
 {
   tripwire: {
     validator: async (output) => {
-      const result = await tripwire.validate(output);
+      const result = await tripwire.validate(output)
       if (result.shouldRetry) {
         throw new APICallError({
           message: result.feedback,
           // ... retry logic
-        });
+        })
       }
     }
   }
@@ -705,13 +716,14 @@ graph TD
 **LLM Invocation**:
 
 The step creates a `MastraLLMVNext` instance and calls its `stream()` method:
+
 ```typescript
 const llm = new MastraLLMVNext({
   model: resolvedModel,
   mastra,
   tracingContext,
-  options: { tracingPolicy }
-});
+  options: { tracingPolicy },
+})
 
 const output = await llm.stream({
   ...streamArgs,
@@ -719,7 +731,7 @@ const output = await llm.stream({
   toolChoice,
   temperature,
   // ... other args
-});
+})
 ```
 
 **Output Processing Pipeline**:
@@ -742,26 +754,26 @@ Sources: [packages/core/src/agent/workflows/prepare-stream/stream-step.ts:1-150]
 ```mermaid
 stateDiagram-v2
     [*] --> AgentExecution: generate() or stream()
-    
+
     AgentExecution --> CreateWorkflow: Initialize workflow
-    
+
     CreateWorkflow --> PreparePhase: Start parallel steps
-    
+
     state PreparePhase {
         [*] --> PrepareTools
         [*] --> PrepareMemory
-        
+
         PrepareTools --> ToolsReady
         PrepareMemory --> MemoryReady
-        
+
         ToolsReady --> [*]
         MemoryReady --> [*]
     }
-    
+
     PreparePhase --> MapResults: Both steps complete
-    
+
     MapResults --> StreamPhase: Build LLM args
-    
+
     state StreamPhase {
         [*] --> InvokeLLM
         InvokeLLM --> StreamingChunks
@@ -769,7 +781,7 @@ stateDiagram-v2
         ProcessOutput --> SaveMessages
         SaveMessages --> [*]
     }
-    
+
     StreamPhase --> [*]: Return output
 ```
 
@@ -782,6 +794,7 @@ stateDiagram-v2
 5. **StreamPhase → [*]**: Streaming completes, output processors run, messages saved
 
 **Error States** (not shown):
+
 - Processor abort: Throws `AbortError`, workflow bails
 - Tripwire failure: Triggers retry if retries remaining
 - LLM error: Wrapped in `MastraError`, propagates to caller
@@ -793,24 +806,29 @@ Sources: [packages/core/src/agent/workflows/prepare-stream/index.ts:20-92]()
 ## Sources Summary
 
 **Agent Configuration**:
+
 - [packages/core/src/agent/types.ts:133-275]()
 - [packages/core/src/agent/agent.ts:186-305]()
 
 **Agent Initialization**:
+
 - [packages/core/src/agent/agent.ts:186-305]()
 - [packages/core/src/mastra/index.ts:843-925]()
 
 **Execution Methods**:
+
 - [packages/core/src/agent/agent.ts:1094-1203]()
 - [packages/core/src/agent/agent.ts:2022-2162]()
 - [packages/core/src/agent/agent.test.ts:604-689]()
 - [client-sdks/client-js/src/resources/agent.ts:43-110]()
 
 **Execution Options**:
+
 - [packages/core/src/agent/agent.types.ts:1-137]()
 - [packages/core/src/agent/types.ts:288-443]()
 
 **Prepare-Stream Pipeline**:
+
 - [packages/core/src/agent/workflows/prepare-stream/index.ts:20-92]()
 - [packages/core/src/agent/workflows/prepare-stream/prepare-tools-step.ts:1-140]()
 - [packages/core/src/agent/workflows/prepare-stream/prepare-memory-step.ts:1-228]()

@@ -36,8 +36,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 Context compaction is the process OpenClaw uses to manage conversation history when the context window approaches its token limit. When the accumulated history (system prompt, messages, tool results) exceeds the model's capacity, compaction condenses older messages into summaries, preserving recent context while freeing space for continued interaction.
 
 For session-level memory persistence, see [Memory & Search](#3.4.3). For general token usage, see the [Token Use and Costs reference](https://docs.openclaw.ai/reference/token-use).
@@ -79,7 +77,7 @@ with Summary"]
 Memory Sync"]
     ReleaseLock["Release Lock"]
     ContinueTurn["Continue Agent Turn"]
-    
+
     TurnStart --> EstimateTokens
     EstimateTokens --> CheckThreshold
     CheckThreshold -->|No| ContinueTurn
@@ -103,11 +101,11 @@ Memory Sync"]
 
 Compaction triggers under the following conditions:
 
-| Trigger Type | Condition | Location |
-|--------------|-----------|----------|
-| **Automatic overflow** | Estimated tokens exceed `contextWindow * threshold` | `evaluateContextWindowGuard()` |
-| **Manual** | Explicit `/compact` command or API call | User-initiated |
-| **Memory flush prerequisite** | Context near limit before memory write | `shouldRunMemoryFlush()` |
+| Trigger Type                  | Condition                                           | Location                       |
+| ----------------------------- | --------------------------------------------------- | ------------------------------ |
+| **Automatic overflow**        | Estimated tokens exceed `contextWindow * threshold` | `evaluateContextWindowGuard()` |
+| **Manual**                    | Explicit `/compact` command or API call             | User-initiated                 |
+| **Memory flush prerequisite** | Context near limit before memory write              | `shouldRunMemoryFlush()`       |
 
 **Token threshold calculation:**
 
@@ -149,7 +147,7 @@ graph LR
     Force["force"]
     Trigger["trigger: overflow | manual"]
     DiagId["diagId"]
-    
+
     Params --> SessionId
     Params --> SessionFile
     Params --> WorkspaceDir
@@ -171,22 +169,24 @@ Compaction can use a different model than the main conversation. The resolution 
 
 ```typescript
 // Example from compact.ts:383-406
-const compactionModelOverride = params.config?.agents?.defaults?.compaction?.model?.trim();
-let provider: string;
-let modelId: string;
-let authProfileId: string | undefined = params.authProfileId;
+const compactionModelOverride =
+  params.config?.agents?.defaults?.compaction?.model?.trim()
+let provider: string
+let modelId: string
+let authProfileId: string | undefined = params.authProfileId
 if (compactionModelOverride) {
-  const slashIdx = compactionModelOverride.indexOf("/");
+  const slashIdx = compactionModelOverride.indexOf('/')
   if (slashIdx > 0) {
-    provider = compactionModelOverride.slice(0, slashIdx).trim();
-    modelId = compactionModelOverride.slice(slashIdx + 1).trim() || DEFAULT_MODEL;
+    provider = compactionModelOverride.slice(0, slashIdx).trim()
+    modelId =
+      compactionModelOverride.slice(slashIdx + 1).trim() || DEFAULT_MODEL
     // Provider changed — drop primary auth profile
-    if (provider !== (params.provider ?? "").trim()) {
-      authProfileId = undefined;
+    if (provider !== (params.provider ?? '').trim()) {
+      authProfileId = undefined
     }
   } else {
-    provider = (params.provider ?? DEFAULT_PROVIDER).trim() || DEFAULT_PROVIDER;
-    modelId = compactionModelOverride;
+    provider = (params.provider ?? DEFAULT_PROVIDER).trim() || DEFAULT_PROVIDER
+    modelId = compactionModelOverride
   }
 }
 ```
@@ -225,7 +225,7 @@ for compaction?"}
     RunFlush["Execute Memory Flush"]
     SkipFlush["Skip Flush"]
     ContinueTurn["Continue Turn"]
-    
+
     Start --> CheckSettings
     CheckSettings -->|No| SkipFlush
     CheckSettings -->|Yes| CheckTokens
@@ -253,11 +253,11 @@ After compaction completes, the system can optionally re-index the compacted ses
 
 **Sync Modes:**
 
-| Mode | Behavior |
-|------|----------|
-| `"off"` | No post-compaction sync |
+| Mode      | Behavior                       |
+| --------- | ------------------------------ |
+| `"off"`   | No post-compaction sync        |
 | `"async"` | Fire-and-forget sync (default) |
-| `"await"` | Block until sync completes |
+| `"await"` | Block until sync completes     |
 
 Configured via `agents.defaults.compaction.postIndexSync`.
 
@@ -298,7 +298,7 @@ Transcript File"]
 Transcript"]
     RetryCompaction["Retry Compaction"]
     AbortRun["Abort Run"]
-    
+
     CompactionFail --> LogError
     LogError --> CheckRetries
     CheckRetries -->|Yes| ResetSession
@@ -331,13 +331,15 @@ On detection, `resetSessionAfterRoleOrderingConflict()` performs a hard reset wi
 
 ```typescript
 // From agent-runner.ts:338-344
-const resetSessionAfterRoleOrderingConflict = async (reason: string): Promise<boolean> =>
+const resetSessionAfterRoleOrderingConflict = async (
+  reason: string
+): Promise<boolean> =>
   resetSession({
-    failureLabel: "role ordering conflict",
+    failureLabel: 'role ordering conflict',
     buildLogMessage: (nextSessionId) =>
       `Role ordering conflict (${reason}). Restarting session ${sessionKey} -> ${nextSessionId}.`,
     cleanupTranscripts: true, // Force cleanup
-  });
+  })
 ```
 
 **Sources:** [src/auto-reply/reply/agent-runner.ts:338-344](), [src/agents/pi-embedded-helpers.ts:66-67]()
@@ -358,7 +360,7 @@ graph LR
     CheckAggregate{"Aggregate\
 timeout?"}
     Fail["Fail"]
-    
+
     Attempt1 --> Backoff1
     Backoff1 --> Attempt2
     Attempt2 --> Backoff2
@@ -380,13 +382,13 @@ The aggregate timeout prevents infinite retry loops when compaction repeatedly f
 
 Each compaction run generates `CompactionMessageMetrics`:
 
-| Metric | Description |
-|--------|-------------|
-| `messages` | Total message count before compaction |
-| `historyTextChars` | Character count in all messages |
-| `toolResultChars` | Character count in tool results only |
-| `estTokens` | Estimated token count (when available) |
-| `contributors` | Top 3 message contributors by size |
+| Metric             | Description                            |
+| ------------------ | -------------------------------------- |
+| `messages`         | Total message count before compaction  |
+| `historyTextChars` | Character count in all messages        |
+| `toolResultChars`  | Character count in tool results only   |
+| `estTokens`        | Estimated token count (when available) |
+| `contributors`     | Top 3 message contributors by size     |
 
 These metrics are logged with the diagnostic ID for troubleshooting.
 
@@ -414,17 +416,18 @@ The agent event system emits lifecycle events during compaction:
 emitAgentEvent({
   runId,
   sessionKey,
-  stream: "compaction",
+  stream: 'compaction',
   data: {
-    phase: "start" | "end" | "error",
+    phase: 'start' | 'end' | 'error',
     diagId,
-    trigger: "overflow" | "manual",
+    trigger: 'overflow' | 'manual',
     metrics: CompactionMessageMetrics,
   },
-});
+})
 ```
 
 These events drive:
+
 - UI indicators in Control UI
 - Verbose logging (`autoCompactionCompleted` flag)
 - Compaction count tracking
@@ -437,33 +440,33 @@ These events drive:
 
 ### Key Configuration Paths
 
-| Path | Type | Default | Description |
-|------|------|---------|-------------|
-| `agents.defaults.compaction.model` | `string` | (session model) | Override model for compaction (e.g., `"openai/gpt-4o-mini"`) |
-| `agents.defaults.compaction.postIndexSync` | `"off" \| "async" \| "await"` | `"async"` | Post-compaction memory re-index mode |
-| `agents.defaults.compaction.memoryFlush.enabled` | `boolean` | `true` | Enable pre-compaction memory flush |
-| `agents.defaults.compaction.memoryFlush.thresholdRatio` | `number` | `0.75` | Trigger memory flush at this ratio of context window |
+| Path                                                    | Type                          | Default         | Description                                                  |
+| ------------------------------------------------------- | ----------------------------- | --------------- | ------------------------------------------------------------ |
+| `agents.defaults.compaction.model`                      | `string`                      | (session model) | Override model for compaction (e.g., `"openai/gpt-4o-mini"`) |
+| `agents.defaults.compaction.postIndexSync`              | `"off" \| "async" \| "await"` | `"async"`       | Post-compaction memory re-index mode                         |
+| `agents.defaults.compaction.memoryFlush.enabled`        | `boolean`                     | `true`          | Enable pre-compaction memory flush                           |
+| `agents.defaults.compaction.memoryFlush.thresholdRatio` | `number`                      | `0.75`          | Trigger memory flush at this ratio of context window         |
 
 ### Example Configuration
 
 ```json5
 {
-  "agents": {
-    "defaults": {
-      "compaction": {
+  agents: {
+    defaults: {
+      compaction: {
         // Use a cheaper model for compaction
-        "model": "openai/gpt-4o-mini",
-        
+        model: 'openai/gpt-4o-mini',
+
         // Re-index memory after compaction
-        "postIndexSync": "async",
-        
-        "memoryFlush": {
-          "enabled": true,
-          "thresholdRatio": 0.75  // Flush at 75% capacity
-        }
-      }
-    }
-  }
+        postIndexSync: 'async',
+
+        memoryFlush: {
+          enabled: true,
+          thresholdRatio: 0.75, // Flush at 75% capacity
+        },
+      },
+    },
+  },
 }
 ```
 

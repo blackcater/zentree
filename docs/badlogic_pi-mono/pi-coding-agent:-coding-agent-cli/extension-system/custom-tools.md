@@ -15,8 +15,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers how to register custom tools that the LLM can invoke, including tool definition, execution flow, event interception, custom rendering, and integration with the tool registry. For information about built-in tools (read, bash, edit, write), see the Tool Execution documentation. For general extension system concepts and lifecycle events, see [Extension System](#4.4).
 
 ## Tool Registration
@@ -24,31 +22,36 @@ This page covers how to register custom tools that the LLM can invoke, including
 Extensions register tools via `pi.registerTool()`. Tools can be registered during extension initialization or dynamically at runtime (e.g., inside `session_start` handlers or command handlers). Each tool must provide a unique name, parameter schema, and execution function.
 
 ```typescript
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { Type } from "@sinclair/typebox";
+import type { ExtensionAPI } from '@mariozechner/pi-coding-agent'
+import { Type } from '@sinclair/typebox'
 
 export default function (pi: ExtensionAPI) {
   pi.registerTool({
-    name: "greet",
-    label: "Greet User",
-    description: "Greet a user by name with a friendly message",
-    promptSnippet: "greet(name) - greet someone",
-    promptGuidelines: ["Use greet for friendly messages", "Include user's name"],
+    name: 'greet',
+    label: 'Greet User',
+    description: 'Greet a user by name with a friendly message',
+    promptSnippet: 'greet(name) - greet someone',
+    promptGuidelines: [
+      'Use greet for friendly messages',
+      "Include user's name",
+    ],
     parameters: Type.Object({
-      name: Type.String({ description: "Name of person to greet" }),
-      enthusiastic: Type.Optional(Type.Boolean({ description: "Add enthusiasm" })),
+      name: Type.String({ description: 'Name of person to greet' }),
+      enthusiastic: Type.Optional(
+        Type.Boolean({ description: 'Add enthusiasm' })
+      ),
     }),
     async execute(toolCallId, params, signal, onUpdate, ctx) {
-      const greeting = params.enthusiastic 
-        ? `Hello, ${params.name}!!!` 
-        : `Hello, ${params.name}.`;
-      
+      const greeting = params.enthusiastic
+        ? `Hello, ${params.name}!!!`
+        : `Hello, ${params.name}.`
+
       return {
-        content: [{ type: "text", text: greeting }],
+        content: [{ type: 'text', text: greeting }],
         details: { enthusiastic: params.enthusiastic },
-      };
+      }
     },
-  });
+  })
 }
 ```
 
@@ -57,13 +60,13 @@ export default function (pi: ExtensionAPI) {
 Tools can be registered after extension load completes. New tools are immediately available in `pi.getAllTools()` and can be activated via `pi.setActiveTools()` without requiring `/reload`.
 
 ```typescript
-pi.on("session_start", async (_event, ctx) => {
+pi.on('session_start', async (_event, ctx) => {
   // Register tool based on session context
   pi.registerTool({
-    name: "session_tool",
+    name: 'session_tool',
     // ...
-  });
-});
+  })
+})
 ```
 
 Tools are registered into a shared runtime registry accessible via `ExtensionRunner`. The `refreshTools()` method in the runtime rebuilds the active tool set when tools are added or removed.
@@ -77,7 +80,7 @@ Tools are registered into a shared runtime registry accessible via `ExtensionRun
 ```mermaid
 graph TB
     ToolDef["ToolDefinition&lt;TParams, TDetails&gt;"]
-    
+
     ToolDef --> Name["name: string<br/>(LLM tool call identifier)"]
     ToolDef --> Label["label: string<br/>(Human-readable UI name)"]
     ToolDef --> Desc["description: string<br/>(Sent to LLM)"]
@@ -93,17 +96,17 @@ graph TB
 
 ### Field Descriptions
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `name` | `string` | Tool identifier used in LLM tool calls. Must be unique across all registered tools. |
-| `label` | `string` | Human-readable name displayed in the UI (tool selectors, help text). |
-| `description` | `string` | Description sent to the LLM explaining what the tool does. |
-| `promptSnippet` | `string?` | One-line summary for the "Available tools" section in the system prompt. Falls back to description if omitted. |
-| `promptGuidelines` | `string[]?` | Bullet points appended to the "Guidelines" section in the system prompt when this tool is active. |
-| `parameters` | `TSchema` | TypeBox schema defining tool parameters. The LLM's tool call arguments are validated against this schema. |
-| `execute` | `function` | Async function that runs when the LLM calls the tool. Returns result content and optional details. |
-| `renderCall` | `function?` | Custom TUI component for displaying the tool call arguments in the chat. |
-| `renderResult` | `function?` | Custom TUI component for displaying the tool result in the chat. |
+| Field              | Type        | Purpose                                                                                                        |
+| ------------------ | ----------- | -------------------------------------------------------------------------------------------------------------- |
+| `name`             | `string`    | Tool identifier used in LLM tool calls. Must be unique across all registered tools.                            |
+| `label`            | `string`    | Human-readable name displayed in the UI (tool selectors, help text).                                           |
+| `description`      | `string`    | Description sent to the LLM explaining what the tool does.                                                     |
+| `promptSnippet`    | `string?`   | One-line summary for the "Available tools" section in the system prompt. Falls back to description if omitted. |
+| `promptGuidelines` | `string[]?` | Bullet points appended to the "Guidelines" section in the system prompt when this tool is active.              |
+| `parameters`       | `TSchema`   | TypeBox schema defining tool parameters. The LLM's tool call arguments are validated against this schema.      |
+| `execute`          | `function`  | Async function that runs when the LLM calls the tool. Returns result content and optional details.             |
+| `renderCall`       | `function?` | Custom TUI component for displaying the tool call arguments in the chat.                                       |
+| `renderResult`     | `function?` | Custom TUI component for displaying the tool result in the chat.                                               |
 
 **Sources:** [packages/coding-agent/src/core/extensions/types.ts:333-367]()
 
@@ -123,13 +126,13 @@ async execute(
 
 **Parameters:**
 
-| Parameter | Type | Purpose |
-|-----------|------|---------|
-| `toolCallId` | `string` | Unique identifier for this tool invocation, used for tracking and updates |
-| `params` | `Static<TParams>` | Tool parameters validated against the TypeBox schema |
-| `signal` | `AbortSignal \| undefined` | Signal that fires when user interrupts (Ctrl+C). Tool should handle cleanup. |
-| `onUpdate` | `AgentToolUpdateCallback<TDetails> \| undefined` | Optional callback for streaming progress updates. Call with partial results. |
-| `ctx` | `ExtensionContext` | Extension context providing access to UI, session manager, working directory, etc. |
+| Parameter    | Type                                             | Purpose                                                                            |
+| ------------ | ------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `toolCallId` | `string`                                         | Unique identifier for this tool invocation, used for tracking and updates          |
+| `params`     | `Static<TParams>`                                | Tool parameters validated against the TypeBox schema                               |
+| `signal`     | `AbortSignal \| undefined`                       | Signal that fires when user interrupts (Ctrl+C). Tool should handle cleanup.       |
+| `onUpdate`   | `AgentToolUpdateCallback<TDetails> \| undefined` | Optional callback for streaming progress updates. Call with partial results.       |
+| `ctx`        | `ExtensionContext`                               | Extension context providing access to UI, session manager, working directory, etc. |
 
 **Return Value (`AgentToolResult`):**
 
@@ -148,14 +151,14 @@ Call `onUpdate()` during execution to provide incremental results:
 ```typescript
 async execute(toolCallId, params, signal, onUpdate, ctx) {
   onUpdate?.({ content: [{ type: "text", text: "Processing..." }] });
-  
+
   // ... do work ...
-  
-  onUpdate?.({ 
+
+  onUpdate?.({
     content: [{ type: "text", text: "Halfway done..." }],
     details: { progress: 50 }
   });
-  
+
   return {
     content: [{ type: "text", text: "Complete!" }],
     details: { progress: 100 }
@@ -175,32 +178,32 @@ sequenceDiagram
     participant Ext as Extension
     participant Tool as Tool.execute()
     participant Context as AgentSession
-    
+
     LLM->>Agent: tool_use request
     Agent->>ExtRunner: emit(tool_call)
     ExtRunner->>Ext: tool_call event handler
     Ext-->>ExtRunner: {block?: false}
-    
+
     alt Not Blocked
         Agent->>ExtRunner: emit(tool_execution_start)
         ExtRunner->>Ext: tool_execution_start handler
-        
+
         Agent->>Tool: execute(toolCallId, params, signal, onUpdate, ctx)
-        
+
         opt Streaming Updates
             Tool->>Agent: onUpdate({details})
             Agent->>ExtRunner: emit(tool_execution_update)
             ExtRunner->>Ext: tool_execution_update handler
         end
-        
+
         Tool-->>Agent: {content, details, isError}
         Agent->>ExtRunner: emit(tool_execution_end)
         ExtRunner->>Ext: tool_execution_end handler
-        
+
         Agent->>ExtRunner: emit(tool_result)
         ExtRunner->>Ext: tool_result handler (can modify)
         Ext-->>ExtRunner: {content?, details?, isError?}
-        
+
         ExtRunner-->>Agent: Modified result
         Agent->>Context: Persist tool result
         Agent->>LLM: tool_result message
@@ -234,42 +237,42 @@ The `tool_call` event fires **before** a tool executes, allowing extensions to i
 **Parallel Tool Execution:** In parallel tool mode (default), sibling tool calls from the same assistant message are preflighted sequentially via `tool_call` events, then executed concurrently. The `tool_call` handler is **not** guaranteed to see sibling tool results from the same assistant message in `ctx.sessionManager`.
 
 ```typescript
-pi.on("tool_call", async (event, ctx) => {
+pi.on('tool_call', async (event, ctx) => {
   // event.toolName - "bash", "read", "my_custom_tool"
   // event.toolCallId - unique ID for this invocation
   // event.input - typed parameters
 
-  if (event.toolName === "bash" && event.input.command?.includes("rm -rf")) {
-    const ok = await ctx.ui.confirm("Dangerous Command", "Allow rm -rf?");
+  if (event.toolName === 'bash' && event.input.command?.includes('rm -rf')) {
+    const ok = await ctx.ui.confirm('Dangerous Command', 'Allow rm -rf?')
     if (!ok) {
-      return { block: true, reason: "User declined rm -rf" };
+      return { block: true, reason: 'User declined rm -rf' }
     }
   }
-});
+})
 ```
 
 **Type Narrowing**: Use `isToolCallEventType` to get typed access to tool-specific input:
 
 ```typescript
-import { isToolCallEventType } from "@mariozechner/pi-coding-agent";
+import { isToolCallEventType } from '@mariozechner/pi-coding-agent'
 
-pi.on("tool_call", (event, ctx) => {
+pi.on('tool_call', (event, ctx) => {
   // Built-in tools (no type params needed)
-  if (isToolCallEventType("bash", event)) {
-    event.input.command;  // string
-    event.input.timeout;  // number | undefined
+  if (isToolCallEventType('bash', event)) {
+    event.input.command // string
+    event.input.timeout // number | undefined
   }
 
-  if (isToolCallEventType("read", event)) {
-    event.input.path;     // string
-    event.input.limit;    // number | undefined
+  if (isToolCallEventType('read', event)) {
+    event.input.path // string
+    event.input.limit // number | undefined
   }
 
   // Custom tools (explicit type params)
-  if (isToolCallEventType<"my_tool", MyToolInput>("my_tool", event)) {
-    event.input.customField;  // typed via MyToolInput
+  if (isToolCallEventType<'my_tool', MyToolInput>('my_tool', event)) {
+    event.input.customField // typed via MyToolInput
   }
-});
+})
 ```
 
 **Typing Custom Tool Input:**
@@ -278,37 +281,38 @@ Custom tools should export their input type for use in other extensions:
 
 ```typescript
 // my-extension.ts
-import { Type } from "@sinclair/typebox";
-import type { Static } from "@sinclair/typebox";
+import { Type } from '@sinclair/typebox'
+import type { Static } from '@sinclair/typebox'
 
 const MyToolSchema = Type.Object({
   action: Type.String(),
   target: Type.Optional(Type.String()),
-});
+})
 
-export type MyToolInput = Static<typeof MyToolSchema>;
+export type MyToolInput = Static<typeof MyToolSchema>
 
 pi.registerTool({
-  name: "my_tool",
+  name: 'my_tool',
   parameters: MyToolSchema,
   // ...
-});
+})
 ```
 
 Then in another extension:
 
 ```typescript
-import { isToolCallEventType } from "@mariozechner/pi-coding-agent";
-import type { MyToolInput } from "./my-extension";
+import { isToolCallEventType } from '@mariozechner/pi-coding-agent'
+import type { MyToolInput } from './my-extension'
 
-pi.on("tool_call", (event) => {
-  if (isToolCallEventType<"my_tool", MyToolInput>("my_tool", event)) {
-    event.input.action;  // typed
+pi.on('tool_call', (event) => {
+  if (isToolCallEventType<'my_tool', MyToolInput>('my_tool', event)) {
+    event.input.action // typed
   }
-});
+})
 ```
 
 **Return Values:**
+
 - `{ block: true, reason?: string }` - Block execution and send reason to LLM
 - `undefined` or no return - Allow execution to proceed
 
@@ -319,7 +323,7 @@ pi.on("tool_call", (event) => {
 The `tool_result` event fires **after** a tool executes and **before** the final `tool_execution_end` event and tool result message events are emitted. Extensions can modify the result content or details before it's sent to the LLM.
 
 ```typescript
-pi.on("tool_result", async (event, ctx) => {
+pi.on('tool_result', async (event, ctx) => {
   // event.toolName - tool that was called
   // event.toolCallId - unique invocation ID
   // event.input - parameters passed to tool
@@ -327,21 +331,21 @@ pi.on("tool_result", async (event, ctx) => {
   // event.details - structured result data
   // event.isError - whether tool errored
 
-  if (event.toolName === "bash" && !event.isError) {
+  if (event.toolName === 'bash' && !event.isError) {
     // Filter sensitive environment variables from bash output
-    const filtered = event.content.map(block => {
-      if (block.type === "text") {
+    const filtered = event.content.map((block) => {
+      if (block.type === 'text') {
         return {
           ...block,
-          text: block.text.replace(/AWS_SECRET_ACCESS_KEY=\S+/g, "[REDACTED]")
-        };
+          text: block.text.replace(/AWS_SECRET_ACCESS_KEY=\S+/g, '[REDACTED]'),
+        }
       }
-      return block;
-    });
-    
-    return { content: filtered };
+      return block
+    })
+
+    return { content: filtered }
   }
-});
+})
 ```
 
 **Type Narrowing for Built-in Tools:**
@@ -349,16 +353,16 @@ pi.on("tool_result", async (event, ctx) => {
 Use type guards to get typed access to built-in tool details:
 
 ```typescript
-import { isBashToolResult } from "@mariozechner/pi-coding-agent";
+import { isBashToolResult } from '@mariozechner/pi-coding-agent'
 
-pi.on("tool_result", async (event, ctx) => {
+pi.on('tool_result', async (event, ctx) => {
   if (isBashToolResult(event)) {
     // event.details is typed as BashToolDetails
     if (event.details?.exitCode !== 0) {
-      return { isError: true };
+      return { isError: true }
     }
   }
-});
+})
 ```
 
 Available type guards: `isBashToolResult`, `isReadToolResult`, `isEditToolResult`, `isWriteToolResult`, `isGrepToolResult`, `isFindToolResult`, `isLsToolResult`.
@@ -367,13 +371,13 @@ Available type guards: `isBashToolResult`, `isReadToolResult`, `isEditToolResult
 
 ```typescript
 // Extension 1
-return { content: [...newContent] };  // Replaces content
+return { content: [...newContent] } // Replaces content
 
 // Extension 2 (sees Extension 1's content)
-return { details: {...newDetails} };  // Replaces details, keeps content
+return { details: { ...newDetails } } // Replaces details, keeps content
 
 // Extension 3 (sees both modifications)
-return { isError: true };  // Marks as error, keeps content+details
+return { isError: true } // Marks as error, keeps content+details
 ```
 
 **Return Value**: Partial `{ content?, details?, isError? }` - omitted fields keep their current values.
@@ -390,13 +394,13 @@ Custom component for displaying tool arguments when the LLM invokes a tool:
 
 ```typescript
 pi.registerTool({
-  name: "search",
+  name: 'search',
   // ...
   renderCall: (args, theme) => {
-    const query = theme.fg("accent", args.query);
-    return new Text(`Searching for: ${query}`, 0, 0);
-  }
-});
+    const query = theme.fg('accent', args.query)
+    return new Text(`Searching for: ${query}`, 0, 0)
+  },
+})
 ```
 
 ### renderResult
@@ -404,42 +408,47 @@ pi.registerTool({
 Custom component for displaying tool results. Receives `options` for expansion state and streaming:
 
 ```typescript
-import { Text, Container } from "@mariozechner/pi-tui";
+import { Text, Container } from '@mariozechner/pi-tui'
 
 pi.registerTool({
-  name: "search",
+  name: 'search',
   // ...
   renderResult: (result, options, theme) => {
     // options.expanded - whether user expanded the result
     // options.isPartial - whether this is a streaming update
-    
-    const container = new Container();
-    
+
+    const container = new Container()
+
     if (result.details?.resultCount) {
-      container.addChild(new Text(
-        theme.fg("success", `Found ${result.details.resultCount} results`), 
-        0, 0
-      ));
+      container.addChild(
+        new Text(
+          theme.fg('success', `Found ${result.details.resultCount} results`),
+          0,
+          0
+        )
+      )
     }
-    
+
     if (options.expanded && result.details?.results) {
       for (const item of result.details.results) {
-        container.addChild(new Text(`  - ${item.title}`, 0, 0));
+        container.addChild(new Text(`  - ${item.title}`, 0, 0))
       }
     }
-    
-    return container;
-  }
-});
+
+    return container
+  },
+})
 ```
 
 **Component Requirements:**
+
 - Must implement the `Component` interface from `@mariozechner/pi-tui`
 - Should use the provided `theme` for consistent styling
 - Can be stateful (store state in component instance)
 - Should handle both expanded and collapsed states gracefully
 
 **Available in:**
+
 - Interactive mode: Full rendering support
 - RPC mode: Not used (host handles rendering)
 - Print mode: Not used (text-only output)
@@ -461,14 +470,14 @@ graph TB
     Wrap["wrapToolsWithExtensions()"]
     Active["agent.setTools()"]
     SystemPrompt["buildSystemPrompt()"]
-    
+
     ExtLoad --> Register
     Register --> ExtRegistry
     ExtRegistry --> GetTools
     GetTools --> Wrap
     Wrap --> Active
     Active --> SystemPrompt
-    
+
     SystemPrompt --> SnippetsSection["Available Tools section<br/>(promptSnippet or description)"]
     SystemPrompt --> GuidelinesSection["Guidelines section<br/>(promptGuidelines)"]
 ```
@@ -483,13 +492,13 @@ All registered tools are stored in individual `Extension` objects within `Extens
 
 ```typescript
 // Get all registered tools (from all extensions)
-const allTools = session.getAllTools();  // ToolInfo[]
+const allTools = session.getAllTools() // ToolInfo[]
 
 // Get active tool names
-const activeNames = session.getActiveToolNames();  // string[]
+const activeNames = session.getActiveToolNames() // string[]
 
 // Get a specific tool definition
-const toolDef = extensionRunner.getToolDefinition("my_tool");
+const toolDef = extensionRunner.getToolDefinition('my_tool')
 ```
 
 **Activating/Deactivating Tools:**
@@ -497,3 +506,4 @@ const toolDef = extensionRunner.getToolDefinition("my_tool");
 ```typescript
 // Set active tools by name (replaces current active set)
 session.setActiveToolsByName(["read", "bash", "my_custom_tool\
+```

@@ -26,8 +26,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the iOS Clawdis app: its internal architecture, how it connects to the OpenClaw Gateway, and the device capability services it exposes. The app's primary role is to function as a "node" client, registering device hardware (camera, location, microphone, etc.) with the gateway so agents can invoke them.
 
 For the Gateway WebSocket protocol the app speaks, see [2.1](#2.1). For the node pairing approval flow, see [2.2](#2.2). For macOS and Android clients, see [6.2](#6.2) and [6.3](#6.3).
@@ -38,10 +36,10 @@ For the Gateway WebSocket protocol the app speaks, see [2.1](#2.1). For the node
 
 The iOS app establishes **two simultaneous WebSocket connections** to the gateway, each with a distinct role:
 
-| Connection | Role | Purpose |
-|---|---|---|
-| `nodeGateway` | `node` | Receives `node.invoke` commands from agents; registers device capabilities |
-| `operatorGateway` | `operator` | Issues chat, talk, config, and voicewake RPC calls to the gateway |
+| Connection        | Role       | Purpose                                                                    |
+| ----------------- | ---------- | -------------------------------------------------------------------------- |
+| `nodeGateway`     | `node`     | Receives `node.invoke` commands from agents; registers device capabilities |
+| `operatorGateway` | `operator` | Issues chat, talk, config, and voicewake RPC calls to the gateway          |
 
 Both are instances of `GatewayNodeSession` held by `NodeAppModel`.
 
@@ -147,6 +145,7 @@ Sources: [apps/ios/Sources/Model/NodeAppModel.swift:709-755]()
 **Discovery**
 
 The controller uses `GatewayDiscoveryModel` for Bonjour/mDNS discovery on the local network. When gateways appear, it calls `maybeAutoConnect()`, which respects:
+
 - `gateway.autoconnect` (UserDefaults)
 - `gateway.preferredStableID` (previously connected gateway)
 - Stored TLS fingerprint (auto-connect only connects to previously trusted gateways)
@@ -200,22 +199,22 @@ Sources: [apps/ios/Sources/Gateway/GatewayConnectionController.swift:90-155](), 
 
 **Capture modes:**
 
-| Mode | Enum case | Description |
-|---|---|---|
-| Idle | `.idle` | No active capture |
-| Continuous | `.continuous` | Always-on listening with silence detection |
-| Push-to-talk | `.pushToTalk` | Single utterance capture |
+| Mode         | Enum case     | Description                                |
+| ------------ | ------------- | ------------------------------------------ |
+| Idle         | `.idle`       | No active capture                          |
+| Continuous   | `.continuous` | Always-on listening with silence detection |
+| Push-to-talk | `.pushToTalk` | Single utterance capture                   |
 
 **Key methods:**
 
-| Method | Description |
-|---|---|
-| `start()` | Enters continuous capture mode, requests permissions, subscribes to chat events |
-| `stop()` | Cleans up all audio resources and chat subscriptions |
-| `beginPushToTalk()` | Starts a single PTT capture, returns `OpenClawTalkPTTStartPayload` |
-| `endPushToTalk()` | Stops PTT, sends transcript to gateway, returns `OpenClawTalkPTTStopPayload` |
-| `suspendForBackground(keepActive:)` | Releases mic; optionally keeps listening in background |
-| `resumeAfterBackground(wasSuspended:wasKeptActive:)` | Restores capture state |
+| Method                                               | Description                                                                     |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `start()`                                            | Enters continuous capture mode, requests permissions, subscribes to chat events |
+| `stop()`                                             | Cleans up all audio resources and chat subscriptions                            |
+| `beginPushToTalk()`                                  | Starts a single PTT capture, returns `OpenClawTalkPTTStartPayload`              |
+| `endPushToTalk()`                                    | Stops PTT, sends transcript to gateway, returns `OpenClawTalkPTTStopPayload`    |
+| `suspendForBackground(keepActive:)`                  | Releases mic; optionally keeps listening in background                          |
+| `resumeAfterBackground(wasSuspended:wasKeptActive:)` | Restores capture state                                                          |
 
 **Silence detection**: A `silenceTask` polling every 200ms checks `lastAudioActivity` and `lastHeard`. If both fall outside `silenceWindow` (0.9 s), the current transcript is processed and sent to the gateway.
 
@@ -254,10 +253,10 @@ Sources: [apps/ios/Sources/Voice/VoiceWakeManager.swift:83-270]()
 
 **Canvas modes:**
 
-| Mode | `urlString` | Scroll behavior |
-|---|---|---|
-| Default canvas (scaffold) | `""` | Disabled (raw touch passthrough) |
-| External URL | non-empty | Enabled |
+| Mode                      | `urlString` | Scroll behavior                  |
+| ------------------------- | ----------- | -------------------------------- |
+| Default canvas (scaffold) | `""`        | Disabled (raw touch passthrough) |
+| External URL              | non-empty   | Enabled                          |
 
 The default canvas loads `CanvasScaffold/scaffold.html` from the `OpenClawKit` bundle.
 
@@ -265,13 +264,13 @@ The default canvas loads `CanvasScaffold/scaffold.html` from the `OpenClawKit` b
 
 **Key operations:**
 
-| Method | Description |
-|---|---|
-| `navigate(to:)` | Loads a URL in the web view, or shows default canvas for empty/loopback URLs |
-| `showDefaultCanvas()` | Resets to scaffold HTML |
-| `eval(javaScript:)` | Evaluates JS via `WKWebView.evaluateJavaScript`, async/await wrapper |
-| `snapshotBase64(maxWidth:format:quality:)` | Takes a `WKSnapshotConfiguration` snapshot, returns base64 PNG or JPEG |
-| `waitForA2UIReady(timeoutMs:)` | Polls `globalThis.openclawA2UI.applyMessages` until ready |
+| Method                                     | Description                                                                  |
+| ------------------------------------------ | ---------------------------------------------------------------------------- |
+| `navigate(to:)`                            | Loads a URL in the web view, or shows default canvas for empty/loopback URLs |
+| `showDefaultCanvas()`                      | Resets to scaffold HTML                                                      |
+| `eval(javaScript:)`                        | Evaluates JS via `WKWebView.evaluateJavaScript`, async/await wrapper         |
+| `snapshotBase64(maxWidth:format:quality:)` | Takes a `WKSnapshotConfiguration` snapshot, returns base64 PNG or JPEG       |
+| `waitForA2UIReady(timeoutMs:)`             | Polls `globalThis.openclawA2UI.applyMessages` until ready                    |
 
 **A2UI actions**: Button clicks inside the canvas post a `userAction` message that is intercepted by `ScreenWebView` and forwarded to `NodeAppModel.handleCanvasA2UIAction(body:)`. This method packages the action as an agent message and sends it via `sendAgentRequest(link:)`.
 
@@ -328,20 +327,20 @@ Sources: [apps/ios/Sources/Services/NodeServiceProtocols.swift:1-103]()
 
 **Capability summary table:**
 
-| Capability | Protocol | Command prefix | iOS permission |
-|---|---|---|---|
-| Camera photo/video | `CameraServicing` | `camera.*` | NSCameraUsageDescription |
-| Screen recording | `ScreenRecordingServicing` | `screen.record` | ReplayKit |
-| GPS location | `LocationServicing` | `location.get` | NSLocationWhenInUseUsageDescription |
-| Photos library | `PhotosServicing` | `photos.latest` | NSPhotoLibraryUsageDescription |
-| Contacts | `ContactsServicing` | `contacts.*` | NSContactsUsageDescription |
-| Calendar | `CalendarServicing` | `calendar.*` | NSCalendarsUsageDescription |
-| Reminders | `RemindersServicing` | `reminders.*` | NSRemindersUsageDescription |
-| Motion/pedometer | `MotionServicing` | `motion.*` | NSMotionUsageDescription |
-| Apple Watch | `WatchMessagingServicing` | `watch.*` | WatchConnectivity |
-| Canvas web view | `ScreenController` | `canvas.*` | — |
-| Voice STT/TTS | `TalkModeManager` | `talk.ptt.*` | NSMicrophoneUsageDescription, NSSpeechRecognitionUsageDescription |
-| Wake word | `VoiceWakeManager` | — (outbound only) | same as above |
+| Capability         | Protocol                   | Command prefix    | iOS permission                                                    |
+| ------------------ | -------------------------- | ----------------- | ----------------------------------------------------------------- |
+| Camera photo/video | `CameraServicing`          | `camera.*`        | NSCameraUsageDescription                                          |
+| Screen recording   | `ScreenRecordingServicing` | `screen.record`   | ReplayKit                                                         |
+| GPS location       | `LocationServicing`        | `location.get`    | NSLocationWhenInUseUsageDescription                               |
+| Photos library     | `PhotosServicing`          | `photos.latest`   | NSPhotoLibraryUsageDescription                                    |
+| Contacts           | `ContactsServicing`        | `contacts.*`      | NSContactsUsageDescription                                        |
+| Calendar           | `CalendarServicing`        | `calendar.*`      | NSCalendarsUsageDescription                                       |
+| Reminders          | `RemindersServicing`       | `reminders.*`     | NSRemindersUsageDescription                                       |
+| Motion/pedometer   | `MotionServicing`          | `motion.*`        | NSMotionUsageDescription                                          |
+| Apple Watch        | `WatchMessagingServicing`  | `watch.*`         | WatchConnectivity                                                 |
+| Canvas web view    | `ScreenController`         | `canvas.*`        | —                                                                 |
+| Voice STT/TTS      | `TalkModeManager`          | `talk.ptt.*`      | NSMicrophoneUsageDescription, NSSpeechRecognitionUsageDescription |
+| Wake word          | `VoiceWakeManager`         | — (outbound only) | same as above                                                     |
 
 **Background restrictions**: Commands with prefixes `canvas.*`, `camera.*`, `screen.*`, and `talk.*` return a `backgroundUnavailable` error when `isBackgrounded == true`. Location commands additionally require `Always` authorization when backgrounded.
 
@@ -380,13 +379,13 @@ Sources: [apps/ios/Sources/Model/NodeAppModel.swift:297-369](), [apps/ios/Source
 
 **First-run flow** is managed by `OnboardingWizardView` ([apps/ios/Sources/Onboarding/OnboardingWizardView.swift:45-]()). Steps:
 
-| Step | Enum case | Content |
-|---|---|---|
-| Welcome | `.welcome` | Splash screen |
-| Connection mode | `.mode` | Manual vs. setup code |
-| Connect | `.connect` | Gateway list or QR scan |
-| Authentication | `.auth` | Token/password entry |
-| Success | `.success` | Confirmation |
+| Step            | Enum case  | Content                 |
+| --------------- | ---------- | ----------------------- |
+| Welcome         | `.welcome` | Splash screen           |
+| Connection mode | `.mode`    | Manual vs. setup code   |
+| Connect         | `.connect` | Gateway list or QR scan |
+| Authentication  | `.auth`    | Token/password entry    |
+| Success         | `.success` | Confirmation            |
 
 `RootCanvas.startupPresentationRoute(...)` determines whether to show onboarding, settings, or nothing on launch based on `hasConnectedOnce`, `onboardingComplete`, and the existence of a saved gateway config.
 

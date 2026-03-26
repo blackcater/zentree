@@ -40,8 +40,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document covers the observability system in Mastra, including OpenTelemetry integration, vendor-specific exporters, trace/span ID propagation, and observability API endpoints. For general telemetry configuration (usage tracking, analytics opt-out), see [CLI Analytics and Telemetry](#8.8). For evaluation and scoring of agent/workflow outputs, see [Evaluation System and Scorers](#11.3).
 
 ## System Overview
@@ -62,19 +60,19 @@ graph TB
         OTelVendor["telemetry/otel-vendor export<br/>@mastra/core"]
         TraceAPI["OpenTelemetry API<br/>Trace, Span, Context"]
     end
-    
+
     subgraph "Execution Layer"
         AgentExec["Agent.stream/generate"]
         WorkflowExec["Workflow.run"]
         ToolExec["Tool.execute"]
     end
-    
+
     subgraph "Observability Packages"
         ObsPkg["@mastra/observability"]
         OtelBridge["@mastra/otel-bridge"]
         OtelExporter["@mastra/otel-exporter"]
     end
-    
+
     subgraph "Vendor Exporters"
         Langfuse["@mastra/langfuse"]
         Langsmith["@mastra/langsmith"]
@@ -83,16 +81,16 @@ graph TB
         Datadog["@mastra/datadog"]
         Others["PostHog, Sentry, Laminar"]
     end
-    
+
     OTelVendor --> TraceAPI
     TraceAPI --> AgentExec
     TraceAPI --> WorkflowExec
     TraceAPI --> ToolExec
-    
+
     AgentExec --> ObsPkg
     WorkflowExec --> ObsPkg
     ToolExec --> ObsPkg
-    
+
     ObsPkg --> OtelBridge
     OtelBridge --> OtelExporter
     OtelExporter --> Langfuse
@@ -109,12 +107,12 @@ graph TB
 
 Execution results include `traceId` and `spanId` fields to enable correlation with observability backends.
 
-| Execution Context | Return Object | Trace ID Field | Span ID Field |
-|------------------|--------------|----------------|---------------|
-| `agent.stream()` | `MastraModelOutput` | `traceId` | `spanId` |
-| `agent.generate()` | `MastraModelOutput` | `traceId` | `spanId` |
-| `workflow.run()` | `WorkflowRunResult` | `traceId` | `spanId` |
-| `workflow.streamVNext()` | Event objects | `traceId` | `spanId` |
+| Execution Context        | Return Object       | Trace ID Field | Span ID Field |
+| ------------------------ | ------------------- | -------------- | ------------- |
+| `agent.stream()`         | `MastraModelOutput` | `traceId`      | `spanId`      |
+| `agent.generate()`       | `MastraModelOutput` | `traceId`      | `spanId`      |
+| `workflow.run()`         | `WorkflowRunResult` | `traceId`      | `spanId`      |
+| `workflow.streamVNext()` | Event objects       | `traceId`      | `spanId`      |
 
 The `spanId` field was added to identify the root span of each run, enabling queries like "show me all events for this workflow execution" in observability platforms.
 
@@ -129,15 +127,15 @@ graph LR
     subgraph "Foundation"
         ObsCore["@mastra/observability<br/>Base types, interfaces"]
     end
-    
+
     subgraph "Bridge Layer"
         OtelBridge["@mastra/otel-bridge<br/>OTel adapter"]
     end
-    
+
     subgraph "Export Layer"
         OtelExp["@mastra/otel-exporter<br/>Generic OTel export"]
     end
-    
+
     subgraph "Vendor Integrations"
         direction TB
         Langfuse["@mastra/langfuse"]
@@ -149,7 +147,7 @@ graph LR
         PostHog["@mastra/posthog"]
         Sentry["@mastra/sentry"]
     end
-    
+
     ObsCore --> OtelBridge
     OtelBridge --> OtelExp
     OtelExp --> Langfuse
@@ -166,18 +164,18 @@ graph LR
 
 ### Vendor Exporter List
 
-| Package | Purpose | Version Range |
-|---------|---------|---------------|
-| `@mastra/langfuse` | Langfuse LLM observability | 1.0.7+ |
-| `@mastra/langsmith` | LangSmith tracing | 1.1.5+ |
-| `@mastra/braintrust` | Braintrust AI observability | 1.0.8+ |
-| `@mastra/arize` | Arize Phoenix integration | 1.0.8+ |
-| `@mastra/datadog` | Datadog APM integration | 1.0.7+ |
-| `@mastra/laminar` | Laminar LLM analytics | 1.0.7+ |
-| `@mastra/posthog` | PostHog product analytics | 1.0.8+ |
-| `@mastra/sentry` | Sentry error tracking | 1.0.7+ |
-| `@mastra/otel-bridge` | OpenTelemetry bridge | 1.0.7+ |
-| `@mastra/otel-exporter` | Generic OTel exporter | 1.0.7+ |
+| Package                 | Purpose                     | Version Range |
+| ----------------------- | --------------------------- | ------------- |
+| `@mastra/langfuse`      | Langfuse LLM observability  | 1.0.7+        |
+| `@mastra/langsmith`     | LangSmith tracing           | 1.1.5+        |
+| `@mastra/braintrust`    | Braintrust AI observability | 1.0.8+        |
+| `@mastra/arize`         | Arize Phoenix integration   | 1.0.8+        |
+| `@mastra/datadog`       | Datadog APM integration     | 1.0.7+        |
+| `@mastra/laminar`       | Laminar LLM analytics       | 1.0.7+        |
+| `@mastra/posthog`       | PostHog product analytics   | 1.0.8+        |
+| `@mastra/sentry`        | Sentry error tracking       | 1.0.7+        |
+| `@mastra/otel-bridge`   | OpenTelemetry bridge        | 1.0.7+        |
+| `@mastra/otel-exporter` | Generic OTel exporter       | 1.0.7+        |
 
 **Sources:** [.changeset/pre.json:29-39]()
 
@@ -206,7 +204,7 @@ graph LR
     TelemetryLoader["telemetry-loader.js"]
     DevServer["Development Server"]
     MastraInstance["Mastra Instance<br/>with observability"]
-    
+
     DevCmd --> TelemetryLoader
     TelemetryLoader --> DevServer
     DevServer --> MastraInstance
@@ -226,7 +224,7 @@ graph TB
         ServerHandlers["@mastra/server/handlers"]
         ObsHandlers["Observability Handlers"]
     end
-    
+
     subgraph "API Endpoints"
         Logs["/api/observability/logs<br/>Query execution logs"]
         Scores["/api/observability/scores<br/>Retrieve scores"]
@@ -234,14 +232,14 @@ graph TB
         Metrics["/api/observability/metrics<br/>Aggregate metrics"]
         Discovery["/api/observability/discovery<br/>Discover entities"]
     end
-    
+
     subgraph "Metric Endpoints"
         MetricAgg["/metrics/aggregate<br/>Sum, avg, min, max"]
         MetricBreakdown["/metrics/breakdown<br/>Group by dimensions"]
         MetricTimeSeries["/metrics/timeseries<br/>Time-based aggregation"]
         MetricPercentiles["/metrics/percentiles<br/>p50, p90, p95, p99"]
     end
-    
+
     subgraph "Discovery Endpoints"
         DiscoverMetrics["/discovery/metric-names"]
         DiscoverLabels["/discovery/label-keys-values"]
@@ -250,18 +248,18 @@ graph TB
         DiscoverEnvs["/discovery/environments"]
         DiscoverTags["/discovery/tags"]
     end
-    
+
     ServerHandlers --> ObsHandlers
     ObsHandlers --> Logs
     ObsHandlers --> Scores
     ObsHandlers --> Feedback
     ObsHandlers --> Metrics
-    
+
     Metrics --> MetricAgg
     Metrics --> MetricBreakdown
     Metrics --> MetricTimeSeries
     Metrics --> MetricPercentiles
-    
+
     ObsHandlers --> Discovery
     Discovery --> DiscoverMetrics
     Discovery --> DiscoverLabels
@@ -277,22 +275,22 @@ graph TB
 
 The JavaScript client SDK provides typed methods for consuming observability APIs:
 
-| Resource | Method | Purpose |
-|----------|--------|---------|
-| Logs | `client.observability.getLogs(filter)` | Query execution logs |
-| Scores | `client.observability.getScores(filter)` | Retrieve evaluation scores |
-| Feedback | `client.observability.submitFeedback(data)` | Submit user feedback |
-| Feedback | `client.observability.getFeedback(filter)` | Query feedback entries |
-| Metrics | `client.observability.getMetricsAggregate(params)` | Aggregate metrics |
-| Metrics | `client.observability.getMetricsBreakdown(params)` | Group metrics by dimension |
-| Metrics | `client.observability.getMetricsTimeSeries(params)` | Time-series metrics |
-| Metrics | `client.observability.getMetricsPercentiles(params)` | Percentile metrics |
-| Discovery | `client.observability.getMetricNames()` | List available metrics |
-| Discovery | `client.observability.getLabelKeysValues()` | List labels and values |
-| Discovery | `client.observability.getEntityTypes()` | List entity types |
-| Discovery | `client.observability.getServiceNames()` | List services |
-| Discovery | `client.observability.getEnvironments()` | List environments |
-| Discovery | `client.observability.getTags()` | List tags |
+| Resource  | Method                                               | Purpose                    |
+| --------- | ---------------------------------------------------- | -------------------------- |
+| Logs      | `client.observability.getLogs(filter)`               | Query execution logs       |
+| Scores    | `client.observability.getScores(filter)`             | Retrieve evaluation scores |
+| Feedback  | `client.observability.submitFeedback(data)`          | Submit user feedback       |
+| Feedback  | `client.observability.getFeedback(filter)`           | Query feedback entries     |
+| Metrics   | `client.observability.getMetricsAggregate(params)`   | Aggregate metrics          |
+| Metrics   | `client.observability.getMetricsBreakdown(params)`   | Group metrics by dimension |
+| Metrics   | `client.observability.getMetricsTimeSeries(params)`  | Time-series metrics        |
+| Metrics   | `client.observability.getMetricsPercentiles(params)` | Percentile metrics         |
+| Discovery | `client.observability.getMetricNames()`              | List available metrics     |
+| Discovery | `client.observability.getLabelKeysValues()`          | List labels and values     |
+| Discovery | `client.observability.getEntityTypes()`              | List entity types          |
+| Discovery | `client.observability.getServiceNames()`             | List services              |
+| Discovery | `client.observability.getEnvironments()`             | List environments          |
+| Discovery | `client.observability.getTags()`                     | List tags                  |
 
 **Sources:** [client-sdks/client-js/CHANGELOG.md:7]()
 
@@ -313,7 +311,7 @@ graph LR
     ServerSchema["Server Body Schema<br/>Include timestamp field"]
     Handler["Server Handler"]
     Storage["Observability Storage"]
-    
+
     ClientSchema -->|POST /scores| Handler
     ClientSchema -->|POST /feedback| Handler
     Handler -->|Add server timestamp| ServerSchema
@@ -334,7 +332,7 @@ sequenceDiagram
     participant Agent
     participant OTelAPI as "OTel API"
     participant Exporter as "Vendor Exporter"
-    
+
     Client->>Agent: agent.stream(messages)
     Agent->>OTelAPI: Start span (agentId, threadId)
     OTelAPI-->>Agent: spanId, traceId
@@ -358,7 +356,7 @@ sequenceDiagram
     participant Workflow
     participant Steps as "Workflow Steps"
     participant OTelAPI as "OTel API"
-    
+
     Client->>Workflow: workflow.run(input)
     Workflow->>OTelAPI: Start root span
     OTelAPI-->>Workflow: spanId, traceId
@@ -379,13 +377,13 @@ sequenceDiagram
 
 Observability hooks are inserted at multiple levels:
 
-| Layer | Instrumentation Point | Data Captured |
-|-------|----------------------|---------------|
-| LLM Execution | Model call start/end | Provider, model, tokens, latency |
-| Tool Execution | Tool invoke start/end | Tool name, inputs, outputs, duration |
-| Agent Loop | Iteration start/end | Iteration count, stop reason |
-| Memory Operations | Recall/save | Message count, embeddings generated |
-| Workflow Steps | Step start/end | Step type, state transitions |
+| Layer             | Instrumentation Point | Data Captured                        |
+| ----------------- | --------------------- | ------------------------------------ |
+| LLM Execution     | Model call start/end  | Provider, model, tokens, latency     |
+| Tool Execution    | Tool invoke start/end | Tool name, inputs, outputs, duration |
+| Agent Loop        | Iteration start/end   | Iteration count, stop reason         |
+| Memory Operations | Recall/save           | Message count, embeddings generated  |
+| Workflow Steps    | Step start/end        | Step type, state transitions         |
 
 **Sources:** High-level system architecture diagrams
 
@@ -393,8 +391,8 @@ Observability hooks are inserted at multiple levels:
 
 The observability system includes test utilities for verifying instrumentation:
 
-| Package | Purpose |
-|---------|---------|
+| Package                     | Purpose                                             |
+| --------------------------- | --------------------------------------------------- |
 | `@observability/test-utils` | Shared testing utilities for observability packages |
 
 **Sources:** [pnpm-lock.yaml:28]()

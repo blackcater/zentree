@@ -22,8 +22,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the continuous integration workflows that run on pull requests and pushes to the `main` branch of the openai/codex repository. It covers the `rust-ci` GitHub Actions workflow ([`.github/workflows/rust-ci.yml`](.github/workflows/rust-ci.yml)()), the Node.js/TypeScript `ci` workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)()), and the shared caching and toolchain configuration that supports them.
 
 For the release pipeline (tag-triggered, cross-platform builds, code signing, artifact publishing), see [Release Pipeline](#7.3). For the Cargo workspace structure itself, see [Cargo Workspace Structure](#7.1).
@@ -32,10 +30,10 @@ For the release pipeline (tag-triggered, cross-platform builds, code signing, ar
 
 ## Trigger Conditions
 
-| Workflow | File | Triggers |
-|----------|------|----------|
+| Workflow  | File                            | Triggers                                              |
+| --------- | ------------------------------- | ----------------------------------------------------- |
 | `rust-ci` | `.github/workflows/rust-ci.yml` | `pull_request`, `push` to `main`, `workflow_dispatch` |
-| `ci` | `.github/workflows/ci.yml` | `pull_request`, `push` to `main` |
+| `ci`      | `.github/workflows/ci.yml`      | `pull_request`, `push` to `main`                      |
 
 The `rust-ci` workflow is the primary gating workflow for the Rust codebase. Both workflows run without concurrency limits, meaning parallel runs can coexist.
 
@@ -82,10 +80,10 @@ Sources: [`.github/workflows/rust-ci.yml:12-689`](.github/workflows/rust-ci.yml:
 
 The `changed` job always runs. It inspects the diff between the PR base and head (or defaults to running everything on non-PR events) and emits two boolean outputs:
 
-| Output | Condition |
-|--------|-----------|
-| `codex` | Any file under `codex-rs/**` changed |
-| `workflows` | Any file under `.github/**` changed |
+| Output      | Condition                            |
+| ----------- | ------------------------------------ |
+| `codex`     | Any file under `codex-rs/**` changed |
+| `workflows` | Any file under `.github/**` changed  |
 
 Downstream jobs gate on `needs.changed.outputs.codex == 'true' || needs.changed.outputs.workflows == 'true' || github.event_name == 'push'`. This means push events to `main` always run the full suite, while pull requests that only modify files outside `codex-rs/` and `.github/` skip all Rust jobs.
 
@@ -121,21 +119,21 @@ Sources: [`.github/workflows/rust-ci.yml:52-84`](.github/workflows/rust-ci.yml:5
 
 The `lint_build` job runs `cargo clippy` with `--all-features --tests` across the following matrix:
 
-| Runner | Target | Profile |
-|--------|--------|---------|
-| `macos-15-xlarge` | `aarch64-apple-darwin` | `dev` |
-| `macos-15-xlarge` | `x86_64-apple-darwin` | `dev` |
-| `ubuntu-24.04` (codex-linux-x64) | `x86_64-unknown-linux-musl` | `dev` |
-| `ubuntu-24.04` (codex-linux-x64) | `x86_64-unknown-linux-gnu` | `dev` |
-| `ubuntu-24.04-arm` (codex-linux-arm64) | `aarch64-unknown-linux-musl` | `dev` |
-| `ubuntu-24.04-arm` (codex-linux-arm64) | `aarch64-unknown-linux-gnu` | `dev` |
-| `windows-x64` (codex-windows-x64) | `x86_64-pc-windows-msvc` | `dev` |
-| `windows-arm64` (codex-windows-arm64) | `aarch64-pc-windows-msvc` | `dev` |
-| `macos-15-xlarge` | `aarch64-apple-darwin` | `release` |
-| `ubuntu-24.04` (codex-linux-x64) | `x86_64-unknown-linux-musl` | `release` |
+| Runner                                 | Target                       | Profile   |
+| -------------------------------------- | ---------------------------- | --------- |
+| `macos-15-xlarge`                      | `aarch64-apple-darwin`       | `dev`     |
+| `macos-15-xlarge`                      | `x86_64-apple-darwin`        | `dev`     |
+| `ubuntu-24.04` (codex-linux-x64)       | `x86_64-unknown-linux-musl`  | `dev`     |
+| `ubuntu-24.04` (codex-linux-x64)       | `x86_64-unknown-linux-gnu`   | `dev`     |
+| `ubuntu-24.04-arm` (codex-linux-arm64) | `aarch64-unknown-linux-musl` | `dev`     |
+| `ubuntu-24.04-arm` (codex-linux-arm64) | `aarch64-unknown-linux-gnu`  | `dev`     |
+| `windows-x64` (codex-windows-x64)      | `x86_64-pc-windows-msvc`     | `dev`     |
+| `windows-arm64` (codex-windows-arm64)  | `aarch64-pc-windows-msvc`    | `dev`     |
+| `macos-15-xlarge`                      | `aarch64-apple-darwin`       | `release` |
+| `ubuntu-24.04` (codex-linux-x64)       | `x86_64-unknown-linux-musl`  | `release` |
 | `ubuntu-24.04-arm` (codex-linux-arm64) | `aarch64-unknown-linux-musl` | `release` |
-| `windows-x64` (codex-windows-x64) | `x86_64-pc-windows-msvc` | `release` |
-| `windows-arm64` (codex-windows-arm64) | `aarch64-pc-windows-msvc` | `release` |
+| `windows-x64` (codex-windows-x64)      | `x86_64-pc-windows-msvc`     | `release` |
+| `windows-arm64` (codex-windows-arm64)  | `aarch64-pc-windows-msvc`    | `release` |
 
 The `release` profile rows exist to catch release-only build errors and to pre-populate sccache so release builds are faster. CI uses `thin` LTO for the release profile (`CARGO_PROFILE_RELEASE_LTO=thin`) rather than `fat` LTO to keep feedback times manageable.
 
@@ -166,13 +164,13 @@ Sources: [`.github/workflows/rust-ci.yml:86-451`](.github/workflows/rust-ci.yml:
 
 Tests run on a narrower matrix than lint/build (musl targets excluded):
 
-| Runner | Target | Profile |
-|--------|--------|---------|
-| `macos-15-xlarge` | `aarch64-apple-darwin` | `dev` |
-| `ubuntu-24.04` (codex-linux-x64) | `x86_64-unknown-linux-gnu` | `dev` |
-| `ubuntu-24.04-arm` (codex-linux-arm64) | `aarch64-unknown-linux-gnu` | `dev` |
-| `windows-x64` (codex-windows-x64) | `x86_64-pc-windows-msvc` | `dev` |
-| `windows-arm64` (codex-windows-arm64) | `aarch64-pc-windows-msvc` | `dev` |
+| Runner                                 | Target                      | Profile |
+| -------------------------------------- | --------------------------- | ------- |
+| `macos-15-xlarge`                      | `aarch64-apple-darwin`      | `dev`   |
+| `ubuntu-24.04` (codex-linux-x64)       | `x86_64-unknown-linux-gnu`  | `dev`   |
+| `ubuntu-24.04-arm` (codex-linux-arm64) | `aarch64-unknown-linux-gnu` | `dev`   |
+| `windows-x64` (codex-windows-x64)      | `x86_64-pc-windows-msvc`    | `dev`   |
+| `windows-arm64` (codex-windows-arm64)  | `aarch64-pc-windows-msvc`   | `dev`   |
 
 ### Test Runner: `cargo-nextest`
 
@@ -186,12 +184,12 @@ cargo nextest run --all-features --no-fail-fast --target <target> --cargo-profil
 
 ### Special Setup for Tests
 
-| Step | Purpose |
-|------|---------|
-| `actions/setup-node` with `codex-rs/node-version.txt` | Required for `js_repl` integration tests |
-| `facebook/install-dotslash@v2` | Required for some integration tests that resolve DotSlash files |
-| `sudo sysctl -w kernel.unprivileged_userns_clone=1` | Enables bubblewrap sandboxing on Linux CI runners |
-| AppArmor restriction disable | Ubuntu 24.04+ gates unprivileged user namespaces behind AppArmor |
+| Step                                                  | Purpose                                                          |
+| ----------------------------------------------------- | ---------------------------------------------------------------- |
+| `actions/setup-node` with `codex-rs/node-version.txt` | Required for `js_repl` integration tests                         |
+| `facebook/install-dotslash@v2`                        | Required for some integration tests that resolve DotSlash files  |
+| `sudo sysctl -w kernel.unprivileged_userns_clone=1`   | Enables bubblewrap sandboxing on Linux CI runners                |
+| AppArmor restriction disable                          | Ubuntu 24.04+ gates unprivileged user namespaces behind AppArmor |
 
 Sources: [`.github/workflows/rust-ci.yml:453-656`](.github/workflows/rust-ci.yml:453-656)()
 
@@ -202,6 +200,7 @@ Sources: [`.github/workflows/rust-ci.yml:453-656`](.github/workflows/rust-ci.yml
 The `results` job runs with `if: always()` so it executes even when upstream jobs fail. It is the single required status check registered with the repository.
 
 Logic:
+
 - If neither `codex` nor `workflows` changed and the event is not a push, the job exits `0` immediately ("No relevant changes").
 - Otherwise, it checks that `general`, `cargo_shear`, `lint_build`, and `tests` all have result `success`.
 
@@ -218,6 +217,7 @@ The pipeline uses two separate caching mechanisms:
 Caches the downloaded registry index, crate source archives, and compiled git dependencies. Keyed by runner, target, profile, `Cargo.lock` hash, and `rust-toolchain.toml` hash.
 
 Cache paths:
+
 - `~/.cargo/bin/`, `~/.cargo/registry/`, `~/.cargo/git/db/`
 - `$GITHUB_WORKSPACE/.cargo-home/` (hermetic path used for musl builds)
 
@@ -303,13 +303,13 @@ Sources: [`.github/scripts/install-musl-build-tools.sh:1-280`](.github/scripts/i
 
 The pinned toolchain is declared in [`.github/workflows/rust-ci.yml`](.github/workflows/rust-ci.yml:199-202)() and mirrored in [`codex-rs/rust-toolchain.toml`](codex-rs/rust-toolchain.toml:1-4)():
 
-| Setting | Value |
-|---------|-------|
-| Channel | `1.93.0` |
+| Setting                     | Value                           |
+| --------------------------- | ------------------------------- |
+| Channel                     | `1.93.0`                        |
 | Components (toolchain.toml) | `clippy`, `rustfmt`, `rust-src` |
-| Components (CI for lint) | `clippy` |
-| Components (CI for format) | `rustfmt` |
-| Action | `dtolnay/rust-toolchain@1.93.0` |
+| Components (CI for lint)    | `clippy`                        |
+| Components (CI for format)  | `rustfmt`                       |
+| Action                      | `dtolnay/rust-toolchain@1.93.0` |
 
 The `codex-rs/.cargo/config.toml` file configures platform-specific linker flags: a custom stack size on Windows (`/STACK:8388608`) and the `/arm64hazardfree` flag for `aarch64-pc-windows-msvc` to suppress a linker warning about a Cortex-A53 erratum that does not affect supported hardware.
 
@@ -321,13 +321,13 @@ Sources: [`codex-rs/rust-toolchain.toml:1-4`](codex-rs/rust-toolchain.toml:1-4)(
 
 The `ci` workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml:1-67)()) covers the Node.js and TypeScript portions of the repository. It runs on `ubuntu-latest` with a 10-minute timeout.
 
-| Step | Tool / Command | Purpose |
-|------|---------------|---------|
-| Install dependencies | `pnpm install --frozen-lockfile` | Reproducible installs |
-| Stage npm package | `scripts/stage_npm_packages.py` | Validates that npm packaging works against a published Rust release |
-| ASCII check | `scripts/asciicheck.py README.md` | Ensures README files contain only ASCII and allowed Unicode |
-| README ToC check | `scripts/readme_toc.py README.md` | Validates table of contents accuracy |
-| Formatting | `pnpm run format` | Runs Prettier in check mode |
+| Step                 | Tool / Command                    | Purpose                                                             |
+| -------------------- | --------------------------------- | ------------------------------------------------------------------- |
+| Install dependencies | `pnpm install --frozen-lockfile`  | Reproducible installs                                               |
+| Stage npm package    | `scripts/stage_npm_packages.py`   | Validates that npm packaging works against a published Rust release |
+| ASCII check          | `scripts/asciicheck.py README.md` | Ensures README files contain only ASCII and allowed Unicode         |
+| README ToC check     | `scripts/readme_toc.py README.md` | Validates table of contents accuracy                                |
+| Formatting           | `pnpm run format`                 | Runs Prettier in check mode                                         |
 
 The npm staging step downloads a known release version (currently `0.74.0`) from GitHub Releases to validate the packaging pipeline without requiring a new Rust build.
 
@@ -337,15 +337,15 @@ Sources: [`.github/workflows/ci.yml:1-67`](.github/workflows/ci.yml:1-67)()
 
 ## Key Environment Variables
 
-| Variable | Value / Behavior | Jobs |
-|----------|-----------------|------|
-| `CARGO_INCREMENTAL` | `"0"` | `lint_build`, `tests` |
-| `USE_SCCACHE` | `true` for non-Windows, `false` for Windows | `lint_build`, `tests` |
-| `SCCACHE_CACHE_SIZE` | `10G` | `lint_build`, `tests` |
-| `CARGO_PROFILE_RELEASE_LTO` | `thin` (CI), `fat` (release) | `lint_build` |
-| `RUST_BACKTRACE` | `1` | `tests` |
-| `NEXTEST_STATUS_LEVEL` | `leak` | `tests` |
-| `AWS_LC_SYS_NO_JITTER_ENTROPY` | `1` (musl) | release workflow |
-| `RUSTC_WRAPPER` | `sccache` (when enabled) | `lint_build`, `tests` |
+| Variable                       | Value / Behavior                            | Jobs                  |
+| ------------------------------ | ------------------------------------------- | --------------------- |
+| `CARGO_INCREMENTAL`            | `"0"`                                       | `lint_build`, `tests` |
+| `USE_SCCACHE`                  | `true` for non-Windows, `false` for Windows | `lint_build`, `tests` |
+| `SCCACHE_CACHE_SIZE`           | `10G`                                       | `lint_build`, `tests` |
+| `CARGO_PROFILE_RELEASE_LTO`    | `thin` (CI), `fat` (release)                | `lint_build`          |
+| `RUST_BACKTRACE`               | `1`                                         | `tests`               |
+| `NEXTEST_STATUS_LEVEL`         | `leak`                                      | `tests`               |
+| `AWS_LC_SYS_NO_JITTER_ENTROPY` | `1` (musl)                                  | release workflow      |
+| `RUSTC_WRAPPER`                | `sccache` (when enabled)                    | `lint_build`, `tests` |
 
 Sources: [`.github/workflows/rust-ci.yml:97-104`](.github/workflows/rust-ci.yml:97-104)(), [`.github/workflows/rust-ci.yml:462-466`](.github/workflows/rust-ci.yml:462-466)()

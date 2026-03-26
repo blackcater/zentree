@@ -22,8 +22,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes the release pipeline defined in [.github/workflows/rust-release.yml]() that builds, signs, and publishes Codex binaries for all supported platforms. The pipeline is triggered by pushing a version tag and orchestrates multi-platform builds, platform-specific code signing, artifact compression, GitHub release creation, and npm package publishing.
@@ -42,6 +40,7 @@ git push origin rust-v0.1.0
 ```
 
 The `tag-check` job validates that the tag format is correct and matches the version declared in [codex-rs/Cargo.toml](). Accepted tag formats:
+
 - Stable releases: `rust-v1.2.3`
 - Alpha pre-releases: `rust-v1.2.3-alpha.N`
 
@@ -58,30 +57,30 @@ The `tag-check` job validates that the tag format is correct and matches the ver
 ```mermaid
 graph TB
     push["Tag Push<br/>rust-v*.*.*"]
-    
+
     tagCheck["tag-check<br/>Validate tag format"]
-    
+
     buildMac["build (macOS)<br/>2 targets"]
     buildLinux["build (Linux)<br/>4 targets"]
     buildWin["build-windows<br/>rust-release-windows.yml"]
     shellMcp["shell-tool-mcp<br/>shell-tool-mcp.yml"]
-    
+
     release["release<br/>Assemble artifacts<br/>Create GitHub Release<br/>Stage npm packages"]
-    
+
     publishNpm["publish-npm<br/>OIDC publish to npm"]
     updateBranch["update-branch<br/>Update latest-alpha-cli"]
-    
+
     push --> tagCheck
     tagCheck --> buildMac
     tagCheck --> buildLinux
     tagCheck --> buildWin
     tagCheck --> shellMcp
-    
+
     buildMac --> release
     buildLinux --> release
     buildWin --> release
     shellMcp --> release
-    
+
     release --> publishNpm
     release --> updateBranch
 ```
@@ -98,14 +97,14 @@ The pipeline uses concurrent builds for all platforms, then gates the final rele
 
 The `build` job uses a matrix strategy to build binaries for 6 platform/libc combinations in parallel:
 
-| Runner | Target | libc | LTO Mode |
-|--------|--------|------|----------|
-| `macos-15-xlarge` | `aarch64-apple-darwin` | system | Conditional |
-| `macos-15-xlarge` | `x86_64-apple-darwin` | system | Conditional |
-| `ubuntu-24.04` | `x86_64-unknown-linux-musl` | musl | Conditional |
-| `ubuntu-24.04` | `x86_64-unknown-linux-gnu` | glibc | Conditional |
-| `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | musl | Conditional |
-| `ubuntu-24.04-arm` | `aarch64-unknown-linux-gnu` | glibc | Conditional |
+| Runner             | Target                       | libc   | LTO Mode    |
+| ------------------ | ---------------------------- | ------ | ----------- |
+| `macos-15-xlarge`  | `aarch64-apple-darwin`       | system | Conditional |
+| `macos-15-xlarge`  | `x86_64-apple-darwin`        | system | Conditional |
+| `ubuntu-24.04`     | `x86_64-unknown-linux-musl`  | musl   | Conditional |
+| `ubuntu-24.04`     | `x86_64-unknown-linux-gnu`   | glibc  | Conditional |
+| `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | musl   | Conditional |
+| `ubuntu-24.04-arm` | `aarch64-unknown-linux-gnu`  | glibc  | Conditional |
 
 Windows builds are handled by a separate reusable workflow [.github/workflows/rust-release-windows.yml]() that builds 2 targets (`x86_64-pc-windows-msvc`, `aarch64-pc-windows-msvc`).
 
@@ -124,21 +123,21 @@ graph TB
     checkout["Checkout repository"]
     specs["Print runner specs<br/>sysctl, sw_vers"]
     toolchain["Install Rust toolchain<br/>dtolnay/rust-toolchain@1.93.0"]
-    
+
     build["cargo build --release<br/>--bin codex<br/>--bin codex-responses-api-proxy"]
-    
+
     signBin["MacOS code signing (binaries)<br/>.github/actions/macos-code-sign<br/>Sign + notarize codex, proxy"]
-    
+
     dmg["Build macOS dmg<br/>hdiutil create<br/>Package signed binaries"]
-    
+
     signDmg["MacOS code signing (dmg)<br/>Sign + notarize DMG"]
-    
+
     stage["Stage artifacts<br/>dist/target/codex-*<br/>dist/target/*.dmg"]
-    
+
     compress["Compress artifacts<br/>.tar.gz + .zst"]
-    
+
     upload["Upload artifact<br/>actions/upload-artifact@v6"]
-    
+
     checkout --> specs
     specs --> toolchain
     toolchain --> build
@@ -171,6 +170,7 @@ The macOS builds run on `macos-15-xlarge` runners for both `aarch64-apple-darwin
 Linux builds produce both musl and glibc variants for x64 and arm64 architectures. The musl builds require special toolchain setup:
 
 **musl Build Configuration** [.github/workflows/rust-release.yml:130-204]():
+
 1. **Hermetic Cargo Home**: Creates isolated `$GITHUB_WORKSPACE/.cargo-home` to avoid host toolchain pollution
 2. **Zig Installation**: Uses Zig 0.14.0 as a C/C++ compiler that can cross-compile for musl targets
 3. **musl Build Tools**: Runs [.github/scripts/install-musl-build-tools.sh]() to:
@@ -237,23 +237,23 @@ After building and signing, each platform-specific build job stages and compress
 ```mermaid
 graph LR
     built["Built binaries<br/>target/TARGET/release/"]
-    
+
     stage["Stage to dist/<br/>codex-TARGET<br/>codex-proxy-TARGET"]
-    
+
     tarGz["Create .tar.gz<br/>tar -czf"]
     zst["Create .zst<br/>zstd -T0 -19 --rm"]
-    
+
     sigstore["Copy .sigstore<br/>(Linux only)"]
     dmg["Copy .dmg<br/>(macOS only)"]
-    
+
     upload["Upload to Actions<br/>artifact: TARGET"]
-    
+
     built --> stage
     stage --> tarGz
     stage --> zst
     stage --> sigstore
     stage --> dmg
-    
+
     tarGz --> upload
     zst --> upload
     sigstore --> upload
@@ -332,15 +332,15 @@ The `publish-npm` job conditionally publishes to the npm registry using OpenID C
 ```mermaid
 graph TB
     condition["Check should_publish_npm<br/>stable or alpha versions only"]
-    
+
     setupNode["Setup Node.js 22<br/>registry: registry.npmjs.org<br/>scope: @openai"]
-    
+
     updateNpm["Update npm CLI<br/>npm install -g npm@latest<br/>Required: ≥11.5.1 for OIDC"]
-    
+
     download["Download npm tarballs<br/>gh release download<br/>Patterns: codex-npm-*.tgz"]
-    
+
     publish["npm publish loop<br/>--tag alpha (if alpha)<br/>No NODE_AUTH_TOKEN needed"]
-    
+
     condition -->|true| setupNode
     setupNode --> updateNpm
     updateNpm --> download
@@ -417,11 +417,11 @@ For full details on the shell-tool-mcp build process, see [Shell Tool MCP Build 
 
 ## Code Signing Summary Table
 
-| Platform | Signing Method | Artifacts | Verification |
-|----------|---------------|-----------|--------------|
-| **macOS** | Apple Developer ID + Notarization | `codex`, `codex-responses-api-proxy`, `.dmg` | `spctl --assess --verbose` |
-| **Linux** | Cosign keyless signing | `.sigstore` bundles | `cosign verify-blob` |
-| **Windows** | Azure Trusted Signing (Authenticode) | `codex.exe`, `codex-responses-api-proxy.exe`, `codex-windows-sandbox-setup.exe`, `codex-command-runner.exe` | `signtool verify` |
+| Platform    | Signing Method                       | Artifacts                                                                                                   | Verification               |
+| ----------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------- | -------------------------- |
+| **macOS**   | Apple Developer ID + Notarization    | `codex`, `codex-responses-api-proxy`, `.dmg`                                                                | `spctl --assess --verbose` |
+| **Linux**   | Cosign keyless signing               | `.sigstore` bundles                                                                                         | `cosign verify-blob`       |
+| **Windows** | Azure Trusted Signing (Authenticode) | `codex.exe`, `codex-responses-api-proxy.exe`, `codex-windows-sandbox-setup.exe`, `codex-command-runner.exe` | `signtool verify`          |
 
 All signing processes use OIDC/ephemeral credentials to avoid storing long-lived secrets in GitHub Actions.
 

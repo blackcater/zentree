@@ -30,8 +30,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document explains the dual security mechanisms that control tool execution in Codex: **Sandbox Policies** determine filesystem and network access restrictions for shell commands and other tools, while **Approval Policies** determine when the user must explicitly authorize an action before execution. These policies work together to provide graduated trust levels from fully sandboxed read-only access to unrestricted execution.
 
 For information about tool execution implementation, see [Tool Orchestration and Approval](#5.5). For configuration of these policies, see [Configuration System](#2.2).
@@ -40,10 +38,10 @@ For information about tool execution implementation, see [Tool Orchestration and
 
 Codex uses two orthogonal policy systems that are set per-turn and control different aspects of tool execution:
 
-| Policy Type | Purpose | Configured Via |
-|------------|---------|----------------|
-| `SandboxPolicy` | Controls filesystem write access, network access, and execution environment | `Op::UserTurn.sandbox_policy` |
-| `AskForApproval` | Controls when user approval is required before executing commands | `Op::UserTurn.approval_policy` |
+| Policy Type      | Purpose                                                                     | Configured Via                 |
+| ---------------- | --------------------------------------------------------------------------- | ------------------------------ |
+| `SandboxPolicy`  | Controls filesystem write access, network access, and execution environment | `Op::UserTurn.sandbox_policy`  |
+| `AskForApproval` | Controls when user approval is required before executing commands           | `Op::UserTurn.approval_policy` |
 
 Both policies are passed in the `Op::UserTurn` submission and can be overridden via `Op::OverrideTurnContext` for subsequent turns in a session.
 
@@ -63,11 +61,11 @@ graph TB
         ExternalSandbox["ExternalSandbox<br/>Full disk access<br/>Optional network<br/>Assumes external sandbox"]
         DangerFullAccess["DangerFullAccess<br/>No restrictions<br/>Full disk + network"]
     end
-    
+
     ReadOnly -->|Add write access| WorkspaceWrite
     WorkspaceWrite -->|Assume external sandbox| ExternalSandbox
     ExternalSandbox -->|Remove all restrictions| DangerFullAccess
-    
+
     style ReadOnly fill:#f9f9f9
     style WorkspaceWrite fill:#f9f9f9
     style ExternalSandbox fill:#f9f9f9
@@ -76,12 +74,12 @@ graph TB
 
 **Policy Characteristics:**
 
-| Policy | Disk Read | Disk Write | Network | Protected Paths |
-|--------|-----------|------------|---------|-----------------|
-| `ReadOnly` | Full | None | Disabled | N/A |
-| `WorkspaceWrite` | Full | cwd + TMPDIR + configured roots | Optional | .git, .codex, .agents |
-| `ExternalSandbox` | Full | Full | Optional | None (external sandbox enforces) |
-| `DangerFullAccess` | Full | Full | Enabled | None |
+| Policy             | Disk Read | Disk Write                      | Network  | Protected Paths                  |
+| ------------------ | --------- | ------------------------------- | -------- | -------------------------------- |
+| `ReadOnly`         | Full      | None                            | Disabled | N/A                              |
+| `WorkspaceWrite`   | Full      | cwd + TMPDIR + configured roots | Optional | .git, .codex, .agents            |
+| `ExternalSandbox`  | Full      | Full                            | Optional | None (external sandbox enforces) |
+| `DangerFullAccess` | Full      | Full                            | Enabled  | None                             |
 
 **Sources:** [codex-rs/protocol/src/protocol.rs:379-426](), [codex-rs/protocol/src/protocol.rs:467-507]()
 
@@ -93,38 +91,38 @@ For `WorkspaceWrite` policy, the system computes a set of `WritableRoot` objects
 graph TB
     subgraph "get_writable_roots_with_cwd Flow"
         Input["Input:<br/>SandboxPolicy::WorkspaceWrite<br/>cwd: /home/user/project"]
-        
+
         ExplicitRoots["Explicit writable_roots<br/>from policy config"]
         CwdRoot["Add cwd:<br/>/home/user/project"]
         SlashTmp["Add /tmp<br/>(Unix, unless excluded)"]
         EnvTmpdir["Add $TMPDIR<br/>(if set, unless excluded)"]
-        
+
         ComputeSubpaths["For each root:<br/>Compute read_only_subpaths"]
-        
+
         GitCheck{".git exists?"}
         GitFile{".git is file?"}
         ResolveGitdir["resolve_gitdir_from_file()"]
-        
+
         AgentsCodex["Check .agents, .codex"]
-        
+
         Output["Vec&lt;WritableRoot&gt;<br/>Each with root + read_only_subpaths"]
     end
-    
+
     Input --> ExplicitRoots
     ExplicitRoots --> CwdRoot
     CwdRoot --> SlashTmp
     SlashTmp --> EnvTmpdir
     EnvTmpdir --> ComputeSubpaths
-    
+
     ComputeSubpaths --> GitCheck
     GitCheck -->|Yes| GitFile
     GitFile -->|Yes| ResolveGitdir
     GitFile -->|No| AgentsCodex
     ResolveGitdir --> AgentsCodex
     GitCheck -->|No| AgentsCodex
-    
+
     AgentsCodex --> Output
-    
+
     style Input fill:#f9f9f9
     style Output fill:#f9f9f9
 ```
@@ -149,13 +147,13 @@ graph LR
     CheckPath["is_path_writable(path)"]
     UnderRoot{"path starts with<br/>root?"}
     UnderReadOnly{"path starts with<br/>any read_only_subpath?"}
-    
+
     CheckPath --> UnderRoot
     UnderRoot -->|No| ReturnFalse["return false"]
     UnderRoot -->|Yes| UnderReadOnly
     UnderReadOnly -->|Yes| ReturnFalse
     UnderReadOnly -->|No| ReturnTrue["return true"]
-    
+
     style ReturnTrue fill:#f9f9f9
     style ReturnFalse fill:#f9f9f9
 ```
@@ -173,46 +171,46 @@ graph TB
     subgraph "AskForApproval Decision Flow"
         Command["Command to execute"]
         Policy{Policy type?}
-        
+
         UnlessTrusted["UnlessTrusted"]
         IsSafe{"is_safe_command() &&<br/>read-only?"}
-        
+
         OnFailure["OnFailure"]
         RunSandboxed["Execute in sandbox"]
         Failed{"Failed?"}
-        
+
         OnRequest["OnRequest (default)"]
         ModelDecides["Model includes<br/>request_approval field"]
-        
+
         Never["Never"]
-        
+
         AutoApprove["Auto-approve"]
         AskUser["Ask user for approval"]
         ReturnError["Return error to model"]
     end
-    
+
     Command --> Policy
-    
+
     Policy -->|UnlessTrusted| UnlessTrusted
     UnlessTrusted --> IsSafe
     IsSafe -->|Yes| AutoApprove
     IsSafe -->|No| AskUser
-    
+
     Policy -->|OnFailure| OnFailure
     OnFailure --> RunSandboxed
     RunSandboxed --> Failed
     Failed -->|Yes| AskUser
     Failed -->|No| AutoApprove
-    
+
     Policy -->|OnRequest| OnRequest
     OnRequest --> ModelDecides
     ModelDecides -->|request_approval=true| AskUser
     ModelDecides -->|request_approval=false| AutoApprove
-    
+
     Policy -->|Never| Never
     Never --> AutoApprove
     Never -.failure.-> ReturnError
-    
+
     style AutoApprove fill:#f9f9f9
     style AskUser fill:#f9f9f9
     style ReturnError fill:#f9f9f9
@@ -242,12 +240,12 @@ graph LR
         ElicitationReq["ElicitationRequest<br/>(MCP servers)"]
         UserInputReq["RequestUserInput<br/>(model requests info)"]
     end
-    
+
     ExecApproval --> UserResponse["User responds with<br/>Op::ExecApproval"]
     PatchApproval --> UserResponse2["User responds with<br/>Op::PatchApproval"]
     ElicitationReq --> UserResponse3["User responds with<br/>Op::ResolveElicitation"]
     UserInputReq --> UserResponse4["User responds with<br/>Op::UserInputAnswer"]
-    
+
     style ExecApproval fill:#f9f9f9
     style PatchApproval fill:#f9f9f9
 ```
@@ -262,26 +260,26 @@ Both policies are part of the `Op::UserTurn` submission and can be updated via `
 graph TB
     subgraph "Turn Context Policy Flow"
         UserTurn["Op::UserTurn<br/>items, cwd<br/>approval_policy<br/>sandbox_policy<br/>model"]
-        
+
         TurnContext["TurnContext created<br/>with policies"]
-        
+
         Override["Op::OverrideTurnContext<br/>(optional)<br/>approval_policy?<br/>sandbox_policy?<br/>windows_sandbox_level?"]
-        
+
         SessionTask["SessionTask::execute_turn<br/>uses TurnContext policies"]
-        
+
         ToolOrchestrator["ToolOrchestrator<br/>applies approval + sandbox"]
-        
+
         Shell["Shell execution<br/>UnifiedExec"]
         Patch["apply_patch<br/>file modifications"]
     end
-    
+
     UserTurn --> TurnContext
     Override -.updates.-> TurnContext
     TurnContext --> SessionTask
     SessionTask --> ToolOrchestrator
     ToolOrchestrator --> Shell
     ToolOrchestrator --> Patch
-    
+
     style TurnContext fill:#f9f9f9
     style ToolOrchestrator fill:#f9f9f9
 ```
@@ -294,11 +292,11 @@ Policies can be configured at multiple layers in the configuration system:
 
 ### Default Policy Configuration
 
-| Configuration Key | Policy Type | Default Value | Config Level |
-|------------------|-------------|---------------|--------------|
-| `approval_policy` | `AskForApproval` | `OnRequest` | Profile |
-| `sandbox_mode` | Maps to `SandboxPolicy` | `WorkspaceWrite` | Profile |
-| `windows_sandbox_level` | Windows-specific | `Unrestricted` | Global/Profile |
+| Configuration Key       | Policy Type             | Default Value    | Config Level   |
+| ----------------------- | ----------------------- | ---------------- | -------------- |
+| `approval_policy`       | `AskForApproval`        | `OnRequest`      | Profile        |
+| `sandbox_mode`          | Maps to `SandboxPolicy` | `WorkspaceWrite` | Profile        |
+| `windows_sandbox_level` | Windows-specific        | `Unrestricted`   | Global/Profile |
 
 **Sandbox Mode Mapping:**
 
@@ -311,18 +309,18 @@ graph LR
         WorkspaceWrite["SandboxMode::WorkspaceWrite"]
         FullAccess["SandboxMode::FullAccess"]
         ExternalSandbox["SandboxMode::ExternalSandbox"]
-        
+
         ReadOnlyPolicy["SandboxPolicy::ReadOnly"]
         WorkspaceWritePolicy["SandboxPolicy::WorkspaceWrite<br/>writable_roots: []<br/>network_access: false"]
         FullAccessPolicy["SandboxPolicy::DangerFullAccess"]
         ExternalSandboxPolicy["SandboxPolicy::ExternalSandbox<br/>network_access: per config"]
     end
-    
+
     ReadOnly --> ReadOnlyPolicy
     WorkspaceWrite --> WorkspaceWritePolicy
     FullAccess --> FullAccessPolicy
     ExternalSandbox --> ExternalSandboxPolicy
-    
+
     style ReadOnlyPolicy fill:#f9f9f9
     style WorkspaceWritePolicy fill:#f9f9f9
     style FullAccessPolicy fill:#f9f9f9
@@ -373,63 +371,63 @@ The following diagram shows how both policies interact during tool execution:
 graph TB
     subgraph "Tool Execution with Policies"
         ToolCall["Model calls tool<br/>(shell, exec_command, apply_patch)"]
-        
+
         ToolOrchestrator["ToolOrchestrator"]
-        
+
         ApprovalCheck{"Approval policy<br/>requires prompt?"}
-        
+
         EmitRequest["Emit ExecApprovalRequest or<br/>ApplyPatchApprovalRequest"]
         WaitResponse["Wait for Op::ExecApproval or<br/>Op::PatchApproval"]
-        
+
         ReviewDecision{"User decision?"}
-        
+
         SelectSandbox["Select sandbox implementation<br/>based on SandboxPolicy"]
-        
+
         SandboxImpl{"Sandbox type?"}
-        
+
         Docker["Docker sandbox<br/>(macOS, Linux)"]
         Firejail["Firejail sandbox<br/>(Linux)"]
         Bwrap["Bubblewrap sandbox<br/>(Linux, experimental)"]
         Windows["Windows sandbox<br/>(restricted token)"]
         None["No sandbox<br/>(DangerFullAccess)"]
-        
+
         ComputeWritable["get_writable_roots_with_cwd()<br/>for WorkspaceWrite"]
-        
+
         Execute["Execute tool<br/>with computed restrictions"]
-        
+
         EmitOutput["Emit ExecCommandBegin/End<br/>or PatchApplyBegin/End"]
     end
-    
+
     ToolCall --> ToolOrchestrator
     ToolOrchestrator --> ApprovalCheck
-    
+
     ApprovalCheck -->|Yes| EmitRequest
     EmitRequest --> WaitResponse
     WaitResponse --> ReviewDecision
-    
+
     ReviewDecision -->|Approve| SelectSandbox
     ReviewDecision -->|Reject| ReturnError["Return error to model"]
-    
+
     ApprovalCheck -->|No| SelectSandbox
-    
+
     SelectSandbox --> SandboxImpl
-    
+
     SandboxImpl -->|Platform + policy| Docker
     SandboxImpl -->|Platform + policy| Firejail
     SandboxImpl -->|Platform + policy| Bwrap
     SandboxImpl -->|Platform + policy| Windows
     SandboxImpl -->|DangerFullAccess| None
-    
+
     Docker --> ComputeWritable
     Firejail --> ComputeWritable
     Bwrap --> ComputeWritable
-    
+
     ComputeWritable --> Execute
     Windows --> Execute
     None --> Execute
-    
+
     Execute --> EmitOutput
-    
+
     style ApprovalCheck fill:#f9f9f9
     style SelectSandbox fill:#f9f9f9
     style Execute fill:#f9f9f9
@@ -441,9 +439,9 @@ graph TB
 
 The system maintains an approval cache to avoid redundant prompts for the same command:
 
-| Mechanism | Purpose | Lifetime |
-|-----------|---------|----------|
-| Approval cache | Reuse approval decisions for identical commands in same turn | Per-turn |
+| Mechanism         | Purpose                                                      | Lifetime    |
+| ----------------- | ------------------------------------------------------------ | ----------- |
+| Approval cache    | Reuse approval decisions for identical commands in same turn | Per-turn    |
 | Policy amendments | User-proposed exec policy rules stored in approval responses | Per-session |
 
 When the user approves a command, they can optionally propose a policy amendment that allows similar commands to auto-approve in the future.
@@ -463,13 +461,13 @@ graph LR
         Standard["Standard<br/>Restricted token"]
         Strict["Strict<br/>Low integrity level"]
     end
-    
+
     WindowsSandboxLevel["windows_sandbox_level<br/>in Op::OverrideTurnContext"]
-    
+
     WindowsSandboxLevel --> Unrestricted
-    WindowsSandboxLevel --> Standard  
+    WindowsSandboxLevel --> Standard
     WindowsSandboxLevel --> Strict
-    
+
     style Unrestricted fill:#f9f9f9
     style Standard fill:#f9f9f9
     style Strict fill:#f9f9f9

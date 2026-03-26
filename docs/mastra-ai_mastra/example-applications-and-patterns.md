@@ -40,8 +40,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document catalogs the example applications in the Mastra repository, demonstrating various patterns and use cases. Examples are organized by complexity level and feature set, providing reference implementations for common scenarios.
 
 For detailed information about the systems demonstrated in these examples, see: [Agent System](#3), [Workflow System](#4), [Tool System](#6), [Memory and Storage Architecture](#7), and [Observability and Evaluation](#11).
@@ -61,24 +59,24 @@ graph TB
         BirdExpress["bird-checker-with-express<br/>Basic agent + Express"]
         StockTool["stock-price-tool<br/>Tool creation pattern"]
     end
-    
+
     subgraph "Intermediate Examples"
         BirdEval["bird-checker-with-eval<br/>Agent + evaluations"]
         YCDir["yc-directory<br/>RAG + evaluations"]
         Travel["travel-app<br/>Memory + database"]
     end
-    
+
     subgraph "Advanced Examples"
         OpenAPI["openapi-spec-writer<br/>RAG + integrations + UI"]
         Crypto["crypto-chatbot<br/>Auth + DB + memory + AI SDK"]
     end
-    
+
     BirdNextJS -.->|add eval| BirdEval
     BirdNextJS -.->|add memory/DB| Travel
     BirdEval -.->|add RAG| YCDir
     Travel -.->|add auth| Crypto
     YCDir -.->|add integrations| OpenAPI
-    
+
     style BirdNextJS fill:#f9f9f9
     style OpenAPI fill:#f9f9f9
     style Crypto fill:#f9f9f9
@@ -88,18 +86,19 @@ Sources: [examples/bird-checker-with-nextjs/package.json:1-47](), [examples/bird
 
 ### Feature Matrix
 
-| Example | Agent | Workflow | Tools | Memory | DB | RAG | Auth | Eval | Framework |
-|---------|-------|----------|-------|--------|----|----|------|------|-----------|
-| **bird-checker-with-nextjs** | ✓ | - | ✓ | - | - | - | - | - | Next.js 15 |
-| **bird-checker-with-express** | ✓ | - | ✓ | - | - | - | - | - | Express |
-| **bird-checker-with-eval** | ✓ | - | ✓ | - | - | - | - | ✓ | Next.js 15 |
-| **stock-price-tool** | ✓ | - | ✓ | - | - | - | - | - | CLI |
-| **yc-directory** | ✓ | - | ✓ | - | - | ✓ | - | ✓ | - |
-| **travel-app** | ✓ | - | ✓ | ✓ | ✓ | - | - | - | Next.js 15 |
-| **openapi-spec-writer** | ✓ | - | ✓ | - | - | ✓ | - | - | Next.js 15 |
-| **crypto-chatbot** | ✓ | - | ✓ | ✓ | ✓ | - | ✓ | - | Next.js 15 |
+| Example                       | Agent | Workflow | Tools | Memory | DB  | RAG | Auth | Eval | Framework  |
+| ----------------------------- | ----- | -------- | ----- | ------ | --- | --- | ---- | ---- | ---------- |
+| **bird-checker-with-nextjs**  | ✓     | -        | ✓     | -      | -   | -   | -    | -    | Next.js 15 |
+| **bird-checker-with-express** | ✓     | -        | ✓     | -      | -   | -   | -    | -    | Express    |
+| **bird-checker-with-eval**    | ✓     | -        | ✓     | -      | -   | -   | -    | ✓    | Next.js 15 |
+| **stock-price-tool**          | ✓     | -        | ✓     | -      | -   | -   | -    | -    | CLI        |
+| **yc-directory**              | ✓     | -        | ✓     | -      | -   | ✓   | -    | ✓    | -          |
+| **travel-app**                | ✓     | -        | ✓     | ✓      | ✓   | -   | -    | -    | Next.js 15 |
+| **openapi-spec-writer**       | ✓     | -        | ✓     | -      | -   | ✓   | -    | -    | Next.js 15 |
+| **crypto-chatbot**            | ✓     | -        | ✓     | ✓      | ✓   | -   | ✓    | -    | Next.js 15 |
 
 **Legend:**
+
 - **Agent**: Uses `@mastra/core/agent` for LLM interactions
 - **Workflow**: Uses `@mastra/core/workflows` for orchestration
 - **Tools**: Custom tool implementations
@@ -123,12 +122,13 @@ These examples demonstrate fundamental Mastra concepts with minimal dependencies
 **Purpose**: Demonstrates basic agent creation, tool integration, and streaming responses in a Next.js application.
 
 **Key Components**:
+
 ```mermaid
 graph LR
     Client["Next.js Client<br/>App Router"]
     Agent["Bird Checker Agent<br/>Anthropic Claude"]
     Tool["Bird Identification Tool<br/>Zod schema validation"]
-    
+
     Client -->|"user query"| Agent
     Agent -->|"executes"| Tool
     Tool -->|"bird data"| Agent
@@ -136,6 +136,7 @@ graph LR
 ```
 
 **Dependencies** (from [examples/bird-checker-with-nextjs/package.json:12-27]()):
+
 - `@mastra/core`: Core framework
 - `@ai-sdk/anthropic`: Claude model provider
 - `next`: Next.js 15.5.8
@@ -150,12 +151,13 @@ Sources: [examples/bird-checker-with-nextjs/package.json:1-47]()
 **Purpose**: Same functionality as Next.js variant but using Express server, demonstrating framework flexibility.
 
 **Key Components**:
+
 ```mermaid
 graph LR
     ExpressApp["Express Server<br/>HTTP endpoints"]
     Agent["Bird Checker Agent<br/>Anthropic Claude"]
     Tool["Bird Tool<br/>execute()"]
-    
+
     ExpressApp -->|"POST /check"| Agent
     Agent -->|"calls"| Tool
     Tool -->|"returns"| Agent
@@ -163,6 +165,7 @@ graph LR
 ```
 
 **Dependencies** (from [examples/bird-checker-with-express/package.json:25-29]()):
+
 - `@mastra/core`: Core framework
 - `@ai-sdk/anthropic`: Claude provider
 - `express`: HTTP server
@@ -178,13 +181,14 @@ Sources: [examples/bird-checker-with-express/package.json:1-39]()
 **Purpose**: Minimal example showing custom tool creation with schema validation.
 
 **Key Components**:
+
 ```mermaid
 graph LR
     CLI["CLI Execution<br/>mastra dev"]
     Agent["Stock Agent<br/>OpenAI GPT-4"]
     StockTool["Stock Price Tool<br/>id: 'stock-price'"]
     Schema["Zod Input Schema<br/>ticker symbol"]
-    
+
     CLI -->|"query"| Agent
     Agent -->|"validates with"| Schema
     Schema -->|"executes"| StockTool
@@ -192,6 +196,7 @@ graph LR
 ```
 
 **Dependencies** (from [examples/stock-price-tool/package.json:14-17]()):
+
 - `@ai-sdk/openai`: OpenAI provider
 - `@mastra/core`: Core framework
 - `zod`: Schema validation
@@ -211,13 +216,14 @@ These examples introduce additional complexity with evaluations, memory systems,
 **Purpose**: Extends basic bird checker with evaluation scoring using Braintrust.
 
 **Key Components**:
+
 ```mermaid
 graph TB
     Agent["Bird Checker Agent<br/>Anthropic Claude"]
     BraintrustEval["Braintrust Evaluator<br/>npx braintrust eval"]
     TestData["Test Dataset<br/>src/lib/evals"]
     Scorer["Answer Relevancy Scorer<br/>@mastra/evals"]
-    
+
     TestData -->|"inputs"| BraintrustEval
     BraintrustEval -->|"queries"| Agent
     Agent -->|"responses"| Scorer
@@ -225,12 +231,14 @@ graph TB
 ```
 
 **Dependencies** (from [examples/bird-checker-with-nextjs-and-eval/package.json:14-30]()):
+
 - `@mastra/core`: Core framework
 - `@ai-sdk/anthropic`: Claude provider
 - `braintrust`: Evaluation platform
 - `next`: Next.js framework
 
 **Evaluation Setup** (from [examples/bird-checker-with-nextjs-and-eval/package.json:12]()):
+
 ```bash
 npx braintrust eval src/lib/evals
 ```
@@ -244,6 +252,7 @@ Sources: [examples/bird-checker-with-nextjs-and-eval/package.json:1-48]()
 **Purpose**: RAG-based agent that answers questions about Y Combinator companies using embedded knowledge.
 
 **Architecture**:
+
 ```mermaid
 graph TB
     subgraph "Agent Layer"
@@ -251,54 +260,62 @@ graph TB
         Instructions["Instructions<br/>YC 2024 directory only"]
         Model["Claude Sonnet<br/>anthropic('claude-3-5-sonnet')"]
     end
-    
+
     subgraph "Tool Layer"
         YCTool["ycDirectoryTool<br/>id: 'yc-directory'"]
         ToolSchema["Input/Output Schemas<br/>Zod validation"]
         YCData["YC_DATA<br/>../data/2024"]
     end
-    
+
     subgraph "Evaluation Layer"
         RunEvals["runEvals()<br/>@mastra/core/evals"]
         RelevancyScorer["createAnswerRelevancyScorer<br/>@mastra/evals/scorers"]
         TestData["Test Dataset<br/>AI Frameworks query"]
     end
-    
+
     YCAgent -->|"uses"| Model
     YCAgent -->|"has"| Instructions
     YCAgent -->|"tools"| YCTool
     YCTool -->|"validates"| ToolSchema
     YCTool -->|"returns"| YCData
-    
+
     RunEvals -->|"queries"| YCAgent
     RunEvals -->|"scores with"| RelevancyScorer
     TestData -->|"inputs"| RunEvals
 ```
 
 **Agent Definition** (from [examples/yc-directory/src/mastra/agents/index.ts:8-21]()):
+
 - Agent ID: `yc-directory-agent`
 - Model: `anthropic('claude-3-5-sonnet-20241022')`
 - Instructions: Only provide YC 2024 directory information
 - Tools: `ycDirectoryTool`
 
 **Tool Implementation** (from [examples/yc-directory/src/mastra/tools/index.ts:6-22]()):
+
 - Tool ID: `yc-directory`
 - Input Schema: Empty object (no parameters)
 - Output Schema: Array of company objects with `name`, `longDescription`, `tags`, `industries`, `batch`
 - Data Source: Static import from `../data/2024`
 
 **Evaluation Setup** (from [examples/yc-directory/src/mastra/tests/index.ts:5-17]()):
+
 ```typescript
 const scorer = createAnswerRelevancyScorer({
   model: 'openai/gpt-4o',
-  options: { scale: 1, uncertaintyWeight: 0.3 }
-});
+  options: { scale: 1, uncertaintyWeight: 0.3 },
+})
 
 runEvals({
-  data: [{ input: 'Can you tell me what recent YC companies are working on AI Frameworks?' }],
+  data: [
+    {
+      input:
+        'Can you tell me what recent YC companies are working on AI Frameworks?',
+    },
+  ],
   scorers: [scorer],
-  target: ycAgent
-});
+  target: ycAgent,
+})
 ```
 
 **Pattern Demonstrated**: RAG pattern with static knowledge base, schema-validated tools, and automated evaluation.
@@ -310,30 +327,31 @@ Sources: [examples/yc-directory/src/mastra/agents/index.ts:1-22](), [examples/yc
 **Purpose**: Demonstrates memory integration and database operations for conversational agents.
 
 **Key Components**:
+
 ```mermaid
 graph TB
     subgraph "Frontend"
         NextApp["Next.js App<br/>Server + Client Components"]
         ChatUI["Chat Interface<br/>React components"]
     end
-    
+
     subgraph "Agent Layer"
         TravelAgent["Travel Agent<br/>with memory config"]
         Memory["Memory System<br/>@mastra/memory"]
         ThreadMgmt["Thread Management<br/>conversation history"]
     end
-    
+
     subgraph "Database Layer"
         PGStore["PostgreSQL Store<br/>@mastra/pg"]
         LibSQLStore["LibSQL Store<br/>@mastra/libsql"]
         DrizzleORM["Drizzle ORM<br/>schema + migrations"]
     end
-    
+
     subgraph "Data Generation"
         CityData["City Data Generator<br/>generate-data.ts"]
         CSVParse["CSV Parser<br/>csv-parser, csv-stringify"]
     end
-    
+
     NextApp --> ChatUI
     ChatUI -->|"user messages"| TravelAgent
     TravelAgent -->|"stores in"| Memory
@@ -341,12 +359,13 @@ graph TB
     Memory -->|"or persists to"| LibSQLStore
     PGStore --> DrizzleORM
     LibSQLStore --> DrizzleORM
-    
+
     CityData -->|"generates"| CSVParse
     CSVParse -->|"populates"| DrizzleORM
 ```
 
 **Dependencies** (from [examples/travel-app/package.json:12-45]()):
+
 - `@mastra/core`: Core framework
 - `@mastra/memory`: Memory management
 - `@mastra/pg`: PostgreSQL storage
@@ -356,6 +375,7 @@ graph TB
 - `next`: Next.js 15.5.8
 
 **Data Generation Script** (from [examples/travel-app/package.json:10]()):
+
 ```bash
 npx tsx src/scripts/generate-data.ts
 ```
@@ -375,6 +395,7 @@ These examples demonstrate production-ready patterns with multiple integrations,
 **Purpose**: Full-featured RAG application that crawls documentation and generates OpenAPI specifications.
 
 **Architecture**:
+
 ```mermaid
 graph TB
     subgraph "UI Layer"
@@ -383,49 +404,50 @@ graph TB
         Dialog["Dialog<br/>@radix-ui/react-dialog"]
         SyntaxHL["Syntax Highlighter<br/>react-syntax-highlighter"]
     end
-    
+
     subgraph "Agent Layer"
         SpecAgent["OpenAPI Writer Agent<br/>instructions for spec generation"]
         OpenAIModel["OpenAI Model<br/>@ai-sdk/openai"]
     end
-    
+
     subgraph "RAG System"
         RAGPkg["@mastra/rag<br/>document processing"]
         MDocument["MDocument<br/>fromHTML, fromMarkdown"]
         Chunking["Chunking Strategies<br/>semantic, token-based"]
         Embeddings["Vector Embeddings<br/>OpenAI embeddings"]
     end
-    
+
     subgraph "Integrations"
         Firecrawl["@mastra/firecrawl<br/>web scraping"]
         GitHub["@mastra/github<br/>repo integration"]
     end
-    
+
     subgraph "Storage"
         LibSQL["LibSQL Database<br/>@libsql/client"]
         VectorStore["Vector Store<br/>embedded documents"]
     end
-    
+
     NextUI --> Accordion
     NextUI --> Dialog
     NextUI --> SyntaxHL
     NextUI -->|"user input"| SpecAgent
-    
+
     SpecAgent -->|"uses"| OpenAIModel
     SpecAgent -->|"queries"| RAGPkg
-    
+
     RAGPkg -->|"processes with"| MDocument
     MDocument -->|"chunks with"| Chunking
     Chunking -->|"embeds with"| Embeddings
     Embeddings -->|"stores in"| VectorStore
-    
+
     Firecrawl -->|"crawls docs"| MDocument
     GitHub -->|"fetches repo"| MDocument
-    
+
     VectorStore --> LibSQL
 ```
 
 **Dependencies** (from [examples/openapi-spec-writer/package.json:11-33]()):
+
 - `@mastra/core`: Core framework
 - `@mastra/rag`: RAG capabilities
 - `@mastra/firecrawl`: Web scraping integration
@@ -436,6 +458,7 @@ graph TB
 - `next`: Next.js 15.4.10
 
 **RAG Workflow**:
+
 1. Firecrawl integration scrapes documentation
 2. GitHub integration fetches repository content
 3. `MDocument.fromHTML()` and `MDocument.fromMarkdown()` parse content
@@ -454,6 +477,7 @@ Sources: [examples/openapi-spec-writer/package.json:1-64]()
 **Purpose**: Full-stack conversational AI application with authentication, database, memory, and real-time updates.
 
 **Architecture**:
+
 ```mermaid
 graph TB
     subgraph "Authentication"
@@ -461,7 +485,7 @@ graph TB
         BcryptTS["bcrypt-ts<br/>password hashing"]
         Credentials["Credentials Provider<br/>email/password"]
     end
-    
+
     subgraph "Frontend"
         NextUI["Next.js 15.5.8<br/>App Router"]
         ReactComponents["React 19.1.1<br/>Client components"]
@@ -469,51 +493,52 @@ graph TB
         ProseMirror["ProseMirror<br/>rich text editor"]
         AIReact["@ai-sdk/react<br/>useChat hook"]
     end
-    
+
     subgraph "Agent Layer"
         CryptoAgent["Crypto Agent<br/>market analysis"]
         OpenAISDK["@ai-sdk/openai<br/>GPT-4 / streaming"]
         Memory["@mastra/memory<br/>conversation history"]
     end
-    
+
     subgraph "Database Layer"
         Vercel PG["@vercel/postgres<br/>connection pool"]
         DrizzleORM["Drizzle ORM 0.44.2<br/>type-safe queries"]
         Migrations["drizzle-kit<br/>schema migrations"]
         PGStore["@mastra/pg<br/>memory persistence"]
     end
-    
+
     subgraph "Storage"
         VercelBlob["@vercel/blob<br/>file storage"]
         ChatHistory["Chat Messages<br/>threads table"]
         UserData["User Profiles<br/>users table"]
     end
-    
+
     NextAuth --> Credentials
     Credentials --> BcryptTS
     NextAuth -->|"session"| NextUI
-    
+
     NextUI --> ReactComponents
     ReactComponents --> FramerMotion
     ReactComponents --> ProseMirror
     ReactComponents --> AIReact
-    
+
     AIReact -->|"streams from"| CryptoAgent
     CryptoAgent -->|"uses"| OpenAISDK
     CryptoAgent -->|"stores in"| Memory
-    
+
     Memory -->|"persists to"| PGStore
     PGStore --> DrizzleORM
     DrizzleORM --> VercelPG
-    
+
     Migrations -->|"manages"| DrizzleORM
-    
+
     ChatHistory --> VercelPG
     UserData --> VercelPG
     VercelBlob -->|"stores"| ChatHistory
 ```
 
 **Dependencies** (from [examples/crypto-chatbot/package.json:12-71]()):
+
 - `@mastra/core`: Core framework
 - `@mastra/memory`: Memory management
 - `@mastra/pg`: PostgreSQL storage
@@ -528,6 +553,7 @@ graph TB
 - `next`: Next.js 15.5.8
 
 **Database Setup** (from [examples/crypto-chatbot/package.json:8-11]()):
+
 ```bash
 # Build with migrations
 tsx db/migrate && next build
@@ -540,6 +566,7 @@ npx tsx ./db/migrate.ts
 ```
 
 **AI Integration Features**:
+
 - Streaming responses with `@ai-sdk/react`
 - Conversation history persistence
 - Real-time UI updates with Framer Motion
@@ -559,16 +586,16 @@ All examples follow a consistent agent creation pattern:
 
 ```typescript
 // Pattern: Agent with model and tools
-import { Agent } from '@mastra/core/agent';
-import { modelProvider } from '@ai-sdk/provider';
+import { Agent } from '@mastra/core/agent'
+import { modelProvider } from '@ai-sdk/provider'
 
 const agent = new Agent({
   id: 'unique-agent-id',
   name: 'Human-Readable Name',
   instructions: `System prompt defining agent behavior`,
   model: modelProvider('model-name'),
-  tools: { toolName }
-});
+  tools: { toolName },
+})
 ```
 
 **Used in**: All examples
@@ -580,19 +607,23 @@ Custom tools use `createTool()` with Zod schemas:
 
 ```typescript
 // Pattern: Tool with input/output validation
-import { createTool } from '@mastra/core/tools';
-import { z } from 'zod';
+import { createTool } from '@mastra/core/tools'
+import { z } from 'zod'
 
 const tool = createTool({
   id: 'tool-id',
   description: 'What the tool does',
-  inputSchema: z.object({ /* inputs */ }),
-  outputSchema: z.object({ /* outputs */ }),
+  inputSchema: z.object({
+    /* inputs */
+  }),
+  outputSchema: z.object({
+    /* outputs */
+  }),
   execute: async (input) => {
     // Tool logic
-    return output;
-  }
-});
+    return output
+  },
+})
 ```
 
 **Used in**: bird-checker variants, stock-price-tool, yc-directory
@@ -604,21 +635,21 @@ Apps with conversational memory use `@mastra/memory` and storage providers:
 
 ```typescript
 // Pattern: Memory with storage
-import { Memory } from '@mastra/memory';
-import { PostgresStore } from '@mastra/pg';
+import { Memory } from '@mastra/memory'
+import { PostgresStore } from '@mastra/pg'
 
 const memory = new Memory({
   store: new PostgresStore({
-    connectionString: process.env.DATABASE_URL
-  })
-});
+    connectionString: process.env.DATABASE_URL,
+  }),
+})
 
 // Attach to agent
 const agent = new Agent({
   id: 'agent-id',
   memory,
   // ...
-});
+})
 ```
 
 **Used in**: travel-app, crypto-chatbot
@@ -630,19 +661,19 @@ Examples with quality assessment use `runEvals()` and scorers:
 
 ```typescript
 // Pattern: Automated evaluation
-import { runEvals } from '@mastra/core/evals';
-import { createAnswerRelevancyScorer } from '@mastra/evals/scorers/prebuilt';
+import { runEvals } from '@mastra/core/evals'
+import { createAnswerRelevancyScorer } from '@mastra/evals/scorers/prebuilt'
 
 const scorer = createAnswerRelevancyScorer({
   model: 'openai/gpt-4o',
-  options: { scale: 1, uncertaintyWeight: 0.3 }
-});
+  options: { scale: 1, uncertaintyWeight: 0.3 },
+})
 
 runEvals({
   data: [{ input: 'test query' }],
   scorers: [scorer],
-  target: agent
-});
+  target: agent,
+})
 ```
 
 **Used in**: bird-checker-with-eval, yc-directory
@@ -654,17 +685,17 @@ RAG implementations use `@mastra/rag` for document processing:
 
 ```typescript
 // Pattern: RAG with document processing
-import { MDocument } from '@mastra/rag';
+import { MDocument } from '@mastra/rag'
 
 // Process documents
-const doc = await MDocument.fromHTML(htmlContent);
-const chunks = await doc.chunk({ strategy: 'semantic' });
+const doc = await MDocument.fromHTML(htmlContent)
+const chunks = await doc.chunk({ strategy: 'semantic' })
 
 // Embed and store
-await vectorStore.upsert(chunks);
+await vectorStore.upsert(chunks)
 
 // Query in agent
-const results = await vectorStore.query(userQuery);
+const results = await vectorStore.query(userQuery)
 ```
 
 **Used in**: openapi-spec-writer, yc-directory (static data variant)
@@ -677,23 +708,23 @@ Next.js examples use App Router with server and client components:
 ```typescript
 // Pattern: Next.js App Router with Mastra
 // app/api/chat/route.ts (Server Component)
-import { mastra } from '@/mastra';
+import { mastra } from '@/mastra'
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
-  const agent = mastra.getAgent('agent-id');
-  const stream = await agent.stream({ messages });
-  return new Response(stream);
+  const { messages } = await req.json()
+  const agent = mastra.getAgent('agent-id')
+  const stream = await agent.stream({ messages })
+  return new Response(stream)
 }
 
 // app/page.tsx (Client Component)
-'use client';
-import { useChat } from '@ai-sdk/react';
+;('use client')
+import { useChat } from '@ai-sdk/react'
 
 export default function Chat() {
   const { messages, input, handleSubmit } = useChat({
-    api: '/api/chat'
-  });
+    api: '/api/chat',
+  })
   // Render UI
 }
 ```
@@ -708,7 +739,8 @@ export default function Chat() {
 ### Prerequisites
 
 All examples require:
-- Node.js 18+ 
+
+- Node.js 18+
 - pnpm package manager
 - Environment variables (see each example's `.env.example`)
 
@@ -762,27 +794,27 @@ graph LR
         OldWorkflow["Workflow Instance"]
         OldStream["workflow.stream(options)"]
         OldResume["workflow.resume(options)"]
-        
+
         OldWorkflow --> OldStream
         OldWorkflow --> OldResume
     end
-    
+
     subgraph "After v1.0.0-beta.10"
         NewWorkflow["Workflow Instance"]
         CreateRun["workflow.createRun(runId)"]
         RunInstance["Run Instance"]
         NewStream["run.stream(options)"]
         NewResume["run.resume(options)"]
-        
+
         NewWorkflow --> CreateRun
         CreateRun --> RunInstance
         RunInstance --> NewStream
         RunInstance --> NewResume
     end
-    
+
     OldStream -.->|migrate to| NewStream
     OldResume -.->|migrate to| NewResume
-    
+
     style CreateRun fill:#f9f9f9
     style RunInstance fill:#f9f9f9
 ```
@@ -792,82 +824,86 @@ graph LR
 #### Server-Side Workflow Execution
 
 **Before:**
+
 ```typescript
 // Direct method calls on workflow instance
-const result = await workflow.stream({ 
-  runId: '123', 
-  inputData: { message: 'hello' } 
-});
+const result = await workflow.stream({
+  runId: '123',
+  inputData: { message: 'hello' },
+})
 
 const resumeResult = await workflow.resume({
   runId: '123',
-  resumeData: { approved: true }
-});
+  resumeData: { approved: true },
+})
 
 const timeTravel = await workflow.timeTravel({
   runId: '123',
-  stepId: 'step-2'
-});
+  stepId: 'step-2',
+})
 ```
 
 **After:**
+
 ```typescript
 // Create run instance first, then execute
-const run = await workflow.createRun({ runId: '123' });
+const run = await workflow.createRun({ runId: '123' })
 
-const stream = await run.stream({ 
-  inputData: { message: 'hello' } 
-});
+const stream = await run.stream({
+  inputData: { message: 'hello' },
+})
 
 const resumeResult = await run.resume({
-  resumeData: { approved: true }
-});
+  resumeData: { approved: true },
+})
 
 const timeTravel = await run.timeTravel({
-  stepId: 'step-2'
-});
+  stepId: 'step-2',
+})
 ```
 
 #### Client-Side Workflow Execution
 
 **Before:**
-```typescript
-import { MastraClient } from '@mastra/client-js';
 
-const client = new MastraClient({ baseUrl: 'http://localhost:3000' });
-const workflow = client.getWorkflow('myWorkflow');
+```typescript
+import { MastraClient } from '@mastra/client-js'
+
+const client = new MastraClient({ baseUrl: 'http://localhost:3000' })
+const workflow = client.getWorkflow('myWorkflow')
 
 // Direct method calls
-const result = await workflow.stream({ 
-  runId: '123', 
-  inputData: { message: 'hello' } 
-});
+const result = await workflow.stream({
+  runId: '123',
+  inputData: { message: 'hello' },
+})
 ```
 
 **After:**
-```typescript
-import { MastraClient } from '@mastra/client-js';
 
-const client = new MastraClient({ baseUrl: 'http://localhost:3000' });
-const workflow = client.getWorkflow('myWorkflow');
+```typescript
+import { MastraClient } from '@mastra/client-js'
+
+const client = new MastraClient({ baseUrl: 'http://localhost:3000' })
+const workflow = client.getWorkflow('myWorkflow')
 
 // Create run instance first
-const run = await workflow.createRun({ runId: '123' });
-const stream = await run.stream({ 
-  inputData: { message: 'hello' } 
-});
+const run = await workflow.createRun({ runId: '123' })
+const stream = await run.stream({
+  inputData: { message: 'hello' },
+})
 ```
 
 ### Affected Methods
 
-| Old Method | New Method | Notes |
-|------------|------------|-------|
-| `workflow.stream(options)` | `run.stream(options)` | `runId` moved to `createRun()` |
-| `workflow.start(options)` | `run.start(options)` | `runId` moved to `createRun()` |
-| `workflow.resume(options)` | `run.resume(options)` | `runId` moved to `createRun()` |
-| `workflow.restart(options)` | `run.restart(options)` | `runId` moved to `createRun()` |
+| Old Method                     | New Method                | Notes                          |
+| ------------------------------ | ------------------------- | ------------------------------ |
+| `workflow.stream(options)`     | `run.stream(options)`     | `runId` moved to `createRun()` |
+| `workflow.start(options)`      | `run.start(options)`      | `runId` moved to `createRun()` |
+| `workflow.resume(options)`     | `run.resume(options)`     | `runId` moved to `createRun()` |
+| `workflow.restart(options)`    | `run.restart(options)`    | `runId` moved to `createRun()` |
 | `workflow.timeTravel(options)` | `run.timeTravel(options)` | `runId` moved to `createRun()` |
-| `workflow.cancel(runId)` | `run.cancel()` | No parameters needed |
+| `workflow.cancel(runId)`       | `run.cancel()`            | No parameters needed           |
 
 ### Benefits
 
@@ -900,27 +936,29 @@ The temporary `streamVNext`, `resumeStreamVNext`, and `observeStreamVNext` metho
 ### Migration Path
 
 **Before:**
+
 ```typescript
-const run = await workflow.createRun({ runId: '123' });
-const stream = await run.streamVNext({ inputData: { message: 'hello' } });
-const resumed = await run.resumeStreamVNext({ resumeData: { approved: true } });
-const observed = await run.observeStreamVNext();
+const run = await workflow.createRun({ runId: '123' })
+const stream = await run.streamVNext({ inputData: { message: 'hello' } })
+const resumed = await run.resumeStreamVNext({ resumeData: { approved: true } })
+const observed = await run.observeStreamVNext()
 ```
 
 **After:**
+
 ```typescript
-const run = await workflow.createRun({ runId: '123' });
-const stream = await run.stream({ inputData: { message: 'hello' } });
-const resumed = await run.resumeStream({ resumeData: { approved: true } });
-const observed = await run.observeStream();
+const run = await workflow.createRun({ runId: '123' })
+const stream = await run.stream({ inputData: { message: 'hello' } })
+const resumed = await run.resumeStream({ resumeData: { approved: true } })
+const observed = await run.observeStream()
 ```
 
 ### Search and Replace
 
-| Find | Replace |
-|------|---------|
-| `streamVNext` | `stream` |
-| `resumeStreamVNext` | `resumeStream` |
+| Find                 | Replace         |
+| -------------------- | --------------- |
+| `streamVNext`        | `stream`        |
+| `resumeStreamVNext`  | `resumeStream`  |
 | `observeStreamVNext` | `observeStream` |
 
 ### Migration Checklist
@@ -950,26 +988,26 @@ graph TB
         OldInfer["InferSchemaOutput<OUTPUT>"]
         OldPartial["PartialSchemaOutput<OUTPUT>"]
         OldSchema["z.ZodType constraint"]
-        
+
         OldGeneric --> OldInfer
         OldGeneric --> OldPartial
         OldGeneric --> OldSchema
     end
-    
+
     subgraph "After v1.0.0-beta.22"
         NewGeneric["OUTPUT = undefined"]
         NewDirect["OUTPUT"]
         NewPartial["Partial<OUTPUT>"]
         NewAny["any schema type"]
-        
+
         NewGeneric --> NewDirect
         NewGeneric --> NewPartial
         NewGeneric --> NewAny
     end
-    
+
     OldInfer -.->|becomes| NewDirect
     OldPartial -.->|becomes| NewPartial
-    
+
     style OldGeneric fill:#f9f9f9
     style NewGeneric fill:#f9f9f9
 ```
@@ -979,92 +1017,96 @@ graph TB
 #### Agent Type Signatures
 
 **Before:**
+
 ```typescript
-import { Agent, OutputSchema } from '@mastra/core';
-import { z } from 'zod';
+import { Agent, OutputSchema } from '@mastra/core'
+import { z } from 'zod'
 
 // Agent with Zod schema constraint
 const agent = new Agent<z.ZodObject<{ message: z.ZodString }>>({
   id: 'myAgent',
   outputSchema: z.object({ message: z.string() }),
   // ...
-});
+})
 
 // Type inference required schema wrapper
-type Output = InferSchemaOutput<typeof agent.outputSchema>;
+type Output = InferSchemaOutput<typeof agent.outputSchema>
 ```
 
 **After:**
+
 ```typescript
-import { Agent } from '@mastra/core';
-import { z } from 'zod';
+import { Agent } from '@mastra/core'
+import { z } from 'zod'
 
 // Agent with plain generic
 const agent = new Agent<{ message: string }>({
   id: 'myAgent',
   outputSchema: z.object({ message: z.string() }),
   // ...
-});
+})
 
 // Direct type usage
-type Output = { message: string };
+type Output = { message: string }
 ```
 
 #### Agent Execution Options
 
 **Before:**
+
 ```typescript
-import { AgentExecutionOptions, OutputSchema } from '@mastra/core';
+import { AgentExecutionOptions, OutputSchema } from '@mastra/core'
 
 interface MyOptions extends AgentExecutionOptions<MyOutputSchema> {
-  customField: string;
+  customField: string
 }
 ```
 
 **After:**
+
 ```typescript
-import { AgentExecutionOptions } from '@mastra/core';
+import { AgentExecutionOptions } from '@mastra/core'
 
 interface MyOptions extends AgentExecutionOptions<MyOutputType> {
-  customField: string;
+  customField: string
 }
 ```
 
 #### Model Output Handling
 
 **Before:**
+
 ```typescript
-import { MastraModelOutput, PartialSchemaOutput } from '@mastra/core';
+import { MastraModelOutput, PartialSchemaOutput } from '@mastra/core'
 
 function processOutput<T extends OutputSchema>(
   output: MastraModelOutput<T>
 ): PartialSchemaOutput<T> {
   // Process partial schema output
-  return output.partialObjectStream;
+  return output.partialObjectStream
 }
 ```
 
 **After:**
-```typescript
-import { MastraModelOutput } from '@mastra/core';
 
-function processOutput<T>(
-  output: MastraModelOutput<T>
-): Partial<T> {
+```typescript
+import { MastraModelOutput } from '@mastra/core'
+
+function processOutput<T>(output: MastraModelOutput<T>): Partial<T> {
   // Process partial output directly
-  return output.partialObjectStream;
+  return output.partialObjectStream
 }
 ```
 
 ### Affected APIs
 
-| Old Type | New Type | Notes |
-|----------|----------|-------|
-| `OUTPUT extends OutputSchema` | `OUTPUT` | Plain generic |
-| `InferSchemaOutput<OUTPUT>` | `OUTPUT` | Direct type usage |
+| Old Type                      | New Type          | Notes                       |
+| ----------------------------- | ----------------- | --------------------------- |
+| `OUTPUT extends OutputSchema` | `OUTPUT`          | Plain generic               |
+| `InferSchemaOutput<OUTPUT>`   | `OUTPUT`          | Direct type usage           |
 | `PartialSchemaOutput<OUTPUT>` | `Partial<OUTPUT>` | Standard TypeScript utility |
-| `z.ZodObject<any>` constraint | No constraint | Schema-agnostic |
-| `z.ZodType<any>` constraint | No constraint | Schema-agnostic |
+| `z.ZodObject<any>` constraint | No constraint     | Schema-agnostic             |
+| `z.ZodType<any>` constraint   | No constraint     | Schema-agnostic             |
 
 ### Migration Checklist
 
@@ -1096,22 +1138,22 @@ graph TB
         OldInput["TInput extends z.ZodObject<any>"]
         OldState["TState extends z.ZodType<any>"]
         OldInfer["z.infer<TInput>"]
-        
+
         OldInput --> OldInfer
         OldState --> OldInfer
     end
-    
+
     subgraph "After v1.0.0-beta.22"
         NewInput["TInput"]
         NewState["TState"]
         NewDirect["TInput, TState"]
-        
+
         NewInput --> NewDirect
         NewState --> NewDirect
     end
-    
+
     OldInfer -.->|becomes| NewDirect
-    
+
     style OldInput fill:#f9f9f9
     style NewInput fill:#f9f9f9
 ```
@@ -1121,9 +1163,10 @@ graph TB
 #### Workflow Definition
 
 **Before:**
+
 ```typescript
-import { createWorkflow } from '@mastra/core';
-import { z } from 'zod';
+import { createWorkflow } from '@mastra/core'
+import { z } from 'zod'
 
 const workflow = createWorkflow<
   z.ZodObject<{ message: z.ZodString }>,
@@ -1132,87 +1175,85 @@ const workflow = createWorkflow<
   inputSchema: z.object({ message: z.string() }),
   stateSchema: z.object({ count: z.number() }),
   // ...
-});
+})
 ```
 
 **After:**
-```typescript
-import { createWorkflow } from '@mastra/core';
-import { z } from 'zod';
 
-const workflow = createWorkflow<
-  { message: string },
-  { count: number }
->({
+```typescript
+import { createWorkflow } from '@mastra/core'
+import { z } from 'zod'
+
+const workflow = createWorkflow<{ message: string }, { count: number }>({
   inputSchema: z.object({ message: z.string() }),
   stateSchema: z.object({ count: z.number() }),
   // ...
-});
+})
 ```
 
 #### Tool Definition
 
 **Before:**
+
 ```typescript
-import { createTool } from '@mastra/core';
-import { z } from 'zod';
+import { createTool } from '@mastra/core'
+import { z } from 'zod'
 
 const tool = createTool<z.ZodObject<{ query: z.ZodString }>>({
   id: 'search',
   inputSchema: z.object({ query: z.string() }),
   execute: async (params: z.infer<typeof schema>) => {
     // ...
-  }
-});
+  },
+})
 ```
 
 **After:**
+
 ```typescript
-import { createTool } from '@mastra/core';
-import { z } from 'zod';
+import { createTool } from '@mastra/core'
+import { z } from 'zod'
 
 const tool = createTool<{ query: string }>({
   id: 'search',
   inputSchema: z.object({ query: z.string() }),
   execute: async (params: { query: string }) => {
     // ...
-  }
-});
+  },
+})
 ```
 
 #### Step Execution Context
 
 **Before:**
-```typescript
-import { StepContext } from '@mastra/core/workflows';
 
-function myStep<T extends z.ZodType<any>>(
-  context: StepContext<z.infer<T>>
-) {
+```typescript
+import { StepContext } from '@mastra/core/workflows'
+
+function myStep<T extends z.ZodType<any>>(context: StepContext<z.infer<T>>) {
   // Process context
 }
 ```
 
 **After:**
-```typescript
-import { StepContext } from '@mastra/core/workflows';
 
-function myStep<T>(
-  context: StepContext<T>
-) {
+```typescript
+import { StepContext } from '@mastra/core/workflows'
+
+function myStep<T>(context: StepContext<T>) {
   // Process context directly
 }
 ```
 
 ### Affected Implementations
 
-| Component | Change | Impact |
-|-----------|--------|--------|
-| `DefaultExecutionEngine` | Generic constraints removed | Type signatures simplified |
-| `EventedExecutionEngine` | Generic constraints removed | Type signatures simplified |
-| `InngestExecutionEngine` | Generic constraints removed | Type signatures simplified |
-| `ToolExecutionContext` | Zod schema constraint removed | Schema-agnostic |
-| `StepContext` | Generic parameter simplified | Direct type usage |
+| Component                | Change                        | Impact                     |
+| ------------------------ | ----------------------------- | -------------------------- |
+| `DefaultExecutionEngine` | Generic constraints removed   | Type signatures simplified |
+| `EventedExecutionEngine` | Generic constraints removed   | Type signatures simplified |
+| `InngestExecutionEngine` | Generic constraints removed   | Type signatures simplified |
+| `ToolExecutionContext`   | Zod schema constraint removed | Schema-agnostic            |
+| `StepContext`            | Generic parameter simplified  | Direct type usage          |
 
 ### Migration Checklist
 
@@ -1246,17 +1287,17 @@ graph LR
         OldPath["dist/playground"]
         OldEnv["MASTRA_PLAYGROUND_*"]
     end
-    
+
     subgraph "After v1.0.0-beta.22"
         NewConfig["createNodeServer(mastra, { studio: true })"]
         NewPath["dist/studio"]
         NewEnv["MASTRA_STUDIO_*"]
     end
-    
+
     OldConfig -.->|rename| NewConfig
     OldPath -.->|rename| NewPath
     OldEnv -.->|rename| NewEnv
-    
+
     style OldConfig fill:#f9f9f9
     style NewConfig fill:#f9f9f9
 ```
@@ -1266,30 +1307,33 @@ graph LR
 #### Server Configuration
 
 **Before:**
-```typescript
-import { createNodeServer } from '@mastra/deployer/server';
 
-await createNodeServer(mastra, { 
+```typescript
+import { createNodeServer } from '@mastra/deployer/server'
+
+await createNodeServer(mastra, {
   playground: true,
   swaggerUI: false,
-  tools: {}
-});
+  tools: {},
+})
 ```
 
 **After:**
-```typescript
-import { createNodeServer } from '@mastra/deployer/server';
 
-await createNodeServer(mastra, { 
+```typescript
+import { createNodeServer } from '@mastra/deployer/server'
+
+await createNodeServer(mastra, {
   studio: true,
   swaggerUI: false,
-  tools: {}
-});
+  tools: {},
+})
 ```
 
 #### Build Configuration
 
 **Before:**
+
 ```bash
 # CLI command
 mastra build --playground
@@ -1298,6 +1342,7 @@ mastra build --playground
 ```
 
 **After:**
+
 ```bash
 # CLI command
 mastra build --studio
@@ -1307,10 +1352,10 @@ mastra build --studio
 
 #### File Paths
 
-| Old Path | New Path | Notes |
-|----------|----------|-------|
-| `dist/playground` | `dist/studio` | Build output |
-| `.mastra/output/playground` | `.mastra/output/studio` | CLI build output |
+| Old Path                     | New Path                 | Notes                 |
+| ---------------------------- | ------------------------ | --------------------- |
+| `dist/playground`            | `dist/studio`            | Build output          |
+| `.mastra/output/playground`  | `.mastra/output/studio`  | CLI build output      |
 | `window.MASTRA_PLAYGROUND_*` | `window.MASTRA_STUDIO_*` | Environment variables |
 
 ### Migration Checklist
@@ -1341,29 +1386,29 @@ graph TB
         AppZod["Import from 'zod'"]
         AppSchema["Define schemas"]
     end
-    
+
     subgraph "Mastra Compatibility Layer"
         Compat["@mastra/schema-compat"]
         ZodV3["Zod v3 Support"]
         ZodV4["Zod v4 Support"]
-        
+
         Compat --> ZodV3
         Compat --> ZodV4
     end
-    
+
     subgraph "Runtime Detection"
         Detect["Detect installed version"]
         LoadV3["Load v3 utilities"]
         LoadV4["Load v4 utilities"]
-        
+
         Detect --> LoadV3
         Detect --> LoadV4
     end
-    
+
     AppZod --> Compat
     AppSchema --> Compat
     Compat --> Detect
-    
+
     style Compat fill:#f9f9f9
 ```
 
@@ -1380,6 +1425,7 @@ The following packages support both Zod v3 and v4:
 ```
 
 Packages with dual Zod support:
+
 - `@mastra/core`
 - `@mastra/client-js`
 - `@mastra/deployer`
@@ -1394,46 +1440,48 @@ Packages with dual Zod support:
 Schemas should be defined the same way regardless of Zod version:
 
 ```typescript
-import { z } from 'zod';
+import { z } from 'zod'
 
 // Compatible with both v3 and v4
 const schema = z.object({
   name: z.string(),
   age: z.number(),
   email: z.string().email(),
-});
+})
 ```
 
 #### Transform and JSON Schema
 
 **Zod v3:**
-```typescript
-import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 
-const schema = z.object({ value: z.string() });
-const jsonSchema = zodToJsonSchema(schema);
+```typescript
+import { z } from 'zod'
+import { zodToJsonSchema } from 'zod-to-json-schema'
+
+const schema = z.object({ value: z.string() })
+const jsonSchema = zodToJsonSchema(schema)
 ```
 
 **Zod v4:**
-```typescript
-import { z } from 'zod';
 
-const schema = z.object({ value: z.string() });
-const jsonSchema = schema.toJsonSchema(); // Native support
+```typescript
+import { z } from 'zod'
+
+const schema = z.object({ value: z.string() })
+const jsonSchema = schema.toJsonSchema() // Native support
 ```
 
 Mastra handles this internally via `@mastra/schema-compat`.
 
 ### Migration Considerations
 
-| Aspect | Zod v3 | Zod v4 | Notes |
-|--------|--------|--------|-------|
-| Basic schemas | ✓ | ✓ | Fully compatible |
-| Transform | `zod-to-json-schema` | Native `toJsonSchema()` | Abstracted by Mastra |
-| Tuple support | ✓ | ✓ | Fixed in beta.22 |
-| Type inference | `z.infer<T>` | `z.infer<T>` | Unchanged |
-| Validation | ✓ | ✓ | API unchanged |
+| Aspect         | Zod v3               | Zod v4                  | Notes                |
+| -------------- | -------------------- | ----------------------- | -------------------- |
+| Basic schemas  | ✓                    | ✓                       | Fully compatible     |
+| Transform      | `zod-to-json-schema` | Native `toJsonSchema()` | Abstracted by Mastra |
+| Tuple support  | ✓                    | ✓                       | Fixed in beta.22     |
+| Type inference | `z.infer<T>`         | `z.infer<T>`            | Unchanged            |
+| Validation     | ✓                    | ✓                       | API unchanged        |
 
 ### Testing Both Versions
 
@@ -1470,41 +1518,43 @@ graph TB
         OldDefault["externals: false (default)"]
         OldBundle["All deps bundled"]
         OldIssues["Native dep conflicts"]
-        
+
         OldDefault --> OldBundle
         OldBundle --> OldIssues
     end
-    
+
     subgraph "After v1.0.0-beta.11"
         NewDefault["externals: true (default)"]
         NewExternal["Deps as externals"]
         NewBenefit["Native deps work"]
-        
+
         NewDefault --> NewExternal
         NewExternal --> NewBenefit
     end
-    
+
     subgraph "Opt-Out"
         Override["externals: false"]
         Bundle["Force bundling"]
-        
+
         Override --> Bundle
     end
-    
+
     NewDefault -.->|configure| Override
-    
+
     style NewDefault fill:#f9f9f9
 ```
 
 ### Configuration Changes
 
 **Before (v1.0.0-beta.10 and earlier):**
+
 ```bash
 # All dependencies were bundled by default
 mastra build
 ```
 
 **After (v1.0.0-beta.11+):**
+
 ```bash
 # Dependencies are external by default
 mastra build
@@ -1516,35 +1566,37 @@ mastra build --externals=false
 ### Cloud Deployer Configuration
 
 **Before:**
+
 ```typescript
 // Dependencies bundled by default
-import { CloudDeployer } from '@mastra/deployer-cloud';
+import { CloudDeployer } from '@mastra/deployer-cloud'
 
 const deployer = new CloudDeployer({
   // No externals configuration needed
-});
+})
 ```
 
 **After:**
+
 ```typescript
 // Externals true by default, configure if needed
-import { CloudDeployer } from '@mastra/deployer-cloud';
+import { CloudDeployer } from '@mastra/deployer-cloud'
 
 const deployer = new CloudDeployer({
   bundler: {
-    externals: false // Opt into bundling
-  }
-});
+    externals: false, // Opt into bundling
+  },
+})
 ```
 
 ### When to Use Each Configuration
 
-| Scenario | Configuration | Reason |
-|----------|--------------|--------|
-| Native dependencies (sqlite3, etc.) | `externals: true` | Avoid binding conflicts |
-| Edge/Workers deployment | `externals: false` | Single-file bundle required |
-| Large dependency tree | `externals: true` | Faster builds, smaller bundles |
-| Minimal dependencies | `externals: false` | Simpler deployment |
+| Scenario                            | Configuration      | Reason                         |
+| ----------------------------------- | ------------------ | ------------------------------ |
+| Native dependencies (sqlite3, etc.) | `externals: true`  | Avoid binding conflicts        |
+| Edge/Workers deployment             | `externals: false` | Single-file bundle required    |
+| Large dependency tree               | `externals: true`  | Faster builds, smaller bundles |
+| Minimal dependencies                | `externals: false` | Simpler deployment             |
 
 ### Migration Checklist
 
@@ -1568,33 +1620,35 @@ Storage providers now support a `disableInit` option for CI/CD pipelines, allowi
 ### Configuration
 
 **Before:**
+
 ```typescript
-import { PostgresStore } from '@mastra/pg';
+import { PostgresStore } from '@mastra/pg'
 
 const storage = new PostgresStore({
   connectionString: process.env.DATABASE_URL,
   // Schema always initialized on startup
-});
+})
 ```
 
 **After:**
+
 ```typescript
-import { PostgresStore } from '@mastra/pg';
+import { PostgresStore } from '@mastra/pg'
 
 const storage = new PostgresStore({
   connectionString: process.env.DATABASE_URL,
   disableInit: process.env.CI === 'true', // Skip in CI
-});
+})
 ```
 
 ### Use Cases
 
-| Scenario | disableInit | Reason |
-|----------|-------------|--------|
-| Local development | `false` | Auto-create schemas |
-| CI/CD testing | `true` | Pre-created test DB |
-| Production | `false` | Ensure schema exists |
-| Migration scripts | `true` | Manual schema control |
+| Scenario          | disableInit | Reason                |
+| ----------------- | ----------- | --------------------- |
+| Local development | `false`     | Auto-create schemas   |
+| CI/CD testing     | `true`      | Pre-created test DB   |
+| Production        | `false`     | Ensure schema exists  |
+| Migration scripts | `true`      | Manual schema control |
 
 ### Migration Checklist
 
@@ -1612,6 +1666,7 @@ Sources: [packages/core/CHANGELOG.md:900-950]()
 Use this comprehensive checklist to track your migration progress:
 
 ### Workflow APIs
+
 - [ ] Convert all `workflow.stream()` to `createRun()` + `run.stream()`
 - [ ] Convert all `workflow.start()` to `createRun()` + `run.start()`
 - [ ] Convert all `workflow.resume()` to `createRun()` + `run.resume()`
@@ -1622,6 +1677,7 @@ Use this comprehensive checklist to track your migration progress:
 - [ ] Update client-side workflow code
 
 ### Type System
+
 - [ ] Remove `extends OutputSchema` constraints from generics
 - [ ] Replace `InferSchemaOutput<T>` with `T`
 - [ ] Replace `PartialSchemaOutput<T>` with `Partial<T>`
@@ -1632,6 +1688,7 @@ Use this comprehensive checklist to track your migration progress:
 - [ ] Update tool generic type parameters
 
 ### Configuration
+
 - [ ] Replace `playground: true` with `studio: true`
 - [ ] Update CLI commands from `--playground` to `--studio`
 - [ ] Update file paths from `playground` to `studio`
@@ -1639,6 +1696,7 @@ Use this comprehensive checklist to track your migration progress:
 - [ ] Add `disableInit` for storage where appropriate
 
 ### Testing
+
 - [ ] Run tests with Zod v3
 - [ ] Run tests with Zod v4
 - [ ] Test workflow execution with new pattern
@@ -1648,6 +1706,7 @@ Use this comprehensive checklist to track your migration progress:
 - [ ] Test storage initialization behavior
 
 ### Documentation
+
 - [ ] Update README files
 - [ ] Update API documentation
 - [ ] Update code examples

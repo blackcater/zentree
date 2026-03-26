@@ -29,8 +29,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The `@tanstack/ai-solid-ui` package provides headless UI components for rendering AI chat interfaces in Solid applications. It focuses on markdown rendering with syntax highlighting, GitHub-flavored markdown support, and security sanitization, using Solid-native rendering primitives.
 
 For the framework integration layer that manages chat state and client-side logic, see [Solid Integration (@tanstack/ai-solid)](#6.2). For the shared markdown processing pipeline used across all UI component packages, see [Markdown Processing Pipeline](#7.4).
@@ -46,15 +44,15 @@ graph TB
     subgraph "Client Layer"
         CLIENT["@tanstack/ai-client<br/>ChatClient<br/>State management"]
     end
-    
+
     subgraph "Framework Integration Layer"
         SOLID["@tanstack/ai-solid<br/>useChat primitive<br/>Accessor&lt;UIMessage[]&gt;<br/>Signals & reactivity"]
     end
-    
+
     subgraph "UI Component Layer"
         SOLID_UI["@tanstack/ai-solid-ui<br/>Headless components<br/>Markdown rendering<br/>Syntax highlighting"]
     end
-    
+
     subgraph "Core Markdown Dependencies"
         SOLID_MD["solid-markdown<br/>Solid-native rendering"]
         REMARK["remark-gfm<br/>GitHub-flavored markdown"]
@@ -62,10 +60,10 @@ graph TB
         REHYPE_RAW["rehype-raw<br/>Raw HTML support"]
         REHYPE_SAN["rehype-sanitize<br/>XSS protection"]
     end
-    
+
     CLIENT --> SOLID
     SOLID --> SOLID_UI
-    
+
     SOLID_UI --> SOLID_MD
     SOLID_UI --> REMARK
     SOLID_UI --> REHYPE_HL
@@ -83,21 +81,21 @@ graph TB
 
 The package includes the complete markdown processing pipeline:
 
-| Dependency | Version | Purpose |
-|------------|---------|---------|
-| `solid-markdown` | ^2.1.0 | Solid-native markdown renderer |
-| `remark-gfm` | ^4.0.1 | GitHub-flavored markdown extensions (tables, task lists, strikethrough) |
-| `rehype-highlight` | ^7.0.2 | Syntax highlighting for code blocks |
-| `rehype-raw` | ^7.0.0 | Parse and render raw HTML in markdown |
-| `rehype-sanitize` | ^6.0.0 | Sanitize HTML to prevent XSS attacks |
+| Dependency         | Version | Purpose                                                                 |
+| ------------------ | ------- | ----------------------------------------------------------------------- |
+| `solid-markdown`   | ^2.1.0  | Solid-native markdown renderer                                          |
+| `remark-gfm`       | ^4.0.1  | GitHub-flavored markdown extensions (tables, task lists, strikethrough) |
+| `rehype-highlight` | ^7.0.2  | Syntax highlighting for code blocks                                     |
+| `rehype-raw`       | ^7.0.0  | Parse and render raw HTML in markdown                                   |
+| `rehype-sanitize`  | ^6.0.0  | Sanitize HTML to prevent XSS attacks                                    |
 
 ### Peer Dependencies
 
-| Peer Dependency | Version Constraint | Purpose |
-|----------------|-------------------|---------|
-| `@tanstack/ai-client` | workspace:^ | Core client types and utilities |
-| `@tanstack/ai-solid` | workspace:^ | Solid framework integration |
-| `solid-js` | >=1.9.7 | Solid framework runtime (requires 1.9.7+ for compatibility) |
+| Peer Dependency       | Version Constraint | Purpose                                                     |
+| --------------------- | ------------------ | ----------------------------------------------------------- |
+| `@tanstack/ai-client` | workspace:^        | Core client types and utilities                             |
+| `@tanstack/ai-solid`  | workspace:^        | Solid framework integration                                 |
+| `solid-js`            | >=1.9.7            | Solid framework runtime (requires 1.9.7+ for compatibility) |
 
 **Sources:** [packages/typescript/ai-solid-ui/package.json:43-53]()
 
@@ -112,15 +110,15 @@ graph LR
     subgraph "Package Exports"
         ENTRY["Export '.'"<br/>Solid field: ./src/index.ts<br/>Types field: ./src/index.ts<br/>Import field: ./src/index.ts]
     end
-    
+
     subgraph "Consumer Applications"
         APP["Solid Application<br/>vite-plugin-solid<br/>Compiles source directly"]
     end
-    
+
     subgraph "Source Files"
         SRC["./src/index.ts<br/>Component exports<br/>Uncompiled Solid code"]
     end
-    
+
     ENTRY --> APP
     SRC --> ENTRY
     APP --> SRC
@@ -141,24 +139,24 @@ graph TB
     subgraph "Input"
         MD["Markdown String<br/>AI-generated content"]
     end
-    
+
     subgraph "Remark Processing"
         PARSE["Parse Markdown<br/>to MDAST"]
         GFM["remark-gfm<br/>Add GFM syntax"]
     end
-    
+
     subgraph "Rehype Processing"
         MDAST_TO_HAST["Transform MDAST<br/>to HAST (HTML AST)"]
         RAW["rehype-raw<br/>Parse raw HTML nodes"]
         HIGHLIGHT["rehype-highlight<br/>Add syntax highlighting"]
         SANITIZE["rehype-sanitize<br/>Remove unsafe HTML"]
     end
-    
+
     subgraph "Solid Rendering"
         SOLID_MD["solid-markdown<br/>Render to Solid JSX"]
         JSX["Solid Components<br/>Reactive DOM"]
     end
-    
+
     MD --> PARSE
     PARSE --> GFM
     GFM --> MDAST_TO_HAST
@@ -195,35 +193,35 @@ graph TB
         REHYPE_RAW["rehype-raw<br/>Raw HTML"]
         REHYPE_SAN["rehype-sanitize<br/>Sanitization"]
     end
-    
+
     subgraph "React Ecosystem"
         REACT_UI["@tanstack/ai-react-ui"]
         REACT_MD["react-markdown<br/>React component renderer"]
         REACT_UI --> REACT_MD
     end
-    
+
     subgraph "Solid Ecosystem"
         SOLID_UI["@tanstack/ai-solid-ui"]
         SOLID_MD["solid-markdown<br/>Solid component renderer"]
         SOLID_UI --> SOLID_MD
     end
-    
+
     subgraph "Vue Ecosystem"
         VUE_UI["@tanstack/ai-vue-ui"]
         VUE_MD["@crazydos/vue-markdown<br/>Vue component renderer"]
         VUE_UI --> VUE_MD
     end
-    
+
     REACT_UI --> REMARK
     REACT_UI --> REHYPE_HL
     REACT_UI --> REHYPE_RAW
     REACT_UI --> REHYPE_SAN
-    
+
     SOLID_UI --> REMARK
     SOLID_UI --> REHYPE_HL
     SOLID_UI --> REHYPE_RAW
     SOLID_UI --> REHYPE_SAN
-    
+
     VUE_UI --> REMARK
     VUE_UI --> REHYPE_HL
     VUE_UI --> REHYPE_RAW
@@ -232,11 +230,11 @@ graph TB
 
 ### Key Differences
 
-| Package | Markdown Renderer | Build Output | Framework Version |
-|---------|------------------|--------------|-------------------|
-| `@tanstack/ai-react-ui` | `react-markdown` | Pre-built dist/ | React ^18 or ^19 |
-| `@tanstack/ai-solid-ui` | `solid-markdown` | Source-based | Solid >=1.9.7 |
-| `@tanstack/ai-vue-ui` | `@crazydos/vue-markdown` | Pre-built dist/ | Vue >=3.5.0 |
+| Package                 | Markdown Renderer        | Build Output    | Framework Version |
+| ----------------------- | ------------------------ | --------------- | ----------------- |
+| `@tanstack/ai-react-ui` | `react-markdown`         | Pre-built dist/ | React ^18 or ^19  |
+| `@tanstack/ai-solid-ui` | `solid-markdown`         | Source-based    | Solid >=1.9.7     |
+| `@tanstack/ai-vue-ui`   | `@crazydos/vue-markdown` | Pre-built dist/ | Vue >=3.5.0       |
 
 **Sources:** [packages/typescript/ai-react-ui/package.json:40-52](), [packages/typescript/ai-solid-ui/package.json:43-53](), [packages/typescript/ai-vue-ui/package.json:41-51]()
 
@@ -253,32 +251,32 @@ graph TB
         ROUTER["@tanstack/solid-router<br/>Routing"]
         DEVTOOLS["@tanstack/solid-ai-devtools<br/>Development tools"]
     end
-    
+
     subgraph "AI Integration"
         AI_SOLID["@tanstack/ai-solid<br/>useChat primitive<br/>State management"]
         AI_SOLID_UI["@tanstack/ai-solid-ui<br/>Markdown rendering<br/>UI components"]
     end
-    
+
     subgraph "Core Libraries"
         AI_CLIENT["@tanstack/ai-client<br/>ChatClient class"]
         AI["@tanstack/ai<br/>chat() function"]
     end
-    
+
     subgraph "Provider Adapters"
         OPENAI["@tanstack/ai-openai"]
         ANTHROPIC["@tanstack/ai-anthropic"]
         GEMINI["@tanstack/ai-gemini"]
         OLLAMA["@tanstack/ai-ollama"]
     end
-    
+
     APP --> ROUTER
     APP --> AI_SOLID
     APP --> AI_SOLID_UI
     APP --> DEVTOOLS
-    
+
     AI_SOLID --> AI_CLIENT
     AI_CLIENT --> AI
-    
+
     AI --> OPENAI
     AI --> ANTHROPIC
     AI --> GEMINI
@@ -286,6 +284,7 @@ graph TB
 ```
 
 The example demonstrates full-stack AI chat with:
+
 - All 5 provider adapters (OpenAI, Anthropic, Gemini, Ollama, Grok)
 - Markdown rendering with `solid-markdown`
 - Syntax highlighting using `highlight.js`
@@ -308,17 +307,17 @@ graph LR
         VITE["vite build<br/>Solid-aware bundler"]
         DIST["./dist<br/>Build output"]
     end
-    
+
     subgraph "Quality Gates"
         PUBLINT["publint --strict<br/>Package validation"]
         ESLINT["eslint ./src<br/>Linting"]
         TSC["tsc<br/>Type checking"]
         VITEST["vitest<br/>Unit tests"]
     end
-    
+
     SRC --> VITE
     VITE --> DIST
-    
+
     DIST --> PUBLINT
     SRC --> ESLINT
     SRC --> TSC
@@ -327,14 +326,14 @@ graph LR
 
 ### NPM Scripts
 
-| Script | Command | Purpose |
-|--------|---------|---------|
-| `build` | `vite build` | Build production bundle |
-| `clean` | `premove ./build ./dist` | Remove build artifacts |
-| `test:build` | `publint --strict` | Validate package structure |
-| `test:eslint` | `eslint ./src` | Lint source code |
-| `test:lib` | `vitest --passWithNoTests` | Run unit tests |
-| `test:types` | `tsc` | Type check without emitting |
+| Script        | Command                    | Purpose                     |
+| ------------- | -------------------------- | --------------------------- |
+| `build`       | `vite build`               | Build production bundle     |
+| `clean`       | `premove ./build ./dist`   | Remove build artifacts      |
+| `test:build`  | `publint --strict`         | Validate package structure  |
+| `test:eslint` | `eslint ./src`             | Lint source code            |
+| `test:lib`    | `vitest --passWithNoTests` | Run unit tests              |
+| `test:types`  | `tsc`                      | Type check without emitting |
 
 **Sources:** [packages/typescript/ai-solid-ui/package.json:24-31]()
 
@@ -364,6 +363,7 @@ The package follows the "headless components" pattern, meaning it provides funct
 4. **Framework-Native**: Uses Solid's reactive primitives (signals, accessors) for optimal performance
 
 This approach enables:
+
 - Full design flexibility for consumers
 - Minimal bundle size (no unused CSS)
 - Framework-specific optimizations (Solid's fine-grained reactivity)
@@ -377,13 +377,13 @@ This approach enables:
 
 The package is integrated into the monorepo's Nx build orchestration:
 
-| Target | Dependency | Inputs | Outputs | Cache |
-|--------|-----------|--------|---------|-------|
-| `build` | `^build` | production files | ./dist | Yes |
-| `test:lib` | `^build` | source + test files | ./coverage | Yes |
-| `test:eslint` | `^build` | source + eslint config | - | Yes |
-| `test:types` | `^build` | source files | - | Yes |
-| `test:build` | `build` | production files | - | Yes |
+| Target        | Dependency | Inputs                 | Outputs    | Cache |
+| ------------- | ---------- | ---------------------- | ---------- | ----- |
+| `build`       | `^build`   | production files       | ./dist     | Yes   |
+| `test:lib`    | `^build`   | source + test files    | ./coverage | Yes   |
+| `test:eslint` | `^build`   | source + eslint config | -          | Yes   |
+| `test:types`  | `^build`   | source files           | -          | Yes   |
+| `test:build`  | `build`    | production files       | -          | Yes   |
 
 The `^build` dependency ensures parent packages (`@tanstack/ai-solid`, `@tanstack/ai-client`) build before this package.
 

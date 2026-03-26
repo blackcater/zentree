@@ -22,11 +22,9 @@ The following files were used as context for generating this wiki page:
 - [codex-rs/core/tests/suite/compact_remote.rs](codex-rs/core/tests/suite/compact_remote.rs)
 - [codex-rs/core/tests/suite/compact_resume_fork.rs](codex-rs/core/tests/suite/compact_resume_fork.rs)
 - [codex-rs/core/tests/suite/review.rs](codex-rs/core/tests/suite/review.rs)
-- [codex-rs/tui/src/chatwidget/snapshots/codex_tui__chatwidget__tests__image_generation_call_history_snapshot.snap](codex-rs/tui/src/chatwidget/snapshots/codex_tui__chatwidget__tests__image_generation_call_history_snapshot.snap)
+- [codex-rs/tui/src/chatwidget/snapshots/codex_tui**chatwidget**tests\_\_image_generation_call_history_snapshot.snap](codex-rs/tui/src/chatwidget/snapshots/codex_tui__chatwidget__tests__image_generation_call_history_snapshot.snap)
 
 </details>
-
-
 
 This page documents the two-phase memory pipeline that runs at session startup to extract, store, and consolidate persistent agent memories. It covers `StateRuntime`'s SQLite-backed job claiming, the Phase 1 per-rollout extraction process, the Phase 2 global consolidation agent, and the on-disk file layout under the `memories/` directory.
 
@@ -42,6 +40,7 @@ The memory system builds a persistent, cross-session knowledge base by post-proc
 - **Phase 2** — Reads the latest Phase 1 outputs from SQLite, syncs local filesystem artifacts (`raw_memories.md`, `rollout_summaries/`), and spawns a dedicated consolidation sub-agent to update `MEMORY.md`, `memory_summary.md`, and `skills/`.
 
 **Triggering conditions** (from [codex-rs/core/src/memories/README.md]()):
+
 - The session is not ephemeral
 - The memory feature is enabled
 - The session is not a sub-agent session
@@ -93,38 +92,38 @@ Sources: [codex-rs/core/src/memories/phase1.rs:84-121](), [codex-rs/core/src/mem
 
 ### Core Types
 
-| Type | Location | Purpose |
-|---|---|---|
-| `Stage1Output` | [codex-rs/state/src/model/memories.rs:13-23]() | Stored result of Phase 1 extraction for one thread |
-| `Stage1OutputRef` | [codex-rs/state/src/model/memories.rs:25-30]() | Lightweight reference for removed-thread tracking |
-| `Stage1JobClaim` | [codex-rs/state/src/model/memories.rs:120-124]() | Claimed job + thread metadata |
-| `Stage1JobClaimOutcome` | [codex-rs/state/src/model/memories.rs:106-117]() | Result of `try_claim_stage1_job` |
-| `Stage1StartupClaimParams` | [codex-rs/state/src/model/memories.rs:126-134]() | Parameters controlling startup claim eligibility |
-| `Phase2InputSelection` | [codex-rs/state/src/model/memories.rs:32-38]() | Current + previous Phase 2 selection, retained IDs, and removed refs |
-| `Phase2JobClaimOutcome` | [codex-rs/state/src/model/memories.rs:136-149]() | Result of `try_claim_global_phase2_job` |
+| Type                       | Location                                         | Purpose                                                              |
+| -------------------------- | ------------------------------------------------ | -------------------------------------------------------------------- |
+| `Stage1Output`             | [codex-rs/state/src/model/memories.rs:13-23]()   | Stored result of Phase 1 extraction for one thread                   |
+| `Stage1OutputRef`          | [codex-rs/state/src/model/memories.rs:25-30]()   | Lightweight reference for removed-thread tracking                    |
+| `Stage1JobClaim`           | [codex-rs/state/src/model/memories.rs:120-124]() | Claimed job + thread metadata                                        |
+| `Stage1JobClaimOutcome`    | [codex-rs/state/src/model/memories.rs:106-117]() | Result of `try_claim_stage1_job`                                     |
+| `Stage1StartupClaimParams` | [codex-rs/state/src/model/memories.rs:126-134]() | Parameters controlling startup claim eligibility                     |
+| `Phase2InputSelection`     | [codex-rs/state/src/model/memories.rs:32-38]()   | Current + previous Phase 2 selection, retained IDs, and removed refs |
+| `Phase2JobClaimOutcome`    | [codex-rs/state/src/model/memories.rs:136-149]() | Result of `try_claim_global_phase2_job`                              |
 
 ### `Stage1Output` Fields
 
-| Field | Type | Meaning |
-|---|---|---|
-| `thread_id` | `ThreadId` | Thread the memory was extracted from |
-| `source_updated_at` | `DateTime<Utc>` | Timestamp of the rollout that was processed |
-| `raw_memory` | `String` | Detailed markdown memory |
-| `rollout_summary` | `String` | Compact summary line |
-| `rollout_slug` | `Option<String>` | Used to derive rollout summary filenames |
-| `rollout_path` | `PathBuf` | Path to the `.jsonl` rollout file |
-| `cwd` | `PathBuf` | Working directory of the original session |
-| `git_branch` | `Option<String>` | Git branch at time of rollout |
-| `generated_at` | `DateTime<Utc>` | When Phase 1 produced this record |
+| Field               | Type             | Meaning                                     |
+| ------------------- | ---------------- | ------------------------------------------- |
+| `thread_id`         | `ThreadId`       | Thread the memory was extracted from        |
+| `source_updated_at` | `DateTime<Utc>`  | Timestamp of the rollout that was processed |
+| `raw_memory`        | `String`         | Detailed markdown memory                    |
+| `rollout_summary`   | `String`         | Compact summary line                        |
+| `rollout_slug`      | `Option<String>` | Used to derive rollout summary filenames    |
+| `rollout_path`      | `PathBuf`        | Path to the `.jsonl` rollout file           |
+| `cwd`               | `PathBuf`        | Working directory of the original session   |
+| `git_branch`        | `Option<String>` | Git branch at time of rollout               |
+| `generated_at`      | `DateTime<Utc>`  | When Phase 1 produced this record           |
 
 ### `Phase2InputSelection` Fields
 
-| Field | Meaning |
-|---|---|
-| `selected` | Current top-N stage-1 outputs for this Phase 2 run |
-| `previous_selected` | Stage-1 outputs marked from the last successful Phase 2 run |
+| Field                 | Meaning                                                       |
+| --------------------- | ------------------------------------------------------------- |
+| `selected`            | Current top-N stage-1 outputs for this Phase 2 run            |
+| `previous_selected`   | Stage-1 outputs marked from the last successful Phase 2 run   |
 | `retained_thread_ids` | Thread IDs whose snapshot exactly matches the prior selection |
-| `removed` | Previously selected outputs no longer in the current top-N |
+| `removed`             | Previously selected outputs no longer in the current top-N    |
 
 Sources: [codex-rs/state/src/model/memories.rs]()
 
@@ -176,22 +175,23 @@ Sources: [codex-rs/state/src/runtime/memories.rs](), [codex-rs/state/src/runtime
 
 ### SQLite Tables
 
-| Table | Key Columns | Role |
-|---|---|---|
-| `jobs` | `kind`, `job_key`, `status`, `ownership_token`, `lease_until`, `retry_remaining` | Tracks Phase 1 and Phase 2 job state |
-| `stage1_outputs` | `thread_id`, `source_updated_at`, `raw_memory`, `rollout_summary`, `selected_for_phase2` | Stores per-thread Phase 1 extraction results |
-| `threads` | `id`, `memory_mode`, `updated_at` | Thread registry; `memory_mode` controls eligibility |
+| Table            | Key Columns                                                                              | Role                                                |
+| ---------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `jobs`           | `kind`, `job_key`, `status`, `ownership_token`, `lease_until`, `retry_remaining`         | Tracks Phase 1 and Phase 2 job state                |
+| `stage1_outputs` | `thread_id`, `source_updated_at`, `raw_memory`, `rollout_summary`, `selected_for_phase2` | Stores per-thread Phase 1 extraction results        |
+| `threads`        | `id`, `memory_mode`, `updated_at`                                                        | Thread registry; `memory_mode` controls eligibility |
 
 **Job kind constants** (from [codex-rs/state/src/runtime/memories.rs:20-22]()):
+
 - `memory_stage1` — one row per thread; `job_key = thread_id`
 - `memory_consolidate_global` — single singleton row; `job_key = "global"`
 
 ### Thread Memory Modes
 
-| Value | Meaning |
-|---|---|
-| `enabled` | Thread is eligible for Phase 1 extraction |
-| `disabled` | Thread excluded (set during `reset_memory_data_for_fresh_start`) |
+| Value      | Meaning                                                                                 |
+| ---------- | --------------------------------------------------------------------------------------- |
+| `enabled`  | Thread is eligible for Phase 1 extraction                                               |
+| `disabled` | Thread excluded (set during `reset_memory_data_for_fresh_start`)                        |
 | `polluted` | Thread contaminated (e.g. web search used); excluded and may trigger Phase 2 forgetting |
 
 Sources: [codex-rs/state/src/runtime/memories.rs:45-81](), [codex-rs/state/src/runtime/memories.rs:430-471]()
@@ -209,14 +209,14 @@ Phase 1 is implemented in [codex-rs/core/src/memories/phase1.rs](). It runs in s
 
 ### Startup Claim Eligibility (`Stage1StartupClaimParams`)
 
-| Parameter | Config key | Meaning |
-|---|---|---|
-| `scan_limit` | — | Max threads scanned in the DB query |
-| `max_claimed` | `max_rollouts_per_startup` | Max jobs claimed per startup |
-| `max_age_days` | `max_rollout_age_days` | Only rollouts updated within this window |
-| `min_rollout_idle_hours` | `min_rollout_idle_hours` | Rollout must have been idle this long |
-| `allowed_sources` | — | Only `INTERACTIVE_SESSION_SOURCES` |
-| `lease_seconds` | — | How long the claim is valid |
+| Parameter                | Config key                 | Meaning                                  |
+| ------------------------ | -------------------------- | ---------------------------------------- |
+| `scan_limit`             | —                          | Max threads scanned in the DB query      |
+| `max_claimed`            | `max_rollouts_per_startup` | Max jobs claimed per startup             |
+| `max_age_days`           | `max_rollout_age_days`     | Only rollouts updated within this window |
+| `min_rollout_idle_hours` | `min_rollout_idle_hours`   | Rollout must have been idle this long    |
+| `allowed_sources`        | —                          | Only `INTERACTIVE_SESSION_SOURCES`       |
+| `lease_seconds`          | —                          | How long the claim is valid              |
 
 Additionally, the query filters to `memory_mode = 'enabled'` and excludes the current thread. See [codex-rs/state/src/runtime/memories.rs:137-248]().
 
@@ -288,14 +288,14 @@ Sources: [codex-rs/core/src/memories/phase2.rs:43-161](), [codex-rs/core/src/mem
 
 The sub-agent spawned by Phase 2 has a tightly restricted config [codex-rs/core/src/memories/phase2.rs:261-304]():
 
-| Setting | Value |
-|---|---|
-| `cwd` | `memory_root(codex_home)` |
-| `approval_policy` | `AskForApproval::Never` |
-| `sandbox_policy` | `SandboxPolicy::WorkspaceWrite` with `codex_home` as writable root, no network |
-| `Feature::Collab` | Disabled (prevents recursive delegation) |
-| `model` | `config.memories.consolidation_model` or default |
-| `session_source` | `SubAgent(SubAgentSource::MemoryConsolidation)` |
+| Setting           | Value                                                                          |
+| ----------------- | ------------------------------------------------------------------------------ |
+| `cwd`             | `memory_root(codex_home)`                                                      |
+| `approval_policy` | `AskForApproval::Never`                                                        |
+| `sandbox_policy`  | `SandboxPolicy::WorkspaceWrite` with `codex_home` as writable root, no network |
+| `Feature::Collab` | Disabled (prevents recursive delegation)                                       |
+| `model`           | `config.memories.consolidation_model` or default                               |
+| `session_source`  | `SubAgent(SubAgentSource::MemoryConsolidation)`                                |
 
 ### Watermark Logic
 
@@ -309,6 +309,7 @@ The watermark prevents re-running Phase 2 when there is no new data:
 ### Input Selection and Diff
 
 `get_phase2_input_selection` [codex-rs/state/src/runtime/memories.rs:315-426]() returns the top-N active stage-1 outputs filtered by:
+
 - `memory_mode = 'enabled'`
 - Non-empty `raw_memory` or `rollout_summary`
 - `last_usage` within `max_unused_days` (or `source_updated_at` if never used)
@@ -316,6 +317,7 @@ The watermark prevents re-running Phase 2 when there is no new data:
 Ranked by: `usage_count DESC`, `last_usage / generated_at DESC`, `source_updated_at DESC`.
 
 The diff labels passed to the consolidation prompt:
+
 - **added** — in current selection but not in previous Phase 2 baseline
 - **retained** — in current selection and matches prior Phase 2 snapshot exactly
 - **removed** — was in the prior Phase 2 baseline but is no longer in the current top-N
@@ -343,11 +345,11 @@ All memory artifacts live under `memory_root(codex_home)` which resolves to `<co
 
 Filesystem helpers from [codex-rs/core/src/memories/storage.rs]():
 
-| Function | File |
-|---|---|
-| `rebuild_raw_memories_file_from_memories` | Writes `raw_memories.md` from `Stage1Output` slice |
-| `sync_rollout_summaries_from_memories` | Syncs `rollout_summaries/`, prunes stale files, removes `MEMORY.md`/`memory_summary.md`/`skills/` when empty |
-| `rollout_summary_file_stem` | Derives the filename stem from `thread_id`, `source_updated_at`, and `rollout_slug` |
+| Function                                  | File                                                                                                         |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `rebuild_raw_memories_file_from_memories` | Writes `raw_memories.md` from `Stage1Output` slice                                                           |
+| `sync_rollout_summaries_from_memories`    | Syncs `rollout_summaries/`, prunes stale files, removes `MEMORY.md`/`memory_summary.md`/`skills/` when empty |
+| `rollout_summary_file_stem`               | Derives the filename stem from `thread_id`, `source_updated_at`, and `rollout_slug`                          |
 
 ### Rollout Summary Filename Format
 
@@ -369,12 +371,13 @@ Sources: [codex-rs/core/src/memories/storage.rs](), [codex-rs/core/templates/mem
 
 The Phase 2 agent receives a prompt built from [codex-rs/core/templates/memories/consolidation.md]() with two Mustache-style variables:
 
-| Variable | Content |
-|---|---|
-| `{{ memory_root }}` | Absolute path to `memories/` directory |
+| Variable                       | Content                                              |
+| ------------------------------ | ---------------------------------------------------- |
+| `{{ memory_root }}`            | Absolute path to `memories/` directory               |
 | `{{ phase2_input_selection }}` | Diff of added/retained/removed thread IDs and counts |
 
 The prompt instructs the agent to:
+
 - Operate in either **INIT** (first-time build) or **INCREMENTAL UPDATE** mode
 - Read `raw_memories.md`, `MEMORY.md`, `rollout_summaries/*.md`, `memory_summary.md`, and `skills/*`
 - Produce `MEMORY.md` (task-grouped handbook), `memory_summary.md` (user profile + tips), and optionally `skills/<name>/SKILL.md`
@@ -429,16 +432,16 @@ This mechanism is tested in [codex-rs/core/tests/suite/memories.rs:162-309]().
 
 The memory pipeline is controlled by `MemoriesConfig` within the top-level `Config`. Relevant fields referenced in the code:
 
-| Field | Used by | Meaning |
-|---|---|---|
-| `max_rollouts_per_startup` | Phase 1 | Max Stage 1 jobs claimed per startup |
-| `max_rollout_age_days` | Phase 1 | Exclude rollouts older than this |
-| `min_rollout_idle_hours` | Phase 1 | Exclude rollouts updated more recently than this |
-| `extract_model` | Phase 1 | Model for extraction (optional override) |
-| `max_raw_memories_for_consolidation` | Phase 2 | Top-N stage-1 outputs to feed into Phase 2 |
-| `max_unused_days` | Phase 2 | Exclude memories not used within this window |
-| `consolidation_model` | Phase 2 | Model for the consolidation sub-agent |
-| `no_memories_if_mcp_or_web_search` | Session | Disable memory generation if web/MCP used |
+| Field                                | Used by | Meaning                                          |
+| ------------------------------------ | ------- | ------------------------------------------------ |
+| `max_rollouts_per_startup`           | Phase 1 | Max Stage 1 jobs claimed per startup             |
+| `max_rollout_age_days`               | Phase 1 | Exclude rollouts older than this                 |
+| `min_rollout_idle_hours`             | Phase 1 | Exclude rollouts updated more recently than this |
+| `extract_model`                      | Phase 1 | Model for extraction (optional override)         |
+| `max_raw_memories_for_consolidation` | Phase 2 | Top-N stage-1 outputs to feed into Phase 2       |
+| `max_unused_days`                    | Phase 2 | Exclude memories not used within this window     |
+| `consolidation_model`                | Phase 2 | Model for the consolidation sub-agent            |
+| `no_memories_if_mcp_or_web_search`   | Session | Disable memory generation if web/MCP used        |
 
 The constant `DEFAULT_MEMORIES_MAX_RAW_MEMORIES_FOR_CONSOLIDATION` is referenced from `crate::config::types` [codex-rs/core/src/memories/tests.rs:3]().
 

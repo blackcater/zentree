@@ -32,27 +32,27 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Overview
 
 The `chat()` and `generate()` functions are the primary entry points for AI text generation in TanStack AI. Both provide unified APIs for interacting with AI models through provider adapters, supporting streaming responses, tool execution, and structured output.
 
 **Key Differences**:
 
-| Function | Purpose | Messages Format | Best For |
-|----------|---------|----------------|----------|
-| `chat()` | Conversation-oriented interactions | Array of `ModelMessage[]` | Multi-turn conversations, chat interfaces, agentic workflows |
-| `generate()` | Direct text generation | String prompt or `ModelMessage[]` | Single prompts, text completion, simpler use cases |
+| Function     | Purpose                            | Messages Format                   | Best For                                                     |
+| ------------ | ---------------------------------- | --------------------------------- | ------------------------------------------------------------ |
+| `chat()`     | Conversation-oriented interactions | Array of `ModelMessage[]`         | Multi-turn conversations, chat interfaces, agentic workflows |
+| `generate()` | Direct text generation             | String prompt or `ModelMessage[]` | Single prompts, text completion, simpler use cases           |
 
 Both functions share the same core capabilities:
+
 - Streaming and non-streaming modes
 - Automatic tool execution
 - Structured output with schemas
 - Provider-agnostic via adapters
 - Full TypeScript type safety
 
-**Locations**: 
+**Locations**:
+
 - `chat()`: [packages/typescript/ai/src/activities/chat/index.ts:976]()
 - `generate()`: [packages/typescript/ai/src/activities/generate/index.ts]()
 
@@ -69,22 +69,22 @@ graph TB
         CHAT_IN["messages: ModelMessage[]<br/>{ role: 'user'|'assistant'|'tool', content, ... }"]
         CHAT_PROCESS["ChatEngine<br/>- Multi-turn management<br/>- Tool execution loops<br/>- Conversation history"]
         CHAT_OUT["AsyncIterable<StreamChunk><br/>or Promise<string><br/>or Promise<StructuredOutput>"]
-        
+
         CHAT_IN --> CHAT_PROCESS
         CHAT_PROCESS --> CHAT_OUT
     end
-    
+
     subgraph "generate() - Direct Generation API"
         GEN_IN["prompt: string<br/>or messages: ModelMessage[]"]
         GEN_PROCESS["GenerateEngine<br/>- Simple generation<br/>- Optional tools<br/>- Single turn focus"]
         GEN_OUT["AsyncIterable<StreamChunk><br/>or Promise<string><br/>or Promise<StructuredOutput>"]
-        
+
         GEN_IN --> GEN_PROCESS
         GEN_PROCESS --> GEN_OUT
     end
-    
+
     ADAPTER["AIAdapter<br/>(OpenAI, Anthropic, Gemini, Ollama)"]
-    
+
     CHAT_PROCESS -.uses.-> ADAPTER
     GEN_PROCESS -.uses.-> ADAPTER
 ```
@@ -107,13 +107,14 @@ function chat<TAdapter, TSchema, TStream>(
 
 **Type Parameters**:
 
-| Parameter | Description |
-|-----------|-------------|
-| `TAdapter` | The AI adapter type (e.g., `OpenAITextAdapter`) |
-| `TSchema` | Optional Zod/ArkType schema for structured output |
-| `TStream` | Boolean literal type indicating streaming mode (default: `true`) |
+| Parameter  | Description                                                      |
+| ---------- | ---------------------------------------------------------------- |
+| `TAdapter` | The AI adapter type (e.g., `OpenAITextAdapter`)                  |
+| `TSchema`  | Optional Zod/ArkType schema for structured output                |
+| `TStream`  | Boolean literal type indicating streaming mode (default: `true`) |
 
 **Return Type**:
+
 - When `stream: true` (default): `AsyncIterable<StreamChunk>`
 - When `stream: false`: `Promise<string>`
 - When `outputSchema` provided: `Promise<InferSchemaType<TSchema>>`
@@ -123,6 +124,7 @@ function chat<TAdapter, TSchema, TStream>(
 ### Usage Modes
 
 The `chat()` function supports four distinct usage modes:
+
 1. **Streaming agentic text** - Stream responses with automatic tool execution loops
 2. **Streaming one-shot text** - Simple streaming without tools
 3. **Non-streaming text** - Returns complete text as a string (`stream: false`)
@@ -142,13 +144,14 @@ function chat<TAdapter, TSchema, TStream>(
 
 **Type Parameters**:
 
-| Parameter | Description |
-|-----------|-------------|
-| `TAdapter` | The AI adapter type (e.g., `OpenAITextAdapter`) |
-| `TSchema` | Optional Zod/ArkType schema for structured output |
-| `TStream` | Boolean literal type indicating streaming mode (default: `true`) |
+| Parameter  | Description                                                      |
+| ---------- | ---------------------------------------------------------------- |
+| `TAdapter` | The AI adapter type (e.g., `OpenAITextAdapter`)                  |
+| `TSchema`  | Optional Zod/ArkType schema for structured output                |
+| `TStream`  | Boolean literal type indicating streaming mode (default: `true`) |
 
 **Return Type**:
+
 - When `stream: true` (default): `AsyncIterable<StreamChunk>`
 - When `stream: false`: `Promise<string>`
 - When `outputSchema` provided: `Promise<InferSchemaType<TSchema>>`
@@ -171,13 +174,13 @@ import { anthropicText } from '@tanstack/ai-anthropic'
 // OpenAI
 const stream = chat({
   adapter: openaiText('gpt-4o'),
-  messages: [{ role: 'user', content: 'Hello!' }]
+  messages: [{ role: 'user', content: 'Hello!' }],
 })
 
 // Anthropic
 const stream = chat({
   adapter: anthropicText('claude-sonnet-4-5'),
-  messages: [{ role: 'user', content: 'Hello!' }]
+  messages: [{ role: 'user', content: 'Hello!' }],
 })
 ```
 
@@ -188,7 +191,7 @@ graph LR
     PROVIDER["Provider Package<br/>@tanstack/ai-openai"] --> FACTORY["openaiText(model)"]
     FACTORY --> ADAPTER["OpenAITextAdapter<br/>instance"]
     ADAPTER --> CHAT["chat({ adapter })"]
-    
+
     PROVIDER2["Provider Package<br/>@tanstack/ai-anthropic"] --> FACTORY2["anthropicText(model)"]
     FACTORY2 --> ADAPTER2["AnthropicTextAdapter<br/>instance"]
     ADAPTER2 --> CHAT
@@ -211,28 +214,29 @@ interface ModelMessage {
 ```
 
 **Basic Usage**:
+
 ```typescript
 const stream = chat({
   adapter: openaiText('gpt-4o'),
-  messages: [
-    { role: 'user', content: 'What is the weather in Paris?' }
-  ]
+  messages: [{ role: 'user', content: 'What is the weather in Paris?' }],
 })
 ```
 
 **Multi-turn Conversation**:
+
 ```typescript
 const stream = chat({
   adapter: openaiText('gpt-4o'),
   messages: [
     { role: 'user', content: 'Hello!' },
     { role: 'assistant', content: 'Hi! How can I help you?' },
-    { role: 'user', content: 'Tell me about TypeScript.' }
-  ]
+    { role: 'user', content: 'Tell me about TypeScript.' },
+  ],
 })
 ```
 
 **Multimodal Content**:
+
 ```typescript
 const stream = chat({
   adapter: openaiText('gpt-4o'),
@@ -241,10 +245,10 @@ const stream = chat({
       role: 'user',
       content: [
         { type: 'text', content: 'What is in this image?' },
-        { type: 'image', source: { type: 'url', url: 'https://...' } }
-      ]
-    }
-  ]
+        { type: 'image', source: { type: 'url', url: 'https://...' } },
+      ],
+    },
+  ],
 })
 ```
 
@@ -262,8 +266,8 @@ const weatherToolDef = toolDefinition({
   name: 'get_weather',
   description: 'Get current weather for a location',
   inputSchema: z.object({
-    location: z.string()
-  })
+    location: z.string(),
+  }),
 })
 
 const weatherTool = weatherToolDef.server(async ({ location }) => {
@@ -274,7 +278,7 @@ const weatherTool = weatherToolDef.server(async ({ location }) => {
 const stream = chat({
   adapter: openaiText('gpt-4o'),
   messages: [{ role: 'user', content: 'What is the weather in Paris?' }],
-  tools: [weatherTool]
+  tools: [weatherTool],
 })
 ```
 
@@ -287,21 +291,23 @@ See [Tool System](#3.2) for complete documentation on tool definitions and execu
 Provider-specific options for controlling model behavior. Available options depend on the adapter and model being used.
 
 **Common Options** (supported by most providers):
+
 ```typescript
 const stream = chat({
   adapter: openaiText('gpt-4o'),
   messages,
   modelOptions: {
-    temperature: 0.7,        // Randomness (0-2)
-    maxOutputTokens: 1000,   // Max tokens to generate
-    topP: 0.9,               // Nucleus sampling
-    frequencyPenalty: 0.5,   // Reduce repetition
-    presencePenalty: 0.5     // Encourage new topics
-  }
+    temperature: 0.7, // Randomness (0-2)
+    maxOutputTokens: 1000, // Max tokens to generate
+    topP: 0.9, // Nucleus sampling
+    frequencyPenalty: 0.5, // Reduce repetition
+    presencePenalty: 0.5, // Encourage new topics
+  },
 })
 ```
 
 **OpenAI Reasoning Options**:
+
 ```typescript
 modelOptions: {
   reasoning: {
@@ -312,6 +318,7 @@ modelOptions: {
 ```
 
 **Anthropic Thinking Options**:
+
 ```typescript
 modelOptions: {
   thinking: {
@@ -334,11 +341,12 @@ const stream = chat({
   adapter: openaiText('gpt-4o'),
   messages,
   tools: [tool1, tool2],
-  agentLoopStrategy: maxIterations(20)  // Allow up to 20 iterations
+  agentLoopStrategy: maxIterations(20), // Allow up to 20 iterations
 })
 ```
 
 **Custom Strategy**:
+
 ```typescript
 const customStrategy = ({ iterationCount, messages, finishReason }) => {
   // Stop if we've done 10 iterations OR if no tools were called
@@ -349,7 +357,7 @@ const stream = chat({
   adapter: openaiText('gpt-4o'),
   messages,
   tools,
-  agentLoopStrategy: customStrategy
+  agentLoopStrategy: customStrategy,
 })
 ```
 
@@ -365,8 +373,8 @@ const stream = chat({
   messages: [{ role: 'user', content: 'Hello!' }],
   systemPrompts: [
     'You are a helpful assistant.',
-    'Always respond in a friendly tone.'
-  ]
+    'Always respond in a friendly tone.',
+  ],
 })
 ```
 
@@ -382,7 +390,7 @@ const abortController = new AbortController()
 const stream = chat({
   adapter: openaiText('gpt-4o'),
   messages,
-  abortController
+  abortController,
 })
 
 // Cancel after 5 seconds
@@ -399,7 +407,7 @@ Optional identifier for tracking conversations across requests. Useful for analy
 const stream = chat({
   adapter: openaiText('gpt-4o'),
   messages,
-  conversationId: 'conv-12345'
+  conversationId: 'conv-12345',
 })
 ```
 
@@ -416,7 +424,7 @@ When streaming (`stream: true`, the default), `chat()` returns an `AsyncIterable
 ```mermaid
 graph TB
     STREAM["AsyncIterable<StreamChunk>"] --> CHUNK["StreamChunk (union type)"]
-    
+
     CHUNK --> CONTENT["ContentStreamChunk<br/>{ type: 'content' }"]
     CHUNK --> THINKING["ThinkingStreamChunk<br/>{ type: 'thinking' }"]
     CHUNK --> TOOL_CALL["ToolCallStreamChunk<br/>{ type: 'tool_call' }"]
@@ -425,7 +433,7 @@ graph TB
     CHUNK --> APPROVAL["ApprovalRequestedStreamChunk<br/>{ type: 'approval-requested' }"]
     CHUNK --> DONE["DoneStreamChunk<br/>{ type: 'done' }"]
     CHUNK --> ERROR["ErrorStreamChunk<br/>{ type: 'error' }"]
-    
+
     CONTENT --> PROPS_C["delta: string<br/>content: string<br/>role: 'assistant'"]
     THINKING --> PROPS_T["delta: string<br/>content: string"]
     TOOL_CALL --> PROPS_TC["toolCall: ToolCall"]
@@ -434,16 +442,16 @@ graph TB
 
 **StreamChunk Types**:
 
-| Type | Purpose | Key Fields |
-|------|---------|------------|
-| `content` | Incremental text response | `delta`, `content`, `role` |
-| `thinking` | Model reasoning process | `delta`, `content` |
-| `tool_call` | Model requests tool execution | `toolCall` (id, name, arguments) |
-| `tool_result` | Tool execution result | `toolCallId`, `result` |
-| `tool-input-available` | Client should execute tool | `toolCall`, `input` |
-| `approval-requested` | User approval needed | `toolCall`, `input`, `approvalId` |
-| `done` | Stream completion | `finishReason`, `usage` |
-| `error` | Stream error | `error` |
+| Type                   | Purpose                       | Key Fields                        |
+| ---------------------- | ----------------------------- | --------------------------------- |
+| `content`              | Incremental text response     | `delta`, `content`, `role`        |
+| `thinking`             | Model reasoning process       | `delta`, `content`                |
+| `tool_call`            | Model requests tool execution | `toolCall` (id, name, arguments)  |
+| `tool_result`          | Tool execution result         | `toolCallId`, `result`            |
+| `tool-input-available` | Client should execute tool    | `toolCall`, `input`               |
+| `approval-requested`   | User approval needed          | `toolCall`, `input`, `approvalId` |
+| `done`                 | Stream completion             | `finishReason`, `usage`           |
+| `error`                | Stream error                  | `error`                           |
 
 **Sources**: [docs/api/ai.md:220-249](), [docs/reference/type-aliases/StreamChunk.md]()
 
@@ -462,42 +470,43 @@ sequenceDiagram
     participant Adapter as "AIAdapter"
     participant LLM as "LLM Provider"
     participant Tool as "Tool.execute()"
-    
+
     App->>chat: "chat({ adapter, messages, tools })"
     chat->>Adapter: "chatStream()"
     Adapter->>LLM: "HTTP Request"
-    
+
     loop "Streaming Response"
         LLM-->>Adapter: "content chunk"
         Adapter-->>chat: "ContentStreamChunk"
         chat-->>App: "yield chunk"
     end
-    
+
     LLM-->>Adapter: "tool_call chunk"
     Adapter-->>chat: "ToolCallStreamChunk"
     chat-->>App: "yield chunk"
-    
+
     LLM-->>Adapter: "done (finishReason: 'tool_calls')"
-    
+
     chat->>Tool: "execute(args)"
     Tool-->>chat: "result"
     chat-->>App: "yield ToolResultStreamChunk"
-    
+
     chat->>Adapter: "chatStream() (with tool result)"
     Adapter->>LLM: "HTTP Request"
-    
+
     loop "Final Response"
         LLM-->>Adapter: "content chunk"
         Adapter-->>chat: "ContentStreamChunk"
         chat-->>App: "yield chunk"
     end
-    
+
     LLM-->>Adapter: "done (finishReason: 'stop')"
     Adapter-->>chat: "DoneStreamChunk"
     chat-->>App: "yield chunk"
 ```
 
 **Example**:
+
 ```typescript
 import { chat } from '@tanstack/ai'
 import { openaiText } from '@tanstack/ai-openai'
@@ -505,17 +514,15 @@ import { openaiText } from '@tanstack/ai-openai'
 const weatherTool = toolDefinition({
   name: 'get_weather',
   description: 'Get weather for a location',
-  inputSchema: z.object({ location: z.string() })
+  inputSchema: z.object({ location: z.string() }),
 }).server(async ({ location }) => {
   return { temperature: 72, conditions: 'sunny' }
 })
 
 const stream = chat({
   adapter: openaiText('gpt-4o'),
-  messages: [
-    { role: 'user', content: 'What is the weather in Paris?' }
-  ],
-  tools: [weatherTool]
+  messages: [{ role: 'user', content: 'What is the weather in Paris?' }],
+  tools: [weatherTool],
 })
 
 for await (const chunk of stream) {
@@ -537,12 +544,13 @@ for await (const chunk of stream) {
 Simple streaming without tools. Model generates a response and completes.
 
 **Example**:
+
 ```typescript
 const stream = chat({
   adapter: openaiText('gpt-4o'),
   messages: [
-    { role: 'user', content: 'Explain quantum computing in simple terms.' }
-  ]
+    { role: 'user', content: 'Explain quantum computing in simple terms.' },
+  ],
   // No tools provided
 })
 
@@ -551,8 +559,11 @@ for await (const chunk of stream) {
     process.stdout.write(chunk.delta)
   }
   if (chunk.type === 'done') {
-    console.log('\
-Tokens used:', chunk.usage?.totalTokens)
+    console.log(
+      '\
+Tokens used:',
+      chunk.usage?.totalTokens
+    )
   }
 }
 ```
@@ -568,16 +579,15 @@ Returns the complete text as a string instead of streaming. Set `stream: false`.
 **Return Type**: `Promise<string>`
 
 **Example**:
+
 ```typescript
 const text = await chat({
   adapter: openaiText('gpt-4o'),
-  messages: [
-    { role: 'user', content: 'What is the capital of France?' }
-  ],
-  stream: false
+  messages: [{ role: 'user', content: 'What is the capital of France?' }],
+  stream: false,
 })
 
-console.log(text)  // "The capital of France is Paris."
+console.log(text) // "The capital of France is Paris."
 ```
 
 **Sources**: [docs/reference/functions/chat.md:72-79](), [docs/api/ai.md:282-286]()
@@ -591,13 +601,14 @@ Execute tools in a loop, then return typed structured data. Requires `outputSche
 **Return Type**: `Promise<InferSchemaType<TSchema>>`
 
 **Example**:
+
 ```typescript
 import { z } from 'zod'
 
 const researchTool = toolDefinition({
   name: 'research_topic',
   description: 'Research a topic',
-  inputSchema: z.object({ topic: z.string() })
+  inputSchema: z.object({ topic: z.string() }),
 }).server(async ({ topic }) => {
   // Fetch research data
   return { findings: '...', sources: ['...'] }
@@ -606,14 +617,14 @@ const researchTool = toolDefinition({
 const result = await chat({
   adapter: openaiText('gpt-4o'),
   messages: [
-    { role: 'user', content: 'Research quantum computing and summarize.' }
+    { role: 'user', content: 'Research quantum computing and summarize.' },
   ],
   tools: [researchTool],
   outputSchema: z.object({
     summary: z.string(),
     keyPoints: z.array(z.string()),
-    sources: z.array(z.string())
-  })
+    sources: z.array(z.string()),
+  }),
 })
 
 // result is fully typed:
@@ -638,12 +649,12 @@ import { openaiText } from '@tanstack/ai-openai'
 
 export async function POST(request: Request) {
   const { messages } = await request.json()
-  
+
   const stream = chat({
     adapter: openaiText('gpt-4o'),
-    messages
+    messages,
   })
-  
+
   return toServerSentEventsResponse(stream)
 }
 ```
@@ -659,13 +670,13 @@ import { openaiText } from '@tanstack/ai-openai'
 
 export async function POST(request: Request) {
   const { messages, conversationId } = await request.json()
-  
+
   const stream = chat({
     adapter: openaiText('gpt-4o'),
     messages,
-    conversationId
+    conversationId,
   })
-  
+
   return toServerSentEventsResponse(stream)
 }
 ```
@@ -685,18 +696,18 @@ export const Route = createFileRoute('/api/chat')({
     handlers: {
       POST: async ({ request }) => {
         const { messages, conversationId } = await request.json()
-        
+
         const stream = chat({
           adapter: openai(),
           messages,
           model: 'gpt-4o',
-          conversationId
+          conversationId,
         })
-        
+
         return toServerSentEventsResponse(stream)
-      }
-    }
-  }
+      },
+    },
+  },
 })
 ```
 
@@ -719,9 +730,9 @@ const stream = chat({
   modelOptions: {
     // TypeScript knows these options are for OpenAI GPT-4o
     reasoning: {
-      effort: 'medium'  // Type-checked against OpenAI options
-    }
-  }
+      effort: 'medium', // Type-checked against OpenAI options
+    },
+  },
 })
 ```
 
@@ -742,10 +753,10 @@ const stream = chat({
       content: [
         { type: 'text', content: 'Describe this image' },
         // TypeScript ensures this model supports image input
-        { type: 'image', source: { type: 'url', url: '...' } }
-      ]
-    }
-  ]
+        { type: 'image', source: { type: 'url', url: '...' } },
+      ],
+    },
+  ],
 })
 ```
 
@@ -760,20 +771,20 @@ const weatherToolDef = toolDefinition({
   name: 'get_weather',
   inputSchema: z.object({
     location: z.string(),
-    unit: z.enum(['celsius', 'fahrenheit']).optional()
+    unit: z.enum(['celsius', 'fahrenheit']).optional(),
   }),
   outputSchema: z.object({
     temperature: z.number(),
-    conditions: z.string()
-  })
+    conditions: z.string(),
+  }),
 })
 
 const weatherTool = weatherToolDef.server(async (input) => {
   // input is typed as: { location: string, unit?: 'celsius' | 'fahrenheit' }
-  
+
   return {
     temperature: 72,
-    conditions: 'sunny'
+    conditions: 'sunny',
     // Return type is validated against outputSchema
   }
 })
@@ -804,6 +815,7 @@ function generate<TAdapter, TSchema, TStream>(
 ### Basic Usage
 
 **Simple String Prompt**:
+
 ```typescript
 import { generate } from '@tanstack/ai'
 import { openaiText } from '@tanstack/ai-openai'
@@ -811,7 +823,7 @@ import { openaiText } from '@tanstack/ai-openai'
 // String prompt (automatically converted to messages)
 const stream = generate({
   adapter: openaiText('gpt-4o'),
-  prompt: 'Explain quantum computing in simple terms.'
+  prompt: 'Explain quantum computing in simple terms.',
 })
 
 for await (const chunk of stream) {
@@ -822,12 +834,11 @@ for await (const chunk of stream) {
 ```
 
 **Message Array (same as chat)**:
+
 ```typescript
 const stream = generate({
   adapter: openaiText('gpt-4o'),
-  messages: [
-    { role: 'user', content: 'Hello!' }
-  ]
+  messages: [{ role: 'user', content: 'Hello!' }],
 })
 ```
 
@@ -837,16 +848,16 @@ const stream = generate({
 
 `generate()` accepts the same parameters as `chat()` with one addition:
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `prompt` | `string` | Alternative to `messages` - simple string prompt |
-| `messages` | `ModelMessage[]` | Alternative to `prompt` - full message array |
-| `adapter` | `AIAdapter` | Provider adapter (required) |
-| `tools` | `Tool[]` | Optional tools for function calling |
-| `modelOptions` | `object` | Provider-specific options |
-| `stream` | `boolean` | Streaming mode (default: `true`) |
-| `outputSchema` | `Schema` | Schema for structured output |
-| `abortController` | `AbortController` | Cancellation controller |
+| Parameter         | Type              | Description                                      |
+| ----------------- | ----------------- | ------------------------------------------------ |
+| `prompt`          | `string`          | Alternative to `messages` - simple string prompt |
+| `messages`        | `ModelMessage[]`  | Alternative to `prompt` - full message array     |
+| `adapter`         | `AIAdapter`       | Provider adapter (required)                      |
+| `tools`           | `Tool[]`          | Optional tools for function calling              |
+| `modelOptions`    | `object`          | Provider-specific options                        |
+| `stream`          | `boolean`         | Streaming mode (default: `true`)                 |
+| `outputSchema`    | `Schema`          | Schema for structured output                     |
+| `abortController` | `AbortController` | Cancellation controller                          |
 
 **Note**: You must provide either `prompt` or `messages`, but not both.
 
@@ -855,24 +866,27 @@ const stream = generate({
 ### When to Use generate() vs chat()
 
 **Use `generate()` when**:
+
 - Making single-turn requests without conversation history
 - Working with simple string prompts
 - Building non-conversational text generation features
 - You want a simpler API surface
 
 **Use `chat()` when**:
+
 - Building multi-turn conversations
 - Managing conversation history across multiple requests
 - Using complex agentic workflows with multiple tool loops
 - You need explicit control over message roles and structure
 
 **Example - generate() for Simple Tasks**:
+
 ```typescript
 // Quick text generation
 const summary = await generate({
   adapter: openaiText('gpt-4o'),
   prompt: 'Summarize: ' + longText,
-  stream: false
+  stream: false,
 })
 
 // Quick structured output
@@ -881,8 +895,8 @@ const data = await generate({
   prompt: 'Extract key points from this article',
   outputSchema: z.object({
     points: z.array(z.string()),
-    sentiment: z.enum(['positive', 'neutral', 'negative'])
-  })
+    sentiment: z.enum(['positive', 'neutral', 'negative']),
+  }),
 })
 ```
 
@@ -895,6 +909,7 @@ const data = await generate({
 The `chat()` and `generate()` functions form the core API for AI interactions in TanStack AI:
 
 **Shared Capabilities**:
+
 - **Multiple usage modes** - Streaming, non-streaming, with tools, structured output
 - **Provider-agnostic** - Works with OpenAI, Anthropic, Gemini, Ollama via adapters
 - **Automatic tool execution** - Both support server-side and client-side tools
@@ -903,6 +918,7 @@ The `chat()` and `generate()` functions form the core API for AI interactions in
 - **HTTP integration** - Easy conversion to Server-Sent Events or HTTP streams
 
 **Key Differences**:
+
 - `chat()` requires `ModelMessage[]` array, `generate()` accepts string `prompt` or messages
 - `chat()` is optimized for conversation management and multi-turn interactions
 - `generate()` provides a simpler API for single-turn text generation
@@ -929,7 +945,7 @@ graph TB
         TOOLS["tools: Tool[]"]
         LOOP_STRATEGY["loopStrategy: AgentLoopStrategy"]
         TOOL_MANAGER["toolCallManager: ToolCallManager"]
-        
+
         STATE_ITERATION["iterationCount: number"]
         STATE_FINISH["lastFinishReason: string | null"]
         STATE_CONTENT["accumulatedContent: string"]
@@ -937,45 +953,45 @@ graph TB
         STATE_MSG_ID["currentMessageId: string | null"]
         STATE_PHASE["cyclePhase: 'processChat' | 'executeToolCalls'"]
         STATE_TOOL_PHASE["toolPhase: 'continue' | 'stop' | 'wait'"]
-        
+
         IDS["requestId: string<br/>streamId: string"]
         SIGNAL["effectiveSignal: AbortSignal"]
     end
-    
+
     ADAPTER --> CHAT_METHOD["chat() async generator"]
     PARAMS --> CHAT_METHOD
     MESSAGES --> STREAM_RESPONSE["streamModelResponse()"]
     TOOLS --> TOOL_MANAGER
     LOOP_STRATEGY --> SHOULD_CONTINUE["shouldContinue()"]
-    
+
     CHAT_METHOD --> BEFORE["beforeChat()"]
     CHAT_METHOD --> LOOP["do-while loop"]
     CHAT_METHOD --> AFTER["afterChat()"]
-    
+
     LOOP --> BEGIN["beginCycle()"]
     LOOP --> PROCESS["processChat or executeToolCalls"]
     LOOP --> END["endCycle()"]
     LOOP --> SHOULD_CONTINUE
-    
+
     STATE_PHASE -.controls.-> PROCESS
     STATE_TOOL_PHASE -.controls.-> SHOULD_CONTINUE
 ```
 
 **Key Internal Fields**:
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `adapter` | `AIAdapter` | Provider-specific adapter (OpenAI, Anthropic, etc.) |
-| `messages` | `ModelMessage[]` | Current conversation history (mutates during loops) |
-| `tools` | `Tool[]` | Available tools for this conversation |
-| `loopStrategy` | `AgentLoopStrategy` | Determines when to stop iterating |
-| `toolCallManager` | `ToolCallManager` | Tracks tool calls across streaming chunks |
-| `iterationCount` | `number` | Current agent loop iteration (0-indexed) |
-| `lastFinishReason` | `string \| null` | Finish reason from last LLM response |
-| `cyclePhase` | `CyclePhase` | Current phase: `'processChat'` or `'executeToolCalls'` |
-| `toolPhase` | `ToolPhaseResult` | Tool execution state: `'continue'`, `'stop'`, or `'wait'` |
-| `requestId` | `string` | Unique ID for this chat request (for devtools) |
-| `streamId` | `string` | Unique ID for this stream (for devtools) |
+| Field              | Type                | Purpose                                                   |
+| ------------------ | ------------------- | --------------------------------------------------------- |
+| `adapter`          | `AIAdapter`         | Provider-specific adapter (OpenAI, Anthropic, etc.)       |
+| `messages`         | `ModelMessage[]`    | Current conversation history (mutates during loops)       |
+| `tools`            | `Tool[]`            | Available tools for this conversation                     |
+| `loopStrategy`     | `AgentLoopStrategy` | Determines when to stop iterating                         |
+| `toolCallManager`  | `ToolCallManager`   | Tracks tool calls across streaming chunks                 |
+| `iterationCount`   | `number`            | Current agent loop iteration (0-indexed)                  |
+| `lastFinishReason` | `string \| null`    | Finish reason from last LLM response                      |
+| `cyclePhase`       | `CyclePhase`        | Current phase: `'processChat'` or `'executeToolCalls'`    |
+| `toolPhase`        | `ToolPhaseResult`   | Tool execution state: `'continue'`, `'stop'`, or `'wait'` |
+| `requestId`        | `string`            | Unique ID for this chat request (for devtools)            |
+| `streamId`         | `string`            | Unique ID for this stream (for devtools)                  |
 
 **Sources**: [packages/typescript/ai/src/core/chat.ts:33-78]()
 
@@ -995,27 +1011,27 @@ sequenceDiagram
     participant Adapter as "AIAdapter.chatStream()"
     participant EventClient as "aiEventClient"
     participant ToolManager as "ToolCallManager"
-    
+
     Client->>chat_fn: "chat(options)"
     chat_fn->>Engine: "new ChatEngine(config)"
     chat_fn->>Engine: "engine.chat()"
-    
+
     Engine->>EventClient: "emit('chat:started')"
     Engine->>EventClient: "emit('stream:started')"
-    
+
     rect rgb(240, 240, 240)
         note over Engine: "Main Loop Start"
         Engine->>Engine: "beginCycle()"
         Engine->>Adapter: "adapter.chatStream(options)"
-        
+
         loop "Stream Chunks"
             Adapter-->>Engine: "StreamChunk (content/tool_call/done)"
             Engine->>EventClient: "emit('stream:chunk:*')"
             Engine-->>Client: "yield chunk"
         end
-        
+
         Engine->>Engine: "endCycle() -> cyclePhase = executeToolCalls"
-        
+
         alt "finishReason === 'tool_calls'"
             Engine->>Engine: "beginCycle()"
             Engine->>ToolManager: "getToolCalls()"
@@ -1026,7 +1042,7 @@ sequenceDiagram
             Engine->>Engine: "shouldContinue() -> check loopStrategy"
         end
     end
-    
+
     Engine->>EventClient: "emit('chat:completed')"
     Engine->>EventClient: "emit('stream:ended')"
     Engine-->>Client: "stream complete"
@@ -1039,6 +1055,7 @@ sequenceDiagram
 **1. Initialization (beforeChat)**
 
 Executed once at the start of the conversation:
+
 - Generates unique `requestId` and `streamId` identifiers
 - Emits `chat:started` event with request metadata
 - Emits `stream:started` event to signal streaming begin
@@ -1049,6 +1066,7 @@ Executed once at the start of the conversation:
 **2. Main Loop (do-while cycle)**
 
 The core orchestration loop alternates between two phases:
+
 - **Phase 1**: `cyclePhase = 'processChat'` → Streams LLM response via `streamModelResponse()`
 - **Phase 2**: `cyclePhase = 'executeToolCalls'` → Executes tools via `processToolCalls()`
 
@@ -1059,6 +1077,7 @@ Loop continues while `shouldContinue()` returns true (based on `loopStrategy` an
 **3. Finalization (afterChat)**
 
 Executed once when the conversation completes:
+
 - Emits `chat:completed` event with final content and usage statistics
 - Emits `stream:ended` event with duration and chunk count
 - Cleanup and resource release
@@ -1076,23 +1095,23 @@ The agent loop operates as a state machine with two distinct phases that alterna
 ```mermaid
 stateDiagram-v2
     [*] --> ProcessChat: "Initial state"
-    
+
     ProcessChat: "cyclePhase = 'processChat'"
     ExecuteToolCalls: "cyclePhase = 'executeToolCalls'"
-    
+
     ProcessChat --> ExecuteToolCalls: "endCycle() after streaming"
     ExecuteToolCalls --> ProcessChat: "endCycle() after tool execution"
-    
+
     ProcessChat --> [*]: "shouldContinue() = false"
     ExecuteToolCalls --> [*]: "shouldContinue() = false"
-    
+
     note right of ProcessChat
         - Call adapter.chatStream()
         - Stream content/tool_call chunks
         - Accumulate tool calls in ToolCallManager
         - Emit stream events
     end note
-    
+
     note right of ExecuteToolCalls
         - Get tool calls from ToolCallManager
         - Execute server-side tools
@@ -1110,6 +1129,7 @@ stateDiagram-v2
 The `AgentLoopStrategy` function determines when to stop iterating. It receives the current state and returns `true` to continue or `false` to stop.
 
 **Strategy Function Type**:
+
 ```typescript
 type AgentLoopStrategy = (state: AgentLoopState) => boolean
 
@@ -1121,9 +1141,12 @@ interface AgentLoopState {
 ```
 
 **Built-in Strategy** (`maxIterations`):
+
 ```typescript
-const maxIterations = (max: number): AgentLoopStrategy => 
-  ({ iterationCount }) => iterationCount < max
+const maxIterations =
+  (max: number): AgentLoopStrategy =>
+  ({ iterationCount }) =>
+    iterationCount < max
 ```
 
 **Default Strategy**: `maxIterations(5)` - allows up to 5 iterations
@@ -1138,16 +1161,16 @@ graph LR
     TOOL0 -->|"Yes"| EXEC0["Execute Tools"]
     EXEC0 --> ITER1["Iteration 1<br/>(With Tool Results)"]
     TOOL0 -->|"No"| DONE1["Complete"]
-    
+
     ITER1 --> TOOL1["Tool Calls?"]
     TOOL1 -->|"Yes"| EXEC1["Execute Tools"]
     EXEC1 --> ITER2["Iteration 2"]
     TOOL1 -->|"No"| DONE2["Complete"]
-    
+
     ITER2 --> CHECK["loopStrategy.check()"]
     CHECK -->|"Continue"| ITER3["Iteration 3..."]
     CHECK -->|"Stop"| DONE3["Complete"]
-    
+
     style DONE1 fill:#e8f5e9
     style DONE2 fill:#e8f5e9
     style DONE3 fill:#e8f5e9
@@ -1168,32 +1191,32 @@ The `ChatEngine` processes different `StreamChunk` types from the adapter's stre
 ```mermaid
 graph TB
     ADAPTER["adapter.chatStream()"] --> CHUNK{"chunk.type"}
-    
+
     CHUNK -->|"'content'"| CONTENT_HANDLER["handleContentChunk()"]
     CHUNK -->|"'tool_call'"| TOOL_HANDLER["handleToolCallChunk()"]
     CHUNK -->|"'tool_result'"| RESULT_HANDLER["handleToolResultChunk()"]
     CHUNK -->|"'done'"| DONE_HANDLER["handleDoneChunk()"]
     CHUNK -->|"'error'"| ERROR_HANDLER["handleErrorChunk()"]
     CHUNK -->|"'thinking'"| THINKING_HANDLER["handleThinkingChunk()"]
-    
+
     CONTENT_HANDLER --> ACCUMULATE["accumulatedContent += chunk.content"]
     CONTENT_HANDLER --> EMIT_CONTENT["emit('stream:chunk:content')"]
     CONTENT_HANDLER --> YIELD["yield chunk to client"]
-    
+
     TOOL_HANDLER --> MANAGER["toolCallManager.addToolCallChunk()"]
     TOOL_HANDLER --> EMIT_TOOL["emit('stream:chunk:tool-call')"]
     TOOL_HANDLER --> YIELD
-    
+
     DONE_HANDLER --> SAVE_REASON["lastFinishReason = chunk.finishReason"]
     DONE_HANDLER --> SAVE_DONE["doneChunk = chunk"]
     DONE_HANDLER --> EMIT_DONE["emit('stream:chunk:done')"]
     DONE_HANDLER --> EMIT_USAGE["emit('usage:tokens')"]
     DONE_HANDLER --> YIELD
-    
+
     ERROR_HANDLER --> TERMINATE["earlyTermination = true"]
     ERROR_HANDLER --> EMIT_ERROR["emit('stream:chunk:error')"]
     ERROR_HANDLER --> YIELD
-    
+
     THINKING_HANDLER --> EMIT_THINKING["emit('stream:chunk:thinking')"]
     THINKING_HANDLER --> YIELD
 ```
@@ -1250,42 +1273,42 @@ sequenceDiagram
     participant ToolMgr as "ToolCallManager"
     participant Executor as "executeToolCalls()"
     participant Tool as "Tool.execute()"
-    
+
     LLM->>Engine: "tool_call chunk (partial args)"
     Engine->>ToolMgr: "addToolCallChunk()"
     LLM->>Engine: "tool_call chunk (more args)"
     Engine->>ToolMgr: "addToolCallChunk()"
     LLM->>Engine: "done chunk (finishReason='tool_calls')"
-    
+
     Engine->>Engine: "cyclePhase = executeToolCalls"
     Engine->>ToolMgr: "getToolCalls()"
     ToolMgr-->>Engine: "ToolCall[] (complete)"
-    
+
     Engine->>Engine: "addAssistantToolCallMessage()"
     note over Engine: "messages += { role: 'assistant', toolCalls }"
-    
+
     Engine->>Executor: "executeToolCalls(toolCalls, tools)"
-    
+
     alt "Server-side tool with execute()"
         Executor->>Tool: "await tool.execute(args)"
         Tool-->>Executor: "result"
         Executor-->>Engine: "ToolResult[]"
     end
-    
+
     alt "Tool needs approval"
         Executor-->>Engine: "ApprovalRequest[]"
         Engine->>Engine: "emit approval-requested chunks"
         Engine->>Engine: "toolPhase = 'wait'"
         note over Engine: "Stream pauses, client must respond"
     end
-    
+
     alt "Client-side tool"
         Executor-->>Engine: "ClientToolRequest[]"
         Engine->>Engine: "emit tool-input-available chunks"
         Engine->>Engine: "toolPhase = 'wait'"
         note over Engine: "Stream pauses, client executes tool"
     end
-    
+
     Engine->>Engine: "messages += { role: 'tool', content, toolCallId }"
     Engine->>Engine: "toolCallManager.clear()"
     Engine->>Engine: "cyclePhase = processChat"
@@ -1296,6 +1319,7 @@ sequenceDiagram
 ### Execution Phases
 
 **1. Tool Call Detection** (`finishReason === 'tool_calls'`):
+
 - Transition to `executeToolCalls` phase
 - Retrieve complete tool calls from `ToolCallManager`
 - Add assistant message with tool calls to conversation
@@ -1303,6 +1327,7 @@ sequenceDiagram
 **Source**: [packages/typescript/ai/src/core/chat.ts:490-507]()
 
 **2. Server-Side Execution**:
+
 - Tools with `.execute()` function are called automatically
 - Results are JSON-stringified and added as tool messages
 - Execution continues to next iteration
@@ -1310,6 +1335,7 @@ sequenceDiagram
 **Source**: [packages/typescript/ai/src/tools/tool-calls.ts]()
 
 **3. Approval Handling** (`needsApproval === true`):
+
 - Emit `approval-requested` chunks with tool input
 - Set `toolPhase = 'wait'` to pause the stream
 - Client must respond with approval decision via subsequent request
@@ -1317,6 +1343,7 @@ sequenceDiagram
 **Source**: [packages/typescript/ai/src/core/chat.ts:543-576]()
 
 **4. Client-Side Execution** (tool has no server `.execute()`):
+
 - Emit `tool-input-available` chunks with parsed arguments
 - Set `toolPhase = 'wait'` to pause the stream
 - Client executes tool locally and sends result via subsequent request
@@ -1329,8 +1356,8 @@ When resuming a conversation with pending tool calls (tool calls in messages wit
 
 ```typescript
 const pendingToolCalls = messages
-  .filter(m => m.role === 'assistant' && m.toolCalls)
-  .flatMap(m => m.toolCalls.filter(tc => !hasToolResult(tc.id)))
+  .filter((m) => m.role === 'assistant' && m.toolCalls)
+  .flatMap((m) => m.toolCalls.filter((tc) => !hasToolResult(tc.id)))
 ```
 
 This enables resumption after approval responses or client-side tool execution.
@@ -1347,22 +1374,22 @@ This enables resumption after approval responses or client-side tool execution.
 
 **Event Types Emitted**:
 
-| Event | When | Payload |
-|-------|------|---------|
-| `chat:started` | Before chat begins | `{ requestId, streamId, model, provider, messageCount, hasTools }` |
-| `stream:started` | Stream begins | `{ streamId, model, provider, timestamp }` |
-| `stream:chunk:content` | Content chunk received | `{ streamId, messageId, content, delta }` |
-| `stream:chunk:tool-call` | Tool call chunk received | `{ streamId, toolCallId, toolName, arguments }` |
-| `stream:chunk:done` | Done chunk received | `{ streamId, finishReason, usage }` |
-| `stream:chunk:error` | Error chunk received | `{ streamId, error }` |
-| `stream:chunk:thinking` | Thinking chunk received | `{ streamId, content, delta }` |
-| `chat:iteration` | Agent loop iteration | `{ requestId, iterationNumber, toolCallCount }` |
-| `tool:call-completed` | Tool execution complete | `{ requestId, toolCallId, toolName, result, duration }` |
-| `stream:approval-requested` | Tool needs approval | `{ streamId, toolCallId, toolName, input, approvalId }` |
-| `stream:tool-input-available` | Client tool ready | `{ streamId, toolCallId, toolName, input }` |
-| `usage:tokens` | Token usage tracked | `{ requestId, model, usage }` |
-| `chat:completed` | Chat finishes | `{ requestId, content, finishReason, usage }` |
-| `stream:ended` | Stream ends | `{ streamId, totalChunks, duration }` |
+| Event                         | When                     | Payload                                                            |
+| ----------------------------- | ------------------------ | ------------------------------------------------------------------ |
+| `chat:started`                | Before chat begins       | `{ requestId, streamId, model, provider, messageCount, hasTools }` |
+| `stream:started`              | Stream begins            | `{ streamId, model, provider, timestamp }`                         |
+| `stream:chunk:content`        | Content chunk received   | `{ streamId, messageId, content, delta }`                          |
+| `stream:chunk:tool-call`      | Tool call chunk received | `{ streamId, toolCallId, toolName, arguments }`                    |
+| `stream:chunk:done`           | Done chunk received      | `{ streamId, finishReason, usage }`                                |
+| `stream:chunk:error`          | Error chunk received     | `{ streamId, error }`                                              |
+| `stream:chunk:thinking`       | Thinking chunk received  | `{ streamId, content, delta }`                                     |
+| `chat:iteration`              | Agent loop iteration     | `{ requestId, iterationNumber, toolCallCount }`                    |
+| `tool:call-completed`         | Tool execution complete  | `{ requestId, toolCallId, toolName, result, duration }`            |
+| `stream:approval-requested`   | Tool needs approval      | `{ streamId, toolCallId, toolName, input, approvalId }`            |
+| `stream:tool-input-available` | Client tool ready        | `{ streamId, toolCallId, toolName, input }`                        |
+| `usage:tokens`                | Token usage tracked      | `{ requestId, model, usage }`                                      |
+| `chat:completed`              | Chat finishes            | `{ requestId, content, finishReason, usage }`                      |
+| `stream:ended`                | Stream ends              | `{ streamId, totalChunks, duration }`                              |
 
 **Sources**: [packages/typescript/ai/src/core/chat.ts:114-134](), [packages/typescript/ai/src/core/chat.ts:243-328]()
 
@@ -1429,20 +1456,21 @@ Each iteration adds new messages to support multi-turn reasoning.
 `ChatEngine` respects `AbortController` signals to cancel in-flight requests:
 
 ```typescript
-const abortController = new AbortController();
+const abortController = new AbortController()
 
 const stream = chat({
   adapter,
   model: 'gpt-4o',
   messages,
   abortController,
-});
+})
 
 // Cancel after 5 seconds
-setTimeout(() => abortController.abort(), 5000);
+setTimeout(() => abortController.abort(), 5000)
 ```
 
 The engine checks `isAborted()` at critical points:
+
 - Before each iteration
 - During chunk streaming
 - Before tool execution
@@ -1456,6 +1484,7 @@ The engine checks `isAborted()` at critical points:
 The `chat()` function and `ChatEngine` form the core orchestration layer of TanStack AI:
 
 **Key Design Principles**:
+
 1. **Generator-based API** - `AsyncIterable<StreamChunk>` enables streaming without buffering
 2. **Stateful orchestration** - `ChatEngine` manages conversation state across iterations
 3. **Pluggable adapters** - Abstract provider differences via `AIAdapter.chatStream()`

@@ -40,8 +40,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 OpenClaw implements a multi-layered access control system that governs who can access the Gateway, which methods they can invoke, which tools agents can use, and which channels can route messages to agents. This page documents the role-based access control (RBAC) for Gateway methods, tool policy enforcement, channel access rules, and elevated execution policies.
 
 For sandboxing and filesystem isolation, see [Sandboxing](#10.2). For secret management and credential handling, see [Secret Management](#10.3).
@@ -56,10 +54,10 @@ OpenClaw's Gateway enforces two-tier authorization: **roles** (coarse-grained ca
 
 The Gateway supports two roles:
 
-| Role | Purpose | Default Scopes |
-|------|---------|----------------|
-| `operator` | CLI, Control UI, mobile apps | All scopes (configurable) |
-| `node` | Paired devices with limited capabilities | Node-specific methods only |
+| Role       | Purpose                                  | Default Scopes             |
+| ---------- | ---------------------------------------- | -------------------------- |
+| `operator` | CLI, Control UI, mobile apps             | All scopes (configurable)  |
+| `node`     | Paired devices with limited capabilities | Node-specific methods only |
 
 Roles are declared in the `ConnectParams.role` field during WebSocket handshake. When omitted, the role defaults to `operator`.
 
@@ -69,13 +67,13 @@ Roles are declared in the `ConnectParams.role` field during WebSocket handshake.
 
 Operator clients authenticate via token or password and may request specific scopes to limit their capabilities:
 
-| Scope | Methods | Use Case |
-|-------|---------|----------|
-| `operator.admin` | Config write, wizard, update | Full control |
-| `operator.read` | Status, logs, sessions list | Read-only monitoring |
-| `operator.write` | Send, agent, poll | Message sending |
-| `operator.approvals` | Exec approval flow | Approval-only clients |
-| `operator.pairing` | Device/node pairing | Pairing-only clients |
+| Scope                | Methods                      | Use Case              |
+| -------------------- | ---------------------------- | --------------------- |
+| `operator.admin`     | Config write, wizard, update | Full control          |
+| `operator.read`      | Status, logs, sessions list  | Read-only monitoring  |
+| `operator.write`     | Send, agent, poll            | Message sending       |
+| `operator.approvals` | Exec approval flow           | Approval-only clients |
+| `operator.pairing`   | Device/node pairing          | Pairing-only clients  |
 
 Scopes are declared in `ConnectParams.scopes`. When the client includes `operator.admin`, all methods are authorized. Otherwise, each method is checked against the scope allowlist.
 
@@ -92,7 +90,7 @@ flowchart TB
     ScopeAuth["authorizeOperatorScopesForMethod()"]
     Allow["Authorize"]
     Deny["ErrorCode.INVALID_REQUEST"]
-    
+
     Connect --> ParseRole
     ParseRole --> CheckRole
     CheckRole -->|"role=node + node method"| Allow
@@ -116,14 +114,14 @@ OpenClaw classifies every Gateway RPC method into scope groups. Unclassified met
 
 ### Method-to-Scope Table (Partial)
 
-| Method | Required Scope |
-|--------|----------------|
-| `health` | (none) |
-| `config.get`, `sessions.list` | `operator.read` |
-| `send`, `agent`, `poll` | `operator.write` |
-| `config.apply`, `config.patch`, `wizard.start`, `update.run` | `operator.admin` |
-| `exec.approval.request`, `exec.approval.resolve` | `operator.approvals` |
-| `node.pair.approve`, `device.pair.reject` | `operator.pairing` |
+| Method                                                       | Required Scope       |
+| ------------------------------------------------------------ | -------------------- |
+| `health`                                                     | (none)               |
+| `config.get`, `sessions.list`                                | `operator.read`      |
+| `send`, `agent`, `poll`                                      | `operator.write`     |
+| `config.apply`, `config.patch`, `wizard.start`, `update.run` | `operator.admin`     |
+| `exec.approval.request`, `exec.approval.resolve`             | `operator.approvals` |
+| `node.pair.approve`, `device.pair.reject`                    | `operator.pairing`   |
 
 Node-role methods (e.g., `node.invoke.result`, `node.event`) bypass scope checks when the role is `node`.
 
@@ -157,7 +155,7 @@ flowchart TB
     Sandbox["Sandbox Policy<br/>config.agents[].sandbox.tools"]
     Subagent["Subagent Policy<br/>parent session tools.subagents"]
     OwnerOnly["Owner-Only Filter<br/>senderIsOwner check"]
-    
+
     Global --> GlobalProvider
     GlobalProvider --> Agent
     Agent --> AgentProvider
@@ -165,7 +163,7 @@ flowchart TB
     Group --> Sandbox
     Sandbox --> Subagent
     Subagent --> OwnerOnly
-    
+
     style Global fill:#e1f5ff
     style Agent fill:#ffe1e1
     style Group fill:#e1ffe1
@@ -227,6 +225,7 @@ Each layer is applied sequentially. If a layer defines both `allow` and `deny`, 
 ```
 
 In this example:
+
 - Global policy: coding profile + explicit allow/deny
 - Google provider: read-only
 - Agent `restricted`: read-only (overrides global)
@@ -237,12 +236,12 @@ In this example:
 
 Tool profiles are predefined policies for common use cases:
 
-| Profile | Allowed Tools |
-|---------|---------------|
-| `minimal` | `read`, `sessions_yield` |
-| `coding` | All core tools except `message` |
+| Profile     | Allowed Tools                         |
+| ----------- | ------------------------------------- |
+| `minimal`   | `read`, `sessions_yield`              |
+| `coding`    | All core tools except `message`       |
 | `messaging` | Messaging + read + sessions + browser |
-| `full` | All tools |
+| `full`      | All tools                             |
 
 Profiles expand to explicit `allow` lists via `resolveToolProfilePolicy()`.
 
@@ -364,11 +363,11 @@ Messages from senders not in `allowFrom` are rejected before reaching the agent 
 
 Group chats have additional controls:
 
-| Policy | Configuration | Effect |
-|--------|---------------|--------|
-| Require mention | `channels[].groups["*"].requireMention=true` | Agent only responds when mentioned |
-| History limit | `messages.groupChat.historyLimit` | Limit context turns for groups |
-| Tool restrictions | `channels[].groups["*"].tools` | Per-group tool allowlists |
+| Policy            | Configuration                                | Effect                             |
+| ----------------- | -------------------------------------------- | ---------------------------------- |
+| Require mention   | `channels[].groups["*"].requireMention=true` | Agent only responds when mentioned |
+| History limit     | `messages.groupChat.historyLimit`            | Limit context turns for groups     |
+| Tool restrictions | `channels[].groups["*"].tools`               | Per-group tool allowlists          |
 
 Group policies apply to all groups by default (`"*"` wildcard) or specific group IDs.
 
@@ -416,12 +415,12 @@ The `exec` tool can run commands with elevated privileges (host access, bypassin
 }
 ```
 
-| Field | Purpose |
-|-------|---------|
-| `enabled` | Master switch for elevated mode |
-| `allowed` | Whether elevation requests are permitted |
+| Field          | Purpose                                     |
+| -------------- | ------------------------------------------- |
+| `enabled`      | Master switch for elevated mode             |
+| `allowed`      | Whether elevation requests are permitted    |
 | `defaultLevel` | Default elevation state (`"off"` or `"on"`) |
-| `allowFrom` | Per-channel sender allowlists |
+| `allowFrom`    | Per-channel sender allowlists               |
 
 **Sources:** [src/agents/bash-tools.exec.ts:60-73]()
 
@@ -437,7 +436,7 @@ flowchart TB
     HostExec["Run on host<br/>(bypass sandbox)"]
     SandboxExec["Run in sandbox"]
     Reject["Throw: elevation not allowed"]
-    
+
     ExecCall --> CheckEnabled
     CheckEnabled -->|"false"| SandboxExec
     CheckEnabled -->|"true"| CheckParam
@@ -592,14 +591,14 @@ Sandbox mode isolates filesystem access and prevents host command execution.
 
 ### Key Authorization Functions
 
-| Function | Location | Purpose |
-|----------|----------|---------|
-| `authorizeGatewayMethod()` | [src/gateway/server-methods.ts:39-66]() | Role/scope check for methods |
-| `authorizeOperatorScopesForMethod()` | [src/gateway/method-scopes.ts:119-162]() | Scope validation |
-| `isToolAllowedByPolicies()` | [src/agents/pi-tools.policy.ts:1-23]() | Multi-layer tool policy check |
-| `applyOwnerOnlyToolPolicy()` | [src/agents/tool-policy.ts:46-57]() | Owner-only tool filtering |
-| `resolveEffectiveToolPolicy()` | [src/agents/pi-tools.policy.ts:24-28]() | Merge all policy layers |
-| `createOpenClawCodingTools()` | [src/agents/pi-tools.ts:198-618]() | Tool creation with policies |
+| Function                             | Location                                 | Purpose                       |
+| ------------------------------------ | ---------------------------------------- | ----------------------------- |
+| `authorizeGatewayMethod()`           | [src/gateway/server-methods.ts:39-66]()  | Role/scope check for methods  |
+| `authorizeOperatorScopesForMethod()` | [src/gateway/method-scopes.ts:119-162]() | Scope validation              |
+| `isToolAllowedByPolicies()`          | [src/agents/pi-tools.policy.ts:1-23]()   | Multi-layer tool policy check |
+| `applyOwnerOnlyToolPolicy()`         | [src/agents/tool-policy.ts:46-57]()      | Owner-only tool filtering     |
+| `resolveEffectiveToolPolicy()`       | [src/agents/pi-tools.policy.ts:24-28]()  | Merge all policy layers       |
+| `createOpenClawCodingTools()`        | [src/agents/pi-tools.ts:198-618]()       | Tool creation with policies   |
 
 **Sources:** [src/gateway/server-methods.ts:38-158](), [src/gateway/method-scopes.ts:1-198](), [src/agents/pi-tools.ts:1-619](), [src/agents/tool-policy.ts:1-211]()
 

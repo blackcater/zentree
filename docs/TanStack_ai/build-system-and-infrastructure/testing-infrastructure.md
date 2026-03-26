@@ -33,8 +33,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the testing infrastructure for TanStack AI, including unit testing, adapter smoke tests, end-to-end testing, and test organization. The codebase employs a multi-layered testing strategy to ensure reliability across adapters, framework integrations, and full user workflows.
 
 For information about code quality tools like linting and type checking, see [Code Quality Tools](#9.4). For CI/CD integration, see [CI/CD and Release Process](#9.6).
@@ -60,29 +58,29 @@ graph TB
         PLAYWRIGHT["@playwright/test<br/>E2E test runner"]
         TSX["tsx<br/>TypeScript execution"]
     end
-    
+
     subgraph "Test Environments"
         HAPPY["happy-dom<br/>Lightweight DOM"]
         JSDOM["jsdom<br/>Full DOM simulation"]
     end
-    
+
     subgraph "Test Organization"
         NX["Nx Task Runner<br/>Parallel execution<br/>Distributed caching"]
         SCRIPTS["pnpm scripts<br/>test:lib, test:e2e"]
     end
-    
+
     subgraph "Test Types"
         UNIT["Unit Tests<br/>*.test.ts, *.spec.ts"]
         SMOKE["Smoke Tests<br/>smoke-tests/adapters"]
         E2E["E2E Tests<br/>smoke-tests/e2e"]
     end
-    
+
     VITEST --> UNIT
     VITEST --> HAPPY
     VITEST --> JSDOM
     PLAYWRIGHT --> E2E
     TSX --> SMOKE
-    
+
     NX --> SCRIPTS
     SCRIPTS --> UNIT
     SCRIPTS --> SMOKE
@@ -97,11 +95,11 @@ graph TB
 
 Unit tests use **vitest** as the test runner with coverage reporting via **@vitest/coverage-v8**. Each package contains its own test files and vitest configuration.
 
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| Test Runner | vitest 4.0.14+ | Fast unit test execution with native ESM support |
-| Coverage | @vitest/coverage-v8 | V8-based code coverage reporting |
-| DOM Environment | happy-dom / jsdom | Simulated browser environments for framework tests |
+| Component       | Technology          | Purpose                                            |
+| --------------- | ------------------- | -------------------------------------------------- |
+| Test Runner     | vitest 4.0.14+      | Fast unit test execution with native ESM support   |
+| Coverage        | @vitest/coverage-v8 | V8-based code coverage reporting                   |
+| DOM Environment | happy-dom / jsdom   | Simulated browser environments for framework tests |
 
 **Sources**: [pnpm-lock.yaml:77-79](), [packages/typescript/ai/package.json:612-614]()
 
@@ -114,18 +112,18 @@ graph LR
         TESTS["tests/<br/>Test files"]
         VITEST_CONFIG["vitest.config.ts"]
     end
-    
+
     subgraph "Nx Test Targets"
         TEST_LIB["test:lib<br/>Run unit tests"]
         TEST_COVERAGE["test:coverage<br/>Generate coverage"]
         TEST_TYPES["test:types<br/>Type checking"]
     end
-    
+
     SRC --> TEST_LIB
     TESTS --> TEST_LIB
     VITEST_CONFIG --> TEST_LIB
     TEST_LIB --> TEST_COVERAGE
-    
+
     TEST_LIB -.depends on.-> BUILD["^build target"]
 ```
 
@@ -186,12 +184,12 @@ graph TB
         INPUTS["inputs: ['default', '^production']"]
         OUTPUTS["outputs: ['{projectRoot}/coverage']"]
     end
-    
+
     subgraph "Named Inputs"
         DEFAULT["default<br/>sharedGlobals<br/>{projectRoot}/**/*<br/>!**/*.md"]
         PRODUCTION["production<br/>default<br/>!tests/**/*"]
     end
-    
+
     INPUTS --> DEFAULT
     INPUTS --> PRODUCTION
     DEPENDS --> BUILD_CACHE["Build artifacts from dependencies"]
@@ -215,7 +213,7 @@ graph TB
         TESTS["Test suites for each adapter"]
         ENV[".env<br/>API keys"]
     end
-    
+
     subgraph "Tested Adapters"
         OPENAI["@tanstack/ai-openai"]
         ANTHROPIC["@tanstack/ai-anthropic"]
@@ -223,10 +221,10 @@ graph TB
         OLLAMA["@tanstack/ai-ollama"]
         GROK["@tanstack/ai-grok"]
     end
-    
+
     CLI --> TESTS
     ENV --> TESTS
-    
+
     TESTS --> OPENAI
     TESTS --> ANTHROPIC
     TESTS --> GEMINI
@@ -240,17 +238,17 @@ graph TB
 
 The smoke tests package has minimal dependencies focused on execution:
 
-| Dependency | Purpose |
-|-----------|---------|
-| `@tanstack/ai` | Core SDK for chat() function |
-| `@tanstack/ai-openai` | OpenAI adapter |
-| `@tanstack/ai-anthropic` | Anthropic adapter |
-| `@tanstack/ai-gemini` | Gemini adapter |
-| `@tanstack/ai-ollama` | Ollama adapter |
-| `@tanstack/ai-grok` | Grok adapter |
-| `commander` | CLI argument parsing |
-| `tsx` | TypeScript execution without build step |
-| `zod` | Schema validation for tool definitions |
+| Dependency               | Purpose                                 |
+| ------------------------ | --------------------------------------- |
+| `@tanstack/ai`           | Core SDK for chat() function            |
+| `@tanstack/ai-openai`    | OpenAI adapter                          |
+| `@tanstack/ai-anthropic` | Anthropic adapter                       |
+| `@tanstack/ai-gemini`    | Gemini adapter                          |
+| `@tanstack/ai-ollama`    | Ollama adapter                          |
+| `@tanstack/ai-grok`      | Grok adapter                            |
+| `commander`              | CLI argument parsing                    |
+| `tsx`                    | TypeScript execution without build step |
+| `zod`                    | Schema validation for tool definitions  |
 
 **Sources**: [packages/typescript/smoke-tests/adapters/package.json:13-28]()
 
@@ -266,6 +264,7 @@ pnpm typecheck
 ```
 
 These tests require API keys to be configured in environment variables. They test core functionality like:
+
 - Basic chat completion
 - Streaming responses
 - Tool calling
@@ -287,23 +286,23 @@ graph TB
         REACT["React app with<br/>@tanstack/react-start"]
         API["API routes with<br/>@tanstack/ai-openai"]
     end
-    
+
     subgraph "Playwright Tests"
         BROWSER["chromium browser"]
         TEST_SPECS["*.spec.ts files"]
         FIXTURES["Test fixtures"]
     end
-    
+
     subgraph "Test Execution"
         CLI["npx playwright test"]
         UI_MODE["playwright test --ui"]
         POSTINSTALL["playwright install --with-deps"]
     end
-    
+
     BROWSER --> VITE
     TEST_SPECS --> BROWSER
     FIXTURES --> TEST_SPECS
-    
+
     CLI --> TEST_SPECS
     UI_MODE --> TEST_SPECS
 ```
@@ -314,14 +313,14 @@ graph TB
 
 The E2E test app uses a production-like stack:
 
-| Component | Technology |
-|-----------|-----------|
-| Framework | `@tanstack/react-start` with React 19 |
-| Routing | `@tanstack/react-router` |
-| Server | `@tanstack/nitro-v2-vite-plugin` |
+| Component      | Technology                                  |
+| -------------- | ------------------------------------------- |
+| Framework      | `@tanstack/react-start` with React 19       |
+| Routing        | `@tanstack/react-router`                    |
+| Server         | `@tanstack/nitro-v2-vite-plugin`            |
 | AI Integration | `@tanstack/ai-openai`, `@tanstack/ai-react` |
-| Styling | `@tailwindcss/vite` |
-| Test Runner | `@playwright/test` |
+| Styling        | `@tailwindcss/vite`                         |
+| Test Runner    | `@playwright/test`                          |
 
 **Sources**: [packages/typescript/smoke-tests/e2e/package.json:15-28]()
 
@@ -351,6 +350,7 @@ The `postinstall` script automatically installs Playwright's Chromium browser wi
 ### Test Coverage
 
 E2E tests validate:
+
 - Complete chat workflows (user input → AI response)
 - Tool calling with approval flows
 - Multi-turn conversations
@@ -372,23 +372,23 @@ graph TB
         TEST_LIB["test:lib<br/>Unit tests"]
         TEST_BUILD["test:build<br/>Validate build"]
     end
-    
+
     subgraph "Quality Checks"
         ESLINT["test:eslint<br/>Linting"]
         SHERIF["test:sherif<br/>Package consistency"]
         KNIP["test:knip<br/>Dead code detection"]
         DOCS["test:docs<br/>Link validation"]
     end
-    
+
     BUILD --> TEST_TYPES
     BUILD --> TEST_LIB
     BUILD --> TEST_BUILD
     BUILD --> ESLINT
-    
+
     TEST_TYPES -.parallel.-> TEST_LIB
     TEST_TYPES -.parallel.-> ESLINT
     TEST_LIB -.parallel.-> ESLINT
-    
+
     SHERIF -.workspace level.-> KNIP
     KNIP -.workspace level.-> DOCS
 ```
@@ -399,13 +399,13 @@ graph TB
 
 Nx caches test results based on input patterns:
 
-| Target | Inputs | Outputs | Cache |
-|--------|--------|---------|-------|
-| `test:lib` | `default`, `^production` | `{projectRoot}/coverage` | ✓ |
-| `test:coverage` | `default`, `^production` | `{projectRoot}/coverage` | ✓ |
-| `test:eslint` | `default`, `^production`, `eslint.config.js` | none | ✓ |
-| `test:types` | `default`, `^production` | none | ✓ |
-| `test:build` | `production` | none | ✓ |
+| Target          | Inputs                                       | Outputs                  | Cache |
+| --------------- | -------------------------------------------- | ------------------------ | ----- |
+| `test:lib`      | `default`, `^production`                     | `{projectRoot}/coverage` | ✓     |
+| `test:coverage` | `default`, `^production`                     | `{projectRoot}/coverage` | ✓     |
+| `test:eslint`   | `default`, `^production`, `eslint.config.js` | none                     | ✓     |
+| `test:types`    | `default`, `^production`                     | none                     | ✓     |
+| `test:build`    | `production`                                 | none                     | ✓     |
 
 The `^` prefix indicates inputs from upstream dependencies. This ensures tests invalidate when dependencies change.
 
@@ -420,23 +420,23 @@ graph LR
         PKG_JSON["package.json"]
         TSCONFIG["tsconfig.json"]
     end
-    
+
     subgraph "default"
         SHARED["sharedGlobals"]
         PROJECT["{projectRoot}/**/*"]
         NOT_MD["!{projectRoot}/**/*.md"]
     end
-    
+
     subgraph "production"
         DEFAULT["default"]
         NOT_TESTS["!{projectRoot}/tests/**/*"]
         NOT_ESLINT["!{projectRoot}/eslint.config.js"]
     end
-    
+
     SHARED --> default
     PROJECT --> default
     NOT_MD --> default
-    
+
     DEFAULT --> production
     NOT_TESTS --> production
     NOT_ESLINT --> production
@@ -458,12 +458,12 @@ sequenceDiagram
     participant CI as GitHub Actions
     participant NX as Nx Cloud
     participant NPM as npm Registry
-    
+
     PR->>CI: Push to main branch
     CI->>CI: Checkout code
     CI->>CI: Setup Tools (pnpm, node)
     CI->>NX: Run test:ci
-    
+
     NX->>NX: test:sherif (package consistency)
     NX->>NX: test:knip (dead code)
     NX->>NX: test:docs (link validation)
@@ -472,7 +472,7 @@ sequenceDiagram
     NX->>NX: test:types (type checking)
     NX->>NX: test:build (build validation)
     NX->>NX: build (compile packages)
-    
+
     NX-->>CI: All tests passed
     CI->>CI: Run Changesets (version/publish)
     CI->>NPM: Publish packages
@@ -544,8 +544,9 @@ pnpm test:coverage
 ```
 
 Coverage reports include:
+
 - Line coverage
-- Branch coverage  
+- Branch coverage
 - Function coverage
 - Statement coverage
 
@@ -557,10 +558,10 @@ Coverage reports include:
 
 Framework integration tests require DOM environments:
 
-| Environment | Use Case | Packages |
-|-------------|----------|----------|
-| `happy-dom` | Lightweight DOM for simple tests | Default for most packages |
-| `jsdom` | Full DOM simulation | Framework integration tests requiring browser APIs |
+| Environment | Use Case                         | Packages                                           |
+| ----------- | -------------------------------- | -------------------------------------------------- |
+| `happy-dom` | Lightweight DOM for simple tests | Default for most packages                          |
+| `jsdom`     | Full DOM simulation              | Framework integration tests requiring browser APIs |
 
 **Sources**: [pnpm-lock.yaml:41-43](), [pnpm-lock.yaml:671-674]()
 
@@ -581,20 +582,20 @@ This ensures tests run in an environment matching production user agents.
 
 ### Root Scripts
 
-| Script | Purpose | Execution |
-|--------|---------|-----------|
-| `test` | Alias for `test:ci` | Full test suite |
-| `test:pr` | PR validation tests | Affected packages only |
-| `test:ci` | CI test suite | All packages |
-| `test:eslint` | Run ESLint | Affected packages |
-| `test:sherif` | Package consistency | Workspace level |
-| `test:lib` | Unit tests | Affected packages |
-| `test:lib:dev` | Watch mode | Affected packages |
-| `test:coverage` | Generate coverage | Affected packages |
-| `test:build` | Build validation | Affected packages |
-| `test:types` | Type checking | Affected packages |
-| `test:knip` | Dead code detection | Workspace level |
-| `test:docs` | Link validation | Workspace level |
+| Script          | Purpose             | Execution              |
+| --------------- | ------------------- | ---------------------- |
+| `test`          | Alias for `test:ci` | Full test suite        |
+| `test:pr`       | PR validation tests | Affected packages only |
+| `test:ci`       | CI test suite       | All packages           |
+| `test:eslint`   | Run ESLint          | Affected packages      |
+| `test:sherif`   | Package consistency | Workspace level        |
+| `test:lib`      | Unit tests          | Affected packages      |
+| `test:lib:dev`  | Watch mode          | Affected packages      |
+| `test:coverage` | Generate coverage   | Affected packages      |
+| `test:build`    | Build validation    | Affected packages      |
+| `test:types`    | Type checking       | Affected packages      |
+| `test:knip`     | Dead code detection | Workspace level        |
+| `test:docs`     | Link validation     | Workspace level        |
 
 **Sources**: [package.json:17-28]()
 
@@ -617,7 +618,7 @@ The `test:pr` script uses `affected` to run only tests impacted by changes, whil
 TanStack AI's testing infrastructure provides comprehensive coverage across three layers:
 
 1. **Unit tests** validate individual packages with vitest
-2. **Adapter smoke tests** verify provider integrations against live APIs  
+2. **Adapter smoke tests** verify provider integrations against live APIs
 3. **E2E tests** confirm full user workflows with Playwright
 
 Nx orchestrates test execution with intelligent caching and parallel processing, while GitHub Actions ensures all tests pass before releases. This multi-layered approach maintains high code quality across the 40+ packages in the monorepo.

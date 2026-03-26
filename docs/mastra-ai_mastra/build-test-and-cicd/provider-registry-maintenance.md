@@ -10,7 +10,7 @@ The following files were used as context for generating this wiki page:
 - [docs/src/content/en/models/gateways/openrouter.mdx](docs/src/content/en/models/gateways/openrouter.mdx)
 - [docs/src/content/en/models/gateways/vercel.mdx](docs/src/content/en/models/gateways/vercel.mdx)
 - [docs/src/content/en/models/index.mdx](docs/src/content/en/models/index.mdx)
-- [docs/src/content/en/models/providers/_meta.ts](docs/src/content/en/models/providers/_meta.ts)
+- [docs/src/content/en/models/providers/\_meta.ts](docs/src/content/en/models/providers/_meta.ts)
 - [docs/src/content/en/models/providers/alibaba-cn.mdx](docs/src/content/en/models/providers/alibaba-cn.mdx)
 - [docs/src/content/en/models/providers/alibaba.mdx](docs/src/content/en/models/providers/alibaba.mdx)
 - [docs/src/content/en/models/providers/anthropic.mdx](docs/src/content/en/models/providers/anthropic.mdx)
@@ -49,8 +49,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes how to maintain the provider registry in Mastra's model system. The provider registry is the central source of truth for all AI model providers, their configurations, and available models. It drives TypeScript autocomplete, documentation generation, and runtime model resolution.
 
 For information about using models in your application, see [5.1 Provider Registry and Model Catalog](#5.1). For information about configuring specific providers, see [5.2 Model Configuration Patterns](#5.2).
@@ -64,23 +62,23 @@ The provider registry system consists of three interconnected components that wo
 ```mermaid
 graph TB
     Registry["provider-registry.json<br/>Single source of truth<br/>94 providers, 3373+ models"]
-    
+
     TypeGen["provider-types.generated.d.ts<br/>Auto-generated TypeScript types<br/>ProviderModelsMap interface"]
-    
+
     DocGen["Documentation Files<br/>Auto-generated MDX pages<br/>/models/providers/* & /models/gateways/*"]
-    
+
     Runtime["Runtime Resolution<br/>getProviderConfig()<br/>Model ID parsing"]
-    
+
     DevTools["Developer Experience<br/>IDE autocomplete<br/>Type safety"]
-    
+
     Registry -->|generate-provider-types.ts| TypeGen
     Registry -->|generate-model-docs.ts| DocGen
     Registry -->|loaded at runtime| Runtime
-    
+
     TypeGen --> DevTools
     DocGen --> DevTools
     Runtime --> DevTools
-    
+
     style Registry fill:#f9f9f9,stroke:#333,stroke-width:2px
 ```
 
@@ -102,9 +100,9 @@ graph LR
         Gateway["gateway?<br/>models.dev for gateways"]
         NPM["npm?<br/>AI SDK package"]
     end
-    
+
     Registry[("provider-registry.json")] --> ProviderEntry
-    
+
     ProviderEntry --> DirectProvider["Direct Provider<br/>url: https://api.provider.com<br/>gateway: undefined"]
     ProviderEntry --> GatewayProvider["Gateway Provider<br/>url: https://gateway.com<br/>gateway: 'models.dev'"]
 ```
@@ -117,27 +115,28 @@ Each provider in the registry follows a standardized schema. Understanding this 
 
 ### Required Fields
 
-| Field | Type | Description | Example |
-|-------|------|-------------|---------|
-| `url` | string | Base API endpoint (without `/chat/completions`) | `"https://api.openai.com/v1"` |
-| `apiKeyEnvVar` | string | Environment variable name for API key | `"OPENAI_API_KEY"` |
-| `apiKeyHeader` | string | HTTP header for authentication | `"Authorization"` |
-| `name` | string | Human-readable provider name | `"OpenAI"` |
-| `models` | string[] | Array of model identifiers | `["gpt-5", "gpt-5-mini"]` |
-| `docUrl` | string | URL to provider's documentation | `"https://platform.openai.com/docs/models"` |
+| Field          | Type     | Description                                     | Example                                     |
+| -------------- | -------- | ----------------------------------------------- | ------------------------------------------- |
+| `url`          | string   | Base API endpoint (without `/chat/completions`) | `"https://api.openai.com/v1"`               |
+| `apiKeyEnvVar` | string   | Environment variable name for API key           | `"OPENAI_API_KEY"`                          |
+| `apiKeyHeader` | string   | HTTP header for authentication                  | `"Authorization"`                           |
+| `name`         | string   | Human-readable provider name                    | `"OpenAI"`                                  |
+| `models`       | string[] | Array of model identifiers                      | `["gpt-5", "gpt-5-mini"]`                   |
+| `docUrl`       | string   | URL to provider's documentation                 | `"https://platform.openai.com/docs/models"` |
 
 ### Optional Fields
 
-| Field | Type | Description | Example |
-|-------|------|-------------|---------|
-| `gateway` | string | Set to `"models.dev"` for gateway providers | `"models.dev"` |
-| `npm` | string | AI SDK package name if provider uses specific SDK | `"@ai-sdk/anthropic"` |
+| Field     | Type   | Description                                       | Example               |
+| --------- | ------ | ------------------------------------------------- | --------------------- |
+| `gateway` | string | Set to `"models.dev"` for gateway providers       | `"models.dev"`        |
+| `npm`     | string | AI SDK package name if provider uses specific SDK | `"@ai-sdk/anthropic"` |
 
 **Sources:** [packages/core/src/llm/model/provider-registry.json:3-45](), [packages/core/src/llm/model/provider-registry.json:625-667]()
 
 ### Example Provider Entries
 
 **Direct Provider:**
+
 ```json
 {
   "openai": {
@@ -145,18 +144,14 @@ Each provider in the registry follows a standardized schema. Understanding this 
     "apiKeyEnvVar": "OPENAI_API_KEY",
     "apiKeyHeader": "Authorization",
     "name": "OpenAI",
-    "models": [
-      "codex-mini-latest",
-      "gpt-3.5-turbo",
-      "gpt-4",
-      "gpt-5"
-    ],
+    "models": ["codex-mini-latest", "gpt-3.5-turbo", "gpt-4", "gpt-5"],
     "docUrl": "https://platform.openai.com/docs/models"
   }
 }
 ```
 
 **Gateway Provider:**
+
 ```json
 {
   "openrouter": {
@@ -164,10 +159,7 @@ Each provider in the registry follows a standardized schema. Understanding this 
     "apiKeyEnvVar": "OPENROUTER_API_KEY",
     "apiKeyHeader": "Authorization",
     "name": "OpenRouter",
-    "models": [
-      "allenai/molmo-2-8b:free",
-      "anthropic/claude-3.5-haiku"
-    ],
+    "models": ["allenai/molmo-2-8b:free", "anthropic/claude-3.5-haiku"],
     "docUrl": "https://openrouter.ai/models",
     "gateway": "models.dev"
   }
@@ -175,6 +167,7 @@ Each provider in the registry follows a standardized schema. Understanding this 
 ```
 
 **Provider with AI SDK Package:**
+
 ```json
 {
   "zenmux": {
@@ -182,10 +175,7 @@ Each provider in the registry follows a standardized schema. Understanding this 
     "apiKeyEnvVar": "ZENMUX_API_KEY",
     "apiKeyHeader": "Authorization",
     "name": "ZenMux",
-    "models": [
-      "anthropic/claude-3.5-haiku",
-      "google/gemini-2.5-flash"
-    ],
+    "models": ["anthropic/claude-3.5-haiku", "google/gemini-2.5-flash"],
     "docUrl": "https://docs.zenmux.ai",
     "gateway": "models.dev",
     "npm": "@ai-sdk/anthropic"
@@ -202,21 +192,21 @@ Follow this workflow to add a new provider to the registry.
 ```mermaid
 graph TB
     Start["Start: New Provider"]
-    
+
     Research["1. Research Provider<br/>• API endpoint structure<br/>• Authentication method<br/>• Model list<br/>• Documentation URL"]
-    
+
     Edit["2. Edit provider-registry.json<br/>Add new provider entry<br/>following schema"]
-    
+
     Validate["3. Validate JSON<br/>• Syntax check<br/>• Schema compliance<br/>• URL format"]
-    
+
     GenTypes["4. Generate Types<br/>Run type generation script<br/>Creates ProviderModelsMap"]
-    
+
     GenDocs["5. Generate Documentation<br/>Run doc generation script<br/>Creates MDX files"]
-    
+
     Test["6. Test Integration<br/>• Create test agent<br/>• Verify model resolution<br/>• Check autocomplete"]
-    
+
     Commit["7. Commit Changes<br/>• provider-registry.json<br/>• provider-types.generated.d.ts<br/>• Generated MDX files"]
-    
+
     Start --> Research
     Research --> Edit
     Edit --> Validate
@@ -224,7 +214,7 @@ graph TB
     GenTypes --> GenDocs
     GenDocs --> Test
     Test --> Commit
-    
+
     Validate -->|Errors| Edit
     Test -->|Fails| Edit
 ```
@@ -247,11 +237,13 @@ Before adding a provider, collect the following information:
 Open `packages/core/src/llm/model/provider-registry.json` and add a new provider object under the `providers` key. Follow alphabetical ordering by provider ID.
 
 **Provider ID Naming Convention:**
+
 - Use lowercase with hyphens: `my-provider-name`
 - For regional variants: `provider-name-cn` (China), `provider-name-eu` (Europe)
 - For specialized endpoints: `provider-name-coding-plan`, `provider-name-agent`
 
 **Example:**
+
 ```json
 {
   "providers": {
@@ -260,11 +252,7 @@ Open `packages/core/src/llm/model/provider-registry.json` and add a new provider
       "apiKeyEnvVar": "NEW_PROVIDER_API_KEY",
       "apiKeyHeader": "Authorization",
       "name": "My New Provider",
-      "models": [
-        "model-1",
-        "model-2-vision",
-        "model-3-large"
-      ],
+      "models": ["model-1", "model-2-vision", "model-3-large"],
       "docUrl": "https://docs.newprovider.com/models"
     }
   }
@@ -281,10 +269,7 @@ If the provider is a gateway aggregating multiple other providers, add `"gateway
     "apiKeyEnvVar": "GATEWAY_API_KEY",
     "apiKeyHeader": "Authorization",
     "name": "My Gateway",
-    "models": [
-      "openai/gpt-4",
-      "anthropic/claude-3"
-    ],
+    "models": ["openai/gpt-4", "anthropic/claude-3"],
     "docUrl": "https://gateway.example.com/docs",
     "gateway": "models.dev"
   }
@@ -315,6 +300,7 @@ If the provider requires a specific AI SDK package, add the `npm` field:
 Ensure the JSON is valid and follows the schema:
 
 **Validation Checklist:**
+
 - [ ] Valid JSON syntax (no trailing commas, proper quotes)
 - [ ] `url` ends with `/v1` and does not include `/chat/completions`
 - [ ] `apiKeyEnvVar` uses SCREAMING_SNAKE_CASE
@@ -329,6 +315,7 @@ Ensure the JSON is valid and follows the schema:
 The TypeScript types must be regenerated whenever the registry changes. This creates the `ProviderModelsMap` type that powers autocomplete.
 
 **Command:** (The exact command should be in a script in package.json)
+
 ```bash
 # Example - actual command may vary
 npm run generate:provider-types
@@ -342,7 +329,7 @@ export type ProviderModelsMap = {
     'model-1',
     'model-2-vision',
     'model-3-large',
-  ];
+  ]
   // ... other providers
 }
 ```
@@ -354,17 +341,20 @@ export type ProviderModelsMap = {
 Documentation files must also be regenerated to create MDX pages for the new provider.
 
 **Command:** (The exact command should be in a script in package.json)
+
 ```bash
 # Example - actual command may vary
 npm run generate:model-docs
 ```
 
 This creates documentation files:
+
 - For direct providers: `docs/src/content/en/models/providers/my-new-provider.mdx`
 - For gateways: `docs/src/content/en/models/gateways/my-gateway.mdx`
 - Updates index pages with the new provider
 
 **Generated Documentation Includes:**
+
 - Provider logo and name
 - Environment variable setup
 - Usage example
@@ -379,24 +369,25 @@ Create a test agent to verify the provider works correctly:
 
 ```typescript
 // test-new-provider.ts
-import { Agent } from "@mastra/core/agent";
+import { Agent } from '@mastra/core/agent'
 
 // Set the environment variable
-process.env.NEW_PROVIDER_API_KEY = "your-test-key";
+process.env.NEW_PROVIDER_API_KEY = 'your-test-key'
 
 const agent = new Agent({
-  id: "test-agent",
-  name: "Test Agent",
-  instructions: "You are a helpful assistant",
-  model: "my-new-provider/model-1" // Should autocomplete
-});
+  id: 'test-agent',
+  name: 'Test Agent',
+  instructions: 'You are a helpful assistant',
+  model: 'my-new-provider/model-1', // Should autocomplete
+})
 
 // Test generation
-const response = await agent.generate("Hello!");
-console.log(response.text);
+const response = await agent.generate('Hello!')
+console.log(response.text)
 ```
 
 **Verification Checklist:**
+
 - [ ] IDE autocomplete shows the new provider in model strings
 - [ ] Environment variable is correctly read
 - [ ] Model resolution works (no runtime errors about missing provider)
@@ -429,38 +420,38 @@ Existing providers may need updates when models are added, deprecated, or when p
 ```mermaid
 graph TB
     ChangeType["Change Type?"]
-    
+
     AddModel["Add Model<br/>Append to models array"]
     RemoveModel["Remove Model<br/>Remove from models array"]
     UpdateURL["Update URL<br/>Modify url field"]
     UpdateEnv["Update Env Var<br/>Modify apiKeyEnvVar"]
-    
+
     EditRegistry["Edit provider-registry.json"]
     ValidateJSON["Validate JSON syntax"]
-    
+
     RegenTypes["Regenerate Types<br/>npm run generate:provider-types"]
     RegenDocs["Regenerate Docs<br/>npm run generate:model-docs"]
-    
+
     TestExisting["Test Existing Usage<br/>Ensure no breaking changes"]
-    
+
     PRReview["Create PR<br/>Include changelog entry"]
-    
+
     ChangeType --> AddModel
     ChangeType --> RemoveModel
     ChangeType --> UpdateURL
     ChangeType --> UpdateEnv
-    
+
     AddModel --> EditRegistry
     RemoveModel --> EditRegistry
     UpdateURL --> EditRegistry
     UpdateEnv --> EditRegistry
-    
+
     EditRegistry --> ValidateJSON
     ValidateJSON --> RegenTypes
     RegenTypes --> RegenDocs
     RegenDocs --> TestExisting
     TestExisting --> PRReview
-    
+
     ValidateJSON -->|Errors| EditRegistry
     TestExisting -->|Breaking| EditRegistry
 ```
@@ -479,14 +470,15 @@ When a provider releases new models, add them to the `models` array:
     "models": [
       "existing-model-1",
       "existing-model-2",
-      "new-model-3",        // New model
-      "new-model-4-vision"  // New model with vision
+      "new-model-3", // New model
+      "new-model-4-vision" // New model with vision
     ]
   }
 }
 ```
 
 **Considerations:**
+
 - Maintain alphabetical or versioning order
 - Include model variant suffixes (`-vision`, `-turbo`, `-mini`)
 - Verify model IDs match provider's official identifiers
@@ -508,6 +500,7 @@ When models are deprecated, remove them from the array:
 ```
 
 **Breaking Change Warning:** Removing models is a breaking change for users who reference them. Consider:
+
 - Adding a note in CHANGELOG
 - Providing migration guidance
 - Checking if the model is used in examples or tests
@@ -519,7 +512,7 @@ If a provider changes their API endpoint:
 ```json
 {
   "provider": {
-    "url": "https://new-api.provider.com/v2",  // Updated from v1 to v2
+    "url": "https://new-api.provider.com/v2", // Updated from v1 to v2
     "apiKeyEnvVar": "PROVIDER_API_KEY",
     "apiKeyHeader": "Authorization",
     "name": "Provider",
@@ -539,8 +532,8 @@ If a provider changes their authentication:
 {
   "provider": {
     "url": "https://api.provider.com/v1",
-    "apiKeyEnvVar": "NEW_PROVIDER_API_KEY",  // Changed from OLD_PROVIDER_API_KEY
-    "apiKeyHeader": "X-API-Key",             // Changed from Authorization
+    "apiKeyEnvVar": "NEW_PROVIDER_API_KEY", // Changed from OLD_PROVIDER_API_KEY
+    "apiKeyHeader": "X-API-Key", // Changed from Authorization
     "name": "Provider",
     "models": ["model-1"],
     "docUrl": "https://docs.provider.com"
@@ -561,17 +554,17 @@ The type generation system creates TypeScript types from the provider registry, 
 ```mermaid
 graph LR
     Registry["provider-registry.json<br/>{providers: {...}}"]
-    
+
     Script["generate-provider-types.ts<br/>Reads JSON<br/>Builds type definitions"]
-    
+
     Types["provider-types.generated.d.ts<br/>export type ProviderModelsMap"]
-    
+
     Usage["Developer Code<br/>model: 'provider/model'<br/>↑ Autocomplete works"]
-    
+
     Registry --> Script
     Script --> Types
     Types --> Usage
-    
+
     Warning["⚠️ Auto-generated<br/>DO NOT EDIT MANUALLY"]
     Warning -.-> Types
 ```
@@ -593,14 +586,14 @@ export type ProviderModelsMap = {
     'KBLab/kb-whisper-large',
     'Qwen/Qwen3-30B-A3B-Instruct-2507-FP8',
     // ... more models
-  ];
+  ]
   readonly openai: readonly [
     'codex-mini-latest',
     'gpt-3.5-turbo',
     'gpt-4',
     'gpt-5',
     // ... more models
-  ];
+  ]
   // ... 92 more providers
 }
 ```
@@ -631,20 +624,20 @@ The documentation generation system creates MDX pages for each provider and gate
 ```mermaid
 graph TB
     Registry["provider-registry.json"]
-    
+
     DocScript["generate-model-docs.ts<br/>Template-based generation"]
-    
+
     ProviderDocs["Provider Pages<br/>docs/src/content/en/models/providers/*.mdx"]
     GatewayDocs["Gateway Pages<br/>docs/src/content/en/models/gateways/*.mdx"]
     IndexPages["Index Pages<br/>index.mdx files"]
     Sidebar["Sidebar Config<br/>sidebars.js"]
-    
+
     Registry --> DocScript
     DocScript --> ProviderDocs
     DocScript --> GatewayDocs
     DocScript --> IndexPages
     DocScript --> Sidebar
-    
+
     ProviderDocs --> Site["Docusaurus Site<br/>https://mastra.ai/models"]
     GatewayDocs --> Site
     IndexPages --> Site
@@ -667,16 +660,16 @@ Each provider gets a dedicated MDX file with:
 
 **Example Generated File:**
 
-```mdx
+````mdx
 ---
-title: "OpenAI | Models"
-description: "Use OpenAI models with Mastra. 46 models available."
+title: 'OpenAI | Models'
+description: 'Use OpenAI models with Mastra. 46 models available.'
 ---
 
 # <img src="..." /> OpenAI
 
-Access 46 OpenAI models through Mastra's model router. 
-Authentication is handled automatically using the `OPENAI_API_KEY` 
+Access 46 OpenAI models through Mastra's model router.
+Authentication is handled automatically using the `OPENAI_API_KEY`
 environment variable.
 
 Learn more in the [OpenAI documentation](https://platform.openai.com/docs/models).
@@ -684,22 +677,24 @@ Learn more in the [OpenAI documentation](https://platform.openai.com/docs/models
 ```bash title=".env"
 OPENAI_API_KEY=your-api-key
 ```
+````
 
 ```typescript title="src/mastra/agents/my-agent.ts"
-import { Agent } from "@mastra/core/agent";
+import { Agent } from '@mastra/core/agent'
 
 const agent = new Agent({
-  id: "my-agent",
-  name: "My Agent",
-  instructions: "You are a helpful assistant",
-  model: "openai/gpt-5"
-});
+  id: 'my-agent',
+  name: 'My Agent',
+  instructions: 'You are a helpful assistant',
+  model: 'openai/gpt-5',
+})
 ```
 
 ## Models
 
 <!-- Model table would be here -->
-```
+
+````
 
 **Sources:** [docs/src/content/en/models/providers/openai.mdx:1-100](), [docs/src/content/en/models/providers/opencode.mdx:1-50]()
 
@@ -751,7 +746,7 @@ const sidebars = {
     },
   ],
 }
-```
+````
 
 **Sources:** [docs/src/content/en/models/sidebars.js:1-100]()
 
@@ -760,16 +755,19 @@ const sidebars = {
 ### Naming Conventions
 
 **Provider IDs:**
+
 - Use lowercase with hyphens: `my-provider`
 - Regional variants: `provider-cn`, `provider-eu`
 - Specialized endpoints: `provider-coding-plan`, `provider-agent`
 
 **Model IDs:**
+
 - Use provider's official model identifiers exactly
 - Include variant suffixes: `-vision`, `-turbo`, `-mini`, `-instruct`
 - For gateway models, include the original provider: `provider/model-name`
 
 **Environment Variables:**
+
 - Use SCREAMING_SNAKE_CASE: `MY_PROVIDER_API_KEY`
 - End with `_API_KEY` for consistency
 - For specialized endpoints: `PROVIDER_CODING_PLAN_API_KEY`
@@ -777,6 +775,7 @@ const sidebars = {
 ### Alphabetical Ordering
 
 Maintain alphabetical order in:
+
 - Provider keys in `provider-registry.json`
 - Model arrays within each provider (when not versioned)
 - Sidebar items in `sidebars.js`
@@ -785,29 +784,35 @@ Maintain alphabetical order in:
 ### Breaking Changes
 
 Document breaking changes in CHANGELOG when:
+
 - Removing models
 - Changing `url` endpoints
 - Changing `apiKeyEnvVar` names
 - Changing `apiKeyHeader` format
 
 **Migration Guide Template:**
-```markdown
+
+````markdown
 ## Breaking Changes
 
 ### Provider X: Updated API Endpoint
 
 **Before:**
+
 ```typescript
-model: "provider/old-model"
+model: 'provider/old-model'
 ```
+````
 
 **After:**
+
 ```typescript
-model: "provider/new-model"
+model: 'provider/new-model'
 ```
 
 **Action Required:**
 Update your `.env` file:
+
 ```bash
 # Old
 OLD_PROVIDER_API_KEY=xxx
@@ -815,7 +820,8 @@ OLD_PROVIDER_API_KEY=xxx
 # New
 NEW_PROVIDER_API_KEY=xxx
 ```
-```
+
+````
 
 ### Testing Checklist
 
@@ -931,13 +937,13 @@ for (const [id, config] of Object.entries(providerRegistry.providers)) {
         [config.apiKeyHeader]: `Bearer ${process.env[config.apiKeyEnvVar]}`
       }
     });
-    
+
     console.log(`✓ ${id}: ${response.status}`);
   } catch (error) {
     console.error(`✗ ${id}: ${error.message}`);
   }
 }
-```
+````
 
 **Sources:** [packages/core/src/llm/model/provider-registry.json:1-100]()
 
@@ -950,41 +956,44 @@ Mastra includes an auto-refresh system that keeps the local provider registry up
 ```mermaid
 graph LR
     DevMode["Development Mode<br/>mastra dev"]
-    
+
     Check["Check Timestamp<br/>Last registry update"]
-    
+
     Fetch["Fetch Latest Registry<br/>From models.dev API"]
-    
+
     Compare["Compare Versions<br/>Local vs Remote"]
-    
+
     Update["Update Local Registry<br/>Merge new providers/models"]
-    
+
     Regen["Regenerate Types<br/>Update autocomplete"]
-    
+
     DevMode --> Check
     Check -->|"Every hour"| Fetch
     Fetch --> Compare
     Compare -->|"New changes"| Update
     Update --> Regen
     Compare -->|"No changes"| Check
-    
+
     EnvVar["MASTRA_AUTO_REFRESH_PROVIDERS=false<br/>Disable auto-refresh"]
     EnvVar -.->|"Disables"| Check
 ```
 
 **Configuration:**
+
 - **Enabled by default** in development mode
 - **Disabled by default** in production
 - **Refresh interval**: 1 hour
 - **Disable**: Set `MASTRA_AUTO_REFRESH_PROVIDERS=false`
 
 **Why Auto-Refresh:**
+
 - Ensures developers have access to newest models
 - Reduces manual registry maintenance
 - Keeps TypeScript autocomplete current
 - Automatically includes new providers
 
 **When to Disable:**
+
 - Production deployments (stability)
 - Air-gapped environments (no internet)
 - Custom provider registries (local modifications)

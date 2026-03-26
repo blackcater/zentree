@@ -27,8 +27,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the authentication systems used in AionUi's WebUI server: JWT session tokens, CSRF protection, rate limiting, password management, QR code login, and the Google OAuth bridge used for Gemini agent access.
 
 > For the Gemini-specific Google OAuth login UI in Settings, see [Settings Interface](#5.7). For the WebUI server architecture itself, see [WebUI Server Architecture](#3.5). For how the Electron desktop app bypasses WebUI auth entirely, see [Application Modes](#3.1).
@@ -113,16 +111,16 @@ Sources: [src/webserver/routes/authRoutes.ts:1-417](), [src/webserver/auth/servi
 
 All auth parameters are centralized in `AUTH_CONFIG` in [src/webserver/config/constants.ts:17-61]().
 
-| Parameter | Value | Description |
-|---|---|---|
-| `TOKEN.SESSION_EXPIRY` | `'24h'` | JWT lifetime |
-| `TOKEN.COOKIE_MAX_AGE` | 30 days (ms) | Cookie `max-age` |
-| `COOKIE.NAME` | `'aionui-session'` | Session cookie name |
-| `COOKIE.OPTIONS.httpOnly` | `true` | JS cannot read cookie |
-| `COOKIE.OPTIONS.sameSite` | `'strict'` | CSRF mitigation |
-| `RATE_LIMIT.LOGIN_MAX_ATTEMPTS` | `5` | Max logins per window |
-| `RATE_LIMIT.WINDOW_MS` | 15 min | Rate limit window |
-| `DEFAULT_USER.USERNAME` | `'admin'` | Default admin username |
+| Parameter                       | Value              | Description            |
+| ------------------------------- | ------------------ | ---------------------- |
+| `TOKEN.SESSION_EXPIRY`          | `'24h'`            | JWT lifetime           |
+| `TOKEN.COOKIE_MAX_AGE`          | 30 days (ms)       | Cookie `max-age`       |
+| `COOKIE.NAME`                   | `'aionui-session'` | Session cookie name    |
+| `COOKIE.OPTIONS.httpOnly`       | `true`             | JS cannot read cookie  |
+| `COOKIE.OPTIONS.sameSite`       | `'strict'`         | CSRF mitigation        |
+| `RATE_LIMIT.LOGIN_MAX_ATTEMPTS` | `5`                | Max logins per window  |
+| `RATE_LIMIT.WINDOW_MS`          | 15 min             | Rate limit window      |
+| `DEFAULT_USER.USERNAME`         | `'admin'`          | Default admin username |
 
 The `secure` flag on cookies is `false` by default and is enabled only when `AIONUI_HTTPS=true` or `NODE_ENV=production` with `HTTPS=true` is set. In remote HTTP mode, `sameSite` is downgraded to `'lax'` to allow cross-origin cookie delivery. See [src/webserver/config/constants.ts:144-163]().
 
@@ -183,6 +181,7 @@ The constant-time dummy verification when no user is found prevents timing-based
 ### Logout
 
 `POST /logout` requires a valid session token (`AuthMiddleware.authenticateToken`). It:
+
 1. Extracts the current token via `TokenUtils.extractFromRequest`
 2. Calls `AuthService.blacklistToken(token)` — stores the SHA-256 hash of the token with its expiry
 3. Clears the `aionui-session` cookie
@@ -249,12 +248,12 @@ Sources: [src/webserver/routes/authRoutes.ts:357-413]()
 
 `TokenMiddleware` (in [src/webserver/auth/middleware/TokenMiddleware.ts]()) extracts tokens from requests in priority order:
 
-| Source | HTTP Requests | WebSocket Requests |
-|---|---|---|
-| `Authorization: Bearer <token>` | ✓ (first) | ✓ (first) |
-| Cookie `aionui-session` | ✓ (second) | ✓ (second) |
-| `sec-websocket-protocol` header | — | ✓ (third, fallback for clients without cookie support) |
-| URL query parameter | ✗ (explicitly disabled) | ✗ (explicitly disabled) |
+| Source                          | HTTP Requests           | WebSocket Requests                                     |
+| ------------------------------- | ----------------------- | ------------------------------------------------------ |
+| `Authorization: Bearer <token>` | ✓ (first)               | ✓ (first)                                              |
+| Cookie `aionui-session`         | ✓ (second)              | ✓ (second)                                             |
+| `sec-websocket-protocol` header | —                       | ✓ (third, fallback for clients without cookie support) |
+| URL query parameter             | ✗ (explicitly disabled) | ✗ (explicitly disabled)                                |
 
 URL query parameters are **not** supported as a token source to prevent token leakage through server logs and Referrer headers. See [src/webserver/auth/middleware/TokenMiddleware.ts:57-61]().
 
@@ -316,12 +315,12 @@ Sources: [src/webserver/setup.ts:50-94](), [src/webserver/middleware/csrfClient.
 
 All rate limiters use `express-rate-limit`. They are defined in [src/webserver/middleware/security.ts:14-70]().
 
-| Limiter | Applied To | Window | Max |
-|---|---|---|---|
-| `authRateLimiter` | `POST /login`, `POST /api/auth/qr-login` | 15 min | 5 (skips successful requests) |
-| `apiRateLimiter` | All `/api/*` routes, `/logout` | 1 min | 60 |
-| `fileOperationLimiter` | `/api/directory/*` | 1 min | 30 |
-| `authenticatedActionLimiter` | Sensitive actions behind auth | 1 min | 20 (keyed by `user.id` or IP) |
+| Limiter                      | Applied To                               | Window | Max                           |
+| ---------------------------- | ---------------------------------------- | ------ | ----------------------------- |
+| `authRateLimiter`            | `POST /login`, `POST /api/auth/qr-login` | 15 min | 5 (skips successful requests) |
+| `apiRateLimiter`             | All `/api/*` routes, `/logout`           | 1 min  | 60                            |
+| `fileOperationLimiter`       | `/api/directory/*`                       | 1 min  | 30                            |
+| `authenticatedActionLimiter` | Sensitive actions behind auth            | 1 min  | 20 (keyed by `user.id` or IP) |
 
 `authenticatedActionLimiter` keys by `user:${req.user.id}` when a user is authenticated, otherwise by `ip:${req.ip}`. This prevents a single authenticated user from flooding sensitive endpoints.
 
@@ -338,6 +337,7 @@ Sources: [src/webserver/middleware/security.ts:14-70]()
 ### Password Change
 
 `POST /api/auth/change-password` (requires valid session) [src/webserver/routes/authRoutes.ts:214-275]():
+
 1. Validates `currentPassword` and `newPassword` are present
 2. Validates `newPassword` strength via `AuthService.validatePasswordStrength()`
 3. Looks up the user from `req.user.id`
@@ -346,6 +346,7 @@ Sources: [src/webserver/middleware/security.ts:14-70]()
 6. Calls `AuthService.invalidateAllTokens()` to rotate the JWT secret
 
 **Password strength rules** ([src/webserver/auth/service/AuthService.ts:393-418]()):
+
 - Minimum 8 characters
 - Maximum 128 characters
 - Must not match common weak passwords list (`'password'`, `'12345678'`, etc.)
@@ -378,13 +379,13 @@ Sources: [src/webserver/routes/authRoutes.ts:177-195]()
 
 Error codes returned from `login()`:
 
-| Code | HTTP Status |
-|---|---|
-| `invalidCredentials` | 401 |
-| `tooManyAttempts` | 429 |
-| `serverError` | 5xx |
-| `networkError` | fetch exception |
-| `unknown` | other |
+| Code                 | HTTP Status     |
+| -------------------- | --------------- |
+| `invalidCredentials` | 401             |
+| `tooManyAttempts`    | 429             |
+| `serverError`        | 5xx             |
+| `networkError`       | fetch exception |
+| `unknown`            | other           |
 
 Sources: [src/renderer/context/AuthContext.tsx:1-210]()
 
@@ -394,11 +395,11 @@ Sources: [src/renderer/context/AuthContext.tsx:1-210]()
 
 `authBridge.ts` in [src/process/bridge/authBridge.ts:1-121]() is **separate** from the WebUI session auth. It provides Google OAuth for the Gemini CLI agent via three IPC bridge handlers:
 
-| Handler | IPC Channel | Description |
-|---|---|---|
-| `googleAuth.status` | `ipcBridge.googleAuth.status` | Check if OAuth credentials exist/are valid |
-| `googleAuth.login` | `ipcBridge.googleAuth.login` | Trigger browser-based OAuth flow (2 min timeout) |
-| `googleAuth.logout` | `ipcBridge.googleAuth.logout` | Clear cached credential file |
+| Handler             | IPC Channel                   | Description                                      |
+| ------------------- | ----------------------------- | ------------------------------------------------ |
+| `googleAuth.status` | `ipcBridge.googleAuth.status` | Check if OAuth credentials exist/are valid       |
+| `googleAuth.login`  | `ipcBridge.googleAuth.login`  | Trigger browser-based OAuth flow (2 min timeout) |
+| `googleAuth.logout` | `ipcBridge.googleAuth.logout` | Clear cached credential file                     |
 
 These use `getOauthInfoWithCache`, `loginWithOauth`, and `clearCachedCredentialFile` from `@office-ai/aioncli-core`. This auth is for Gemini API access only and has no effect on WebUI session tokens.
 
@@ -410,12 +411,12 @@ Sources: [src/process/bridge/authBridge.ts:1-121]()
 
 `AuthMiddleware.securityHeadersMiddleware` in [src/webserver/auth/middleware/AuthMiddleware.ts:51-76]() applies to every response:
 
-| Header | Value |
-|---|---|
-| `X-Frame-Options` | `DENY` |
-| `X-Content-Type-Options` | `nosniff` |
-| `X-XSS-Protection` | `1; mode=block` |
-| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| Header                    | Value                                          |
+| ------------------------- | ---------------------------------------------- |
+| `X-Frame-Options`         | `DENY`                                         |
+| `X-Content-Type-Options`  | `nosniff`                                      |
+| `X-XSS-Protection`        | `1; mode=block`                                |
+| `Referrer-Policy`         | `strict-origin-when-cross-origin`              |
 | `Content-Security-Policy` | Stricter in production, relaxed in development |
 
 Sources: [src/webserver/auth/middleware/AuthMiddleware.ts:51-76](), [src/webserver/config/constants.ts:166-191]()

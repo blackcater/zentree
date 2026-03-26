@@ -23,11 +23,10 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 Pi-mono is a monorepo containing a complete coding agent system. The primary artifact is `pi`, a command-line tool that orchestrates LLM-powered conversations with access to filesystem operations, shell execution, and code editing capabilities. The system provides multiple interfaces (CLI, web, Slack) built on shared abstractions for LLM communication, terminal rendering, and agent lifecycle management.
 
 This page provides a high-level introduction to the repository's architecture, package structure, and core concepts. For detailed information about specific subsystems:
+
 - For the CLI and its features, see [pi-coding-agent: Coding Agent CLI](#4)
 - For LLM provider abstraction, see [pi-ai: LLM API Library](#2)
 - For terminal rendering, see [pi-tui: Terminal UI Library](#5)
@@ -55,26 +54,26 @@ graph TB
         Mom["@mariozechner/pi-mom<br/>packages/mom<br/>Slack bot: mom"]
         Pods["@mariozechner/pi-pods<br/>packages/pods<br/>vLLM manager: pi-pods"]
     end
-    
+
     subgraph "Core Libraries"
         AgentCore["@mariozechner/pi-agent-core<br/>packages/agent<br/>Agent class, agentLoop()"]
         AI["@mariozechner/pi-ai<br/>packages/ai<br/>streamFn, ModelRegistry"]
         TUI["@mariozechner/pi-tui<br/>packages/tui<br/>TUI class, Editor, Input"]
     end
-    
+
     CLI --> AgentCore
     CLI --> AI
     CLI --> TUI
-    
+
     WebUI --> AI
     WebUI --> TUI
-    
+
     Mom --> AgentCore
     Mom --> AI
     Mom --> CLI
-    
+
     Pods --> AgentCore
-    
+
     AgentCore --> AI
 ```
 
@@ -82,15 +81,15 @@ graph TB
 
 ## Package Roles
 
-| Package | Purpose | Key Exports | Entry Point |
-|---------|---------|-------------|-------------|
-| **coding-agent** | Main CLI application with session management, tools, and extensions | `AgentSession`, `SessionManager`, `SettingsManager`, `ExtensionAPI` | `pi` CLI command |
-| **ai** | Unified LLM API abstraction for 15+ providers | `streamFn`, `streamSimple`, `ModelRegistry`, `AuthStorage` | Library only |
-| **agent-core** | General-purpose agent framework with tool execution | `Agent`, `agentLoop`, `AgentMessage`, `AgentTool` | Library only |
-| **tui** | Terminal UI library with differential rendering | `TUI`, `Editor`, `Input`, `SelectList`, `Component` | Library only |
-| **web-ui** | Browser-based chat interface components | `AgentInterface`, `ChatPanel`, `ModelSelector`, Web Components | Library only |
-| **mom** | Slack bot with per-channel workspaces | `SlackBot`, `MomWorkspace` | `mom` CLI command |
-| **pods** | GPU pod management for vLLM deployments | Pod lifecycle management | `pi-pods` CLI command |
+| Package          | Purpose                                                             | Key Exports                                                         | Entry Point           |
+| ---------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | --------------------- |
+| **coding-agent** | Main CLI application with session management, tools, and extensions | `AgentSession`, `SessionManager`, `SettingsManager`, `ExtensionAPI` | `pi` CLI command      |
+| **ai**           | Unified LLM API abstraction for 15+ providers                       | `streamFn`, `streamSimple`, `ModelRegistry`, `AuthStorage`          | Library only          |
+| **agent-core**   | General-purpose agent framework with tool execution                 | `Agent`, `agentLoop`, `AgentMessage`, `AgentTool`                   | Library only          |
+| **tui**          | Terminal UI library with differential rendering                     | `TUI`, `Editor`, `Input`, `SelectList`, `Component`                 | Library only          |
+| **web-ui**       | Browser-based chat interface components                             | `AgentInterface`, `ChatPanel`, `ModelSelector`, Web Components      | Library only          |
+| **mom**          | Slack bot with per-channel workspaces                               | `SlackBot`, `MomWorkspace`                                          | `mom` CLI command     |
+| **pods**         | GPU pod management for vLLM deployments                             | Pod lifecycle management                                            | `pi-pods` CLI command |
 
 **Sources:** [packages/coding-agent/package.json:1-100](), [packages/ai/package.json:1-81](), [packages/agent/package.json:1-45](), [packages/tui/package.json:1-53](), [packages/web-ui/package.json:1-52](), [packages/mom/package.json:1-55](), [packages/pods/package.json:1-41]()
 
@@ -118,15 +117,15 @@ The CLI is implemented in [packages/coding-agent/src/cli.ts]() and uses `AgentSe
 Web components for browser-based chat interfaces:
 
 ```typescript
-import { AgentInterface, ChatPanel } from '@mariozechner/pi-web-ui';
+import { AgentInterface, ChatPanel } from '@mariozechner/pi-web-ui'
 
 const agent = new AgentInterface({
   model: 'anthropic/claude-sonnet-4',
-  getApiKey: (provider) => apiKeys[provider]
-});
+  getApiKey: (provider) => apiKeys[provider],
+})
 
-const chatPanel = new ChatPanel();
-chatPanel.setAgent(agent);
+const chatPanel = new ChatPanel()
+chatPanel.setAgent(agent)
 ```
 
 **Sources:** [packages/web-ui/src/agent-interface.ts](), [packages/web-ui/src/components/chat-panel.ts]()
@@ -151,19 +150,19 @@ Mom delegates to `AgentSession` for each channel conversation, persisting to `lo
 Use agent-core for custom applications:
 
 ```typescript
-import { Agent } from '@mariozechner/pi-agent-core';
-import { streamSimple } from '@mariozechner/pi-ai';
+import { Agent } from '@mariozechner/pi-agent-core'
+import { streamSimple } from '@mariozechner/pi-ai'
 
 const agent = new Agent({
   streamFn: streamSimple,
   model: 'openai/gpt-4o',
   getApiKey: () => process.env.OPENAI_API_KEY,
-  tools: [myCustomTool]
-});
+  tools: [myCustomTool],
+})
 
 for await (const event of agent.prompt('Hello')) {
   if (event.type === 'text_delta') {
-    process.stdout.write(event.delta);
+    process.stdout.write(event.delta)
   }
 }
 ```
@@ -177,41 +176,42 @@ for await (const event of agent.prompt('Hello')) {
 ```mermaid
 graph TB
     User["User Input"]
-    
+
     subgraph "AgentSession"
         Queue["Message Queue"]
         Agent["Agent Instance<br/>(pi-agent-core)"]
         Extensions["ExtensionRunner"]
         Compaction["Auto-Compaction Logic"]
     end
-    
+
     subgraph "Persistence"
         SessionMgr["SessionManager<br/>JSONL tree structure"]
         SettingsMgr["SettingsManager<br/>Global & project config"]
     end
-    
+
     subgraph "LLM Communication"
         StreamFn["streamFn()<br/>Provider dispatch"]
         Transform["transformMessages()<br/>Provider-specific formats"]
         Providers["OpenAI, Anthropic,<br/>Google, Bedrock, etc."]
     end
-    
+
     User --> Queue
     Queue --> Extensions
     Extensions --> Agent
     Agent --> StreamFn
     StreamFn --> Transform
     Transform --> Providers
-    
+
     Providers --> Agent
     Agent --> Compaction
     Compaction --> SessionMgr
-    
+
     Extensions --> SessionMgr
     SessionMgr --> SettingsMgr
 ```
 
 `AgentSession` ([packages/coding-agent/src/modes/interactive/agent-session.ts]()) is the primary orchestrator in the coding-agent package. It:
+
 - Manages the message queue and execution lifecycle
 - Integrates extensions through `ExtensionRunner` ([packages/coding-agent/src/core/extensions/extension-runner.ts]())
 - Handles automatic compaction when context limits are approached
@@ -227,13 +227,13 @@ graph LR
     subgraph "Application Layer"
         App["AgentSession or<br/>Custom App"]
     end
-    
+
     subgraph "Abstraction Layer"
         StreamSimple["streamSimple()<br/>Unified thinking API"]
         StreamFn["streamFn()<br/>Provider dispatch"]
         ModelRegistry["ModelRegistry<br/>~100+ models"]
     end
-    
+
     subgraph "Provider Implementations"
         OpenAI["openai-completions.ts<br/>SSE streaming"]
         Anthropic["anthropic.ts<br/>Messages API"]
@@ -241,31 +241,32 @@ graph LR
         Bedrock["bedrock.ts<br/>AWS SDK"]
         Others["15+ providers"]
     end
-    
+
     subgraph "Event Stream"
         Events["text_delta<br/>tool_call<br/>thinking<br/>usage"]
     end
-    
+
     App --> StreamSimple
     StreamSimple --> StreamFn
     StreamFn --> ModelRegistry
-    
+
     ModelRegistry --> OpenAI
     ModelRegistry --> Anthropic
     ModelRegistry --> Google
     ModelRegistry --> Bedrock
     ModelRegistry --> Others
-    
+
     OpenAI --> Events
     Anthropic --> Events
     Google --> Events
     Bedrock --> Events
     Others --> Events
-    
+
     Events --> App
 ```
 
 The `pi-ai` package provides a unified streaming interface:
+
 - `streamFn()` ([packages/ai/src/stream.ts]()) dispatches to provider-specific implementations
 - `streamSimple()` ([packages/ai/src/stream.ts]()) adds a unified `reasoning` parameter that maps to provider-specific thinking controls
 - `ModelRegistry` ([packages/ai/src/models.ts]()) maintains metadata for ~100+ models with auto-discovery
@@ -281,12 +282,12 @@ sequenceDiagram
     participant Hooks as beforeToolCall /<br/>afterToolCall hooks
     participant Tools as Tool Executors<br/>(read, write, bash, edit)
     participant FS as File System /<br/>Shell
-    
+
     Agent->>Agent: LLM returns tool_call
     Agent->>Hooks: beforeToolCall(tool, args)
     Note over Hooks: Extensions can block<br/>or provide synthetic results
     Hooks-->>Agent: { allowed: true }
-    
+
     par Parallel Execution (default)
         Agent->>Tools: execute read("file.ts")
         Tools->>FS: fs.readFile()
@@ -298,15 +299,16 @@ sequenceDiagram
         FS-->>Tools: stdout/stderr
         Tools-->>Agent: { result: "..." }
     end
-    
+
     Agent->>Hooks: afterToolCall(tool, result)
     Note over Hooks: Extensions can modify<br/>or redact results
     Hooks-->>Agent: modified result
-    
+
     Agent->>Agent: Continue with tool results
 ```
 
 Tool execution in `Agent` ([packages/agent/src/agent.ts]()) supports:
+
 - **Parallel execution** by default (configurable via `toolExecution` option)
 - **Hook interception** through `beforeToolCall` and `afterToolCall` ([packages/agent/src/agent.ts]())
 - **Built-in tools** in coding-agent: `read` ([packages/coding-agent/src/core/tools/read.ts]()), `write` ([packages/coding-agent/src/core/tools/write.ts]()), `edit` ([packages/coding-agent/src/core/tools/edit.ts]()), `bash` ([packages/coding-agent/src/core/tools/bash.ts]())
@@ -328,31 +330,32 @@ graph TB
         D["Entry D (branch)<br/>parentId: B"]
         E["Entry E<br/>parentId: D"]
     end
-    
+
     subgraph "Active Path"
         leafId["leafId pointer<br/>points to: E"]
     end
-    
+
     subgraph "SessionManager Operations"
         Build["buildSessionContext()<br/>Walk from leafId to root"]
         Branch["branch(entryId)<br/>Reposition leafId"]
         Compact["appendCompaction()<br/>Summarize old entries"]
     end
-    
+
     Header --> A
     A --> B
     B --> C
     B --> D
     D --> E
-    
+
     leafId -.points to.-> E
-    
+
     Build --> leafId
     Branch --> leafId
     Compact --> Header
 ```
 
 `SessionManager` ([packages/coding-agent/src/core/sessions/session-manager.ts]()) implements:
+
 - **Tree structure**: Each entry has `id` and `parentId`, enabling multiple conversation branches in one file
 - **Active path**: `leafId` points to the current conversation endpoint
 - **Context building**: `buildSessionContext()` walks from `leafId` to root
@@ -370,33 +373,34 @@ graph TB
         Jiti["jiti (TypeScript exec)"]
         Factory["ExtensionFactory<br/>export default fn(pi)"]
     end
-    
+
     subgraph "ExtensionAPI"
         Register["pi.registerTool()<br/>pi.registerCommand()<br/>pi.registerProvider()"]
         Events["pi.on('event', handler)"]
         UI["pi.ui overlay()<br/>editor(), confirm()"]
     end
-    
+
     subgraph "Runtime Integration"
         Runner["ExtensionRunner"]
         AgentSession["AgentSession"]
         TUI["TUI"]
     end
-    
+
     Discover --> Jiti
     Jiti --> Factory
     Factory --> Register
     Factory --> Events
     Factory --> UI
-    
+
     Register --> Runner
     Events --> Runner
     UI --> TUI
-    
+
     Runner --> AgentSession
 ```
 
 Extensions ([packages/coding-agent/docs/extensions.md]()) provide:
+
 - **Custom tools**: Register new capabilities via `pi.registerTool()` ([packages/coding-agent/src/core/extensions/extension-api.ts]())
 - **Slash commands**: Add user-invoked commands via `pi.registerCommand()`
 - **Event handlers**: Subscribe to lifecycle events via `pi.on()`
@@ -419,19 +423,19 @@ sequenceDiagram
     participant Agent as Agent (pi-agent-core)
     participant AI as streamFn (pi-ai)
     participant LLM as LLM Provider
-    
+
     User->>Editor: Type message, press Enter
     Editor->>Queue: enqueue message
     Queue->>Session: prompt(text)
-    
+
     Session->>Ext: emitInput(text)
     Note over Ext: Extensions can intercept
-    
+
     Session->>Ext: emitBeforeAgentStart()
     Note over Ext: Inject context, modify prompt
-    
+
     Session->>Agent: prompt(messages, tools)
-    
+
     loop Streaming Response
         Agent->>AI: streamFn(model, messages)
         AI->>LLM: HTTP request (SSE/WebSocket)
@@ -441,7 +445,7 @@ sequenceDiagram
         Session-->>Editor: Update UI
         Editor-->>User: Display streaming text
     end
-    
+
     alt Tool Calls Required
         Agent->>Ext: beforeToolCall(tool, args)
         Ext-->>Agent: { allowed: true }
@@ -449,7 +453,7 @@ sequenceDiagram
         Agent->>Ext: afterToolCall(tool, result)
         Agent->>AI: Continue with tool results
     end
-    
+
     Agent-->>Session: agent_end event
     Session->>Session: Check auto-compaction
     Session->>Session: appendMessage to SessionManager
@@ -457,6 +461,7 @@ sequenceDiagram
 ```
 
 The complete request flow:
+
 1. **User input**: Captured by `Editor` component ([packages/tui/src/components/editor.ts]())
 2. **Queue processing**: Managed by `AgentSession._messageQueue` ([packages/coding-agent/src/modes/interactive/agent-session.ts]())
 3. **Extension hooks**: `emitInput()` and `emitBeforeAgentStart()` allow modification
@@ -472,25 +477,28 @@ The complete request flow:
 
 The coding-agent supports three distinct operational modes:
 
-| Mode | Entry Point | Use Case | UI | Session Management |
-|------|-------------|----------|----|--------------------|
-| **Interactive** | `pi` (default) | Full-featured development | TUI with editor, overlays, commands | Full persistence, branching, compaction |
-| **Print** | `pi --print` | Shell pipelines, scripts | Minimal stdout | Read-only or ephemeral |
-| **RPC** | `pi --rpc` | Headless automation, embedding | JSON-RPC protocol (stdio) | Full persistence, programmatic control |
+| Mode            | Entry Point    | Use Case                       | UI                                  | Session Management                      |
+| --------------- | -------------- | ------------------------------ | ----------------------------------- | --------------------------------------- |
+| **Interactive** | `pi` (default) | Full-featured development      | TUI with editor, overlays, commands | Full persistence, branching, compaction |
+| **Print**       | `pi --print`   | Shell pipelines, scripts       | Minimal stdout                      | Read-only or ephemeral                  |
+| **RPC**         | `pi --rpc`     | Headless automation, embedding | JSON-RPC protocol (stdio)           | Full persistence, programmatic control  |
 
 **Interactive Mode** ([packages/coding-agent/src/modes/interactive/interactive.ts]()) provides:
+
 - Multi-line editor with autocomplete
 - Slash commands (e.g., `/tree`, `/settings`, `/model`)
 - Session selector and navigation
 - Extension UI integration (overlays, dialogs)
 
 **Print Mode** ([packages/coding-agent/src/modes/print/print.ts]()) provides:
+
 - Single-shot execution
 - Pipe-friendly output
 - No interactive prompts
 - Suitable for scripts: `pi --print "summarize *.md" > summary.txt`
 
 **RPC Mode** ([packages/coding-agent/src/modes/rpc/rpc.ts]()) provides:
+
 - LF-delimited JSONL protocol over stdio
 - Commands: `prompt`, `continue`, `abort`, `list_sessions`, etc.
 - Responses: Events stream from agent execution
@@ -520,6 +528,7 @@ npm test
 ```
 
 Package build order matters due to dependencies. The typical order:
+
 1. `pi-tui` (no dependencies on other workspace packages)
 2. `pi-ai` (no dependencies on other workspace packages)
 3. `pi-agent-core` (depends on `pi-ai`)
@@ -536,12 +545,14 @@ Settings are managed by `SettingsManager` ([packages/coding-agent/src/core/setti
 - **Project**: `.pi/settings.json` in current directory (project-specific overrides)
 
 Key settings:
+
 - `model`: Default LLM model reference (e.g., `"anthropic/claude-sonnet-4"`)
 - `thinkingLevel`: Default reasoning effort (`"off"`, `"low"`, `"medium"`, `"high"`, `"xhigh"`)
 - `packages`: Extension, skill, prompt, and theme package sources
 - `autoCompaction`: Threshold and behavior for automatic context compression
 
 Settings can be modified via:
+
 - `/settings` command in interactive mode
 - `pi config` command
 - Direct JSON editing

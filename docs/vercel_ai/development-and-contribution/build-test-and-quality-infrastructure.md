@@ -17,8 +17,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers the tooling and automated checks used to build, test, lint, and validate every package in the `vercel/ai` monorepo. It focuses on the configuration of individual package build pipelines, the test runner setup, linting and formatting rules, CI job definitions, and auxiliary quality gates such as bundle size checks and `publint`.
 
 For information about how packages are laid out and named, see page [6.1](#6.1). For the changeset-based release workflow that this infrastructure feeds into, see page [6.3](#6.3).
@@ -29,15 +27,15 @@ For information about how packages are laid out and named, see page [6.1](#6.1).
 
 [Turbo](https://turbo.build/) (version `2.4.4`, declared in [package.json:52]()) is the monorepo task runner. All top-level scripts delegate to Turbo, which runs tasks in dependency order with up to 16 concurrent workers and can use Vercel's remote cache (configured via `TURBO_TOKEN` and `TURBO_TEAM` environment variables in CI).
 
-| Root Script | Turbo Invocation | Scope |
-|---|---|---|
-| `build` | `turbo build --concurrency 16` | All packages and examples |
-| `build:packages` | `turbo build --filter=@ai-sdk/* --filter=ai` | SDK packages only |
-| `build:examples` | `turbo build --filter=@example/*` | Example apps only |
-| `test` | `turbo test --concurrency 16 --filter=!@example/*` | Packages only (no examples) |
-| `lint` | `turbo lint` | All packages |
-| `publint` | `turbo publint` | All packages |
-| `clean` | `turbo clean` | All packages |
+| Root Script      | Turbo Invocation                                   | Scope                       |
+| ---------------- | -------------------------------------------------- | --------------------------- |
+| `build`          | `turbo build --concurrency 16`                     | All packages and examples   |
+| `build:packages` | `turbo build --filter=@ai-sdk/* --filter=ai`       | SDK packages only           |
+| `build:examples` | `turbo build --filter=@example/*`                  | Example apps only           |
+| `test`           | `turbo test --concurrency 16 --filter=!@example/*` | Packages only (no examples) |
+| `lint`           | `turbo lint`                                       | All packages                |
+| `publint`        | `turbo publint`                                    | All packages                |
+| `clean`          | `turbo clean`                                      | All packages                |
 
 Root scripts are defined in [package.json:4-23]().
 
@@ -75,21 +73,21 @@ Each SDK package (under `packages/`) uses `tsup` to compile TypeScript source in
 
 All SDK packages follow the same script structure. From `@ai-sdk/openai` ([packages/openai/package.json:24-37]()):
 
-| Script | Command | Purpose |
-|---|---|---|
-| `build` | `pnpm clean && tsup --tsconfig tsconfig.build.json` | Clean and compile to dist/ |
-| `build:watch` | `pnpm clean && tsup --watch` | Watch mode for development |
-| `clean` | `del-cli dist docs *.tsbuildinfo` | Remove build artifacts |
-| `prepack` | `mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/03-openai.mdx ./docs/` | Copy docs before npm pack |
-| `postpack` | `del-cli docs` | Remove docs after npm pack |
-| `type-check` | `tsc --build` | TypeScript compilation check |
-| `prettier-check` | `prettier --check "./**/*.ts*"` | Validate code formatting |
-| `lint` | `eslint "./**/*.ts*"` | Run ESLint |
-| `test` | `pnpm test:node && pnpm test:edge` | Run all tests |
-| `test:node` | `vitest --config vitest.node.config.js --run` | Node.js environment tests |
-| `test:edge` | `vitest --config vitest.edge.config.js --run` | Edge Runtime environment tests |
-| `test:update` | `pnpm test:node -u` | Update test snapshots |
-| `test:watch` | `vitest --config vitest.node.config.js` | Watch mode for tests |
+| Script           | Command                                                                                 | Purpose                        |
+| ---------------- | --------------------------------------------------------------------------------------- | ------------------------------ |
+| `build`          | `pnpm clean && tsup --tsconfig tsconfig.build.json`                                     | Clean and compile to dist/     |
+| `build:watch`    | `pnpm clean && tsup --watch`                                                            | Watch mode for development     |
+| `clean`          | `del-cli dist docs *.tsbuildinfo`                                                       | Remove build artifacts         |
+| `prepack`        | `mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/03-openai.mdx ./docs/` | Copy docs before npm pack      |
+| `postpack`       | `del-cli docs`                                                                          | Remove docs after npm pack     |
+| `type-check`     | `tsc --build`                                                                           | TypeScript compilation check   |
+| `prettier-check` | `prettier --check "./**/*.ts*"`                                                         | Validate code formatting       |
+| `lint`           | `eslint "./**/*.ts*"`                                                                   | Run ESLint                     |
+| `test`           | `pnpm test:node && pnpm test:edge`                                                      | Run all tests                  |
+| `test:node`      | `vitest --config vitest.node.config.js --run`                                           | Node.js environment tests      |
+| `test:edge`      | `vitest --config vitest.edge.config.js --run`                                           | Edge Runtime environment tests |
+| `test:update`    | `pnpm test:node -u`                                                                     | Update test snapshots          |
+| `test:watch`     | `vitest --config vitest.node.config.js`                                                 | Watch mode for tests           |
 
 The same structure appears in all provider packages: `@ai-sdk/azure` ([packages/azure/package.json:24-36]()), `@ai-sdk/mistral` ([packages/mistral/package.json:24-36]()), `@ai-sdk/provider-utils` ([packages/provider-utils/package.json:22-32]()), and others.
 
@@ -202,9 +200,9 @@ Sources: [packages/openai/package.json:9-29](), [packages/openai/package.json:39
 
 The test runner is Vitest. Each package defines two separate test configurations:
 
-| Config File | Command | Environment |
-|---|---|---|
-| `vitest.node.config.js` | `vitest --config vitest.node.config.js --run` | Node.js runtime |
+| Config File             | Command                                       | Environment             |
+| ----------------------- | --------------------------------------------- | ----------------------- |
+| `vitest.node.config.js` | `vitest --config vitest.node.config.js --run` | Node.js runtime         |
 | `vitest.edge.config.js` | `vitest --config vitest.edge.config.js --run` | Edge Runtime simulation |
 
 The dual-environment testing ensures that packages work correctly in both standard Node.js applications and edge environments like Vercel Edge Functions and Cloudflare Workers.
@@ -230,12 +228,12 @@ The `@ai-sdk/provider-utils` package includes `msw@2.7.0` for HTTP mocking ([pac
 
 Tests follow these conventions:
 
-| Pattern | Purpose | Published |
-|---|---|---|
-| `*.test.ts` | Unit and integration tests | No ([packages/openai/package.json:13]()) |
-| `*.test-d.ts` | Type-level tests | No ([packages/openai/package.json:14]()) |
-| `__snapshots__/` | Vitest snapshot files | No ([packages/openai/package.json:15]()) |
-| `__fixtures__/` | Test fixture data | No ([packages/openai/package.json:16]()) |
+| Pattern          | Purpose                    | Published                                |
+| ---------------- | -------------------------- | ---------------------------------------- |
+| `*.test.ts`      | Unit and integration tests | No ([packages/openai/package.json:13]()) |
+| `*.test-d.ts`    | Type-level tests           | No ([packages/openai/package.json:14]()) |
+| `__snapshots__/` | Vitest snapshot files      | No ([packages/openai/package.json:15]()) |
+| `__fixtures__/`  | Test fixture data          | No ([packages/openai/package.json:16]()) |
 
 The `test:update` script (`pnpm test:node -u`) updates snapshot files ([packages/openai/package.json:34]()).
 
@@ -261,17 +259,17 @@ TypeScript `5.8.3` is used across all packages ([packages/openai/package.json:62
 
 The base TypeScript configuration is defined in `tools/tsconfig/base.json` ([tools/tsconfig/base.json:1-23]()):
 
-| Compiler Option | Value | Purpose |
-|---|---|---|
-| `module` | `"ESNext"` | Modern ESM modules |
-| `moduleResolution` | `"Bundler"` | Bundler-aware resolution |
-| `strict` | `true` | All strict type checks enabled |
-| `declaration` | `true` | Generate `.d.ts` files |
-| `declarationMap` | `true` | Generate source maps for types |
-| `skipLibCheck` | `true` | Skip type checking of `.d.ts` files |
-| `esModuleInterop` | `true` | Enable CommonJS/ESM interop |
-| `isolatedModules` | `true` | Each file can be transpiled independently |
-| `types` | `["@types/node"]` | Include Node.js type definitions |
+| Compiler Option    | Value             | Purpose                                   |
+| ------------------ | ----------------- | ----------------------------------------- |
+| `module`           | `"ESNext"`        | Modern ESM modules                        |
+| `moduleResolution` | `"Bundler"`       | Bundler-aware resolution                  |
+| `strict`           | `true`            | All strict type checks enabled            |
+| `declaration`      | `true`            | Generate `.d.ts` files                    |
+| `declarationMap`   | `true`            | Generate source maps for types            |
+| `skipLibCheck`     | `true`            | Skip type checking of `.d.ts` files       |
+| `esModuleInterop`  | `true`            | Enable CommonJS/ESM interop               |
+| `isolatedModules`  | `true`            | Each file can be transpiled independently |
+| `types`            | `["@types/node"]` | Include Node.js type definitions          |
 
 Individual packages extend this base configuration via `tsconfig.json` and use `tsconfig.build.json` for compilation with `tsup` ([packages/openai/package.json:25]()).
 
@@ -284,6 +282,7 @@ Sources: [tools/tsconfig/base.json:1-23](), [packages/openai/package.json:25-32]
 ## CI Workflow
 
 The main CI workflow is defined in [.github/workflows/ci.yml](). It triggers on:
+
 - Push to `main` or any `release-v*` branch
 - Pull requests targeting `main` or `release-v*`
 
@@ -310,14 +309,14 @@ flowchart LR
     trigger --> examples
 ```
 
-| Job Name | Key Step | Notes |
-|---|---|---|
-| `build-examples` | `pnpm run build:examples` | Verifies all example apps compile |
-| `prettier` | `pnpm run prettier-check` | Fails on any formatting deviation |
-| `eslint` | `pnpm run lint` | Runs ESLint across all packages |
-| `types` | `pnpm run type-check:full` | Full tsc including examples |
-| `bundle-size` | `cd packages/ai && pnpm run check-bundle-size` | Validates bundle size limits |
-| `test_matrix` | `pnpm run test` (via Turbo) | Runs on Node 20 and 22 |
+| Job Name         | Key Step                                       | Notes                             |
+| ---------------- | ---------------------------------------------- | --------------------------------- |
+| `build-examples` | `pnpm run build:examples`                      | Verifies all example apps compile |
+| `prettier`       | `pnpm run prettier-check`                      | Fails on any formatting deviation |
+| `eslint`         | `pnpm run lint`                                | Runs ESLint across all packages   |
+| `types`          | `pnpm run type-check:full`                     | Full tsc including examples       |
+| `bundle-size`    | `cd packages/ai && pnpm run check-bundle-size` | Validates bundle size limits      |
+| `test_matrix`    | `pnpm run test` (via Turbo)                    | Runs on Node 20 and 22            |
 
 Sources: [.github/workflows/ci.yml:1-163]()
 

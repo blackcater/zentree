@@ -56,8 +56,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers configuration and integration details for all supported messaging channels except Telegram ([4.2](#4.2)) and Discord ([4.3](#4.3)). For the shared channel plugin interface and message dispatch architecture, see [Channel Architecture & Plugin SDK](#4.1). For model configuration, see [3.3](#3.3).
 
 Channels split into two implementation categories:
@@ -69,20 +67,20 @@ Channels split into two implementation categories:
 
 ## Channel Index
 
-| Channel | Config Key | Config Schema | Monitor Entry Point | Default `dmPolicy` |
-|---------|-----------|---------------|---------------------|-------------------|
-| Slack | `channels.slack` | `SlackConfigSchema` | `monitorSlackProvider` | `pairing` |
-| Signal | `channels.signal` | `SignalConfigSchema` | `createSignalEventHandler` | `pairing` |
-| iMessage | `channels.imessage` | `IMessageConfigSchema` | `monitorIMessageProvider` | `pairing` |
-| WhatsApp | `channels.whatsapp` | `WhatsAppConfigSchema` | — | `pairing` |
-| Google Chat | `channels.googlechat` | `GoogleChatConfigSchema` | — | `pairing` |
-| IRC | `channels.irc` | `IrcConfigSchema` | — | N/A |
-| LINE | `channels.line` | `LineConfigSchema` | — | N/A |
-| Matrix | `channels.matrix` | (extension-local) | — | `pairing` |
-| Feishu | `channels.feishu` | (extension-local) | — | N/A |
-| Mattermost | `channels.mattermost` | (extension-local) | `monitorMattermostProvider` | `pairing` |
-| MS Teams | `channels.msteams` | `MSTeamsConfigSchema` | — | `pairing` |
-| Zalo | `channels.zalo` | (extension-local) | — | N/A |
+| Channel     | Config Key            | Config Schema            | Monitor Entry Point         | Default `dmPolicy` |
+| ----------- | --------------------- | ------------------------ | --------------------------- | ------------------ |
+| Slack       | `channels.slack`      | `SlackConfigSchema`      | `monitorSlackProvider`      | `pairing`          |
+| Signal      | `channels.signal`     | `SignalConfigSchema`     | `createSignalEventHandler`  | `pairing`          |
+| iMessage    | `channels.imessage`   | `IMessageConfigSchema`   | `monitorIMessageProvider`   | `pairing`          |
+| WhatsApp    | `channels.whatsapp`   | `WhatsAppConfigSchema`   | —                           | `pairing`          |
+| Google Chat | `channels.googlechat` | `GoogleChatConfigSchema` | —                           | `pairing`          |
+| IRC         | `channels.irc`        | `IrcConfigSchema`        | —                           | N/A                |
+| LINE        | `channels.line`       | `LineConfigSchema`       | —                           | N/A                |
+| Matrix      | `channels.matrix`     | (extension-local)        | —                           | `pairing`          |
+| Feishu      | `channels.feishu`     | (extension-local)        | —                           | N/A                |
+| Mattermost  | `channels.mattermost` | (extension-local)        | `monitorMattermostProvider` | `pairing`          |
+| MS Teams    | `channels.msteams`    | `MSTeamsConfigSchema`    | —                           | `pairing`          |
+| Zalo        | `channels.zalo`       | (extension-local)        | —                           | N/A                |
 
 ---
 
@@ -233,25 +231,26 @@ Sources: [src/slack/monitor/provider.ts:44-136]()
 
 **Key config fields (`SlackAccountSchema`):**
 
-| Field | Type / Default | Notes |
-|-------|---------------|-------|
-| `mode` | `"socket"` \| `"http"` (default `"socket"`) | Transport mode |
-| `botToken` | string | `xoxb-...` OAuth bot token |
-| `appToken` | string | `xapp-...` for Socket Mode |
-| `signingSecret` | string | Required for `mode="http"` |
-| `webhookPath` | string (default `"/slack/events"`) | HTTP inbound endpoint |
-| `userToken` | string | Optional `xoxp-...` user token |
-| `userTokenReadOnly` | boolean (default `true`) | Restricts user token to reads |
-| `groupPolicy` | `"open"` \| `"allowlist"` \| `"disabled"` (default `"allowlist"`) | Channel access policy |
-| `dmPolicy` | `"pairing"` \| `"allowlist"` \| `"open"` \| `"disabled"` | DM access policy |
-| `requireMention` | boolean | Require `@mention` in channels |
-| `streaming` | `"off"` \| `"partial"` \| `"block"` \| `"progress"` | Reply streaming mode |
-| `nativeStreaming` | boolean | Enables Slack native streaming API |
-| `replyToMode` | `"off"` \| `"first"` \| `"all"` | Reply threading behavior |
-| `replyToModeByChatType` | object | Per-chat-type `replyToMode` override |
-| `ackReaction` | string | Emoji reaction to send on receipt |
+| Field                   | Type / Default                                                    | Notes                                |
+| ----------------------- | ----------------------------------------------------------------- | ------------------------------------ |
+| `mode`                  | `"socket"` \| `"http"` (default `"socket"`)                       | Transport mode                       |
+| `botToken`              | string                                                            | `xoxb-...` OAuth bot token           |
+| `appToken`              | string                                                            | `xapp-...` for Socket Mode           |
+| `signingSecret`         | string                                                            | Required for `mode="http"`           |
+| `webhookPath`           | string (default `"/slack/events"`)                                | HTTP inbound endpoint                |
+| `userToken`             | string                                                            | Optional `xoxp-...` user token       |
+| `userTokenReadOnly`     | boolean (default `true`)                                          | Restricts user token to reads        |
+| `groupPolicy`           | `"open"` \| `"allowlist"` \| `"disabled"` (default `"allowlist"`) | Channel access policy                |
+| `dmPolicy`              | `"pairing"` \| `"allowlist"` \| `"open"` \| `"disabled"`          | DM access policy                     |
+| `requireMention`        | boolean                                                           | Require `@mention` in channels       |
+| `streaming`             | `"off"` \| `"partial"` \| `"block"` \| `"progress"`               | Reply streaming mode                 |
+| `nativeStreaming`       | boolean                                                           | Enables Slack native streaming API   |
+| `replyToMode`           | `"off"` \| `"first"` \| `"all"`                                   | Reply threading behavior             |
+| `replyToModeByChatType` | object                                                            | Per-chat-type `replyToMode` override |
+| `ackReaction`           | string                                                            | Emoji reaction to send on receipt    |
 
 **Thread config** (`SlackThreadSchema`):
+
 - `historyScope`: `"thread"` | `"channel"` — whether thread context pulls from thread or parent channel
 - `inheritParent`: boolean — inherit parent channel session
 - `initialHistoryLimit`: integer
@@ -310,22 +309,22 @@ Sources: [src/signal/monitor/event-handler.ts:55-180]()
 
 **Key config fields (`SignalAccountSchemaBase`):**
 
-| Field | Type / Default | Notes |
-|-------|---------------|-------|
-| `account` | string | Signal phone number (E.164) |
-| `httpUrl` | string | signal-cli HTTP endpoint (e.g. `http://127.0.0.1:8080`) |
-| `httpHost` / `httpPort` | string / integer | Alternative to `httpUrl` |
-| `cliPath` | string | Path to signal-cli binary |
-| `autoStart` | boolean | Auto-start signal-cli |
-| `startupTimeoutMs` | integer (1000–120000) | Startup wait timeout |
-| `receiveMode` | `"on-start"` \| `"manual"` | When to begin receiving |
-| `ignoreAttachments` | boolean | Skip inbound attachments |
-| `ignoreStories` | boolean | Skip Signal Stories |
-| `sendReadReceipts` | boolean | Send read receipts |
-| `reactionNotifications` | `"off"` \| `"own"` \| `"all"` \| `"allowlist"` | Emoji reaction handling |
-| `reactionLevel` | `"off"` \| `"ack"` \| `"minimal"` \| `"extensive"` | Ack reaction verbosity |
-| `dmPolicy` | (default `"pairing"`) | DM access policy |
-| `groupPolicy` | (default `"allowlist"`) | Group access policy |
+| Field                   | Type / Default                                     | Notes                                                   |
+| ----------------------- | -------------------------------------------------- | ------------------------------------------------------- |
+| `account`               | string                                             | Signal phone number (E.164)                             |
+| `httpUrl`               | string                                             | signal-cli HTTP endpoint (e.g. `http://127.0.0.1:8080`) |
+| `httpHost` / `httpPort` | string / integer                                   | Alternative to `httpUrl`                                |
+| `cliPath`               | string                                             | Path to signal-cli binary                               |
+| `autoStart`             | boolean                                            | Auto-start signal-cli                                   |
+| `startupTimeoutMs`      | integer (1000–120000)                              | Startup wait timeout                                    |
+| `receiveMode`           | `"on-start"` \| `"manual"`                         | When to begin receiving                                 |
+| `ignoreAttachments`     | boolean                                            | Skip inbound attachments                                |
+| `ignoreStories`         | boolean                                            | Skip Signal Stories                                     |
+| `sendReadReceipts`      | boolean                                            | Send read receipts                                      |
+| `reactionNotifications` | `"off"` \| `"own"` \| `"all"` \| `"allowlist"`     | Emoji reaction handling                                 |
+| `reactionLevel`         | `"off"` \| `"ack"` \| `"minimal"` \| `"extensive"` | Ack reaction verbosity                                  |
+| `dmPolicy`              | (default `"pairing"`)                              | DM access policy                                        |
+| `groupPolicy`           | (default `"allowlist"`)                            | Group access policy                                     |
 
 Inbound debouncing (`resolveInboundDebounceMs`) is applied before dispatch. Mention patterns from `buildMentionRegexes` gate group messages when `requireMention` is set.
 
@@ -337,30 +336,31 @@ Sources: [src/config/zod-schema.providers-core.ts:896-991](), [src/signal/monito
 
 Two integration paths for Apple Messages exist:
 
-| Approach | Config Key | Backend | Location |
-|----------|-----------|---------|----------|
-| imsg | `channels.imessage` | `imsg` JSON-RPC CLI | `src/imessage/` |
+| Approach    | Config Key             | Backend                        | Location           |
+| ----------- | ---------------------- | ------------------------------ | ------------------ |
+| imsg        | `channels.imessage`    | `imsg` JSON-RPC CLI            | `src/imessage/`    |
 | BlueBubbles | `channels.bluebubbles` | BlueBubbles server app (macOS) | `src/bluebubbles/` |
 
 The `imsg` path uses `monitorIMessageProvider` at [src/imessage/monitor/monitor-provider.ts:84]().
 
 **Key config fields (iMessage / `IMessageConfigSchema`):**
 
-| Field | Notes |
-|-------|-------|
-| `cliPath` | Path to `imsg` binary (default `"imsg"`) |
-| `dbPath` | iMessage SQLite database path |
-| `includeAttachments` | Download and pass inbound attachments |
-| `remoteHost` | SSH host for remote-Mac setups; auto-detected from SSH wrapper scripts at `cliPath` |
-| `probeTimeoutMs` | Startup probe timeout (`DEFAULT_IMESSAGE_PROBE_TIMEOUT_MS`) |
-| `dmPolicy` | Default `pairing` |
-| `groupPolicy` | Default from config; group chats use `groupAllowFrom` |
+| Field                | Notes                                                                               |
+| -------------------- | ----------------------------------------------------------------------------------- |
+| `cliPath`            | Path to `imsg` binary (default `"imsg"`)                                            |
+| `dbPath`             | iMessage SQLite database path                                                       |
+| `includeAttachments` | Download and pass inbound attachments                                               |
+| `remoteHost`         | SSH host for remote-Mac setups; auto-detected from SSH wrapper scripts at `cliPath` |
+| `probeTimeoutMs`     | Startup probe timeout (`DEFAULT_IMESSAGE_PROBE_TIMEOUT_MS`)                         |
+| `dmPolicy`           | Default `pairing`                                                                   |
+| `groupPolicy`        | Default from config; group chats use `groupAllowFrom`                               |
 
 **Attachment security:** `resolveIMessageAttachmentRoots` and `resolveIMessageRemoteAttachmentRoots` define allowed file roots. Each inbound attachment path is validated via `isInboundPathAllowed` before passing to the agent.
 
 **Inbound debouncing:** Enabled via `createInboundDebouncer`. Consecutive messages from the same sender in the same conversation are coalesced into a single agent turn when no media or control commands are present.
 
 **BlueBubbles:** Distinct channel integration. The plugin SDK exports:
+
 - `BLUEBUBBLES_ACTIONS`, `BLUEBUBBLES_ACTION_NAMES`, `BLUEBUBBLES_GROUP_ACTIONS` from `src/channels/plugins/bluebubbles-actions.ts`
 - `resolveBlueBubblesGroupRequireMention`, `resolveBlueBubblesGroupToolPolicy` from `src/channels/plugins/group-mentions.ts`
 - `collectBlueBubblesStatusIssues` from `src/channels/plugins/status-issues/bluebubbles.ts`
@@ -378,6 +378,7 @@ Implementation: `src/web/`, `src/whatsapp/`; onboarding via `whatsappOnboardingA
 WhatsApp integration uses Baileys (WhatsApp Web protocol). The gateway owns linked WhatsApp sessions.
 
 Shared plugin SDK helpers:
+
 - `isWhatsAppGroupJid`, `normalizeWhatsAppTarget` — JID normalization
 - `resolveWhatsAppOutboundTarget` — outbound target resolution
 - `normalizeWhatsAppAllowFromEntries` — allow-from list normalization
@@ -400,20 +401,20 @@ Google Chat uses a GCP service account for authentication. Inbound events arrive
 
 **Key config fields (`GoogleChatAccountSchema`):**
 
-| Field | Notes |
-|-------|-------|
-| `serviceAccount` | GCP service account — JSON object, path string, or `SecretRef` |
-| `serviceAccountRef` | Alternative `SecretRef` form |
-| `serviceAccountFile` | File path alternative |
-| `audienceType` | `"app-url"` \| `"project-number"` |
-| `audience` | Audience value for token validation |
-| `webhookPath` | Inbound webhook route |
-| `webhookUrl` | Public URL for event delivery |
-| `botUser` | Bot email, used for `@mention` detection |
-| `typingIndicator` | `"none"` \| `"message"` \| `"reaction"` |
-| `streamMode` | `"replace"` (default) \| `"status_final"` \| `"append"` |
-| `requireMention` | Global mention gate |
-| `groupPolicy` | Default `"allowlist"` |
+| Field                | Notes                                                          |
+| -------------------- | -------------------------------------------------------------- |
+| `serviceAccount`     | GCP service account — JSON object, path string, or `SecretRef` |
+| `serviceAccountRef`  | Alternative `SecretRef` form                                   |
+| `serviceAccountFile` | File path alternative                                          |
+| `audienceType`       | `"app-url"` \| `"project-number"`                              |
+| `audience`           | Audience value for token validation                            |
+| `webhookPath`        | Inbound webhook route                                          |
+| `webhookUrl`         | Public URL for event delivery                                  |
+| `botUser`            | Bot email, used for `@mention` detection                       |
+| `typingIndicator`    | `"none"` \| `"message"` \| `"reaction"`                        |
+| `streamMode`         | `"replace"` (default) \| `"status_final"` \| `"append"`        |
+| `requireMention`     | Global mention gate                                            |
+| `groupPolicy`        | Default `"allowlist"`                                          |
 
 **Per-group config** (`GoogleChatGroupSchema`): `enabled`, `allow`, `requireMention`, `users`, `systemPrompt`
 
@@ -446,13 +447,13 @@ Types: `LineConfig`, `LineAccountConfig`, `ResolvedLineAccount`, `LineChannelDat
 
 LINE supports rich **Flex Messages**. The `src/line/flex-templates.ts` module provides builder helpers:
 
-| Function | Purpose |
-|----------|---------|
-| `createInfoCard` | Info panel card |
-| `createListCard` | List layout card |
-| `createImageCard` | Image with caption |
-| `createActionCard` | Card with action buttons |
-| `createReceiptCard` | Receipt/summary card |
+| Function            | Purpose                  |
+| ------------------- | ------------------------ |
+| `createInfoCard`    | Info panel card          |
+| `createListCard`    | List layout card         |
+| `createImageCard`   | Image with caption       |
+| `createActionCard`  | Card with action buttons |
+| `createReceiptCard` | Receipt/summary card     |
 
 Outbound markdown is converted to LINE format via `processLineMessage` in `src/line/markdown-to-line.ts`. Detection of convertible content uses `hasMarkdownToConvert`; plain-text fallback uses `stripMarkdown`.
 
@@ -521,20 +522,21 @@ Library: `@vector-im/matrix-bot-sdk` (`MatrixClient`)
 
 **Key handler parameters (`MatrixMonitorHandlerParams`):**
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `dmPolicy` | `"open"` \| `"pairing"` \| `"allowlist"` \| `"disabled"` | DM access policy |
-| `groupPolicy` | `"open"` \| `"allowlist"` \| `"disabled"` | Room access policy |
-| `threadReplies` | `"off"` \| `"inbound"` \| `"always"` | Thread reply routing |
-| `replyToMode` | `ReplyToMode` | Reply threading behavior |
-| `startupMs` | number | Gateway start timestamp |
-| `startupGraceMs` | number | Ignore messages before `startupMs + startupGraceMs` |
-| `roomsConfig` | `Record<string, MatrixRoomConfig>` | Per-room config |
-| `dmEnabled` | boolean | Enable DM rooms |
-| `textLimit` | number | Max outbound text length |
-| `mediaMaxBytes` | number | Max inbound media size |
+| Field            | Type                                                     | Notes                                               |
+| ---------------- | -------------------------------------------------------- | --------------------------------------------------- |
+| `dmPolicy`       | `"open"` \| `"pairing"` \| `"allowlist"` \| `"disabled"` | DM access policy                                    |
+| `groupPolicy`    | `"open"` \| `"allowlist"` \| `"disabled"`                | Room access policy                                  |
+| `threadReplies`  | `"off"` \| `"inbound"` \| `"always"`                     | Thread reply routing                                |
+| `replyToMode`    | `ReplyToMode`                                            | Reply threading behavior                            |
+| `startupMs`      | number                                                   | Gateway start timestamp                             |
+| `startupGraceMs` | number                                                   | Ignore messages before `startupMs + startupGraceMs` |
+| `roomsConfig`    | `Record<string, MatrixRoomConfig>`                       | Per-room config                                     |
+| `dmEnabled`      | boolean                                                  | Enable DM rooms                                     |
+| `textLimit`      | number                                                   | Max outbound text length                            |
+| `mediaMaxBytes`  | number                                                   | Max inbound media size                              |
 
 **Supported inbound event types:**
+
 - Standard text messages
 - Poll start events (`isPollStartType`, `parsePollStartContent`)
 - Location events (`resolveMatrixLocation`) → `NormalizedLocation`
@@ -558,15 +560,15 @@ Chat type is determined by `message.chat_type`: `"p2p"` (direct) vs `"group"`.
 
 **Supported message types:**
 
-| `message_type` | Parsing | Media Downloaded |
-|---------------|---------|-----------------|
-| `text` | JSON `.text` field | No |
-| `post` | `parsePostContent` — extracts text, links, mentions, embedded images | Images via `downloadMessageResourceFeishu` |
-| `image` | `parseMediaKeys` → `image_key` | Yes |
-| `file` | `parseMediaKeys` → `file_key` | Yes |
-| `audio` | `parseMediaKeys` → `file_key` | Yes |
-| `video` | Both `file_key` (video) and `image_key` (thumbnail) | Yes |
-| `sticker` | `parseMediaKeys` → `file_key` | Yes |
+| `message_type` | Parsing                                                              | Media Downloaded                           |
+| -------------- | -------------------------------------------------------------------- | ------------------------------------------ |
+| `text`         | JSON `.text` field                                                   | No                                         |
+| `post`         | `parsePostContent` — extracts text, links, mentions, embedded images | Images via `downloadMessageResourceFeishu` |
+| `image`        | `parseMediaKeys` → `image_key`                                       | Yes                                        |
+| `file`         | `parseMediaKeys` → `file_key`                                        | Yes                                        |
+| `audio`        | `parseMediaKeys` → `file_key`                                        | Yes                                        |
+| `video`        | Both `file_key` (video) and `image_key` (thumbnail)                  | Yes                                        |
+| `sticker`      | `parseMediaKeys` → `file_key`                                        | Yes                                        |
 
 **Mention handling:** `checkBotMentioned` inspects `message.mentions` or post content `at` tags. `stripBotMention` removes bot mention markers from processed text.
 
@@ -588,6 +590,7 @@ Location: `extensions/mattermost/`
 Monitor: `monitorMattermostProvider` at `extensions/mattermost/src/mattermost/monitor.ts`
 
 **Required config:**
+
 - `botToken`: Mattermost bot user token
 - `baseUrl`: Mattermost server URL
 
@@ -625,14 +628,15 @@ Sources: [extensions/mattermost/src/mattermost/monitor.ts:167-220]()
 
 **Cache constants:**
 
-| Constant | Value | Purpose |
-|----------|-------|---------|
-| `RECENT_MATTERMOST_MESSAGE_TTL_MS` | 5 min | Dedup window for inbound messages |
-| `RECENT_MATTERMOST_MESSAGE_MAX` | 2000 | Max dedup cache entries |
-| `CHANNEL_CACHE_TTL_MS` | 5 min | Mattermost channel info cache |
-| `USER_CACHE_TTL_MS` | 10 min | Mattermost user info cache |
+| Constant                           | Value  | Purpose                           |
+| ---------------------------------- | ------ | --------------------------------- |
+| `RECENT_MATTERMOST_MESSAGE_TTL_MS` | 5 min  | Dedup window for inbound messages |
+| `RECENT_MATTERMOST_MESSAGE_MAX`    | 2000   | Max dedup cache entries           |
+| `CHANNEL_CACHE_TTL_MS`             | 5 min  | Mattermost channel info cache     |
+| `USER_CACHE_TTL_MS`                | 10 min | Mattermost user info cache        |
 
 **Channel type mapping:** `channelKind` maps Mattermost channel type codes:
+
 - `"D"` → `"direct"`
 - `"G"` → `"group"`
 - other → `"channel"`
@@ -676,12 +680,12 @@ Sources: [extensions/zalo/src/monitor.ts:1-5]()
 
 All channels share these behaviors regardless of implementation location. For details on each, see [Channel Architecture & Plugin SDK](#4.1).
 
-| Pattern | Config Fields | Notes |
-|---------|--------------|-------|
-| DM access | `dmPolicy`, `allowFrom` | `open` requires `"*"` in `allowFrom`; `allowlist` requires at least one entry |
-| Group access | `groupPolicy`, `groupAllowFrom` | Default `"allowlist"` fails-closed when provider config is missing |
-| Multi-account | `accounts` map | Named accounts inherit top-level `allowFrom` when their own is unset |
-| History | `historyLimit`, `dmHistoryLimit`, `dms[].historyLimit` | Controls context window for group/DM sessions |
-| Media | `mediaMaxMb` | Caps inbound media download size |
-| Ack reactions | `ackReaction` | Emoji sent while processing; falls back to agent identity emoji |
-| Text chunking | `textChunkLimit`, `chunkMode` | `"length"` or `"newline"` splitting for outbound messages |
+| Pattern       | Config Fields                                          | Notes                                                                         |
+| ------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| DM access     | `dmPolicy`, `allowFrom`                                | `open` requires `"*"` in `allowFrom`; `allowlist` requires at least one entry |
+| Group access  | `groupPolicy`, `groupAllowFrom`                        | Default `"allowlist"` fails-closed when provider config is missing            |
+| Multi-account | `accounts` map                                         | Named accounts inherit top-level `allowFrom` when their own is unset          |
+| History       | `historyLimit`, `dmHistoryLimit`, `dms[].historyLimit` | Controls context window for group/DM sessions                                 |
+| Media         | `mediaMaxMb`                                           | Caps inbound media download size                                              |
+| Ack reactions | `ackReaction`                                          | Emoji sent while processing; falls back to agent identity emoji               |
+| Text chunking | `textChunkLimit`, `chunkMode`                          | `"length"` or `"newline"` splitting for outbound messages                     |

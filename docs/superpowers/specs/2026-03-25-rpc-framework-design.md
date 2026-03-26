@@ -3,6 +3,7 @@
 ## 1. 概述
 
 设计一个跨进程的 RPC 框架，支持：
+
 1. Electron 应用中主进程与渲染进程通信，以及多窗口信息推送
 2. 跨设备的两个进程之间通信
 
@@ -14,21 +15,22 @@
 
 ```typescript
 export interface RpcServer {
-    // 注册同步或异步 handler
-    handle(event: string, handler: Rpc.HandlerFn): void
-    handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
+  // 注册同步或异步 handler
+  handle(event: string, handler: Rpc.HandlerFn): void
+  handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
 
-    // 创建命名空间路由，用于代码组织
-    router(namespace: string): RpcRouter
+  // 创建命名空间路由，用于代码组织
+  router(namespace: string): RpcRouter
 
-    // 向指定目标推送事件
-    push(event: string, target: Rpc.Target, ...args: unknown[]): void
+  // 向指定目标推送事件
+  push(event: string, target: Rpc.Target, ...args: unknown[]): void
 }
 ```
 
 **Event 命名规范**：使用 `/` 分隔层级，如 `conversation/create`、`filesystem/read`
 
 **代码组织**：有两种注册方式，效果等价：
+
 ```typescript
 // 方式 1：直接注册
 server.handle('filesystem/read', handler)
@@ -41,20 +43,20 @@ server.router('filesystem').handle('read', handler)
 
 ```typescript
 export interface RpcClient {
-    readonly clientId: string
-    readonly groupId?: string
+  readonly clientId: string
+  readonly groupId?: string
 
-    // 单次调用，event 使用 / 分隔路径
-    call<T>(event: string, ...args: unknown[]): Promise<T>
+  // 单次调用，event 使用 / 分隔路径
+  call<T>(event: string, ...args: unknown[]): Promise<T>
 
-    // 流式调用
-    stream<T>(event: string, ...args: unknown[]): Rpc.StreamResult<T>
+  // 流式调用
+  stream<T>(event: string, ...args: unknown[]): Rpc.StreamResult<T>
 
-    // 事件监听
-    onEvent(event: string, listener: (...args: unknown[]) => void): Rpc.CancelFn
+  // 事件监听
+  onEvent(event: string, listener: (...args: unknown[]) => void): Rpc.CancelFn
 
-    // 中止请求
-    abort(): void
+  // 中止请求
+  abort(): void
 }
 ```
 
@@ -62,32 +64,32 @@ export interface RpcClient {
 
 ```typescript
 export namespace Rpc {
-    // Handler 函数类型，支持同步、异步、流式返回
-    export type HandlerFn<T = unknown> = (
-        ctx: RequestContext,
-        ...args: unknown[]
-    ) => T | Promise<T> | AsyncIterator<T>
+  // Handler 函数类型，支持同步、异步、流式返回
+  export type HandlerFn<T = unknown> = (
+    ctx: RequestContext,
+    ...args: unknown[]
+  ) => T | Promise<T> | AsyncIterator<T>
 
-    // 取消函数
-    export type CancelFn = () => void
+  // 取消函数
+  export type CancelFn = () => void
 
-    // 事件目标
-    export type Target =
-        | { type: 'broadcast' }           // 广播所有客户端
-        | { type: 'group'; groupId: string }  // 群组内广播
-        | { type: 'client'; clientId: string } // 单客户端推送
+  // 事件目标
+  export type Target =
+    | { type: 'broadcast' } // 广播所有客户端
+    | { type: 'group'; groupId: string } // 群组内广播
+    | { type: 'client'; clientId: string } // 单客户端推送
 
-    // 请求上下文
-    export interface RequestContext {
-        readonly clientId: string
-        readonly vaultId?: string
-    }
+  // 请求上下文
+  export interface RequestContext {
+    readonly clientId: string
+    readonly vaultId?: string
+  }
 
-    // 流式结果
-    export type StreamResult<T> = {
-        [Symbol.asyncIterator](): AsyncIterator<T>
-        cancel(): void
-    }
+  // 流式结果
+  export type StreamResult<T> = {
+    [Symbol.asyncIterator](): AsyncIterator<T>
+    cancel(): void
+  }
 }
 ```
 
@@ -128,10 +130,10 @@ export class RpcError extends Error {
 
 ```typescript
 export interface RpcRouter {
-    // event 为相对路径，会与 namespace 拼接
-    handle(event: string, handler: Rpc.HandlerFn): void
-    handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
-    router(namespace: string): RpcRouter
+  // event 为相对路径，会与 namespace 拼接
+  handle(event: string, handler: Rpc.HandlerFn): void
+  handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
+  router(namespace: string): RpcRouter
 }
 ```
 
@@ -161,15 +163,15 @@ apps/desktop/src/shared/rpc/
 
 ```typescript
 export class ElectronRpcServer implements RpcServer {
-    constructor(ipcMain: IpcMain)
+  constructor(ipcMain: IpcMain)
 
-    handle(event: string, handler: Rpc.HandlerFn): void
-    handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
+  handle(event: string, handler: Rpc.HandlerFn): void
+  handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
 
-    router(namespace: string): RpcRouter
+  router(namespace: string): RpcRouter
 
-    // 向渲染进程推送事件
-    push(event: string, target: Rpc.Target, ...args: unknown[]): void
+  // 向渲染进程推送事件
+  push(event: string, target: Rpc.Target, ...args: unknown[]): void
 }
 ```
 
@@ -179,15 +181,15 @@ export class ElectronRpcServer implements RpcServer {
 
 ```typescript
 export class ElectronRpcClient implements RpcClient {
-    constructor(webContents: WebContents)
+  constructor(webContents: WebContents)
 
-    readonly clientId: string
-    readonly groupId?: string
+  readonly clientId: string
+  readonly groupId?: string
 
-    call<T>(event: string, ...args: unknown[]): Promise<T>
-    stream<T>(event: string, ...args: unknown[]): Rpc.StreamResult<T>
-    onEvent(event: string, listener: (...args: unknown[]) => void): Rpc.CancelFn
-    abort(): void
+  call<T>(event: string, ...args: unknown[]): Promise<T>
+  stream<T>(event: string, ...args: unknown[]): Rpc.StreamResult<T>
+  onEvent(event: string, listener: (...args: unknown[]) => void): Rpc.CancelFn
+  abort(): void
 }
 ```
 
@@ -197,13 +199,13 @@ export class ElectronRpcClient implements RpcClient {
 
 ```typescript
 export class HttpRpcServer implements RpcServer {
-    constructor(app: Hono | Express)
+  constructor(app: Hono | Express)
 
-    handle(event: string, handler: Rpc.HandlerFn): void
-    handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
+  handle(event: string, handler: Rpc.HandlerFn): void
+  handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
 
-    router(namespace: string): RpcRouter
-    push(event: string, target: Rpc.Target, ...args: unknown[]): void
+  router(namespace: string): RpcRouter
+  push(event: string, target: Rpc.Target, ...args: unknown[]): void
 }
 ```
 
@@ -213,15 +215,15 @@ export class HttpRpcServer implements RpcServer {
 
 ```typescript
 export class HttpRpcClient implements RpcClient {
-    constructor(baseUrl: string, options?: HttpClientOptions)
+  constructor(baseUrl: string, options?: HttpClientOptions)
 
-    readonly clientId: string
-    readonly groupId?: string
+  readonly clientId: string
+  readonly groupId?: string
 
-    call<T>(event: string, ...args: unknown[]): Promise<T>
-    stream<T>(event: string, ...args: unknown[]): Rpc.StreamResult<T>
-    onEvent(event: string, listener: (...args: unknown[]) => void): Rpc.CancelFn
-    abort(): void
+  call<T>(event: string, ...args: unknown[]): Promise<T>
+  stream<T>(event: string, ...args: unknown[]): Rpc.StreamResult<T>
+  onEvent(event: string, listener: (...args: unknown[]) => void): Rpc.CancelFn
+  abort(): void
 }
 ```
 
@@ -266,13 +268,17 @@ const client = new ElectronRpcClient(webContents)
 const conv = await client.call('conversation/create', { title: 'Test' })
 
 // 流式调用
-for await (const chunk of client.stream('conversation/send', 'conv-1', 'hello')) {
-    console.log(chunk)
+for await (const chunk of client.stream(
+  'conversation/send',
+  'conv-1',
+  'hello'
+)) {
+  console.log(chunk)
 }
 
 // 监听事件
 const cancel = client.onEvent('notification', (data) => {
-    console.log('Notification:', data)
+  console.log('Notification:', data)
 })
 ```
 

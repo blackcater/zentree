@@ -18,8 +18,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 The Gemini Agent System provides the primary AI agent implementation for AionUi, integrating Google's Gemini models and other LLM providers through the `@office-ai/aioncli-core` library. This document covers the `GeminiAgent` class architecture, authentication methods, stream processing with resilience mechanisms, tool scheduling, configuration management, and integration patterns.
@@ -39,55 +37,55 @@ graph TB
     subgraph "Agent Layer"
         GA["GeminiAgent<br/>(src/agent/gemini/index.ts)"]
     end
-    
+
     subgraph "Core Integration"
         CONFIG["Config<br/>(@office-ai/aioncli-core)"]
         CLIENT["GeminiClient<br/>(@office-ai/aioncli-core)"]
         SCHEDULER["CoreToolScheduler<br/>(@office-ai/aioncli-core)"]
     end
-    
+
     subgraph "Configuration System"
         LOADCFG["loadCliConfig()<br/>(cli/config.ts)"]
         SETTINGS["Settings<br/>(cli/settings.ts)"]
         TOOLCFG["ConversationToolConfig<br/>(cli/tools/conversation-tool-config.ts)"]
     end
-    
+
     subgraph "Stream Processing"
         PROCESS["processGeminiStreamEvents()<br/>(utils.ts)"]
         MONITOR["StreamMonitor<br/>(cli/streamResilience.ts)"]
         GUARD["globalToolCallGuard<br/>(cli/streamResilience.ts)"]
     end
-    
+
     subgraph "Tool System"
         WEBSEARCH["WebSearchTool<br/>(cli/tools/web-search.ts)"]
         WEBFETCH["WebFetchTool<br/>(cli/tools/web-fetch.ts)"]
         ATCMD["handleAtCommand()<br/>(cli/atCommandProcessor.ts)"]
     end
-    
+
     subgraph "Authentication"
         AUTHTYPE["AuthType enum<br/>(@office-ai/aioncli-core)"]
         APIMGR["ApiKeyManager<br/>(common/ApiKeyManager.ts)"]
         OAUTH["getGlobalTokenManager()<br/>(cli/oauthTokenManager.ts)"]
     end
-    
+
     GA -->|initializes| CONFIG
     GA -->|uses| CLIENT
     GA -->|creates| SCHEDULER
     GA -->|calls| PROCESS
     GA -->|manages| APIMGR
-    
+
     LOADCFG -->|creates| CONFIG
     LOADCFG -->|uses| SETTINGS
     LOADCFG -->|uses| TOOLCFG
-    
+
     PROCESS -->|monitors with| MONITOR
     PROCESS -->|protects tools with| GUARD
-    
+
     SCHEDULER -->|registers| WEBSEARCH
     SCHEDULER -->|registers| WEBFETCH
-    
+
     GA -->|preprocesses with| ATCMD
-    
+
     CONFIG -->|determines| AUTHTYPE
     AUTHTYPE -->|manages keys via| APIMGR
     AUTHTYPE -->|OAuth tokens via| OAUTH
@@ -106,9 +104,9 @@ The Gemini Agent supports six authentication types, each with different credenti
 ```mermaid
 graph LR
     PROVIDER["TProviderWithModel<br/>(model configuration)"]
-    
+
     DETECT["getProviderAuthType()<br/>(utils/platformAuthType.ts)"]
-    
+
     subgraph "AuthType Enum"
         GEMINI["USE_GEMINI<br/>(API Key)"]
         VERTEX["USE_VERTEX_AI<br/>(Service Account)"]
@@ -117,7 +115,7 @@ graph LR
         ANTHROPIC["USE_ANTHROPIC<br/>(API Key)"]
         BEDROCK["USE_BEDROCK<br/>(AWS Credentials)"]
     end
-    
+
     subgraph "Environment Setup"
         ENVGEMINI["GEMINI_API_KEY<br/>GOOGLE_GEMINI_BASE_URL"]
         ENVVERTEX["GOOGLE_API_KEY<br/>GOOGLE_GENAI_USE_VERTEXAI"]
@@ -126,16 +124,16 @@ graph LR
         ENVANTHROPIC["ANTHROPIC_API_KEY<br/>ANTHROPIC_BASE_URL"]
         ENVBEDROCK["AWS_ACCESS_KEY_ID<br/>AWS_SECRET_ACCESS_KEY<br/>AWS_REGION"]
     end
-    
+
     PROVIDER -->|analyzes| DETECT
-    
+
     DETECT -->|gemini platform| GEMINI
     DETECT -->|vertexai platform| VERTEX
     DETECT -->|google-oauth| OAUTH
     DETECT -->|openai-compatible| OPENAI
     DETECT -->|anthropic platform| ANTHROPIC
     DETECT -->|bedrock platform| BEDROCK
-    
+
     GEMINI -->|sets| ENVGEMINI
     VERTEX -->|sets| ENVVERTEX
     OAUTH -->|sets| ENVOAUTH
@@ -150,14 +148,14 @@ graph LR
 
 The `initClientEnv()` method clears all previous authentication variables and configures environment based on detected `AuthType`:
 
-| AuthType | Environment Variables | Special Handling |
-|----------|----------------------|------------------|
-| `USE_GEMINI` | `GEMINI_API_KEY`, `GOOGLE_GEMINI_BASE_URL` | Multi-key support via `ApiKeyManager` |
-| `USE_VERTEX_AI` | `GOOGLE_API_KEY`, `GOOGLE_GENAI_USE_VERTEXAI=true` | Service account credentials |
-| `LOGIN_WITH_GOOGLE` | `GOOGLE_CLOUD_PROJECT` (optional) | OAuth credential check via `hasGoogleOAuthCredentials()` |
-| `USE_OPENAI` | `OPENAI_API_KEY`, `OPENAI_BASE_URL` | Multi-key support, new-api URL normalization |
-| `USE_ANTHROPIC` | `ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL` | Multi-key support |
-| `USE_BEDROCK` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` or `AWS_PROFILE`, `AWS_REGION` | Two auth methods: accessKey or profile |
+| AuthType            | Environment Variables                                                       | Special Handling                                         |
+| ------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `USE_GEMINI`        | `GEMINI_API_KEY`, `GOOGLE_GEMINI_BASE_URL`                                  | Multi-key support via `ApiKeyManager`                    |
+| `USE_VERTEX_AI`     | `GOOGLE_API_KEY`, `GOOGLE_GENAI_USE_VERTEXAI=true`                          | Service account credentials                              |
+| `LOGIN_WITH_GOOGLE` | `GOOGLE_CLOUD_PROJECT` (optional)                                           | OAuth credential check via `hasGoogleOAuthCredentials()` |
+| `USE_OPENAI`        | `OPENAI_API_KEY`, `OPENAI_BASE_URL`                                         | Multi-key support, new-api URL normalization             |
+| `USE_ANTHROPIC`     | `ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL`                                   | Multi-key support                                        |
+| `USE_BEDROCK`       | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` or `AWS_PROFILE`, `AWS_REGION` | Two auth methods: accessKey or profile                   |
 
 **Key Implementation Details:**
 
@@ -187,38 +185,38 @@ sequenceDiagram
     participant Config
     participant refreshAuth
     participant initToolScheduler
-    
+
     Constructor->>initClientEnv: Clear env vars & set auth
     initClientEnv->>Constructor: Environment configured
-    
+
     Constructor->>loadCliConfig: Load workspace config
     loadCliConfig->>Config: Create Config instance
     Config->>loadCliConfig: Config object
     loadCliConfig->>Constructor: Return initialized Config
-    
+
     Constructor->>Config: config.initialize()
     Config->>Constructor: Initialized
-    
+
     Note over Constructor: Apply enabledSkills filter
     Constructor->>Config: filterSkills()
-    
+
     Constructor->>Config: config.refreshAuth(authType)
     Config->>refreshAuth: Initialize contentGenerator
     refreshAuth->>Config: GeminiClient created
-    
+
     Constructor->>Config: config.getGeminiClient()
     Config->>Constructor: GeminiClient instance
-    
+
     Note over Constructor: Inject presetRules into userMemory
     Constructor->>Config: config.getUserMemory()
     Constructor->>Config: config.setUserMemory(combined)
-    
+
     Note over Constructor: Register custom tools
     Constructor->>Config: toolConfig.registerCustomTools()
-    
+
     Constructor->>initToolScheduler: Create CoreToolScheduler
     initToolScheduler->>Constructor: Scheduler ready
-    
+
     Constructor->>Constructor: Bootstrap complete
 ```
 
@@ -238,16 +236,16 @@ The `loadCliConfig()` function creates a `Config` instance with comprehensive se
 
 **Configuration Table:**
 
-| Parameter | Source | Purpose |
-|-----------|--------|---------|
-| `sessionId` | Generated UUID | Unique session identifier |
-| `targetDir` | `workspace` option | Working directory for file operations |
-| `userMemory` | `loadServerHierarchicalMemory()` | Workspace context with file contents |
-| `mcpServers` | Merged from settings + extensions + UI | MCP server configurations |
-| `approvalMode` | `yoloMode` option | Tool execution approval behavior |
-| `interactive` | `true` (hardcoded) | Enables user confirmation dialogs |
-| `skillsSupport` | `false` (hardcoded) | Disables native XML skill injection |
-| `extensionLoader` | `SimpleExtensionLoader` | Provides extension context |
+| Parameter         | Source                                 | Purpose                               |
+| ----------------- | -------------------------------------- | ------------------------------------- |
+| `sessionId`       | Generated UUID                         | Unique session identifier             |
+| `targetDir`       | `workspace` option                     | Working directory for file operations |
+| `userMemory`      | `loadServerHierarchicalMemory()`       | Workspace context with file contents  |
+| `mcpServers`      | Merged from settings + extensions + UI | MCP server configurations             |
+| `approvalMode`    | `yoloMode` option                      | Tool execution approval behavior      |
+| `interactive`     | `true` (hardcoded)                     | Enables user confirmation dialogs     |
+| `skillsSupport`   | `false` (hardcoded)                    | Disables native XML skill injection   |
+| `extensionLoader` | `SimpleExtensionLoader`                | Provides extension context            |
 
 **Sources:** [src/agent/gemini/cli/config.ts:70-337]()
 
@@ -277,26 +275,26 @@ graph TB
         SEND["send(message, msg_id, files)"]
         SUBMITQUERY["submitQuery(query, msg_id, abortController)"]
     end
-    
+
     subgraph "Preprocessing"
         ATCMD["handleAtCommand()<br/>Process @file references"]
         STRIPMARKER["Strip AIONUI_FILES_MARKER"]
         APPENDFILES["Append files as @references"]
         OAUTHCHECK["OAuth token precheck"]
     end
-    
+
     subgraph "Stream Creation"
         CLIENTSTREAM["geminiClient.sendMessageStream()"]
         STARTEVENT["Emit 'start' event"]
     end
-    
+
     subgraph "Stream Processing"
         HANDLEMSG["handleMessage()<br/>with retry support"]
         PROCESS["processGeminiStreamEvents()"]
         MONITOR["StreamMonitor<br/>Heartbeat tracking"]
         INVALIDDETECT["Detect invalid_stream event"]
     end
-    
+
     subgraph "Event Handling"
         CONTENT["Content events"]
         THOUGHT["Thought events<br/>Think tag extraction"]
@@ -304,30 +302,30 @@ graph TB
         ERROR["Error events"]
         FINISHED["Finished events"]
     end
-    
+
     subgraph "Tool Execution"
         PROTECT["globalToolCallGuard.protect()"]
         SCHEDULE["scheduler.schedule()"]
         TOOLCOMPLETE["Tool completion callback"]
         UNPROTECT["globalToolCallGuard.unprotect()"]
     end
-    
+
     subgraph "Stream Resilience"
         RETRYCHECK["retryCount < MAX_RETRIES?"]
         DELAY["1 second delay"]
         RETRY["Create new stream and retry"]
     end
-    
+
     SEND -->|preprocess| ATCMD
     ATCMD -->|strip marker| STRIPMARKER
     STRIPMARKER -->|append| APPENDFILES
     APPENDFILES -->|check OAuth| OAUTHCHECK
     OAUTHCHECK -->|create stream| SUBMITQUERY
-    
+
     SUBMITQUERY -->|initialize| CLIENTSTREAM
     CLIENTSTREAM -->|emit| STARTEVENT
     STARTEVENT -->|process| HANDLEMSG
-    
+
     HANDLEMSG -->|iterate| PROCESS
     PROCESS -->|monitors| MONITOR
     PROCESS -->|emits| CONTENT
@@ -336,12 +334,12 @@ graph TB
     PROCESS -->|emits| ERROR
     PROCESS -->|emits| FINISHED
     PROCESS -->|detects| INVALIDDETECT
-    
+
     TOOLREQ -->|protect| PROTECT
     PROTECT -->|schedule| SCHEDULE
     SCHEDULE -->|on complete| TOOLCOMPLETE
     TOOLCOMPLETE -->|unprotect| UNPROTECT
-    
+
     INVALIDDETECT -->|check| RETRYCHECK
     RETRYCHECK -->|yes| DELAY
     DELAY -->|retry| RETRY
@@ -368,16 +366,17 @@ The agent implements three layers of resilience:
 ```typescript
 const monitor = new StreamMonitor(monitorConfig, (event) => {
   if (event.type === 'heartbeat_timeout') {
-    console.warn('[StreamMonitor] Heartbeat timeout detected');
+    console.warn('[StreamMonitor] Heartbeat timeout detected')
   }
-  monitorOptions?.onConnectionEvent?.(event);
-});
-monitor.start();
+  monitorOptions?.onConnectionEvent?.(event)
+})
+monitor.start()
 ```
 
 #### 2. Invalid Stream Detection and Retry
 
 The agent detects `invalid_stream` events from aioncli-core [src/agent/gemini/utils.ts:240-252](), which indicate:
+
 - Empty response from model
 - Missing finish reason
 - Malformed response structure
@@ -386,13 +385,24 @@ The agent detects `invalid_stream` events from aioncli-core [src/agent/gemini/ut
 
 ```typescript
 if (invalidStreamDetected && retryCount < MAX_INVALID_STREAM_RETRIES) {
-  await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
-  const newStream = this.geminiClient.sendMessageStream(query, signal, prompt_id);
-  return this.handleMessage(newStream, msg_id, abortController, query, retryCount + 1);
+  await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
+  const newStream = this.geminiClient.sendMessageStream(
+    query,
+    signal,
+    prompt_id
+  )
+  return this.handleMessage(
+    newStream,
+    msg_id,
+    abortController,
+    query,
+    retryCount + 1
+  )
 }
 ```
 
 **Retry Parameters:**
+
 - `MAX_INVALID_STREAM_RETRIES`: 2 attempts
 - `RETRY_DELAY_MS`: 1000ms between retries
 
@@ -413,10 +423,12 @@ This prevents race conditions where user stops streaming but tools are still exe
 The stream processor automatically detects and extracts thinking content from model responses [src/agent/gemini/utils.ts:107-152]():
 
 **Detection Patterns:**
-- Complete blocks: `` or `<thinking>...</thinking>`
+
+- Complete blocks: ``or`<thinking>...</thinking>`
 - Orphaned closing tags: `</think>` or `</thinking>` without opening tag
 
 **Processing Strategy:**
+
 1. Extract complete think blocks and emit as `Thought` events
 2. Remove complete blocks from content stream
 3. Preserve orphaned closing tags for frontend filtering (streaming mode compatibility)
@@ -443,49 +455,49 @@ graph TB
         EXECUTE["Status: executing"]
         TERMINAL["Status: success/error/cancelled"]
     end
-    
+
     subgraph "CoreToolScheduler"
         SCHEDULE["schedule(requests, signal)"]
         ONCOMPLETE["onAllToolCallsComplete callback"]
         ONUPDATE["onToolCallsUpdate callback"]
         OUTPUTUPDATE["outputUpdateHandler callback"]
     end
-    
+
     subgraph "Tool Registration"
         REGISTRY["ToolRegistry<br/>(from Config)"]
         BUILTIN["Built-in tools<br/>(read_file, write_file, etc)"]
         CUSTOM["Custom tools<br/>(WebSearch, WebFetch)"]
         MCP["MCP tools<br/>(from MCP servers)"]
     end
-    
+
     subgraph "Approval System"
     APPROVALSTORE["ApprovalStore<br/>(session cache)"]
     YOLO["YOLO mode<br/>(auto-approve all)"]
     INTERACTIVE["Interactive mode<br/>(prompt user)"]
     end
-    
+
     subgraph "Response Handling"
         COMPACT["compactToolResponsesInHistory()<br/>Truncate large responses"]
         SUBMIT["submitQuery(responseParts)<br/>Continue conversation"]
     end
-    
+
     REQUEST -->|normalize params| VALIDATE
     VALIDATE -->|check approval| CONFIRM
     CONFIRM -->|if approved| EXECUTE
     EXECUTE -->|completes| TERMINAL
-    
+
     SCHEDULE -->|dispatches| VALIDATE
     TERMINAL -->|triggers| ONCOMPLETE
     VALIDATE -->|triggers| ONUPDATE
     EXECUTE -->|streams to| OUTPUTUPDATE
-    
+
     ONCOMPLETE -->|calls| COMPACT
     COMPACT -->|submits| SUBMIT
-    
+
     REGISTRY -->|provides| BUILTIN
     REGISTRY -->|provides| CUSTOM
     REGISTRY -->|provides| MCP
-    
+
     CONFIRM -->|checks| APPROVALSTORE
     APPROVALSTORE -->|not cached| YOLO
     APPROVALSTORE -->|not cached| INTERACTIVE
@@ -504,19 +516,24 @@ Triggered when all tool calls in a batch reach terminal status (success/error/ca
 ```typescript
 onAllToolCallsComplete: async (completedToolCalls: CompletedToolCall[]) => {
   // Refresh memory if save_memory tool succeeded
-  const response = handleCompletedTools(completedToolCalls, this.geminiClient, refreshMemory);
-  
+  const response = handleCompletedTools(
+    completedToolCalls,
+    this.geminiClient,
+    refreshMemory
+  )
+
   // Submit tool responses back to model
   if (response.length > 0) {
     this.submitQuery(response, msg_id, abortController, {
       isContinuation: true,
-      prompt_id: completedToolCalls[0].request.prompt_id
-    });
+      prompt_id: completedToolCalls[0].request.prompt_id,
+    })
   }
 }
 ```
 
 **Key Operations:**
+
 - Calls `handleCompletedTools()` to process responses
 - Refreshes hierarchical memory if `save_memory` tool succeeded
 - Submits responses back to model with `isContinuation: true`
@@ -527,12 +544,12 @@ Triggered whenever tool call status changes:
 
 ```typescript
 onToolCallsUpdate: (updatedCoreToolCalls: ToolCall[]) => {
-  const display = mapToDisplay(updatedCoreToolCalls);
+  const display = mapToDisplay(updatedCoreToolCalls)
   this.onStreamEvent({
     type: 'tool_group',
     data: display.tools,
-    msg_id: this.activeMsgId
-  });
+    msg_id: this.activeMsgId,
+  })
 }
 ```
 
@@ -553,6 +570,7 @@ The `ConversationToolConfig` class [src/agent/gemini/cli/tools/conversation-tool
 [src/agent/gemini/cli/tools/web-search.ts:50-91]() provides Google Search integration:
 
 **Implementation Details:**
+
 - Uses `model: 'web-search'` alias from aioncli-core with `googleSearch` enabled
 - Processes grounding metadata to extract source URLs and titles
 - Returns both raw text (for LLM) and formatted markdown (for UI display)
@@ -560,11 +578,12 @@ The `ConversationToolConfig` class [src/agent/gemini/cli/tools/conversation-tool
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `query` | string | Search query |
+| Parameter | Type   | Description  |
+| --------- | ------ | ------------ |
+| `query`   | string | Search query |
 
 **Response Structure:**
+
 - `llmContent`: Raw search results text
 - `returnDisplay`: Markdown with source links
 - `sources`: Array of `GroundingChunkItem` with URLs and titles
@@ -574,6 +593,7 @@ The `ConversationToolConfig` class [src/agent/gemini/cli/tools/conversation-tool
 [src/agent/gemini/cli/tools/web-fetch.ts:50-98]() fetches and processes web content:
 
 **Implementation Details:**
+
 - Converts HTML to markdown using `html-to-text`
 - Processes content with small model (`DEFAULT_GEMINI_FLASH_MODEL`)
 - Handles GitHub blob URLs by converting to raw URLs
@@ -583,12 +603,13 @@ The `ConversationToolConfig` class [src/agent/gemini/cli/tools/conversation-tool
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `url` | string | URL to fetch (must start with http:// or https://) |
-| `prompt` | string | Query to run on fetched content |
+| Parameter | Type   | Description                                        |
+| --------- | ------ | -------------------------------------------------- |
+| `url`     | string | URL to fetch (must start with http:// or https://) |
+| `prompt`  | string | Query to run on fetched content                    |
 
 **Processing Flow:**
+
 1. Fetch URL with timeout
 2. Convert HTML to plain text
 3. Truncate to max length
@@ -604,12 +625,12 @@ The `normalizeToolParams()` function [src/agent/gemini/utils.ts:300-343]() stand
 
 **Normalization Rules:**
 
-| Tool Category | Parameter Mapping | Reason |
-|--------------|-------------------|--------|
-| File operations | `path` → `file_path` | Standardize to expected parameter name |
-| File operations | Strip leading `@` from paths | Handle user input like `@file.txt` |
-| Directory operations | Various `dir`-like keys → `dir_path` | Unify legacy parameter names |
-| `list_directory` | Default `dir_path` to `"."` | Satisfy required parameter when missing |
+| Tool Category        | Parameter Mapping                    | Reason                                  |
+| -------------------- | ------------------------------------ | --------------------------------------- |
+| File operations      | `path` → `file_path`                 | Standardize to expected parameter name  |
+| File operations      | Strip leading `@` from paths         | Handle user input like `@file.txt`      |
+| Directory operations | Various `dir`-like keys → `dir_path` | Unify legacy parameter names            |
+| `list_directory`     | Default `dir_path` to `"."`          | Satisfy required parameter when missing |
 
 This ensures compatibility with models that use different parameter conventions.
 
@@ -644,7 +665,7 @@ graph TB
         PARSE["parseAllAtCommands()"]
         PARTS["AtCommandPart[]<br/>{type: 'text' | 'atPath', content: string}"]
     end
-    
+
     subgraph "Path Resolution"
         PATHSPEC["Extract path from @reference"]
         STATCHECK["fs.stat() to check type"]
@@ -654,54 +675,54 @@ graph TB
         NOTFOUND["Not found?"]
         GLOBSEARCH["Try glob search<br/>**/*filename*"]
     end
-    
+
     subgraph "Filtering"
         WORKSPACE["Check within workspace"]
         GITIGNORE["Check .gitignore"]
         GEMINIIGNORE["Check .geminiignore"]
         SKIPIGNORED["Skip ignored files"]
     end
-    
+
     subgraph "Processing Mode"
         LAZY["lazyFileLoading mode?"]
         LAZYOUT["Output file paths only<br/>Agent uses read_file tool"]
         EAGER["Eager mode"]
     end
-    
+
     subgraph "Eager Loading"
         TOOLAVAIL["read_many_files tool available?"]
         USETOOL["Use read_many_files tool"]
         FALLBACK["Direct fs.readFile()"]
         TRUNCATE["Truncate long content<br/>2000 lines, 2000 chars/line"]
     end
-    
+
     QUERY -->|parse| PARSE
     PARSE -->|produces| PARTS
     PARTS -->|extract @paths| PATHSPEC
-    
+
     PATHSPEC -->|resolve| STATCHECK
     STATCHECK -->|yes| ISDIR
     STATCHECK -->|no| ISFILE
     STATCHECK -->|error| NOTFOUND
-    
+
     ISDIR -->|append| GLOBPATTERN
     NOTFOUND -->|search| GLOBSEARCH
     ISFILE -->|validate| WORKSPACE
     GLOBPATTERN -->|validate| WORKSPACE
     GLOBSEARCH -->|validate| WORKSPACE
-    
+
     WORKSPACE -->|check| GITIGNORE
     GITIGNORE -->|check| GEMINIIGNORE
     GEMINIIGNORE -->|if ignored| SKIPIGNORED
     GEMINIIGNORE -->|if allowed| LAZY
-    
+
     LAZY -->|yes| LAZYOUT
     LAZY -->|no| EAGER
-    
+
     EAGER -->|check| TOOLAVAIL
     TOOLAVAIL -->|yes| USETOOL
     TOOLAVAIL -->|no| FALLBACK
-    
+
     FALLBACK -->|apply| TRUNCATE
 ```
 
@@ -714,6 +735,7 @@ The `handleAtCommand()` function resolves paths through multiple strategies [src
 #### 1. Direct File/Directory Check
 
 Attempts `fs.stat()` on the specified path:
+
 - **File**: Use path as-is
 - **Directory**: Convert to glob pattern (e.g., `src/` → `src/**`)
 - **Not Found**: Proceed to glob search
@@ -723,10 +745,13 @@ Attempts `fs.stat()` on the specified path:
 If `config.getEnableRecursiveFileSearch()` is enabled and path not found:
 
 ```typescript
-const globResult = await globTool.buildAndExecute({
-  pattern: `**/*${pathName}*`,
-  path: workspaceDir
-}, signal);
+const globResult = await globTool.buildAndExecute(
+  {
+    pattern: `**/*${pathName}*`,
+    path: workspaceDir,
+  },
+  signal
+)
 ```
 
 Uses first matching file from glob results.
@@ -738,16 +763,18 @@ Each resolved path is checked against workspace rules [src/agent/gemini/cli/atCo
 ```typescript
 // Check workspace boundary
 if (!workspaceContext.isPathWithinWorkspace(pathName)) {
-  continue; // Skip external files
+  continue // Skip external files
 }
 
 // Check .gitignore
-const gitIgnored = respectFileIgnore.respectGitIgnore && 
-  fileDiscovery.shouldIgnoreFile(pathName, { respectGitIgnore: true });
+const gitIgnored =
+  respectFileIgnore.respectGitIgnore &&
+  fileDiscovery.shouldIgnoreFile(pathName, { respectGitIgnore: true })
 
 // Check .geminiignore
-const geminiIgnored = respectFileIgnore.respectGeminiIgnore && 
-  fileDiscovery.shouldIgnoreFile(pathName, { respectGeminiIgnore: true });
+const geminiIgnored =
+  respectFileIgnore.respectGeminiIgnore &&
+  fileDiscovery.shouldIgnoreFile(pathName, { respectGeminiIgnore: true })
 ```
 
 Ignored files are categorized by reason and reported to user.
@@ -764,15 +791,15 @@ Ignored files are categorized by reason and reported to user.
 processedQueryParts.push({
   text: '\
 \
-[Files referenced in workspace - use read_file tool to access when needed]:'
-});
+[Files referenced in workspace - use read_file tool to access when needed]:',
+})
 
 for (const pathSpec of pathSpecsToRead) {
-  const absolutePath = path.resolve(workspaceDir, pathSpec);
+  const absolutePath = path.resolve(workspaceDir, pathSpec)
   processedQueryParts.push({
     text: `\
-- ${pathSpec} (path: ${absolutePath})`
-  });
+- ${pathSpec} (path: ${absolutePath})`,
+  })
 }
 ```
 
@@ -789,11 +816,11 @@ const invocation = readManyFilesTool.build({
   paths: pathSpecsToRead,
   file_filtering_options: {
     respect_git_ignore: respectFileIgnore.respectGitIgnore,
-    respect_gemini_ignore: respectFileIgnore.respectGeminiIgnore
-  }
-});
+    respect_gemini_ignore: respectFileIgnore.respectGeminiIgnore,
+  },
+})
 
-const result = await invocation.execute(signal);
+const result = await invocation.execute(signal)
 ```
 
 Leverages aioncli-core's native file reading with proper filtering.
@@ -801,8 +828,8 @@ Leverages aioncli-core's native file reading with proper filtering.
 **2. Fallback Direct Reading** [src/agent/gemini/cli/atCommandProcessor.ts:389-420]():
 
 ```typescript
-const rawContent = await fs.readFile(absolutePath, 'utf-8');
-const { content: fileContent, truncated } = truncateFileContent(rawContent);
+const rawContent = await fs.readFile(absolutePath, 'utf-8')
+const { content: fileContent, truncated } = truncateFileContent(rawContent)
 ```
 
 Applies manual truncation (2000 lines, 2000 chars per line) to prevent token overflow.
@@ -819,10 +846,10 @@ The `send()` method [src/agent/gemini/index.ts:713-847]() preprocesses user inpu
 
 ```typescript
 const stripFilesMarker = (text: string): string => {
-  const markerIndex = text.indexOf(AIONUI_FILES_MARKER);
-  if (markerIndex === -1) return text;
-  return text.slice(0, markerIndex).trimEnd();
-};
+  const markerIndex = text.indexOf(AIONUI_FILES_MARKER)
+  if (markerIndex === -1) return text
+  return text.slice(0, markerIndex).trimEnd()
+}
 ```
 
 #### 2. Files Parameter Conversion
@@ -831,8 +858,8 @@ const stripFilesMarker = (text: string): string => {
 
 ```typescript
 if (files && files.length > 0) {
-  const fileRefs = files.map(filePath => `@${filePath}`).join(' ');
-  message = `${message} ${fileRefs}`;
+  const fileRefs = files.map((filePath) => `@${filePath}`).join(' ')
+  message = `${message} ${fileRefs}`
 }
 ```
 
@@ -843,10 +870,10 @@ This normalizes both drag-and-drop files and typed `@` references to the same fo
 [src/agent/gemini/index.ts:745-757]() For `LOGIN_WITH_GOOGLE` mode, validates token before streaming:
 
 ```typescript
-const tokenManager = getGlobalTokenManager(this.authType);
-const isTokenValid = await tokenManager.checkAndRefreshIfNeeded();
+const tokenManager = getGlobalTokenManager(this.authType)
+const isTokenValid = await tokenManager.checkAndRefreshIfNeeded()
 if (!isTokenValid) {
-  console.warn('[GeminiAgent] OAuth token validation failed');
+  console.warn('[GeminiAgent] OAuth token validation failed')
 }
 ```
 
@@ -860,8 +887,8 @@ Prevents stream initialization with expired credentials.
 const { processedQuery, shouldProceed } = await handleAtCommand({
   query: messageText,
   config: this.config,
-  lazyFileLoading: !!(files && files.length > 0)
-});
+  lazyFileLoading: !!(files && files.length > 0),
+})
 ```
 
 **Sources:** [src/agent/gemini/index.ts:713-847]()
@@ -881,44 +908,44 @@ graph TB
         CURRENT["currentIndex<br/>Tracks active key"]
         BLACKLIST["Set<number><br/>Failed key indices"]
     end
-    
+
     subgraph "Initialization"
         DETECT["hasMultipleKeys()<br/>Check for separators"]
         INIT["Constructor<br/>Parse keys array"]
         ENVKEY["Determine env variable<br/>by AuthType"]
     end
-    
+
     subgraph "Rotation Trigger"
         ERROR["Quota/Rate Limit Error"]
         FALLBACK["fallbackModelHandler()"]
         ROTATE["rotateKey()"]
     end
-    
+
     subgraph "Rotation Logic"
         FINDNEXT["Find next non-blacklisted key"]
         UPDATEENV["Update process.env[envKey]"]
         REFRESHAUTH["config.refreshAuth()"]
         RETRY["Return 'retry_once'"]
     end
-    
+
     subgraph "Blacklisting"
         EXHAUSTED["All keys tried?"]
         ADDBLACKLIST["Add current to blacklist"]
         STOP["Return 'stop'"]
     end
-    
+
     KEYS -->|initialize| INIT
     INIT -->|store| CURRENT
     INIT -->|determine| ENVKEY
-    
+
     ERROR -->|triggers| FALLBACK
     FALLBACK -->|calls| ROTATE
-    
+
     ROTATE -->|search| FINDNEXT
     FINDNEXT -->|found| UPDATEENV
     UPDATEENV -->|trigger| REFRESHAUTH
     REFRESHAUTH -->|return| RETRY
-    
+
     FINDNEXT -->|none| EXHAUSTED
     EXHAUSTED -->|yes| ADDBLACKLIST
     ADDBLACKLIST -->|return| STOP
@@ -939,8 +966,8 @@ private initializeMultiKeySupport(): void {
   }
 
   // Only for USE_OPENAI, USE_GEMINI, USE_ANTHROPIC
-  if (this.authType === AuthType.USE_OPENAI || 
-      this.authType === AuthType.USE_GEMINI || 
+  if (this.authType === AuthType.USE_OPENAI ||
+      this.authType === AuthType.USE_GEMINI ||
       this.authType === AuthType.USE_ANTHROPIC) {
     this.apiKeyManager = new ApiKeyManager(apiKey, this.authType);
   }
@@ -948,6 +975,7 @@ private initializeMultiKeySupport(): void {
 ```
 
 **Supported AuthTypes:**
+
 - `USE_GEMINI` → `GEMINI_API_KEY`
 - `USE_OPENAI` → `OPENAI_API_KEY`
 - `USE_ANTHROPIC` → `ANTHROPIC_API_KEY`
@@ -962,21 +990,21 @@ const fallbackModelHandler = async (
   _fallbackModel: string,
   _error?: unknown
 ): Promise<FallbackIntent | null> => {
-  const agent = getCurrentGeminiAgent();
-  const apiKeyManager = agent?.getApiKeyManager();
+  const agent = getCurrentGeminiAgent()
+  const apiKeyManager = agent?.getApiKeyManager()
 
   if (!apiKeyManager?.hasMultipleKeys()) {
-    return 'stop'; // Single key, stop retrying
+    return 'stop' // Single key, stop retrying
   }
 
-  const hasMoreKeys = apiKeyManager.rotateKey();
+  const hasMoreKeys = apiKeyManager.rotateKey()
 
   if (hasMoreKeys) {
-    return 'retry_once'; // More keys available
+    return 'retry_once' // More keys available
   }
 
-  return 'stop'; // All keys exhausted
-};
+  return 'stop' // All keys exhausted
+}
 ```
 
 **Workflow:**
@@ -989,10 +1017,10 @@ const fallbackModelHandler = async (
 
 **Return Values:**
 
-| Value | Meaning |
-|-------|---------|
-| `'retry_once'` | More keys available, retry request |
-| `'stop'` | All keys exhausted or single key mode, stop retrying |
+| Value          | Meaning                                              |
+| -------------- | ---------------------------------------------------- |
+| `'retry_once'` | More keys available, retry request                   |
+| `'stop'`       | All keys exhausted or single key mode, stop retrying |
 
 **Sources:** [src/common/ApiKeyManager.ts](), [src/agent/gemini/cli/config.ts:299-334]()
 
@@ -1011,7 +1039,7 @@ rotateKey(): boolean {
       return true;
     }
   }
-  
+
   // All keys blacklisted
   return false;
 }
@@ -1034,15 +1062,15 @@ The `enrichErrorMessage()` method [src/agent/gemini/index.ts:281-298]() enhances
 ```typescript
 private enrichErrorMessage(errorMessage: string): string {
   const reportMatch = errorMessage.match(/Full report available at:\s*(.+?\.json)/i);
-  
+
   // Check for quota-related errors in message
-  if (lowerMessage.includes('model_capacity_exhausted') || 
-      lowerMessage.includes('resource_exhausted') || 
+  if (lowerMessage.includes('model_capacity_exhausted') ||
+      lowerMessage.includes('resource_exhausted') ||
       lowerMessage.includes('ratelimitexceeded')) {
     return `${errorMessage}\
 Quota exhausted on this model.`;
   }
-  
+
   // Try reading error report file if available
   if (reportMatch?.[1]) {
     const reportContent = fs.readFileSync(reportMatch[1], 'utf-8');
@@ -1051,7 +1079,7 @@ Quota exhausted on this model.`;
 Quota exhausted on this model.`;
     }
   }
-  
+
   return errorMessage;
 }
 ```
@@ -1063,19 +1091,20 @@ Appends user-friendly hints when quota limits detected.
 The `parseAndFormatApiError()` function [src/agent/gemini/cli/errorParsing.ts:79-123]() standardizes error messages:
 
 **Error Detection:**
+
 - Structured errors (`isStructuredError()`)
 - JSON-embedded errors (parse from string)
 - Nested error objects
 
 **Rate Limit Messages by AuthType:**
 
-| AuthType | Message Format |
-|----------|---------------|
-| `LOGIN_WITH_GOOGLE` (Free) | Suggests upgrading to paid plan or switching to AI Studio API key |
+| AuthType                   | Message Format                                                          |
+| -------------------------- | ----------------------------------------------------------------------- |
+| `LOGIN_WITH_GOOGLE` (Free) | Suggests upgrading to paid plan or switching to AI Studio API key       |
 | `LOGIN_WITH_GOOGLE` (Paid) | Acknowledges paid tier, suggests AI Studio API key for continued access |
-| `USE_GEMINI` | Suggests requesting quota increase through AI Studio |
-| `USE_VERTEX_AI` | Suggests requesting quota increase through Vertex AI |
-| Others | Generic fallback message with model switch notification |
+| `USE_GEMINI`               | Suggests requesting quota increase through AI Studio                    |
+| `USE_VERTEX_AI`            | Suggests requesting quota increase through Vertex AI                    |
+| Others                     | Generic fallback message with model switch notification                 |
 
 **User Tier Detection:**
 
@@ -1090,8 +1119,8 @@ Stream errors are emitted through the event system [src/agent/gemini/utils.ts:18
 ```typescript
 case ServerGeminiEventType.Error:
   {
-    const errorValue = (event.value as { error?: unknown })?.error ?? 
-                       event.value ?? 
+    const errorValue = (event.value as { error?: unknown })?.error ??
+                       event.value ??
                        'Unknown error occurred';
     onStreamEvent({
       type: event.type,
@@ -1134,10 +1163,10 @@ ${text}\
 \
 `;
   this.historyUsedOnce = false;
-  
+
   // Refresh server memory
   const { memoryContent } = await refreshServerHierarchicalMemory(this.config);
-  
+
   // Combine memory with chat history
   const combined = `${memoryContent}\
 \
@@ -1175,6 +1204,7 @@ The Gemini Agent System provides a robust, production-ready AI agent implementat
 The agent serves as the foundation for AionUi's AI capabilities, providing a unified interface regardless of underlying model provider while maintaining compatibility with the broader aioncli-core ecosystem.
 
 **Primary Implementation Files:**
+
 - Core Agent: [src/agent/gemini/index.ts:1-875]()
 - Stream Processing: [src/agent/gemini/utils.ts:1-615]()
 - Configuration: [src/agent/gemini/cli/config.ts:1-380]()

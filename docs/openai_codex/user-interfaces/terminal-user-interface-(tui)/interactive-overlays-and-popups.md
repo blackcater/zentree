@@ -18,8 +18,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the overlay and popup system in the Codex TUI: how each overlay type is structured, how keyboard input is intercepted and routed, and how overlays dispatch actions through the `AppEvent` message bus.
 
 For general TUI layout and widget hierarchy, see [4.1](). For the `BottomPane` and input system that hosts many of these overlays, see [4.1.3](). For the `AppEvent` bus itself, see [4.1.1]().
@@ -49,11 +47,11 @@ graph TD
     C --> D
 ```
 
-| Layer | Owner | Scope | Examples |
-|---|---|---|---|
-| Composer popups | `ChatComposer.active_popup` | Above text input | `CommandPopup`, `FileSearchPopup`, `SkillPopup` |
-| Bottom-pane view stack | `BottomPane.view_stack` | Replaces composer | `ListSelectionView`, `ApprovalOverlay`, `RequestUserInputOverlay` |
-| Full-screen overlay | `App.overlay` | Replaces entire screen | `TranscriptOverlay`, `StaticOverlay` |
+| Layer                  | Owner                       | Scope                  | Examples                                                          |
+| ---------------------- | --------------------------- | ---------------------- | ----------------------------------------------------------------- |
+| Composer popups        | `ChatComposer.active_popup` | Above text input       | `CommandPopup`, `FileSearchPopup`, `SkillPopup`                   |
+| Bottom-pane view stack | `BottomPane.view_stack`     | Replaces composer      | `ListSelectionView`, `ApprovalOverlay`, `RequestUserInputOverlay` |
+| Full-screen overlay    | `App.overlay`               | Replaces entire screen | `TranscriptOverlay`, `StaticOverlay`                              |
 
 Sources: [codex-rs/tui/src/bottom_pane/mod.rs:150-181](), [codex-rs/tui/src/bottom_pane/chat_composer.rs:349-409](), [codex-rs/tui/src/app.rs:627-695](), [codex-rs/tui/src/pager_overlay.rs:48-82]()
 
@@ -64,6 +62,7 @@ Sources: [codex-rs/tui/src/bottom_pane/mod.rs:150-181](), [codex-rs/tui/src/bott
 All bottom-pane views implement a common trait (`bottom_pane_view::BottomPaneView`) that enables the `BottomPane` to manage a polymorphic stack.
 
 Key methods on the trait (from `bottom_pane/bottom_pane_view.rs`):
+
 - `handle_key_event(key_event)` — processes input
 - `on_ctrl_c() -> CancellationEvent` — returns `Handled` to dismiss the view on Ctrl+C
 - `is_complete() -> bool` — signals the view should be popped off the stack
@@ -126,13 +125,14 @@ Shown when the user types `/` in the composer. Lists built-in slash commands and
 
 **Key types:**
 
-| Type | Purpose |
-|---|---|
-| `CommandPopup` | Manages filtered list state and scroll |
-| `CommandItem` | `Builtin(SlashCommand)` or `UserPrompt(usize)` |
+| Type                | Purpose                                                    |
+| ------------------- | ---------------------------------------------------------- |
+| `CommandPopup`      | Manages filtered list state and scroll                     |
+| `CommandItem`       | `Builtin(SlashCommand)` or `UserPrompt(usize)`             |
 | `CommandPopupFlags` | Feature gates (collaboration, connectors, fast mode, etc.) |
 
 **Filtering logic** ([codex-rs/tui/src/bottom_pane/command_popup.rs:101-205]()):
+
 - `on_composer_text_change(text)` updates `command_filter` from the first token after `/`.
 - `filtered()` runs prefix and exact matching over builtins and user prompts, returning `(CommandItem, Option<Vec<usize>>)` pairs where the `Vec<usize>` contains character positions to bold.
 - Alias commands (`Quit` is an alias of `Exit`, `Approvals` is an alias of `Permissions`) are hidden from the default unfiltered list.
@@ -146,16 +146,17 @@ File: [codex-rs/tui/src/bottom_pane/file_search_popup.rs]()
 Shown when the user types `@` in the composer. Displays file search results asynchronously.
 
 State machine:
+
 - `set_query(query)` puts the popup into `waiting = true` and fires `AppEvent::StartFileSearch(query)`.
 - When `AppEvent::FileSearchResult { query, matches }` arrives (from `App`), `set_matches(query, matches)` updates the visible list (only if `query == pending_query` to discard stale results).
 - `set_empty_prompt()` is used for an empty `@` query to show a hint instead of matches.
 
-| Field | Meaning |
-|---|---|
-| `display_query` | Query shown in the popup header (last confirmed result) |
-| `pending_query` | Most recently typed query (may be ahead of results) |
-| `waiting` | True while results for `pending_query` haven't arrived |
-| `matches: Vec<FileMatch>` | Results from the last completed search |
+| Field                     | Meaning                                                 |
+| ------------------------- | ------------------------------------------------------- |
+| `display_query`           | Query shown in the popup header (last confirmed result) |
+| `pending_query`           | Most recently typed query (may be ahead of results)     |
+| `waiting`                 | True while results for `pending_query` haven't arrived  |
+| `matches: Vec<FileMatch>` | Results from the last completed search                  |
 
 ### `SkillPopup`
 
@@ -165,14 +166,14 @@ Shown when the user types `$` in the composer. Lists available skills and app co
 
 `MentionItem` fields:
 
-| Field | Purpose |
-|---|---|
-| `display_name` | Text shown in the popup row |
-| `description` | Optional grey subtitle |
-| `insert_text` | Text inserted into the composer on selection |
-| `search_terms` | Additional strings for fuzzy matching |
-| `path` | Canonical path (skill `.md` file or `app://...` URI) |
-| `category_tag` | Right-side label (e.g. `skill`, `app`) |
+| Field          | Purpose                                              |
+| -------------- | ---------------------------------------------------- |
+| `display_name` | Text shown in the popup row                          |
+| `description`  | Optional grey subtitle                               |
+| `insert_text`  | Text inserted into the composer on selection         |
+| `search_terms` | Additional strings for fuzzy matching                |
+| `path`         | Canonical path (skill `.md` file or `app://...` URI) |
+| `category_tag` | Right-side label (e.g. `skill`, `app`)               |
 
 Fuzzy matching is performed by `codex_utils_fuzzy_match::fuzzy_match`. The popup uses `render_rows_single_line` from `selection_popup_common` for its condensed display.
 
@@ -214,32 +215,33 @@ The generic selection popup used for model pickers, approvals presets, theme sel
 
 **`SelectionViewParams`** (construction-time config):
 
-| Field | Purpose |
-|---|---|
-| `title` / `subtitle` | Header text |
-| `items: Vec<SelectionItem>` | Row data |
-| `is_searchable` | Enables a search/filter text input |
-| `col_width_mode: ColumnWidthMode` | `AutoVisible`, `AutoAllRows`, or `Fixed` column widths |
-| `side_content: Box<dyn Renderable>` | Rich content shown beside the list (e.g. syntax preview) |
-| `side_content_width: SideContentWidth` | `Fixed(n)` or `Half` |
-| `on_selection_changed` | Callback fired on navigation (used for live theme preview) |
-| `on_cancel` | Callback fired on Esc/Ctrl+C (used to restore pre-open theme) |
+| Field                                  | Purpose                                                       |
+| -------------------------------------- | ------------------------------------------------------------- |
+| `title` / `subtitle`                   | Header text                                                   |
+| `items: Vec<SelectionItem>`            | Row data                                                      |
+| `is_searchable`                        | Enables a search/filter text input                            |
+| `col_width_mode: ColumnWidthMode`      | `AutoVisible`, `AutoAllRows`, or `Fixed` column widths        |
+| `side_content: Box<dyn Renderable>`    | Rich content shown beside the list (e.g. syntax preview)      |
+| `side_content_width: SideContentWidth` | `Fixed(n)` or `Half`                                          |
+| `on_selection_changed`                 | Callback fired on navigation (used for live theme preview)    |
+| `on_cancel`                            | Callback fired on Esc/Ctrl+C (used to restore pre-open theme) |
 
 **`SelectionItem`** (per-row model):
 
-| Field | Purpose |
-|---|---|
-| `name` | Display text |
-| `display_shortcut` | Numeric shortcut shown on the right |
-| `description` / `selected_description` | Subtitle text |
-| `is_current` / `is_default` | Marks the currently-selected or default item |
-| `is_disabled` / `disabled_reason` | Prevents selection; shows reason |
-| `actions: Vec<SelectionAction>` | Closures called on `AppEventSender` when item is accepted |
-| `dismiss_on_select` | Whether accepting this item closes the popup |
+| Field                                  | Purpose                                                   |
+| -------------------------------------- | --------------------------------------------------------- |
+| `name`                                 | Display text                                              |
+| `display_shortcut`                     | Numeric shortcut shown on the right                       |
+| `description` / `selected_description` | Subtitle text                                             |
+| `is_current` / `is_default`            | Marks the currently-selected or default item              |
+| `is_disabled` / `disabled_reason`      | Prevents selection; shows reason                          |
+| `actions: Vec<SelectionAction>`        | Closures called on `AppEventSender` when item is accepted |
+| `dismiss_on_select`                    | Whether accepting this item closes the popup              |
 
 **Side-by-side layout**: when terminal width is sufficient, `side_by_side_layout_widths()` divides the content area into a list pane and a side-content pane. The threshold is `MIN_LIST_WIDTH_FOR_SIDE = 40` columns for the list portion. Below threshold, it falls back to a stacked layout.
 
 **`ColumnWidthMode`** controls column width stability:
+
 - `AutoVisible` — measures only the visible rows (default, cheaper)
 - `AutoAllRows` — measures all rows, preventing column shifts during scroll
 - `Fixed` — 30/70 split between name and description columns
@@ -282,6 +284,7 @@ Both variants use the internal `PagerView` widget for scroll management, renderi
 ### `PagerView`
 
 `PagerView` is the shared rendering and scroll engine for both overlay types. It manages:
+
 - `renderables: Vec<Box<dyn Renderable>>` — content chunks
 - `scroll_offset: usize` — current scroll position
 - `last_content_height` / `last_rendered_height` — used to clamp scrolling
@@ -289,30 +292,31 @@ Both variants use the internal `PagerView` widget for scroll management, renderi
 
 Key navigation bindings:
 
-| Key(s) | Action |
-|---|---|
-| `↑`/`k`, `↓`/`j` | Scroll one line |
-| `PgUp`/`Ctrl+B`, `PgDn`/`Ctrl+F` | Scroll one page |
-| `Home`, `End` | Jump to start/end |
-| `Space`/`Ctrl+D` | Page down |
-| `Shift+Space`/`Ctrl+U` | Page up |
-| `q`, `Esc`, `Ctrl+C`, `Ctrl+T` | Exit overlay |
+| Key(s)                           | Action            |
+| -------------------------------- | ----------------- |
+| `↑`/`k`, `↓`/`j`                 | Scroll one line   |
+| `PgUp`/`Ctrl+B`, `PgDn`/`Ctrl+F` | Scroll one page   |
+| `Home`, `End`                    | Jump to start/end |
+| `Space`/`Ctrl+D`                 | Page down         |
+| `Shift+Space`/`Ctrl+U`           | Page up           |
+| `q`, `Esc`, `Ctrl+C`, `Ctrl+T`   | Exit overlay      |
 
 ### `TranscriptOverlay`
 
 Triggered by `Ctrl+T`. Shows committed `HistoryCell`s plus an optional **live tail** from the current in-flight `active_cell`.
 
 The live tail is cached to avoid re-rendering on every frame. `App` calls `TranscriptOverlay::sync_live_tail(key, lines_fn)` during each draw, where:
+
 - `key: ActiveCellTranscriptKey` — changes when the active cell mutates in place, stream continuation changes, or animation tick changes
 - `lines_fn` — a closure that produces transcript lines from the active cell
 
 `ActiveCellTranscriptKey` from `chatwidget.rs`:
 
-| Field | Purpose |
-|---|---|
-| `revision: u64` | Bumped on every in-place mutation of the active cell |
-| `is_stream_continuation: bool` | Affects spacing between transcript blocks |
-| `animation_tick: Option<u64>` | Forces cache refresh for spinner/shimmer output |
+| Field                          | Purpose                                              |
+| ------------------------------ | ---------------------------------------------------- |
+| `revision: u64`                | Bumped on every in-place mutation of the active cell |
+| `is_stream_continuation: bool` | Affects spacing between transcript blocks            |
+| `animation_tick: Option<u64>`  | Forces cache refresh for spinner/shimmer output      |
 
 `TranscriptOverlay` also integrates with backtrack mode (see [4.4]()): Esc can navigate to a previous user turn and Enter requests a rollback from core.
 
@@ -350,20 +354,20 @@ push_view()"]
 
 Selected `AppEvent` variants and their effect:
 
-| `AppEvent` variant | Overlay opened |
-|---|---|
-| `OpenModelPopup { models }` / `OpenAllModelsPopup` | `ListSelectionView` (model picker) |
-| `OpenApprovalsPopup` | `ListSelectionView` (approval presets) |
-| `OpenSkillsList` | `ListSelectionView` (skills list) |
-| `OpenManageSkillsPopup` | `ListSelectionView` (skills toggle) |
-| `OpenAgentPicker` | `ListSelectionView` (agent thread picker) |
-| `OpenReasoningPopup { model }` | `ListSelectionView` (reasoning effort) |
-| `OpenFullAccessConfirmation` | `ListSelectionView` (confirmation) |
-| `OpenRealtimeAudioDeviceSelection { kind }` | `ListSelectionView` (device picker) |
-| `OpenAppLink { ... }` | `AppLinkView` |
-| `ApprovalRequest` (via `ShowApprovalRequest`) | `ApprovalOverlay` |
-| `DiffResult(diff)` | `StaticOverlay` |
-| Ctrl+T key | `TranscriptOverlay` |
+| `AppEvent` variant                                 | Overlay opened                            |
+| -------------------------------------------------- | ----------------------------------------- |
+| `OpenModelPopup { models }` / `OpenAllModelsPopup` | `ListSelectionView` (model picker)        |
+| `OpenApprovalsPopup`                               | `ListSelectionView` (approval presets)    |
+| `OpenSkillsList`                                   | `ListSelectionView` (skills list)         |
+| `OpenManageSkillsPopup`                            | `ListSelectionView` (skills toggle)       |
+| `OpenAgentPicker`                                  | `ListSelectionView` (agent thread picker) |
+| `OpenReasoningPopup { model }`                     | `ListSelectionView` (reasoning effort)    |
+| `OpenFullAccessConfirmation`                       | `ListSelectionView` (confirmation)        |
+| `OpenRealtimeAudioDeviceSelection { kind }`        | `ListSelectionView` (device picker)       |
+| `OpenAppLink { ... }`                              | `AppLinkView`                             |
+| `ApprovalRequest` (via `ShowApprovalRequest`)      | `ApprovalOverlay`                         |
+| `DiffResult(diff)`                                 | `StaticOverlay`                           |
+| Ctrl+T key                                         | `TranscriptOverlay`                       |
 
 Sources: [codex-rs/tui/src/app_event.rs:68-430](), [codex-rs/tui/src/app.rs]()
 
@@ -373,25 +377,25 @@ Sources: [codex-rs/tui/src/app_event.rs:68-430](), [codex-rs/tui/src/app.rs]()
 
 Most popups delegate row rendering to helpers in `bottom_pane/selection_popup_common.rs`.
 
-| Helper | Purpose |
-|---|---|
-| `render_menu_surface(area, buf)` | Paints the shared user-message-style background; returns inset content rect |
-| `render_rows(rows, state, area, buf)` | Renders a `Vec<GenericDisplayRow>` with selection highlighting and scroll |
-| `render_rows_stable_col_widths(...)` | Like `render_rows` but uses pre-computed column widths for scrolling stability |
-| `render_rows_single_line(...)` | Single-line variant used by `SkillPopup` |
-| `measure_rows_height(...)` | Calculates required height given visible rows and `ScrollState` |
-| `wrap_styled_line(line, width)` | Wraps a styled `Line` preserving span styles |
+| Helper                                | Purpose                                                                        |
+| ------------------------------------- | ------------------------------------------------------------------------------ |
+| `render_menu_surface(area, buf)`      | Paints the shared user-message-style background; returns inset content rect    |
+| `render_rows(rows, state, area, buf)` | Renders a `Vec<GenericDisplayRow>` with selection highlighting and scroll      |
+| `render_rows_stable_col_widths(...)`  | Like `render_rows` but uses pre-computed column widths for scrolling stability |
+| `render_rows_single_line(...)`        | Single-line variant used by `SkillPopup`                                       |
+| `measure_rows_height(...)`            | Calculates required height given visible rows and `ScrollState`                |
+| `wrap_styled_line(line, width)`       | Wraps a styled `Line` preserving span styles                                   |
 
 `GenericDisplayRow` is the render-ready model for one popup row:
 
-| Field | Purpose |
-|---|---|
-| `name` | Primary text |
-| `match_indices` | Character positions to bold (search highlights) |
-| `description` | Greyed secondary text |
-| `category_tag` | Right-aligned label |
-| `disabled_reason` | Shown in place of description for disabled rows |
-| `display_shortcut` | Key binding shown on the right |
+| Field              | Purpose                                         |
+| ------------------ | ----------------------------------------------- |
+| `name`             | Primary text                                    |
+| `match_indices`    | Character positions to bold (search highlights) |
+| `description`      | Greyed secondary text                           |
+| `category_tag`     | Right-aligned label                             |
+| `disabled_reason`  | Shown in place of description for disabled rows |
+| `display_shortcut` | Key binding shown on the right                  |
 
 Sources: [codex-rs/tui/src/bottom_pane/selection_popup_common.rs]()
 

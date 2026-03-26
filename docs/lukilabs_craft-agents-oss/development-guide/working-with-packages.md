@@ -11,8 +11,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page explains how to develop within the Craft Agents monorepo, covering package structure, dependency management, the workspace protocol, and cross-package development workflows. For information about setting up your development environment, see [Development Setup](#5.1). For details on the build pipeline, see [Build System](#5.2).
 
 ---
@@ -21,16 +19,16 @@ This page explains how to develop within the Craft Agents monorepo, covering pac
 
 Craft Agents uses a monorepo managed by Bun with workspaces defined in [package.json:7-10](). The codebase is organized into four shared packages and three application packages:
 
-| Package | Path | Purpose | Internal Dependencies |
-|---------|------|---------|----------------------|
-| `@craft-agent/core` | `packages/core/` | Foundational types, storage abstractions | Peer deps only |
-| `@craft-agent/session-tools-core` | `packages/session-tools-core/` | Shared type definitions and utilities for session-scoped tools and Codex integration | None |
-| `@craft-agent/shared` | `packages/shared/` | Business logic: agent, auth, config, credentials, sessions, sources, workspaces, automations | `core`, `session-tools-core` |
-| `@craft-agent/ui` | `packages/ui/` | React components for session rendering, markdown, diagrams | `core`, `mermaid` |
-| `@craft-agent/mermaid` | `packages/mermaid/` | Mermaid diagram rendering via `beautiful-mermaid` | External libs only |
-| `@craft-agent/electron` | `apps/electron/` | Electron desktop application | `core`, `shared`, `ui` |
-| `@craft-agent/viewer` | `apps/viewer/` | Web viewer for shared sessions | `core`, `ui` |
-| `@craft-agent/marketing` | `apps/marketing/` | Marketing website | `ui` |
+| Package                           | Path                           | Purpose                                                                                      | Internal Dependencies        |
+| --------------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------- | ---------------------------- |
+| `@craft-agent/core`               | `packages/core/`               | Foundational types, storage abstractions                                                     | Peer deps only               |
+| `@craft-agent/session-tools-core` | `packages/session-tools-core/` | Shared type definitions and utilities for session-scoped tools and Codex integration         | None                         |
+| `@craft-agent/shared`             | `packages/shared/`             | Business logic: agent, auth, config, credentials, sessions, sources, workspaces, automations | `core`, `session-tools-core` |
+| `@craft-agent/ui`                 | `packages/ui/`                 | React components for session rendering, markdown, diagrams                                   | `core`, `mermaid`            |
+| `@craft-agent/mermaid`            | `packages/mermaid/`            | Mermaid diagram rendering via `beautiful-mermaid`                                            | External libs only           |
+| `@craft-agent/electron`           | `apps/electron/`               | Electron desktop application                                                                 | `core`, `shared`, `ui`       |
+| `@craft-agent/viewer`             | `apps/viewer/`                 | Web viewer for shared sessions                                                               | `core`, `ui`                 |
+| `@craft-agent/marketing`          | `apps/marketing/`              | Marketing website                                                                            | `ui`                         |
 
 **Sources:** [package.json:7-10](), [packages/core/package.json:1-21](), [packages/shared/package.json:1-80]()
 
@@ -109,6 +107,7 @@ The monorepo uses Bun's workspace protocol to link packages. In `package.json` f
 ```
 
 **How it works:**
+
 - `workspace:*` resolves to the current version of the local package
 - Changes to source files are immediately visible to consumers
 - No need to rebuild packages during development
@@ -179,6 +178,7 @@ The `core` and `shared` packages use peer dependencies for the Claude Agent SDK,
 ### Configuration
 
 **`packages/core/package.json`** [packages/core/package.json:14-18]():
+
 ```json
 {
   "peerDependencies": {
@@ -189,6 +189,7 @@ The `core` and `shared` packages use peer dependencies for the Claude Agent SDK,
 ```
 
 **`packages/shared/package.json`** [packages/shared/package.json:71-75]():
+
 ```json
 {
   "peerDependencies": {
@@ -200,6 +201,7 @@ The `core` and `shared` packages use peer dependencies for the Claude Agent SDK,
 ```
 
 **Root `package.json`** (actual installed versions) [package.json:93-143]():
+
 ```json
 {
   "dependencies": {
@@ -225,32 +227,32 @@ graph LR
         EditShared["Edit<br/>packages/shared/src/sessions/manager.ts"]
         EditElectron["Edit<br/>apps/electron/src/main/handlers.ts"]
     end
-    
+
     subgraph "Type Checking"
         TSCCore["tsc --noEmit<br/>packages/core"]
         TSCShared["tsc --noEmit<br/>packages/shared"]
     end
-    
+
     subgraph "Build Pipeline"
         ESBuildMain["esbuild<br/>main process"]
         ViteRenderer["vite build<br/>renderer process"]
     end
-    
+
     subgraph "Runtime"
         ElectronApp["Electron App<br/>Running"]
     end
-    
+
     EditCore --> TSCCore
     EditCore --> EditShared
     EditShared --> TSCShared
     EditShared --> EditElectron
-    
+
     TSCCore -.->|check types| EditShared
     TSCShared -.->|check types| EditElectron
-    
+
     EditElectron --> ESBuildMain
     EditElectron --> ViteRenderer
-    
+
     ESBuildMain --> ElectronApp
     ViteRenderer --> ElectronApp
 ```
@@ -273,7 +275,7 @@ export interface Session {
   id: string
   workspaceId: string
   // ... existing fields
-  priority?: 'low' | 'medium' | 'high'  // NEW
+  priority?: 'low' | 'medium' | 'high' // NEW
 }
 
 // Step 2: Update shared logic
@@ -351,6 +353,7 @@ bun add react react-dom
 ```
 
 **Best practices:**
+
 - Add type definitions to `devDependencies`
 - Use peer dependencies for SDKs that must be singletons
 - Add common UI dependencies to root for consistency
@@ -367,19 +370,19 @@ graph TB
     subgraph "Source File"
         ImportStmt["import { CraftAgent }<br/>from '@craft-agent/shared/agent'"]
     end
-    
+
     subgraph "Bun Resolution"
         WorkspaceCheck{{"workspace:* in<br/>package.json?"}}
         ExportsLookup["Look up exports in<br/>packages/shared/package.json"]
         PathResolve["Resolve './agent' to<br/>packages/shared/src/agent/index.ts"]
     end
-    
+
     subgraph "Module Loading"
         SourceFile["packages/shared/src/agent/index.ts"]
         TypeScript["TypeScript transpilation"]
         ESModule["ESM module loaded"]
     end
-    
+
     ImportStmt --> WorkspaceCheck
     WorkspaceCheck -->|Yes| ExportsLookup
     ExportsLookup --> PathResolve
@@ -390,6 +393,7 @@ graph TB
 ```
 
 **Key points:**
+
 - No build step required during development
 - Changes to `.ts` files are immediately reflected
 - Hot Module Replacement works across package boundaries
@@ -414,6 +418,7 @@ Layer 0: External dependencies (SDK, libraries)
 ```
 
 **Rules:**
+
 - Lower layers cannot import from higher layers
 - `core` has zero internal package dependencies
 - `session-tools-core` has zero internal package dependencies
@@ -443,12 +448,14 @@ bun run typecheck:all
 ```
 
 **How it works:**
+
 - Each package has its own `tsconfig.json`
 - TypeScript resolves `@craft-agent/core` imports to source `.ts` files
 - Type errors in `core` will cascade to `shared` and apps
 - Fix errors bottom-up: core → shared → apps
 
 **Common type errors:**
+
 - Missing exports: Add to `package.json` exports field
 - Version mismatches: Ensure peer dependency ranges align
 - Circular type references: Refactor to break the cycle (extract to core)
@@ -469,6 +476,7 @@ Packages are not published to npm; they exist only within the monorepo. The `wor
 ```
 
 When releasing a new version:
+
 1. Update version in root `package.json`
 2. Update version in all package `package.json` files
 3. Update `bun.lock` by running `bun install`

@@ -40,11 +40,10 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The observability system provides distributed tracing and telemetry collection across agent executions, LLM calls, tool invocations, and workflow runs. Built on OpenTelemetry standards, it tracks execution hierarchies through span trees, captures usage metrics (tokens, latency, costs), and enables performance analysis and debugging.
 
 The system consists of:
+
 - **Trace and Span Collection**: Distributed tracing with parent-child span relationships
 - **Observability API**: REST endpoints for querying traces, logs, scores, and metrics
 - **Exporter Integration**: Pluggable backends for Langfuse, Langsmith, Braintrust, Arize, and others
@@ -53,6 +52,7 @@ For evaluation and scoring systems, see page 11.3. For observability integration
 </old_str>
 
 <old_str>
+
 ### ObservabilityContext
 
 `ObservabilityContext` is the container for tracing state that flows through the execution stack:
@@ -60,14 +60,15 @@ For evaluation and scoring systems, see page 11.3. For observability integration
 ```typescript
 interface ObservabilityContext {
   tracingContext: {
-    currentSpan?: Span;
-    traceId?: string;
-    spanId?: string;
-  };
+    currentSpan?: Span
+    traceId?: string
+    spanId?: string
+  }
 }
 ```
 
 The context includes:
+
 - `currentSpan`: Active span serving as parent for child operations
 - `traceId`: Unique identifier for the entire trace (root to leaf)
 - `spanId`: Unique identifier for the current span within the trace
@@ -77,6 +78,7 @@ This structure enables span hierarchy construction without manual parent trackin
 [packages/core/src/agent/types.ts:28]()
 </old_str>
 <new_str>
+
 ## Configuration and Setup
 
 Observability is configured through the `ObservabilityEntrypoint` interface in the Mastra constructor. The system defaults to `NoOpObservability` when not explicitly configured.
@@ -86,8 +88,8 @@ Observability is configured through the `ObservabilityEntrypoint` interface in t
 The `observability` property accepts an `ObservabilityEntrypoint` instance from the `@mastra/observability` package:
 
 ```typescript
-import { Mastra } from '@mastra/core';
-import { Observability, DefaultExporter } from '@mastra/observability';
+import { Mastra } from '@mastra/core'
+import { Observability, DefaultExporter } from '@mastra/observability'
 
 const mastra = new Mastra({
   observability: new Observability({
@@ -98,7 +100,7 @@ const mastra = new Mastra({
       },
     },
   }),
-});
+})
 ```
 
 The observability instance is validated during initialization [packages/core/src/mastra/index.ts:578-594]() and stored as a private field. If validation fails or no observability is provided, the system falls back to `NoOpObservability`.
@@ -134,8 +136,8 @@ Observability is configured through the `ObservabilityEntrypoint` interface in t
 The `observability` property accepts an `ObservabilityEntrypoint` instance from the `@mastra/observability` package:
 
 ```typescript
-import { Mastra } from '@mastra/core';
-import { Observability, DefaultExporter } from '@mastra/observability';
+import { Mastra } from '@mastra/core'
+import { Observability, DefaultExporter } from '@mastra/observability'
 
 const mastra = new Mastra({
   observability: new Observability({
@@ -146,7 +148,7 @@ const mastra = new Mastra({
       },
     },
   }),
-});
+})
 ```
 
 The observability instance is validated during initialization [packages/core/src/mastra/index.ts:578-594]() and stored as a private field. If validation fails or no observability is provided, the system falls back to `NoOpObservability`.
@@ -172,24 +174,24 @@ Sources: packages/core/src/mastra/index.ts:100-257, packages/core/src/mastra/ind
 ```mermaid
 graph TB
     AgentRun["AGENT_RUN: agent-id<br/>traceId: abc123<br/>spanId: span-001<br/>input: messages<br/>metadata: runId, threadId"]
-    
+
     PrepareToolsWorkflow["WORKFLOW: prepare-tools-step<br/>spanId: span-002<br/>internal: true"]
     PrepareMemoryWorkflow["WORKFLOW: prepare-memory-step<br/>spanId: span-003<br/>internal: true"]
-    
+
     ModelGen1["MODEL_GENERATION: openai/gpt-4o<br/>spanId: span-004<br/>attributes: temp, maxTokens<br/>metadata: runId"]
-    
+
     ToolCall1["TOOL_CALL: get-weather<br/>spanId: span-005<br/>entityType: TOOL<br/>input: location"]
     ToolCall2["TOOL_CALL: send-email<br/>spanId: span-006<br/>entityType: TOOL<br/>input: to, body"]
-    
+
     ModelGen2["MODEL_GENERATION: openai/gpt-4o<br/>spanId: span-007<br/>finishReason: stop<br/>usage: tokens"]
-    
+
     AgentRun --> PrepareToolsWorkflow
     AgentRun --> PrepareMemoryWorkflow
     AgentRun --> ModelGen1
-    
+
     ModelGen1 --> ToolCall1
     ModelGen1 --> ToolCall2
-    
+
     AgentRun --> ModelGen2
 ```
 
@@ -199,13 +201,13 @@ All spans share the same `traceId` (abc123) but have unique `spanId` values. The
 
 Spans are categorized by `SpanType` enum values that identify the operation being traced:
 
-| SpanType | Purpose | Created By |
-|----------|---------|------------|
-| `AGENT_RUN` | Root span for agent execution | Agent.generate(), Agent.stream(), Agent.network() |
-| `MODEL_GENERATION` | LLM inference calls | MastraLLMV1.__text(), MastraLLMVNext.stream() |
-| `TOOL_CALL` | Tool execution | CoreToolBuilder.execute() |
-| `WORKFLOW` | Workflow execution | Workflow steps |
-| `PROCESSOR` | Processor execution | ProcessorRunner |
+| SpanType           | Purpose                       | Created By                                        |
+| ------------------ | ----------------------------- | ------------------------------------------------- |
+| `AGENT_RUN`        | Root span for agent execution | Agent.generate(), Agent.stream(), Agent.network() |
+| `MODEL_GENERATION` | LLM inference calls           | MastraLLMV1.\_\_text(), MastraLLMVNext.stream()   |
+| `TOOL_CALL`        | Tool execution                | CoreToolBuilder.execute()                         |
+| `WORKFLOW`         | Workflow execution            | Workflow steps                                    |
+| `PROCESSOR`        | Processor execution           | ProcessorRunner                                   |
 
 [packages/core/src/agent/agent.ts:166-177]()
 
@@ -228,7 +230,7 @@ Entity information is attached to spans via `entityType`, `entityId`, and `entit
 
 ```typescript
 interface TracingPolicy {
-  internal?: InternalSpans;
+  internal?: InternalSpans
   // Additional policy options
 }
 ```
@@ -253,10 +255,10 @@ The system provides two functions for managing observability context lifecycle:
 
 ```typescript
 // Creating context with a span
-const context = createObservabilityContext({ currentSpan: span });
+const context = createObservabilityContext({ currentSpan: span })
 
 // Resolving from mixed parameters
-const context = resolveObservabilityContext(params);
+const context = resolveObservabilityContext(params)
 ```
 
 [packages/core/src/agent/workflows/prepare-stream/map-results-step.ts:7]()
@@ -268,11 +270,12 @@ The `executeWithContext` wrapper ensures span lifecycle management:
 ```typescript
 const result = await executeWithContext({
   span: toolSpan,
-  fn: async () => tool.execute(args, context)
-});
+  fn: async () => tool.execute(args, context),
+})
 ```
 
 This pattern:
+
 1. Sets the span as active before execution
 2. Captures errors and records them in the span
 3. Ends the span with output and success status
@@ -287,37 +290,37 @@ graph TB
     AgentCall["Agent.generate()/stream()"]
     AgentSpan["Create AGENT_RUN span"]
     AgentContext["ObservabilityContext with agentSpan"]
-    
+
     PrepareTools["prepare-tools-step"]
     PrepareMemory["prepare-memory-step"]
-    
+
     MapResults["map-results-step"]
     StreamStep["stream-step"]
-    
+
     LLMCall["MastraLLMV1.__text()"]
     LLMSpan["Create MODEL_GENERATION span"]
     LLMContext["Context with llmSpan"]
-    
+
     ToolDispatch["Tool Dispatch"]
     ToolSpan["Create TOOL_CALL span"]
     ToolContext["Context with toolSpan"]
     ToolExecute["tool.execute()"]
-    
+
     AgentCall --> AgentSpan
     AgentSpan --> AgentContext
     AgentContext --> PrepareTools
     AgentContext --> PrepareMemory
     PrepareTools --> MapResults
     PrepareMemory --> MapResults
-    
+
     MapResults --> StreamStep
     StreamStep --> LLMCall
-    
+
     AgentContext -.propagates.-> LLMCall
     LLMCall --> LLMSpan
     LLMSpan --> LLMContext
     LLMContext --> ToolDispatch
-    
+
     ToolDispatch --> ToolSpan
     ToolSpan --> ToolContext
     ToolContext --> ToolExecute
@@ -344,7 +347,7 @@ const childSpan = currentSpan?.createChildSpan({
     toolType: 'tool',
   },
   tracingPolicy: policy,
-});
+})
 ```
 
 [packages/core/src/tools/tool-builder/builder.ts:280-291]()
@@ -386,16 +389,16 @@ Spans are terminated with `span.end()` which captures output and status:
 
 ```typescript
 // Success case
-toolSpan?.end({ 
-  output: result, 
-  attributes: { success: true } 
-});
+toolSpan?.end({
+  output: result,
+  attributes: { success: true },
+})
 
 // Error case
-toolSpan?.end({ 
-  output: error, 
-  attributes: { success: false } 
-});
+toolSpan?.end({
+  output: error,
+  attributes: { success: false },
+})
 ```
 
 [packages/core/src/tools/tool-builder/builder.ts:445-446]()
@@ -413,16 +416,16 @@ graph TB
     Generate["agent.generate()/stream()"]
     CreateAgentSpan["Create AGENT_RUN span"]
     PrepareWorkflow["Execute prepare-stream workflow"]
-    
+
     PrepareTools["prepare-tools-step"]
     PrepareMemory["prepare-memory-step"]
     MapResults["map-results-step"]
     StreamStep["stream-step"]
-    
+
     ModelLoop["Model loop with tool calls"]
     SaveMessages["Save messages to memory"]
     EndSpan["End AGENT_RUN span with output"]
-    
+
     Generate --> CreateAgentSpan
     CreateAgentSpan --> PrepareWorkflow
     PrepareWorkflow --> PrepareTools
@@ -436,6 +439,7 @@ graph TB
 ```
 
 The agent span captures:
+
 - Agent ID, name, and description
 - Execution method type (generate, stream, network)
 - Model configuration
@@ -467,7 +471,7 @@ const llmSpan = currentSpan?.createChildSpan({
   },
   metadata: { runId, threadId, resourceId },
   tracingPolicy: options.tracingPolicy,
-});
+})
 ```
 
 [packages/core/src/llm/model/model.ts:166-191]()
@@ -486,7 +490,7 @@ llmSpan?.end({
       totalTokens: usage.totalTokens,
     },
   },
-});
+})
 ```
 
 ### Tool Execution Spans
@@ -506,7 +510,7 @@ const toolSpan = tracingContext?.currentSpan?.createChildSpan({
     toolType: 'tool',
   },
   tracingPolicy: tracingPolicy,
-});
+})
 ```
 
 [packages/core/src/tools/tool-builder/builder.ts:280-291]()
@@ -514,14 +518,15 @@ const toolSpan = tracingContext?.currentSpan?.createChildSpan({
 The context is passed through to nested operations:
 
 ```typescript
-const wrappedMastra = wrapMastra(mastra, { currentSpan: toolSpan });
+const wrappedMastra = wrapMastra(mastra, { currentSpan: toolSpan })
 const result = await executeWithContext({
   span: toolSpan,
-  fn: async () => tool.execute(args, {
-    ...context,
-    ...createObservabilityContext({ currentSpan: toolSpan }),
-  })
-});
+  fn: async () =>
+    tool.execute(args, {
+      ...context,
+      ...createObservabilityContext({ currentSpan: toolSpan }),
+    }),
+})
 ```
 
 [packages/core/src/tools/tool-builder/builder.ts:324-349]()
@@ -539,7 +544,7 @@ const workflow = createWorkflow({
       internal: InternalSpans.WORKFLOW,
     },
   },
-});
+})
 ```
 
 This marks all spans created by the workflow as internal infrastructure, allowing exporters to filter them from production traces.
@@ -555,33 +560,33 @@ Sources: packages/core/src/agent/agent.ts:1449-1502, packages/core/src/llm/model
 ```mermaid
 graph TB
     NetworkRun["AGENT_RUN: network-agent<br/>traceId: xyz789<br/>spanId: span-root<br/>method: network"]
-    
+
     RoutingDecision1["MODEL_GENERATION: routing-agent<br/>spanId: span-r1<br/>output: primitiveId, primitiveType"]
-    
+
     SubAgentRun["AGENT_RUN: research-agent<br/>spanId: span-sub<br/>parent: network-agent"]
     SubAgentModel["MODEL_GENERATION: anthropic/claude-3<br/>spanId: span-m1"]
     SubAgentTool["TOOL_CALL: search-papers<br/>spanId: span-t1"]
-    
+
     RoutingDecision2["MODEL_GENERATION: routing-agent<br/>spanId: span-r2<br/>output: completion check"]
-    
+
     WorkflowRun["WORKFLOW: summarize-results<br/>spanId: span-wf<br/>entityType: WORKFLOW"]
     WorkflowStep1["STEP: extract-key-points<br/>spanId: span-s1"]
     WorkflowStep2["STEP: generate-summary<br/>spanId: span-s2"]
-    
+
     FinalResult["MODEL_GENERATION: routing-agent<br/>spanId: span-r3<br/>output: finalResult"]
-    
+
     NetworkRun --> RoutingDecision1
     NetworkRun --> SubAgentRun
-    
+
     SubAgentRun --> SubAgentModel
     SubAgentModel --> SubAgentTool
-    
+
     NetworkRun --> RoutingDecision2
     NetworkRun --> WorkflowRun
-    
+
     WorkflowRun --> WorkflowStep1
     WorkflowRun --> WorkflowStep2
-    
+
     NetworkRun --> FinalResult
 ```
 
@@ -598,37 +603,37 @@ graph TB
     AgentCall["Agent.generate() / Agent.stream()"]
     AgentSpan["createChildSpan()<br/>type: AGENT_RUN<br/>returns: traceId, spanId"]
     AgentContext["ObservabilityContext<br/>currentSpan: agentSpan<br/>traceId, spanId"]
-    
+
     PrepareTools["prepare-tools-step<br/>receives: AgentContext"]
     PrepareMemory["prepare-memory-step<br/>receives: AgentContext"]
-    
+
     MapResults["map-results-step<br/>propagates: AgentContext"]
     StreamStep["stream-step<br/>propagates: AgentContext"]
-    
+
     LLMCall["MastraLLMV1.__text() / MastraLLMVNext.stream()"]
     LLMSpan["currentSpan.createChildSpan()<br/>type: MODEL_GENERATION"]
     LLMContext["ObservabilityContext<br/>currentSpan: llmSpan<br/>same traceId"]
-    
+
     ToolDispatch["Tool Dispatch from LLM"]
     ToolSpan["currentSpan.createChildSpan()<br/>type: TOOL_CALL"]
     ToolContext["ObservabilityContext<br/>currentSpan: toolSpan<br/>same traceId"]
     ToolExecute["CoreToolBuilder.execute()"]
-    
+
     AgentCall --> AgentSpan
     AgentSpan --> AgentContext
     AgentContext --> PrepareTools
     AgentContext --> PrepareMemory
     PrepareTools --> MapResults
     PrepareMemory --> MapResults
-    
+
     MapResults --> StreamStep
     StreamStep --> LLMCall
-    
+
     AgentContext -.propagates.-> LLMCall
     LLMCall --> LLMSpan
     LLMSpan --> LLMContext
     LLMContext --> ToolDispatch
-    
+
     ToolDispatch --> ToolSpan
     ToolSpan --> ToolContext
     ToolContext --> ToolExecute
@@ -648,15 +653,15 @@ Query traces with filtering and pagination:
 
 ```typescript
 interface TraceQueryParams {
-  startTime?: string;      // ISO timestamp
-  endTime?: string;        // ISO timestamp
-  entityType?: string;     // 'AGENT' | 'TOOL' | 'WORKFLOW' | 'STEP'
-  entityId?: string;       // Specific entity identifier
-  serviceName?: string;    // Service name from config
-  environment?: string;    // Environment label
-  tags?: string[];         // Custom tags
-  limit?: number;
-  offset?: number;
+  startTime?: string // ISO timestamp
+  endTime?: string // ISO timestamp
+  entityType?: string // 'AGENT' | 'TOOL' | 'WORKFLOW' | 'STEP'
+  entityId?: string // Specific entity identifier
+  serviceName?: string // Service name from config
+  environment?: string // Environment label
+  tags?: string[] // Custom tags
+  limit?: number
+  offset?: number
 }
 ```
 
@@ -672,10 +677,10 @@ Get aggregated metrics (count, sum, avg, min, max) for traces:
 
 ```typescript
 interface MetricAggregateParams {
-  metricName: string;      // e.g., 'latency', 'tokens', 'cost'
-  aggregation: 'count' | 'sum' | 'avg' | 'min' | 'max';
-  groupBy?: string[];      // e.g., ['entityType', 'model']
-  filters?: TraceQueryParams;
+  metricName: string // e.g., 'latency', 'tokens', 'cost'
+  aggregation: 'count' | 'sum' | 'avg' | 'min' | 'max'
+  groupBy?: string[] // e.g., ['entityType', 'model']
+  filters?: TraceQueryParams
 }
 ```
 
@@ -685,10 +690,10 @@ Get time-series data for metrics over a time range:
 
 ```typescript
 interface MetricTimeSeriesParams {
-  metricName: string;
-  aggregation: 'count' | 'sum' | 'avg';
-  interval: '1m' | '5m' | '1h' | '1d';  // Time bucket size
-  filters?: TraceQueryParams;
+  metricName: string
+  aggregation: 'count' | 'sum' | 'avg'
+  interval: '1m' | '5m' | '1h' | '1d' // Time bucket size
+  filters?: TraceQueryParams
 }
 ```
 
@@ -698,10 +703,10 @@ Get metric breakdown by dimension (e.g., by model, by agent, by tool):
 
 ```typescript
 interface MetricBreakdownParams {
-  metricName: string;
-  dimension: string;       // Field to break down by
-  topN?: number;          // Limit to top N values
-  filters?: TraceQueryParams;
+  metricName: string
+  dimension: string // Field to break down by
+  topN?: number // Limit to top N values
+  filters?: TraceQueryParams
 }
 ```
 
@@ -711,9 +716,9 @@ Get percentile distributions for latency and other metrics:
 
 ```typescript
 interface PercentileParams {
-  metricName: string;
-  percentiles: number[];   // e.g., [50, 90, 95, 99]
-  filters?: TraceQueryParams;
+  metricName: string
+  percentiles: number[] // e.g., [50, 90, 95, 99]
+  filters?: TraceQueryParams
 }
 ```
 
@@ -725,11 +730,11 @@ Submit evaluation scores for traces:
 
 ```typescript
 interface ScoreSubmission {
-  traceId: string;
-  spanId?: string;
-  scoreName: string;
-  value: number;
-  metadata?: Record<string, unknown>;
+  traceId: string
+  spanId?: string
+  scoreName: string
+  value: number
+  metadata?: Record<string, unknown>
   // timestamp set server-side
 }
 ```
@@ -740,11 +745,11 @@ Submit user feedback for traces:
 
 ```typescript
 interface FeedbackSubmission {
-  traceId: string;
-  spanId?: string;
-  rating?: number;
-  comment?: string;
-  metadata?: Record<string, unknown>;
+  traceId: string
+  spanId?: string
+  rating?: number
+  comment?: string
+  metadata?: Record<string, unknown>
   // timestamp set server-side
 }
 ```
@@ -769,7 +774,7 @@ Get all label keys and their values:
 
 ```typescript
 interface LabelsResponse {
-  [labelKey: string]: string[];  // e.g., { "model": ["gpt-4o", "claude-3"], ... }
+  [labelKey: string]: string[] // e.g., { "model": ["gpt-4o", "claude-3"], ... }
 }
 ```
 
@@ -779,7 +784,7 @@ List entity types and entity names:
 
 ```typescript
 interface EntitiesResponse {
-  [entityType: string]: string[];  // e.g., { "AGENT": ["customer-support", "researcher"], ... }
+  [entityType: string]: string[] // e.g., { "AGENT": ["customer-support", "researcher"], ... }
 }
 ```
 
@@ -800,33 +805,33 @@ List all custom tags used in traces.
 The JavaScript/TypeScript client SDK provides typed methods for all endpoints:
 
 ```typescript
-import { MastraClient } from '@mastra/client-js';
+import { MastraClient } from '@mastra/client-js'
 
-const client = new MastraClient({ baseUrl: 'http://localhost:3000' });
+const client = new MastraClient({ baseUrl: 'http://localhost:3000' })
 
 // Query traces
 const traces = await client.observability.queryTraces({
   startTime: '2024-01-01T00:00:00Z',
   endTime: '2024-01-02T00:00:00Z',
   entityType: 'AGENT',
-});
+})
 
 // Get metrics
 const avgLatency = await client.observability.getMetricAggregate({
   metricName: 'latency',
   aggregation: 'avg',
   groupBy: ['entityId', 'model'],
-});
+})
 
 // Submit scores
 await client.observability.submitScore({
   traceId: 'abc123',
   scoreName: 'response_quality',
   value: 0.85,
-});
+})
 
 // Discover available metrics
-const metricNames = await client.observability.discoverMetrics();
+const metricNames = await client.observability.discoverMetrics()
 ```
 
 Sources: packages/server/CHANGELOG.md, client-sdks/client-js/CHANGELOG.md
@@ -839,7 +844,7 @@ Sources: packages/server/CHANGELOG.md, client-sdks/client-js/CHANGELOG.md
 
 ```typescript
 interface TracingPolicy {
-  internal?: InternalSpans;
+  internal?: InternalSpans
 }
 
 enum InternalSpans {
@@ -859,7 +864,7 @@ const workflow = createWorkflow({
       internal: InternalSpans.WORKFLOW,
     },
   },
-});
+})
 ```
 
 [packages/core/src/agent/workflows/prepare-stream/index.ts:520-530]()
@@ -878,7 +883,7 @@ const agent = new Agent({
       internal: InternalSpans.WORKFLOW,
     },
   },
-});
+})
 ```
 
 This policy propagates to all spans created during agent execution.
@@ -895,7 +900,7 @@ const llmSpan = currentSpan?.createChildSpan({
   name: `llm: '${modelId}'`,
   // ...
   tracingPolicy: this.#options?.tracingPolicy,
-});
+})
 ```
 
 [packages/core/src/llm/model/model.ts:191]()
@@ -929,7 +934,7 @@ const toolContext = {
     threadId,
     resourceId,
   },
-};
+}
 ```
 
 [packages/core/src/tools/tool-builder/builder.ts:376-391]()
@@ -947,7 +952,7 @@ const toolContext = {
     suspend,
     resumeData,
   },
-};
+}
 ```
 
 [packages/core/src/tools/tool-builder/builder.ts:393-406]()
@@ -963,7 +968,7 @@ const toolContext = {
       sendRequest: (request) => Promise<ElicitResult>,
     },
   },
-};
+}
 ```
 
 [packages/core/src/tools/tool-builder/builder.ts:407-414]()
@@ -977,12 +982,13 @@ Tools receive observability context from two sources with runtime taking precede
 ```typescript
 // Prefer runtime context (VNext methods pass at execution time)
 // Fall back to build-time context (Legacy methods set during tool registration)
-const tracingContext = execOptions.tracingContext || options.tracingContext;
+const tracingContext = execOptions.tracingContext || options.tracingContext
 ```
 
 [packages/core/src/tools/tool-builder/builder.ts:276-277]()
 
 This dual-sourcing pattern:
+
 1. Enables AI SDK v4 compatibility (which cannot pass custom options at execution time)
 2. Supports AI SDK v5+ features (which pass tracingContext in execution options)
 3. Maintains backward compatibility while supporting newer patterns

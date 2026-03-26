@@ -25,8 +25,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the continuous integration, continuous delivery, and release automation infrastructure for the TanStack AI monorepo. It covers GitHub Actions workflows, the Changesets-based versioning system, automated testing, quality gates, and documentation generation that occur during the development and release lifecycle.
 
 For information about the testing infrastructure itself (test frameworks, smoke tests, E2E tests), see [Testing Infrastructure](#9.3). For details on quality tools like eslint and knip, see [Code Quality Tools](#9.4).
@@ -47,19 +45,19 @@ graph TB
     TRIGGER["GitHub Actions Trigger<br/>.github/workflows/release.yml"]
     CHECKOUT["Checkout Repository<br/>actions/checkout@v6.0.1<br/>fetch-depth: 0"]
     SETUP["Setup Tools<br/>tanstack/config/.github/setup@main<br/>pnpm install"]
-    
+
     subgraph "Test Suite"
         TEST_CI["pnpm run test:ci"]
         NX_TESTS["nx run-many --targets=<br/>test:sherif,test:knip,test:docs,<br/>test:eslint,test:lib,test:types,<br/>test:build,build"]
     end
-    
+
     subgraph "Changesets Action"
         CS_ACTION["changesets/action@v1.5.3"]
         CS_VERSION["pnpm run changeset:version<br/>changeset version"]
         CS_PUBLISH["pnpm run changeset:publish<br/>changeset publish"]
         CS_DECISION{"Published?"}
     end
-    
+
     subgraph "Documentation Automation"
         GEN_DOCS["pnpm generate-docs<br/>scripts/generate-docs.ts"]
         CHECK_CHANGES{"Git changes?"}
@@ -67,11 +65,11 @@ graph TB
         COMMIT["git commit -m 'docs: regenerate API'"]
         CREATE_PR["gh pr create --title 'docs: regenerate'"]
     end
-    
+
     subgraph "Release Notifications"
         COMMENT["tanstack/config/.github/comment-on-release<br/>Comment on PRs about release"]
     end
-    
+
     PUSH --> TRIGGER
     TRIGGER --> CHECKOUT
     CHECKOUT --> SETUP
@@ -81,17 +79,17 @@ graph TB
     CS_ACTION --> CS_VERSION
     CS_VERSION --> CS_PUBLISH
     CS_PUBLISH --> CS_DECISION
-    
+
     CS_DECISION -->|published = true| GEN_DOCS
     CS_DECISION -->|published = false| END[End]
-    
+
     GEN_DOCS --> CHECK_CHANGES
     CHECK_CHANGES -->|Changes exist| CREATE_BRANCH
     CHECK_CHANGES -->|No changes| COMMENT
     CREATE_BRANCH --> COMMIT
     COMMIT --> CREATE_PR
     CREATE_PR --> COMMENT
-    
+
     COMMENT --> END
 ```
 
@@ -103,13 +101,13 @@ graph TB
 
 The main release workflow is defined in [.github/workflows/release.yml:1-65](). Key configuration:
 
-| Configuration | Value | Purpose |
-|--------------|-------|---------|
-| **Trigger** | Push to `main`, `alpha`, `beta`, `rc` | Automatic releases on protected branches |
-| **Concurrency Group** | `${{ github.workflow }}-${{ github.event.number \|\| github.ref }}` | Prevents concurrent releases |
-| **Permissions** | `contents: write`, `id-token: write`, `pull-requests: write` | Required for publishing and PR creation |
-| **Runs On** | `ubuntu-latest` | Standard Linux runner |
-| **Nx Cloud Token** | `${{ secrets.NX_CLOUD_ACCESS_TOKEN }}` | Enables distributed caching |
+| Configuration         | Value                                                               | Purpose                                  |
+| --------------------- | ------------------------------------------------------------------- | ---------------------------------------- |
+| **Trigger**           | Push to `main`, `alpha`, `beta`, `rc`                               | Automatic releases on protected branches |
+| **Concurrency Group** | `${{ github.workflow }}-${{ github.event.number \|\| github.ref }}` | Prevents concurrent releases             |
+| **Permissions**       | `contents: write`, `id-token: write`, `pull-requests: write`        | Required for publishing and PR creation  |
+| **Runs On**           | `ubuntu-latest`                                                     | Standard Linux runner                    |
+| **Nx Cloud Token**    | `${{ secrets.NX_CLOUD_ACCESS_TOKEN }}`                              | Enables distributed caching              |
 
 The workflow executes the following steps:
 
@@ -135,7 +133,7 @@ graph LR
     SETUP["tanstack/config/.github/setup@main"]
     FORMAT["pnpm format<br/>prettier --experimental-cli"]
     AUTOFIX["autofix-ci/action<br/>Auto-commit if changes"]
-    
+
     PR --> TRIGGER
     TRIGGER --> CHECKOUT
     CHECKOUT --> SETUP
@@ -159,10 +157,10 @@ TanStack AI uses Changesets for semantic versioning and changelog generation. Th
 
 The repository uses these Changesets-related packages:
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| `@changesets/cli` | `^2.29.8` | Core Changesets CLI tool |
-| `@svitejs/changesets-changelog-github-compact` | `^1.2.0` | Compact GitHub changelog format |
+| Package                                        | Version   | Purpose                         |
+| ---------------------------------------------- | --------- | ------------------------------- |
+| `@changesets/cli`                              | `^2.29.8` | Core Changesets CLI tool        |
+| `@svitejs/changesets-changelog-github-compact` | `^1.2.0`  | Compact GitHub changelog format |
 
 **Sources:** [pnpm-lock.yaml:14-22]()
 
@@ -175,25 +173,25 @@ sequenceDiagram
     participant Git as Git Repository
     participant GHA as GitHub Actions
     participant NPM as npm Registry
-    
+
     Dev->>CS: pnpm changeset
     CS->>Dev: Prompt for change type<br/>(major, minor, patch)
     Dev->>CS: Describe changes
     CS->>Git: Create .changeset/*.md file
-    
+
     Dev->>Git: git commit & push PR
-    
+
     Note over Git,GHA: PR merged to main
-    
+
     GHA->>CS: pnpm run changeset:version
     CS->>Git: Update package.json versions
     CS->>Git: Update CHANGELOG.md files
     CS->>Git: Delete consumed changesets
     GHA->>Git: Commit "ci: Version Packages"
     GHA->>Git: Create PR if changes
-    
+
     Note over Git,GHA: Version PR merged
-    
+
     GHA->>CS: pnpm run changeset:publish
     CS->>NPM: Publish updated packages
     CS->>Git: Create git tags
@@ -207,14 +205,17 @@ sequenceDiagram
 The root [package.json:37-39]() defines these Changesets-related scripts:
 
 1. **`changeset`**: Interactive CLI for creating new changesets
+
    ```bash
    pnpm changeset
    ```
 
 2. **`changeset:version`**: Updates versions and changelogs
+
    ```bash
    changeset version && pnpm install --no-frozen-lockfile && pnpm format
    ```
+
    - Runs `changeset version` to bump package versions
    - Updates `pnpm-lock.yaml` with `--no-frozen-lockfile`
    - Formats updated files with Prettier
@@ -223,6 +224,7 @@ The root [package.json:37-39]() defines these Changesets-related scripts:
    ```bash
    changeset publish
    ```
+
    - Publishes all packages with updated versions
    - Creates git tags for releases
 
@@ -234,8 +236,8 @@ Changeset files are stored in `.changeset/*.md` and follow this format:
 
 ```markdown
 ---
-"@tanstack/ai": patch
-"@tanstack/ai-client": patch
+'@tanstack/ai': patch
+'@tanstack/ai-client': patch
 ---
 
 Brief description of the change
@@ -265,31 +267,31 @@ Before any release can proceed, the CI pipeline runs a comprehensive test suite 
 ```mermaid
 graph TB
     TEST_CI["pnpm run test:ci<br/>package.json:19"]
-    
+
     subgraph "Nx Orchestrated Tests"
         NX["nx run-many --targets=..."]
-        
+
         subgraph "Quality Checks"
             SHERIF["test:sherif<br/>sherif<br/>Package.json consistency"]
             KNIP["test:knip<br/>knip<br/>Unused exports detection"]
             DOCS["test:docs<br/>node scripts/verify-links.ts<br/>Documentation validation"]
         end
-        
+
         subgraph "Code Quality"
             ESLINT["test:eslint<br/>nx affected --target=test:eslint<br/>Linting"]
         end
-        
+
         subgraph "Runtime Tests"
             LIB["test:lib<br/>nx affected --targets=test:lib<br/>Unit tests (vitest)"]
             TYPES["test:types<br/>nx affected --targets=test:types<br/>Type checking (tsc)"]
         end
-        
+
         subgraph "Build Validation"
             BUILD_TEST["test:build<br/>nx affected --target=test:build<br/>publint validation"]
             BUILD["build<br/>nx affected --targets=build<br/>Package builds"]
         end
     end
-    
+
     TEST_CI --> NX
     NX --> SHERIF
     NX --> KNIP
@@ -307,15 +309,15 @@ graph TB
 
 Nx orchestrates test execution with intelligent caching and dependency tracking. Key configuration from [nx.json:27-73]():
 
-| Target | Cache | Depends On | Inputs | Outputs |
-|--------|-------|------------|--------|---------|
-| `test:lib` | ✓ | `^build` | `default`, `^production` | `{projectRoot}/coverage` |
-| `test:types` | ✓ | `^build` | `default`, `^production` | - |
-| `test:eslint` | ✓ | `^build` | `default`, `^production`, workspace eslint | - |
-| `test:build` | ✓ | `build` | `production` | - |
-| `build` | ✓ | `^build` | `production`, `^production` | `dist`, `build` |
-| `test:sherif` | ✓ | - | `**/package.json` | - |
-| `test:knip` | ✓ | - | `**/*` | - |
+| Target        | Cache | Depends On | Inputs                                     | Outputs                  |
+| ------------- | ----- | ---------- | ------------------------------------------ | ------------------------ |
+| `test:lib`    | ✓     | `^build`   | `default`, `^production`                   | `{projectRoot}/coverage` |
+| `test:types`  | ✓     | `^build`   | `default`, `^production`                   | -                        |
+| `test:eslint` | ✓     | `^build`   | `default`, `^production`, workspace eslint | -                        |
+| `test:build`  | ✓     | `build`    | `production`                               | -                        |
+| `build`       | ✓     | `^build`   | `production`, `^production`                | `dist`, `build`          |
+| `test:sherif` | ✓     | -          | `**/package.json`                          | -                        |
+| `test:knip`   | ✓     | -          | `**/*`                                     | -                        |
 
 The `^` prefix in `dependsOn` means "dependencies of this project", ensuring correct build order.
 
@@ -328,11 +330,7 @@ The `^` prefix in `dependsOn` means "dependencies of this project", ensuring cor
     "{workspaceRoot}/package.json",
     "{workspaceRoot}/tsconfig.json"
   ],
-  "default": [
-    "sharedGlobals",
-    "{projectRoot}/**/*",
-    "!{projectRoot}/**/*.md"
-  ],
+  "default": ["sharedGlobals", "{projectRoot}/**/*", "!{projectRoot}/**/*.md"],
   "production": [
     "default",
     "!{projectRoot}/tests/**/*",
@@ -356,25 +354,25 @@ graph TB
     PUBLISH["Successful npm publish<br/>changesets outputs.published = true"]
     GENERATE["pnpm generate-docs<br/>package.json:34"]
     SCRIPT["node scripts/generate-docs.ts"]
-    
+
     subgraph "TypeDoc Processing"
         CONFIG["@tanstack/typedoc-config<br/>generateReferenceDocs()"]
         ENTRY["packages/typescript/ai/src/index.ts"]
         TSCONFIG["packages/typescript/ai/tsconfig.docs.json"]
         OUTPUT["docs/reference/**/*.md"]
     end
-    
+
     subgraph "README Propagation"
         COPY["pnpm run copy:readme<br/>package.json:36"]
         README_SRC["README.md"]
         README_TARGETS["packages/typescript/*/README.md"]
     end
-    
+
     GIT_CHECK{"Git changes?"}
     BRANCH["git checkout -b docs/auto-update-*"]
     COMMIT_DOCS["git commit -m 'docs: regenerate API'"]
     PR["gh pr create<br/>--title 'docs: regenerate API documentation'"]
-    
+
     PUBLISH --> GENERATE
     GENERATE --> SCRIPT
     SCRIPT --> CONFIG
@@ -417,6 +415,7 @@ const packages = [
 ```
 
 The script uses `generateReferenceDocs()` from `@tanstack/typedoc-config` to:
+
 1. Parse TypeScript source files
 2. Extract API documentation from JSDoc comments
 3. Generate markdown files in `docs/reference/`
@@ -502,6 +501,7 @@ concurrency:
 ```
 
 This ensures:
+
 - Only one release workflow runs per branch at a time
 - If a new push occurs during a workflow, the old workflow is cancelled
 - Each PR has its own concurrency group via `github.event.number`
@@ -524,12 +524,12 @@ This prevents accidental publishes from forks.
 
 The CI/CD pipeline uses the following secrets and environment variables:
 
-| Name | Type | Purpose |
-|------|------|---------|
-| `NX_CLOUD_ACCESS_TOKEN` | Secret | Enables Nx Cloud distributed caching |
-| `GITHUB_TOKEN` | Auto-provided | Used by Changesets for creating tags and releases |
-| `GH_TOKEN` | Auto-provided | Used by `gh` CLI for PR creation |
-| `NPM_TOKEN` | Implicitly configured | Required by Changesets for npm publishing (via `id-token: write` permission for provenance) |
+| Name                    | Type                  | Purpose                                                                                     |
+| ----------------------- | --------------------- | ------------------------------------------------------------------------------------------- |
+| `NX_CLOUD_ACCESS_TOKEN` | Secret                | Enables Nx Cloud distributed caching                                                        |
+| `GITHUB_TOKEN`          | Auto-provided         | Used by Changesets for creating tags and releases                                           |
+| `GH_TOKEN`              | Auto-provided         | Used by `gh` CLI for PR creation                                                            |
+| `NPM_TOKEN`             | Implicitly configured | Required by Changesets for npm publishing (via `id-token: write` permission for provenance) |
 
 The workflow uses OpenID Connect (OIDC) for npm publishing with `id-token: write` permission, which provides provenance attestation without requiring a long-lived npm token.
 
@@ -539,12 +539,12 @@ The workflow uses OpenID Connect (OIDC) for npm publishing with `id-token: write
 
 The repository supports multiple release channels via branch-based releases:
 
-| Branch | Purpose | Release Tag |
-|--------|---------|-------------|
-| `main` | Stable releases | `latest` |
-| `alpha` | Alpha pre-releases | `alpha` |
-| `beta` | Beta pre-releases | `beta` |
-| `rc` | Release candidates | `rc` |
+| Branch  | Purpose            | Release Tag |
+| ------- | ------------------ | ----------- |
+| `main`  | Stable releases    | `latest`    |
+| `alpha` | Alpha pre-releases | `alpha`     |
+| `beta`  | Beta pre-releases  | `beta`      |
+| `rc`    | Release candidates | `rc`        |
 
 Changesets automatically determines the npm dist-tag based on the branch name and any pre-release configuration.
 

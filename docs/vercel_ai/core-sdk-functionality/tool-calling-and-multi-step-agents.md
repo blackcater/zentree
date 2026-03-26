@@ -13,8 +13,8 @@ The following files were used as context for generating this wiki page:
 - [content/docs/07-reference/01-ai-sdk-core/01-generate-text.mdx](content/docs/07-reference/01-ai-sdk-core/01-generate-text.mdx)
 - [content/docs/07-reference/01-ai-sdk-core/02-stream-text.mdx](content/docs/07-reference/01-ai-sdk-core/02-stream-text.mdx)
 - [content/docs/07-reference/05-ai-sdk-errors/ai-no-object-generated-error.mdx](content/docs/07-reference/05-ai-sdk-errors/ai-no-object-generated-error.mdx)
-- [packages/ai/src/generate-text/__snapshots__/generate-text.test.ts.snap](packages/ai/src/generate-text/__snapshots__/generate-text.test.ts.snap)
-- [packages/ai/src/generate-text/__snapshots__/stream-text.test.ts.snap](packages/ai/src/generate-text/__snapshots__/stream-text.test.ts.snap)
+- [packages/ai/src/generate-text/**snapshots**/generate-text.test.ts.snap](packages/ai/src/generate-text/__snapshots__/generate-text.test.ts.snap)
+- [packages/ai/src/generate-text/**snapshots**/stream-text.test.ts.snap](packages/ai/src/generate-text/__snapshots__/stream-text.test.ts.snap)
 - [packages/ai/src/generate-text/content-part.ts](packages/ai/src/generate-text/content-part.ts)
 - [packages/ai/src/generate-text/execute-tool-call.test.ts](packages/ai/src/generate-text/execute-tool-call.test.ts)
 - [packages/ai/src/generate-text/execute-tool-call.ts](packages/ai/src/generate-text/execute-tool-call.ts)
@@ -41,8 +41,6 @@ The following files were used as context for generating this wiki page:
 - [packages/ai/src/util/notify.ts](packages/ai/src/util/notify.ts)
 
 </details>
-
-
 
 This document covers the tool calling system in the AI SDK Core package, including tool definition, execution workflows, multi-step reasoning loops, and the ToolLoopAgent abstraction for building agentic applications. For information about basic text generation without tools, see [Text Generation (generateText and streamText)](#2.1). For structured output generation, see [Structured Output (Output API)](#2.2).
 
@@ -78,6 +76,7 @@ tool({
 ```
 
 **Core Components:**
+
 - **`description`**: Optional text that helps the model decide when to use the tool
 - **`inputSchema`**: Zod schema or JSON schema defining valid inputs
 - **`execute`**: Optional async function that processes tool calls
@@ -89,13 +88,13 @@ tool({
 
 The SDK validates tool inputs against the provided schema before execution. Supported schema libraries include:
 
-| Library | Support Level |
-|---------|--------------|
-| Zod | Full support, type inference |
-| Valibot | Full support via adapters |
-| Effect Schema | Full support via adapters |
-| ArkType | Full support via adapters |
-| JSON Schema | Direct support |
+| Library       | Support Level                |
+| ------------- | ---------------------------- |
+| Zod           | Full support, type inference |
+| Valibot       | Full support via adapters    |
+| Effect Schema | Full support via adapters    |
+| ArkType       | Full support via adapters    |
+| JSON Schema   | Direct support               |
 
 Schema validation occurs in [packages/ai/src/prompt/prepare-tools-and-tool-choice.ts:187-267]() using the `prepareTool` function, which converts various schema formats into a unified `JSONSchema7` representation.
 
@@ -106,11 +105,12 @@ The `execute` function receives validated inputs and returns a result. The resul
 ```typescript
 execute: async ({ location }: { location: string }) => {
   // Type-safe execution
-  return { temperature: 72, conditions: 'sunny' };
+  return { temperature: 72, conditions: 'sunny' }
 }
 ```
 
 If `execute` is omitted, the tool becomes a "declaration-only" tool useful for:
+
 - Forwarding tool calls to clients (in UI frameworks)
 - Queueing tool calls for later execution
 - Provider-executed tools (see Provider-Defined Tools section)
@@ -137,24 +137,24 @@ sequenceDiagram
     Prep->>Prep: Validate schemas
     Prep->>Prep: Convert to LanguageModelV3FunctionTool
     Prep-->>GT: Prepared tools + toolChoice
-    
+
     GT->>Model: doGenerate/doStream(prompt, tools)
     Model-->>GT: Response with toolCalls[]
-    
+
     GT->>RTP: Process tool calls
-    
+
     alt Tool needs approval
         RTP-->>GT: Return tool-approval-request
         GT-->>App: Response with approval requests
         App->>GT: Provide ToolApprovalResponse[]
         GT->>RTP: Continue with approvals
     end
-    
+
     RTP->>TE: Execute approved tools
     TE-->>RTP: Tool results
     RTP->>RTP: Create tool-result messages
     RTP-->>GT: ToolContent with results
-    
+
     alt stopWhen condition not met
         GT->>Model: Continue with tool results
         Model-->>GT: Next response
@@ -214,24 +214,24 @@ flowchart TD
     Start["Start: generateText/streamText"] --> PrepStep["prepareStep()"]
     PrepStep --> DoGen["model.doGenerate/doStream()"]
     DoGen --> CheckTools{"Has tool calls?"}
-    
+
     CheckTools -->|No| CheckFinish{"Check finishReason"}
     CheckFinish -->|stop/length/etc| Return["Return final result"]
-    
+
     CheckTools -->|Yes| RunTools["runToolsTransformation()"]
     RunTools --> NeedsApproval{"Needs approval?"}
-    
+
     NeedsApproval -->|Yes| ReturnApproval["Return with tool-approval-request"]
     ReturnApproval --> WaitApproval["Wait for approval input"]
     WaitApproval --> RunTools
-    
+
     NeedsApproval -->|No| ExecTools["Execute tool.execute()"]
     ExecTools --> AddResults["Add tool results to messages"]
     AddResults --> CheckStopWhen{"stopWhen condition met?"}
-    
+
     CheckStopWhen -->|Yes| Return
     CheckStopWhen -->|No| PrepStep
-    
+
     style Start fill:#f9f9f9
     style Return fill:#f9f9f9
     style RunTools fill:#e8f4f8
@@ -242,19 +242,19 @@ flowchart TD
 
 The `stopWhen` parameter controls when multi-step execution terminates. Built-in conditions:
 
-| Condition | Description | Implementation |
-|-----------|-------------|----------------|
-| `stepCountIs(n)` | Stop after exactly n steps | [packages/ai/src/generate-text/stop-condition.ts:8-14]() |
+| Condition                 | Description                     | Implementation                                            |
+| ------------------------- | ------------------------------- | --------------------------------------------------------- |
+| `stepCountIs(n)`          | Stop after exactly n steps      | [packages/ai/src/generate-text/stop-condition.ts:8-14]()  |
 | `finishReasonIsIn([...])` | Stop on specific finish reasons | [packages/ai/src/generate-text/stop-condition.ts:16-28]() |
-| `finishReasonIs(reason)` | Stop on specific finish reason | [packages/ai/src/generate-text/stop-condition.ts:30-38]() |
+| `finishReasonIs(reason)`  | Stop on specific finish reason  | [packages/ai/src/generate-text/stop-condition.ts:30-38]() |
 
 Custom conditions can be created by implementing:
 
 ```typescript
 type StopCondition<CONTEXT> = (params: {
-  step: StepResult<CONTEXT>;
-  stepIndex: number;
-}) => boolean;
+  step: StepResult<CONTEXT>
+  stepIndex: number
+}) => boolean
 ```
 
 ### Step Management
@@ -295,21 +295,21 @@ sequenceDiagram
     participant Model as LanguageModelV3
     participant RT as runToolsTransformation
     participant App as Application
-    
+
     Model->>RT: toolCalls with needsApproval=true
     RT->>RT: Create tool-approval-request parts
     RT-->>App: Return result with approval requests
-    
+
     Note over App: User reviews tool calls<br/>and provides approvals
-    
+
     App->>RT: ToolApprovalResponse[]<br/>(approved: true/false per call)
-    
+
     RT->>RT: Filter approved tool calls
-    
+
     loop For each approved tool
         RT->>RT: Execute tool.execute()
     end
-    
+
     RT->>RT: Create tool-result parts
     RT->>RT: Create tool-approval-response parts
     RT-->>Model: Continue with results
@@ -320,14 +320,16 @@ sequenceDiagram
 Tools can require approval in two ways:
 
 **Static approval:**
+
 ```typescript
 needsApproval: true
 ```
 
 **Dynamic approval:**
+
 ```typescript
 needsApproval: (args) => {
-  return args.amount > 1000; // Approve large transactions
+  return args.amount > 1000 // Approve large transactions
 }
 ```
 
@@ -347,6 +349,7 @@ When approval is needed, the SDK returns `tool-approval-request` content parts:
 ```
 
 These appear in:
+
 - `result.content` for `generateText`
 - Stream chunks for `streamText`
 - UI message streams via `toUIMessageStream()`
@@ -384,18 +387,18 @@ graph TB
     Tools["Tools"]
     Tools --> UserDefined["User-Defined Tools"]
     Tools --> ProviderDefined["Provider-Defined Tools"]
-    
+
     UserDefined --> ClientExec["Client-Side Execution<br/>execute: async () => {...}"]
     UserDefined --> NoExec["Declaration-Only<br/>execute: undefined"]
-    
+
     ProviderDefined --> OpenAITools["OpenAI Provider Tools<br/>openai.file_search<br/>openai.web_search<br/>openai.code_interpreter"]
     ProviderDefined --> AnthropicTools["Anthropic Provider Tools<br/>anthropic.web_search<br/>anthropic.bash<br/>anthropic.computer_20251124"]
     ProviderDefined --> GoogleTools["Google Provider Tools<br/>google.googleSearch<br/>google.codeExecution"]
     ProviderDefined --> XAITools["xAI Provider Tools<br/>xai.file_search<br/>xai.x_search"]
-    
+
     ClientExec --> Validation["Schema validation<br/>Approval workflow<br/>Result handling"]
     NoExec --> Forward["Forward to client<br/>Queue for later<br/>Custom processing"]
-    
+
     OpenAITools --> ProviderExec["providerExecuted: true<br/>Server-side execution<br/>No client execute function"]
     AnthropicTools --> ProviderExec
     GoogleTools --> ProviderExec
@@ -425,12 +428,12 @@ Implementation in [packages/ai/src/prompt/prepare-tools-and-tool-choice.ts:187-2
 
 Each provider offers unique tools:
 
-| Provider | Tool Examples | Use Cases |
-|----------|--------------|-----------|
-| OpenAI | `file_search`, `web_search`, `code_interpreter`, `mcp` | Document retrieval, web browsing, code execution |
-| Anthropic | `web_search`, `bash`, `computer_20251124`, `textEditor` | Web access, shell commands, UI automation |
-| Google | `googleSearch`, `codeExecution`, `vertexRagStore` | Search, code execution, RAG |
-| xAI | `file_search`, `x_search`, `web_search` | File search, Twitter/X search |
+| Provider  | Tool Examples                                           | Use Cases                                        |
+| --------- | ------------------------------------------------------- | ------------------------------------------------ |
+| OpenAI    | `file_search`, `web_search`, `code_interpreter`, `mcp`  | Document retrieval, web browsing, code execution |
+| Anthropic | `web_search`, `bash`, `computer_20251124`, `textEditor` | Web access, shell commands, UI automation        |
+| Google    | `googleSearch`, `codeExecution`, `vertexRagStore`       | Search, code execution, RAG                      |
+| xAI       | `file_search`, `x_search`, `web_search`                 | File search, Twitter/X search                    |
 
 Provider tools are documented in their respective provider packages (e.g., `@ai-sdk/openai`, `@ai-sdk/anthropic`).
 
@@ -471,7 +474,7 @@ Dynamic tools are created at runtime using `dynamicTool()` from `@ai-sdk/provide
 ### Dynamic Tool Definition
 
 ```typescript
-import { dynamicTool } from 'ai';
+import { dynamicTool } from 'ai'
 
 const dynamicWeatherTool = dynamicTool({
   description: 'Get weather for locations',
@@ -485,11 +488,11 @@ const dynamicWeatherTool = dynamicTool({
       toolName: options.toolName,
       args: options.args,
       providerExecuted: false,
-    };
+    }
   },
   toModelOutput: async ({ toolCallId, args, result }) => {
     // Format result for model consumption
-    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }] }
   },
 })
 ```
@@ -520,19 +523,19 @@ graph TB
         Generate["agent.generate()"]
         Stream["agent.stream()"]
     end
-    
+
     Config --> Generate
     Config --> Stream
-    
+
     Generate --> GT["generateText()<br/>with agent settings"]
     Stream --> ST["streamText()<br/>with agent settings"]
-    
+
     GT --> Loop["Multi-step loop<br/>until stopWhen"]
     ST --> Loop
-    
+
     Loop --> Steps["StepResult[]<br/>with tools executed"]
     Steps --> Result["GenerateTextResult<br/>or StreamTextResult"]
-    
+
     style Config fill:#f0f0f0
     style Generate fill:#e8f4f8
     style Stream fill:#e8f4f8
@@ -547,7 +550,9 @@ The `ToolLoopAgent` provides a higher-level abstraction over `generateText`/`str
 const agent = new ToolLoopAgent({
   model,
   instructions: 'You are a helpful assistant',
-  tools: { /* tool definitions */ },
+  tools: {
+    /* tool definitions */
+  },
   stopWhen: stepCountIs(10),
   onFinish: async ({ steps, usage }) => {
     // Called when agent completes
@@ -560,6 +565,7 @@ const agent = new ToolLoopAgent({
 **`agent.generate(options)`**
 
 Synchronous generation with tool execution. Returns `GenerateTextResult` with:
+
 - All steps executed
 - Aggregated usage
 - Final text/content
@@ -567,11 +573,13 @@ Synchronous generation with tool execution. Returns `GenerateTextResult` with:
 **`agent.stream(options)`**
 
 Streaming generation with tool execution. Returns `StreamTextResult` with:
+
 - Real-time text/tool call streaming
 - Step-by-step updates
 - Async iterators for consumption
 
 Both methods accept:
+
 - `prompt`: User input
 - `messages`: Conversation history
 - `context`: Custom context object
@@ -592,6 +600,7 @@ Agents support:
 **`onFinish`**: Called when agent terminates
 
 Both receive:
+
 - `steps`: All execution steps
 - `usage`: Aggregated token usage
 - `experimental_context`: Custom context
@@ -615,12 +624,12 @@ Tool execution errors are captured and handled in [packages/ai/src/generate-text
 
 ### Common Error Types
 
-| Error Type | Cause | Location |
-|------------|-------|----------|
-| `NoOutputGeneratedError` | Model produced no content | [packages/ai/src/error/no-output-generated-error.ts]() |
-| `ToolCallNotFoundForApprovalError` | Missing approval for tool call | [packages/ai/src/error/tool-call-not-found-for-approval-error.ts]() |
-| `UnsupportedFunctionalityError` | Provider doesn't support feature | `@ai-sdk/provider` |
-| `TypeValidationError` | Tool input schema validation failed | `@ai-sdk/provider-utils` |
+| Error Type                         | Cause                               | Location                                                            |
+| ---------------------------------- | ----------------------------------- | ------------------------------------------------------------------- |
+| `NoOutputGeneratedError`           | Model produced no content           | [packages/ai/src/error/no-output-generated-error.ts]()              |
+| `ToolCallNotFoundForApprovalError` | Missing approval for tool call      | [packages/ai/src/error/tool-call-not-found-for-approval-error.ts]() |
+| `UnsupportedFunctionalityError`    | Provider doesn't support feature    | `@ai-sdk/provider`                                                  |
+| `TypeValidationError`              | Tool input schema validation failed | `@ai-sdk/provider-utils`                                            |
 
 ### Error Propagation
 
@@ -655,10 +664,18 @@ Implementation in [packages/react/src/use-chat.ts]() and related UI packages.
 Tool calls stream as:
 
 ```typescript
-{ type: 'tool-call-start', toolCallId, toolName }
-{ type: 'tool-call-delta', toolCallId, argsTextDelta }
-{ type: 'tool-call', toolCallId, toolName, args }
-{ type: 'tool-result', toolCallId, result }
+{
+  type: ('tool-call-start', toolCallId, toolName)
+}
+{
+  type: ('tool-call-delta', toolCallId, argsTextDelta)
+}
+{
+  type: ('tool-call', toolCallId, toolName, args)
+}
+{
+  type: ('tool-result', toolCallId, result)
+}
 ```
 
 These are processed by `parseJsonEventStream()` in [packages/ai/src/util/parse-json-event-stream.ts]().

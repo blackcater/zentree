@@ -42,8 +42,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes how to configure MCP (Model Context Protocol) servers in Codex. MCP servers extend Codex's capabilities by providing external tools, resources, and data sources that the AI can access during conversations.
 
 For information about how MCP servers are initialized and managed at runtime, see [MCP Connection Manager](#6.2). For CLI commands to manage MCP servers, see [MCP CLI Commands](#6.3). For OAuth authentication flows, see [OAuth Authentication for MCP](#6.5).
@@ -56,17 +54,17 @@ MCP servers are configured in `config.toml` files (system, user, or project leve
 
 ### McpServerConfig Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `transport` | `McpServerTransportConfig` | Transport configuration (Stdio or StreamableHttp) |
-| `enabled` | `bool` | Whether the server is enabled |
-| `required` | `bool` | If true, Codex fails to start if this server cannot be initialized |
-| `disabled_reason` | `Option<String>` | Optional reason for disabling the server (for documentation) |
-| `startup_timeout_sec` | `Option<Duration>` | Timeout for server initialization (default: 10 seconds) |
-| `tool_timeout_sec` | `Option<Duration>` | Timeout for individual tool calls (default: 60 seconds) |
-| `enabled_tools` | `Option<Vec<String>>` | Allowlist of tool names (if set, only these tools are available) |
-| `disabled_tools` | `Option<Vec<String>>` | Denylist of tool names (these tools are blocked) |
-| `scopes` | `Option<Vec<String>>` | OAuth scopes for StreamableHttp servers |
+| Field                 | Type                       | Description                                                        |
+| --------------------- | -------------------------- | ------------------------------------------------------------------ |
+| `transport`           | `McpServerTransportConfig` | Transport configuration (Stdio or StreamableHttp)                  |
+| `enabled`             | `bool`                     | Whether the server is enabled                                      |
+| `required`            | `bool`                     | If true, Codex fails to start if this server cannot be initialized |
+| `disabled_reason`     | `Option<String>`           | Optional reason for disabling the server (for documentation)       |
+| `startup_timeout_sec` | `Option<Duration>`         | Timeout for server initialization (default: 10 seconds)            |
+| `tool_timeout_sec`    | `Option<Duration>`         | Timeout for individual tool calls (default: 60 seconds)            |
+| `enabled_tools`       | `Option<Vec<String>>`      | Allowlist of tool names (if set, only these tools are available)   |
+| `disabled_tools`      | `Option<Vec<String>>`      | Denylist of tool names (these tools are blocked)                   |
+| `scopes`              | `Option<Vec<String>>`      | OAuth scopes for StreamableHttp servers                            |
 
 **Sources:** [codex-rs/core/src/config/types.rs:62-101](), [codex-rs/core/src/mcp_connection_manager.rs:74-75]()
 
@@ -81,16 +79,16 @@ MCP servers can communicate via two transport mechanisms: **Stdio** (subprocess)
 ```mermaid
 graph TB
     McpServerTransportConfig["McpServerTransportConfig"]
-    
+
     McpServerTransportConfig --> Stdio["Stdio Transport"]
     McpServerTransportConfig --> Http["StreamableHttp Transport"]
-    
+
     Stdio --> StdioCommand["command: String<br/>Executable path"]
     Stdio --> StdioArgs["args: Vec&lt;String&gt;<br/>Command arguments"]
     Stdio --> StdioEnv["env: Option&lt;HashMap&gt;<br/>Static env vars"]
     Stdio --> StdioEnvVars["env_vars: Vec&lt;String&gt;<br/>Propagated env var names"]
     Stdio --> StdioCwd["cwd: Option&lt;PathBuf&gt;<br/>Working directory"]
-    
+
     Http --> HttpUrl["url: String<br/>Server URL"]
     Http --> HttpBearerEnv["bearer_token_env_var: Option&lt;String&gt;<br/>Env var for bearer token"]
     Http --> HttpHeaders["http_headers: Option&lt;HashMap&gt;<br/>Static headers"]
@@ -104,6 +102,7 @@ graph TB
 Stdio transport launches an MCP server as a subprocess and communicates via stdin/stdout.
 
 **Configuration Fields:**
+
 - **`command`**: Path to the executable
 - **`args`**: Command-line arguments
 - **`env`**: Static environment variables (key-value pairs set for the subprocess)
@@ -111,6 +110,7 @@ Stdio transport launches an MCP server as a subprocess and communicates via stdi
 - **`cwd`**: Working directory for the subprocess (optional)
 
 **Example:**
+
 ```toml
 [mcp_servers.local_tools]
 transport = { command = "python", args = ["server.py"], env = { API_KEY = "secret" }, env_vars = ["HOME", "PATH"] }
@@ -124,12 +124,14 @@ enabled = true
 StreamableHttp transport connects to an MCP server via HTTP, supporting OAuth authentication.
 
 **Configuration Fields:**
+
 - **`url`**: Server endpoint URL
 - **`bearer_token_env_var`**: Name of environment variable containing the bearer token
 - **`http_headers`**: Static HTTP headers (key-value pairs)
 - **`env_http_headers`**: HTTP headers whose values come from environment variables (key: header name, value: env var name)
 
 **Example:**
+
 ```toml
 [mcp_servers.github_mcp]
 transport = { url = "https://mcp.github.com", bearer_token_env_var = "GITHUB_TOKEN" }
@@ -150,27 +152,29 @@ Tool filtering controls which tools from an MCP server are available to the mode
 ```mermaid
 graph TD
     ToolCall["Tool Call Request"]
-    
+
     ToolCall --> HasAllowlist{"enabled_tools<br/>is set?"}
-    
+
     HasAllowlist -->|Yes| InAllowlist{"Tool in<br/>allowlist?"}
     HasAllowlist -->|No| CheckDenylist["Check denylist"]
-    
+
     InAllowlist -->|No| BlockTool["Block Tool"]
     InAllowlist -->|Yes| CheckDenylist
-    
+
     CheckDenylist --> InDenylist{"Tool in<br/>disabled_tools?"}
-    
+
     InDenylist -->|Yes| BlockTool
     InDenylist -->|No| AllowTool["Allow Tool"]
 ```
 
 **Filter Rules:**
+
 1. If `enabled_tools` is set (allowlist), only tools in this list are allowed
 2. If `disabled_tools` is set (denylist), tools in this list are blocked
 3. A tool must satisfy both conditions to be allowed
 
 **Example:**
+
 ```toml
 [mcp_servers.filesystem]
 transport = { command = "mcp-server-filesystem", args = ["--root", "/workspace"] }
@@ -194,6 +198,7 @@ Requirements-based filtering allows organizations to enforce which MCP servers a
 Requirements specify an allowlist of MCP servers by their transport identity. Only servers matching a requirement entry are enabled; all others are automatically disabled.
 
 **Requirement Matching Rules:**
+
 - **Stdio servers**: Match by `command` field
 - **StreamableHttp servers**: Match by `url` field
 
@@ -202,27 +207,28 @@ Requirements specify an allowlist of MCP servers by their transport identity. On
 ```mermaid
 graph TD
     LoadConfig["ConfigLayerStack.load()"]
-    
+
     LoadConfig --> ApplyRequirements["filter_mcp_servers_by_requirements()"]
-    
+
     ApplyRequirements --> HasRequirements{"mcp_requirements<br/>defined?"}
-    
+
     HasRequirements -->|No| AllEnabled["All configured servers enabled"]
     HasRequirements -->|Yes| IterateServers["Iterate each server"]
-    
+
     IterateServers --> MatchServer["mcp_server_matches_requirement()"]
-    
+
     MatchServer --> IsMatch{"Server identity<br/>in allowlist?"}
-    
+
     IsMatch -->|Yes| ClearReason["server.disabled_reason = None<br/>server.enabled = true"]
     IsMatch -->|No| SetReason["server.enabled = false<br/>disabled_reason = Requirements"]
-    
+
     ClearReason --> NextServer["Next server"]
     SetReason --> NextServer
     NextServer --> Done["Return filtered servers"]
 ```
 
 **Key Functions:**
+
 - `filter_mcp_servers_by_requirements`: Applies requirement constraints to server map [codex-rs/core/src/config/mod.rs:598-621]()
 - `mcp_server_matches_requirement`: Checks if server matches requirement identity [codex-rs/core/src/config/mod.rs:673-691]()
 - `constrain_mcp_servers`: Wraps filtering in `Constrained<T>` wrapper [codex-rs/core/src/config/mod.rs:623-636]()
@@ -264,16 +270,18 @@ Codex configures two types of timeouts for MCP servers:
 
 ### Timeout Types
 
-| Timeout | Default | Config Field | Description |
-|---------|---------|--------------|-------------|
-| Startup | 10 seconds | `startup_timeout_sec` | Time allowed for server initialization and initial tool listing |
-| Tool Call | 60 seconds | `tool_timeout_sec` | Time allowed for individual tool invocations |
+| Timeout   | Default    | Config Field          | Description                                                     |
+| --------- | ---------- | --------------------- | --------------------------------------------------------------- |
+| Startup   | 10 seconds | `startup_timeout_sec` | Time allowed for server initialization and initial tool listing |
+| Tool Call | 60 seconds | `tool_timeout_sec`    | Time allowed for individual tool invocations                    |
 
 **Constants:**
+
 - `DEFAULT_STARTUP_TIMEOUT`: 10 seconds [codex-rs/core/src/mcp_connection_manager.rs:86]()
 - `DEFAULT_TOOL_TIMEOUT`: 60 seconds [codex-rs/core/src/mcp_connection_manager.rs:89]()
 
 **Example:**
+
 ```toml
 [mcp_servers.slow_server]
 transport = { command = "slow-mcp-server" }
@@ -296,30 +304,32 @@ MCP tool names are qualified with the server name to prevent collisions and sani
 graph LR
     RawToolName["Raw Tool Name<br/>'echo'"]
     ServerName["Server Name<br/>'my_server'"]
-    
+
     RawToolName --> Qualify["Qualify with server name"]
     ServerName --> Qualify
-    
+
     Qualify --> QualifiedRaw["Qualified Name<br/>'mcp__my_server__echo'"]
-    
+
     QualifiedRaw --> Sanitize["Sanitize for API<br/>(^[a-zA-Z0-9_-]+$)"]
-    
+
     Sanitize --> FinalName["Final Name<br/>'mcp__my_server__echo'"]
-    
+
     QualifiedRaw --> TooLong{"Length > 64?"}
     TooLong -->|Yes| Hash["Truncate + SHA1 hash"]
     TooLong -->|No| FinalName
-    
+
     Hash --> FinalName
 ```
 
 **Transformation Rules:**
+
 1. Tool names are prefixed with `mcp__<server_name>__` [codex-rs/core/src/mcp_connection_manager.rs:126-129]()
 2. Names are sanitized to match `^[a-zA-Z0-9_-]+$` (OpenAI API requirement) [codex-rs/core/src/mcp_connection_manager.rs:94-109]()
 3. If length exceeds 64 characters, the name is truncated and a SHA1 hash is appended [codex-rs/core/src/mcp_connection_manager.rs:142-146]()
 4. Duplicate names (after sanitization) are skipped [codex-rs/core/src/mcp_connection_manager.rs:148-151]()
 
 **Constants:**
+
 - `MCP_TOOL_NAME_DELIMITER`: `"__"` [codex-rs/core/src/mcp_connection_manager.rs:82]()
 - `MAX_TOOL_NAME_LENGTH`: 64 [codex-rs/core/src/mcp_connection_manager.rs:83]()
 
@@ -333,12 +343,12 @@ MCP servers can be configured at multiple layers, following Codex's layered conf
 
 ### Configuration Layers
 
-| Layer | Path | Precedence |
-|-------|------|------------|
-| System | `/etc/codex/config.toml` | Lowest |
-| User | `~/.codex/config.toml` | Medium |
-| Project | `.codex/config.toml` | High |
-| CLI | `--config` overrides | Highest |
+| Layer   | Path                     | Precedence |
+| ------- | ------------------------ | ---------- |
+| System  | `/etc/codex/config.toml` | Lowest     |
+| User    | `~/.codex/config.toml`   | Medium     |
+| Project | `.codex/config.toml`     | High       |
+| CLI     | `--config` overrides     | Highest    |
 
 **Configuration Loading:**
 The `load_global_mcp_servers` function loads MCP server configurations from the user's home directory:
@@ -370,18 +380,19 @@ The `codex-apps` MCP server receives special treatment with tool list caching:
 - **Reason**: Reduces latency for frequently-used codex-apps tools
 
 **Caching Logic:**
+
 ```mermaid
 graph TD
     ListTools["list_all_tools() called"]
-    
+
     ListTools --> IsCodexApps{"Server is<br/>codex-apps?"}
-    
+
     IsCodexApps -->|No| FetchTools["Fetch tools from server"]
     IsCodexApps -->|Yes| CheckCache{"Cache valid?<br/>(not expired)"}
-    
+
     CheckCache -->|Yes| ReturnCached["Return cached tools"]
     CheckCache -->|No| FetchAndCache["Fetch tools + cache<br/>for 3600 seconds"]
-    
+
     FetchTools --> ReturnTools["Return tools"]
     FetchAndCache --> ReturnTools
 ```
@@ -415,10 +426,11 @@ Stdio transport supports two types of environment variable configuration:
 2. **`env_vars`**: List of variable names to propagate from parent process
 
 **Example:**
+
 ```toml
 [mcp_servers.env_example]
-transport = { 
-  command = "python", 
+transport = {
+  command = "python",
   args = ["server.py"],
   env = { "STATIC_KEY" = "static_value" },
   env_vars = ["HOME", "PATH", "USER"]
@@ -427,6 +439,7 @@ enabled = true
 ```
 
 When the MCP server subprocess is spawned:
+
 - Variables in `env` are set to their configured values
 - Variables in `env_vars` are read from the current process environment and propagated
 
@@ -438,7 +451,7 @@ For StreamableHttp transport, bearer tokens can be provided via environment vari
 
 ```toml
 [mcp_servers.api_service]
-transport = { 
+transport = {
   url = "https://api.example.com/mcp",
   bearer_token_env_var = "API_SERVICE_TOKEN"
 }
@@ -448,6 +461,7 @@ enabled = true
 The bearer token resolution happens during MCP client initialization [codex-rs/core/src/mcp_connection_manager.rs:896-922]().
 
 **Error Handling:**
+
 - If the environment variable is not set: Error
 - If the environment variable is empty: Error
 - If the environment variable contains non-Unicode: Error
@@ -465,7 +479,7 @@ Here is a comprehensive example showing multiple MCP servers with different conf
 
 # Stdio server with environment variables
 [mcp_servers.filesystem]
-transport = { 
+transport = {
   command = "mcp-server-filesystem",
   args = ["--root", "/workspace"],
   env = { "LOG_LEVEL" = "info" },
@@ -478,7 +492,7 @@ enabled_tools = ["read_file", "list_directory", "search_files"]
 
 # StreamableHttp server with OAuth
 [mcp_servers.github]
-transport = { 
+transport = {
   url = "https://mcp.github.com",
   http_headers = { "X-Client-Version" = "1.0" }
 }
@@ -516,11 +530,13 @@ disabled_tools = ["drop_table", "delete_database"]  # Block dangerous operations
 Server names must conform to specific rules enforced by the `validate_server_name` function:
 
 **Validation Rules:**
+
 - Name must not be empty
 - Name must contain only: `a-z`, `A-Z`, `0-9`, `-`, `_`
 - Other characters are rejected
 
 **Implementation:**
+
 ```rust
 // From codex-rs/cli/src/mcp_cmd.rs:819-830
 fn validate_server_name(name: &str) -> Result<()> {

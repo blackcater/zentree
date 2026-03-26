@@ -9,7 +9,7 @@ The following files were used as context for generating this wiki page:
 - [content/providers/01-ai-sdk-providers/05-anthropic.mdx](content/providers/01-ai-sdk-providers/05-anthropic.mdx)
 - [content/providers/01-ai-sdk-providers/index.mdx](content/providers/01-ai-sdk-providers/index.mdx)
 - [examples/ai-functions/src/stream-text/anthropic/fine-grained-tool-streaming.ts](examples/ai-functions/src/stream-text/anthropic/fine-grained-tool-streaming.ts)
-- [packages/anthropic/src/__snapshots__/anthropic-messages-language-model.test.ts.snap](packages/anthropic/src/__snapshots__/anthropic-messages-language-model.test.ts.snap)
+- [packages/anthropic/src/**snapshots**/anthropic-messages-language-model.test.ts.snap](packages/anthropic/src/__snapshots__/anthropic-messages-language-model.test.ts.snap)
 - [packages/anthropic/src/anthropic-messages-api.ts](packages/anthropic/src/anthropic-messages-api.ts)
 - [packages/anthropic/src/anthropic-messages-language-model.test.ts](packages/anthropic/src/anthropic-messages-language-model.test.ts)
 - [packages/anthropic/src/anthropic-messages-language-model.ts](packages/anthropic/src/anthropic-messages-language-model.ts)
@@ -32,8 +32,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the Provider V3 specification, which defines the standard interfaces that all AI model providers implement in the Vercel AI SDK. This includes the `ProviderV3` root interface, `LanguageModelV3` for text generation, `ImageModelV3` for image generation, `EmbeddingModelV3` for embeddings, and related model interfaces. For information about specific provider implementations, see pages [3.2](#3.2) through [3.10](#3.10). For general provider ecosystem overview, see [3](#3).
 
 ## Purpose and Scope
@@ -49,7 +47,7 @@ graph TB
     PROVIDER["@ai-sdk/provider<br/>Specification interfaces<br/>ProviderV3, LanguageModelV3,<br/>ImageModelV3, EmbeddingModelV3"]
     UTILS["@ai-sdk/provider-utils<br/>Implementation utilities<br/>Schema validation,<br/>streaming helpers"]
     IMPL["Provider Implementations<br/>@ai-sdk/openai<br/>@ai-sdk/anthropic<br/>@ai-sdk/google<br/>30+ others"]
-    
+
     IMPL -->|"imports types"| PROVIDER
     IMPL -->|"uses utilities"| UTILS
     UTILS -->|"imports types"| PROVIDER
@@ -70,7 +68,7 @@ graph LR
     EM["embeddingModel(id): EmbeddingModelV3"]
     TM["transcriptionModel(id): TranscriptionModelV3"]
     SM["speechModel(id): SpeechModelV3"]
-    
+
     PV3 --> SPEC
     PV3 --> LM
     PV3 --> IM
@@ -90,12 +88,12 @@ The `LanguageModelV3` interface defines the contract for text generation models.
 ```mermaid
 graph TB
     LMV3["LanguageModelV3"]
-    
+
     subgraph "Core Methods"
         DG["doGenerate(options)"]
         DS["doStream(options)"]
     end
-    
+
     subgraph "Metadata"
         SPEC["specificationVersion: 'v3'"]
         PROV["provider: string"]
@@ -103,7 +101,7 @@ graph TB
         DEFAULT["defaultObjectGenerationMode"]
         SUPPORTS["supportsStructuredOutputs"]
     end
-    
+
     subgraph "Options Input"
         MODE["mode: { type: 'regular' | 'object-json' | 'object-tool' }"]
         PROMPT["prompt: Prompt[]"]
@@ -113,7 +111,7 @@ graph TB
         TEMP["temperature: number"]
         HEADERS["headers: Record<string, string>"]
     end
-    
+
     subgraph "Generate Output"
         TEXT["text: string"]
         TOOL_CALLS["toolCalls: ToolCall[]"]
@@ -123,7 +121,7 @@ graph TB
         WARNINGS["warnings: Warning[]"]
         PROV_META["providerMetadata: Record<string, any>"]
     end
-    
+
     subgraph "Stream Output"
         STREAM["AsyncIterable<TextStreamPart>"]
         TEXT_DELTA["type: 'text-delta'"]
@@ -131,20 +129,20 @@ graph TB
         TOOL_CALL["type: 'tool-call'"]
         FINISH_STREAM["type: 'finish'"]
     end
-    
+
     LMV3 --> DG
     LMV3 --> DS
     LMV3 --> SPEC
     LMV3 --> PROV
     LMV3 --> MID
-    
+
     DG --> MODE
     DG --> PROMPT
     DG --> TOOLS
     DG --> TEXT
     DG --> TOOL_CALLS
     DG --> FINISH
-    
+
     DS --> MODE
     DS --> PROMPT
     DS --> STREAM
@@ -155,11 +153,13 @@ graph TB
 ### Core Method Contracts
 
 **`doGenerate(options)`** - Synchronous generation that waits for the complete response:
+
 - Accepts `mode` (regular, object-json, object-tool), `prompt`, `tools`, `maxTokens`, `temperature`, etc.
 - Returns complete `text`, `toolCalls`, `finishReason`, `usage`, and `providerMetadata`
 - Must populate `rawCall.rawPrompt` and `rawCall.rawSettings` for observability
 
 **`doStream(options)`** - Streaming generation that yields incremental chunks:
+
 - Accepts same options as `doGenerate`
 - Returns `AsyncIterable<TextStreamPart>` yielding deltas
 - Emits `text-delta`, `tool-call-delta`, `tool-call`, and `finish` events
@@ -171,17 +171,18 @@ graph TB
 
 The `mode` parameter controls output format:
 
-| Mode Type | Purpose | Tool Support | Output Format |
-|-----------|---------|--------------|---------------|
-| `regular` | Standard text generation | Yes | Unstructured text |
-| `object-json` | Structured JSON output | Depends on provider | JSON matching schema |
-| `object-tool` | JSON via tool calling | Depends on provider | JSON via tool response |
+| Mode Type     | Purpose                  | Tool Support        | Output Format          |
+| ------------- | ------------------------ | ------------------- | ---------------------- |
+| `regular`     | Standard text generation | Yes                 | Unstructured text      |
+| `object-json` | Structured JSON output   | Depends on provider | JSON matching schema   |
+| `object-tool` | JSON via tool calling    | Depends on provider | JSON via tool response |
 
 **Sources:** [packages/ai/CHANGELOG.md:600-617]()
 
 ### Provider Metadata
 
 Each provider can attach custom metadata via `providerMetadata`. Examples include:
+
 - OpenAI: `reasoning` content, `logprobs`, `system_fingerprint`
 - Anthropic: `stopSequence`, `cacheMetadata`
 - Google: `groundingMetadata`, `thoughtSignature`
@@ -195,17 +196,17 @@ The `ImageModelV3` interface standardizes image generation across providers supp
 ```mermaid
 graph TB
     IMV3["ImageModelV3"]
-    
+
     subgraph "Core Method"
         GI["generateImage(options)"]
     end
-    
+
     subgraph "Metadata"
         SPEC["specificationVersion: 'v3'"]
         PROV["provider: string"]
         MID["modelId: string"]
     end
-    
+
     subgraph "Options Input"
         PROMPT["prompt: string"]
         N["n: number"]
@@ -214,18 +215,18 @@ graph TB
         SEED["seed: number"]
         PROV_OPTS["providerOptions: Record<string, any>"]
     end
-    
+
     subgraph "Output"
         IMAGES["images: Array<{ url?, base64?, mimeType }>"]
         RAW["rawResponse: { headers }"]
         WARNINGS["warnings: Warning[]"]
     end
-    
+
     IMV3 --> GI
     IMV3 --> SPEC
     IMV3 --> PROV
     IMV3 --> MID
-    
+
     GI --> PROMPT
     GI --> N
     GI --> SIZE
@@ -236,6 +237,7 @@ graph TB
 ### Image Output Formats
 
 Providers return images in one or both formats:
+
 - `url` - Direct URL to generated image (temporary or permanent)
 - `base64` - Base64-encoded image data with `mimeType`
 
@@ -248,12 +250,12 @@ The `EmbeddingModelV3` interface defines contracts for embedding models. The V3 
 ```mermaid
 graph TB
     EMV3["EmbeddingModelV3"]
-    
+
     subgraph "Core Methods"
         EMBED["embed(options)"]
         EMBED_MANY["embedMany(options)"]
     end
-    
+
     subgraph "Metadata"
         SPEC["specificationVersion: 'v3'"]
         PROV["provider: string"]
@@ -261,39 +263,39 @@ graph TB
         MAX_EMB["maxEmbeddingsPerCall: number"]
         SUPPORTS["supportsParallelCalls: boolean"]
     end
-    
+
     subgraph "Embed Options"
         VALUE["value: string"]
         HEADERS["headers: Record<string, string>"]
         ABORT["abortSignal: AbortSignal"]
     end
-    
+
     subgraph "EmbedMany Options"
         VALUES["values: string[]"]
     end
-    
+
     subgraph "Embed Output"
         EMB["embedding: number[]"]
         USAGE["usage: { tokens: number }"]
         RAW_RES["rawResponse: { headers }"]
     end
-    
+
     subgraph "EmbedMany Output"
         EMBS["embeddings: number[][]"]
         USAGE_MANY["usage: { tokens: number }"]
     end
-    
+
     EMV3 --> EMBED
     EMV3 --> EMBED_MANY
     EMV3 --> SPEC
     EMV3 --> PROV
     EMV3 --> MID
     EMV3 --> MAX_EMB
-    
+
     EMBED --> VALUE
     EMBED --> EMB
     EMBED --> USAGE
-    
+
     EMBED_MANY --> VALUES
     EMBED_MANY --> EMBS
     EMBED_MANY --> USAGE_MANY
@@ -320,7 +322,7 @@ graph LR
     AUDIO["audio: AudioData"]
     TEXT["text: string"]
     USAGE["usage: { inputTokens }"]
-    
+
     TMV3 --> TRANSCRIBE
     TRANSCRIBE --> AUDIO
     TRANSCRIBE --> TEXT
@@ -337,7 +339,7 @@ graph LR
     TEXT["text: string"]
     VOICE["voice: string"]
     AUDIO["audio: ArrayBuffer"]
-    
+
     SMV3 --> GENERATE
     GENERATE --> TEXT
     GENERATE --> VOICE
@@ -356,35 +358,35 @@ graph TB
         FACTORY["createOpenAI(config)<br/>createAnthropic(config)<br/>createGoogle(config)"]
         CONFIG["config: { apiKey, baseURL, headers }"]
     end
-    
+
     subgraph "Provider Instance"
         PROVIDER["OpenAIProvider implements ProviderV3"]
         LM_FACTORY["languageModel(id)"]
         IM_FACTORY["imageModel(id)"]
         EM_FACTORY["embeddingModel(id)"]
     end
-    
+
     subgraph "Model Instances"
         LM_IMPL["OpenAILanguageModel implements LanguageModelV3"]
         IM_IMPL["OpenAIImageModel implements ImageModelV3"]
         EM_IMPL["OpenAIEmbeddingModel implements EmbeddingModelV3"]
     end
-    
+
     subgraph "Implementation Details"
         DO_GEN["doGenerate() -><br/>HTTP POST /chat/completions<br/>Parse response<br/>Map to standard format"]
         DO_STREAM["doStream() -><br/>HTTP POST /chat/completions<br/>Parse SSE stream<br/>Yield TextStreamPart deltas"]
     end
-    
+
     FACTORY --> CONFIG
     FACTORY --> PROVIDER
     PROVIDER --> LM_FACTORY
     PROVIDER --> IM_FACTORY
     PROVIDER --> EM_FACTORY
-    
+
     LM_FACTORY --> LM_IMPL
     IM_FACTORY --> IM_IMPL
     EM_FACTORY --> EM_IMPL
-    
+
     LM_IMPL --> DO_GEN
     LM_IMPL --> DO_STREAM
 ```
@@ -393,14 +395,14 @@ graph TB
 
 Most providers share this file organization:
 
-| File Pattern | Purpose |
-|--------------|---------|
-| `{provider}-provider.ts` | Factory function and `ProviderV3` implementation |
-| `{provider}-language-model.ts` | `LanguageModelV3` implementation |
-| `{provider}-image-model.ts` | `ImageModelV3` implementation (if supported) |
-| `{provider}-embedding-model.ts` | `EmbeddingModelV3` implementation (if supported) |
-| `{provider}-{api}-settings.ts` | API-specific request/response mappings |
-| `convert-to-{provider}-*-prompt.ts` | Prompt conversion utilities |
+| File Pattern                        | Purpose                                          |
+| ----------------------------------- | ------------------------------------------------ |
+| `{provider}-provider.ts`            | Factory function and `ProviderV3` implementation |
+| `{provider}-language-model.ts`      | `LanguageModelV3` implementation                 |
+| `{provider}-image-model.ts`         | `ImageModelV3` implementation (if supported)     |
+| `{provider}-embedding-model.ts`     | `EmbeddingModelV3` implementation (if supported) |
+| `{provider}-{api}-settings.ts`      | API-specific request/response mappings           |
+| `convert-to-{provider}-*-prompt.ts` | Prompt conversion utilities                      |
 
 **Sources:** [packages/openai/package.json](), [packages/anthropic/package.json](), [packages/google/package.json]()
 
@@ -416,27 +418,27 @@ graph TB
         EFFECT["effectSchema()"]
         ARK["arkTypeSchema()"]
     end
-    
+
     subgraph "Streaming Utilities"
         PARSE["parseJsonStream()"]
         CREATE["createJsonStreamResponseHandler()"]
         SSE["createEventSourceResponseHandler()"]
     end
-    
+
     subgraph "Response Processing"
         COMBINE["combineHeaders()"]
         EXTRACT["extractResponseHeaders()"]
         POST["postJsonToApi()"]
     end
-    
+
     subgraph "Error Handling"
         API_ERR["APICallError"]
         INVALID["InvalidResponseDataError"]
         SCHEMA["TypeValidationError"]
     end
-    
+
     UTILS["@ai-sdk/provider-utils"]
-    
+
     UTILS --> ZOD
     UTILS --> VALIBOT
     UTILS --> PARSE
@@ -453,6 +455,7 @@ While all providers implement the V3 specification, each can expose provider-spe
 ### OpenAI Extensions
 
 OpenAI providers support additional fields via `providerOptions`:
+
 - `openai.streamOptions` for enhanced streaming control
 - `openai.reasoningEffort` for o1/o3 models
 - `openai.parallelToolCalls` for concurrent tool execution
@@ -460,6 +463,7 @@ OpenAI providers support additional fields via `providerOptions`:
 ### Anthropic Extensions
 
 Anthropic providers support:
+
 - `anthropic.thinkingMode` for Claude thinking behavior
 - `anthropic.cacheControl` for prompt caching
 - Provider-defined tools: `computer_20251124`, `bash`, `textEditor`
@@ -467,6 +471,7 @@ Anthropic providers support:
 ### Google Extensions
 
 Google providers support:
+
 - `google.thinkingConfig` for Gemini thinking configuration
 - `google.groundingMetadata` for search grounding
 - Provider-defined tools: `googleSearch`, `codeExecution`, `fileSearch`
@@ -481,27 +486,27 @@ The SDK maintains backward compatibility with V1/V2 provider implementations thr
 graph TB
     APP["Application Code"]
     CORE["Core SDK (v6)"]
-    
+
     subgraph "V3 Providers"
         V3_OPENAI["OpenAI V3"]
         V3_ANTHROPIC["Anthropic V3"]
         V3_GOOGLE["Google V3"]
     end
-    
+
     subgraph "Legacy Providers"
         V2_LEGACY["Legacy V2 Provider"]
         V1_LEGACY["Legacy V1 Provider"]
     end
-    
+
     ADAPTER["V2->V3 Adapter<br/>Wraps doGenerate/doStream<br/>Maps response format"]
     WARNING["Emits deprecation warning"]
-    
+
     APP --> CORE
     CORE --> V3_OPENAI
     CORE --> V3_ANTHROPIC
     CORE --> V3_GOOGLE
     CORE --> ADAPTER
-    
+
     ADAPTER --> V2_LEGACY
     ADAPTER --> V1_LEGACY
     ADAPTER --> WARNING
@@ -511,13 +516,13 @@ graph TB
 
 Major changes from V2 to V3:
 
-| Aspect | V2 | V3 |
-|--------|----|----|
-| Embedding method | `doEmbed` | `embed`, `embedMany` |
-| Embedding generics | `EmbeddingModelV2<T>` | `EmbeddingModelV3` (no generics) |
-| Provider root | `LanguageModelV1` | `ProviderV3` with `specificationVersion` |
-| Tool specification | Inline only | Supports provider-defined tools |
-| Structured output | Via function calling | Native `object-json` mode |
+| Aspect             | V2                    | V3                                       |
+| ------------------ | --------------------- | ---------------------------------------- |
+| Embedding method   | `doEmbed`             | `embed`, `embedMany`                     |
+| Embedding generics | `EmbeddingModelV2<T>` | `EmbeddingModelV3` (no generics)         |
+| Provider root      | `LanguageModelV1`     | `ProviderV3` with `specificationVersion` |
+| Tool specification | Inline only           | Supports provider-defined tools          |
+| Structured output  | Via function calling  | Native `object-json` mode                |
 
 ### Deprecation Warnings
 
@@ -548,6 +553,7 @@ This enables provider APIs to track SDK usage and version distribution.
 ---
 
 **Key Takeaways:**
+
 - The V3 specification provides a unified interface layer separating the SDK core from provider implementations
 - `LanguageModelV3` with `doGenerate`/`doStream` is the most critical interface
 - All providers in `@ai-sdk/*` packages implement these standard interfaces

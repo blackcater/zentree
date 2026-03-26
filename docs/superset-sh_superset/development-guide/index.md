@@ -33,8 +33,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This guide covers setting up the Superset development environment, running development servers, building applications, and understanding the monorepo structure. For deployment and CI/CD workflows, see [Deployment Pipeline](#3.3). For desktop app release procedures, see [Build and Release System](#2.2) and [Auto-Update System](#2.3).
 
 ---
@@ -51,7 +49,7 @@ graph TB
         RootScripts["Scripts:<br/>dev, build, test<br/>lint, typecheck"]
         RootDeps["devDependencies:<br/>@biomejs/biome<br/>turbo<br/>dotenv-cli"]
     end
-    
+
     subgraph "apps/"
         Desktop["desktop/<br/>Electron + React<br/>@superset/desktop"]
         API["api/<br/>Next.js + tRPC<br/>@superset/api"]
@@ -62,7 +60,7 @@ graph TB
         Mobile["mobile/<br/>Expo<br/>@superset/mobile"]
         ElectricProxy["electric-proxy/<br/>Cloudflare Worker"]
     end
-    
+
     subgraph "packages/"
         LocalDB["local-db/<br/>SQLite schema"]
         DB["db/<br/>Neon PostgreSQL schema"]
@@ -76,11 +74,11 @@ graph TB
         DesktopMCP["desktop-mcp/<br/>MCP server"]
         MacOSMetrics["macos-process-metrics/<br/>Native addon"]
     end
-    
+
     subgraph "tooling/"
         TS["typescript/<br/>Shared tsconfig"]
     end
-    
+
     RootScripts --> Desktop
     RootScripts --> API
     Desktop --> LocalDB
@@ -108,15 +106,15 @@ Workspace packages are linked using the `workspace:*` protocol. The root [packag
 
 Desktop app workspace dependencies include:
 
-| Package | Purpose |
-|---------|---------|
-| `@superset/local-db` | SQLite schema and migrations |
-| `@superset/chat` | AI chat integration with Mastra |
-| `@superset/ui` | Shared React components |
-| `@superset/trpc` | Type-safe API client types |
-| `@superset/host-service` | Local HTTP/tRPC server per workspace |
+| Package                  | Purpose                                        |
+| ------------------------ | ---------------------------------------------- |
+| `@superset/local-db`     | SQLite schema and migrations                   |
+| `@superset/chat`         | AI chat integration with Mastra                |
+| `@superset/ui`           | Shared React components                        |
+| `@superset/trpc`         | Type-safe API client types                     |
+| `@superset/host-service` | Local HTTP/tRPC server per workspace           |
 | `@superset/workspace-fs` | File system utilities for workspace operations |
-| `@superset/desktop-mcp` | Model Context Protocol server |
+| `@superset/desktop-mcp`  | Model Context Protocol server                  |
 
 **Sources:** [apps/desktop/package.json:83-93](), [bun.lock:111-328]()
 
@@ -208,17 +206,17 @@ bun run generate:routes
 ```mermaid
 graph LR
     TurboRoot["turbo dev<br/>(root)"]
-    
+
     TurboRoot --> DesktopDev["apps/desktop<br/>electron-vite dev"]
     TurboRoot --> APIDev["apps/api<br/>next dev"]
     TurboRoot --> WebDev["apps/web<br/>next dev"]
     TurboRoot --> ProxyDev["electric-proxy<br/>wrangler dev"]
-    
+
     DesktopDev --> ViteMain["Vite: main process<br/>src/main/index.ts"]
     DesktopDev --> VitePreload["Vite: preload script<br/>src/preload/index.ts"]
     DesktopDev --> ViteRenderer["Vite: renderer<br/>src/renderer/index.tsx"]
     DesktopDev --> ElectronProc["Electron process<br/>watches & reloads"]
-    
+
     ViteMain --> HotReload["HMR + auto-restart"]
     ViteRenderer --> HotReload
 ```
@@ -230,6 +228,7 @@ bun run dev
 ```
 
 This executes [package.json:19]():
+
 ```bash
 turbo run dev dev:caddy --filter=@superset/api --filter=@superset/web --filter=@superset/desktop --filter=electric-proxy --filter=//
 ```
@@ -272,17 +271,17 @@ server: {
 ```mermaid
 graph TB
     SourceFiles["Source Files"]
-    
+
     SourceFiles --> MainSrc["src/main/index.ts<br/>terminal-host/index.ts<br/>pty-subprocess.ts<br/>git-task-worker.ts<br/>host-service/index.ts"]
     SourceFiles --> PreloadSrc["src/preload/index.ts"]
     SourceFiles --> RendererSrc["src/renderer/index.tsx<br/>routes/"]
-    
+
     MainSrc --> MainBundle["dist/main/index.js<br/>terminal-host.js<br/>pty-subprocess.js<br/>git-task-worker.js<br/>host-service.js"]
     PreloadSrc --> PreloadBundle["dist/preload/index.mjs"]
     RendererSrc --> RendererBundle["dist/renderer/index.html<br/>assets/*.js<br/>assets/*.css"]
-    
+
     Resources["src/resources/"] --> ResourcesCopy["dist/resources/<br/>sounds/<br/>tray/<br/>migrations/"]
-    
+
     MainBundle --> ElectronMain["Electron main process"]
     PreloadBundle --> ElectronPreload["Preload scripts"]
     RendererBundle --> ElectronRenderer["Chromium renderer"]
@@ -290,13 +289,13 @@ graph TB
 
 The [electron.vite.config.ts:99-118]() main process build configuration creates five entry points:
 
-| Entry | Source | Purpose |
-|-------|--------|---------|
-| `index` | `src/main/index.ts` | Main Electron process |
-| `terminal-host` | `src/main/terminal-host/index.ts` | Terminal daemon subprocess |
-| `pty-subprocess` | `src/main/terminal-host/pty-subprocess.ts` | PTY subprocess wrapper |
-| `git-task-worker` | `src/main/git-task-worker.ts` | Worker thread for Git operations |
-| `host-service` | `src/main/host-service/index.ts` | Local HTTP/tRPC server |
+| Entry             | Source                                     | Purpose                          |
+| ----------------- | ------------------------------------------ | -------------------------------- |
+| `index`           | `src/main/index.ts`                        | Main Electron process            |
+| `terminal-host`   | `src/main/terminal-host/index.ts`          | Terminal daemon subprocess       |
+| `pty-subprocess`  | `src/main/terminal-host/pty-subprocess.ts` | PTY subprocess wrapper           |
+| `git-task-worker` | `src/main/git-task-worker.ts`              | Worker thread for Git operations |
+| `host-service`    | `src/main/host-service/index.ts`           | Local HTTP/tRPC server           |
 
 **Sources:** [electron.vite.config.ts:99-118](), [vite/helpers.ts:26-51]()
 
@@ -310,11 +309,11 @@ TanStack Router enables automatic code splitting per route ([electron.vite.confi
 
 ```typescript
 tanstackRouter({
-  target: "react",
-  routesDirectory: resolve("src/renderer/routes"),
-  generatedRouteTree: resolve("src/renderer/routeTree.gen.ts"),
+  target: 'react',
+  routesDirectory: resolve('src/renderer/routes'),
+  generatedRouteTree: resolve('src/renderer/routeTree.gen.ts'),
   autoCodeSplitting: true,
-  routeFileIgnorePattern: "^(?!(__root|page|layout)\\.tsx$).*\\.(tsx?|jsx?)$",
+  routeFileIgnorePattern: '^(?!(__root|page|layout)\\.tsx$).*\\.(tsx?|jsx?)$',
 })
 ```
 
@@ -364,28 +363,32 @@ Renderer process has special import restrictions ([biome.jsonc:32-55]()):
 
 ```jsonc
 {
-  "overrides": [{
-    "includes": ["apps/desktop/src/renderer/**"],
-    "linter": {
-      "rules": {
-        "style": {
-          "noRestrictedImports": {
-            "level": "error",
-            "options": {
-              "paths": {
-                "@superset/workspace-fs/host": "Renderer code must stay browser-compatible...",
-                "@superset/workspace-fs/server": "Renderer code must stay browser-compatible..."
+  "overrides": [
+    {
+      "includes": ["apps/desktop/src/renderer/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "@superset/workspace-fs/host": "Renderer code must stay browser-compatible...",
+                  "@superset/workspace-fs/server": "Renderer code must stay browser-compatible...",
+                },
+                "patterns": [
+                  {
+                    "group": ["node:*"],
+                    "message": "Renderer code must not import Node builtins.",
+                  },
+                ],
               },
-              "patterns": [{
-                "group": ["node:*"],
-                "message": "Renderer code must not import Node builtins."
-              }]
-            }
-          }
-        }
-      }
-    }
-  }]
+            },
+          },
+        },
+      },
+    },
+  ],
 }
 ```
 
@@ -419,19 +422,19 @@ graph TB
     CopyNative["copy:native-modules<br/>Materialize symlinks"]
     ValidateNative["validate:native-runtime<br/>Verify .node files"]
     PackageApp["electron-builder<br/>Create DMG/AppImage"]
-    
+
     CleanDev --> GenIcons
     GenIcons --> CompileApp
     CompileApp --> CopyNative
     CopyNative --> ValidateNative
     ValidateNative --> PackageApp
-    
+
     CompileApp --> MainBundle["dist/main/*.js"]
     CompileApp --> RendererBundle["dist/renderer/*.{html,js,css}"]
     CompileApp --> ResourcesCopy["dist/resources/"]
-    
+
     CopyNative --> NodeModules["node_modules/<br/>Replace symlinks with files"]
-    
+
     PackageApp --> ASAR["app.asar<br/>(main + renderer)"]
     PackageApp --> AsarUnpacked["app.asar.unpacked/<br/>(native modules)"]
     PackageApp --> ExtraResources["resources/<br/>(migrations)"]
@@ -467,7 +470,7 @@ Electron cannot follow Bun 1.3+ symlinks in `node_modules/`. The [apps/desktop/s
 Modules requiring materialization ([apps/desktop/runtime-dependencies.ts]() - not shown in files but referenced):
 
 - `better-sqlite3` - SQLite native bindings
-- `node-pty` - PTY native bindings  
+- `node-pty` - PTY native bindings
 - `libsql` - Platform-specific SQLite implementation
 - `@ast-grep/napi` - AST parsing native module
 - `@parcel/watcher` - File system watcher native module
@@ -506,10 +509,10 @@ macOS-specific configuration ([electron-builder.ts:90-117]()):
 
 GitHub Actions workflow [.github/workflows/build-desktop.yml:32-156]() builds:
 
-| Platform | Architectures | Outputs |
-|----------|---------------|---------|
-| macOS | arm64, x64 | `.dmg`, `.zip`, `*-mac.yml` |
-| Linux | x64 | `.AppImage`, `*-linux.yml` |
+| Platform | Architectures | Outputs                     |
+| -------- | ------------- | --------------------------- |
+| macOS    | arm64, x64    | `.dmg`, `.zip`, `*-mac.yml` |
+| Linux    | x64           | `.AppImage`, `*-linux.yml`  |
 
 The workflow:
 
@@ -564,31 +567,31 @@ cd apps/desktop
 ```mermaid
 graph TB
     Start["Run create-release.sh"]
-    
+
     Start --> PromptVersion["Prompt for version<br/>(patch/minor/major/custom)"]
     PromptVersion --> CheckExisting["Check if tag exists"]
     CheckExisting --> |"Exists"| Cleanup["Delete tag + release"]
     CheckExisting --> |"New"| UpdatePkg
     Cleanup --> UpdatePkg
-    
+
     UpdatePkg["Update package.json version"] --> CommitVersion["git commit version change"]
     CommitVersion --> PushBranch["git push branch"]
     PushBranch --> CheckBranch{On main?}
-    
+
     CheckBranch --> |"No"| CreatePR["Create/update PR"]
     CheckBranch --> |"Yes"| CreateTag
     CreatePR --> CreateTag
-    
+
     CreateTag["git tag desktop-v1.2.3"] --> PushTag["git push tag"]
     PushTag --> TriggerWorkflow["Trigger build-desktop.yml"]
     TriggerWorkflow --> MonitorBuild["Monitor workflow progress"]
-    
+
     MonitorBuild --> WaitRelease["Wait for draft release"]
     WaitRelease --> CheckPublish{--publish flag?}
-    
+
     CheckPublish --> |"Yes"| PublishRelease["gh release edit --draft=false"]
     CheckPublish --> |"No"| DraftReady["Draft ready for review"]
-    
+
     PublishRelease --> CheckMerge{--merge flag?}
     CheckMerge --> |"Yes"| MergePR["gh pr merge --squash --delete-branch"]
     CheckMerge --> |"No"| Done
@@ -629,9 +632,9 @@ Auto-updater detects channel via semver prerelease component ([apps/desktop/src/
 
 ```typescript
 function isPrereleaseBuild(): boolean {
-  const version = app.getVersion();
-  const prereleaseComponents = prerelease(version);
-  return prereleaseComponents !== null && prereleaseComponents.length > 0;
+  const version = app.getVersion()
+  const prereleaseComponents = prerelease(version)
+  return prereleaseComponents !== null && prereleaseComponents.length > 0
 }
 ```
 
@@ -734,8 +737,8 @@ Press `Alt` + click on any UI element to jump to its source code in your editor.
 
 ```typescript
 codeInspectorPlugin({
-  bundler: "vite",
-  hotKeys: ["altKey"],
+  bundler: 'vite',
+  hotKeys: ['altKey'],
   hideConsole: true,
 })
 ```

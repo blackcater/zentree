@@ -19,8 +19,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 The middleware system provides a mechanism to intercept and modify AI model calls at runtime, enabling cross-cutting concerns such as logging, cost tracking, caching, and custom transformations. This document covers the three core middleware wrappers (`wrapLanguageModel`, `wrapImageModel`, `wrapEmbeddingModel`) and their application patterns.
@@ -44,14 +42,14 @@ flowchart TB
     MWN["Middleware Layer N<br/>e.g., Caching"]
     Provider["Provider Implementation<br/>LanguageModelV3.doGenerate"]
     API["AI Model API"]
-    
+
     App --> Wrap
     Wrap --> MW1
     MW1 --> MW2
     MW2 --> MWN
     MWN --> Provider
     Provider --> API
-    
+
     API -.response.-> Provider
     Provider -.response.-> MWN
     MWN -.response.-> MW2
@@ -76,21 +74,23 @@ The `wrapLanguageModel` function intercepts language model calls made through `g
 
 #### Parameters
 
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `model` | `LanguageModelV3` | Yes | The original model to wrap |
-| `middleware` | `LanguageModelV3Middleware \| LanguageModelV3Middleware[]` | Yes | One or more middleware to apply |
-| `modelId` | `string` | No | Custom model ID to override the original model's ID |
-| `providerId` | `string` | No | Custom provider ID to override the original model's provider |
+| Parameter    | Type                                                       | Required | Description                                                  |
+| ------------ | ---------------------------------------------------------- | -------- | ------------------------------------------------------------ |
+| `model`      | `LanguageModelV3`                                          | Yes      | The original model to wrap                                   |
+| `middleware` | `LanguageModelV3Middleware \| LanguageModelV3Middleware[]` | Yes      | One or more middleware to apply                              |
+| `modelId`    | `string`                                                   | No       | Custom model ID to override the original model's ID          |
+| `providerId` | `string`                                                   | No       | Custom provider ID to override the original model's provider |
 
 #### LanguageModelV3Middleware Interface
 
 `LanguageModelV3Middleware` allows interception of:
+
 - `wrapGenerate`: Intercepts `doGenerate` calls (non-streaming)
 - `wrapStream`: Intercepts `doStream` calls (streaming)
 - `transformParams`: Transforms call parameters before forwarding to next layer
 
 Each method receives the wrapped model and call parameters, enabling:
+
 - Pre-processing of inputs (prompts, tools, settings)
 - Post-processing of outputs (text, tool calls, usage)
 - Error handling and transformation
@@ -104,14 +104,15 @@ The `wrapImageModel` function intercepts image generation model calls. Added in 
 
 #### Parameters
 
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `model` | `ImageModelV3` | Yes | The original image model to wrap |
-| `middleware` | `ImageModelV3Middleware \| ImageModelV3Middleware[]` | Yes | One or more middleware to apply |
+| Parameter    | Type                                                 | Required | Description                      |
+| ------------ | ---------------------------------------------------- | -------- | -------------------------------- |
+| `model`      | `ImageModelV3`                                       | Yes      | The original image model to wrap |
+| `middleware` | `ImageModelV3Middleware \| ImageModelV3Middleware[]` | Yes      | One or more middleware to apply  |
 
 #### ImageModelV3Middleware Interface
 
 `ImageModelV3Middleware` intercepts:
+
 - `wrapGenerate`: Image generation calls (`doGenerate`)
 - `transformParams`: Transforms generation parameters (prompt, size, aspect ratio, etc.)
 
@@ -123,14 +124,15 @@ The `wrapEmbeddingModel` function intercepts embedding model calls. Added in `ai
 
 #### Parameters
 
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `model` | `EmbeddingModelV3` | Yes | The original embedding model to wrap |
-| `middleware` | `EmbeddingModelV3Middleware \| EmbeddingModelV3Middleware[]` | Yes | One or more middleware to apply |
+| Parameter    | Type                                                         | Required | Description                          |
+| ------------ | ------------------------------------------------------------ | -------- | ------------------------------------ |
+| `model`      | `EmbeddingModelV3`                                           | Yes      | The original embedding model to wrap |
+| `middleware` | `EmbeddingModelV3Middleware \| EmbeddingModelV3Middleware[]` | Yes      | One or more middleware to apply      |
 
 #### EmbeddingModelV3Middleware Interface
 
 `EmbeddingModelV3Middleware` intercepts:
+
 - `wrapEmbed`: Single embedding calls
 - `wrapEmbedMany`: Batch embedding calls
 
@@ -149,7 +151,7 @@ sequenceDiagram
     participant App
     participant LogMW as "Logging Middleware"
     participant Model as "Language Model"
-    
+
     App->>LogMW: generateText(prompt)
     LogMW->>LogMW: Log request<br/>(model, prompt, settings)
     LogMW->>Model: doGenerate()
@@ -169,6 +171,7 @@ The logging middleware records both the request parameters and response data, pr
 Cost tracking middleware calculates and accumulates token usage costs across model calls.
 
 **Typical Implementation:**
+
 - Intercept `doGenerate` and `doStream` calls
 - Extract token usage from results
 - Calculate cost based on model pricing
@@ -190,7 +193,7 @@ flowchart LR
     Model["Call Model API"]
     Store["Store in Cache"]
     Response["Return Response"]
-    
+
     Request --> Cache
     Cache -->|Found| Hit
     Cache -->|Not Found| Miss
@@ -211,6 +214,7 @@ The caching middleware checks for previously stored responses before calling the
 The tool input examples middleware automatically enriches tool definitions with example inputs to improve model understanding.
 
 **Functionality:**
+
 - Intercepts tool definitions before sending to model
 - Adds `inputExamples` field based on schema
 - Helps models generate more accurate tool calls
@@ -223,6 +227,7 @@ The tool input examples middleware automatically enriches tool definitions with 
 The JSON extraction middleware processes model outputs to extract structured JSON data.
 
 **Functionality:**
+
 - Parses text responses for JSON content
 - Validates against expected schemas
 - Handles partial or malformed JSON
@@ -246,13 +251,13 @@ flowchart TB
     MW2["Middleware[1]<br/>Cost Tracking"]
     MW3["Middleware[2]<br/>Caching"]
     Model["Base Model"]
-    
+
     App --> W
     W --> MW1
     MW1 --> MW2
     MW2 --> MW3
     MW3 --> Model
-    
+
     Model -.response.-> MW3
     MW3 -.response.-> MW2
     MW2 -.response.-> MW1
@@ -265,6 +270,7 @@ flowchart TB
 Middleware composition allows layering of concerns, with each middleware focusing on a specific aspect of model interaction.
 
 **Important Behavior:**
+
 - Request flow: `[0] → [1] → [2] → model`
 - Response flow: `model → [2] → [1] → [0]`
 - Each middleware can short-circuit the chain by not calling the next layer
@@ -295,6 +301,7 @@ A typical middleware function follows this pattern:
 ### Middleware with State
 
 Middleware can maintain state across calls, useful for:
+
 - Accumulating costs or usage statistics
 - Building request/response histories
 - Implementing rate limiting
@@ -303,6 +310,7 @@ Middleware can maintain state across calls, useful for:
 ### Middleware with Context
 
 Middleware can access and modify experimental context during execution:
+
 - Read context values set by application
 - Set context values for downstream middleware
 - Pass contextual information to callbacks
@@ -312,6 +320,7 @@ Middleware can access and modify experimental context during execution:
 ### Error Handling in Middleware
 
 Middleware can catch and transform errors from underlying models:
+
 - Retry transient failures
 - Convert error formats
 - Add context to error messages
@@ -320,6 +329,7 @@ Middleware can catch and transform errors from underlying models:
 ### Bypassing the Underlying Model
 
 Middleware can bypass the wrapped model entirely by:
+
 - Returning cached results
 - Implementing mock responses for testing
 - Enforcing usage quotas before model calls
@@ -332,6 +342,7 @@ Middleware can bypass the wrapped model entirely by:
 ### Provider V3 Compatibility
 
 Middleware operates on the Provider V3 specification interfaces:
+
 - `LanguageModelV3` with `doGenerate` and `doStream` methods
 - `ImageModelV3` with `doGenerate` method
 - `EmbeddingModelV3` with `embed` and `embedMany` methods
@@ -348,35 +359,35 @@ flowchart TB
         GI["generateImage()"]
         EM["embed()"]
     end
-    
+
     subgraph "Middleware Layer"
         WLM["wrapLanguageModel"]
         WIM["wrapImageModel"]
         WEM["wrapEmbeddingModel"]
     end
-    
+
     subgraph "Provider Layer"
         LMV3["LanguageModelV3"]
         IMV3["ImageModelV3"]
         EMV3["EmbeddingModelV3"]
     end
-    
+
     subgraph "AI Provider APIs"
         OpenAI["OpenAI API"]
         Anthropic["Anthropic API"]
         Google["Google API"]
     end
-    
+
     GT --> WLM
     ST --> WLM
     WLM --> LMV3
-    
+
     GI --> WIM
     WIM --> IMV3
-    
+
     EM --> WEM
     WEM --> EMV3
-    
+
     LMV3 --> OpenAI
     LMV3 --> Anthropic
     IMV3 --> OpenAI
@@ -396,6 +407,7 @@ Middleware wraps provider models before they are used by the high-level APIs, en
 The middleware system supports both V3 and V2 provider specifications through adapter layers. When wrapping V2 models, the system automatically provides V3-compatible interfaces.
 
 **Backward Compatibility:**
+
 - V2 models can be wrapped with V3 middleware
 - Adapters handle interface translation
 - Warnings issued when using V2 models with V6 SDK
@@ -409,6 +421,7 @@ The middleware system supports both V3 and V2 provider specifications through ad
 ### UI Framework Integration
 
 Middleware applied at the model level affects all calls made through UI framework hooks:
+
 - `useChat` (React) - see [@ai-sdk/react](#4.2)
 - Vue composables - see [@ai-sdk/vue](#4.3)
 - Svelte stores - see [@ai-sdk/svelte](#4.3)
@@ -418,6 +431,7 @@ Middleware applied at the model level affects all calls made through UI framewor
 ### React Server Components
 
 Middleware can be applied in RSC contexts for server-side model wrapping:
+
 - Affects `streamUI` and `createStreamableUI` calls
 - Enables server-side logging and cost tracking
 - Supports in-process model execution patterns
@@ -433,11 +447,13 @@ For RSC-specific patterns, see [React Server Components (@ai-sdk/rsc)](#4.5).
 ### Middleware Overhead
 
 Each middleware layer adds computational overhead:
+
 - Function call overhead for each layer
 - Memory allocation for context passing
 - Serialization costs for logging/caching
 
 **Best Practices:**
+
 - Minimize middleware layers in performance-critical paths
 - Use conditional logic within middleware to skip unnecessary work
 - Consider async operations impact on streaming performance
@@ -445,6 +461,7 @@ Each middleware layer adds computational overhead:
 ### Streaming Implications
 
 Middleware affects streaming behavior differently than synchronous calls:
+
 - `doStream` middleware can transform streaming chunks
 - Buffering in middleware may reduce streaming benefits
 - Middleware should preserve streaming semantics when possible
@@ -458,6 +475,7 @@ Middleware affects streaming behavior differently than synchronous calls:
 ### Mock Middleware
 
 Middleware enables powerful testing patterns:
+
 - Bypass actual model calls with mock responses
 - Inject controlled responses for specific test cases
 - Simulate errors and edge cases
@@ -466,6 +484,7 @@ Middleware enables powerful testing patterns:
 ### Test Utilities
 
 The SDK provides test utilities compatible with middleware:
+
 - Mock model implementations
 - Test server infrastructure
 - Assertion helpers for middleware behavior

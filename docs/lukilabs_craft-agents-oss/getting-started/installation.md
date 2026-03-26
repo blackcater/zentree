@@ -9,21 +9,19 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers how to install Craft Agents on your machine, the first-launch experience, system requirements, and how to enable debug logging. For configuring the `~/.craft-agent/` directory and its files after installation, see [Environment Configuration](#3.2). For completing the provider authentication wizard that appears on first launch, see [Authentication Setup](#3.3).
 
 ---
 
 ## System Requirements
 
-| Requirement | Details |
-|---|---|
-| **OS** | macOS, Windows, Linux |
-| **Architecture** | arm64 / x64 (macOS), x64 (Windows, Linux) |
-| **Runtime (install)** | None — pre-built binary |
-| **Runtime (source build)** | [Bun](https://bun.sh/) |
-| **Disk** | ~500 MB for app + `~/.craft-agent/` data directory |
+| Requirement                | Details                                            |
+| -------------------------- | -------------------------------------------------- |
+| **OS**                     | macOS, Windows, Linux                              |
+| **Architecture**           | arm64 / x64 (macOS), x64 (Windows, Linux)          |
+| **Runtime (install)**      | None — pre-built binary                            |
+| **Runtime (source build)** | [Bun](https://bun.sh/)                             |
+| **Disk**                   | ~500 MB for app + `~/.craft-agent/` data directory |
 
 ---
 
@@ -140,13 +138,13 @@ See [Authentication Setup](#3.3) for full details on each provider flow.
 
 ## LLM Provider Options at First Launch
 
-| Provider | Auth Method | Notes |
-|---|---|---|
-| **Anthropic** | API key or Claude Max/Pro OAuth | Default; uses Claude Agent SDK |
-| **Google AI Studio** | API key | Gemini models with Google Search grounding |
-| **ChatGPT Plus / Pro** | Codex OAuth | Requires active ChatGPT subscription |
-| **GitHub Copilot** | OAuth device code | Requires active Copilot subscription |
-| **OpenRouter / Ollama / Custom** | API key + custom endpoint | Via the Anthropic API key connection path |
+| Provider                         | Auth Method                     | Notes                                      |
+| -------------------------------- | ------------------------------- | ------------------------------------------ |
+| **Anthropic**                    | API key or Claude Max/Pro OAuth | Default; uses Claude Agent SDK             |
+| **Google AI Studio**             | API key                         | Gemini models with Google Search grounding |
+| **ChatGPT Plus / Pro**           | Codex OAuth                     | Requires active ChatGPT subscription       |
+| **GitHub Copilot**               | OAuth device code               | Requires active Copilot subscription       |
+| **OpenRouter / Ollama / Custom** | API key + custom endpoint       | Via the Anthropic API key connection path  |
 
 Sources: [README.md:261-291]()
 
@@ -158,11 +156,11 @@ Debug logs can be enabled by launching the packaged application with the `-- --d
 
 **Platform launch commands:**
 
-| Platform | Command |
-|---|---|
-| **macOS** | `/Applications/Craft\ Agents.app/Contents/MacOS/Craft\ Agents -- --debug` |
+| Platform    | Command                                                                           |
+| ----------- | --------------------------------------------------------------------------------- |
+| **macOS**   | `/Applications/Craft\ Agents.app/Contents/MacOS/Craft\ Agents -- --debug`         |
 | **Windows** | `& "$env:LOCALAPPDATA\Programs\@craft-agentelectron\Craft Agents.exe" -- --debug` |
-| **Linux** | `./craft-agents -- --debug` |
+| **Linux**   | `./craft-agents -- --debug`                                                       |
 
 **Log file locations:**
 

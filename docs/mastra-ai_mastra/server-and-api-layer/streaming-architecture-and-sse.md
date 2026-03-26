@@ -24,14 +24,14 @@ The following files were used as context for generating this wiki page:
 - [packages/cli/src/commands/dev/dev.ts](packages/cli/src/commands/dev/dev.ts)
 - [packages/cli/src/commands/studio/studio.test.ts](packages/cli/src/commands/studio/studio.test.ts)
 - [packages/cli/src/commands/studio/studio.ts](packages/cli/src/commands/studio/studio.ts)
-- [packages/core/src/agent/__tests__/dynamic-model-fallback.test.ts](packages/core/src/agent/__tests__/dynamic-model-fallback.test.ts)
+- [packages/core/src/agent/**tests**/dynamic-model-fallback.test.ts](packages/core/src/agent/__tests__/dynamic-model-fallback.test.ts)
 - [packages/core/src/bundler/index.ts](packages/core/src/bundler/index.ts)
 - [packages/core/src/memory/mock.ts](packages/core/src/memory/mock.ts)
 - [packages/core/src/storage/mock.test.ts](packages/core/src/storage/mock.test.ts)
 - [packages/core/src/stream/aisdk/v5/transform.test.ts](packages/core/src/stream/aisdk/v5/transform.test.ts)
 - [packages/core/src/stream/aisdk/v5/transform.ts](packages/core/src/stream/aisdk/v5/transform.ts)
 - [packages/deployer/src/build/analyze.ts](packages/deployer/src/build/analyze.ts)
-- [packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap](packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap)
+- [packages/deployer/src/build/analyze/**snapshots**/analyzeEntry.test.ts.snap](packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap)
 - [packages/deployer/src/build/analyze/analyzeEntry.test.ts](packages/deployer/src/build/analyze/analyzeEntry.test.ts)
 - [packages/deployer/src/build/analyze/analyzeEntry.ts](packages/deployer/src/build/analyze/analyzeEntry.ts)
 - [packages/deployer/src/build/analyze/bundleExternals.test.ts](packages/deployer/src/build/analyze/bundleExternals.test.ts)
@@ -42,7 +42,7 @@ The following files were used as context for generating this wiki page:
 - [packages/deployer/src/build/watcher.test.ts](packages/deployer/src/build/watcher.test.ts)
 - [packages/deployer/src/build/watcher.ts](packages/deployer/src/build/watcher.ts)
 - [packages/deployer/src/bundler/index.ts](packages/deployer/src/bundler/index.ts)
-- [packages/deployer/src/server/__tests__/option-studio-base.test.ts](packages/deployer/src/server/__tests__/option-studio-base.test.ts)
+- [packages/deployer/src/server/**tests**/option-studio-base.test.ts](packages/deployer/src/server/__tests__/option-studio-base.test.ts)
 - [packages/deployer/src/server/index.ts](packages/deployer/src/server/index.ts)
 - [packages/playground/e2e/tests/auth/infrastructure.spec.ts](packages/playground/e2e/tests/auth/infrastructure.spec.ts)
 - [packages/playground/e2e/tests/auth/viewer-role.spec.ts](packages/playground/e2e/tests/auth/viewer-role.spec.ts)
@@ -61,8 +61,6 @@ The following files were used as context for generating this wiki page:
 - [packages/server/src/server/schemas/memory.ts](packages/server/src/server/schemas/memory.ts)
 
 </details>
-
-
 
 ## Purpose and Scope
 
@@ -86,7 +84,7 @@ graph LR
     Separator["\\
 \\
  separator"]
-    
+
     SSEMessage --> DataPrefix
     DataPrefix --> JSONPayload
     JSONPayload --> Separator
@@ -94,14 +92,15 @@ graph LR
 
 **SSE Message Structure:**
 
-| Component | Format | Example |
-|-----------|--------|---------|
-| Prefix | `data: ` | Required SSE field marker |
-| Payload | JSON string | `{"type":"text-delta","payload":{...}}` |
-| Separator | `\
+| Component | Format      | Example                                 |
+| --------- | ----------- | --------------------------------------- |
+| Prefix    | `data: `    | Required SSE field marker               |
+| Payload   | JSON string | `{"type":"text-delta","payload":{...}}` |
+| Separator | `\          |
+
 \
-` | Double newline marks message boundary |
-| Terminator | `data: [DONE]\
+`| Double newline marks message boundary |
+| Terminator |`data: [DONE]\
 \
 ` | Signals stream completion |
 
@@ -126,7 +125,7 @@ graph TD
     JSONParse["JSON.parse()"]
     OnChunk["onChunk callback"]
     DoneCheck["Check [DONE]"]
-    
+
     ReadableStream --> Reader
     Reader --> Decoder
     Decoder --> Buffer
@@ -153,31 +152,34 @@ The `processMastraStream` function implements the SSE parser with three key feat
 ```typescript
 // Simplified parser logic
 async function processMastraStream({ stream, onChunk }) {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  
+  const reader = stream.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
   while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\
+    const { done, value } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+    const lines =
+      buffer.split(
+        '\
 \
-');
-    buffer = lines.pop() || ''; // Keep incomplete line
-    
+'
+      )
+    buffer = lines.pop() || '' // Keep incomplete line
+
     for (const line of lines) {
       if (line.startsWith('data: ')) {
-        const data = line.slice(6);
-        if (data === '[DONE]') return;
-        
+        const data = line.slice(6)
+        if (data === '[DONE]') return
+
         try {
-          const json = JSON.parse(data);
-          await onChunk(json);
+          const json = JSON.parse(data)
+          await onChunk(json)
         } catch (error) {
-          console.error('JSON parse error:', error);
-          continue; // Continue processing other messages
+          console.error('JSON parse error:', error)
+          continue // Continue processing other messages
         }
       }
     }
@@ -204,7 +206,7 @@ graph TB
     TransformStream["TransformStream<br/>(optional caching)"]
     ServerCache["serverCache.listPush()"]
     SSEResponse["SSE Response<br/>text/event-stream"]
-    
+
     ClientRequest --> RouteHandler
     RouteHandler --> AgentResolve
     AgentResolve --> AgentStream
@@ -226,13 +228,13 @@ export const STREAM_GENERATE_ROUTE = createRoute({
   path: '/agents/:agentId/stream',
   responseType: 'stream',
   handler: async ({ mastra, agentId, ...params }) => {
-    const agent = mastra.getAgentById(agentId);
-    const result = agent.stream(params);
-    
+    const agent = mastra.getAgentById(agentId)
+    const result = agent.stream(params)
+
     // Return the stream directly
-    return result.fullStream;
-  }
-});
+    return result.fullStream
+  },
+})
 ```
 
 **Workflow Streaming with Caching:**
@@ -242,23 +244,23 @@ Workflow streams can be cached in memory for later retrieval via the observe end
 ```typescript
 // Workflow stream endpoint
 handler: async ({ mastra, workflowId, runId, ...params }) => {
-  const { workflow } = await listWorkflowsFromSystem({ mastra, workflowId });
-  const serverCache = mastra.getServerCache();
-  
-  const run = await workflow.createRun({ runId });
-  const result = run.stream(params);
-  
+  const { workflow } = await listWorkflowsFromSystem({ mastra, workflowId })
+  const serverCache = mastra.getServerCache()
+
+  const run = await workflow.createRun({ runId })
+  const result = run.stream(params)
+
   // Cache chunks as they flow through
   return result.fullStream.pipeThrough(
     new TransformStream<ChunkType, ChunkType>({
       transform(chunk, controller) {
         if (serverCache) {
-          serverCache.listPush(runId, chunk).catch(() => {});
+          serverCache.listPush(runId, chunk).catch(() => {})
         }
-        controller.enqueue(chunk);
-      }
+        controller.enqueue(chunk)
+      },
     })
-  );
+  )
 }
 ```
 
@@ -273,11 +275,11 @@ Mastra streams different types of chunks depending on the source (agent, workflo
 ```mermaid
 graph TD
     ChunkType["ChunkType<br/>(Union Type)"]
-    
+
     AgentChunk["AgentChunkType<br/>from: AGENT"]
     WorkflowChunk["WorkflowStreamEvent<br/>from: WORKFLOW"]
     NetworkChunk["NetworkChunkType<br/>from: NETWORK"]
-    
+
     TextDelta["text-delta<br/>Incremental text"]
     ToolCall["tool-call<br/>Tool invocation"]
     ToolResult["tool-result<br/>Tool output"]
@@ -287,11 +289,11 @@ graph TD
     ReasoningDelta["reasoning-delta<br/>Reasoning text"]
     File["file<br/>Generated file"]
     Source["source<br/>Retrieved source"]
-    
+
     ChunkType --> AgentChunk
     ChunkType --> WorkflowChunk
     ChunkType --> NetworkChunk
-    
+
     AgentChunk --> TextDelta
     AgentChunk --> ToolCall
     AgentChunk --> ToolResult
@@ -301,7 +303,7 @@ graph TD
     AgentChunk --> ReasoningDelta
     AgentChunk --> File
     AgentChunk --> Source
-    
+
     WorkflowChunk --> StepStart
     WorkflowChunk --> StepFinish
     WorkflowChunk --> Finish
@@ -311,12 +313,12 @@ graph TD
 
 All chunks include these base fields:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | string | Discriminator for chunk type |
-| `runId` | string | Execution run identifier |
-| `from` | ChunkFrom | Source: `AGENT`, `WORKFLOW`, or `NETWORK` |
-| `payload` | object | Type-specific data |
+| Field     | Type      | Description                               |
+| --------- | --------- | ----------------------------------------- |
+| `type`    | string    | Discriminator for chunk type              |
+| `runId`   | string    | Execution run identifier                  |
+| `from`    | ChunkFrom | Source: `AGENT`, `WORKFLOW`, or `NETWORK` |
+| `payload` | object    | Type-specific data                        |
 
 **Example Chunks:**
 
@@ -368,20 +370,20 @@ sequenceDiagram
     participant Agent as Agent.stream()
     participant LLM as LLM Execution
     participant ClientTool as Client-side Tool
-    
+
     Client->>API: stream({ messages, clientTools })
     API->>Agent: agent.stream(params)
     Agent->>LLM: Execute with model
-    
+
     loop Text Generation
         LLM-->>API: text-delta chunks
         API-->>Client: SSE: text-delta
         Client->>Client: Update UI
     end
-    
+
     LLM-->>API: tool-call chunk
     API-->>Client: SSE: tool-call
-    
+
     alt Client Tool Exists
         Client->>ClientTool: execute(args)
         ClientTool-->>Client: result
@@ -395,7 +397,7 @@ sequenceDiagram
         LLM-->>API: tool-result chunk
         API-->>Client: SSE: tool-result
     end
-    
+
     LLM-->>API: finish chunk
     API-->>Client: SSE: finish (reason: stop)
     API-->>Client: SSE: [DONE]
@@ -415,39 +417,41 @@ When the server streams a `tool-call` chunk with `finishReason: 'tool-calls'`, t
 // Simplified client-side tool execution logic
 async function executeToolCallAndRespond({ response, params, respondFn }) {
   if (response.finishReason === 'tool-calls') {
-    const toolCalls = response.toolCalls;
-    
+    const toolCalls = response.toolCalls
+
     for (const toolCall of toolCalls) {
-      const clientTool = params.clientTools?.[toolCall.payload.toolName];
-      
+      const clientTool = params.clientTools?.[toolCall.payload.toolName]
+
       if (clientTool && clientTool.execute) {
         // Execute client-side tool
         const result = await clientTool.execute(toolCall.payload.args, {
           requestContext,
-          agent: { messages, toolCallId, suspend, threadId, resourceId }
-        });
-        
+          agent: { messages, toolCallId, suspend, threadId, resourceId },
+        })
+
         // Build updated messages with tool result
         const updatedMessages = [
           ...response.messages,
           {
             role: 'tool',
-            content: [{
-              type: 'tool-result',
-              toolCallId: toolCall.payload.toolCallId,
-              toolName: toolCall.payload.toolName,
-              result
-            }]
-          }
-        ];
-        
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: toolCall.payload.toolCallId,
+                toolName: toolCall.payload.toolName,
+                result,
+              },
+            ],
+          },
+        ]
+
         // Recursive call to continue streaming
-        return respondFn(updatedMessages, params);
+        return respondFn(updatedMessages, params)
       }
     }
   }
-  
-  return response;
+
+  return response
 }
 ```
 
@@ -466,28 +470,28 @@ graph TB
         ResumeStream["Resume Stream<br/>POST /workflows/:id/resume-stream"]
         ObserveStream["Observe Stream<br/>GET /workflows/:id/observe"]
     end
-    
+
     subgraph "Run Lifecycle"
         CreateRun["workflow.createRun()"]
         RunStream["run.stream()"]
         RunResumeStream["run.resumeStream()"]
     end
-    
+
     subgraph "Caching Layer"
         TransformCache["TransformStream<br/>Cache Interceptor"]
         ServerCache["serverCache.listPush()"]
         CacheRetrieval["serverCache.listStream()"]
     end
-    
+
     InitialStream --> CreateRun
     CreateRun --> RunStream
     RunStream --> TransformCache
     TransformCache --> ServerCache
-    
+
     ResumeStream --> CreateRun
     CreateRun --> RunResumeStream
     RunResumeStream --> TransformCache
-    
+
     ObserveStream --> CacheRetrieval
     CacheRetrieval --> |"Cached chunks"| SSEResponse["SSE Response"]
     TransformCache --> SSEResponse
@@ -501,25 +505,25 @@ export const STREAM_WORKFLOW_ROUTE = createRoute({
   path: '/workflows/:workflowId/stream',
   responseType: 'stream',
   handler: async ({ mastra, workflowId, runId, ...params }) => {
-    const { workflow } = await listWorkflowsFromSystem({ mastra, workflowId });
-    const serverCache = mastra.getServerCache();
-    
-    const run = await workflow.createRun({ runId });
-    const result = run.stream(params);
-    
+    const { workflow } = await listWorkflowsFromSystem({ mastra, workflowId })
+    const serverCache = mastra.getServerCache()
+
+    const run = await workflow.createRun({ runId })
+    const result = run.stream(params)
+
     // Cache chunks for later observation
     return result.fullStream.pipeThrough(
       new TransformStream<ChunkType, ChunkType>({
         transform(chunk, controller) {
           if (serverCache) {
-            serverCache.listPush(runId, chunk).catch(() => {});
+            serverCache.listPush(runId, chunk).catch(() => {})
           }
-          controller.enqueue(chunk);
-        }
+          controller.enqueue(chunk)
+        },
       })
-    );
-  }
-});
+    )
+  },
+})
 ```
 
 **Resume Stream (Suspended Workflows):**
@@ -532,25 +536,25 @@ export const RESUME_STREAM_WORKFLOW_ROUTE = createRoute({
   path: '/workflows/:workflowId/resume-stream',
   responseType: 'stream',
   handler: async ({ mastra, workflowId, runId, ...params }) => {
-    const { workflow } = await listWorkflowsFromSystem({ mastra, workflowId });
-    const run = await workflow.getWorkflowRunById(runId);
-    
+    const { workflow } = await listWorkflowsFromSystem({ mastra, workflowId })
+    const run = await workflow.getWorkflowRunById(runId)
+
     if (!run) {
-      throw new HTTPException(404, { message: 'Workflow run not found' });
+      throw new HTTPException(404, { message: 'Workflow run not found' })
     }
-    
-    const _run = await workflow.createRun({ runId });
+
+    const _run = await workflow.createRun({ runId })
     return _run.resumeStream(params).fullStream.pipeThrough(
       new TransformStream<ChunkType, ChunkType>({
         transform(chunk, controller) {
           // Cache for observation
-          serverCache?.listPush(runId, chunk).catch(() => {});
-          controller.enqueue(chunk);
-        }
+          serverCache?.listPush(runId, chunk).catch(() => {})
+          controller.enqueue(chunk)
+        },
       })
-    );
-  }
-});
+    )
+  },
+})
 ```
 
 **Observe Stream (Replay Cached Events):**
@@ -563,15 +567,15 @@ export const OBSERVE_STREAM_WORKFLOW_ROUTE = createRoute({
   path: '/workflows/:workflowId/observe',
   responseType: 'stream',
   handler: async ({ mastra, runId }) => {
-    const serverCache = mastra.getServerCache();
+    const serverCache = mastra.getServerCache()
     if (!serverCache) {
-      throw new HTTPException(503, { message: 'Server cache not available' });
+      throw new HTTPException(503, { message: 'Server cache not available' })
     }
-    
+
     // Retrieve cached chunks and stream them
-    return serverCache.listStream(runId);
-  }
-});
+    return serverCache.listStream(runId)
+  },
+})
 ```
 
 **Record Streams for Batch Processing:**
@@ -583,7 +587,7 @@ Workflows can also stream records (e.g., for batch operations) using a custom re
 static createRecordStream(records: Iterable<any> | AsyncIterable<any>): ReadableStream {
   const RECORD_SEPARATOR = '\x1E';
   const encoder = new TextEncoder();
-  
+
   return new ReadableStream({
     async start(controller) {
       try {
@@ -614,11 +618,11 @@ sequenceDiagram
     participant SSEEndpoint as GET /studio/refresh-events
     participant Server as Dev Server
     participant Watcher as File Watcher
-    
+
     Browser->>SSEEndpoint: EventSource connection
     SSEEndpoint->>Browser: SSE stream established
     Note over SSEEndpoint,Browser: Connection stays open
-    
+
     Watcher->>Server: File changed detected
     Server->>Server: Rebuild/hot reload
     Server->>SSEEndpoint: POST /__refresh
@@ -630,18 +634,18 @@ sequenceDiagram
 
 ```typescript
 // SSE endpoint for refresh notifications
-app.get(`${studioBasePath}/refresh-events`, handleClientsRefresh);
+app.get(`${studioBasePath}/refresh-events`, handleClientsRefresh)
 
 // Trigger refresh for all clients
-app.post(`${studioBasePath}/__refresh`, handleTriggerClientsRefresh);
+app.post(`${studioBasePath}/__refresh`, handleTriggerClientsRefresh)
 
 // Check if hot reload is enabled
 app.get(`${studioBasePath}/__hot-reload-status`, (c: Context) => {
   return c.json({
     disabled: isHotReloadDisabled(),
-    timestamp: new Date().toISOString()
-  });
-});
+    timestamp: new Date().toISOString(),
+  })
+})
 ```
 
 **Client Registry Pattern:**
@@ -650,43 +654,45 @@ The server maintains a registry of connected SSE clients using a `Set` stored in
 
 ```typescript
 type Variables = HonoVariables & {
-  clients: Set<{ controller: ReadableStreamDefaultController }>;
-};
+  clients: Set<{ controller: ReadableStreamDefaultController }>
+}
 
 // Register new client on connection
 export const handleClientsRefresh = (c: Context<{ Variables: Variables }>) => {
   const stream = new ReadableStream({
     start(controller) {
-      const clients = c.get('clients') || new Set();
-      clients.add({ controller });
-      c.set('clients', clients);
-    }
-  });
-  
+      const clients = c.get('clients') || new Set()
+      clients.add({ controller })
+      c.set('clients', clients)
+    },
+  })
+
   return c.newResponse(stream, {
-    headers: { 'Content-Type': 'text/event-stream' }
-  });
-};
+    headers: { 'Content-Type': 'text/event-stream' },
+  })
+}
 
 // Trigger refresh for all connected clients
-export const handleTriggerClientsRefresh = (c: Context<{ Variables: Variables }>) => {
-  const clients = c.get('clients') || new Set();
-  const encoder = new TextEncoder();
-  
+export const handleTriggerClientsRefresh = (
+  c: Context<{ Variables: Variables }>
+) => {
+  const clients = c.get('clients') || new Set()
+  const encoder = new TextEncoder()
+
   for (const client of clients) {
     try {
       client.controller.enqueue(
         encoder.encode(`data: ${JSON.stringify({ type: 'refresh' })}\
 \
 `)
-      );
+      )
     } catch (error) {
-      clients.delete(client); // Remove disconnected clients
+      clients.delete(client) // Remove disconnected clients
     }
   }
-  
-  return c.json({ message: 'Refresh triggered' });
-};
+
+  return c.json({ message: 'Refresh triggered' })
+}
 ```
 
 **Hot Reload Disable Flag:**
@@ -695,8 +701,8 @@ Hot reload can be disabled via environment variable for production-like testing:
 
 ```typescript
 export const isHotReloadDisabled = () => {
-  return process.env.MASTRA_DISABLE_HOT_RELOAD === 'true';
-};
+  return process.env.MASTRA_DISABLE_HOT_RELOAD === 'true'
+}
 ```
 
 **Sources:** [packages/deployer/src/server/index.ts:285-315](), [packages/deployer/src/server/handlers/client.ts:1-100]()
@@ -717,13 +723,13 @@ graph TD
     OnToolCall["onToolCall callback"]
     OnFinish["onFinish callback"]
     UIMessage["UIMessage updates"]
-    
+
     FetchResponse --> ResponseWrapper
     ResponseWrapper --> ProcessDataStream
     ResponseWrapper --> ProcessChatResponse
-    
+
     ProcessDataStream --> OnChunk
-    
+
     ProcessChatResponse --> OnChunk
     ProcessChatResponse --> OnToolCall
     ProcessChatResponse --> OnFinish
@@ -741,7 +747,7 @@ async stream(messages: MessageListInput, options?: StreamParams): Promise<Respon
     method: 'POST',
     body: JSON.stringify(processedParams)
   });
-  
+
   // Add convenience methods to Response
   return Object.assign(response, {
     processDataStream: async ({ onChunk }) => {
@@ -750,7 +756,7 @@ async stream(messages: MessageListInput, options?: StreamParams): Promise<Respon
         onChunk
       });
     },
-    
+
     processChatResponse: async ({ update, onToolCall, onFinish }) => {
       // Process stream and update UI message
       await this.processChatResponse({
@@ -771,21 +777,21 @@ The client SDK provides compatibility with AI SDK v5's `processDataStream` for f
 
 ```typescript
 // Usage with React or other frameworks
-const response = await agent.stream(messages);
+const response = await agent.stream(messages)
 
 await response.processDataStream({
   onChunk: async (chunk) => {
     if (chunk.type === 'text-delta') {
-      updateMessage(chunk.payload.text);
+      updateMessage(chunk.payload.text)
     }
   },
   onToolCall: async ({ toolCall }) => {
-    return await executeToolLocally(toolCall);
+    return await executeToolLocally(toolCall)
   },
   onFinish: ({ message, finishReason, usage }) => {
-    console.log('Stream finished:', finishReason);
-  }
-});
+    console.log('Stream finished:', finishReason)
+  },
+})
 ```
 
 **Chat UI Integration:**
@@ -797,19 +803,19 @@ The `processChatResponse` method provides a higher-level API for chat UIs:
 await response.processChatResponse({
   update: ({ message, data, replaceLastMessage }) => {
     if (replaceLastMessage) {
-      messages[messages.length - 1] = message;
+      messages[messages.length - 1] = message
     } else {
-      messages.push(message);
+      messages.push(message)
     }
-    setMessages([...messages]);
+    setMessages([...messages])
   },
   onToolCall: async ({ toolCall }) => {
-    return handleToolCall(toolCall);
+    return handleToolCall(toolCall)
   },
   onFinish: ({ message, finishReason, usage }) => {
-    trackUsage(usage);
-  }
-});
+    trackUsage(usage)
+  },
+})
 ```
 
 **Sources:** [client-sdks/client-js/src/resources/agent.ts:371-850](), [packages/core/src/stream/aisdk/v5/compat.ts:1-100]()
@@ -828,10 +834,10 @@ The streaming architecture implements multiple layers of error handling to ensur
 
 ```typescript
 try {
-  json = JSON.parse(data);
+  json = JSON.parse(data)
 } catch (error) {
-  console.error('❌ JSON parse error:', error, 'Data:', data);
-  continue; // Skip this message, continue processing
+  console.error('❌ JSON parse error:', error, 'Data:', data)
+  continue // Skip this message, continue processing
 }
 ```
 
@@ -846,8 +852,8 @@ try {
 const response = await executeToolCallAndRespond({
   response,
   params,
-  respondFn: this.stream.bind(this)
-});
+  respondFn: this.stream.bind(this),
+})
 
 // Each recursive call gets its own stream
 // Previous streams are closed before new ones are created
@@ -860,21 +866,24 @@ const response = await executeToolCallAndRespond({
 **Solution:** Buffer incomplete messages until the separator is found:
 
 ```typescript
-let buffer = '';
+let buffer = ''
 
 while (true) {
-  const { done, value } = await reader.read();
-  if (done) break;
-  
-  buffer += decoder.decode(value, { stream: true });
-  const lines = buffer.split('\
+  const { done, value } = await reader.read()
+  if (done) break
+
+  buffer += decoder.decode(value, { stream: true })
+  const lines =
+    buffer.split(
+      '\
 \
-');
-  buffer = lines.pop() || ''; // Keep incomplete message in buffer
-  
+'
+    )
+  buffer = lines.pop() || '' // Keep incomplete message in buffer
+
   // Process complete messages
   for (const line of lines) {
-    processLine(line);
+    processLine(line)
   }
 }
 ```
@@ -889,7 +898,7 @@ while (true) {
 // BaseResource implements exponential backoff
 async request(path: string, options?: RequestOptions) {
   let lastError: Error;
-  
+
   for (let i = 0; i < this.retries; i++) {
     try {
       return await fetch(url, options);
@@ -902,7 +911,7 @@ async request(path: string, options?: RequestOptions) {
       await sleep(delay);
     }
   }
-  
+
   throw lastError;
 }
 ```
@@ -923,10 +932,10 @@ The workflow caching system uses in-memory caching for recent runs:
 // Cache chunks during streaming
 serverCache.listPush(runId, chunk).catch(() => {
   // Silent failure - caching is opportunistic
-});
+})
 
 // Later retrieval for observation
-const cachedStream = await serverCache.listStream(runId);
+const cachedStream = await serverCache.listStream(runId)
 ```
 
 **Recommendation:** Configure cache TTL based on expected observation patterns. Short-lived runs (< 1 minute) benefit from in-memory caching. Longer runs should persist to storage.
@@ -942,13 +951,13 @@ return stream.pipeThrough(
   new TransformStream<ChunkType, ChunkType>({
     transform(chunk, controller) {
       // Cache asynchronously (non-blocking)
-      serverCache.listPush(runId, chunk).catch(() => {});
-      
+      serverCache.listPush(runId, chunk).catch(() => {})
+
       // Enqueue original chunk (zero-copy)
-      controller.enqueue(chunk);
-    }
+      controller.enqueue(chunk)
+    },
   })
-);
+)
 ```
 
 ### Chunk Batching
@@ -958,18 +967,18 @@ return stream.pipeThrough(
 Multiple text-delta chunks can be coalesced for better UI performance:
 
 ```typescript
-let textBuffer = '';
-let timeoutId: NodeJS.Timeout;
+let textBuffer = ''
+let timeoutId: NodeJS.Timeout
 
 onChunk: async (chunk) => {
   if (chunk.type === 'text-delta') {
-    textBuffer += chunk.payload.text;
-    
-    clearTimeout(timeoutId);
+    textBuffer += chunk.payload.text
+
+    clearTimeout(timeoutId)
     timeoutId = setTimeout(() => {
-      updateUI(textBuffer);
-      textBuffer = '';
-    }, 16); // ~60fps
+      updateUI(textBuffer)
+      textBuffer = ''
+    }, 16) // ~60fps
   }
 }
 ```
@@ -992,42 +1001,45 @@ describe('processMastraStream', () => {
       'data: {"type":"message","runId":"run-123"',
       ',"from":"AGENT","payload":{"text":"complete message"}}\
 \
-'
-    ];
-    
-    const stream = createChunkedMockStream(chunks);
-    await processMastraStream({ stream, onChunk: mockOnChunk });
-    
+',
+    ]
+
+    const stream = createChunkedMockStream(chunks)
+    await processMastraStream({ stream, onChunk: mockOnChunk })
+
     expect(mockOnChunk).toHaveBeenCalledWith({
       type: 'message',
       runId: 'run-123',
       from: 'AGENT',
-      payload: { text: 'complete message' }
-    });
-  });
-  
+      payload: { text: 'complete message' },
+    })
+  })
+
   it('should handle JSON parsing errors gracefully', async () => {
-    const invalidJson = 'data: {invalid json}\
+    const invalidJson =
+      'data: {invalid json}\
 \
-';
+'
     const validChunk = {
       type: 'message',
       runId: 'run-123',
       from: 'AGENT',
-      payload: { text: 'valid message' }
-    };
-    const sseData = invalidJson + `data: ${JSON.stringify(validChunk)}\
+      payload: { text: 'valid message' },
+    }
+    const sseData =
+      invalidJson +
+      `data: ${JSON.stringify(validChunk)}\
 \
-`;
-    
-    const stream = createMockStream(sseData);
-    await processMastraStream({ stream, onChunk: mockOnChunk });
-    
+`
+
+    const stream = createMockStream(sseData)
+    await processMastraStream({ stream, onChunk: mockOnChunk })
+
     // Should have called onChunk only for valid message
-    expect(mockOnChunk).toHaveBeenCalledTimes(1);
-    expect(mockOnChunk).toHaveBeenCalledWith(validChunk);
-  });
-});
+    expect(mockOnChunk).toHaveBeenCalledTimes(1)
+    expect(mockOnChunk).toHaveBeenCalledWith(validChunk)
+  })
+})
 ```
 
 **Sources:** [client-sdks/client-js/src/utils/process-mastra-stream.test.ts:7-200]()
@@ -1041,35 +1053,39 @@ it('stream: executes client tool and triggers recursive call', async () => {
   // First cycle: emit tool-call
   const firstCycle = [
     { type: 'step-start', payload: { messageId: 'm1' } },
-    { type: 'tool-call', payload: { toolCallId, toolName: 'weatherTool', args } },
-    { type: 'finish', payload: { stepResult: { reason: 'tool-calls' } } }
-  ];
-  
+    {
+      type: 'tool-call',
+      payload: { toolCallId, toolName: 'weatherTool', args },
+    },
+    { type: 'finish', payload: { stepResult: { reason: 'tool-calls' } } },
+  ]
+
   // Second cycle: emit completion after tool execution
   const secondCycle = [
     { type: 'step-start', payload: { messageId: 'm2' } },
     { type: 'text-delta', payload: { text: 'Tool handled' } },
-    { type: 'finish', payload: { stepResult: { reason: 'stop' } } }
-  ];
-  
-  fetch.mockResolvedValueOnce(sseResponse(firstCycle))
-      .mockResolvedValueOnce(sseResponse(secondCycle));
-  
-  const executeSpy = vi.fn(async () => ({ ok: true }));
+    { type: 'finish', payload: { stepResult: { reason: 'stop' } } },
+  ]
+
+  fetch
+    .mockResolvedValueOnce(sseResponse(firstCycle))
+    .mockResolvedValueOnce(sseResponse(secondCycle))
+
+  const executeSpy = vi.fn(async () => ({ ok: true }))
   const weatherTool = createTool({
     id: 'weatherTool',
-    execute: executeSpy
-  });
-  
-  const resp = await agent.stream('weather?', { clientTools: { weatherTool } });
-  await resp.processDataStream({ onChunk: () => {} });
-  
+    execute: executeSpy,
+  })
+
+  const resp = await agent.stream('weather?', { clientTools: { weatherTool } })
+  await resp.processDataStream({ onChunk: () => {} })
+
   // Client tool executed once
-  expect(executeSpy).toHaveBeenCalledTimes(1);
-  
+  expect(executeSpy).toHaveBeenCalledTimes(1)
+
   // Two fetch calls made (initial + recursive)
-  expect(fetch).toHaveBeenCalledTimes(2);
-});
+  expect(fetch).toHaveBeenCalledTimes(2)
+})
 ```
 
 **Sources:** [client-sdks/client-js/src/resources/agent.vnext.test.ts:70-129](), [e2e-tests/create-mastra/create-mastra.test.ts:95-150]()

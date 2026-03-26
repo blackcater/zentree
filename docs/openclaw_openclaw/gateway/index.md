@@ -54,8 +54,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Gateway is the central control plane for OpenClaw. It runs as a single long-lived WebSocket server that coordinates all communication between clients (CLI, Control UI, mobile apps, web chat), messaging channels (WhatsApp, Telegram, Discord, etc.), and the agent runtime. The Gateway handles authentication, configuration management, session routing, multi-agent isolation, and service lifecycle.
 
 For detailed operational procedures, see [Gateway Runbook](#2.6). For authentication details, see [Authentication & Authorization](#2.2). For configuration, see [Configuration System](#2.3).
@@ -77,7 +75,7 @@ graph TB
 (iOS/Android)"]
         WebChat["WebChat"]
     end
-    
+
     subgraph "Gateway Server"
         WSServer["WebSocket Server\
 ws://127.0.0.1:18789"]
@@ -90,7 +88,7 @@ token/password/device"]
         MethodRouter["Method Router\
 core + plugin handlers"]
     end
-    
+
     subgraph "Core Subsystems"
         ConfigMgr["ConfigManager\
 Zod validation"]
@@ -101,7 +99,7 @@ multi-agent bindings"]
         CronService["CronService\
 scheduled jobs"]
     end
-    
+
     subgraph "Channels"
         WhatsApp["WhatsApp\
 Baileys"]
@@ -112,7 +110,7 @@ discord.js"]
         OtherChannels["Other Channels\
 plugins"]
     end
-    
+
     subgraph "Agent Runtime"
         PiAgent["Pi Agent\
 RPC mode"]
@@ -120,26 +118,26 @@ RPC mode"]
         MemoryIndex["Memory Index\
 SQLite + vector"]
     end
-    
+
     CLI --> WSServer
     ControlUI --> HTTPServer
     MobileApps --> WSServer
     WebChat --> HTTPServer
-    
+
     WSServer --> ProtocolHandler
     HTTPServer --> ProtocolHandler
     ProtocolHandler --> AuthLayer
     AuthLayer --> MethodRouter
-    
+
     MethodRouter --> ConfigMgr
     MethodRouter --> SessionMgr
     MethodRouter --> AgentRouter
     MethodRouter --> CronService
-    
+
     AgentRouter --> PiAgent
     PiAgent --> ToolRegistry
     PiAgent --> MemoryIndex
-    
+
     SessionMgr --> WhatsApp
     SessionMgr --> Telegram
     SessionMgr --> Discord
@@ -149,6 +147,7 @@ SQLite + vector"]
 Sources: [README.md:187-202](), [docs/index.md:59-71](), high-level diagrams
 
 The Gateway exposes a single multiplexed port (default 18789) that serves:
+
 - WebSocket RPC for control plane operations
 - HTTP endpoints for Control UI, webhooks, and OpenAI-compatible APIs
 - Static files for the web dashboard
@@ -165,14 +164,14 @@ The Gateway implements a JSON-based RPC protocol over WebSockets (protocol versi
 graph LR
     Client["Client"]
     Server["Gateway Server"]
-    
+
     Client -->|"RequestFrame\
 {type,id,method,params}"| Server
     Server -->|"ResponseFrame\
 {type,id,ok,payload,error}"| Client
     Server -->|"EventFrame\
 {type,event,payload,seq}"| Client
-    
+
     style Client fill:#f9f9f9
     style Server fill:#f9f9f9
 ```
@@ -183,12 +182,12 @@ Sources: [src/gateway/protocol/schema/frames.ts:1-100](), [apps/shared/OpenClawK
 
 Sent by clients to invoke methods:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | `"request"` | Frame type discriminator |
-| `id` | `string` | Unique request ID for matching responses |
-| `method` | `string` | RPC method name (e.g., `"agent"`, `"config.get"`) |
-| `params` | `object?` | Method-specific parameters |
+| Field    | Type        | Description                                       |
+| -------- | ----------- | ------------------------------------------------- |
+| `type`   | `"request"` | Frame type discriminator                          |
+| `id`     | `string`    | Unique request ID for matching responses          |
+| `method` | `string`    | RPC method name (e.g., `"agent"`, `"config.get"`) |
+| `params` | `object?`   | Method-specific parameters                        |
 
 Sources: [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:119-143]()
 
@@ -196,13 +195,13 @@ Sources: [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:1
 
 Sent by the Gateway in reply to requests:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | `"response"` | Frame type discriminator |
-| `id` | `string` | Matches the request ID |
-| `ok` | `boolean` | Success/failure indicator |
-| `payload` | `any?` | Method result (if `ok=true`) |
-| `error` | `ErrorShape?` | Error details (if `ok=false`) |
+| Field     | Type          | Description                   |
+| --------- | ------------- | ----------------------------- |
+| `type`    | `"response"`  | Frame type discriminator      |
+| `id`      | `string`      | Matches the request ID        |
+| `ok`      | `boolean`     | Success/failure indicator     |
+| `payload` | `any?`        | Method result (if `ok=true`)  |
+| `error`   | `ErrorShape?` | Error details (if `ok=false`) |
 
 Sources: [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:145-173]()
 
@@ -210,13 +209,13 @@ Sources: [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:1
 
 Broadcast by the Gateway for state changes:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | `"event"` | Frame type discriminator |
-| `event` | `string` | Event name (e.g., `"agent.event"`, `"tick"`) |
-| `payload` | `any?` | Event-specific data |
-| `seq` | `number?` | Sequence number for ordering |
-| `stateVersion` | `object?` | State version tracking |
+| Field          | Type      | Description                                  |
+| -------------- | --------- | -------------------------------------------- |
+| `type`         | `"event"` | Frame type discriminator                     |
+| `event`        | `string`  | Event name (e.g., `"agent.event"`, `"tick"`) |
+| `payload`      | `any?`    | Event-specific data                          |
+| `seq`          | `number?` | Sequence number for ordering                 |
+| `stateVersion` | `object?` | State version tracking                       |
 
 Sources: [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:175-203]()
 
@@ -252,7 +251,7 @@ src/gateway/protocol/schema/"]
     GenScript["protocol-gen-swift.ts"]
     SwiftSchemas["Swift Schemas\
 OpenClawProtocol/GatewayModels.swift"]
-    
+
     TSSchemas --> GenScript
     GenScript --> SwiftSchemas
 ```
@@ -282,7 +281,7 @@ port + bind mode"]
 Control UI + APIs"]
     BroadcastHealth["Broadcast health snapshot"]
     Ready["Gateway ready"]
-    
+
     Start --> ValidateConfig
     ValidateConfig --> CheckPort
     CheckPort --> InitSubsystems
@@ -297,26 +296,26 @@ Sources: [src/gateway/server.impl.js](), [docs/gateway/index.md:28-62]()
 
 The Gateway server is started via `startGatewayServer(options)` which accepts:
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `port` | `number` | `18789` | Listen port |
-| `bind` | `string` | `"loopback"` | Bind mode: `loopback`, `lan`, `tailnet`, `auto`, `custom` |
-| `token` | `string?` | - | Auth token (or from config) |
-| `password` | `string?` | - | Auth password (or from config) |
-| `configPath` | `string?` | - | Config file override |
-| `verbose` | `boolean` | `false` | Enable verbose logging |
+| Option       | Type      | Default      | Description                                               |
+| ------------ | --------- | ------------ | --------------------------------------------------------- |
+| `port`       | `number`  | `18789`      | Listen port                                               |
+| `bind`       | `string`  | `"loopback"` | Bind mode: `loopback`, `lan`, `tailnet`, `auto`, `custom` |
+| `token`      | `string?` | -            | Auth token (or from config)                               |
+| `password`   | `string?` | -            | Auth password (or from config)                            |
+| `configPath` | `string?` | -            | Config file override                                      |
+| `verbose`    | `boolean` | `false`      | Enable verbose logging                                    |
 
 Sources: [src/gateway/server.impl.js](), [docs/cli/index.md:740-766]()
 
 ### Bind Modes
 
-| Mode | Description | Bind Address |
-|------|-------------|--------------|
-| `loopback` | Local-only access (default) | `127.0.0.1` |
-| `lan` | LAN access | `0.0.0.0` |
-| `tailnet` | Tailscale Serve/Funnel | Managed by Tailscale |
-| `auto` | Auto-detect based on environment | Varies |
-| `custom` | User-specified address | From config |
+| Mode       | Description                      | Bind Address         |
+| ---------- | -------------------------------- | -------------------- |
+| `loopback` | Local-only access (default)      | `127.0.0.1`          |
+| `lan`      | LAN access                       | `0.0.0.0`            |
+| `tailnet`  | Tailscale Serve/Funnel           | Managed by Tailscale |
+| `auto`     | Auto-detect based on environment | Varies               |
+| `custom`   | User-specified address           | From config          |
 
 Sources: [docs/gateway/index.md:76-93](), [README.md:213-228]()
 
@@ -328,12 +327,12 @@ Sources: [docs/gateway/troubleshooting.md:172-174]()
 
 The Gateway supports configuration hot-reload with multiple modes:
 
-| Mode | Behavior |
-|------|----------|
-| `off` | No config reload |
-| `hot` | Apply only hot-safe changes without restart |
-| `restart` | Restart Gateway on reload-required changes |
-| `hybrid` | Apply hot-safe changes immediately, restart for others (default) |
+| Mode      | Behavior                                                         |
+| --------- | ---------------------------------------------------------------- |
+| `off`     | No config reload                                                 |
+| `hot`     | Apply only hot-safe changes without restart                      |
+| `restart` | Restart Gateway on reload-required changes                       |
+| `hybrid`  | Apply hot-safe changes immediately, restart for others (default) |
 
 Sources: [docs/gateway/index.md:85-93]()
 
@@ -351,24 +350,24 @@ The Gateway supports three authentication modes, configured via `gateway.auth.mo
 graph TD
     ConnectAttempt["Client Connect"]
     CheckAuthMode{"gateway.auth.mode"}
-    
+
     CheckAuthMode -->|"token"| TokenAuth["Require gateway.auth.token\
 in connect.auth.token"]
     CheckAuthMode -->|"password"| PasswordAuth["Require gateway.auth.password\
 in connect.auth.password"]
     CheckAuthMode -->|"off"| NoAuth["No authentication\
 (loopback only)"]
-    
+
     TokenAuth --> ValidateToken{"Token valid?"}
     PasswordAuth --> ValidatePassword{"Password valid?"}
     NoAuth --> Success
-    
+
     ValidateToken -->|"yes"| Success["Connection accepted"]
     ValidateToken -->|"no"| DeviceTokenFallback{"Device token\
 available?"}
     ValidatePassword -->|"yes"| Success
     ValidatePassword -->|"no"| Reject["Connection rejected"]
-    
+
     DeviceTokenFallback -->|"yes"| CheckDeviceToken{"Device token\
 valid?"}
     DeviceTokenFallback -->|"no"| Reject
@@ -435,16 +434,16 @@ After authentication, the Gateway enforces role-based access control:
 graph TD
     AuthedClient["Authenticated Client"]
     CheckRole{"Role?"}
-    
+
     CheckRole -->|"operator"| CheckScope{"Has required\
 scopes?"}
     CheckRole -->|"node"| AllowNodeMethods["Allow node.* methods"]
-    
+
     CheckScope -->|"operator.admin"| AllowAll["Allow all operator methods"]
     CheckScope -->|"operator.read"| AllowRead["Allow read-only methods"]
     CheckScope -->|"operator.write"| AllowWrite["Allow write methods"]
     CheckScope -->|"no match"| Deny["Deny request"]
-    
+
     AllowAll --> InvokeMethod["Invoke method handler"]
     AllowRead --> InvokeMethod
     AllowWrite --> InvokeMethod
@@ -457,11 +456,11 @@ Sources: [src/gateway/server-methods.ts:38-66](), [src/gateway/role-policy.ts]()
 
 The `operator` role requires explicit scopes for method authorization:
 
-| Scope | Permissions |
-|-------|-------------|
-| `operator.admin` | All methods (bypass scope checks) |
-| `operator.read` | Read-only methods (`config.get`, `sessions.list`, `health`, etc.) |
-| `operator.write` | Write methods (`config.apply`, `sessions.patch`, `agent`, etc.) |
+| Scope            | Permissions                                                       |
+| ---------------- | ----------------------------------------------------------------- |
+| `operator.admin` | All methods (bypass scope checks)                                 |
+| `operator.read`  | Read-only methods (`config.get`, `sessions.list`, `health`, etc.) |
+| `operator.write` | Write methods (`config.apply`, `sessions.patch`, `agent`, etc.)   |
 
 Sources: [src/gateway/method-scopes.ts:1-50]()
 
@@ -469,11 +468,11 @@ The Gateway maps each method to required scopes:
 
 ```typescript
 const METHOD_SCOPES = {
-  "config.get": [READ_SCOPE],
-  "config.apply": [WRITE_SCOPE],
-  "agent": [WRITE_SCOPE],
+  'config.get': [READ_SCOPE],
+  'config.apply': [WRITE_SCOPE],
+  agent: [WRITE_SCOPE],
   // ...
-};
+}
 ```
 
 Sources: [src/gateway/method-scopes.ts]()
@@ -521,12 +520,12 @@ The Gateway implements RPC methods through a handler registry. Handlers are orga
 graph TB
     MethodRouter["Method Router\
 handleGatewayRequest()"]
-    
+
     CoreHandlers["Core Handlers\
 coreGatewayHandlers"]
     PluginHandlers["Plugin Handlers\
 extraHandlers"]
-    
+
     subgraph "Core Handler Groups"
         ConnectH["connectHandlers\
 connect"]
@@ -555,10 +554,10 @@ wizard.*"]
         OtherH["Other Handlers\
 logs, tts, browser, etc."]
     end
-    
+
     MethodRouter --> CoreHandlers
     MethodRouter --> PluginHandlers
-    
+
     CoreHandlers --> ConnectH
     CoreHandlers --> HealthH
     CoreHandlers --> ConfigH
@@ -582,12 +581,12 @@ Each handler implements the `GatewayRequestHandler` interface:
 
 ```typescript
 type GatewayRequestHandler = (opts: {
-  req: RequestFrame;
-  params: Record<string, unknown>;
-  client: ClientContext;
-  respond: (ok: boolean, payload?: any, error?: ErrorShape) => void;
-  context: GatewayContext;
-}) => Promise<void>;
+  req: RequestFrame
+  params: Record<string, unknown>
+  client: ClientContext
+  respond: (ok: boolean, payload?: any, error?: ErrorShape) => void
+  context: GatewayContext
+}) => Promise<void>
 ```
 
 Sources: [src/gateway/server-methods/types.ts]()
@@ -601,10 +600,10 @@ export const agentHandlers: GatewayRequestHandlers = {
     // execute agent turn
     // respond with result or error
   },
-  "agent.wait": async ({ params, respond, context }) => {
+  'agent.wait': async ({ params, respond, context }) => {
     // ...
   },
-};
+}
 ```
 
 Sources: [src/gateway/server-methods/agent.js]()
@@ -616,6 +615,7 @@ All available methods are listed in `listGatewayMethods()`:
 Sources: [src/gateway/server-methods-list.ts:1-100]()
 
 The registry includes:
+
 - **Config methods**: `config.get`, `config.set`, `config.apply`, `config.patch`, `config.schema`, `config.schema.lookup`
 - **Agent methods**: `agent`, `agent.identity`, `agent.wait`
 - **Session methods**: `sessions.list`, `sessions.patch`, `sessions.reset`, `sessions.delete`, `sessions.compact`
@@ -637,12 +637,12 @@ handleGatewayRequest({
   client,
   context,
   extraHandlers: {
-    "custom.method": async ({ params, respond }) => {
+    'custom.method': async ({ params, respond }) => {
       // custom logic
-      respond(true, { result: "ok" });
+      respond(true, { result: 'ok' })
     },
   },
-});
+})
 ```
 
 Sources: [src/gateway/server-methods.ts:100-157]()
@@ -661,26 +661,26 @@ graph TD
 ~/.openclaw/openclaw.json"]
     EnvVars["Environment Variables\
 OPENCLAW_*"]
-    
+
     LoadConfig["Load & Parse JSON5"]
     ZodValidate["Zod Schema Validation"]
     SuperRefine["Custom Cross-field Checks"]
     Normalize["Normalize Paths & Defaults"]
-    
+
     ConfigSnapshot["In-Memory Config Snapshot"]
-    
+
     FileWatch["File System Watcher"]
     HotReload["Hot Reload Handler"]
     RestartTrigger["Restart Trigger\
 SIGUSR1"]
-    
+
     ConfigFile --> LoadConfig
     EnvVars --> LoadConfig
     LoadConfig --> ZodValidate
     ZodValidate --> SuperRefine
     SuperRefine --> Normalize
     Normalize --> ConfigSnapshot
-    
+
     FileWatch --> HotReload
     HotReload -->|"hot-safe changes"| ConfigSnapshot
     HotReload -->|"restart required"| RestartTrigger
@@ -692,6 +692,7 @@ Sources: [docs/gateway/index.md:85-93](), [src/config/config.ts](), [src/config/
 ### Configuration Precedence
 
 For most settings, precedence is:
+
 1. CLI flags (e.g., `--port`, `--token`)
 2. Environment variables (e.g., `OPENCLAW_GATEWAY_PORT`, `OPENCLAW_GATEWAY_TOKEN`)
 3. Config file (`~/.openclaw/openclaw.json` or `OPENCLAW_CONFIG_PATH`)
@@ -703,14 +704,14 @@ Sources: [docs/gateway/index.md:76-84]()
 
 The Gateway exposes RPC methods for config manipulation:
 
-| Method | Description | Requires Restart |
-|--------|-------------|------------------|
-| `config.get` | Read current config | No |
-| `config.set` | Set a specific key | Depends on key |
-| `config.apply` | Replace entire config | Depends on changes |
-| `config.patch` | Merge partial update | Depends on changes |
-| `config.schema` | Get full JSON schema | No |
-| `config.schema.lookup` | Get schema for a path | No |
+| Method                 | Description           | Requires Restart   |
+| ---------------------- | --------------------- | ------------------ |
+| `config.get`           | Read current config   | No                 |
+| `config.set`           | Set a specific key    | Depends on key     |
+| `config.apply`         | Replace entire config | Depends on changes |
+| `config.patch`         | Merge partial update  | Depends on changes |
+| `config.schema`        | Get full JSON schema  | No                 |
+| `config.schema.lookup` | Get schema for a path | No                 |
 
 Sources: [src/gateway/server-methods/config.ts](), [docs/cli/index.md:388-399]()
 
@@ -754,6 +755,7 @@ Where `<mainKey>` is constructed from routing context:
 Sources: [docs/concepts/session.md](), [src/gateway/session-utils.ts]()
 
 Example session keys:
+
 - Direct message: `agent:main:whatsapp:default::+15551234567`
 - Group chat: `agent:main:discord:work:guild:123456789::user:987654321`
 - Thread: `agent:main:telegram:alerts::thread:555:user:111`
@@ -769,14 +771,14 @@ via bindings"]
 from routing context"]
     BuildSessionKey["Construct session key\
 agent:agentId:mainKey"]
-    
+
     CheckStore["Check session store\
 ~/.openclaw/agents/<agentId>/sessions"]
     LoadHistory["Load JSONL history\
 if exists"]
     NewSession["Create new session\
 if first message"]
-    
+
     InboundMsg --> ResolveAgent
     ResolveAgent --> BuildMainKey
     BuildMainKey --> BuildSessionKey
@@ -806,15 +808,15 @@ Sources: [docs/concepts/session.md](), [src/gateway/session-utils.ts]()
 
 ### Session Methods
 
-| Method | Description |
-|--------|-------------|
-| `sessions.list` | List all sessions with metadata |
-| `sessions.preview` | Get recent messages from a session |
-| `sessions.patch` | Update session metadata (model, thinking level, etc.) |
-| `sessions.reset` | Clear session history |
-| `sessions.delete` | Remove session and history |
-| `sessions.compact` | Trigger context compaction |
-| `sessions.resolve` | Resolve session key from routing info |
+| Method             | Description                                           |
+| ------------------ | ----------------------------------------------------- |
+| `sessions.list`    | List all sessions with metadata                       |
+| `sessions.preview` | Get recent messages from a session                    |
+| `sessions.patch`   | Update session metadata (model, thinking level, etc.) |
+| `sessions.reset`   | Clear session history                                 |
+| `sessions.delete`  | Remove session and history                            |
+| `sessions.compact` | Trigger context compaction                            |
+| `sessions.resolve` | Resolve session key from routing info                 |
 
 Sources: [src/gateway/server-methods/sessions.ts](), [src/gateway/protocol/schema/sessions.ts]()
 
@@ -830,7 +832,7 @@ The Gateway supports multiple isolated agents with independent workspaces, sessi
 graph TD
     InboundMsg["Inbound Message\
 channel, account, peer, guild, thread"]
-    
+
     CheckPeer["1. Check peer binding\
 match: {channel, account, peer}"]
     CheckParent["2. Check parent binding\
@@ -843,7 +845,7 @@ match: {channel, account}"]
 match: {channel}"]
     DefaultAgent["6. Use default agent\
 agents.defaults"]
-    
+
     InboundMsg --> CheckPeer
     CheckPeer -->|"match"| ResolveAgent["Resolved to agentId"]
     CheckPeer -->|"no match"| CheckParent
@@ -868,21 +870,21 @@ Bindings are defined in `bindings` array:
 {
   bindings: [
     {
-      agentId: "work",
+      agentId: 'work',
       match: {
-        channel: "discord",
-        account: "work-bot",
-        guild: { kind: "guild", id: "123456789" }
-      }
+        channel: 'discord',
+        account: 'work-bot',
+        guild: { kind: 'guild', id: '123456789' },
+      },
     },
     {
-      agentId: "personal",
+      agentId: 'personal',
       match: {
-        channel: "whatsapp",
-        peer: { kind: "direct", id: "+15551234567" }
-      }
-    }
-  ]
+        channel: 'whatsapp',
+        peer: { kind: 'direct', id: '+15551234567' },
+      },
+    },
+  ],
 }
 ```
 
@@ -892,13 +894,13 @@ Sources: [docs/concepts/multi-agent.md:146-200]()
 
 Each agent is fully isolated:
 
-| Isolated Resource | Location |
-|-------------------|----------|
-| Workspace | `~/.openclaw/workspace-<agentId>` |
-| Agent directory | `~/.openclaw/agents/<agentId>/agent` |
-| Auth profiles | `~/.openclaw/agents/<agentId>/agent/auth-profiles.json` |
-| Session store | `~/.openclaw/agents/<agentId>/sessions` |
-| Skills | `<workspace>/skills` (plus shared `~/.openclaw/skills`) |
+| Isolated Resource | Location                                                |
+| ----------------- | ------------------------------------------------------- |
+| Workspace         | `~/.openclaw/workspace-<agentId>`                       |
+| Agent directory   | `~/.openclaw/agents/<agentId>/agent`                    |
+| Auth profiles     | `~/.openclaw/agents/<agentId>/agent/auth-profiles.json` |
+| Session store     | `~/.openclaw/agents/<agentId>/sessions`                 |
+| Skills            | `<workspace>/skills` (plus shared `~/.openclaw/skills`) |
 
 Sources: [docs/concepts/multi-agent.md:14-48]()
 
@@ -915,6 +917,7 @@ openclaw gateway install [--runtime node|bun] [--port 18789]
 ```
 
 This installs a user-level service:
+
 - **macOS**: LaunchAgent at `~/Library/LaunchAgents/ai.openclaw.gateway.plist`
 - **Linux/WSL2**: systemd user unit at `~/.config/systemd/user/openclaw-gateway.service`
 
@@ -923,6 +926,7 @@ Sources: [docs/gateway/index.md:125-142](), [docs/cli/index.md:769-790]()
 ### Service Labels
 
 Service labels follow naming conventions:
+
 - Default profile: `ai.openclaw.gateway` (macOS) or `openclaw-gateway` (Linux)
 - Named profile: `ai.openclaw.<profile>` or `openclaw-<profile>`
 
@@ -930,13 +934,13 @@ Sources: [docs/gateway/index.md:139]()
 
 ### Service Operations
 
-| Command | Description |
-|---------|-------------|
-| `openclaw gateway status` | Check service and RPC health |
-| `openclaw gateway start` | Start the service |
-| `openclaw gateway stop` | Stop the service |
-| `openclaw gateway restart` | Restart the service |
-| `openclaw gateway uninstall` | Remove service unit |
+| Command                      | Description                  |
+| ---------------------------- | ---------------------------- |
+| `openclaw gateway status`    | Check service and RPC health |
+| `openclaw gateway start`     | Start the service            |
+| `openclaw gateway stop`      | Stop the service             |
+| `openclaw gateway restart`   | Restart the service          |
+| `openclaw gateway uninstall` | Remove service unit          |
 
 Sources: [docs/cli/index.md:769-790]()
 
@@ -989,16 +993,16 @@ The Gateway broadcasts `snapshot` events containing:
 
 ```typescript
 type Snapshot = {
-  presence: PresenceEntry[];
-  health: HealthSnapshot;
-  stateVersion: { presence: number; health: number };
-  uptimeMs: number;
-  configPath?: string;
-  stateDir?: string;
-  sessionDefaults?: Record<string, unknown>;
-  authMode?: string;
-  updateAvailable?: { version: string; url: string };
-};
+  presence: PresenceEntry[]
+  health: HealthSnapshot
+  stateVersion: { presence: number; health: number }
+  uptimeMs: number
+  configPath?: string
+  stateDir?: string
+  sessionDefaults?: Record<string, unknown>
+  authMode?: string
+  updateAvailable?: { version: string; url: string }
+}
 ```
 
 Sources: [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:297-341](), [src/gateway/protocol/schema/snapshot.ts]()
@@ -1009,15 +1013,15 @@ Clients receive snapshots on connect and whenever state changes.
 
 The Gateway tracks all connected clients via presence entries:
 
-| Field | Description |
-|-------|-------------|
-| `host` | Client hostname |
-| `version` | Client version |
-| `platform` | OS platform |
+| Field      | Description                  |
+| ---------- | ---------------------------- |
+| `host`     | Client hostname              |
+| `version`  | Client version               |
+| `platform` | OS platform                  |
 | `deviceId` | Unique device ID (for nodes) |
-| `roles` | Client roles |
-| `scopes` | Authorization scopes |
-| `ts` | Last heartbeat timestamp |
+| `roles`    | Client roles                 |
+| `scopes`   | Authorization scopes         |
+| `ts`       | Last heartbeat timestamp     |
 
 Sources: [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:205-277]()
 
@@ -1030,6 +1034,7 @@ openclaw doctor
 ```
 
 Checks include:
+
 - Config validation and migrations
 - Service status and port conflicts
 - Token/password drift detection
@@ -1088,6 +1093,7 @@ The `wake` method triggers immediate actions without waiting for messages:
 ```
 
 Use cases:
+
 - Force configuration reload
 - Trigger channel reconnections
 - Broadcast state updates to clients
@@ -1110,6 +1116,7 @@ The `update.run` method triggers in-place Gateway updates:
 ```
 
 The Gateway:
+
 1. Downloads and installs the update
 2. Writes a restart sentinel with delivery info
 3. Schedules a graceful restart (SIGUSR1)
@@ -1121,11 +1128,11 @@ Sources: [src/agents/tools/gateway-tool.ts:1-150](), [src/gateway/server-methods
 
 The Gateway includes an interactive onboarding wizard accessible via RPC:
 
-| Method | Description |
-|--------|-------------|
-| `wizard.start` | Begin wizard flow |
-| `wizard.next` | Progress to next step |
-| `wizard.cancel` | Abort wizard |
+| Method          | Description              |
+| --------------- | ------------------------ |
+| `wizard.start`  | Begin wizard flow        |
+| `wizard.next`   | Progress to next step    |
+| `wizard.cancel` | Abort wizard             |
 | `wizard.status` | Get current wizard state |
 
 Sources: [src/gateway/server-methods/wizard.ts](), [src/gateway/protocol/schema/wizard.ts]()
@@ -1140,13 +1147,13 @@ This enables remote clients (Control UI, mobile apps) to guide users through Gat
 
 Standard error codes returned in `ResponseFrame.error`:
 
-| Code | Description | Retryable |
-|------|-------------|-----------|
-| `NOT_LINKED` | Auth profile missing or invalid | No |
-| `NOT_PAIRED` | Device not paired | No |
-| `AGENT_TIMEOUT` | Agent turn exceeded timeout | Yes |
-| `INVALID_REQUEST` | Malformed request or unauthorized | No |
-| `UNAVAILABLE` | Service unavailable or rate-limited | Yes |
+| Code              | Description                         | Retryable |
+| ----------------- | ----------------------------------- | --------- |
+| `NOT_LINKED`      | Auth profile missing or invalid     | No        |
+| `NOT_PAIRED`      | Device not paired                   | No        |
+| `AGENT_TIMEOUT`   | Agent turn exceeded timeout         | Yes       |
+| `INVALID_REQUEST` | Malformed request or unauthorized   | No        |
+| `UNAVAILABLE`     | Service unavailable or rate-limited | Yes       |
 
 Sources: [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:7-13](), [src/gateway/protocol/schema/error-codes.ts]()
 
@@ -1154,12 +1161,12 @@ Sources: [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:7
 
 ```typescript
 type ErrorShape = {
-  code: string;
-  message: string;
-  details?: unknown;
-  retryable?: boolean;
-  retryAfterMs?: number;
-};
+  code: string
+  message: string
+  details?: unknown
+  retryable?: boolean
+  retryAfterMs?: number
+}
 ```
 
 Sources: [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:343-371](), [src/gateway/protocol/schema/frames.ts]()
@@ -1234,6 +1241,7 @@ Sources: [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:1
 ### Plugin Integration
 
 Plugins extend the Gateway by providing:
+
 - Custom RPC methods via `extraHandlers`
 - Channel integrations
 - Tool implementations
@@ -1245,11 +1253,11 @@ Plugins run in the Gateway process and have full access to context:
 
 ```typescript
 const pluginHandlers: GatewayRequestHandlers = {
-  "custom.action": async ({ params, respond, context }) => {
+  'custom.action': async ({ params, respond, context }) => {
     // Access config, sessions, channels, etc.
-    respond(true, { result: "ok" });
+    respond(true, { result: 'ok' })
   },
-};
+}
 ```
 
 Sources: [src/gateway/server-methods.ts:135-157]()

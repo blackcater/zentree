@@ -16,8 +16,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the core Component interface that all TUI elements must implement, the Container class for grouping components, and the overlay system for rendering modal UI on top of existing content. For the main TUI rendering pipeline and differential updates, see [Core TUI Architecture & Rendering](#5.1). For specific built-in components like Text, Box, and Markdown, see [Built-in Components](#5.5).
 
 ## Component Interface
@@ -33,12 +31,12 @@ classDiagram
         +invalidate() void
         +wantsKeyRelease? boolean
     }
-    
+
     class Focusable {
         <<interface>>
         +focused: boolean
     }
-    
+
     class Container {
         +children: Component[]
         +addChild(component: Component) void
@@ -47,14 +45,14 @@ classDiagram
         +render(width: number) string[]
         +invalidate() void
     }
-    
+
     class TUI {
         +children: Component[]
         +showOverlay(component: Component, options?: OverlayOptions) OverlayHandle
         +hideOverlay() void
         +setFocus(component: Component | null) void
     }
-    
+
     Component <|.. Container : implements
     Container <|-- TUI : extends
     Component <.. Focusable : optional
@@ -64,12 +62,12 @@ classDiagram
 
 ### Core Methods
 
-| Method | Required | Description |
-|--------|----------|-------------|
-| `render(width)` | Yes | Returns array of strings, one per line. Each line **must not exceed** `width` or TUI will error. |
-| `handleInput(data)` | No | Receives raw terminal input when component has focus. `data` may contain ANSI escape sequences. |
-| `invalidate()` | Yes | Clears cached render state. Called on theme changes or when component needs full re-render. |
-| `wantsKeyRelease` | No | If `true`, component receives key release events (Kitty protocol). Default: `false`. |
+| Method              | Required | Description                                                                                      |
+| ------------------- | -------- | ------------------------------------------------------------------------------------------------ |
+| `render(width)`     | Yes      | Returns array of strings, one per line. Each line **must not exceed** `width` or TUI will error. |
+| `handleInput(data)` | No       | Receives raw terminal input when component has focus. `data` may contain ANSI escape sequences.  |
+| `invalidate()`      | Yes      | Clears cached render state. Called on theme changes or when component needs full re-render.      |
+| `wantsKeyRelease`   | No       | If `true`, component receives key release events (Kitty protocol). Default: `false`.             |
 
 **Critical constraint:** Lines returned by `render()` must not exceed the provided `width` parameter. The TUI will throw an error if this constraint is violated, as overflow causes terminal corruption.
 
@@ -84,7 +82,7 @@ sequenceDiagram
     participant TUI
     participant Component as "Focusable Component"
     participant Terminal
-    
+
     TUI->>Component: setFocus(component)
     TUI->>Component: focused = true
     TUI->>TUI: requestRender()
@@ -106,13 +104,15 @@ When a container component (dialog, menu, etc.) embeds a focusable child like `I
 
 ```typescript
 class SearchDialog extends Container implements Focusable {
-  private searchInput: Input;
+  private searchInput: Input
 
-  private _focused = false;
-  get focused(): boolean { return this._focused; }
+  private _focused = false
+  get focused(): boolean {
+    return this._focused
+  }
   set focused(value: boolean) {
-    this._focused = value;
-    this.searchInput.focused = value;  // Propagate to child
+    this._focused = value
+    this.searchInput.focused = value // Propagate to child
   }
 }
 ```
@@ -129,11 +129,11 @@ graph TD
     Child1["Component 1"]
     Child2["Component 2"]
     Child3["Component 3"]
-    
+
     Container -->|addChild| Child1
     Container -->|addChild| Child2
     Container -->|addChild| Child3
-    
+
     Container -->|render()| Concat["Concatenate<br/>child.render() outputs"]
     Container -->|invalidate()| PropInv["Propagate to<br/>all children"]
 ```
@@ -144,13 +144,13 @@ The `Container.render()` method calls `render(width)` on each child and concaten
 
 ### Container Methods
 
-| Method | Description |
-|--------|-------------|
-| `addChild(component)` | Appends component to children array |
+| Method                   | Description                           |
+| ------------------------ | ------------------------------------- |
+| `addChild(component)`    | Appends component to children array   |
 | `removeChild(component)` | Removes component from children array |
-| `clear()` | Removes all children |
-| `render(width)` | Concatenates all child render outputs |
-| `invalidate()` | Calls `invalidate()` on all children |
+| `clear()`                | Removes all children                  |
+| `render(width)`          | Concatenates all child render outputs |
+| `invalidate()`           | Calls `invalidate()` on all children  |
 
 The `TUI` class itself extends `Container`, so the main TUI instance can contain child components.
 
@@ -165,19 +165,19 @@ graph TB
     subgraph "Base Content"
         BaseLines["Base Component render() output<br/>Lines 0-N"]
     end
-    
+
     subgraph "Overlay Stack (by focusOrder)"
         Overlay1["Overlay 1 (focusOrder: 1)"]
         Overlay2["Overlay 2 (focusOrder: 3)"]
         Overlay3["Overlay 3 (focusOrder: 2)"]
     end
-    
+
     subgraph "Compositing Process"
         Sorted["Sort by focusOrder<br/>(1, 2, 3)"]
         Composite["compositeLineAt()<br/>Splice overlays into base lines"]
         Final["Final output with overlays"]
     end
-    
+
     BaseLines --> Composite
     Overlay1 --> Sorted
     Overlay2 --> Sorted
@@ -194,14 +194,14 @@ Overlays are stored in `TUI.overlayStack` and composited onto base content durin
 
 The `showOverlay()` method returns an `OverlayHandle` that controls the overlay's lifecycle:
 
-| Method | Description |
-|--------|-------------|
-| `hide()` | Permanently removes overlay from stack (cannot be shown again) |
-| `setHidden(hidden)` | Temporarily hides or shows overlay without removing it |
-| `isHidden()` | Returns whether overlay is temporarily hidden |
-| `focus()` | Transfers focus to this overlay and brings it to visual front |
-| `unfocus()` | Releases focus to previous target (preFocus) |
-| `isFocused()` | Returns whether overlay currently has focus |
+| Method              | Description                                                    |
+| ------------------- | -------------------------------------------------------------- |
+| `hide()`            | Permanently removes overlay from stack (cannot be shown again) |
+| `setHidden(hidden)` | Temporarily hides or shows overlay without removing it         |
+| `isHidden()`        | Returns whether overlay is temporarily hidden                  |
+| `focus()`           | Transfers focus to this overlay and brings it to visual front  |
+| `unfocus()`         | Releases focus to previous target (preFocus)                   |
+| `isFocused()`       | Returns whether overlay currently has focus                    |
 
 **Sources:** [packages/tui/src/tui.ts:154-168](), [packages/tui/README.md:101-109]()
 
@@ -212,17 +212,17 @@ stateDiagram-v2
     [*] --> Created: showOverlay(component, options)
     Created --> Visible: Auto-focus (if capturing)
     Created --> VisibleNoFocus: nonCapturing=true
-    
+
     Visible --> TemporarilyHidden: setHidden(true)
     TemporarilyHidden --> Visible: setHidden(false)<br/>focus() restores focusOrder
-    
+
     Visible --> Removed: hide()
     TemporarilyHidden --> Removed: hide()
     VisibleNoFocus --> Removed: hide()
-    
+
     VisibleNoFocus --> Visible: focus()
     Visible --> VisibleNoFocus: unfocus()
-    
+
     Removed --> [*]
 ```
 
@@ -237,19 +237,19 @@ The `OverlayOptions` interface provides multiple positioning modes that can be c
 ```mermaid
 graph TD
     Options["OverlayOptions"]
-    
+
     Options --> Sizing["Sizing"]
     Options --> Position["Position"]
     Options --> Margins["Margins"]
     Options --> Visibility["Visibility"]
-    
+
     Sizing --> Width["width?: SizeValue<br/>minWidth?: number<br/>maxHeight?: SizeValue"]
-    
+
     Position --> Anchor["anchor?: OverlayAnchor<br/>offsetX?: number<br/>offsetY?: number"]
     Position --> Absolute["row?: SizeValue<br/>col?: SizeValue"]
-    
+
     Margins --> MarginOpt["margin?: number | OverlayMargin"]
-    
+
     Visibility --> VisibleFn["visible?: (width, height) => boolean<br/>nonCapturing?: boolean"]
 ```
 
@@ -264,42 +264,42 @@ Overlay position is resolved in this order:
 ```mermaid
 flowchart TD
     Start["resolveOverlayLayout()"]
-    
+
     Start --> ParseMargin["Parse margin<br/>(clamp negative to 0)"]
     ParseMargin --> AvailSpace["availWidth = termWidth - marginLeft - marginRight<br/>availHeight = termHeight - marginTop - marginBottom"]
-    
+
     AvailSpace --> Width["Resolve width"]
     Width --> ParseWidth{width specified?}
     ParseWidth -->|Yes| PctOrAbs{Percentage?}
     PctOrAbs -->|"Yes ('50%')"| PctWidth["width = termWidth * 0.5"]
     PctOrAbs -->|No| AbsWidth["width = width"]
     ParseWidth -->|No| DefaultWidth["width = min(80, availWidth)"]
-    
+
     PctWidth --> ApplyMin["Apply minWidth if specified"]
     AbsWidth --> ApplyMin
     DefaultWidth --> ApplyMin
     ApplyMin --> ClampWidth["Clamp to availWidth"]
-    
+
     ClampWidth --> MaxHeight["Resolve maxHeight (if specified)"]
     MaxHeight --> EffHeight["effectiveHeight = min(overlayHeight, maxHeight)"]
-    
+
     EffHeight --> ResolveRow{row specified?}
     ResolveRow -->|"Percentage ('25%')"| PctRow["row = marginTop + availHeight * 0.25"]
     ResolveRow -->|Absolute| AbsRow["row = row"]
     ResolveRow -->|No| AnchorRow["resolveAnchorRow(anchor, effectiveHeight)"]
-    
+
     PctRow --> ResolveCol{col specified?}
     AbsRow --> ResolveCol
     AnchorRow --> ResolveCol
-    
+
     ResolveCol -->|"Percentage ('50%')"| PctCol["col = marginLeft + availWidth * 0.5"]
     ResolveCol -->|Absolute| AbsCol["col = col"]
     ResolveCol -->|No| AnchorCol["resolveAnchorCol(anchor, width)"]
-    
+
     PctCol --> Offsets
     AbsCol --> Offsets
     AnchorCol --> Offsets
-    
+
     Offsets["Apply offsetX, offsetY"]
     Offsets --> Clamp["Clamp to terminal bounds<br/>(respect margins)"]
     Clamp --> Return["Return width, row, col, maxHeight"]
@@ -313,17 +313,17 @@ flowchart TD
 
 The `OverlayAnchor` type defines 9 standard positions:
 
-| Anchor | Row Calculation | Col Calculation |
-|--------|-----------------|-----------------|
-| `top-left` | `marginTop` | `marginLeft` |
-| `top-center` | `marginTop` | `marginLeft + (availWidth - width) / 2` |
-| `top-right` | `marginTop` | `marginLeft + availWidth - width` |
-| `left-center` | `marginTop + (availHeight - height) / 2` | `marginLeft` |
-| `center` | `marginTop + (availHeight - height) / 2` | `marginLeft + (availWidth - width) / 2` |
-| `right-center` | `marginTop + (availHeight - height) / 2` | `marginLeft + availWidth - width` |
-| `bottom-left` | `marginTop + availHeight - height` | `marginLeft` |
-| `bottom-center` | `marginTop + availHeight - height` | `marginLeft + (availWidth - width) / 2` |
-| `bottom-right` | `marginTop + availHeight - height` | `marginLeft + availWidth - width` |
+| Anchor          | Row Calculation                          | Col Calculation                         |
+| --------------- | ---------------------------------------- | --------------------------------------- |
+| `top-left`      | `marginTop`                              | `marginLeft`                            |
+| `top-center`    | `marginTop`                              | `marginLeft + (availWidth - width) / 2` |
+| `top-right`     | `marginTop`                              | `marginLeft + availWidth - width`       |
+| `left-center`   | `marginTop + (availHeight - height) / 2` | `marginLeft`                            |
+| `center`        | `marginTop + (availHeight - height) / 2` | `marginLeft + (availWidth - width) / 2` |
+| `right-center`  | `marginTop + (availHeight - height) / 2` | `marginLeft + availWidth - width`       |
+| `bottom-left`   | `marginTop + availHeight - height`       | `marginLeft`                            |
+| `bottom-center` | `marginTop + availHeight - height`       | `marginLeft + (availWidth - width) / 2` |
+| `bottom-right`  | `marginTop + availHeight - height`       | `marginLeft + availWidth - width`       |
 
 **Sources:** [packages/tui/src/tui.ts:74-83](), [packages/tui/src/tui.ts:682-714]()
 
@@ -333,10 +333,10 @@ The `visible` callback in `OverlayOptions` allows conditional rendering based on
 
 ```typescript
 tui.showOverlay(component, {
-  width: "25%",
-  anchor: "right-center",
-  visible: (termWidth, termHeight) => termWidth >= 100  // Hide on narrow terminals
-});
+  width: '25%',
+  anchor: 'right-center',
+  visible: (termWidth, termHeight) => termWidth >= 100, // Hide on narrow terminals
+})
 ```
 
 This callback is evaluated every render cycle. If it returns `false`, the overlay is not rendered and does not participate in focus management for that frame.
@@ -352,23 +352,23 @@ sequenceDiagram
     participant User
     participant TUI
     participant Stack as "overlayStack"
-    
+
     User->>TUI: showOverlay(A)
     TUI->>Stack: push({component: A, focusOrder: 1})
     TUI->>TUI: setFocus(A)
-    
+
     User->>TUI: showOverlay(B)
     TUI->>Stack: push({component: B, focusOrder: 2})
     TUI->>TUI: setFocus(B)
-    
+
     User->>TUI: showOverlay(C, {nonCapturing: true})
     TUI->>Stack: push({component: C, focusOrder: 3})
     Note over TUI: Focus stays on B (C is non-capturing)
-    
+
     User->>TUI: handleA.focus()
     TUI->>Stack: A.focusOrder = 4 (bump to top)
     TUI->>TUI: setFocus(A)
-    
+
     Note over TUI: Render order now: B(2), C(3), A(4)<br/>A renders on top
 ```
 
@@ -384,13 +384,13 @@ Overlays with `nonCapturing: true` do not automatically receive focus when shown
 flowchart TD
     ShowOverlay["showOverlay(component, options)"]
     ShowOverlay --> CheckCapturing{nonCapturing?}
-    
+
     CheckCapturing -->|false| CheckVisible{visible() true?}
     CheckCapturing -->|true| NoFocus["Skip auto-focus<br/>Store preFocus"]
-    
+
     CheckVisible -->|true| AutoFocus["setFocus(component)"]
     CheckVisible -->|false| NoFocus
-    
+
     AutoFocus --> Return["Return OverlayHandle"]
     NoFocus --> Return
 ```
@@ -407,14 +407,14 @@ When an overlay is hidden or removed, focus is restored using this logic:
 flowchart TD
     HideOverlay["hide() called on overlay"]
     HideOverlay --> CheckFocused{Overlay has focus?}
-    
+
     CheckFocused -->|No| RemoveOnly["Remove from stack<br/>Done"]
     CheckFocused -->|Yes| FindTop["getTopmostVisibleOverlay()"]
-    
+
     FindTop --> HasTopmost{Found capturing overlay?}
     HasTopmost -->|Yes| FocusTop["setFocus(topmost.component)"]
     HasTopmost -->|No| FocusPreFocus["setFocus(overlay.preFocus)"]
-    
+
     FocusTop --> RemoveFromStack["Remove from stack"]
     FocusPreFocus --> RemoveFromStack
     RemoveOnly --> End
@@ -433,17 +433,17 @@ When a focused overlay becomes invisible (via `visible()` callback returning `fa
 flowchart TD
     Input["handleInput(data)"]
     Input --> CheckOverlay{focusedComponent<br/>is overlay?}
-    
+
     CheckOverlay -->|No| RouteToFocused["Route to focusedComponent"]
     CheckOverlay -->|Yes| CheckVisible{Overlay visible?}
-    
+
     CheckVisible -->|Yes| RouteToFocused
     CheckVisible -->|No| FindRedirect["getTopmostVisibleOverlay()"]
-    
+
     FindRedirect --> HasVisible{Found capturing overlay?}
     HasVisible -->|Yes| SetFocusTop["setFocus(topmost.component)"]
     HasVisible -->|No| SetFocusPreFocus["setFocus(overlay.preFocus)"]
-    
+
     SetFocusTop --> RouteToFocused
     SetFocusPreFocus --> RouteToFocused
 ```
@@ -459,26 +459,26 @@ Overlays are composited onto base content using `compositeLineAt()`, which splic
 ```mermaid
 flowchart TD
     Composite["compositeOverlays(baseLines, termWidth, termHeight)"]
-    
+
     Composite --> Filter["Filter to visible overlays"]
     Filter --> Sort["Sort by focusOrder"]
     Sort --> PreRender["Pre-render all overlays"]
-    
+
     PreRender --> CalcLayout["For each overlay:<br/>resolveOverlayLayout()"]
     CalcLayout --> RenderOverlay["component.render(width)"]
     RenderOverlay --> ApplyMaxHeight["Truncate to maxHeight if needed"]
-    
+
     ApplyMaxHeight --> PadBase["Pad baseLines to working area<br/>max(maxLinesRendered, minLinesNeeded)"]
-    
+
     PadBase --> CompositeLoop["For each overlay line"]
     CompositeLoop --> CompositeLine["compositeLineAt(baseLine, overlayLine, col, width)"]
-    
+
     CompositeLine --> Extract["extractSegments(baseLine, startCol, endCol)"]
     Extract --> Slice["sliceWithWidth(overlayLine, 0, width)"]
     Slice --> Pad["Pad segments to target widths"]
     Pad --> Compose["before + overlay + after + SEGMENT_RESET"]
     Compose --> Truncate["Truncate to termWidth if overflow"]
-    
+
     Truncate --> NextLine{More lines?}
     NextLine -->|Yes| CompositeLoop
     NextLine -->|No| Return["Return composited lines"]

@@ -20,11 +20,9 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers how the core agent system maps raw API streaming events into protocol-level `EventMsg` variants, how `SessionState` accumulates and updates per-turn data (token usage, rate limits, MCP tool selection, conversation history), and how those updates flow from the end of each turn back into the session for subsequent turns.
 
-For the `Op` submission side of the protocol (how messages get *in* to the session), see [Protocol Layer (Submission/Event System)](#2.1). For conversation history representation and truncation, see [Conversation History Management](#3.5). For how `RegularTask` assembles the prompt before streaming begins, see [Turn Execution and Prompt Construction](#3.3).
+For the `Op` submission side of the protocol (how messages get _in_ to the session), see [Protocol Layer (Submission/Event System)](#2.1). For conversation history representation and truncation, see [Conversation History Management](#3.5). For how `RegularTask` assembles the prompt before streaming begins, see [Turn Execution and Prompt Construction](#3.3).
 
 ---
 
@@ -75,13 +73,13 @@ Sources: [codex-rs/core/src/codex.rs:43-48](), [codex-rs/core/src/client_common.
 
 `parse_turn_item` (exported from `event_mapping.rs`) converts a low-level `ResponseEvent` from the API into a higher-level `TurnItem`. The `TurnItem` enum covers the meaningful content types the agent can produce:
 
-| `TurnItem` variant | Source data |
-|---|---|
-| `AgentMessageItem` | Text output from the assistant |
-| `ReasoningItem` | Encrypted or summarized reasoning blocks |
-| `UserMessageItem` | User-role messages injected by the system |
-| `WebSearchItem` | Web search calls and their results |
-| `Plan(PlanItem)` | Structured plan proposed by the model |
+| `TurnItem` variant | Source data                               |
+| ------------------ | ----------------------------------------- |
+| `AgentMessageItem` | Text output from the assistant            |
+| `ReasoningItem`    | Encrypted or summarized reasoning blocks  |
+| `UserMessageItem`  | User-role messages injected by the system |
+| `WebSearchItem`    | Web search calls and their results        |
+| `Plan(PlanItem)`   | Structured plan proposed by the model     |
 
 After `parse_turn_item` produces a `TurnItem`, it is wrapped into an `EventMsg::ItemCompleted(ItemCompletedEvent { item, .. })` and emitted when the item is done.
 
@@ -152,16 +150,16 @@ Sources: [codex-rs/protocol/src/protocol.rs:1-54](), [codex-rs/exec/src/event_pr
 
 Key event payloads:
 
-| Event | Key payload fields |
-|---|---|
-| `SessionConfiguredEvent` | `session_id`, `model`, `initial_messages` |
-| `TurnCompleteEvent` | `last_agent_message: Option<String>` |
-| `TurnAbortedEvent` | `reason: TurnAbortReason` |
-| `TokenCountEvent` | `info: Option<TokenUsageInfo>` |
+| Event                      | Key payload fields                                   |
+| -------------------------- | ---------------------------------------------------- |
+| `SessionConfiguredEvent`   | `session_id`, `model`, `initial_messages`            |
+| `TurnCompleteEvent`        | `last_agent_message: Option<String>`                 |
+| `TurnAbortedEvent`         | `reason: TurnAbortReason`                            |
+| `TokenCountEvent`          | `info: Option<TokenUsageInfo>`                       |
 | `ExecApprovalRequestEvent` | `command`, `cwd`, `call_id`, `approval_id`, `reason` |
-| `StreamErrorEvent` | `message`, `additional_details` |
-| `TurnDiffEvent` | `changes: Vec<FileChange>` |
-| `ModelRerouteEvent` | `reason: ModelRerouteReason`, new model slug |
+| `StreamErrorEvent`         | `message`, `additional_details`                      |
+| `TurnDiffEvent`            | `changes: Vec<FileChange>`                           |
+| `ModelRerouteEvent`        | `reason: ModelRerouteReason`, new model slug         |
 
 ---
 
@@ -271,10 +269,10 @@ Sources: [codex-rs/core/src/state/session.rs:116-127]()
 
 Two update paths exist:
 
-| Method | Behavior |
-|---|---|
-| `merge_mcp_tool_selection(tool_names)` | Adds new tool names to the existing set; returns the full merged list |
-| `set_mcp_tool_selection(tool_names)` | Replaces the selection (deduplicated); clears it if `tool_names` is empty |
+| Method                                 | Behavior                                                                  |
+| -------------------------------------- | ------------------------------------------------------------------------- |
+| `merge_mcp_tool_selection(tool_names)` | Adds new tool names to the existing set; returns the full merged list     |
+| `set_mcp_tool_selection(tool_names)`   | Replaces the selection (deduplicated); clears it if `tool_names` is empty |
 
 The `active_mcp_tool_selection` is read back at each turn to filter which MCP tools are offered to the model in the prompt's tool list, rather than including all tools from all configured MCP servers.
 
@@ -333,10 +331,10 @@ Sources: [codex-rs/core/src/codex.rs:43-55](), [codex-rs/core/src/state/session.
 
 Not all events are written to the session's rollout JSONL file. The `EventPersistenceMode` enum in `codex-rs/core/src/rollout/policy.rs` controls which items are persisted:
 
-| Persistence Mode | Description |
-|---|---|
-| `Limited` (default) | Only a curated subset of `EventMsg` variants |
-| `Extended` | A broader set, used when `persist_extended_history` is enabled |
+| Persistence Mode    | Description                                                    |
+| ------------------- | -------------------------------------------------------------- |
+| `Limited` (default) | Only a curated subset of `EventMsg` variants                   |
+| `Extended`          | A broader set, used when `persist_extended_history` is enabled |
 
 `RolloutItem` wraps the persisted content:
 
@@ -380,17 +378,17 @@ Sources: [codex-rs/core/src/codex.rs:489](), [codex-rs/core/src/codex.rs:583-585
 
 `TurnContext` is assembled from `SessionState` at the start of each turn and passed to the running task. It is **not mutated** during the turn—it represents a frozen view of session settings for that turn's duration:
 
-| `TurnContext` field | Source |
-|---|---|
-| `model_info: ModelInfo` | Resolved from `SessionConfiguration::collaboration_mode` |
-| `reasoning_effort` | From collaboration mode or per-turn override |
-| `cwd: PathBuf` | From session or per-turn `Op::UserTurn` |
-| `approval_policy` | From `SessionConfiguration` (constrained) |
-| `sandbox_policy` | From `SessionConfiguration` (constrained) |
-| `tools_config: ToolsConfig` | Built from model info + features |
-| `turn_metadata_state` | Used to build `x-codex-turn-metadata` request header |
-| `features: Features` | Invariant for session lifetime |
-| `dynamic_tools` | From session configuration |
+| `TurnContext` field         | Source                                                   |
+| --------------------------- | -------------------------------------------------------- |
+| `model_info: ModelInfo`     | Resolved from `SessionConfiguration::collaboration_mode` |
+| `reasoning_effort`          | From collaboration mode or per-turn override             |
+| `cwd: PathBuf`              | From session or per-turn `Op::UserTurn`                  |
+| `approval_policy`           | From `SessionConfiguration` (constrained)                |
+| `sandbox_policy`            | From `SessionConfiguration` (constrained)                |
+| `tools_config: ToolsConfig` | Built from model info + features                         |
+| `turn_metadata_state`       | Used to build `x-codex-turn-metadata` request header     |
+| `features: Features`        | Invariant for session lifetime                           |
+| `dynamic_tools`             | From session configuration                               |
 
 `TurnContext::to_turn_context_item()` serializes the turn config into a `TurnContextItem` that is stored in the rollout file as `RolloutItem::TurnContext`, making per-turn settings reproducible during session replay.
 

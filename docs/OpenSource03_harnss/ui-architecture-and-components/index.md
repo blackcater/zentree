@@ -5,7 +5,7 @@
 
 The following files were used as context for generating this wiki page:
 
-- [electron/src/lib/__tests__/layout-constants.test.ts](electron/src/lib/__tests__/layout-constants.test.ts)
+- [electron/src/lib/**tests**/layout-constants.test.ts](electron/src/lib/__tests__/layout-constants.test.ts)
 - [src/components/AppLayout.tsx](src/components/AppLayout.tsx)
 - [src/components/AppSidebar.tsx](src/components/AppSidebar.tsx)
 - [src/components/ui/text-shimmer.tsx](src/components/ui/text-shimmer.tsx)
@@ -16,8 +16,6 @@ The following files were used as context for generating this wiki page:
 - [src/lib/streaming-buffer.ts](src/lib/streaming-buffer.ts)
 
 </details>
-
-
 
 The Harnss UI is a high-performance React application running within an Electron renderer process. It is designed to handle high-frequency streaming updates from multiple AI engines while maintaining a responsive, multi-pane layout. The architecture emphasizes a "shell" approach where the core layout orchestrates several specialized, always-mounted panels.
 
@@ -41,7 +39,7 @@ graph TD
         C --> ChatView["ChatView.tsx"]
         D --> BottomComposer["BottomComposer.tsx"]
         E --> ToolsPanel["ToolsPanel.tsx"]
-        
+
         AppLayout --> useAppOrchestrator["useAppOrchestrator.ts"]
         AppLayout --> usePanelResize["usePanelResize.ts"]
         ToolsPanel --> BrowserPanel["BrowserPanel.tsx"]
@@ -49,15 +47,17 @@ graph TD
         ToolsPanel --> FilesPanel["FilesPanel.tsx"]
     end
 ```
+
 **Sources:** [src/components/AppLayout.tsx:56-79](), [src/components/AppSidebar.tsx:45-75](), [src/components/ToolsPanel.tsx:30-40]()
 
 ---
 
 ## [App Layout & Panel System](#5.1)
 
-The `AppLayout` serves as the root container for the entire workspace. It utilizes a custom `usePanelResize` hook to manage the flexible distribution of space between the sidebar, the central chat view, and the auxiliary tool panels. 
+The `AppLayout` serves as the root container for the entire workspace. It utilizes a custom `usePanelResize` hook to manage the flexible distribution of space between the sidebar, the central chat view, and the auxiliary tool panels.
 
 The system supports two primary visual modes:
+
 - **Island Mode:** A modern, floating-pane aesthetic with rounded corners (`ISLAND_RADIUS`) and defined gaps (`ISLAND_GAP`) between panels.
 - **Flat Mode:** A traditional edge-to-edge layout for maximum screen real estate.
 
@@ -71,9 +71,10 @@ For details, see [App Layout & Panel System](#5.1).
 
 ## [Chat Interface: ChatView & MessageBubble](#5.2)
 
-The `ChatView` is the primary interaction surface. Because AI conversations can grow to hundreds of messages with large tool outputs, it employs a virtualized list via `@tanstack/react-virtual`. 
+The `ChatView` is the primary interaction surface. Because AI conversations can grow to hundreds of messages with large tool outputs, it employs a virtualized list via `@tanstack/react-virtual`.
 
 Key architectural features include:
+
 - **RowDescriptor Model:** A normalization layer that converts raw session messages into renderable rows, grouping consecutive tool calls into `ToolGroupBlock` components.
 - **Streaming Performance:** Uses a `StreamingBuffer` to handle incremental text and "thinking" deltas. It employs a `mergeStreamingChunk` strategy to detect and deduplicate overlapping content snapshots sent by AI SDKs.
 
@@ -86,6 +87,7 @@ For details, see [Chat Interface: ChatView & MessageBubble](#5.2).
 ## [Input Bar & Message Composition](#5.3)
 
 The `BottomComposer` manages the `InputBar`, a sophisticated `contentEditable` component. It handles complex message preparation, including:
+
 - **Context Attachment:** Managing "grabbed" elements from the browser, image attachments, and @-mentions for files or folders.
 - **Protocol Wrapping:** Before sending, the composer runs an extraction pipeline to wrap content in XML structures expected by the underlying AI engines.
 
@@ -100,6 +102,7 @@ For details, see [Input Bar & Message Composition](#5.3).
 `AppSidebar` provides the hierarchical navigation for Harnss. It organizes work into **Spaces** (logical groupings), **Projects** (file-system backed directories), and **Sessions** (individual chat threads).
 
 The sidebar features:
+
 - **SpaceBar:** A vertical strip for switching between high-level contexts.
 - **Dynamic CSS Masking:** Implements "scroll fades" using `linear-gradient` masks to provide visual cues when content extends beyond the viewport.
 - **State Polling:** Lightweight polling (every 5s) to sync settings like `defaultChatLimit` from the main process without requiring a full app reload.
@@ -113,6 +116,7 @@ For details, see [Sidebar, Spaces & Project Navigation](#5.4).
 ## [Tool Renderers & Diff Viewers](#5.5)
 
 AI tool calls (like `write_to_file` or `bash`) are not just text; they are rendered as interactive cards within the chat thread. The `ToolGroupBlock` dispatches these calls to specific renderers:
+
 - **EditContent/WriteContent:** Normalizes patch entries into a `StructuredPatchEntry`.
 - **DiffViewer:** Provides side-by-side or unified diff views for file changes.
 
@@ -126,13 +130,13 @@ For details, see [Tool Renderers & Diff Viewers](#5.5).
 
 Harnss includes a suite of dockable panels that provide deep integration with the developer's environment. These panels are managed by the `ToolsPanel` and are often "always-mounted" to preserve state (like terminal history or browser scroll position).
 
-| Panel | Implementation | Key Responsibility |
-| :--- | :--- | :--- |
-| **Git** | `GitPanel` | Worktree management, diffing, and committing. |
-| **Browser** | `BrowserPanel` | Electron `<webview>` for web testing and element grabbing. |
-| **Files** | `FilesPanel` | Project-wide file tree and search. |
-| **Terminal** | `TerminalPanel` | Integrated shell access via `node-pty`. |
-| **MCP** | `McpPanel` | Management of Model Context Protocol servers. |
+| Panel        | Implementation  | Key Responsibility                                         |
+| :----------- | :-------------- | :--------------------------------------------------------- |
+| **Git**      | `GitPanel`      | Worktree management, diffing, and committing.              |
+| **Browser**  | `BrowserPanel`  | Electron `<webview>` for web testing and element grabbing. |
+| **Files**    | `FilesPanel`    | Project-wide file tree and search.                         |
+| **Terminal** | `TerminalPanel` | Integrated shell access via `node-pty`.                    |
+| **MCP**      | `McpPanel`      | Management of Model Context Protocol servers.              |
 
 For details, see [Developer Tool Panels](#5.6).
 
@@ -162,4 +166,5 @@ graph LR
     Layout --> Settings
     Layout --> SpaceTheme
 ```
+
 **Sources:** [src/components/AppLayout.tsx:5-7](), [src/components/AppLayout.tsx:57-79]()

@@ -8,7 +8,7 @@ The following files were used as context for generating this wiki page:
 - [examples/bird-checker-with-express/src/index.ts](examples/bird-checker-with-express/src/index.ts)
 - [examples/bird-checker-with-nextjs-and-eval/src/lib/mastra/actions.ts](examples/bird-checker-with-nextjs-and-eval/src/lib/mastra/actions.ts)
 - [packages/core/src/action/index.ts](packages/core/src/action/index.ts)
-- [packages/core/src/agent/__tests__/utils.test.ts](packages/core/src/agent/__tests__/utils.test.ts)
+- [packages/core/src/agent/**tests**/utils.test.ts](packages/core/src/agent/__tests__/utils.test.ts)
 - [packages/core/src/agent/agent-legacy.ts](packages/core/src/agent/agent-legacy.ts)
 - [packages/core/src/agent/agent.test.ts](packages/core/src/agent/agent.test.ts)
 - [packages/core/src/agent/agent.ts](packages/core/src/agent/agent.ts)
@@ -35,8 +35,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents how tools are defined, registered, and executed within the Mastra framework. It covers the tool schema definition process, the execution context available to tools during runtime, and the lifecycle of tool invocation from registration through execution.
 
 For information about tool integration with agents, see [Agent System](#3). For details on the tool builder patterns and schema conversion, see [Tool Builder and Schema Conversion](#6.2).
@@ -57,7 +55,7 @@ graph TD
     ToolDef --> InputSchema["inputSchema<br/>Zod or JSON Schema"]
     ToolDef --> OutputSchema["outputSchema<br/>Optional, Zod or JSON Schema"]
     ToolDef --> Execute["execute: async function"]
-    
+
     Execute --> ExecContext["ToolExecutionContext"]
     ExecContext --> ContextInput["context.input<br/>Validated Parameters"]
     ExecContext --> ThreadId["context.threadId"]
@@ -65,7 +63,7 @@ graph TD
     ExecContext --> RunId["context.runId"]
     ExecContext --> ReqContext["context.requestContext"]
     ExecContext --> TracingCtx["context.tracingContext"]
-    
+
     InputSchema --> Validation["Schema Validation<br/>Before Execution"]
     Validation --> Execute
 ```
@@ -73,6 +71,7 @@ graph TD
 **Sources:** [packages/core/src/agent/workflows/prepare-stream/schema.ts:37-49](), [packages/core/src/agent/types.ts:51-54]()
 
 The tool definition creates a strongly-typed interface that ensures:
+
 - Input parameters are validated against the schema before execution
 - Output can optionally be validated for consistency
 - Execution context provides runtime information (thread, resource, run IDs)
@@ -82,11 +81,11 @@ The tool definition creates a strongly-typed interface that ensures:
 
 Mastra accepts three categories of tools, allowing integration with different ecosystems:
 
-| Tool Type | Description | Key Characteristic |
-|-----------|-------------|-------------------|
-| **Mastra ToolAction** | Native Mastra tools created with `createTool` | Includes `ToolExecutionContext` with full Mastra runtime information |
-| **Vercel AI SDK Tools** | Tools from AI SDK v4/v5 (`tool()` function) | Compatible with AI SDK tool format |
-| **Provider-Defined Tools** | Native provider tools (e.g., `google.tools.googleSearch()`) | Provider-specific tool implementations |
+| Tool Type                  | Description                                                 | Key Characteristic                                                   |
+| -------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------- |
+| **Mastra ToolAction**      | Native Mastra tools created with `createTool`               | Includes `ToolExecutionContext` with full Mastra runtime information |
+| **Vercel AI SDK Tools**    | Tools from AI SDK v4/v5 (`tool()` function)                 | Compatible with AI SDK tool format                                   |
+| **Provider-Defined Tools** | Native provider tools (e.g., `google.tools.googleSearch()`) | Provider-specific tool implementations                               |
 
 **Sources:** [packages/core/src/agent/types.ts:51-54]()
 
@@ -108,21 +107,21 @@ graph TB
         RequestContext["requestContext<br/>Dynamic configuration & state"]
         TracingContext["tracingContext<br/>Observability span hierarchy"]
     end
-    
+
     subgraph "Context Population"
         PrepareTools["prepare-tools-step"]
         ConvertTools["convertTools()"]
         AgentConfig["Agent Configuration"]
         MemoryConfig["Memory Configuration"]
     end
-    
+
     subgraph "Usage in Tool"
         Execute["execute(context)"]
         ReadState["Read memory/resource IDs"]
         CreateSpan["Create tracing spans"]
         AccessConfig["Access request context"]
     end
-    
+
     AgentConfig --> PrepareTools
     MemoryConfig --> PrepareTools
     PrepareTools --> ConvertTools
@@ -131,14 +130,14 @@ graph TB
     ConvertTools --> RunId
     ConvertTools --> RequestContext
     ConvertTools --> TracingContext
-    
+
     ThreadId --> Execute
     ResourceId --> Execute
     RunId --> Execute
     RequestContext --> Execute
     TracingContext --> Execute
     Input --> Execute
-    
+
     Execute --> ReadState
     Execute --> CreateSpan
     Execute --> AccessConfig
@@ -180,30 +179,30 @@ sequenceDiagram
     participant ConvertTools as convertTools()
     participant Stream as Model Loop
     participant ToolExec as Tool execute()
-    
+
     Dev->>Agent: Define Agent with tools config
     Note over Dev,Agent: Tools as static object<br/>or dynamic function
-    
+
     Agent->>PrepTools: Execution begins
     Note over PrepTools: Creates prepare-tools-step<br/>workflow step
-    
+
     PrepTools->>ConvertTools: Call convertTools()
     Note over PrepTools,ConvertTools: Passes toolsets, clientTools,<br/>threadId, resourceId, runId,<br/>requestContext, tracingContext
-    
+
     ConvertTools->>ConvertTools: Resolve dynamic tools<br/>if tools is a function
     ConvertTools->>ConvertTools: Convert to CoreTool format
     Note over ConvertTools: Wraps execute with context:<br/>threadId, resourceId, runId,<br/>requestContext, tracingContext
-    
+
     ConvertTools-->>PrepTools: Return convertedTools
     PrepTools-->>Agent: Tools ready for execution
-    
+
     Agent->>Stream: Pass tools to model loop
     Note over Stream: Tools sent to LLM<br/>as available functions
-    
+
     Stream->>Stream: LLM decides to call tool
     Stream->>ToolExec: Execute tool with context
     Note over ToolExec: Tool receives full<br/>ToolExecutionContext
-    
+
     ToolExec-->>Stream: Return tool result
     Stream->>Stream: Feed result back to LLM
     Stream-->>Agent: Continue execution
@@ -216,6 +215,7 @@ sequenceDiagram
 **1. Registration Phase**
 
 Tools are registered with an agent via the `tools` configuration parameter in the agent constructor. Tools can be provided as:
+
 - Static object: `tools: { myTool: createTool(...) }`
 - Dynamic function: `tools: ({ requestContext }) => { ... }`
 
@@ -224,6 +224,7 @@ Tools are registered with an agent via the `tools` configuration parameter in th
 **2. Preparation Phase**
 
 During agent execution, the `prepare-tools-step` workflow step prepares tools for the model loop:
+
 - Resolves dynamic tool functions using the current `requestContext`
 - Merges toolsets and client-side tools
 - Injects memory and resource context (threadId, resourceId)
@@ -234,6 +235,7 @@ During agent execution, the `prepare-tools-step` workflow step prepares tools fo
 **3. Conversion Phase**
 
 The `convertTools()` method transforms tools into the `CoreTool` format expected by the model loop:
+
 - Wraps the tool's `execute` function with context injection
 - Attaches threadId, resourceId, runId, requestContext, tracingContext
 - Converts schemas to the format required by the AI SDK
@@ -243,6 +245,7 @@ The `convertTools()` method transforms tools into the `CoreTool` format expected
 **4. Execution Phase**
 
 When the LLM decides to call a tool:
+
 - The model loop invokes the tool's wrapped `execute` function
 - The tool receives the complete `ToolExecutionContext`
 - The tool executes and returns a result
@@ -265,21 +268,21 @@ graph LR
         ZodInput["Zod Schema<br/>z.object(...)"]
         JSONInput["JSON Schema<br/>JSONSchema7 object"]
     end
-    
+
     subgraph "Output Schema (Optional)"
         ZodOutput["Zod Schema<br/>z.object(...)"]
         JSONOutput["JSON Schema<br/>JSONSchema7 object"]
     end
-    
+
     subgraph "Validation"
         InputValidation["Input Validation<br/>Before execute()"]
         OutputValidation["Output Validation<br/>After execute() (optional)"]
     end
-    
+
     ZodInput --> InputValidation
     JSONInput --> InputValidation
     InputValidation --> Execute["execute(context)"]
-    
+
     Execute --> OutputValidation
     ZodOutput --> OutputValidation
     JSONOutput --> OutputValidation
@@ -310,22 +313,22 @@ Mastra's tool system supports multiple tool formats through a unified interface,
 ```mermaid
 graph TD
     ToolsInput["ToolsInput<br/>Record<string, ...>"]
-    
+
     ToolsInput --> MastraTool["ToolAction<br/>Mastra native tool"]
     ToolsInput --> VercelV4["VercelTool<br/>AI SDK v4 tool"]
     ToolsInput --> VercelV5["VercelToolV5<br/>AI SDK v5 tool"]
     ToolsInput --> Provider["ProviderDefinedTool<br/>e.g. google.tools.*"]
-    
+
     MastraTool --> ExecuteContext["Has ToolExecutionContext<br/>Full Mastra context"]
     VercelV4 --> ExecuteSimple["Has execute(args)<br/>Parameters only"]
     VercelV5 --> ExecuteSimple
     Provider --> ExecuteNative["Provider-specific<br/>execution"]
-    
+
     subgraph "Conversion to CoreTool"
         ConvertProcess["convertTools() method"]
         CoreFormat["CoreTool unified format"]
     end
-    
+
     MastraTool --> ConvertProcess
     VercelV4 --> ConvertProcess
     VercelV5 --> ConvertProcess
@@ -348,9 +351,16 @@ createTool({
   outputSchema: z.object({ result: z.string() }),
   execute: async (context) => {
     // Access full ToolExecutionContext
-    const { input, threadId, resourceId, runId, requestContext, tracingContext } = context;
+    const {
+      input,
+      threadId,
+      resourceId,
+      runId,
+      requestContext,
+      tracingContext,
+    } = context
     // Implementation...
-  }
+  },
 })
 ```
 
@@ -360,10 +370,10 @@ createTool({
 
 Tools can be designated as client-side or server-side based on where they execute:
 
-| Tool Category | Execution Location | Use Case |
-|---------------|-------------------|----------|
-| **Server-Side Tools** | Agent runtime environment | Database access, API calls, file operations |
-| **Client Tools** | Client application (browser/app) | User interactions, UI updates, client-only APIs |
+| Tool Category         | Execution Location               | Use Case                                        |
+| --------------------- | -------------------------------- | ----------------------------------------------- |
+| **Server-Side Tools** | Agent runtime environment        | Database access, API calls, file operations     |
+| **Client Tools**      | Client application (browser/app) | User interactions, UI updates, client-only APIs |
 
 Client tools are registered via the `clientTools` parameter and are included in the tool set but marked for client-side execution. The agent streams tool calls to the client, which executes them and returns results.
 
@@ -383,19 +393,19 @@ graph TB
         OriginalTool["Original Tool Definition"]
         RuntimeContext["Runtime Context<br/>threadId, resourceId, runId,<br/>requestContext, tracingContext"]
     end
-    
+
     subgraph "Conversion Process"
         WrapExecute["Wrap execute() function"]
         InjectContext["Inject context parameters"]
         CreateCoreTool["Create CoreTool"]
     end
-    
+
     subgraph "Output CoreTool"
         CoreToolObj["CoreTool object"]
         WrappedExecute["execute(args, context)"]
         ContextAvailable["Full ToolExecutionContext<br/>available during execution"]
     end
-    
+
     OriginalTool --> WrapExecute
     RuntimeContext --> InjectContext
     WrapExecute --> InjectContext
@@ -426,32 +436,32 @@ sequenceDiagram
     participant ToolWrapper as Wrapped Tool Execute
     participant CoreTool as Tool Implementation
     participant Tracing as Tracing System
-    
+
     LLM->>Loop: Generate response with tool call
     Note over LLM,Loop: LLM decides to call tool<br/>with specific arguments
-    
+
     Loop->>Loop: Validate tool exists
     Loop->>Loop: Validate arguments against schema
-    
+
     Loop->>Tracing: Create tool execution span
     Note over Tracing: Span includes tool name,<br/>arguments, runId, threadId
-    
+
     Loop->>ToolWrapper: execute(args, context)
     Note over ToolWrapper: Context injection happens here
-    
+
     ToolWrapper->>CoreTool: Call implementation with context
     Note over CoreTool: Tool receives:<br/>input, threadId, resourceId,<br/>runId, requestContext,<br/>tracingContext
-    
+
     CoreTool-->>ToolWrapper: Return result
     ToolWrapper->>ToolWrapper: Apply toModelOutput<br/>if defined
     ToolWrapper-->>Loop: Return formatted result
-    
+
     Loop->>Tracing: End tool execution span
     Note over Tracing: Records result, errors,<br/>execution time
-    
+
     Loop->>LLM: Feed tool result back
     Note over Loop,LLM: Result added to conversation<br/>as tool-result message
-    
+
     LLM->>Loop: Continue generation
 ```
 

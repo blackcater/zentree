@@ -59,8 +59,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers how OpenClaw configures AI model providers, stores and resolves credentials, selects primary and fallback models, and exposes the `openclaw models` CLI commands. It applies to the agent-side model API (Anthropic, OpenAI, Ollama, etc.).
 
 For **Gateway authentication** (WebSocket token, password, Tailscale), see page [2.2](#2.2). For the full `openclaw.json` configuration reference, see page [2.3.1](#2.3.1).
@@ -75,12 +73,12 @@ Credentials for model providers are stored in `auth-profiles.json`, located in t
 
 Profile IDs follow the pattern `<provider>:<name>`, e.g.:
 
-| Profile ID | Meaning |
-|---|---|
-| `anthropic:default` | Default Anthropic credentials |
-| `openai-codex:user@example.com` | Codex OAuth keyed by email |
-| `google:default` | Default Google Gemini credentials |
-| `minimax:default` | Default MiniMax credentials |
+| Profile ID                      | Meaning                           |
+| ------------------------------- | --------------------------------- |
+| `anthropic:default`             | Default Anthropic credentials     |
+| `openai-codex:user@example.com` | Codex OAuth keyed by email        |
+| `google:default`                | Default Google Gemini credentials |
+| `minimax:default`               | Default MiniMax credentials       |
 
 The name segment is typically `default` for API keys or the account email for OAuth profiles.
 
@@ -88,11 +86,11 @@ The name segment is typically `default` for API keys or the account email for OA
 
 The `profiles` map in `auth-profiles.json` contains entries of three types:
 
-| `type` | Fields | Used for |
-|---|---|---|
-| `api_key` | `key` (string) or `keyRef` (SecretRef) | API keys for most providers |
-| `oauth` | `access`, `refresh`, `expires`, `email` | OAuth flows (OpenAI Codex, GitHub Copilot, Chutes, etc.) |
-| `token` | `token`, optional `expires` | Anthropic setup-token |
+| `type`    | Fields                                  | Used for                                                 |
+| --------- | --------------------------------------- | -------------------------------------------------------- |
+| `api_key` | `key` (string) or `keyRef` (SecretRef)  | API keys for most providers                              |
+| `oauth`   | `access`, `refresh`, `expires`, `email` | OAuth flows (OpenAI Codex, GitHub Copilot, Chutes, etc.) |
+| `token`   | `token`, optional `expires`             | Anthropic setup-token                                    |
 
 `SecretRef` objects (type `keyRef`) allow storing a reference to an environment variable instead of the raw key value:
 
@@ -116,20 +114,20 @@ The `AuthChoice` union type in [src/commands/onboard-types.ts:5-53]() enumerates
 
 ### Common Provider Auth Flows
 
-| Auth Choice | Profile Type | Profile ID | Mechanism |
-|---|---|---|---|
-| `apiKey` | `api_key` | `anthropic:default` | Anthropic API key |
-| `token` | `token` | `anthropic:<name>` | Anthropic setup-token (from `claude setup-token`) |
-| `openai-api-key` | `api_key` | `openai:default` | OpenAI API key |
-| `openai-codex` | `oauth` | `openai-codex:<email>` | OpenAI Codex OAuth (ChatGPT subscription) |
-| `gemini-api-key` | `api_key` | `google:default` | Google Gemini API key |
-| `google-gemini-cli` | `oauth` | `google:<email>` | Gemini CLI OAuth (unofficial) |
-| `github-copilot` | `oauth` | `github-copilot:*` | GitHub device-flow OAuth |
-| `openrouter-api-key` | `api_key` | `openrouter:default` | OpenRouter API key |
-| `minimax-api` | `api_key` | `minimax:default` | MiniMax API key |
-| `minimax-portal` | `oauth` | `minimax-portal:*` | MiniMax OAuth |
-| `moonshot-api-key` | `api_key` | `moonshot:default` | Moonshot (Kimi) API key |
-| `vllm` | `api_key` | `vllm:default` | vLLM (any value) |
+| Auth Choice          | Profile Type | Profile ID             | Mechanism                                         |
+| -------------------- | ------------ | ---------------------- | ------------------------------------------------- |
+| `apiKey`             | `api_key`    | `anthropic:default`    | Anthropic API key                                 |
+| `token`              | `token`      | `anthropic:<name>`     | Anthropic setup-token (from `claude setup-token`) |
+| `openai-api-key`     | `api_key`    | `openai:default`       | OpenAI API key                                    |
+| `openai-codex`       | `oauth`      | `openai-codex:<email>` | OpenAI Codex OAuth (ChatGPT subscription)         |
+| `gemini-api-key`     | `api_key`    | `google:default`       | Google Gemini API key                             |
+| `google-gemini-cli`  | `oauth`      | `google:<email>`       | Gemini CLI OAuth (unofficial)                     |
+| `github-copilot`     | `oauth`      | `github-copilot:*`     | GitHub device-flow OAuth                          |
+| `openrouter-api-key` | `api_key`    | `openrouter:default`   | OpenRouter API key                                |
+| `minimax-api`        | `api_key`    | `minimax:default`      | MiniMax API key                                   |
+| `minimax-portal`     | `oauth`      | `minimax-portal:*`     | MiniMax OAuth                                     |
+| `moonshot-api-key`   | `api_key`    | `moonshot:default`     | Moonshot (Kimi) API key                           |
+| `vllm`               | `api_key`    | `vllm:default`         | vLLM (any value)                                  |
 
 For OAuth providers, `writeOAuthCredentials` in [src/commands/onboard-auth.credentials.ts:153-199]() handles persisting the credentials and broadcasting to sibling agent directories when `syncSiblingAgents` is set.
 
@@ -287,35 +285,35 @@ Explicit provider entries live under `models.providers` in `openclaw.json`. Each
 {
   models: {
     providers: {
-      "openrouter": {
-        baseUrl: "https://openrouter.ai/api/v1",
-        api: "openai-completions",        // or "anthropic-messages", "ollama"
-        apiKey: "OPENROUTER_API_KEY",     // env var name or literal value
+      openrouter: {
+        baseUrl: 'https://openrouter.ai/api/v1',
+        api: 'openai-completions', // or "anthropic-messages", "ollama"
+        apiKey: 'OPENROUTER_API_KEY', // env var name or literal value
         models: [
           {
-            id: "auto",
-            name: "OpenRouter Auto",
+            id: 'auto',
+            name: 'OpenRouter Auto',
             reasoning: false,
-            input: ["text", "image"],
+            input: ['text', 'image'],
             contextWindow: 200000,
             maxTokens: 8192,
-            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
-          }
-        ]
-      }
-    }
-  }
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          },
+        ],
+      },
+    },
+  },
 }
 ```
 
 The `api` field selects the wire protocol:
 
-| Value | Wire Protocol |
-|---|---|
-| `anthropic-messages` | Anthropic Messages API |
-| `openai-completions` | OpenAI chat completions |
-| `openai-responses` | OpenAI responses API |
-| `ollama` | Ollama native API (`/api/chat`) |
+| Value                | Wire Protocol                   |
+| -------------------- | ------------------------------- |
+| `anthropic-messages` | Anthropic Messages API          |
+| `openai-completions` | OpenAI chat completions         |
+| `openai-responses`   | OpenAI responses API            |
+| `ollama`             | Ollama native API (`/api/chat`) |
 
 A common misconfiguration is setting `apiKey: "${ENV_VAR}"` instead of `apiKey: "ENV_VAR"`. The `normalizeApiKeyConfig` function in [src/agents/models-config.providers.ts:387-391]() automatically strips the `${}` wrapper.
 
@@ -387,14 +385,11 @@ Model selection is configured in `agents.defaults.model` (or per-agent `agents.l
   agents: {
     defaults: {
       model: {
-        primary: "anthropic/claude-sonnet-4-5",
-        fallbacks: [
-          "openai-codex/gpt-5.3-codex",
-          "openrouter/auto"
-        ]
-      }
-    }
-  }
+        primary: 'anthropic/claude-sonnet-4-5',
+        fallbacks: ['openai-codex/gpt-5.3-codex', 'openrouter/auto'],
+      },
+    },
+  },
 }
 ```
 
@@ -409,12 +404,12 @@ Aliases map short names to full model references. They are configured in `agents
   agents: {
     defaults: {
       models: {
-        "anthropic/claude-opus-4-6": { alias: "opus" },
-        "anthropic/claude-sonnet-4-5": { alias: "sonnet" },
-        "openrouter/auto": { alias: "router" }
-      }
-    }
-  }
+        'anthropic/claude-opus-4-6': { alias: 'opus' },
+        'anthropic/claude-sonnet-4-5': { alias: 'sonnet' },
+        'openrouter/auto': { alias: 'router' },
+      },
+    },
+  },
 }
 ```
 
@@ -457,21 +452,21 @@ Sources: [src/agents/pi-embedded-runner/model.ts:42-127](), [docs/concepts/model
 
 The `openclaw models` command group manages model and auth configuration without editing `openclaw.json` directly. Subcommands from [docs/concepts/models.md]():
 
-| Command | Effect |
-|---|---|
-| `openclaw models status` | Shows configured providers, auth candidates, model availability |
-| `openclaw models list` | Lists models from the configured catalog |
-| `openclaw models list --all` | Full catalog including auto-discovered providers |
-| `openclaw models set <provider/model>` | Sets `agents.defaults.model.primary` |
-| `openclaw models set-image <provider/model>` | Sets `agents.defaults.imageModel.primary` |
-| `openclaw models aliases list` | Lists all aliases from `agents.defaults.models` |
-| `openclaw models aliases add <alias> <ref>` | Adds an alias entry |
-| `openclaw models aliases remove <alias>` | Removes an alias entry |
-| `openclaw models fallbacks list` | Shows `agents.defaults.model.fallbacks` |
-| `openclaw models fallbacks add <ref>` | Appends to fallbacks list |
-| `openclaw models fallbacks remove <ref>` | Removes from fallbacks list |
-| `openclaw models fallbacks clear` | Clears all fallbacks |
-| `openclaw models scan` | Probes configured models for tool and image support |
+| Command                                      | Effect                                                          |
+| -------------------------------------------- | --------------------------------------------------------------- |
+| `openclaw models status`                     | Shows configured providers, auth candidates, model availability |
+| `openclaw models list`                       | Lists models from the configured catalog                        |
+| `openclaw models list --all`                 | Full catalog including auto-discovered providers                |
+| `openclaw models set <provider/model>`       | Sets `agents.defaults.model.primary`                            |
+| `openclaw models set-image <provider/model>` | Sets `agents.defaults.imageModel.primary`                       |
+| `openclaw models aliases list`               | Lists all aliases from `agents.defaults.models`                 |
+| `openclaw models aliases add <alias> <ref>`  | Adds an alias entry                                             |
+| `openclaw models aliases remove <alias>`     | Removes an alias entry                                          |
+| `openclaw models fallbacks list`             | Shows `agents.defaults.model.fallbacks`                         |
+| `openclaw models fallbacks add <ref>`        | Appends to fallbacks list                                       |
+| `openclaw models fallbacks remove <ref>`     | Removes from fallbacks list                                     |
+| `openclaw models fallbacks clear`            | Clears all fallbacks                                            |
+| `openclaw models scan`                       | Probes configured models for tool and image support             |
 
 `openclaw models status` calls `openclaw status --deep` internally for provider probe details.
 
@@ -481,20 +476,20 @@ The `openclaw models` command group manages model and auth configuration without
 
 `resolveEnvApiKey` in [src/agents/model-auth.ts:238-269]() maps provider names to known environment variables. The `PROVIDER_ENV_VARS` map in [src/secrets/provider-env-vars.ts]() defines the canonical environment variable for each provider. Standard env vars:
 
-| Provider | Environment Variable(s) |
-|---|---|
-| `anthropic` | `ANTHROPIC_API_KEY` |
-| `openai` | `OPENAI_API_KEY` |
-| `google` | `GEMINI_API_KEY`, `GOOGLE_API_KEY` |
-| `openrouter` | `OPENROUTER_API_KEY` |
-| `ollama` | `OLLAMA_API_KEY` (any value enables Ollama) |
-| `vllm` | `VLLM_API_KEY` |
+| Provider         | Environment Variable(s)                                                                   |
+| ---------------- | ----------------------------------------------------------------------------------------- |
+| `anthropic`      | `ANTHROPIC_API_KEY`                                                                       |
+| `openai`         | `OPENAI_API_KEY`                                                                          |
+| `google`         | `GEMINI_API_KEY`, `GOOGLE_API_KEY`                                                        |
+| `openrouter`     | `OPENROUTER_API_KEY`                                                                      |
+| `ollama`         | `OLLAMA_API_KEY` (any value enables Ollama)                                               |
+| `vllm`           | `VLLM_API_KEY`                                                                            |
 | `amazon-bedrock` | `AWS_BEARER_TOKEN_BEDROCK`, `AWS_ACCESS_KEY_ID`+`AWS_SECRET_ACCESS_KEY`, or `AWS_PROFILE` |
-| `minimax` | `MINIMAX_API_KEY` |
-| `moonshot` | `MOONSHOT_API_KEY` |
-| `huggingface` | `HF_TOKEN`, `HUGGINGFACE_HUB_TOKEN` |
-| `mistral` | `MISTRAL_API_KEY` |
-| `xai` | `XAI_API_KEY` |
+| `minimax`        | `MINIMAX_API_KEY`                                                                         |
+| `moonshot`       | `MOONSHOT_API_KEY`                                                                        |
+| `huggingface`    | `HF_TOKEN`, `HUGGINGFACE_HUB_TOKEN`                                                       |
+| `mistral`        | `MISTRAL_API_KEY`                                                                         |
+| `xai`            | `XAI_API_KEY`                                                                             |
 
 The label in `openclaw models status` distinguishes "shell env" (loaded from `~/.openclaw/.env` via the daemon env loader) from "env" (already in the process environment).
 
@@ -512,24 +507,24 @@ Any OpenAI-compatible or Anthropic-compatible HTTP endpoint can be registered as
 {
   models: {
     providers: {
-      "my-proxy": {
-        baseUrl: "https://my-llm-proxy.example.com/v1",
-        api: "openai-completions",
-        apiKey: "MY_PROXY_KEY",   // env var name
+      'my-proxy': {
+        baseUrl: 'https://my-llm-proxy.example.com/v1',
+        api: 'openai-completions',
+        apiKey: 'MY_PROXY_KEY', // env var name
         models: [
           {
-            id: "my-model-id",
-            name: "My Model",
+            id: 'my-model-id',
+            name: 'My Model',
             reasoning: false,
-            input: ["text"],
+            input: ['text'],
             contextWindow: 128000,
             maxTokens: 8192,
-            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
-          }
-        ]
-      }
-    }
-  }
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          },
+        ],
+      },
+    },
+  },
 }
 ```
 

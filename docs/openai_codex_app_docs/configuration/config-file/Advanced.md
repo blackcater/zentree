@@ -209,11 +209,11 @@ network_access = false          # Opt in to outbound network
 Need the complete key list (including profile-scoped overrides and requirements constraints)? See [Configuration Reference](https://developers.openai.com/codex/config-reference) and [Managed configuration](https://developers.openai.com/codex/enterprise/managed-configuration).
 
 In workspace-write mode, some environments keep `.git/` and `.codex/`
-  read-only even when the rest of the workspace is writable. This is why
-  commands like `git commit` may still require approval to run outside the
-  sandbox. If you want Codex to skip specific commands (for example, block `git
+read-only even when the rest of the workspace is writable. This is why
+commands like `git commit` may still require approval to run outside the
+sandbox. If you want Codex to skip specific commands (for example, block `git
   commit` outside the sandbox), use
-  <a href="/codex/rules">rules</a>.
+<a href="/codex/rules">rules</a>.
 
 Disable sandboxing entirely (use only if your environment already isolates processes):
 

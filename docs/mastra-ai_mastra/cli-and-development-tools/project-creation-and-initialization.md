@@ -31,8 +31,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document covers the Mastra project scaffolding system, including the `create-mastra` command for creating new projects and the `mastra init` command for adding Mastra to existing projects. These commands handle directory structure setup, dependency installation, configuration file generation, and optional integrations with AI coding agents.
 
 For information about the development server and hot-reload system after initialization, see [Development Server and Hot Reload](#8.2). For deployment configuration, see [Platform Deployers](#8.5).
@@ -51,24 +49,24 @@ graph TB
         CreateMastra["create-mastra package<br/>(packages/create-mastra)"]
         MastraCLI["mastra CLI<br/>(packages/cli)"]
     end
-    
+
     subgraph "Command Handlers"
         CreateProject["createProject()<br/>packages/cli/src/commands/actions/create-project.ts"]
         InitProject["initProject()<br/>packages/cli/src/commands/actions/init-project.ts"]
     end
-    
+
     subgraph "Core Logic"
         Create["create()<br/>packages/cli/src/commands/create/create.ts"]
         Init["init()<br/>packages/cli/src/commands/init/init.ts"]
         CreateMastraProject["createMastraProject()<br/>packages/cli/src/commands/create/utils.ts"]
     end
-    
+
     subgraph "Template System"
         LoadTemplates["loadTemplates()<br/>Fetch from API"]
         CloneTemplate["cloneTemplate()<br/>degit or git clone"]
         ValidateGitHub["validateGitHubProject()<br/>Check for @mastra/core"]
     end
-    
+
     subgraph "Scaffolding"
         CreateMastraDir["createMastraDir()"]
         CreateComponentsDir["createComponentsDir()"]
@@ -76,32 +74,32 @@ graph TB
         WriteCodeSample["writeCodeSample()"]
         WriteAPIKey["writeAPIKey()"]
     end
-    
+
     subgraph "Integrations"
         InstallSkills["installMastraSkills()"]
         InstallMCP["installMastraDocsMCPServer()"]
         WriteAgentsMarkdown["writeAgentsMarkdown()"]
     end
-    
+
     subgraph "Dependencies"
         CheckAndInstall["checkAndInstallCoreDeps()"]
         DepsService["DepsService.installPackages()"]
     end
-    
+
     CreateMastra --> Create
     MastraCLI --> CreateProject
     MastraCLI --> InitProject
-    
+
     CreateProject --> Create
     InitProject --> Init
-    
+
     Create --> CreateMastraProject
     Create --> Init
     Create --> CloneTemplate
-    
+
     CloneTemplate --> LoadTemplates
     CloneTemplate --> ValidateGitHub
-    
+
     Init --> CreateMastraDir
     Init --> CreateComponentsDir
     Init --> WriteIndexFile
@@ -110,7 +108,7 @@ graph TB
     Init --> InstallSkills
     Init --> InstallMCP
     Init --> WriteAgentsMarkdown
-    
+
     CreateMastraProject --> DepsService
     Init --> CheckAndInstall
     CheckAndInstall --> DepsService
@@ -137,7 +135,7 @@ graph LR
     GetTag["getCreateVersionTag()<br/>Query npm dist-tag"]
     Analytics["PosthogAnalytics<br/>Track command usage"]
     CreateCmd["create() command<br/>With version tag"]
-    
+
     NPX --> GetVersion
     NPX --> GetTag
     NPX --> Analytics
@@ -152,19 +150,19 @@ Sources: [packages/create-mastra/src/index.ts:1-91](), [packages/create-mastra/s
 
 ### CLI Flags
 
-| Flag | Type | Description |
-|------|------|-------------|
-| `--project-name` | string | Project name for package.json and directory |
-| `--default` | boolean | Quick start with defaults (src/, OpenAI, examples) |
-| `--components` | string | Comma-separated: agents, tools, workflows, scorers |
-| `--llm` | string | Provider: openai, anthropic, groq, google, cerebras, mistral |
-| `--llm-api-key` | string | API key for the model provider |
-| `--example` / `--no-example` | boolean | Include/exclude example code |
-| `--template` | string | Template name, GitHub URL, or blank for selection |
-| `--timeout` | number | Package installation timeout (default: 60000 ms) |
-| `--dir` | string | Target directory for Mastra files (default: src/) |
-| `--mcp` | string | MCP server: cursor, cursor-global, windsurf, vscode, antigravity |
-| `--skills` | string | Comma-separated agent names for skills installation |
+| Flag                         | Type    | Description                                                      |
+| ---------------------------- | ------- | ---------------------------------------------------------------- |
+| `--project-name`             | string  | Project name for package.json and directory                      |
+| `--default`                  | boolean | Quick start with defaults (src/, OpenAI, examples)               |
+| `--components`               | string  | Comma-separated: agents, tools, workflows, scorers               |
+| `--llm`                      | string  | Provider: openai, anthropic, groq, google, cerebras, mistral     |
+| `--llm-api-key`              | string  | API key for the model provider                                   |
+| `--example` / `--no-example` | boolean | Include/exclude example code                                     |
+| `--template`                 | string  | Template name, GitHub URL, or blank for selection                |
+| `--timeout`                  | number  | Package installation timeout (default: 60000 ms)                 |
+| `--dir`                      | string  | Target directory for Mastra files (default: src/)                |
+| `--mcp`                      | string  | MCP server: cursor, cursor-global, windsurf, vscode, antigravity |
+| `--skills`                   | string  | Comma-separated agent names for skills installation              |
 
 Sources: [packages/create-mastra/src/index.ts:34-88](), [packages/cli/src/index.ts:50-79]()
 
@@ -188,7 +186,7 @@ graph TB
     CheckDeps["checkAndInstallCoreDeps()<br/>Install core dependencies"]
     Interactive["interactivePrompt()<br/>Collect user preferences"]
     InitExec["init() execution"]
-    
+
     Start --> CheckPkg
     CheckPkg -->|Missing| Error["Exit with error:<br/>No package.json found"]
     CheckPkg -->|Found| CheckGit
@@ -215,30 +213,30 @@ graph TB
     APIKey["select: Enter API key?<br/>Skip or Enter"]
     EnterKey["text: Enter API key"]
     ConfigureTooling["select: Configure tooling?<br/>Skills or MCP"]
-    
+
     SkillsSelect["multiselect: Select agents<br/>Popular: claude-code, cursor<br/>+29 more agents"]
     MCPSelect["select: Which editor?<br/>cursor, windsurf, etc."]
-    
+
     ConfirmGlobal["confirm: Global install OK?"]
-    
+
     GitInit["confirm: Initialize git?"]
     Result["Return configuration"]
-    
+
     Start --> Directory
     Directory --> Provider
     Provider --> APIKey
     APIKey -->|Skip| ConfigureTooling
     APIKey -->|Enter| EnterKey
     EnterKey --> ConfigureTooling
-    
+
     ConfigureTooling -->|Skills| SkillsSelect
     ConfigureTooling -->|MCP| MCPSelect
-    
+
     MCPSelect -->|cursor-global, windsurf, antigravity| ConfirmGlobal
     MCPSelect -->|cursor, vscode| GitInit
     ConfirmGlobal -->|Yes| GitInit
     ConfirmGlobal -->|No| Result
-    
+
     SkillsSelect --> GitInit
     GitInit --> Result
 ```
@@ -273,21 +271,21 @@ sequenceDiagram
     participant CreateComp as createComponentsDir()
     participant WriteIndex as writeIndexFile()
     participant WriteSample as writeCodeSample()
-    
+
     Init->>CreateDir: directory path
     CreateDir->>CreateDir: Check if exists
     CreateDir-->>Init: {ok: true, dirPath} or {ok: false}
-    
+
     loop For each component
         Init->>CreateComp: dirPath, component
         CreateComp->>CreateComp: fs.ensureDir()
         CreateComp-->>Init: void
     end
-    
+
     Init->>WriteIndex: {dirPath, addExample, addWorkflow, addAgent, addScorers}
     WriteIndex->>WriteIndex: Generate imports/exports
     WriteIndex-->>Init: void
-    
+
     alt addExample is true
         loop For each component
             Init->>WriteSample: dirPath, component, llmProvider
@@ -306,7 +304,7 @@ The `writeIndexFile()` function generates `src/mastra/index.ts` with different c
 **Minimal Configuration (no examples):**
 
 ```typescript
-import { Mastra } from '@mastra/core/mastra';
+import { Mastra } from '@mastra/core/mastra'
 
 export const mastra = new Mastra()
 ```
@@ -314,36 +312,46 @@ export const mastra = new Mastra()
 **Full Configuration (with examples):**
 
 ```typescript
-import { Mastra } from '@mastra/core/mastra';
-import { PinoLogger } from '@mastra/loggers';
-import { LibSQLStore } from '@mastra/libsql';
-import { Observability, DefaultExporter, CloudExporter, SensitiveDataFilter } from '@mastra/observability';
-import { weatherWorkflow } from './workflows/weather-workflow';
-import { weatherAgent } from './agents/weather-agent';
-import { toolCallAppropriatenessScorer, completenessScorer, translationScorer } from './scorers/weather-scorer';
+import { Mastra } from '@mastra/core/mastra'
+import { PinoLogger } from '@mastra/loggers'
+import { LibSQLStore } from '@mastra/libsql'
+import {
+  Observability,
+  DefaultExporter,
+  CloudExporter,
+  SensitiveDataFilter,
+} from '@mastra/observability'
+import { weatherWorkflow } from './workflows/weather-workflow'
+import { weatherAgent } from './agents/weather-agent'
+import {
+  toolCallAppropriatenessScorer,
+  completenessScorer,
+  translationScorer,
+} from './scorers/weather-scorer'
 
 export const mastra = new Mastra({
   workflows: { weatherWorkflow },
   agents: { weatherAgent },
-  scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer },
+  scorers: {
+    toolCallAppropriatenessScorer,
+    completenessScorer,
+    translationScorer,
+  },
   storage: new LibSQLStore({
-    id: "mastra-storage",
-    url: "file:./mastra.db",
+    id: 'mastra-storage',
+    url: 'file:./mastra.db',
   }),
   logger: new PinoLogger({ name: 'Mastra', level: 'info' }),
   observability: new Observability({
     configs: {
       default: {
         serviceName: 'mastra',
-        exporters: [
-          new DefaultExporter(),
-          new CloudExporter(),
-        ],
+        exporters: [new DefaultExporter(), new CloudExporter()],
         spanOutputProcessors: [new SensitiveDataFilter()],
       },
     },
   }),
-});
+})
 ```
 
 Sources: [packages/cli/src/commands/init/utils.ts:458-534]()
@@ -361,7 +369,7 @@ graph LR
     GetKeyName["getAPIKey(provider)<br/>Map provider to env var"]
     WriteEnv[".env file<br/>(contains actual key)"]
     WriteExample[".env.example<br/>(contains placeholder)"]
-    
+
     WriteAPIKey --> HasKey
     HasKey -->|Yes| GetKeyName
     HasKey -->|No| GetKeyName
@@ -371,14 +379,14 @@ graph LR
 
 Provider-to-environment variable mapping:
 
-| Provider | Environment Variable |
-|----------|---------------------|
-| `openai` | `OPENAI_API_KEY` |
-| `anthropic` | `ANTHROPIC_API_KEY` |
-| `groq` | `GROQ_API_KEY` |
-| `google` | `GOOGLE_GENERATIVE_AI_API_KEY` |
-| `cerebras` | `CEREBRAS_API_KEY` |
-| `mistral` | `MISTRAL_API_KEY` |
+| Provider    | Environment Variable           |
+| ----------- | ------------------------------ |
+| `openai`    | `OPENAI_API_KEY`               |
+| `anthropic` | `ANTHROPIC_API_KEY`            |
+| `groq`      | `GROQ_API_KEY`                 |
+| `google`    | `GOOGLE_GENERATIVE_AI_API_KEY` |
+| `cerebras`  | `CEREBRAS_API_KEY`             |
+| `mistral`   | `MISTRAL_API_KEY`              |
 
 If the user skips API key entry, `.env.example` is created with a placeholder, allowing immediate project execution without needing to delete an invalid `.env` file.
 
@@ -401,25 +409,25 @@ sequenceDiagram
     participant CreateProject as createMastraProject()
     participant Init as init()
     participant DepsService
-    
+
     User->>Create: mastra create [name]
-    
+
     alt template flag provided
         Create->>Create: createFromTemplate()
         Note over Create: Skip standard flow
     else standard flow
         Create->>CreateProject: projectName, options
-        
+
         CreateProject->>CreateProject: Prompt for project name if missing
         CreateProject->>CreateProject: mkdir(projectName)
         CreateProject->>CreateProject: cd projectName
-        
+
         CreateProject->>DepsService: initializePackageJson()
         DepsService->>DepsService: npm init -y
         DepsService->>DepsService: Set type: "module"
         DepsService->>DepsService: Set engines.node: ">=22.13.0"
         DepsService-->>CreateProject: package.json created
-        
+
         CreateProject->>DepsService: Add scripts (dev, build, start)
         CreateProject->>DepsService: Install zod, typescript, @types/node
         CreateProject->>DepsService: Install mastra (dev)
@@ -427,10 +435,10 @@ sequenceDiagram
         CreateProject->>CreateProject: Create .gitignore
         CreateProject->>CreateProject: Write README.md
         CreateProject-->>Create: projectName, result
-        
+
         Create->>Init: Run init in new project
         Init-->>Create: success
-        
+
         Create->>User: Display completion message
     end
 ```
@@ -448,20 +456,20 @@ graph TB
     Start["getPackageManager()"]
     CheckUserAgent["Check npm_config_user_agent"]
     CheckExecPath["Check npm_execpath"]
-    
+
     Bun["return 'bun'"]
     Yarn["return 'yarn'"]
     Pnpm["return 'pnpm'"]
     Npm["return 'npm'"]
     Default["return 'npm' (default)"]
-    
+
     Start --> CheckUserAgent
     CheckUserAgent -->|Contains 'bun'| Bun
     CheckUserAgent -->|Contains 'yarn'| Yarn
     CheckUserAgent -->|Contains 'pnpm'| Pnpm
     CheckUserAgent -->|Contains 'npm'| Npm
     CheckUserAgent -->|None match| CheckExecPath
-    
+
     CheckExecPath -->|Contains 'bun'| Bun
     CheckExecPath -->|Contains 'yarn'| Yarn
     CheckExecPath -->|Contains 'pnpm'| Pnpm
@@ -484,7 +492,7 @@ graph LR
     TryLatest["Fallback: Try<br/>dependency@latest"]
     Success["Installation successful"]
     Error["Throw installation error"]
-    
+
     Install --> TryVersion
     TryVersion -->|Success| Success
     TryVersion -->|Failure| TryLatest
@@ -509,12 +517,12 @@ graph TB
     InitPkg["Initialize package.json"]
     InstallDeps["Install dependencies"]
     Success["Return projectName"]
-    
+
     Catch["Catch: Error occurred"]
     CheckPath{projectPath exists?}
     Cleanup["process.chdir(originalCwd)<br/>fs.rm(projectPath, recursive)"]
     Exit["process.exit(1)"]
-    
+
     Start --> Try
     Try --> CreateDir
     CreateDir --> CheckExists
@@ -522,7 +530,7 @@ graph TB
     CheckExists -->|Created| InitPkg
     InitPkg --> InstallDeps
     InstallDeps --> Success
-    
+
     Try -->|Error| Catch
     Catch --> CheckPath
     CheckPath -->|Yes| Cleanup
@@ -547,27 +555,27 @@ The template system allows projects to be created from pre-built examples or any
 ```mermaid
 graph TB
     TemplateFlag["--template flag"]
-    
+
     EmptyFlag["Flag without value<br/>(--template)"]
     NameProvided["Template name<br/>(--template coding-agent)"]
     URLProvided["GitHub URL<br/>(--template github.com/...)"]
-    
+
     LoadAPI["loadTemplates()<br/>GET https://mastra.ai/api/templates.json"]
     SelectPrompt["selectTemplate()<br/>Interactive selection"]
     FindByName["findTemplateByName()<br/>Match slug or title"]
     ValidateGH["validateGitHubProject()<br/>Check @mastra/core + index.ts"]
     CreateFromGH["createFromGitHubUrl()<br/>Build Template object"]
-    
+
     TemplateFlag --> EmptyFlag
     TemplateFlag --> NameProvided
     TemplateFlag --> URLProvided
-    
+
     EmptyFlag --> LoadAPI
     LoadAPI --> SelectPrompt
-    
+
     NameProvided --> LoadAPI
     LoadAPI --> FindByName
-    
+
     URLProvided --> ValidateGH
     ValidateGH --> CreateFromGH
 ```
@@ -580,14 +588,14 @@ Templates are defined by the following TypeScript interface:
 
 ```typescript
 interface Template {
-  githubUrl: string;      // e.g., "https://github.com/mastra-ai/template-coding-agent"
-  title: string;          // e.g., "Coding Agent"
-  slug: string;           // e.g., "template-coding-agent"
-  agents: string[];       // List of agent IDs in template
-  mcp: string[];          // MCP server names
-  tools: string[];        // Tool names
-  networks: string[];     // Agent network names
-  workflows: string[];    // Workflow names
+  githubUrl: string // e.g., "https://github.com/mastra-ai/template-coding-agent"
+  title: string // e.g., "Coding Agent"
+  slug: string // e.g., "template-coding-agent"
+  agents: string[] // List of agent IDs in template
+  mcp: string[] // MCP server names
+  tools: string[] // Tool names
+  networks: string[] // Agent network names
+  workflows: string[] // Workflow names
 }
 ```
 
@@ -611,26 +619,26 @@ sequenceDiagram
     participant CLI
     participant GitHub as GitHub Raw Content
     participant Validator as validateGitHubProject()
-    
+
     CLI->>Validator: githubUrl
     Validator->>Validator: Extract owner/repo
-    
+
     loop For each branch (main, master)
         Validator->>GitHub: GET /owner/repo/{branch}/package.json
         GitHub-->>Validator: package.json content
-        
+
         alt package.json found
             Validator->>Validator: Parse JSON
             Validator->>Validator: Check for @mastra/core
-            
+
             Validator->>GitHub: GET /owner/repo/{branch}/src/mastra/index.ts
             GitHub-->>Validator: index.ts content
-            
+
             Validator->>Validator: Check for Mastra export
             Validator->>Validator: Break loop
         end
     end
-    
+
     alt All checks pass
         Validator-->>CLI: {isValid: true, errors: []}
     else Validation failed
@@ -653,34 +661,34 @@ graph TB
     CheckExists["Check if directory exists"]
     Exists{Exists?}
     Error1["Error: Directory exists"]
-    
+
     TryDegit["Try: npx degit owner/repo#branch"]
     DegitSuccess{Success?}
-    
+
     TryGit["Fallback: git clone --branch"]
     RemoveGit["Remove .git directory"]
     GitSuccess{Success?}
-    
+
     UpdatePkg["Update package.json name"]
     CopyEnv["Copy .env.example to .env"]
     UpdateModel["Update MODEL in .env<br/>if llmProvider specified"]
     Success["Return projectPath"]
     Error2["Error: Failed to clone"]
-    
+
     Start --> CheckExists
     CheckExists --> Exists
     Exists -->|Yes| Error1
     Exists -->|No| TryDegit
-    
+
     TryDegit --> DegitSuccess
     DegitSuccess -->|Yes| UpdatePkg
     DegitSuccess -->|No| TryGit
-    
+
     TryGit --> RemoveGit
     RemoveGit --> GitSuccess
     GitSuccess -->|Yes| UpdatePkg
     GitSuccess -->|No| Error2
-    
+
     UpdatePkg --> CopyEnv
     CopyEnv --> UpdateModel
     UpdateModel --> Success
@@ -706,20 +714,20 @@ Skills are markdown files that provide AI coding agents with knowledge about Mas
 graph TB
     Init["init() with skills array"]
     InstallSkills["installMastraSkills()"]
-    
+
     Loop["For each agent in skills array"]
     ResolveSkill["Resolve skill from registry<br/>or default skill"]
     WriteFile["Write skill to<br/>.skills/{agent}.md"]
-    
+
     WriteAgents["writeAgentsMarkdown()<br/>Create AGENTS.md"]
     WriteClaude["writeClaudeMarkdown()<br/>Create CLAUDE.md (if claude-code)"]
-    
+
     Init --> InstallSkills
     InstallSkills --> Loop
     Loop --> ResolveSkill
     ResolveSkill --> WriteFile
     WriteFile --> Loop
-    
+
     InstallSkills --> WriteAgents
     WriteAgents --> WriteClaude
 ```
@@ -734,13 +742,13 @@ MCP (Model Context Protocol) servers provide external tools to AI coding agents.
 
 **Editor-Specific Configuration Paths:**
 
-| Editor | Config Path | Scope |
-|--------|-------------|-------|
-| `cursor` | `.cursor/mcp_config.json` | Project-local |
-| `cursor-global` | `~/.cursor/mcp_config.json` | Global (all projects) |
-| `windsurf` | `~/.windsurf/mcp_config.json` | Global only |
-| `vscode` | `.vscode/mcp_config.json` | Project-local |
-| `antigravity` | `~/.antigravity/mcp_config.json` | Global only |
+| Editor          | Config Path                      | Scope                 |
+| --------------- | -------------------------------- | --------------------- |
+| `cursor`        | `.cursor/mcp_config.json`        | Project-local         |
+| `cursor-global` | `~/.cursor/mcp_config.json`      | Global (all projects) |
+| `windsurf`      | `~/.windsurf/mcp_config.json`    | Global only           |
+| `vscode`        | `.vscode/mcp_config.json`        | Project-local         |
+| `antigravity`   | `~/.antigravity/mcp_config.json` | Global only           |
 
 **Diagram: MCP Installation Decision Flow**
 
@@ -748,36 +756,36 @@ MCP (Model Context Protocol) servers provide external tools to AI coding agents.
 graph TB
     MCPSelect["User selects MCP option"]
     Editor{Which editor?}
-    
+
     Cursor["cursor"]
     CursorGlobal["cursor-global"]
     Windsurf["windsurf"]
     VSCode["vscode"]
     Antigravity["antigravity"]
-    
+
     ConfirmGlobal["Confirm: Global install<br/>will affect all projects"]
     Accept{User accepts?}
-    
+
     Install["installMastraDocsMCPServer()"]
     WriteConfig["Write mcp_config.json"]
     Note["Display setup note"]
     Cancel["Return without installing"]
-    
+
     MCPSelect --> Editor
     Editor --> Cursor
     Editor --> CursorGlobal
     Editor --> Windsurf
     Editor --> VSCode
     Editor --> Antigravity
-    
+
     CursorGlobal --> ConfirmGlobal
     Windsurf --> ConfirmGlobal
     Antigravity --> ConfirmGlobal
-    
+
     ConfirmGlobal --> Accept
     Accept -->|Yes| Install
     Accept -->|No| Cancel
-    
+
     Cursor --> Note
     VSCode --> Install
     Note --> Install
@@ -810,7 +818,7 @@ classDiagram
         +getProjectName() Promise~string~
         +addScriptsToPackageJson(scripts) Promise~void~
     }
-    
+
     class PackageManager {
         <<enumeration>>
         npm
@@ -818,7 +826,7 @@ classDiagram
         yarn
         bun
     }
-    
+
     DepsService --> PackageManager
 ```
 
@@ -835,49 +843,49 @@ The `checkAndInstallCoreDeps()` function installs required packages:
 ```mermaid
 graph TB
     Start["checkAndInstallCoreDeps(addExample, versionTag)"]
-    
+
     CheckCore["checkDependencies(['@mastra/core'])"]
     CheckCLI["checkDependencies(['mastra'])"]
     CheckZod["checkDependencies(['zod'])"]
-    
+
     CoreMissing{@mastra/core missing?}
     CLIMissing{mastra missing?}
     ZodMissing{zod missing?}
-    
+
     CheckExample{addExample === true?}
     CheckLibSQL["checkDependencies(['@mastra/libsql'])"]
     LibSQLMissing{@mastra/libsql missing?}
-    
+
     AddCore["Add @mastra/core@versionTag"]
     AddCLI["Add mastra@versionTag"]
     AddZod["Add zod@^4"]
     AddLibSQL["Add @mastra/libsql@versionTag"]
-    
+
     Install["installPackages(packages)"]
-    
+
     Start --> CheckCore
     Start --> CheckCLI
     Start --> CheckZod
-    
+
     CheckCore --> CoreMissing
     CheckCLI --> CLIMissing
     CheckZod --> ZodMissing
-    
+
     CoreMissing -->|Yes| AddCore
     CLIMissing -->|Yes| AddCLI
     ZodMissing -->|Yes| AddZod
-    
+
     CoreMissing -->|No| CheckExample
     CLIMissing -->|No| CheckExample
     ZodMissing -->|No| CheckExample
-    
+
     CheckExample -->|Yes| CheckLibSQL
     CheckExample -->|No| Install
-    
+
     CheckLibSQL --> LibSQLMissing
     LibSQLMissing -->|Yes| AddLibSQL
     LibSQLMissing -->|No| Install
-    
+
     AddCore --> Install
     AddCLI --> Install
     AddZod --> Install
@@ -896,12 +904,12 @@ Sources: [packages/cli/src/commands/init/utils.ts:545-587]()
 
 The CLI generates example code for each component type. Here's the mapping:
 
-| Component | Function | Generated File | Example |
-|-----------|----------|----------------|---------|
-| `agents` | `writeAgentSample()` | `agents/weather-agent.ts` | Agent with weather tool integration |
+| Component   | Function                | Generated File                  | Example                                   |
+| ----------- | ----------------------- | ------------------------------- | ----------------------------------------- |
+| `agents`    | `writeAgentSample()`    | `agents/weather-agent.ts`       | Agent with weather tool integration       |
 | `workflows` | `writeWorkflowSample()` | `workflows/weather-workflow.ts` | Multi-step workflow with agent invocation |
-| `tools` | `writeToolSample()` | `tools/weather-tool.ts` | External API integration tool |
-| `scorers` | `writeScorersSample()` | `scorers/weather-scorer.ts` | Custom and prebuilt scorers |
+| `tools`     | `writeToolSample()`     | `tools/weather-tool.ts`         | External API integration tool             |
+| `scorers`   | `writeScorersSample()`  | `scorers/weather-scorer.ts`     | Custom and prebuilt scorers               |
 
 **Agent Code Generation:**
 
@@ -934,14 +942,14 @@ Sources: [packages/cli/src/commands/init/utils.ts:62-133](), [packages/cli/src/c
 The workflow example demonstrates step composition, schema validation, and agent invocation:
 
 ```typescript
-import { createStep, createWorkflow } from '@mastra/core/workflows';
-import { z } from 'zod';
+import { createStep, createWorkflow } from '@mastra/core/workflows'
+import { z } from 'zod'
 
 const forecastSchema = z.object({
   date: z.string(),
   maxTemp: z.number(),
   // ... more fields
-});
+})
 
 const fetchWeather = createStep({
   id: 'fetch-weather',
@@ -950,31 +958,31 @@ const fetchWeather = createStep({
   execute: async ({ inputData }) => {
     // Geocoding API call
     // Weather API call
-    return forecast;
+    return forecast
   },
-});
+})
 
 const planActivities = createStep({
   id: 'plan-activities',
   inputSchema: forecastSchema,
   outputSchema: z.object({ activities: z.string() }),
   execute: async ({ inputData, mastra }) => {
-    const agent = mastra?.getAgent('weatherAgent');
-    const response = await agent.stream([{ role: 'user', content: prompt }]);
+    const agent = mastra?.getAgent('weatherAgent')
+    const response = await agent.stream([{ role: 'user', content: prompt }])
     // Stream processing
-    return { activities: activitiesText };
+    return { activities: activitiesText }
   },
-});
+})
 
 const weatherWorkflow = createWorkflow({
   id: 'weather-workflow',
   inputSchema: z.object({ city: z.string() }),
-  outputSchema: z.object({ activities: z.string() })
+  outputSchema: z.object({ activities: z.string() }),
 })
   .then(fetchWeather)
-  .then(planActivities);
+  .then(planActivities)
 
-weatherWorkflow.commit();
+weatherWorkflow.commit()
 ```
 
 This example shows accessing the `mastra` instance via step context, agent streaming, and typed input/output schemas.
@@ -997,7 +1005,7 @@ graph LR
     FindMatch["Find line ending with<br/>current version"]
     ExtractTag["Extract tag name<br/>(e.g., 'beta')"]
     UseTag["Install deps with<br/>@mastra/core@beta"]
-    
+
     ReadPkg --> QueryNPM
     QueryNPM --> ParseOutput
     ParseOutput --> FindMatch

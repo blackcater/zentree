@@ -27,8 +27,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The MCP Connection Manager is the runtime component in `codex-core` responsible for establishing and maintaining connections to one or more external MCP (Model Context Protocol) servers. It aggregates tool, resource, and resource template listings from all connected servers into unified maps, routes tool calls to the correct server, and forwards elicitation requests to the user interface.
 
 This page covers the internal mechanics of `McpConnectionManager` and the types that support it. For MCP server configuration (`McpServerConfig`, transport variants, `config.toml` layout) see [6.1](#6.1). For the `mcp` CLI subcommands (`add`, `remove`, `login`) see [6.3](#6.3). For OAuth credential storage see [6.5](#6.5).
@@ -146,16 +144,16 @@ Sources: [codex-rs/core/src/mcp_connection_manager.rs:546-664]()
 
 Key constructor parameters:
 
-| Parameter | Type | Purpose |
-|---|---|---|
-| `mcp_servers` | `&HashMap<String, McpServerConfig>` | All configured servers |
-| `store_mode` | `OAuthCredentialsStoreMode` | Where to read/write OAuth tokens |
-| `auth_entries` | `HashMap<String, McpAuthStatusEntry>` | Pre-computed auth status per server |
-| `approval_policy` | `&Constrained<AskForApproval>` | Governs elicitation auto-decline |
-| `tx_event` | `Sender<Event>` | Channel for emitting startup events |
-| `initial_sandbox_state` | `SandboxState` | Pushed to servers after handshake |
-| `codex_home` | `PathBuf` | Base directory for disk caches |
-| `codex_apps_tools_cache_key` | `CodexAppsToolsCacheKey` | Cache key for codex_apps server tools |
+| Parameter                    | Type                                  | Purpose                               |
+| ---------------------------- | ------------------------------------- | ------------------------------------- |
+| `mcp_servers`                | `&HashMap<String, McpServerConfig>`   | All configured servers                |
+| `store_mode`                 | `OAuthCredentialsStoreMode`           | Where to read/write OAuth tokens      |
+| `auth_entries`               | `HashMap<String, McpAuthStatusEntry>` | Pre-computed auth status per server   |
+| `approval_policy`            | `&Constrained<AskForApproval>`        | Governs elicitation auto-decline      |
+| `tx_event`                   | `Sender<Event>`                       | Channel for emitting startup events   |
+| `initial_sandbox_state`      | `SandboxState`                        | Pushed to servers after handshake     |
+| `codex_home`                 | `PathBuf`                             | Base directory for disk caches        |
+| `codex_apps_tools_cache_key` | `CodexAppsToolsCacheKey`              | Cache key for codex_apps server tools |
 
 `new_uninitialized()` creates an empty manager with no servers — used in tests and code paths where MCP is not configured ([codex-rs/core/src/mcp_connection_manager.rs:516-522]()).
 
@@ -230,13 +228,13 @@ Iterates over all `AsyncManagedClient` entries, calls `listed_tools()` on each (
 
 `ToolInfo` carries:
 
-| Field | Type | Description |
-|---|---|---|
-| `server_name` | `String` | Server the tool belongs to |
-| `tool_name` | `String` | Bare tool name (unqualified) |
-| `tool` | `rmcp::model::Tool` | Full MCP tool descriptor |
-| `connector_id` | `Option<String>` | Connector ID from tool metadata |
-| `connector_name` | `Option<String>` | Connector display name from tool metadata |
+| Field            | Type                | Description                               |
+| ---------------- | ------------------- | ----------------------------------------- |
+| `server_name`    | `String`            | Server the tool belongs to                |
+| `tool_name`      | `String`            | Bare tool name (unqualified)              |
+| `tool`           | `rmcp::model::Tool` | Full MCP tool descriptor                  |
+| `connector_id`   | `Option<String>`    | Connector ID from tool metadata           |
+| `connector_name` | `Option<String>`    | Connector display name from tool metadata |
 
 ---
 
@@ -249,6 +247,7 @@ McpConnectionManager::call_tool(server, tool, arguments) -> Result<CallToolResul
 [codex-rs/core/src/mcp_connection_manager.rs:916-950]()
 
 Steps:
+
 1. Looks up `AsyncManagedClient` by `server` name via `client_by_name()`.
 2. Checks `ToolFilter` — if the tool is disabled (via `enabled_tools`/`disabled_tools` in `McpServerConfig`), returns an error immediately.
 3. Calls `RmcpClient::call_tool()` with `tool_timeout`.
@@ -321,12 +320,12 @@ The pending requests map is `ResponderMap = HashMap<(String, RequestId), oneshot
 
 `SandboxState` ([codex-rs/core/src/mcp_connection_manager.rs:499-506]()) carries the current sandbox configuration:
 
-| Field | Type |
-|---|---|
-| `sandbox_policy` | `SandboxPolicy` |
+| Field                     | Type              |
+| ------------------------- | ----------------- |
+| `sandbox_policy`          | `SandboxPolicy`   |
 | `codex_linux_sandbox_exe` | `Option<PathBuf>` |
-| `sandbox_cwd` | `PathBuf` |
-| `use_linux_sandbox_bwrap` | `bool` |
+| `sandbox_cwd`             | `PathBuf`         |
+| `use_linux_sandbox_bwrap` | `bool`            |
 
 MCP servers that advertise the `codex/sandbox-state` capability (`MCP_SANDBOX_STATE_CAPABILITY`) receive sandbox state updates via the `codex/sandbox-state/update` custom request method (`MCP_SANDBOX_STATE_METHOD`). This is sent:
 
@@ -375,10 +374,10 @@ Sources: [codex-rs/core/src/mcp_connection_manager.rs:97-102](), [codex-rs/core/
 
 ## Timeouts
 
-| Constant | Value | Scope |
-|---|---|---|
-| `DEFAULT_STARTUP_TIMEOUT` | 10 seconds | `initialize` handshake + first tool list |
-| `DEFAULT_TOOL_TIMEOUT` | 120 seconds | Individual tool calls and resource listings |
+| Constant                  | Value       | Scope                                       |
+| ------------------------- | ----------- | ------------------------------------------- |
+| `DEFAULT_STARTUP_TIMEOUT` | 10 seconds  | `initialize` handshake + first tool list    |
+| `DEFAULT_TOOL_TIMEOUT`    | 120 seconds | Individual tool calls and resource listings |
 
 Both can be overridden per server via `McpServerConfig::startup_timeout_sec` and `McpServerConfig::tool_timeout_sec`.
 
@@ -388,7 +387,7 @@ Sources: [codex-rs/core/src/mcp_connection_manager.rs:92-95]()
 
 ## Integration with McpManager
 
-`McpManager` ([codex-rs/core/src/mcp/mod.rs:165-185]()) is a higher-level type that determines *which* servers should be active based on config and authentication state. It produces the `HashMap<String, McpServerConfig>` that is passed to `McpConnectionManager::new()`.
+`McpManager` ([codex-rs/core/src/mcp/mod.rs:165-185]()) is a higher-level type that determines _which_ servers should be active based on config and authentication state. It produces the `HashMap<String, McpServerConfig>` that is passed to `McpConnectionManager::new()`.
 
 - `McpManager::configured_servers()` — servers from `config.toml` and plugins.
 - `McpManager::effective_servers()` — adds the `codex_apps` server if the `Feature::Apps` feature flag is enabled and removes it if not.
@@ -405,11 +404,11 @@ Sources: [codex-rs/core/src/mcp/mod.rs:165-263]()
 
 **Transport variants:**
 
-| Variant | Description |
-|---|---|
-| `PendingTransport::ChildProcess` | stdio subprocess transport (`TokioChildProcess`) |
-| `PendingTransport::StreamableHttp` | HTTP streamable transport with optional bearer token |
-| `PendingTransport::StreamableHttpWithOAuth` | HTTP transport with full OAuth + `OAuthPersistor` |
+| Variant                                     | Description                                          |
+| ------------------------------------------- | ---------------------------------------------------- |
+| `PendingTransport::ChildProcess`            | stdio subprocess transport (`TokioChildProcess`)     |
+| `PendingTransport::StreamableHttp`          | HTTP streamable transport with optional bearer token |
+| `PendingTransport::StreamableHttpWithOAuth` | HTTP transport with full OAuth + `OAuthPersistor`    |
 
 On `initialize()`, the transport is consumed and becomes a `RunningService<RoleClient, LoggingClientHandler>` ([codex-rs/rmcp-client/src/rmcp_client.rs:322-392]()). `LoggingClientHandler` handles inbound elicitation requests from the server by invoking the `SendElicitation` callback.
 

@@ -3,7 +3,7 @@
 Codex app-server is the interface Codex uses to power rich clients (for example, the Codex VS Code extension). Use it when you want a deep integration inside your own product: authentication, conversation history, approvals, and streamed agent events. The app-server implementation is open source in the Codex GitHub repository ([openai/codex/codex-rs/app-server](https://github.com/openai/codex/tree/main/codex-rs/app-server)). See the [Open Source](https://developers.openai.com/codex/open-source) page for the full list of open-source Codex components.
 
 If you are automating jobs or running Codex in CI, use the
-  <a href="/codex/sdk">Codex SDK</a> instead.
+<a href="/codex/sdk">Codex SDK</a> instead.
 
 ## Protocol
 
@@ -56,50 +56,47 @@ codex app-server generate-json-schema --out ./schemas
 Example (Node.js / TypeScript):
 
 ```ts
-
-
-
-const proc = spawn("codex", ["app-server"], {
-  stdio: ["pipe", "pipe", "inherit"],
-});
-const rl = readline.createInterface({ input: proc.stdout });
+const proc = spawn('codex', ['app-server'], {
+  stdio: ['pipe', 'pipe', 'inherit'],
+})
+const rl = readline.createInterface({ input: proc.stdout })
 
 const send = (message: unknown) => {
-  proc.stdin.write(`${JSON.stringify(message)}\n`);
-};
+  proc.stdin.write(`${JSON.stringify(message)}\n`)
+}
 
-let threadId: string | null = null;
+let threadId: string | null = null
 
-rl.on("line", (line) => {
-  const msg = JSON.parse(line) as any;
-  console.log("server:", msg);
+rl.on('line', (line) => {
+  const msg = JSON.parse(line) as any
+  console.log('server:', msg)
 
   if (msg.id === 1 && msg.result?.thread?.id && !threadId) {
-    threadId = msg.result.thread.id;
+    threadId = msg.result.thread.id
     send({
-      method: "turn/start",
+      method: 'turn/start',
       id: 2,
       params: {
         threadId,
-        input: [{ type: "text", text: "Summarize this repo." }],
+        input: [{ type: 'text', text: 'Summarize this repo.' }],
       },
-    });
+    })
   }
-});
+})
 
 send({
-  method: "initialize",
+  method: 'initialize',
   id: 0,
   params: {
     clientInfo: {
-      name: "my_product",
-      title: "My Product",
-      version: "0.1.0",
+      name: 'my_product',
+      title: 'My Product',
+      version: '0.1.0',
     },
   },
-});
-send({ method: "initialized", params: {} });
-send({ method: "thread/start", id: 1, params: { model: "gpt-5.1-codex" } });
+})
+send({ method: 'initialized', params: {} })
+send({ method: 'thread/start', id: 1, params: { model: 'gpt-5.1-codex' } })
 ```
 
 ## Core primitives

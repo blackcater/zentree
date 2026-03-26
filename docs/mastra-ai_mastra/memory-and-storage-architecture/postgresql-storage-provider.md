@@ -12,8 +12,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The PostgreSQL Storage Provider (`@mastra/pg`) implements Mastra's storage abstraction layer using PostgreSQL as the backing database. This provider handles both relational data storage (threads, messages, resources, working memory) and vector storage (embeddings for semantic search) in a unified PostgreSQL instance with pgvector extension support.
 
 For information about the storage abstraction layer and interfaces, see [Storage Domain Architecture](#7.3). For alternative storage providers, see [LibSQL and Edge Storage](#7.5). For vector-specific operations, see [Vector Storage and Semantic Search](#7.6).
@@ -25,6 +23,7 @@ For information about the storage abstraction layer and interfaces, see [Storage
 The `@mastra/pg` package provides a PostgreSQL-backed implementation of Mastra's storage interfaces, offering production-ready persistence with ACID guarantees, concurrent access patterns, and vector similarity search capabilities.
 
 **Key Features:**
+
 - Implementation of `MemoryStorage` interface for threads, messages, and resources
 - Implementation of `MastraVector` interface for embedding storage and similarity search
 - Support for PostgreSQL 12+ with pgvector extension
@@ -35,13 +34,13 @@ The `@mastra/pg` package provides a PostgreSQL-backed implementation of Mastra's
 
 **Package Structure:**
 
-| Aspect | Value |
-|--------|-------|
-| Package Name | `@mastra/pg` |
-| Location | `stores/pg/` |
-| Main Export | `dist/index.js` |
-| Type Definitions | `dist/index.d.ts` |
-| Peer Dependency | `@mastra/core` >=1.4.0 |
+| Aspect           | Value                  |
+| ---------------- | ---------------------- |
+| Package Name     | `@mastra/pg`           |
+| Location         | `stores/pg/`           |
+| Main Export      | `dist/index.js`        |
+| Type Definitions | `dist/index.d.ts`      |
+| Peer Dependency  | `@mastra/core` >=1.4.0 |
 
 **Dependencies:**
 
@@ -63,12 +62,12 @@ graph TB
         Memory["Memory Class<br/>@mastra/memory"]
         MastraCompositeStore["MastraCompositeStore<br/>Storage orchestrator"]
     end
-    
+
     subgraph "Storage Interfaces"
         MemoryStorage["MemoryStorage<br/>Abstract interface"]
         MastraVector["MastraVector<br/>Vector interface"]
     end
-    
+
     subgraph "@mastra/pg Package"
         PgProvider["PostgreSQL Provider<br/>Main class"]
         ThreadOps["Thread Operations<br/>CRUD + locking"]
@@ -77,7 +76,7 @@ graph TB
         VectorOps["Vector Operations<br/>Embedding search"]
         OMRecordOps["OM Record Operations<br/>Observational memory"]
     end
-    
+
     subgraph "PostgreSQL Database"
         ThreadsTable[("threads<br/>Table")]
         MessagesTable[("messages<br/>Table")]
@@ -86,41 +85,41 @@ graph TB
         OMRecordsTable[("om_records<br/>Table")]
         Indexes["Indexes<br/>Hash + BTree + IVFFlat"]
     end
-    
+
     subgraph "Connection Management"
         PgPool["pg.Pool<br/>Connection pooling"]
         Mutex["async-mutex<br/>Concurrent access control"]
     end
-    
+
     Memory --> MastraCompositeStore
     MastraCompositeStore --> MemoryStorage
     MastraCompositeStore --> MastraVector
-    
+
     MemoryStorage --> PgProvider
     MastraVector --> PgProvider
-    
+
     PgProvider --> ThreadOps
     PgProvider --> MessageOps
     PgProvider --> ResourceOps
     PgProvider --> VectorOps
     PgProvider --> OMRecordOps
-    
+
     ThreadOps --> PgPool
     MessageOps --> PgPool
     ResourceOps --> PgPool
     VectorOps --> PgPool
     OMRecordOps --> PgPool
-    
+
     PgPool --> ThreadsTable
     PgPool --> MessagesTable
     PgPool --> ResourcesTable
     PgPool --> VectorsTable
     PgPool --> OMRecordsTable
-    
+
     ThreadsTable --> Indexes
     MessagesTable --> Indexes
     VectorsTable --> Indexes
-    
+
     PgProvider --> Mutex
 ```
 
@@ -144,7 +143,7 @@ erDiagram
     threads ||--o| om_records : tracks
     resources ||--o{ threads : owns
     messages ||--o{ vectors : embeds
-    
+
     threads {
         text id PK
         text resourceId FK
@@ -154,7 +153,7 @@ erDiagram
         text title
         text status
     }
-    
+
     resources {
         text id PK
         jsonb workingMemory
@@ -162,7 +161,7 @@ erDiagram
         timestamp createdAt
         timestamp updatedAt
     }
-    
+
     messages {
         text id PK
         text threadId FK
@@ -173,7 +172,7 @@ erDiagram
         text agentId
         integer tokenCount
     }
-    
+
     vectors {
         text id PK
         text messageId FK
@@ -182,7 +181,7 @@ erDiagram
         jsonb metadata
         timestamp createdAt
     }
-    
+
     om_records {
         text threadId PK
         text resourceId
@@ -206,6 +205,7 @@ erDiagram
 ### Table Details
 
 **threads**
+
 - Primary key: `id` (text)
 - Foreign key: `resourceId` → `resources.id`
 - Purpose: Stores conversation threads with metadata and working memory
@@ -215,6 +215,7 @@ erDiagram
   - `status`: Thread lifecycle state (active, archived, etc.)
 
 **messages**
+
 - Primary key: `id` (text)
 - Foreign key: `threadId` → `threads.id`
 - Purpose: Stores conversation messages with role, content, and token counts
@@ -225,6 +226,7 @@ erDiagram
   - `tokenCount`: Cached token count for observational memory thresholds
 
 **resources**
+
 - Primary key: `id` (text)
 - Purpose: Stores resource-scoped data including working memory
 - Key fields:
@@ -232,6 +234,7 @@ erDiagram
   - `metadata`: Custom resource metadata
 
 **vectors**
+
 - Primary key: `id` (text)
 - Foreign key: `messageId` → `messages.id`
 - Purpose: Stores embeddings for semantic search with pgvector
@@ -241,6 +244,7 @@ erDiagram
   - `metadata`: JSONB with search metadata
 
 **om_records**
+
 - Primary key: `threadId` (text)
 - Foreign key: `threadId` → `threads.id`, `resourceId` → `resources.id`
 - Purpose: Stores observational memory state for threads
@@ -269,39 +273,39 @@ graph LR
         updateThread["updateThread(id, data)"]
         deleteThread["deleteThread(id)"]
         listThreads["listThreads(filter, pagination)"]
-        
+
         saveMessages["saveMessages(messages)"]
         getMessages["getMessages(threadId, filter)"]
         updateMessages["updateMessages(ids, updates)"]
         deleteMessages["deleteMessages(ids)"]
-        
+
         getResource["getResource(id)"]
         upsertResource["upsertResource(data)"]
     end
-    
+
     subgraph "PostgreSQL Implementation"
         ThreadSQL["Thread SQL Operations<br/>SELECT/INSERT/UPDATE/DELETE"]
         MessageSQL["Message SQL Operations<br/>Batch INSERT with ON CONFLICT"]
         ResourceSQL["Resource SQL Operations<br/>UPSERT with working memory"]
-        
+
         LockingSQL["Advisory Locks<br/>pg_advisory_xact_lock()"]
         TransactionSQL["Transactions<br/>BEGIN/COMMIT/ROLLBACK"]
     end
-    
+
     getThread --> ThreadSQL
     createThread --> ThreadSQL
     updateThread --> ThreadSQL
     deleteThread --> ThreadSQL
     listThreads --> ThreadSQL
-    
+
     saveMessages --> MessageSQL
     getMessages --> MessageSQL
     updateMessages --> MessageSQL
     deleteMessages --> MessageSQL
-    
+
     getResource --> ResourceSQL
     upsertResource --> ResourceSQL
-    
+
     ThreadSQL --> LockingSQL
     MessageSQL --> TransactionSQL
     ResourceSQL --> LockingSQL
@@ -310,6 +314,7 @@ graph LR
 **Implementation: MemoryStorage Interface to SQL Operations**
 
 **Thread Operations:**
+
 - `getThread()`: Single SELECT by id with metadata parsing
 - `createThread()`: INSERT with generated id, timestamps, and JSONB metadata
 - `updateThread()`: UPDATE with partial metadata merge
@@ -317,12 +322,14 @@ graph LR
 - `listThreads()`: SELECT with filtering, pagination, and ORDER BY
 
 **Message Operations:**
+
 - `saveMessages()`: Batch INSERT with `ON CONFLICT (id) DO UPDATE` for idempotency
 - `getMessages()`: SELECT with thread filter, role filter, pagination, and ORDER BY createdAt
 - `updateMessages()`: UPDATE multiple messages in single transaction
 - `deleteMessages()`: DELETE with automatic vector cleanup (see vector embedding cleanup fix in changelog)
 
 **Resource Operations:**
+
 - `getResource()`: SELECT by id with working memory parsing
 - `upsertResource()`: INSERT ON CONFLICT UPDATE for atomic create-or-update
 
@@ -338,26 +345,26 @@ graph TB
         deleteByIds["deleteByIds(ids[])"]
         deleteByMetadata["deleteByMetadata(filter)"]
     end
-    
+
     subgraph "PostgreSQL pgvector Implementation"
         VectorInsert["INSERT INTO vectors<br/>with vector type"]
         VectorSearch["SELECT with<br/>embedding <=> query<br/>ORDER BY distance"]
         VectorDelete["DELETE with<br/>id or metadata filters"]
-        
+
         IVFFlatIndex["IVFFlat Index<br/>lists=100 for<br/>approximate search"]
     end
-    
+
     subgraph "Distance Functions"
         CosineDistance["<=> operator<br/>Cosine distance"]
         EuclideanDistance["<-> operator<br/>L2 distance"]
         InnerProduct["<#> operator<br/>Negative inner product"]
     end
-    
+
     upsert --> VectorInsert
     query --> VectorSearch
     deleteByIds --> VectorDelete
     deleteByMetadata --> VectorDelete
-    
+
     VectorSearch --> IVFFlatIndex
     VectorSearch --> CosineDistance
     VectorSearch --> EuclideanDistance
@@ -367,12 +374,14 @@ graph TB
 **Implementation: Vector Storage with pgvector**
 
 **Vector Operations:**
+
 - `upsert()`: Batch INSERT of embeddings with `ON CONFLICT (id) DO UPDATE`
 - `query()`: Similarity search using pgvector distance operators with configurable top-K and metadata filters
 - `deleteByIds()`: DELETE by primary key array
 - `deleteByMetadata()`: DELETE with JSONB metadata filtering
 
 **Distance Metrics:**
+
 - Cosine distance (`<=>`): Default for semantic search, normalized similarity
 - L2 distance (`<->`): Euclidean distance for absolute similarity
 - Inner product (`<#>`): Negative inner product for maximum similarity
@@ -398,15 +407,15 @@ graph TB
         SyncObserve["Synchronous observation<br/>100% activation"]
         AsyncBuffer["Async buffered observation<br/>Background pre-compute"]
     end
-    
+
     subgraph "PostgreSQL OM Storage"
         GetRecord["getOMRecord(threadId)"]
         UpsertRecord["upsertOMRecord(data)"]
         UpdateTokens["updateOMTokenCounts(counts)"]
-        
+
         LockOrder["Lock ordering:<br/>1. Resource lock<br/>2. Thread lock"]
     end
-    
+
     subgraph "om_records Table"
         ActiveObs["activeObservations<br/>JSONB array"]
         BufferedObs["bufferedObservations<br/>JSONB array"]
@@ -414,18 +423,18 @@ graph TB
         TokenCounts["messageTokenCount<br/>observationTokenCount<br/>pendingTokenCount"]
         ContinuationHint["continuationHint<br/>JSONB object"]
     end
-    
+
     OMProcessor --> BufferCheck
     BufferCheck -->|"<20%"| AsyncBuffer
     BufferCheck -->|">=100%"| SyncObserve
-    
+
     AsyncBuffer --> UpsertRecord
     SyncObserve --> UpsertRecord
-    
+
     GetRecord --> LockOrder
     UpsertRecord --> LockOrder
     UpdateTokens --> UpsertRecord
-    
+
     UpsertRecord --> ActiveObs
     UpsertRecord --> BufferedObs
     UpsertRecord --> Reflections
@@ -437,22 +446,23 @@ graph TB
 
 **OM Record Fields:**
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `activeObservations` | JSONB array | Current observations in agent context |
-| `bufferedObservations` | JSONB array | Pre-computed observations ready for activation |
-| `activeReflections` | JSONB array | Consolidated reflections from observations |
-| `bufferedReflections` | JSONB array | Pre-computed reflections |
-| `continuationHint` | JSONB object | Current task and suggested response for activation |
-| `messageTokenCount` | integer | Total message window tokens |
-| `observationTokenCount` | integer | Total observation tokens |
-| `pendingTokenCount` | integer | Buffered observation tokens not yet activated |
-| `generation` | integer | Activation cycle counter |
-| `lastActivation` | timestamp | Last OM activation time |
+| Field                   | Type         | Purpose                                            |
+| ----------------------- | ------------ | -------------------------------------------------- |
+| `activeObservations`    | JSONB array  | Current observations in agent context              |
+| `bufferedObservations`  | JSONB array  | Pre-computed observations ready for activation     |
+| `activeReflections`     | JSONB array  | Consolidated reflections from observations         |
+| `bufferedReflections`   | JSONB array  | Pre-computed reflections                           |
+| `continuationHint`      | JSONB object | Current task and suggested response for activation |
+| `messageTokenCount`     | integer      | Total message window tokens                        |
+| `observationTokenCount` | integer      | Total observation tokens                           |
+| `pendingTokenCount`     | integer      | Buffered observation tokens not yet activated      |
+| `generation`            | integer      | Activation cycle counter                           |
+| `lastActivation`        | timestamp    | Last OM activation time                            |
 
 **Concurrency Safety:**
 
 The PostgreSQL provider implements lock ordering to prevent deadlocks when multiple threads share a resourceId (e.g., parallel agents with different threadIds but same resourceId). The lock order is:
+
 1. Resource-level lock (if resource-scoped OM)
 2. Thread-level lock (always)
 
@@ -467,6 +477,7 @@ Sources: [packages/memory/CHANGELOG.md:376-397](), [packages/memory/CHANGELOG.md
 ### Database Setup
 
 **Prerequisites:**
+
 - PostgreSQL 12 or later
 - pgvector extension installed
 
@@ -480,12 +491,12 @@ CREATE EXTENSION IF NOT EXISTS vector;
 ### Provider Initialization
 
 ```typescript
-import { PgStorageProvider } from '@mastra/pg';
+import { PgStorageProvider } from '@mastra/pg'
 
 // Initialize with connection string
 const storage = new PgStorageProvider({
   connectionString: process.env.DATABASE_URL,
-});
+})
 
 // Or with connection config
 const storage = new PgStorageProvider({
@@ -494,37 +505,38 @@ const storage = new PgStorageProvider({
   database: 'mastra',
   user: 'postgres',
   password: process.env.DB_PASSWORD,
-});
+})
 
 // Use with Memory
 const memory = new Memory({
   storage,
-});
+})
 ```
 
 **Configuration Options:**
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `connectionString` | string | PostgreSQL connection URI |
-| `host` | string | Database host |
-| `port` | number | Database port (default: 5432) |
-| `database` | string | Database name |
-| `user` | string | Database user |
-| `password` | string | Database password |
-| `ssl` | object | SSL configuration |
-| `max` | number | Maximum pool size (default: 20) |
-| `idleTimeoutMillis` | number | Idle connection timeout |
+| Option              | Type   | Description                     |
+| ------------------- | ------ | ------------------------------- |
+| `connectionString`  | string | PostgreSQL connection URI       |
+| `host`              | string | Database host                   |
+| `port`              | number | Database port (default: 5432)   |
+| `database`          | string | Database name                   |
+| `user`              | string | Database user                   |
+| `password`          | string | Database password               |
+| `ssl`               | object | SSL configuration               |
+| `max`               | number | Maximum pool size (default: 20) |
+| `idleTimeoutMillis` | number | Idle connection timeout         |
 
 ### Schema Initialization
 
 The provider automatically creates required tables on first use. To manually initialize:
 
 ```typescript
-await storage.initialize();
+await storage.initialize()
 ```
 
 This creates:
+
 - `threads` table with indexes
 - `messages` table with indexes on threadId and createdAt
 - `resources` table
@@ -544,10 +556,10 @@ The provider uses transactions for atomic multi-table operations:
 
 ```typescript
 // Thread deletion cascades to messages and vectors in single transaction
-await storage.deleteThread(threadId);
+await storage.deleteThread(threadId)
 
 // Batch message operations are atomic
-await storage.saveMessages([msg1, msg2, msg3]);
+await storage.saveMessages([msg1, msg2, msg3])
 ```
 
 ### Advisory Locks
@@ -572,18 +584,21 @@ Sources: [packages/memory/CHANGELOG.md:376-397]()
 The provider supports multiple vector index types:
 
 **IVFFlat (Default):**
+
 ```sql
-CREATE INDEX ON vectors 
-USING ivfflat (embedding vector_cosine_ops) 
+CREATE INDEX ON vectors
+USING ivfflat (embedding vector_cosine_ops)
 WITH (lists = 100);
 ```
 
 Suitable for:
+
 - Datasets up to ~1M vectors
 - Balance between speed and accuracy
 - Lower memory overhead than HNSW
 
 **Configuration:**
+
 - `lists`: Number of partitions (default: 100)
 - Rule of thumb: `lists = rows / 1000` for < 1M rows
 
@@ -591,6 +606,7 @@ Suitable for:
 
 **Connection Pooling:**
 The `pg` client maintains a connection pool with configurable size:
+
 - Default max connections: 20
 - Idle timeout: 30 seconds
 - Connection reuse reduces overhead
@@ -605,12 +621,14 @@ ON CONFLICT (id) DO UPDATE SET content = EXCLUDED.content;
 ```
 
 **Index Strategy:**
+
 - B-tree indexes on frequently queried columns (threadId, createdAt)
 - Hash indexes on equality lookups (id)
 - IVFFlat indexes on vector columns for approximate search
 - Partial indexes on filtered queries (e.g., role = 'user')
 
 **Query Optimization:**
+
 - JSONB GIN indexes for metadata filtering
 - `EXPLAIN ANALYZE` for query plan inspection
 - Prepared statements for repeated queries
@@ -626,6 +644,7 @@ The PostgreSQL provider includes comprehensive integration tests using Docker Co
 ### Test Setup
 
 **Docker Compose Configuration:**
+
 ```bash
 # Start test database
 pnpm pretest  # Starts PostgreSQL in Docker, waits for ready
@@ -639,15 +658,16 @@ pnpm posttest # Stops and removes containers
 
 **Test Scripts:**
 
-| Script | Purpose |
-|--------|---------|
-| `pretest` | Start PostgreSQL container, wait for pg_isready |
-| `test` | Run vitest integration tests |
-| `posttest` | Stop containers, remove volumes |
+| Script       | Purpose                                           |
+| ------------ | ------------------------------------------------- |
+| `pretest`    | Start PostgreSQL container, wait for pg_isready   |
+| `test`       | Run vitest integration tests                      |
+| `posttest`   | Stop containers, remove volumes                   |
 | `test:watch` | Run tests in watch mode with persistent container |
-| `test:perf` | Performance benchmarks with larger datasets |
+| `test:perf`  | Performance benchmarks with larger datasets       |
 
 **Performance Testing:**
+
 ```bash
 # Run performance benchmarks
 pnpm pretest:perf   # Start DB with perf config
@@ -665,19 +685,21 @@ Sources: [stores/pg/package.json:22-34]()
 
 ### Version Compatibility
 
-| @mastra/pg | @mastra/core | Notes |
-|------------|--------------|-------|
-| 1.8.x | 1.4.x - 1.14.x | Current stable |
-| 1.7.x | 1.4.x - 1.11.x | Legacy support |
+| @mastra/pg | @mastra/core   | Notes          |
+| ---------- | -------------- | -------------- |
+| 1.8.x      | 1.4.x - 1.14.x | Current stable |
+| 1.7.x      | 1.4.x - 1.11.x | Legacy support |
 
 The provider uses semver with `>=1.4.0-0 <2.0.0-0` peer dependency range for forward compatibility within major versions.
 
 ### Breaking Changes
 
 **1.8.0 (Current):**
+
 - No breaking changes, backward compatible
 
 **Key Fixes in 1.8.x:**
+
 - Integer token count validation for PostgreSQL strict typing
 - Vector embedding cleanup on message deletion
 - Deadlock prevention with lock ordering
@@ -691,14 +713,16 @@ Sources: [stores/pg/package.json:56-58](), [packages/memory/CHANGELOG.md:376-397
 ### Resource-Scoped vs Thread-Scoped Storage
 
 **Thread-Scoped (Default):**
+
 ```typescript
 // Working memory isolated per thread
 await memory.updateWorkingMemory(threadId, {
-  userPreferences: { theme: 'dark' }
-});
+  userPreferences: { theme: 'dark' },
+})
 ```
 
 **Resource-Scoped:**
+
 ```typescript
 // Working memory shared across threads for a resource
 const memory = new Memory({
@@ -707,10 +731,10 @@ const memory = new Memory({
     scope: 'resource',
     schema: userPreferencesSchema,
   },
-});
+})
 
 // Updates persist across all threads for this resourceId
-await memory.updateWorkingMemory(threadId, data, { resourceId });
+await memory.updateWorkingMemory(threadId, data, { resourceId })
 ```
 
 ### Concurrent Access Patterns
@@ -720,7 +744,7 @@ The provider uses `async-mutex` to prevent race conditions:
 
 ```typescript
 // Working memory updates are mutex-protected
-await memory.updateWorkingMemory(threadId, updates);
+await memory.updateWorkingMemory(threadId, updates)
 // Concurrent calls queue, preventing data corruption
 ```
 
@@ -731,9 +755,9 @@ Observational memory operations use PostgreSQL advisory locks:
 // Automatic locking in OM operations
 await storage.upsertOMRecord({
   threadId,
-  resourceId,  // Triggers resource-level lock if present
+  resourceId, // Triggers resource-level lock if present
   activeObservations,
-});
+})
 ```
 
 ### Vector Cleanup on Deletion
@@ -742,10 +766,10 @@ The provider automatically cleans up orphaned vectors when messages or threads a
 
 ```typescript
 // Delete messages and associated vectors atomically
-await storage.deleteMessages([msg1Id, msg2Id]);
+await storage.deleteMessages([msg1Id, msg2Id])
 
 // Delete thread, cascade to messages and vectors
-await storage.deleteThread(threadId);
+await storage.deleteThread(threadId)
 ```
 
 This prevents vector table bloat and ensures consistency between messages and embeddings.
@@ -763,7 +787,7 @@ Sources: [packages/memory/CHANGELOG.md:243-257](), [packages/memory/CHANGELOG.md
 Fixed in version 1.8.0. Token counts must be integers. If using an older version, ensure token counts are rounded:
 
 ```typescript
-const tokenCount = Math.round(estimatedTokens);
+const tokenCount = Math.round(estimatedTokens)
 ```
 
 Sources: [packages/memory/CHANGELOG.md:606-607]()
@@ -781,6 +805,7 @@ ERROR: type "vector" does not exist
 ```
 
 Install pgvector:
+
 ```sql
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
@@ -788,21 +813,24 @@ CREATE EXTENSION IF NOT EXISTS vector;
 **Connection pool exhaustion:**
 
 Increase pool size:
+
 ```typescript
 const storage = new PgStorageProvider({
   connectionString: process.env.DATABASE_URL,
-  max: 50,  // Increase from default 20
-});
+  max: 50, // Increase from default 20
+})
 ```
 
 ### Performance Tuning
 
 **Slow vector queries:**
+
 - Create IVFFlat indexes if missing
 - Adjust `lists` parameter based on dataset size
 - Consider HNSW indexes for larger datasets (>1M vectors)
 
 **Large observation token counts:**
+
 - Token counts are cached in `messages.tokenCount`
 - Repeated counts use cached values
 - Provider-backed counting preferred over estimation

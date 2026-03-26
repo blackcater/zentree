@@ -181,7 +181,7 @@ name: Codex auto-fix on CI failure
 
 on:
   workflow_run:
-    workflows: ["CI"]
+    workflows: ['CI']
     types: [completed]
 
 permissions:
@@ -204,7 +204,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: '20'
 
       - name: Install dependencies
         run: |
@@ -230,7 +230,7 @@ jobs:
         with:
           branch: codex/auto-fix-${{ github.event.workflow_run.run_id }}
           base: ${{ env.FAILED_HEAD_BRANCH }}
-          title: "Auto-fix failing CI via Codex"
+          title: 'Auto-fix failing CI via Codex'
 ```
 
 #### Alternative: Use the Codex GitHub Action

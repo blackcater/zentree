@@ -5,6 +5,7 @@
 **Goal:** 实现跨进程 RPC 框架，支持 Electron IPC 和 HTTP 两种传输层
 
 **Architecture:**
+
 - 核心接口定义在 `types.ts`（已有）
 - `RpcServer` / `RpcRouter` 用于服务端注册 handler
 - `RpcClient` 用于客户端调用
@@ -12,6 +13,7 @@
 - `HttpRpcServer` / `HttpRpcClient` 实现 HTTP 传输
 
 **Tech Stack:**
+
 - TypeScript
 - Electron IPC (ipcMain/ipcRenderer)
 - superjson (序列化)
@@ -42,6 +44,7 @@ apps/desktop/src/shared/rpc/
 ## Task 1: 补充 RpcError.fromJSON
 
 **Files:**
+
 - Modify: `apps/desktop/src/shared/rpc/RpcError.ts`
 
 RpcError.ts 已缺少 `fromJSON` 静态方法，需要补充以支持错误反序列化。
@@ -73,6 +76,7 @@ git commit -m "fix(rpc): add RpcError.fromJSON for error deserialization"
 ## Task 2: 创建 ElectronRpcServer 基类
 
 **Files:**
+
 - Create: `apps/desktop/src/shared/rpc/electron/ElectronRpcServer.ts`
 - Test: `apps/desktop/src/shared/rpc/electron/ElectronRpcServer.test.ts`
 
@@ -88,73 +92,74 @@ import type { IpcMain, WebContents } from 'electron'
 import { ElectronRpcServer } from './ElectronRpcServer'
 
 describe('ElectronRpcServer', () => {
-    it('should register handler and invoke it', async () => {
-        const mockIpcMain = {
-            on: vi.fn(),
-            handle: vi.fn(),
-        } as unknown as IpcMain
+  it('should register handler and invoke it', async () => {
+    const mockIpcMain = {
+      on: vi.fn(),
+      handle: vi.fn(),
+    } as unknown as IpcMain
 
-        const server = new ElectronRpcServer(mockIpcMain)
+    const server = new ElectronRpcServer(mockIpcMain)
 
-        // Mock webContents for push
-        const mockWebContents = {
-            send: vi.fn(),
-            id: 1,
-        }
+    // Mock webContents for push
+    const mockWebContents = {
+      send: vi.fn(),
+      id: 1,
+    }
 
-        server.handle('test/echo', async (ctx, msg: string) => {
-            return { echoed: msg }
-        })
-
-        // Get the registered handler
-        const handleSpy = mockIpcMain.handle as ReturnType<typeof vi.fn>
-        expect(handleSpy).toHaveBeenCalledWith(
-            'rpc:test/echo',
-            expect.any(Function)
-        )
+    server.handle('test/echo', async (ctx, msg: string) => {
+      return { echoed: msg }
     })
 
-    it('should support router for namespace organization', async () => {
-        const mockIpcMain = {
-            on: vi.fn(),
-            handle: vi.fn(),
-        } as unknown as IpcMain
+    // Get the registered handler
+    const handleSpy = mockIpcMain.handle as ReturnType<typeof vi.fn>
+    expect(handleSpy).toHaveBeenCalledWith(
+      'rpc:test/echo',
+      expect.any(Function)
+    )
+  })
 
-        const server = new ElectronRpcServer(mockIpcMain)
+  it('should support router for namespace organization', async () => {
+    const mockIpcMain = {
+      on: vi.fn(),
+      handle: vi.fn(),
+    } as unknown as IpcMain
 
-        server.router('conversation').handle('create', async (ctx, params) => {
-            return { id: 'conv-1', ...params }
-        })
+    const server = new ElectronRpcServer(mockIpcMain)
 
-        const handleSpy = mockIpcMain.handle as ReturnType<typeof vi.fn>
-        expect(handleSpy).toHaveBeenCalledWith(
-            'rpc:conversation/create',
-            expect.any(Function)
-        )
+    server.router('conversation').handle('create', async (ctx, params) => {
+      return { id: 'conv-1', ...params }
     })
 
-    it('should push event to webContents', async () => {
-        const mockIpcMain = {
-            on: vi.fn(),
-            handle: vi.fn(),
-        } as unknown as IpcMain
+    const handleSpy = mockIpcMain.handle as ReturnType<typeof vi.fn>
+    expect(handleSpy).toHaveBeenCalledWith(
+      'rpc:conversation/create',
+      expect.any(Function)
+    )
+  })
 
-        const server = new ElectronRpcServer(mockIpcMain)
-        const mockWebContents = { send: vi.fn(), id: 1 }
+  it('should push event to webContents', async () => {
+    const mockIpcMain = {
+      on: vi.fn(),
+      handle: vi.fn(),
+    } as unknown as IpcMain
 
-        // Register a client
-        server.handle('test/register', async (ctx) => {
-            return { clientId: ctx.clientId }
-        })
+    const server = new ElectronRpcServer(mockIpcMain)
+    const mockWebContents = { send: vi.fn(), id: 1 }
 
-        // Invoke the handler to establish context
-        const handleFn = (mockIpcMain.handle as ReturnType<typeof vi.fn>).mock.calls[0][1]
-        const result = await handleFn({}, 'test-args')
-
-        // Test push
-        server.push('notification', { type: 'broadcast' }, { msg: 'hello' })
-        // push should work without throwing
+    // Register a client
+    server.handle('test/register', async (ctx) => {
+      return { clientId: ctx.clientId }
     })
+
+    // Invoke the handler to establish context
+    const handleFn = (mockIpcMain.handle as ReturnType<typeof vi.fn>).mock
+      .calls[0][1]
+    const result = await handleFn({}, 'test-args')
+
+    // Test push
+    server.push('notification', { type: 'broadcast' }, { msg: 'hello' })
+    // push should work without throwing
+  })
 })
 ```
 
@@ -170,136 +175,166 @@ Expected: 测试文件可运行（部分测试可能因 mock 不完整而失败�
 ```typescript
 import type { IpcMain, IpcMainInvokeEvent, WebContents } from 'electron'
 import type {
-    RpcServer,
-    RpcRouter,
-    Rpc,
-    HandleOptions,
-    IRpcErrorDefinition,
+  RpcServer,
+  RpcRouter,
+  Rpc,
+  HandleOptions,
+  IRpcErrorDefinition,
 } from '../types'
 import { RpcError } from '../RpcError'
 
 interface RegisteredHandler {
-    handler: Rpc.HandlerFn
-    options?: HandleOptions
+  handler: Rpc.HandlerFn
+  options?: HandleOptions
 }
 
 // 用于应用层注入 webContents 管理器
 export interface WebContentsManager {
-    send(clientId: string, channel: string, ...args: unknown[]): void
-    getWebContents(clientId: string): WebContents | null
+  send(clientId: string, channel: string, ...args: unknown[]): void
+  getWebContents(clientId: string): WebContents | null
 }
 
 export class ElectronRpcServer implements RpcServer {
-    private handlers = new Map<string, RegisteredHandler>()
-    private ipcMain: IpcMain
-    private webContentsManager: WebContentsManager | null = null
+  private handlers = new Map<string, RegisteredHandler>()
+  private ipcMain: IpcMain
+  private webContentsManager: WebContentsManager | null = null
 
-    constructor(ipcMain: IpcMain) {
-        this.ipcMain = ipcMain
-    }
+  constructor(ipcMain: IpcMain) {
+    this.ipcMain = ipcMain
+  }
 
-    // 设置 WebContents 管理器，用于 push 和事件发送
-    setWebContentsManager(manager: WebContentsManager): void {
-        this.webContentsManager = manager
-    }
+  // 设置 WebContents 管理器，用于 push 和事件发送
+  setWebContentsManager(manager: WebContentsManager): void {
+    this.webContentsManager = manager
+  }
 
-    handle(event: string, handler: Rpc.HandlerFn): void
-    handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
-    handle(
-        event: string,
-        optionsOrHandler: HandleOptions | Rpc.HandlerFn,
-        maybeHandler?: Rpc.HandlerFn
-    ): void {
-        const eventPath = this.normalizeEvent(event)
-        const { handler, options } =
-            typeof optionsOrHandler === 'function'
-                ? { handler: optionsOrHandler, options: undefined }
-                : { handler: maybeHandler!, options: optionsOrHandler }
+  handle(event: string, handler: Rpc.HandlerFn): void
+  handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
+  handle(
+    event: string,
+    optionsOrHandler: HandleOptions | Rpc.HandlerFn,
+    maybeHandler?: Rpc.HandlerFn
+  ): void {
+    const eventPath = this.normalizeEvent(event)
+    const { handler, options } =
+      typeof optionsOrHandler === 'function'
+        ? { handler: optionsOrHandler, options: undefined }
+        : { handler: maybeHandler!, options: optionsOrHandler }
 
-        this.handlers.set(eventPath, { handler, options })
+    this.handlers.set(eventPath, { handler, options })
 
-        // 监听 invoke:xxx 通道，接收客户端调用
-        this.ipcMain.on(`rpc:invoke:${eventPath}`, async (e, payload: { invokeId: string; args: unknown[] }) => {
-            const { invokeId, args } = payload
-            const clientId = `client-${e.sender.id}`
+    // 监听 invoke:xxx 通道，接收客户端调用
+    this.ipcMain.on(
+      `rpc:invoke:${eventPath}`,
+      async (e, payload: { invokeId: string; args: unknown[] }) => {
+        const { invokeId, args } = payload
+        const clientId = `client-${e.sender.id}`
 
-            try {
-                const result = await handler({ clientId }, ...args)
+        try {
+          const result = await handler({ clientId }, ...args)
 
-                // Handle async iterator (streaming)
-                if (result && typeof result === 'object' && Symbol.asyncIterator in result) {
-                    const iterator = result[Symbol.asyncIterator]()
-                    let cancel = false
+          // Handle async iterator (streaming)
+          if (
+            result &&
+            typeof result === 'object' &&
+            Symbol.asyncIterator in result
+          ) {
+            const iterator = result[Symbol.asyncIterator]()
+            let cancel = false
 
-                    // Store cancel function on the event for abort
-                    ;(e as any)._rpcCancel = () => { cancel = true }
-
-                    for await (const chunk of iterator) {
-                        if (cancel) break
-                        // Send streaming chunk back
-                        e.sender.send(`rpc:stream:${eventPath}:${invokeId}`, { chunk, done: false })
-                    }
-
-                    e.sender.send(`rpc:stream:${eventPath}:${invokeId}`, { chunk: null, done: true })
-                    e.sender.send(`rpc:response:${invokeId}`, { result: { chunks: [] } })
-                } else {
-                    e.sender.send(`rpc:response:${invokeId}`, { result })
-                }
-            } catch (err) {
-                const rpcError = RpcError.from(err)
-                e.sender.send(`rpc:response:${invokeId}`, { error: rpcError.toJSON() })
+            // Store cancel function on the event for abort
+            ;(e as any)._rpcCancel = () => {
+              cancel = true
             }
-        })
-    }
 
-    router(namespace: string): RpcRouter {
-        const prefix = this.normalizeEvent(namespace)
-        return {
-            handle: (event: string, handler: Rpc.HandlerFn) => {
-                this.handle(`${prefix}/${event}`, handler)
-            },
-            handle: (
-                event: string,
-                options: HandleOptions,
-                handler: Rpc.HandlerFn
-            ) => {
-                this.handle(`${prefix}/${event}`, options, handler)
-            },
-            router: (ns: string) => {
-                return this.router(`${prefix}/${ns}`)
-            },
+            for await (const chunk of iterator) {
+              if (cancel) break
+              // Send streaming chunk back
+              e.sender.send(`rpc:stream:${eventPath}:${invokeId}`, {
+                chunk,
+                done: false,
+              })
+            }
+
+            e.sender.send(`rpc:stream:${eventPath}:${invokeId}`, {
+              chunk: null,
+              done: true,
+            })
+            e.sender.send(`rpc:response:${invokeId}`, {
+              result: { chunks: [] },
+            })
+          } else {
+            e.sender.send(`rpc:response:${invokeId}`, { result })
+          }
+        } catch (err) {
+          const rpcError = RpcError.from(err)
+          e.sender.send(`rpc:response:${invokeId}`, {
+            error: rpcError.toJSON(),
+          })
         }
+      }
+    )
+  }
+
+  router(namespace: string): RpcRouter {
+    const prefix = this.normalizeEvent(namespace)
+    return {
+      handle: (event: string, handler: Rpc.HandlerFn) => {
+        this.handle(`${prefix}/${event}`, handler)
+      },
+      handle: (
+        event: string,
+        options: HandleOptions,
+        handler: Rpc.HandlerFn
+      ) => {
+        this.handle(`${prefix}/${event}`, options, handler)
+      },
+      router: (ns: string) => {
+        return this.router(`${prefix}/${ns}`)
+      },
+    }
+  }
+
+  push(event: string, target: Rpc.Target, ...args: unknown[]): void {
+    if (!this.webContentsManager) {
+      console.warn(
+        'ElectronRpcServer: WebContentsManager not set, push() will not work'
+      )
+      return
     }
 
-    push(event: string, target: Rpc.Target, ...args: unknown[]): void {
-        if (!this.webContentsManager) {
-            console.warn('ElectronRpcServer: WebContentsManager not set, push() will not work')
-            return
-        }
+    const eventPath = this.normalizeEvent(event)
 
-        const eventPath = this.normalizeEvent(event)
-
-        if (target.type === 'broadcast') {
-            // Send to all clients - app layer handles this via WebContentsManager
-            // App would iterate all known clientIds
-            this.webContentsManager.send('*', `rpc:event:${eventPath}`, ...args)
-        } else if (target.type === 'client' && target.clientId) {
-            this.webContentsManager.send(target.clientId, `rpc:event:${eventPath}`, ...args)
-        } else if (target.type === 'group' && target.groupId) {
-            // Groups handled by app layer
-            this.webContentsManager.send(`group:${target.groupId}`, `rpc:event:${eventPath}`, ...args)
-        }
+    if (target.type === 'broadcast') {
+      // Send to all clients - app layer handles this via WebContentsManager
+      // App would iterate all known clientIds
+      this.webContentsManager.send('*', `rpc:event:${eventPath}`, ...args)
+    } else if (target.type === 'client' && target.clientId) {
+      this.webContentsManager.send(
+        target.clientId,
+        `rpc:event:${eventPath}`,
+        ...args
+      )
+    } else if (target.type === 'group' && target.groupId) {
+      // Groups handled by app layer
+      this.webContentsManager.send(
+        `group:${target.groupId}`,
+        `rpc:event:${eventPath}`,
+        ...args
+      )
     }
+  }
 
-    private normalizeEvent(event: string): string {
-        return event.replace(/\/+/g, '/').replace(/^\/|\/$/g, '')
-    }
+  private normalizeEvent(event: string): string {
+    return event.replace(/\/+/g, '/').replace(/^\/|\/$/g, '')
+  }
 }
 ```
 
 **注意**：使用 `ipcMain.on` 而非 `ipcMain.handle`，因为我们需要通过 `rpc:response:invokeId` 自定义响应通道。`ipcMain.handle` 会自动处理响应，不适合我们的协议。
 
 **注意**：IPC 通道协议：
+
 - 客户端调用：`rpc:invoke:event/path` 发送 `{ invokeId, args }`
 - 服务端响应：`rpc:response:invokeId` 发送 `{ result }` 或 `{ error }`
 - 服务端流式：`rpc:stream:event/path:invokeId` 发送 `{ chunk, done }`
@@ -322,6 +357,7 @@ git commit -m "feat(rpc): add ElectronRpcServer for main process"
 ## Task 3: 创建 ElectronRpcClient
 
 **Files:**
+
 - Create: `apps/desktop/src/shared/rpc/electron/ElectronRpcClient.ts`
 - Test: `apps/desktop/src/shared/rpc/electron/ElectronRpcClient.test.ts`
 
@@ -337,48 +373,54 @@ import type { WebContents } from 'electron'
 import { ElectronRpcClient } from './ElectronRpcClient'
 
 describe('ElectronRpcClient', () => {
-    it('should call rpc handler and return result', async () => {
-        const mockWebContents = {
-            send: vi.fn(),
-            id: 1,
-            on: vi.fn(),
+  it('should call rpc handler and return result', async () => {
+    const mockWebContents = {
+      send: vi.fn(),
+      id: 1,
+      on: vi.fn(),
+    }
+
+    const client = new ElectronRpcClient(
+      mockWebContents as unknown as WebContents
+    )
+
+    // Mock invoke response
+    let handler: any
+    ;(mockWebContents.send as ReturnType<typeof vi.fn>).mockImplementation(
+      (channel: string, ...args) => {
+        if (channel.startsWith('rpc:invoke:')) {
+          // Simulate successful response
+          setTimeout(() => {
+            const replyChannel = channel.replace('rpc:invoke:', 'rpc:response:')
+            // Find the listener and call it
+          }, 0)
         }
+      }
+    )
 
-        const client = new ElectronRpcClient(mockWebContents as unknown as WebContents)
+    // This is a simplified test - full implementation needs proper async handling
+    expect(client.clientId).toBe('client-1')
+  })
 
-        // Mock invoke response
-        let handler: any
-        ;(mockWebContents.send as ReturnType<typeof vi.fn>).mockImplementation((channel: string, ...args) => {
-            if (channel.startsWith('rpc:invoke:')) {
-                // Simulate successful response
-                setTimeout(() => {
-                    const replyChannel = channel.replace('rpc:invoke:', 'rpc:response:')
-                    // Find the listener and call it
-                }, 0)
-            }
-        })
+  it('should support onEvent for listening to push events', async () => {
+    const mockWebContents = {
+      send: vi.fn(),
+      id: 1,
+      on: vi.fn(),
+    }
 
-        // This is a simplified test - full implementation needs proper async handling
-        expect(client.clientId).toBe('client-1')
-    })
+    const client = new ElectronRpcClient(
+      mockWebContents as unknown as WebContents
+    )
 
-    it('should support onEvent for listening to push events', async () => {
-        const mockWebContents = {
-            send: vi.fn(),
-            id: 1,
-            on: vi.fn(),
-        }
+    const handler = vi.fn()
+    const cancel = client.onEvent('notification', handler)
 
-        const client = new ElectronRpcClient(mockWebContents as unknown as WebContents)
-
-        const handler = vi.fn()
-        const cancel = client.onEvent('notification', handler)
-
-        expect(mockWebContents.on).toHaveBeenCalledWith(
-            'rpc:event:notification',
-            expect.any(Function)
-        )
-    })
+    expect(mockWebContents.on).toHaveBeenCalledWith(
+      'rpc:event:notification',
+      expect.any(Function)
+    )
+  })
 })
 ```
 
@@ -392,172 +434,182 @@ import type { RpcClient, Rpc, IRpcErrorDefinition } from '../types'
 import { RpcError } from '../RpcError'
 
 export class ElectronRpcClient implements RpcClient {
-    readonly clientId: string
-    readonly groupId?: string
+  readonly clientId: string
+  readonly groupId?: string
 
-    private webContents: WebContents
-    private pendingCalls = new Map<string, { resolve: Function; reject: Function }>()
-    private eventListeners = new Map<string, Set<(...args: unknown[]) => void>>()
-    private streamHandlers = new Map<string, { onChunk: Function; onDone: Function }>()
-    private invokeCounter = 0
+  private webContents: WebContents
+  private pendingCalls = new Map<
+    string,
+    { resolve: Function; reject: Function }
+  >()
+  private eventListeners = new Map<string, Set<(...args: unknown[]) => void>>()
+  private streamHandlers = new Map<
+    string,
+    { onChunk: Function; onDone: Function }
+  >()
+  private invokeCounter = 0
 
-    constructor(webContents: WebContents, groupId?: string) {
-        this.webContents = webContents
-        this.clientId = `client-${webContents.id}`
-        this.groupId = groupId
+  constructor(webContents: WebContents, groupId?: string) {
+    this.webContents = webContents
+    this.clientId = `client-${webContents.id}`
+    this.groupId = groupId
 
-        // Listen for RPC responses
-        webContents.on('ipc-message', (channel: string, ...args: unknown[]) => {
-            if (channel.startsWith('rpc:response:')) {
-                const invokeId = channel.replace('rpc:response:', '')
-                const pending = this.pendingCalls.get(invokeId)
-                if (pending) {
-                    const payload = args[0] as { result?: unknown; error?: IRpcErrorDefinition }
-                    if (payload.error) {
-                        pending.reject(RpcError.fromJSON(payload.error))
-                    } else {
-                        pending.resolve(payload.result)
-                    }
-                    this.pendingCalls.delete(invokeId)
-                }
-            } else if (channel.startsWith('rpc:event:')) {
-                const eventName = channel.replace('rpc:event:', '')
-                const listeners = this.eventListeners.get(eventName)
-                if (listeners) {
-                    for (const listener of listeners) {
-                        listener(...args)
-                    }
-                }
-            } else if (channel.startsWith('rpc:stream:')) {
-                // Format: rpc:stream:eventPath:invokeId
-                const parts = channel.split(':')
-                const invokeId = parts[parts.length - 1]
-                const payload = args[0] as { chunk: unknown; done: boolean }
-                const handler = this.streamHandlers.get(invokeId)
-                if (handler) {
-                    if (payload.done) {
-                        handler.onDone()
-                    } else {
-                        handler.onChunk(payload.chunk)
-                    }
-                }
+    // Listen for RPC responses
+    webContents.on('ipc-message', (channel: string, ...args: unknown[]) => {
+      if (channel.startsWith('rpc:response:')) {
+        const invokeId = channel.replace('rpc:response:', '')
+        const pending = this.pendingCalls.get(invokeId)
+        if (pending) {
+          const payload = args[0] as {
+            result?: unknown
+            error?: IRpcErrorDefinition
+          }
+          if (payload.error) {
+            pending.reject(RpcError.fromJSON(payload.error))
+          } else {
+            pending.resolve(payload.result)
+          }
+          this.pendingCalls.delete(invokeId)
+        }
+      } else if (channel.startsWith('rpc:event:')) {
+        const eventName = channel.replace('rpc:event:', '')
+        const listeners = this.eventListeners.get(eventName)
+        if (listeners) {
+          for (const listener of listeners) {
+            listener(...args)
+          }
+        }
+      } else if (channel.startsWith('rpc:stream:')) {
+        // Format: rpc:stream:eventPath:invokeId
+        const parts = channel.split(':')
+        const invokeId = parts[parts.length - 1]
+        const payload = args[0] as { chunk: unknown; done: boolean }
+        const handler = this.streamHandlers.get(invokeId)
+        if (handler) {
+          if (payload.done) {
+            handler.onDone()
+          } else {
+            handler.onChunk(payload.chunk)
+          }
+        }
+      }
+    })
+  }
+
+  async call<T>(event: string, ...args: unknown[]): Promise<T> {
+    const invokeId = `invoke-${++this.invokeCounter}`
+    const eventPath = event.replace(/^\/|\/$/g, '')
+
+    return new Promise((resolve, reject) => {
+      this.pendingCalls.set(invokeId, { resolve, reject })
+
+      // Send invoke message: rpc:invoke:eventPath with { invokeId, args }
+      this.webContents.send(`rpc:invoke:${eventPath}`, { invokeId, args })
+
+      // Timeout: 30 seconds default
+      setTimeout(() => {
+        if (this.pendingCalls.has(invokeId)) {
+          this.pendingCalls.delete(invokeId)
+          reject(new RpcError(RpcError.TIMEOUT, `RPC call ${event} timed out`))
+        }
+      }, 30000)
+    })
+  }
+
+  stream<T>(event: string, ...args: unknown[]): Rpc.StreamResult<T> {
+    const invokeId = `invoke-${++this.invokeCounter}`
+    const eventPath = event.replace(/^\/|\/$/g, '')
+    const chunks: T[] = []
+    let cancelFn: (() => void) | null = null
+
+    // Set up stream handlers before sending
+    this.streamHandlers.set(invokeId, {
+      onChunk: (chunk: unknown) => {
+        chunks.push(chunk as T)
+      },
+      onDone: () => {
+        this.streamHandlers.delete(invokeId)
+      },
+    })
+
+    // Send invoke message
+    this.webContents.send(`rpc:invoke:${eventPath}`, { invokeId, args })
+
+    const iterator: AsyncIterator<T> = {
+      next: async () => {
+        if (chunks.length > 0) {
+          return { done: false, value: chunks.shift()! }
+        }
+        // Wait for more chunks
+        await new Promise<void>((resolve) => {
+          const check = () => {
+            if (chunks.length > 0) {
+              resolve()
+            } else if (!this.streamHandlers.has(invokeId)) {
+              resolve() // Stream ended
+            } else {
+              setTimeout(check, 10)
             }
+          }
+          check()
         })
+        if (chunks.length > 0) {
+          return { done: false, value: chunks.shift()! }
+        }
+        return { done: true, value: undefined }
+      },
     }
 
-    async call<T>(event: string, ...args: unknown[]): Promise<T> {
-        const invokeId = `invoke-${++this.invokeCounter}`
-        const eventPath = event.replace(/^\/|\/$/g, '')
+    return {
+      [Symbol.asyncIterator]: () => iterator,
+      cancel: () => {
+        if (cancelFn) cancelFn()
+        this.streamHandlers.delete(invokeId)
+        // TODO: Send cancel message to server
+      },
+    }
+  }
 
-        return new Promise((resolve, reject) => {
-            this.pendingCalls.set(invokeId, { resolve, reject })
+  onEvent(event: string, listener: (...args: unknown[]) => void): Rpc.CancelFn {
+    const channel = `rpc:event:${event}`
 
-            // Send invoke message: rpc:invoke:eventPath with { invokeId, args }
-            this.webContents.send(`rpc:invoke:${eventPath}`, { invokeId, args })
-
-            // Timeout: 30 seconds default
-            setTimeout(() => {
-                if (this.pendingCalls.has(invokeId)) {
-                    this.pendingCalls.delete(invokeId)
-                    reject(new RpcError(RpcError.TIMEOUT, `RPC call ${event} timed out`))
-                }
-            }, 30000)
-        })
+    if (!this.eventListeners.has(event)) {
+      this.eventListeners.set(event, new Set())
+      this.webContents.on(channel, (...listenerArgs: unknown[]) => {
+        const listeners = this.eventListeners.get(event)
+        if (listeners) {
+          for (const l of listeners) {
+            l(...listenerArgs)
+          }
+        }
+      })
     }
 
-    stream<T>(event: string, ...args: unknown[]): Rpc.StreamResult<T> {
-        const invokeId = `invoke-${++this.invokeCounter}`
-        const eventPath = event.replace(/^\/|\/$/g, '')
-        const chunks: T[] = []
-        let cancelFn: (() => void) | null = null
+    this.eventListeners.get(event)!.add(listener)
 
-        // Set up stream handlers before sending
-        this.streamHandlers.set(invokeId, {
-            onChunk: (chunk: unknown) => {
-                chunks.push(chunk as T)
-            },
-            onDone: () => {
-                this.streamHandlers.delete(invokeId)
-            },
-        })
-
-        // Send invoke message
-        this.webContents.send(`rpc:invoke:${eventPath}`, { invokeId, args })
-
-        const iterator: AsyncIterator<T> = {
-            next: async () => {
-                if (chunks.length > 0) {
-                    return { done: false, value: chunks.shift()! }
-                }
-                // Wait for more chunks
-                await new Promise<void>((resolve) => {
-                    const check = () => {
-                        if (chunks.length > 0) {
-                            resolve()
-                        } else if (!this.streamHandlers.has(invokeId)) {
-                            resolve() // Stream ended
-                        } else {
-                            setTimeout(check, 10)
-                        }
-                    }
-                    check()
-                })
-                if (chunks.length > 0) {
-                    return { done: false, value: chunks.shift()! }
-                }
-                return { done: true, value: undefined }
-            },
-        }
-
-        return {
-            [Symbol.asyncIterator]: () => iterator,
-            cancel: () => {
-                if (cancelFn) cancelFn()
-                this.streamHandlers.delete(invokeId)
-                // TODO: Send cancel message to server
-            },
-        }
+    return () => {
+      const listeners = this.eventListeners.get(event)
+      if (listeners) {
+        listeners.delete(listener)
+      }
     }
+  }
 
-    onEvent(event: string, listener: (...args: unknown[]) => void): Rpc.CancelFn {
-        const channel = `rpc:event:${event}`
-
-        if (!this.eventListeners.has(event)) {
-            this.eventListeners.set(event, new Set())
-            this.webContents.on(channel, (...listenerArgs: unknown[]) => {
-                const listeners = this.eventListeners.get(event)
-                if (listeners) {
-                    for (const l of listeners) {
-                        l(...listenerArgs)
-                    }
-                }
-            })
-        }
-
-        this.eventListeners.get(event)!.add(listener)
-
-        return () => {
-            const listeners = this.eventListeners.get(event)
-            if (listeners) {
-                listeners.delete(listener)
-            }
-        }
+  abort(): void {
+    // Cancel all pending calls
+    for (const [id, pending] of this.pendingCalls) {
+      pending.reject(new RpcError(RpcError.ABORTED, 'Aborted'))
     }
+    this.pendingCalls.clear()
 
-    abort(): void {
-        // Cancel all pending calls
-        for (const [id, pending] of this.pendingCalls) {
-            pending.reject(new RpcError(RpcError.ABORTED, 'Aborted'))
-        }
-        this.pendingCalls.clear()
-
-        // Clear all stream handlers
-        this.streamHandlers.clear()
-    }
+    // Clear all stream handlers
+    this.streamHandlers.clear()
+  }
 }
 ```
 
 **注意**：IPC 通道协议：
+
 - 客户端调用：`rpc:invoke:event/path` 发送 `{ invokeId, args }`
 - 服务端响应：`rpc:response:invokeId` 发送 `{ result }` 或 `{ error }`
 - 服务端流式：`rpc:stream:event/path:invokeId` 发送 `{ chunk, done }`
@@ -580,6 +632,7 @@ git commit -m "feat(rpc): add ElectronRpcClient for renderer process"
 ## Task 4: 创建 electron 模块导出
 
 **Files:**
+
 - Create: `apps/desktop/src/shared/rpc/electron/index.ts`
 
 - [ ] **Step 1: 创建模块导出**
@@ -604,6 +657,7 @@ git commit -m "feat(rpc): export electron module"
 ## Task 5: 创建 HttpRpcServer
 
 **Files:**
+
 - Create: `apps/desktop/src/shared/rpc/http/HttpRpcServer.ts`
 - Test: `apps/desktop/src/shared/rpc/http/HttpRpcServer.test.ts`
 
@@ -619,44 +673,44 @@ import { Hono } from 'hono'
 import { HttpRpcServer } from './HttpRpcServer'
 
 describe('HttpRpcServer', () => {
-    it('should register handler and invoke it via HTTP', async () => {
-        const app = new Hono()
-        const server = new HttpRpcServer(app)
+  it('should register handler and invoke it via HTTP', async () => {
+    const app = new Hono()
+    const server = new HttpRpcServer(app)
 
-        server.handle('test/echo', async (ctx, msg: string) => {
-            return { echoed: msg }
-        })
-
-        // Test the endpoint
-        const response = await app.request('/rpc/test/echo', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(['hello']),
-        })
-
-        expect(response.status).toBe(200)
-        const json = await response.json()
-        expect(json).toEqual({ result: { echoed: 'hello' } })
+    server.handle('test/echo', async (ctx, msg: string) => {
+      return { echoed: msg }
     })
 
-    it('should support router for namespace', async () => {
-        const app = new Hono()
-        const server = new HttpRpcServer(app)
-
-        server.router('conversation').handle('create', async (ctx, params) => {
-            return { id: 'conv-1', ...params }
-        })
-
-        const response = await app.request('/rpc/conversation/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify([{ title: 'Test' }]),
-        })
-
-        expect(response.status).toBe(200)
-        const json = await response.json()
-        expect(json.result.id).toBe('conv-1')
+    // Test the endpoint
+    const response = await app.request('/rpc/test/echo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(['hello']),
     })
+
+    expect(response.status).toBe(200)
+    const json = await response.json()
+    expect(json).toEqual({ result: { echoed: 'hello' } })
+  })
+
+  it('should support router for namespace', async () => {
+    const app = new Hono()
+    const server = new HttpRpcServer(app)
+
+    server.router('conversation').handle('create', async (ctx, params) => {
+      return { id: 'conv-1', ...params }
+    })
+
+    const response = await app.request('/rpc/conversation/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify([{ title: 'Test' }]),
+    })
+
+    expect(response.status).toBe(200)
+    const json = await response.json()
+    expect(json.result.id).toBe('conv-1')
+  })
 })
 ```
 
@@ -666,118 +720,130 @@ describe('HttpRpcServer', () => {
 
 ```typescript
 import type { Context, Next } from 'hono'
-import type { RpcServer, RpcRouter, Rpc, HandleOptions, IRpcErrorDefinition } from '../types'
+import type {
+  RpcServer,
+  RpcRouter,
+  Rpc,
+  HandleOptions,
+  IRpcErrorDefinition,
+} from '../types'
 import { RpcError } from '../RpcError'
 
 interface RegisteredHandler {
-    handler: Rpc.HandlerFn
-    options?: HandleOptions
+  handler: Rpc.HandlerFn
+  options?: HandleOptions
 }
 
 type HonoApp = {
-    use: (path: any, ...handlers: any[]) => HonoApp
-    on: (method: string, path: any, ...handlers: any[]) => HonoApp
-    request: (path: string, init?: RequestInit) => Promise<Response>
+  use: (path: any, ...handlers: any[]) => HonoApp
+  on: (method: string, path: any, ...handlers: any[]) => HonoApp
+  request: (path: string, init?: RequestInit) => Promise<Response>
 }
 
 export class HttpRpcServer implements RpcServer {
-    private handlers = new Map<string, RegisteredHandler>()
-    private app: HonoApp
+  private handlers = new Map<string, RegisteredHandler>()
+  private app: HonoApp
 
-    constructor(app: HonoApp) {
-        this.app = app
-        this.setupRoutes()
-    }
+  constructor(app: HonoApp) {
+    this.app = app
+    this.setupRoutes()
+  }
 
-    private setupRoutes() {
-        // POST /rpc/:path - RPC invocation
-        this.app.on('POST', '/rpc/:path+', async (c) => {
-            const path = c.req.param('path')
-            const args = await c.req.json().catch(() => [])
+  private setupRoutes() {
+    // POST /rpc/:path - RPC invocation
+    this.app.on('POST', '/rpc/:path+', async (c) => {
+      const path = c.req.param('path')
+      const args = await c.req.json().catch(() => [])
 
-            const handler = this.handlers.get(path)
-            if (!handler) {
-                return c.json(
-                    { error: { code: 'NOT_FOUND', message: `Handler not found: ${path}` } },
-                    404
-                )
-            }
+      const handler = this.handlers.get(path)
+      if (!handler) {
+        return c.json(
+          {
+            error: { code: 'NOT_FOUND', message: `Handler not found: ${path}` },
+          },
+          404
+        )
+      }
 
-            const ctx: Rpc.RequestContext = {
-                clientId: this.getClientId(c),
-            }
+      const ctx: Rpc.RequestContext = {
+        clientId: this.getClientId(c),
+      }
 
-            try {
-                const result = await handler.handler(ctx, ...args)
+      try {
+        const result = await handler.handler(ctx, ...args)
 
-                // Handle async iterator (streaming) - deferred for HTTP
-                if (result && typeof result === 'object' && Symbol.asyncIterator in result) {
-                    // For HTTP, streaming would use SSE or chunked transfer
-                    // Deferred implementation
-                    const chunks: unknown[] = []
-                    for await (const chunk of (result as AsyncIterator<unknown>)) {
-                        chunks.push(chunk)
-                    }
-                    return c.json({ result: chunks })
-                }
-
-                return c.json({ result })
-            } catch (err) {
-                const rpcError = RpcError.from(err)
-                return c.json({ error: rpcError.toJSON() }, 500)
-            }
-        })
-
-        // GET /rpc/:path/:event - SSE for event subscription (deferred)
-    }
-
-    handle(event: string, handler: Rpc.HandlerFn): void
-    handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
-    handle(
-        event: string,
-        optionsOrHandler: HandleOptions | Rpc.HandlerFn,
-        maybeHandler?: Rpc.HandlerFn
-    ): void {
-        const eventPath = this.normalizeEvent(event)
-        const { handler, options } =
-            typeof optionsOrHandler === 'function'
-                ? { handler: optionsOrHandler, options: undefined }
-                : { handler: maybeHandler!, options: optionsOrHandler }
-
-        this.handlers.set(eventPath, { handler, options })
-    }
-
-    router(namespace: string): RpcRouter {
-        const prefix = this.normalizeEvent(namespace)
-        return {
-            handle: (event: string, handler: Rpc.HandlerFn) => {
-                this.handle(`${prefix}/${event}`, handler)
-            },
-            handle: (
-                event: string,
-                options: HandleOptions,
-                handler: Rpc.HandlerFn
-            ) => {
-                this.handle(`${prefix}/${event}`, options, handler)
-            },
-            router: (ns: string) => {
-                return this.router(`${prefix}/${ns}`)
-            },
+        // Handle async iterator (streaming) - deferred for HTTP
+        if (
+          result &&
+          typeof result === 'object' &&
+          Symbol.asyncIterator in result
+        ) {
+          // For HTTP, streaming would use SSE or chunked transfer
+          // Deferred implementation
+          const chunks: unknown[] = []
+          for await (const chunk of result as AsyncIterator<unknown>) {
+            chunks.push(chunk)
+          }
+          return c.json({ result: chunks })
         }
-    }
 
-    push(event: string, target: Rpc.Target, ...args: unknown[]): void {
-        // HTTP push is deferred - would require SSE or WebSocket
-        // For now, this is a no-op
-    }
+        return c.json({ result })
+      } catch (err) {
+        const rpcError = RpcError.from(err)
+        return c.json({ error: rpcError.toJSON() }, 500)
+      }
+    })
 
-    private normalizeEvent(event: string): string {
-        return event.replace(/\/+/g, '/').replace(/^\/|\/$/g, '')
-    }
+    // GET /rpc/:path/:event - SSE for event subscription (deferred)
+  }
 
-    private getClientId(c: Context): string {
-        return c.req.header('x-rpc-client-id') || 'anonymous'
+  handle(event: string, handler: Rpc.HandlerFn): void
+  handle(event: string, options: HandleOptions, handler: Rpc.HandlerFn): void
+  handle(
+    event: string,
+    optionsOrHandler: HandleOptions | Rpc.HandlerFn,
+    maybeHandler?: Rpc.HandlerFn
+  ): void {
+    const eventPath = this.normalizeEvent(event)
+    const { handler, options } =
+      typeof optionsOrHandler === 'function'
+        ? { handler: optionsOrHandler, options: undefined }
+        : { handler: maybeHandler!, options: optionsOrHandler }
+
+    this.handlers.set(eventPath, { handler, options })
+  }
+
+  router(namespace: string): RpcRouter {
+    const prefix = this.normalizeEvent(namespace)
+    return {
+      handle: (event: string, handler: Rpc.HandlerFn) => {
+        this.handle(`${prefix}/${event}`, handler)
+      },
+      handle: (
+        event: string,
+        options: HandleOptions,
+        handler: Rpc.HandlerFn
+      ) => {
+        this.handle(`${prefix}/${event}`, options, handler)
+      },
+      router: (ns: string) => {
+        return this.router(`${prefix}/${ns}`)
+      },
     }
+  }
+
+  push(event: string, target: Rpc.Target, ...args: unknown[]): void {
+    // HTTP push is deferred - would require SSE or WebSocket
+    // For now, this is a no-op
+  }
+
+  private normalizeEvent(event: string): string {
+    return event.replace(/\/+/g, '/').replace(/^\/|\/$/g, '')
+  }
+
+  private getClientId(c: Context): string {
+    return c.req.header('x-rpc-client-id') || 'anonymous'
+  }
 }
 ```
 
@@ -798,6 +864,7 @@ git commit -m "feat(rpc): add HttpRpcServer for HTTP transport"
 ## Task 6: 创建 HttpRpcClient
 
 **Files:**
+
 - Create: `apps/desktop/src/shared/rpc/http/HttpRpcClient.ts`
 - Test: `apps/desktop/src/shared/rpc/http/HttpRpcClient.test.ts`
 
@@ -812,15 +879,15 @@ import { describe, it, expect } from 'vitest'
 import { HttpRpcClient } from './HttpRpcClient'
 
 describe('HttpRpcClient', () => {
-    it('should have clientId after construction', () => {
-        const client = new HttpRpcClient('http://localhost:3000')
-        expect(client.clientId).toBeDefined()
-    })
+  it('should have clientId after construction', () => {
+    const client = new HttpRpcClient('http://localhost:3000')
+    expect(client.clientId).toBeDefined()
+  })
 
-    it('should accept custom clientId', () => {
-        const client = new HttpRpcClient('http://localhost:3000', 'my-client')
-        expect(client.clientId).toBe('my-client')
-    })
+  it('should accept custom clientId', () => {
+    const client = new HttpRpcClient('http://localhost:3000', 'my-client')
+    expect(client.clientId).toBe('my-client')
+  })
 })
 ```
 
@@ -833,78 +900,86 @@ import type { RpcClient, Rpc, IRpcErrorDefinition } from '../types'
 import { RpcError } from '../RpcError'
 
 export class HttpRpcClient implements RpcClient {
-    readonly clientId: string
-    readonly groupId?: string
+  readonly clientId: string
+  readonly groupId?: string
 
-    private baseUrl: string
-    private pendingStreams = new Map<string, { resolve: Function; reject: Function }>()
+  private baseUrl: string
+  private pendingStreams = new Map<
+    string,
+    { resolve: Function; reject: Function }
+  >()
 
-    constructor(baseUrl: string, clientId?: string, groupId?: string) {
-        this.baseUrl = baseUrl.replace(/\/$/, '')
-        this.clientId = clientId || `http-client-${Date.now()}`
-        this.groupId = groupId
+  constructor(baseUrl: string, clientId?: string, groupId?: string) {
+    this.baseUrl = baseUrl.replace(/\/$/, '')
+    this.clientId = clientId || `http-client-${Date.now()}`
+    this.groupId = groupId
+  }
+
+  async call<T>(event: string, ...args: unknown[]): Promise<T> {
+    const normalizedEvent = event.replace(/^\/|\/$/g, '')
+
+    const response = await fetch(`${this.baseUrl}/rpc/${normalizedEvent}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-rpc-client-id': this.clientId,
+        ...(this.groupId && { 'x-rpc-group-id': this.groupId }),
+      },
+      body: JSON.stringify(args),
+    })
+
+    if (!response.ok) {
+      throw new RpcError(
+        'HTTP_ERROR',
+        `HTTP ${response.status}: ${response.statusText}`
+      )
     }
 
-    async call<T>(event: string, ...args: unknown[]): Promise<T> {
-        const normalizedEvent = event.replace(/^\/|\/$/g, '')
+    const payload = await response.json()
 
-        const response = await fetch(`${this.baseUrl}/rpc/${normalizedEvent}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-rpc-client-id': this.clientId,
-                ...(this.groupId && { 'x-rpc-group-id': this.groupId }),
-            },
-            body: JSON.stringify(args),
-        })
-
-        if (!response.ok) {
-            throw new RpcError('HTTP_ERROR', `HTTP ${response.status}: ${response.statusText}`)
-        }
-
-        const payload = await response.json()
-
-        if (payload.error) {
-            throw RpcError.fromJSON(payload.error as IRpcErrorDefinition)
-        }
-
-        return payload.result as T
+    if (payload.error) {
+      throw RpcError.fromJSON(payload.error as IRpcErrorDefinition)
     }
 
-    stream<T>(event: string, ...args: unknown[]): Rpc.StreamResult<T> {
-        // HTTP streaming deferred - would use fetch with ReadableStream
-        // For now, return an empty async iterator
-        const chunks: T[] = []
+    return payload.result as T
+  }
 
-        const iterator: AsyncIterator<T> = {
-            next: async () => {
-                if (chunks.length > 0) {
-                    return { done: false, value: chunks.shift()! }
-                }
-                return { done: true, value: undefined }
-            },
-        }
+  stream<T>(event: string, ...args: unknown[]): Rpc.StreamResult<T> {
+    // HTTP streaming deferred - would use fetch with ReadableStream
+    // For now, return an empty async iterator
+    const chunks: T[] = []
 
-        return {
-            [Symbol.asyncIterator]: () => iterator,
-            cancel: () => {
-                // Cancel pending stream
-            },
+    const iterator: AsyncIterator<T> = {
+      next: async () => {
+        if (chunks.length > 0) {
+          return { done: false, value: chunks.shift()! }
         }
+        return { done: true, value: undefined }
+      },
     }
 
-    onEvent(event: string, listener: (...args: unknown[]) => void): Rpc.CancelFn {
-        // HTTP long-polling or SSE for events - deferred
-        return () => {}
+    return {
+      [Symbol.asyncIterator]: () => iterator,
+      cancel: () => {
+        // Cancel pending stream
+      },
     }
+  }
 
-    abort(): void {
-        // Cancel all pending operations
-        for (const pending of this.pendingStreams.values()) {
-            pending.reject(RpcError.from({ code: RpcError.ABORTED, message: 'Aborted' }))
-        }
-        this.pendingStreams.clear()
+  onEvent(event: string, listener: (...args: unknown[]) => void): Rpc.CancelFn {
+    // HTTP long-polling or SSE for events - deferred
+    return () => {}
+  }
+
+  abort(): void {
+    // Cancel all pending operations
+    for (const pending of this.pendingStreams.values()) {
+      pending.reject(
+        RpcError.from({ code: RpcError.ABORTED, message: 'Aborted' })
+      )
     }
+    this.pendingStreams.clear()
+  }
 }
 ```
 
@@ -925,6 +1000,7 @@ git commit -m "feat(rpc): add HttpRpcClient for HTTP transport"
 ## Task 7: 创建 http 模块导出
 
 **Files:**
+
 - Create: `apps/desktop/src/shared/rpc/http/index.ts`
 
 - [ ] **Step 1: 创建模块导出**
@@ -948,6 +1024,7 @@ git commit -m "feat(rpc): export http module"
 ## Task 8: 创建统一导出
 
 **Files:**
+
 - Create: `apps/desktop/src/shared/rpc/index.ts`
 
 - [ ] **Step 1: 创建统一导出**
@@ -1000,6 +1077,7 @@ Expected: 无警告/错误
 - [ ] **Step 4: 最终提交**
 
 如果有任何修复，提交最终更改：
+
 ```bash
 git add -A
 git commit -m "fix(rpc): address lint and typecheck issues"

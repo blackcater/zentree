@@ -12,8 +12,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 Complete technical reference for all Inter-Process Communication (IPC) channels in Craft Agents. Documents channel names, parameters, return types, and implementation details for the Electron IPC layer.
 
 Related pages: [IPC Communication Layer](#2.6) for architecture overview, [Agent System](#2.3) for agent orchestration, [SessionManager API](#8.2) for session management.
@@ -24,10 +22,10 @@ IPC channels bridge the renderer process (React UI) and main process (Node.js ba
 
 **Communication Patterns**:
 
-| Pattern | Renderer API | Main Handler | Use Case |
-|---------|-------------|--------------|----------|
-| Request/Response | `ipcRenderer.invoke(channel, ...args)` | `ipcMain.handle(channel, handler)` | Synchronous operations returning data |
-| Event Streaming | `ipcRenderer.on(channel, callback)` | `webContents.send(channel, event)` | Asynchronous updates (agent responses, file watching) |
+| Pattern          | Renderer API                           | Main Handler                       | Use Case                                              |
+| ---------------- | -------------------------------------- | ---------------------------------- | ----------------------------------------------------- |
+| Request/Response | `ipcRenderer.invoke(channel, ...args)` | `ipcMain.handle(channel, handler)` | Synchronous operations returning data                 |
+| Event Streaming  | `ipcRenderer.on(channel, callback)`    | `webContents.send(channel, event)` | Asynchronous updates (agent responses, file watching) |
 
 All channel names are defined in `IPC_CHANNELS` constant at [apps/electron/src/shared/types.ts:580-872](). Handlers are registered via `registerIpcHandlers(sessionManager, windowManager)` at [apps/electron/src/main/ipc.ts:295]().
 
@@ -49,60 +47,60 @@ graph TB
         SEND_MESSAGE["SEND_MESSAGE<br/>'sessions:sendMessage'"]
         SESSION_COMMAND["SESSION_COMMAND<br/>'sessions:command'"]
         SESSION_EVENT["SESSION_EVENT<br/>'session:event'"]
-        
+
         GET_WORKSPACES["GET_WORKSPACES<br/>'workspaces:get'"]
         CREATE_WORKSPACE["CREATE_WORKSPACE<br/>'workspaces:create'"]
         WORKSPACE_SETTINGS_GET["WORKSPACE_SETTINGS_GET"]
-        
+
         READ_FILE["READ_FILE<br/>'file:read'"]
         STORE_ATTACHMENT["STORE_ATTACHMENT<br/>'file:storeAttachment'"]
         FS_SEARCH["FS_SEARCH<br/>'fs:search'"]
-        
+
         SOURCES_GET["SOURCES_GET<br/>'sources:get'"]
         SOURCES_START_OAUTH["SOURCES_START_OAUTH"]
-        
+
         SKILLS_GET["SKILLS_GET<br/>'skills:get'"]
-        
+
         LLM_CONNECTION_LIST["LLM_CONNECTION_LIST"]
         SETUP_LLM_CONNECTION["SETUP_LLM_CONNECTION"]
-        
+
         OPEN_WORKSPACE["OPEN_WORKSPACE"]
         SWITCH_WORKSPACE["SWITCH_WORKSPACE"]
-        
+
         THEME_GET_APP["THEME_GET_APP"]
         NOTIFICATION_SHOW["NOTIFICATION_SHOW"]
     end
-    
+
     subgraph "Handler Functions (ipc.ts)"
         GET_SESSIONS --> SessionsHandler["ipcMain.handle()<br/>sessionManager.getSessions()"]
         CREATE_SESSION --> CreateHandler["sessionManager.createSession()"]
         SEND_MESSAGE --> SendHandler["sessionManager.sendMessage()"]
         SESSION_COMMAND --> CommandHandler["switch(command.type)"]
         SESSION_EVENT --> EventBroadcast["webContents.send()"]
-        
+
         GET_WORKSPACES --> WorkspaceHandler["getWorkspaces()"]
         CREATE_WORKSPACE --> AddWorkspace["addWorkspace()"]
         WORKSPACE_SETTINGS_GET --> SettingsHandler["loadWorkspaceSettings()"]
-        
+
         READ_FILE --> FileHandler["validateFilePath()<br/>readFile()"]
         STORE_ATTACHMENT --> StoreHandler["sanitizeFilename()<br/>writeFile()<br/>nativeImage.createThumbnail()"]
         FS_SEARCH --> SearchHandler["BFS traversal<br/>readdir()"]
-        
+
         SOURCES_GET --> SourcesHandler["loadWorkspaceSources()"]
         SOURCES_START_OAUTH --> OAuthHandler["SourceCredentialManager.authenticate()"]
-        
+
         SKILLS_GET --> SkillsHandler["loadWorkspaceSkills()"]
-        
+
         LLM_CONNECTION_LIST --> LlmHandler["getLlmConnections()"]
         SETUP_LLM_CONNECTION --> SetupHandler["addLlmConnection()<br/>CredentialManager.set()"]
-        
+
         OPEN_WORKSPACE --> WindowOpen["windowManager.focusOrCreateWindow()"]
         SWITCH_WORKSPACE --> WindowSwitch["windowManager.updateWindowWorkspace()"]
-        
+
         THEME_GET_APP --> ThemeHandler["loadAppTheme()"]
         NOTIFICATION_SHOW --> NotifHandler["Notification.show()"]
     end
-    
+
     subgraph "Backend Managers"
         SessionsHandler --> SM["SessionManager<br/>sessions.ts"]
         EventBroadcast --> SM
@@ -133,21 +131,21 @@ sequenceDiagram
     participant IPC as "Electron IPC"
     participant Handler as "IPC Handler<br/>(ipc.ts:295)"
     participant Manager as "SessionManager<br/>(sessions.ts)"
-    
+
     Renderer->>Preload: window.electronAPI.createSession(workspaceId)
     Preload->>IPC: ipcRenderer.invoke(IPC_CHANNELS.CREATE_SESSION)
     IPC->>Handler: ipcMain.handle('sessions:create')
-    
+
     Handler->>Handler: validateSessionId(sessionId)
     Handler->>Manager: sessionManager.createSession(workspaceId)
     Manager->>Manager: mkdir(), writeFile(session.jsonl)
     Manager-->>Handler: Session object
-    
+
     Handler->>Handler: extractSessionMeta()
     Handler-->>IPC: Promise<Session>
     IPC-->>Preload: Session
     Preload-->>Renderer: Session
-    
+
     Note over Renderer,Manager: Type-safe through ElectronAPI interface<br/>Error thrown as rejected promise
 ```
 
@@ -171,16 +169,16 @@ sequenceDiagram
     participant Handler as "ipc.ts:452"
     participant SM as "SessionManager"
     participant Agent as "CraftAgent"
-    
+
     UI->>Preload: electronAPI.sendMessage(sessionId, message)
     Preload->>IPC: ipcRenderer.invoke(SEND_MESSAGE)
     IPC->>Handler: ipcMain.handle('sessions:sendMessage')
     Handler->>SM: sessionManager.sendMessage()
     Handler-->>IPC: {started: true}
     IPC-->>Preload: {started: true}
-    
+
     SM->>Agent: agent.chat(messages)
-    
+
     loop Agent Processing
         Agent->>SM: text_delta event
         SM->>Handler: Batch deltas (50ms)
@@ -188,14 +186,14 @@ sequenceDiagram
         IPC->>Preload: SESSION_EVENT
         Preload->>UI: onSessionEvent callback
         UI->>UI: updateSessionById(sessionId, {messages: [...]})
-        
+
         Agent->>SM: tool_start event
         SM->>Handler: Tool execution
         Handler->>IPC: webContents.send(SESSION_EVENT, {type: 'tool_start'})
         IPC->>Preload: SESSION_EVENT
         Preload->>UI: onSessionEvent callback
     end
-    
+
     Agent->>SM: complete event
     SM->>Handler: Turn finished
     Handler->>IPC: webContents.send(SESSION_EVENT, {type: 'complete'})
@@ -232,7 +230,8 @@ Retrieves all sessions for display in the inbox/sidebar.
 
 Lazy-loads full session content including all messages.
 
-**Parameters**: 
+**Parameters**:
+
 - `sessionId: string` - Session identifier
 
 **Returns**: `Session | null` - Full session with messages array
@@ -248,6 +247,7 @@ Lazy-loads full session content including all messages.
 Creates a new conversation session.
 
 **Parameters**:
+
 - `workspaceId: string` - Target workspace
 - `options?: CreateSessionOptions` - Optional session configuration
 
@@ -264,6 +264,7 @@ Creates a new conversation session.
 Sends a user message to the agent. Returns immediately; results stream via `SESSION_EVENT` channel.
 
 **Parameters**:
+
 - `sessionId: string`
 - `message: string` - User input text
 - `attachments?: FileAttachment[]` - Files with base64 content for Claude API
@@ -273,6 +274,7 @@ Sends a user message to the agent. Returns immediately; results stream via `SESS
 **Returns**: `{ started: true }` - Immediate acknowledgment
 
 **Event Stream**: Sends events to `SESSION_EVENT` channel:
+
 - `{ type: 'text_delta', text: string }` - Streaming text
 - `{ type: 'tool_use', toolName: string, input: any }` - Tool execution
 - `{ type: 'permission_request', requestId: string, ... }` - Needs approval
@@ -290,40 +292,41 @@ Sends a user message to the agent. Returns immediately; results stream via `SESS
 Consolidated handler for session operations using discriminated union pattern. Single channel replaces 20+ individual channels for type safety and maintainability.
 
 **Parameters**:
+
 - `sessionId: string`
 - `command: SessionCommand` - Discriminated union with `type` field
 
 **Command Types (`SessionCommand` at [apps/electron/src/shared/types.ts:524-557]()**:
 
-| Command Type | Payload | Handler Call | Return Type |
-|--------------|---------|--------------|-------------|
-| `flag` | - | `sessionManager.flagSession(sessionId)` | `void` |
-| `unflag` | - | `sessionManager.unflagSession(sessionId)` | `void` |
-| `rename` | `name: string` | `sessionManager.renameSession(sessionId, name)` | `void` |
-| `setTodoState` | `state: TodoState` | `sessionManager.setTodoState(sessionId, state)` | `void` |
-| `markRead` | - | `sessionManager.markSessionRead(sessionId)` | `void` |
-| `markUnread` | - | `sessionManager.markSessionUnread(sessionId)` | `void` |
-| `setActiveViewing` | `workspaceId: string` | `sessionManager.setActiveViewingSession(sessionId, workspaceId)` | `void` |
-| `setPermissionMode` | `mode: PermissionMode` | `sessionManager.setSessionPermissionMode(sessionId, mode)` | `void` |
-| `setThinkingLevel` | `level: ThinkingLevel` | Validates via `isValidThinkingLevel()`, calls `setSessionThinkingLevel()` | `void` |
-| `updateWorkingDirectory` | `dir: string` | `sessionManager.updateWorkingDirectory(sessionId, dir)` | `void` |
-| `setSources` | `sourceSlugs: string[]` | `sessionManager.setSessionSources(sessionId, sourceSlugs)` | `void` |
-| `setLabels` | `labels: string[]` | `sessionManager.setSessionLabels(sessionId, labels)` | `void` |
-| `showInFinder` | - | `shell.showItemInFolder(sessionPath)` | `void` |
-| `copyPath` | - | Returns session folder path | `{success: boolean, path?: string}` |
-| `shareToViewer` | - | `sessionManager.shareToViewer(sessionId)` | `ShareResult` |
-| `updateShare` | - | `sessionManager.updateShare(sessionId)` | `ShareResult` |
-| `revokeShare` | - | `sessionManager.revokeShare(sessionId)` | `ShareResult` |
-| `startOAuth` | `requestId: string` | `sessionManager.startSessionOAuth(sessionId, requestId)` | `void` |
-| `refreshTitle` | - | `sessionManager.refreshTitle(sessionId)` | `RefreshTitleResult` |
-| `setConnection` | `connectionSlug: string` | `sessionManager.setSessionConnection(sessionId, connectionSlug)` | `void` |
-| `setPendingPlanExecution` | `planPath: string` | `sessionManager.setPendingPlanExecution(sessionId, planPath)` | `void` |
-| `markCompactionComplete` | - | `sessionManager.markCompactionComplete(sessionId)` | `void` |
-| `clearPendingPlanExecution` | - | `sessionManager.clearPendingPlanExecution(sessionId)` | `void` |
-| `getSessionFamily` | - | `sessionManager.getSessionFamily(sessionId)` | `SessionFamily` |
-| `updateSiblingOrder` | `orderedSessionIds: string[]` | `sessionManager.updateSiblingOrder(orderedSessionIds)` | `void` |
-| `archiveCascade` | - | `sessionManager.archiveSessionCascade(sessionId)` | `{count: number}` |
-| `deleteCascade` | - | `sessionManager.deleteSessionCascade(sessionId)` | `{count: number}` |
+| Command Type                | Payload                       | Handler Call                                                              | Return Type                         |
+| --------------------------- | ----------------------------- | ------------------------------------------------------------------------- | ----------------------------------- |
+| `flag`                      | -                             | `sessionManager.flagSession(sessionId)`                                   | `void`                              |
+| `unflag`                    | -                             | `sessionManager.unflagSession(sessionId)`                                 | `void`                              |
+| `rename`                    | `name: string`                | `sessionManager.renameSession(sessionId, name)`                           | `void`                              |
+| `setTodoState`              | `state: TodoState`            | `sessionManager.setTodoState(sessionId, state)`                           | `void`                              |
+| `markRead`                  | -                             | `sessionManager.markSessionRead(sessionId)`                               | `void`                              |
+| `markUnread`                | -                             | `sessionManager.markSessionUnread(sessionId)`                             | `void`                              |
+| `setActiveViewing`          | `workspaceId: string`         | `sessionManager.setActiveViewingSession(sessionId, workspaceId)`          | `void`                              |
+| `setPermissionMode`         | `mode: PermissionMode`        | `sessionManager.setSessionPermissionMode(sessionId, mode)`                | `void`                              |
+| `setThinkingLevel`          | `level: ThinkingLevel`        | Validates via `isValidThinkingLevel()`, calls `setSessionThinkingLevel()` | `void`                              |
+| `updateWorkingDirectory`    | `dir: string`                 | `sessionManager.updateWorkingDirectory(sessionId, dir)`                   | `void`                              |
+| `setSources`                | `sourceSlugs: string[]`       | `sessionManager.setSessionSources(sessionId, sourceSlugs)`                | `void`                              |
+| `setLabels`                 | `labels: string[]`            | `sessionManager.setSessionLabels(sessionId, labels)`                      | `void`                              |
+| `showInFinder`              | -                             | `shell.showItemInFolder(sessionPath)`                                     | `void`                              |
+| `copyPath`                  | -                             | Returns session folder path                                               | `{success: boolean, path?: string}` |
+| `shareToViewer`             | -                             | `sessionManager.shareToViewer(sessionId)`                                 | `ShareResult`                       |
+| `updateShare`               | -                             | `sessionManager.updateShare(sessionId)`                                   | `ShareResult`                       |
+| `revokeShare`               | -                             | `sessionManager.revokeShare(sessionId)`                                   | `ShareResult`                       |
+| `startOAuth`                | `requestId: string`           | `sessionManager.startSessionOAuth(sessionId, requestId)`                  | `void`                              |
+| `refreshTitle`              | -                             | `sessionManager.refreshTitle(sessionId)`                                  | `RefreshTitleResult`                |
+| `setConnection`             | `connectionSlug: string`      | `sessionManager.setSessionConnection(sessionId, connectionSlug)`          | `void`                              |
+| `setPendingPlanExecution`   | `planPath: string`            | `sessionManager.setPendingPlanExecution(sessionId, planPath)`             | `void`                              |
+| `markCompactionComplete`    | -                             | `sessionManager.markCompactionComplete(sessionId)`                        | `void`                              |
+| `clearPendingPlanExecution` | -                             | `sessionManager.clearPendingPlanExecution(sessionId)`                     | `void`                              |
+| `getSessionFamily`          | -                             | `sessionManager.getSessionFamily(sessionId)`                              | `SessionFamily`                     |
+| `updateSiblingOrder`        | `orderedSessionIds: string[]` | `sessionManager.updateSiblingOrder(orderedSessionIds)`                    | `void`                              |
+| `archiveCascade`            | -                             | `sessionManager.archiveSessionCascade(sessionId)`                         | `{count: number}`                   |
+| `deleteCascade`             | -                             | `sessionManager.deleteSessionCascade(sessionId)`                          | `{count: number}`                   |
 
 **Implementation**: Switch statement at [apps/electron/src/main/ipc.ts:519-606]() with exhaustiveness checking via `never` type:
 
@@ -345,6 +348,7 @@ Sources: [apps/electron/src/main/ipc.ts:519-606](), [apps/electron/src/shared/ty
 Cancels an in-progress agent request.
 
 **Parameters**:
+
 - `sessionId: string`
 - `silent?: boolean` - If true, doesn't send cancellation message to chat
 
@@ -359,6 +363,7 @@ Cancels an in-progress agent request.
 Responds to a permission request dialog (bash command approval).
 
 **Parameters**:
+
 - `sessionId: string`
 - `requestId: string` - Request identifier from permission event
 - `allowed: boolean` - User's decision
@@ -395,12 +400,14 @@ Lists all configured workspaces.
 Creates a new workspace at a specified folder path.
 
 **Parameters**:
+
 - `folderPath: string` - Absolute path to workspace root
 - `name: string` - Display name
 
 **Returns**: `Workspace` - Created workspace config
 
-**Side Effects**: 
+**Side Effects**:
+
 - Adds workspace to `~/.craft-agent/config.json`
 - Sets as active workspace
 - Creates subdirectories: `sessions/`, `sources/`, `skills/`, `statuses/`, `permissions/`
@@ -414,6 +421,7 @@ Creates a new workspace at a specified folder path.
 Checks if a workspace slug/folder already exists (for validation before creation).
 
 **Parameters**:
+
 - `slug: string` - Proposed workspace identifier
 
 **Returns**: `{ exists: boolean, path: string }`
@@ -427,9 +435,11 @@ Checks if a workspace slug/folder already exists (for validation before creation
 Retrieves workspace-specific configuration.
 
 **Parameters**:
+
 - `workspaceId: string`
 
 **Returns**: Object with workspace settings:
+
 - `name?: string`
 - `model?: string` - Default model for new sessions
 - `permissionMode?: 'safe' | 'ask' | 'allow-all'`
@@ -449,6 +459,7 @@ Retrieves workspace-specific configuration.
 Updates a single workspace setting.
 
 **Parameters**:
+
 - `workspaceId: string`
 - `key: string` - Setting key (validated against whitelist)
 - `value: unknown` - New value
@@ -482,11 +493,13 @@ Gets the workspace ID for the calling window.
 Changes the workspace for the current window (in-window switching).
 
 **Parameters**:
+
 - `workspaceId: string`
 
 **Returns**: `void`
 
 **Side Effects**:
+
 - Updates WindowManager's window-to-workspace mapping
 - Sets up ConfigWatcher for new workspace
 - UI must navigate to new workspace's inbox
@@ -506,6 +519,7 @@ Sources: [apps/electron/src/main/ipc.ts:137-236](), [apps/electron/src/main/ipc.
 Reads a text file with path validation to prevent traversal attacks.
 
 **Parameters**:
+
 - `path: string` - File path (supports `~` expansion)
 
 **Returns**: `string` - File content as UTF-8
@@ -523,6 +537,7 @@ Reads a text file with path validation to prevent traversal attacks.
 Reads a file as a data URL for in-app preview (images, PDFs).
 
 **Parameters**:
+
 - `path: string`
 
 **Returns**: `string` - Data URL format: `data:{mime};base64,{content}`
@@ -542,6 +557,7 @@ Reads a file as a data URL for in-app preview (images, PDFs).
 Reads a file as raw binary (Uint8Array) for react-pdf.
 
 **Parameters**:
+
 - `path: string`
 
 **Returns**: `Uint8Array` (automatically converted to ArrayBuffer over IPC)
@@ -561,6 +577,7 @@ Opens native file picker dialog.
 **Returns**: `string[]` - Array of selected file paths (empty if cancelled)
 
 **Dialog Options**:
+
 - Multi-selection enabled
 - Filters: All Files, Images, Documents, Code
 
@@ -573,11 +590,13 @@ Opens native file picker dialog.
 Reads a file and prepares it as a `FileAttachment` with Quick Look thumbnail.
 
 **Parameters**:
+
 - `path: string`
 
 **Returns**: `FileAttachment | null` - File with base64 content, MIME type, and thumbnail
 
 **Process**:
+
 1. Validates path via `validateFilePath()`
 2. Detects file type and encoding via `readFileAttachment()` utility
 3. Generates Quick Look thumbnail (200x200px) using `nativeImage.createThumbnailFromPath()`
@@ -594,12 +613,14 @@ Reads a file and prepares it as a `FileAttachment` with Quick Look thumbnail.
 Persists file attachment to session storage with thumbnail generation, image resizing, and Office-to-Markdown conversion.
 
 **Parameters**:
+
 - `sessionId: string`
 - `attachment: FileAttachment` - File with base64 content and metadata
 
 **Returns**: `StoredAttachment` - Metadata with paths, thumbnail, optional resize info
 
 **FileAttachment Type** ([apps/electron/src/shared/types.ts:276-285]()):
+
 ```typescript
 {
   type: 'image' | 'text' | 'pdf' | 'office' | 'unknown'
@@ -613,6 +634,7 @@ Persists file attachment to session storage with thumbnail generation, image res
 ```
 
 **StoredAttachment Type** ([apps/electron/src/shared/types.ts:32-37]()):
+
 ```typescript
 {
   id: string
@@ -674,18 +696,20 @@ Sources: [apps/electron/src/main/ipc.ts:753-953](), [apps/electron/src/shared/ty
 Parallel BFS filesystem search for @mention file selection. Optimized for large codebases by skipping ignored directories before traversal.
 
 **Parameters**:
+
 - `basePath: string` - Root directory to search
 - `query: string` - Case-insensitive search term
 
 **Returns**: `FileSearchResult[]` (max 50 results)
 
 **FileSearchResult Type** ([apps/electron/src/shared/types.ts:103-108]()):
+
 ```typescript
 {
-  name: string          // Filename or directory name
-  path: string          // Absolute path
+  name: string // Filename or directory name
+  path: string // Absolute path
   type: 'file' | 'directory'
-  relativePath: string  // Relative to basePath
+  relativePath: string // Relative to basePath
 }
 ```
 
@@ -693,18 +717,32 @@ Parallel BFS filesystem search for @mention file selection. Optimized for large 
 
 1. **BFS Initialization**: Queue starts with empty string (root level)
 
-2. **Level-wise Processing**: 
+2. **Level-wise Processing**:
    - Read all directories at current level in parallel via `Promise.all()`
    - Uses `readdir(dir, {withFileTypes: true})` to get entry types without `stat()` calls
    - Filters out ignored directories via `SKIP_DIRS` set before recursion
 
 3. **Ignored Directories** (never traversed):
+
    ```typescript
    const SKIP_DIRS = new Set([
-     'node_modules', '.git', '.svn', '.hg',
-     'dist', 'build', '.next', '.nuxt', '.cache',
-     '__pycache__', 'vendor', '.idea', '.vscode',
-     'coverage', '.nyc_output', '.turbo', 'out'
+     'node_modules',
+     '.git',
+     '.svn',
+     '.hg',
+     'dist',
+     'build',
+     '.next',
+     '.nuxt',
+     '.cache',
+     '__pycache__',
+     'vendor',
+     '.idea',
+     '.vscode',
+     'coverage',
+     '.nyc_output',
+     '.turbo',
+     'out',
    ])
    ```
 
@@ -712,11 +750,12 @@ Parallel BFS filesystem search for @mention file selection. Optimized for large 
 
 5. **Sorting**: Directories first, then by name length (shorter = better match)
 
-6. **Limits**: 
+6. **Limits**:
    - 50 max results (`MAX_RESULTS`)
    - Stops BFS traversal once limit reached
 
 **Performance Optimization**:
+
 - Parallel directory reads at each BFS level (10x faster than sequential)
 - Early termination on ignored directories (avoids reading 100k+ node_modules files)
 - Single `readdir()` call with `withFileTypes` (no extra `stat()` calls)
@@ -750,6 +789,7 @@ Sources: [apps/electron/src/main/ipc.ts:403-918](), [apps/electron/src/main/ipc.
 Retrieves all sources for a workspace.
 
 **Parameters**:
+
 - `workspaceId: string`
 
 **Returns**: `LoadedSource[]` - Sources with connection status, metadata, and configuration
@@ -765,10 +805,12 @@ Retrieves all sources for a workspace.
 Creates a new source.
 
 **Parameters**:
+
 - `workspaceId: string`
 - `config: Partial<CreateSourceInput>` - Source configuration
 
 **Config Fields**:
+
 - `name: string` - Display name
 - `provider: string` - Provider identifier (e.g., 'linear', 'github', 'custom')
 - `type: 'mcp' | 'api' | 'local'` - Source type
@@ -788,12 +830,14 @@ Creates a new source.
 Initiates OAuth flow for a source.
 
 **Parameters**:
+
 - `workspaceId: string`
 - `sourceSlug: string`
 
 **Returns**: `{ success: boolean, accessToken?: string, error?: string }`
 
 **Process**:
+
 1. Loads source configuration
 2. Calls `SourceCredentialManager.authenticate()` with callbacks
 3. Stores token in encrypted credentials
@@ -810,6 +854,7 @@ Initiates OAuth flow for a source.
 Saves credentials for a source (bearer token or API key).
 
 **Parameters**:
+
 - `workspaceId: string`
 - `sourceSlug: string`
 - `credential: string` - Token or API key
@@ -827,12 +872,14 @@ Saves credentials for a source (bearer token or API key).
 Fetches tools from an MCP server with permission status.
 
 **Parameters**:
+
 - `workspaceId: string`
 - `sourceSlug: string`
 
 **Returns**: `{ success: boolean, tools?: Array<{ name: string, description: string, allowed: boolean }>, error?: string }`
 
 **Process**:
+
 1. Validates source type is MCP and connection status is connected
 2. Creates `CraftMcpClient` (stdio or HTTP transport based on config)
 3. For stdio: spawns local MCP server process with command/args
@@ -852,6 +899,7 @@ Fetches tools from an MCP server with permission status.
 Gets raw permissions JSON for a source (for UI display/editing).
 
 **Parameters**:
+
 - `workspaceId: string`
 - `sourceSlug: string`
 
@@ -868,6 +916,7 @@ Gets raw permissions JSON for a source (for UI display/editing).
 Gets raw workspace-level permissions JSON.
 
 **Parameters**:
+
 - `workspaceId: string`
 
 **Returns**: Raw JSON object or null
@@ -903,6 +952,7 @@ Sources: [apps/electron/src/main/ipc.ts:1705-1957]()
 Retrieves all skills for a workspace.
 
 **Parameters**:
+
 - `workspaceId: string`
 
 **Returns**: `Skill[]` - Array of skills with metadata and content
@@ -918,17 +968,19 @@ Retrieves all skills for a workspace.
 Gets recursive file tree for a skill directory.
 
 **Parameters**:
+
 - `workspaceId: string`
 - `skillSlug: string`
 
 **Returns**: `SkillFile[]` - Tree structure with directories and files
 
 **File Structure**:
+
 ```typescript
 interface SkillFile {
   name: string
   type: 'file' | 'directory'
-  size?: number        // Only for files
+  size?: number // Only for files
   children?: SkillFile[] // Only for directories
 }
 ```
@@ -944,6 +996,7 @@ interface SkillFile {
 Deletes a skill from a workspace.
 
 **Parameters**:
+
 - `workspaceId: string`
 - `skillSlug: string`
 
@@ -960,6 +1013,7 @@ Deletes a skill from a workspace.
 Opens skill's `SKILL.md` in default editor.
 
 **Parameters**:
+
 - `workspaceId: string`
 - `skillSlug: string`
 
@@ -976,6 +1030,7 @@ Opens skill's `SKILL.md` in default editor.
 Opens skill folder in Finder/Explorer.
 
 **Parameters**:
+
 - `workspaceId: string`
 - `skillSlug: string`
 
@@ -998,6 +1053,7 @@ Gets current API setup and credential status.
 **Parameters**: None
 
 **Returns**: `ApiSetupInfo` object:
+
 ```typescript
 {
   authType: 'api_key' | 'oauth_token'
@@ -1019,6 +1075,7 @@ Gets current API setup and credential status.
 Updates API setup and credentials.
 
 **Parameters**:
+
 - `authType: 'api_key' | 'oauth_token'`
 - `credential?: string` - API key or OAuth token
 - `anthropicBaseUrl?: string | null` - Custom base URL (null to clear)
@@ -1027,6 +1084,7 @@ Updates API setup and credentials.
 **Returns**: `void`
 
 **Side Effects**:
+
 - Clears old credentials when switching auth types
 - Sets new auth type in config
 - Updates/clears base URL and custom model
@@ -1044,6 +1102,7 @@ Updates API setup and credentials.
 Tests API connection, validates credentials and model support.
 
 **Parameters**:
+
 - `apiKey: string`
 - `baseUrl?: string` - Custom base URL for providers like OpenRouter, Ollama
 - `modelName?: string` - Model to test (optional)
@@ -1051,20 +1110,24 @@ Tests API connection, validates credentials and model support.
 **Returns**: `{ success: boolean, error?: string, modelCount?: number }`
 
 **Validation Strategy**:
+
 1. Sends minimal POST to `/v1/messages` with a tool definition
 2. Validates connection, auth, model existence, and tool support in one call
 3. Works identically for Anthropic, OpenRouter, Vercel AI Gateway, and Ollama (v0.14+)
 
 **Auth Strategy**:
+
 - **Custom base URL**: Uses Bearer auth (`authToken`) for OpenRouter, Vercel, Ollama compatibility
 - **Anthropic direct**: Uses x-api-key header (`apiKey`)
 
 **Model Selection**:
+
 - User-specified model takes priority
 - Falls back to `SUMMARIZATION_MODEL` (Haiku) for known providers
 - Custom endpoints require explicit model specification
 
 **Error Messages**:
+
 - Connection refused/unreachable → "Cannot connect to API server"
 - 404 endpoint → "Endpoint not found. Ollama requires v0.14+"
 - 401/403 → "Invalid API key"
@@ -1082,11 +1145,13 @@ Tests API connection, validates credentials and model support.
 
 Gets/sets global default model.
 
-**Parameters**: 
+**Parameters**:
+
 - `SET`: `model: string`
 - `GET`: None
 
-**Returns**: 
+**Returns**:
+
 - `SET`: `void`
 - `GET`: `string | null`
 
@@ -1099,10 +1164,12 @@ Gets/sets global default model.
 Gets/sets session-specific model override.
 
 **Parameters**:
+
 - `GET`: `sessionId: string, workspaceId: string`
 - `SET`: `sessionId: string, workspaceId: string, model: string | null`
 
 **Returns**:
+
 - `GET`: `string | null`
 - `SET`: `void`
 
@@ -1117,10 +1184,12 @@ Gets/sets session-specific model override.
 Reads/writes user preferences file.
 
 **Parameters**:
+
 - `READ`: None
 - `WRITE`: `content: string` - JSON string
 
 **Returns**:
+
 - `READ`: `{ content: string, exists: boolean, path: string }`
 - `WRITE`: `{ success: boolean, error?: string }`
 
@@ -1137,11 +1206,13 @@ Reads/writes user preferences file.
 Manages persisted session input drafts.
 
 **Parameters**:
+
 - `GET/SET/DELETE`: `sessionId: string`
 - `SET`: `text: string` (empty string to clear)
 - `GET_ALL`: None
 
 **Returns**:
+
 - `GET`: `string | null`
 - `SET/DELETE`: `void`
 - `GET_ALL`: `Record<sessionId, text>`
@@ -1163,6 +1234,7 @@ Sources: [apps/electron/src/main/ipc.ts:1155-1539]()
 Opens workspace in a new window or focuses existing window.
 
 **Parameters**:
+
 - `workspaceId: string`
 
 **Returns**: `void`
@@ -1178,6 +1250,7 @@ Opens workspace in a new window or focuses existing window.
 Opens a session in a new window with deep link navigation.
 
 **Parameters**:
+
 - `workspaceId: string`
 - `sessionId: string`
 
@@ -1198,6 +1271,7 @@ Closes the calling window.
 **Returns**: `void`
 
 **Difference**:
+
 - `CLOSE_WINDOW`: Triggers close event which may be intercepted by UI (e.g., for modal cleanup)
 - `WINDOW_CONFIRM_CLOSE`: Force closes bypassing interception (called after UI confirms)
 
@@ -1210,6 +1284,7 @@ Closes the calling window.
 Shows/hides macOS traffic light buttons (for fullscreen overlays).
 
 **Parameters**:
+
 - `visible: boolean`
 
 **Returns**: `void`
@@ -1224,22 +1299,22 @@ Shows/hides macOS traffic light buttons (for fullscreen overlays).
 
 All menu actions use the calling window from `event.sender`:
 
-| Channel | Action |
-|---------|--------|
-| `MENU_QUIT` | Quits application |
-| `MENU_NEW_WINDOW` | Creates new window for current workspace |
-| `MENU_MINIMIZE` | Minimizes window |
-| `MENU_MAXIMIZE` | Toggles maximize/unmaximize |
-| `MENU_ZOOM_IN` | Increases zoom (max 3.0x) |
-| `MENU_ZOOM_OUT` | Decreases zoom (min 0.5x) |
-| `MENU_ZOOM_RESET` | Resets zoom to 1.0x |
-| `MENU_TOGGLE_DEVTOOLS` | Opens/closes DevTools |
-| `MENU_UNDO` | Triggers undo |
-| `MENU_REDO` | Triggers redo |
-| `MENU_CUT` | Cuts selection |
-| `MENU_COPY` | Copies selection |
-| `MENU_PASTE` | Pastes from clipboard |
-| `MENU_SELECT_ALL` | Selects all |
+| Channel                | Action                                   |
+| ---------------------- | ---------------------------------------- |
+| `MENU_QUIT`            | Quits application                        |
+| `MENU_NEW_WINDOW`      | Creates new window for current workspace |
+| `MENU_MINIMIZE`        | Minimizes window                         |
+| `MENU_MAXIMIZE`        | Toggles maximize/unmaximize              |
+| `MENU_ZOOM_IN`         | Increases zoom (max 3.0x)                |
+| `MENU_ZOOM_OUT`        | Decreases zoom (min 0.5x)                |
+| `MENU_ZOOM_RESET`      | Resets zoom to 1.0x                      |
+| `MENU_TOGGLE_DEVTOOLS` | Opens/closes DevTools                    |
+| `MENU_UNDO`            | Triggers undo                            |
+| `MENU_REDO`            | Triggers redo                            |
+| `MENU_CUT`             | Cuts selection                           |
+| `MENU_COPY`            | Copies selection                         |
+| `MENU_PASTE`           | Pastes from clipboard                    |
+| `MENU_SELECT_ALL`      | Selects all                              |
 
 **Implementation**: [apps/electron/src/main/ipc.ts:1014-1090]()
 
@@ -1294,6 +1369,7 @@ Gets system theme preference.
 Gets current git branch for a directory.
 
 **Parameters**:
+
 - `dirPath: string`
 
 **Returns**: `string | null` - Branch name or null if not a git repo
@@ -1309,6 +1385,7 @@ Gets current git branch for a directory.
 Three channels for Git Bash detection and configuration on Windows:
 
 **`GITBASH_CHECK`**
+
 - Parameters: None
 - Returns: `GitBashStatus` - `{ found: boolean, path: string | null, platform: 'win32' | 'darwin' | 'linux' }`
 - Non-Windows: Returns `{found: true, path: null, platform}` (not needed)
@@ -1317,6 +1394,7 @@ Three channels for Git Bash detection and configuration on Windows:
 - Implementation: [apps/electron/src/main/ipc.ts:998-1039]()
 
 **`GITBASH_BROWSE`**
+
 - Parameters: None
 - Returns: `string | null` - Selected bash.exe path or null if cancelled
 - Opens native file picker dialog with filters: `[{name: 'Executable', extensions: ['exe']}]`
@@ -1324,6 +1402,7 @@ Three channels for Git Bash detection and configuration on Windows:
 - Implementation: [apps/electron/src/main/ipc.ts:1041-1057]()
 
 **`GITBASH_SET_PATH`**
+
 - Parameters: `bashPath: string`
 - Returns: `{success: boolean, error?: string}`
 - Validates:
@@ -1339,11 +1418,13 @@ Three channels for Git Bash detection and configuration on Windows:
 Opens URL in external browser or handles deep links.
 
 **Parameters**:
+
 - `url: string`
 
 **Returns**: `void`
 
 **Behavior**:
+
 - `craftagents://` URLs → Handled internally via deep link handler
 - `http:`, `https:`, `mailto:`, `craftdocs:` → Opens in default browser
 - Other protocols → Rejected for security
@@ -1357,6 +1438,7 @@ Opens URL in external browser or handles deep links.
 Opens file in default application.
 
 **Parameters**:
+
 - `path: string`
 
 **Returns**: `void`
@@ -1374,6 +1456,7 @@ Opens file in default application.
 Opens Finder/Explorer with file selected.
 
 **Parameters**:
+
 - `path: string`
 
 **Returns**: `void`
@@ -1387,11 +1470,13 @@ Opens Finder/Explorer with file selected.
 Fire-and-forget debug logging from renderer to main process log file. No response expected.
 
 **Parameters**:
+
 - `...args: unknown[]` - Arbitrary log arguments (strings, objects, etc.)
 
 **Returns**: None (one-way channel using `ipcMain.on()`)
 
 **Handler**: [apps/electron/src/main/ipc.ts:1078-1080]()
+
 ```typescript
 ipcMain.on(IPC_CHANNELS.DEBUG_LOG, (_event, ...args: unknown[]) => {
   ipcLog.info('[renderer]', ...args)
@@ -1399,6 +1484,7 @@ ipcMain.on(IPC_CHANNELS.DEBUG_LOG, (_event, ...args: unknown[]) => {
 ```
 
 **Preload Exposure**: [apps/electron/src/preload/index.ts:225-226]()
+
 ```typescript
 debugLog: (...args: unknown[]) =>
   ipcRenderer.send(IPC_CHANNELS.DEBUG_LOG, ...args),
@@ -1421,11 +1507,13 @@ Sources: [apps/electron/src/main/ipc.ts:718-831](), [apps/electron/src/main/ipc.
 Gets recursive file tree for session directory.
 
 **Parameters**:
+
 - `sessionId: string`
 
 **Returns**: `SessionFile[]` - Tree structure
 
-**Filtering**: 
+**Filtering**:
+
 - Excludes `session.jsonl` (internal)
 - Excludes hidden files (starting with `.`)
 - Only includes non-empty directories
@@ -1441,12 +1529,14 @@ Gets recursive file tree for session directory.
 Starts/stops watching session directory for file changes.
 
 **Parameters**:
+
 - `WATCH`: `sessionId: string`
 - `UNWATCH`: None
 
 **Returns**: `void`
 
 **Behavior**:
+
 - Only one session watched at a time (new watch closes old watcher)
 - Debounces changes (100ms) to batch rapid writes
 - Broadcasts `SESSION_FILES_CHANGED` event to all windows on change
@@ -1462,10 +1552,12 @@ Starts/stops watching session directory for file changes.
 Gets/sets session notes from `notes.md`.
 
 **Parameters**:
+
 - `GET`: `sessionId: string`
 - `SET`: `sessionId: string, content: string`
 
 **Returns**:
+
 - `GET`: `string` (empty if file doesn't exist)
 - `SET`: `void`
 
@@ -1498,9 +1590,11 @@ Gets app-level theme configuration.
 Gets available preset themes or loads a specific preset.
 
 **Parameters**:
+
 - `LOAD_PRESET`: `themeId: string`
 
 **Returns**:
+
 - `GET_PRESETS`: Array of preset metadata
 - `LOAD_PRESET`: Theme object
 
@@ -1513,9 +1607,11 @@ Gets available preset themes or loads a specific preset.
 Gets/sets active color theme ID.
 
 **Parameters**:
+
 - `SET`: `themeId: string`
 
 **Returns**:
+
 - `GET`: `string`
 - `SET`: `void`
 
@@ -1528,6 +1624,7 @@ Gets/sets active color theme ID.
 Broadcasts theme preferences to other windows for cross-window sync.
 
 **Parameters**:
+
 - `preferences: { mode: string, colorTheme: string, font: string }`
 
 **Returns**: `void`
@@ -1549,6 +1646,7 @@ Gets tool icon mappings from `tool-icons.json` with resolved data URLs.
 **Returns**: Array of `{ id: string, displayName: string, iconDataUrl: string, commands: string[] }`
 
 **Process**:
+
 1. Loads `tool-icons.json` config
 2. For each tool, resolves icon path to data URL
 3. Filters out tools with missing icons
@@ -1564,6 +1662,7 @@ Gets tool icon mappings from `tool-icons.json` with resolved data URLs.
 Resolves provider logo URL from service URL or provider name.
 
 **Parameters**:
+
 - `serviceUrl: string` - Service URL (e.g., MCP server URL)
 - `provider?: string` - Optional provider override
 
@@ -1580,12 +1679,14 @@ Resolves provider logo URL from service URL or provider name.
 Generic workspace image loading/writing for icons and assets.
 
 **`READ_IMAGE`**:
+
 - Parameters: `workspaceId: string, relativePath: string`
 - Returns: `string | null` - SVG as text or data URL for binary images
 - Security: Validates path (no `..`, allowed extensions, within workspace)
 - Implementation: [apps/electron/src/main/ipc.ts:2191-2243]()
 
 **`WRITE_IMAGE`**:
+
 - Parameters: `workspaceId: string, relativePath: string, base64: string, mimeType: string`
 - Returns: `void`
 - Behavior: Resizes images to max 256x256 to keep file sizes small
@@ -1607,6 +1708,7 @@ Sources: [apps/electron/src/main/ipc.ts:2191-2398]()
 Shows a notification.
 
 **Parameters**:
+
 - `title: string`
 - `body: string`
 - `workspaceId: string`
@@ -1625,9 +1727,11 @@ Shows a notification.
 Gets/sets notifications enabled setting.
 
 **Parameters**:
+
 - `SET`: `enabled: boolean`
 
 **Returns**:
+
 - `GET`: `boolean`
 - `SET`: `void`
 
@@ -1642,6 +1746,7 @@ Gets/sets notifications enabled setting.
 Updates or clears app dock/taskbar badge count.
 
 **Parameters**:
+
 - `UPDATE`: `count: number`
 - `CLEAR`: None
 
@@ -1658,6 +1763,7 @@ Updates or clears app dock/taskbar badge count.
 Sets dock icon with custom badge image.
 
 **Parameters**:
+
 - `dataUrl: string` - Canvas-rendered badge image from renderer
 
 **Returns**: `void`
@@ -1686,14 +1792,14 @@ Checks if any application window is focused.
 
 Settings for input behavior:
 
-| Channel | Get/Set | Type | Description |
-|---------|---------|------|-------------|
-| `INPUT_GET_AUTO_CAPITALISATION` | Get | `boolean` | Auto-capitalize first letter |
-| `INPUT_SET_AUTO_CAPITALISATION` | Set | `boolean` | |
-| `INPUT_GET_SEND_MESSAGE_KEY` | Get | `'enter' \| 'cmd-enter'` | Key to send message |
-| `INPUT_SET_SEND_MESSAGE_KEY` | Set | `'enter' \| 'cmd-enter'` | |
-| `INPUT_GET_SPELL_CHECK` | Get | `boolean` | Enable spell checking |
-| `INPUT_SET_SPELL_CHECK` | Set | `boolean` | |
+| Channel                         | Get/Set | Type                     | Description                  |
+| ------------------------------- | ------- | ------------------------ | ---------------------------- |
+| `INPUT_GET_AUTO_CAPITALISATION` | Get     | `boolean`                | Auto-capitalize first letter |
+| `INPUT_SET_AUTO_CAPITALISATION` | Set     | `boolean`                |                              |
+| `INPUT_GET_SEND_MESSAGE_KEY`    | Get     | `'enter' \| 'cmd-enter'` | Key to send message          |
+| `INPUT_SET_SEND_MESSAGE_KEY`    | Set     | `'enter' \| 'cmd-enter'` |                              |
+| `INPUT_GET_SPELL_CHECK`         | Get     | `boolean`                | Enable spell checking        |
+| `INPUT_SET_SPELL_CHECK`         | Set     | `boolean`                |                              |
 
 **Implementation**: [apps/electron/src/main/ipc.ts:2429-2462]()
 
@@ -1710,6 +1816,7 @@ Sources: [apps/electron/src/main/ipc.ts:2405-2486]()
 Lists all statuses for a workspace.
 
 **Parameters**:
+
 - `workspaceId: string`
 
 **Returns**: Array of status definitions
@@ -1725,6 +1832,7 @@ Lists all statuses for a workspace.
 Reorders statuses (drag-and-drop).
 
 **Parameters**:
+
 - `workspaceId: string`
 - `orderedIds: string[]` - New order of status IDs
 
@@ -1741,6 +1849,7 @@ Reorders statuses (drag-and-drop).
 Lists all labels for a workspace.
 
 **Parameters**:
+
 - `workspaceId: string`
 
 **Returns**: Array of label definitions
@@ -1756,10 +1865,12 @@ Lists all labels for a workspace.
 Creates a new label in a workspace.
 
 **Parameters**:
+
 - `workspaceId: string`
 - `input: CreateLabelInput` - Label configuration
 
 **CreateLabelInput**:
+
 ```typescript
 {
   name: string
@@ -1783,6 +1894,7 @@ Creates a new label in a workspace.
 Deletes a label and all descendants.
 
 **Parameters**:
+
 - `workspaceId: string`
 - `labelId: string`
 
@@ -1799,10 +1911,12 @@ Deletes a label and all descendants.
 Manages views (dynamic expression-based filters).
 
 **Parameters**:
+
 - `LIST`: `workspaceId: string`
 - `SAVE`: `workspaceId: string, views: ViewConfig[]`
 
 **Returns**:
+
 - `LIST`: `ViewConfig[]`
 - `SAVE`: `void`
 
@@ -1825,6 +1939,7 @@ Sources: [apps/electron/src/main/ipc.ts:2117-2188]()
 Searches session content using ripgrep.
 
 **Parameters**:
+
 - `workspaceId: string`
 - `query: string`
 - `searchId?: string` - Optional ID for logging correlation
@@ -1832,6 +1947,7 @@ Searches session content using ripgrep.
 **Returns**: Array of `{ sessionId: string, matches: Array<{ line: number, text: string, column: number }> }`
 
 **Options**:
+
 - Timeout: 5000ms
 - Max matches per session: 3
 - Max sessions: 50
@@ -1846,13 +1962,13 @@ Searches session content using ripgrep.
 
 ### Auto-Update Channels
 
-| Channel | Parameters | Returns | Description |
-|---------|-----------|---------|-------------|
-| `UPDATE_CHECK` | None | Update info | Checks for updates (doesn't auto-download) |
-| `UPDATE_GET_INFO` | None | Update info | Gets current update state |
-| `UPDATE_INSTALL` | None | `void` | Installs downloaded update |
-| `UPDATE_DISMISS` | `version: string` | `void` | Dismisses update for this version |
-| `UPDATE_GET_DISMISSED` | None | `string \| null` | Gets dismissed version |
+| Channel                | Parameters        | Returns          | Description                                |
+| ---------------------- | ----------------- | ---------------- | ------------------------------------------ |
+| `UPDATE_CHECK`         | None              | Update info      | Checks for updates (doesn't auto-download) |
+| `UPDATE_GET_INFO`      | None              | Update info      | Gets current update state                  |
+| `UPDATE_INSTALL`       | None              | `void`           | Installs downloaded update                 |
+| `UPDATE_DISMISS`       | `version: string` | `void`           | Dismisses update for this version          |
+| `UPDATE_GET_DISMISSED` | None              | `string \| null` | Gets dismissed version                     |
 
 **Implementation**: [apps/electron/src/main/ipc.ts:922-947]()
 
@@ -1875,6 +1991,7 @@ Shows native logout confirmation dialog.
 **Returns**: `boolean` - True if user confirmed logout
 
 **Dialog**:
+
 - Type: Warning
 - Buttons: Cancel, Log Out
 - Message: "Are you sure you want to log out?"
@@ -1889,6 +2006,7 @@ Shows native logout confirmation dialog.
 Shows native session deletion confirmation.
 
 **Parameters**:
+
 - `name: string` - Session name
 
 **Returns**: `boolean` - True if user confirmed
@@ -1906,6 +2024,7 @@ Clears all credentials and configuration.
 **Returns**: `void`
 
 **Process**:
+
 1. Lists all stored credentials
 2. Deletes each credential from encrypted storage
 3. Deletes `~/.craft-agent/config.json`
@@ -1935,24 +2054,25 @@ graph TB
     ExpandTilde --> AbsCheck["isAbsolute() check"]
     AbsCheck -->|"Relative path"| Reject["Throw: Only absolute paths allowed"]
     AbsCheck -->|"Absolute"| Realpath["realpath()<br/>Resolve symlinks"]
-    
+
     Realpath --> DirCheck["Check against allowed dirs"]
     DirCheck --> AllowedHome["homedir()"]
     DirCheck --> AllowedTemp["tmpdir()"]
-    
+
     DirCheck -->|"Outside allowed"| Reject
     DirCheck -->|"Within allowed"| SensitiveCheck["Match against sensitive patterns"]
-    
+
     SensitiveCheck --> PatternSSH[".ssh/"]
     SensitiveCheck --> PatternEnv[".env, .env.*"]
     SensitiveCheck --> PatternAWS[".aws/credentials"]
     SensitiveCheck --> PatternKeys["*.pem, *.key"]
-    
+
     SensitiveCheck -->|"Match"| Reject
     SensitiveCheck -->|"Safe"| Allow["Return validated path"]
 ```
 
 **`sanitizeFilename()` Function** ([apps/electron/src/main/ipc.ts:26-42]()):
+
 - Removes path separators: `/`, `\` → `_`
 - Removes Windows-forbidden: `<`, `>`, `:`, `"`, `|`, `?`, `*` → `_`
 - Removes control characters (ASCII 0-31)
@@ -1962,6 +2082,7 @@ graph TB
 - Fallback: `'unnamed'` if empty
 
 **`validateFilePath()` Function** ([apps/electron/src/main/ipc.ts:235-293]()):
+
 - Normalizes path and expands `~`
 - Requires absolute path
 - Resolves symlinks via `realpath()`
@@ -1996,11 +2117,13 @@ if (!workspace) {
 ```
 
 **WindowManager Tracking**: [apps/electron/src/main/window-manager.ts]() maintains mapping of `webContentsId → workspaceId`. Updated on:
+
 - Window creation
 - `SWITCH_WORKSPACE` calls
 - Window focus changes
 
 **Error Routing for Async Operations**: [apps/electron/src/main/ipc.ts:458-476]()
+
 ```typescript
 // Capture workspace before async operation starts
 const callingWorkspaceId = windowManager.getWorkspaceForWindow(event.sender.id)
@@ -2010,9 +2133,9 @@ sessionManager.sendMessage(...).catch(err => {
   const window = callingWorkspaceId
     ? windowManager.getWindowByWorkspace(callingWorkspaceId)
     : BrowserWindow.getFocusedWindow()
-  
+
   // Check mainFrame not null (disposed renderer check)
-  if (window && !window.isDestroyed() && !window.webContents.isDestroyed() 
+  if (window && !window.isDestroyed() && !window.webContents.isDestroyed()
       && window.webContents.mainFrame) {
     window.webContents.send(IPC_CHANNELS.SESSION_EVENT, {
       type: 'error',
@@ -2035,12 +2158,14 @@ Sources: [apps/electron/src/main/ipc.ts:458-476](), [apps/electron/src/main/ipc.
 
 **Environment Variable Filtering**: Subprocess execution (bash commands, MCP servers) filters environment variables to prevent credential leakage. Implemented in agent tool execution.
 
-**OAuth Token Management**: 
+**OAuth Token Management**:
+
 - System keychain integration when available (macOS Keychain, Windows Credential Manager)
 - Refresh tokens stored separately from access tokens
 - Proactive refresh before API calls (prevents mid-conversation auth failures)
 
 **API Key Handling**:
+
 - Never logged (masked in debug output)
 - Never transmitted to renderer process
 - Stored only in encrypted credentials file
@@ -2058,18 +2183,19 @@ Sources: [apps/electron/src/main/ipc.ts:1184-1267]()
 
 **Protocol Whitelist** ([apps/electron/src/main/ipc.ts:950-976]()):
 
-| Protocol | Handling | Security Rationale |
-|----------|----------|-------------------|
-| `http:`, `https:` | `shell.openExternal()` | Safe web URLs |
-| `mailto:` | `shell.openExternal()` | Email client launch |
-| `craftdocs:` | `shell.openExternal()` | Craft Docs deep links |
-| `craftagents:` | Internal routing | App navigation (handled by deep link system) |
-| `file:` | **Blocked** | Prevents local file access via URL |
-| `data:` | **Blocked** | Prevents data exfiltration |
-| `javascript:` | **Blocked** | XSS prevention |
-| Custom protocols | **Blocked** | Unless explicitly whitelisted |
+| Protocol          | Handling               | Security Rationale                           |
+| ----------------- | ---------------------- | -------------------------------------------- |
+| `http:`, `https:` | `shell.openExternal()` | Safe web URLs                                |
+| `mailto:`         | `shell.openExternal()` | Email client launch                          |
+| `craftdocs:`      | `shell.openExternal()` | Craft Docs deep links                        |
+| `craftagents:`    | Internal routing       | App navigation (handled by deep link system) |
+| `file:`           | **Blocked**            | Prevents local file access via URL           |
+| `data:`           | **Blocked**            | Prevents data exfiltration                   |
+| `javascript:`     | **Blocked**            | XSS prevention                               |
+| Custom protocols  | **Blocked**            | Unless explicitly whitelisted                |
 
 **Validation Logic**:
+
 ```typescript
 // ipc.ts:950-976
 const protocol = url.split(':')[0]?.toLowerCase()
@@ -2109,7 +2235,7 @@ const session = await ipcRenderer.invoke(
 // Listen for streaming events
 ipcRenderer.on(IPC_CHANNELS.SESSION_EVENT, (_event, evt) => {
   if (evt.sessionId !== session.id) return
-  
+
   switch (evt.type) {
     case 'text_delta':
       appendText(evt.text)
@@ -2166,7 +2292,7 @@ for (const attachment of attachments) {
     attachment
   )
   storedAttachments.push(stored)
-  
+
   // Check if image was resized
   if (stored.wasResized) {
     console.log(`Image resized: ${stored.originalSize} → ${stored.size}`)
@@ -2178,8 +2304,8 @@ await ipcRenderer.invoke(
   IPC_CHANNELS.SEND_MESSAGE,
   sessionId,
   'Please analyze these files',
-  attachments,        // For Claude API (has base64 content)
-  storedAttachments   // For persistence (has thumbnails, paths)
+  attachments, // For Claude API (has base64 content)
+  storedAttachments // For persistence (has thumbnails, paths)
 )
 ```
 
@@ -2233,22 +2359,22 @@ Sources: [apps/electron/src/main/ipc.ts:1739-1957]()
 
 ```typescript
 // Start watching
-await ipcRenderer.invoke(
-  IPC_CHANNELS.WATCH_SESSION_FILES,
-  sessionId
-)
+await ipcRenderer.invoke(IPC_CHANNELS.WATCH_SESSION_FILES, sessionId)
 
 // Listen for changes
-ipcRenderer.on(IPC_CHANNELS.SESSION_FILES_CHANGED, (_event, changedSessionId) => {
-  if (changedSessionId === sessionId) {
-    // Refresh file tree
-    const files = await ipcRenderer.invoke(
-      IPC_CHANNELS.GET_SESSION_FILES,
-      sessionId
-    )
-    updateFileTree(files)
+ipcRenderer.on(
+  IPC_CHANNELS.SESSION_FILES_CHANGED,
+  (_event, changedSessionId) => {
+    if (changedSessionId === sessionId) {
+      // Refresh file tree
+      const files = await ipcRenderer.invoke(
+        IPC_CHANNELS.GET_SESSION_FILES,
+        sessionId
+      )
+      updateFileTree(files)
+    }
   }
-})
+)
 
 // Stop watching when unmounting
 await ipcRenderer.invoke(IPC_CHANNELS.UNWATCH_SESSION_FILES)
@@ -2265,7 +2391,7 @@ All IPC channels are registered in a single function to ensure centralized manag
 ```mermaid
 graph TD
     Main["main.ts"] --> Register["registerIpcHandlers()"]
-    
+
     Register --> Sessions["Session Handlers<br/>GET_SESSIONS, CREATE_SESSION<br/>SEND_MESSAGE, SESSION_COMMAND"]
     Register --> Workspaces["Workspace Handlers<br/>GET_WORKSPACES, CREATE_WORKSPACE<br/>WORKSPACE_SETTINGS_*"]
     Register --> Files["File Handlers<br/>READ_FILE, STORE_ATTACHMENT<br/>FS_SEARCH"]
@@ -2278,7 +2404,7 @@ graph TD
     Register --> Notifications["Notification Handlers<br/>NOTIFICATION_SHOW<br/>BADGE_UPDATE"]
     Register --> Search["Search Handlers<br/>SEARCH_SESSIONS"]
     Register --> Updates["Update Handlers<br/>UPDATE_CHECK, UPDATE_INSTALL"]
-    
+
     Sessions --> SessionManager
     Workspaces --> ConfigStorage
     Files --> FileSystem

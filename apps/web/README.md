@@ -5,6 +5,7 @@ documentation portal for Acme. It showcases product features, provides
 getting-started guides, and hosts the API documentation.
 
 **Key Features:**
+
 - Product showcase and feature documentation
 - Getting started guides
 - API documentation (OpenAPI/Swagger)

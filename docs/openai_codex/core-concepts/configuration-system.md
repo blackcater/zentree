@@ -23,8 +23,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 The Configuration System manages all runtime settings for Codex, including model selection, sandbox policies, feature flags, MCP server connections, and permission profiles. It implements a layered configuration model where settings from multiple sources (CLI arguments, environment variables, project files, global files, and built-in defaults) are merged with well-defined precedence rules.
@@ -39,15 +37,15 @@ For feature flag management specifically, see [Feature Flags](#2.3). For sandbox
 
 Configuration is assembled from 7 layers, each with decreasing precedence:
 
-| Priority | Layer | Source | Scope |
-|----------|-------|--------|-------|
-| 1 | CLI Arguments | `--enable`, `-c key=value`, `--profile` | Per-invocation |
-| 2 | Feature Toggles | Runtime experimental menu, feature overrides | Session |
-| 3 | Active Profile | `--profile name` or `default_profile` | Profile-scoped |
-| 4 | Environment Variables | `CODEX_*`, `OPENAI_*`, `SQLITE_HOME_ENV` | Process |
-| 5 | Project Config | `.codex/config.toml` in project root | Project |
-| 6 | Global Config | `~/.codex/config.toml` | User |
-| 7 | Built-in Defaults | Hardcoded in `ConfigToml::default()` | System |
+| Priority | Layer                 | Source                                       | Scope          |
+| -------- | --------------------- | -------------------------------------------- | -------------- |
+| 1        | CLI Arguments         | `--enable`, `-c key=value`, `--profile`      | Per-invocation |
+| 2        | Feature Toggles       | Runtime experimental menu, feature overrides | Session        |
+| 3        | Active Profile        | `--profile name` or `default_profile`        | Profile-scoped |
+| 4        | Environment Variables | `CODEX_*`, `OPENAI_*`, `SQLITE_HOME_ENV`     | Process        |
+| 5        | Project Config        | `.codex/config.toml` in project root         | Project        |
+| 6        | Global Config         | `~/.codex/config.toml`                       | User           |
+| 7        | Built-in Defaults     | Hardcoded in `ConfigToml::default()`         | System         |
 
 Sources: [codex-rs/core/src/config/mod.rs:546-642]()
 
@@ -62,13 +60,13 @@ flowchart TB
     ProjectConfig[".codex/config.toml"]
     GlobalConfig["~/.codex/config.toml"]
     Defaults["ConfigToml::default()"]
-    
+
     Requirements["requirements.toml<br/>(Constraints)"]
-    
+
     Merge["ConfigLayerStack<br/>load_config_layers_state"]
     Validate["ConfigBuilder::build<br/>Merge + Validate"]
     FinalConfig["Config<br/>Runtime Configuration"]
-    
+
     CLI --> Merge
     Features --> Merge
     Profile --> Merge
@@ -76,7 +74,7 @@ flowchart TB
     ProjectConfig --> Merge
     GlobalConfig --> Merge
     Defaults --> Merge
-    
+
     Merge --> Validate
     Requirements --> Validate
     Validate --> FinalConfig
@@ -113,7 +111,7 @@ classDiagram
         +fallback_cwd(Option~PathBuf~) Self
         +build() Result~Config~
     }
-    
+
     class Config {
         +ConfigLayerStack config_layer_stack
         +Vec~String~ startup_warnings
@@ -126,18 +124,18 @@ classDiagram
         +PathBuf codex_home
         +PathBuf cwd
     }
-    
+
     class ConfigLayerStack {
         +effective_config() TomlValue
         +get_layers() Vec~ConfigLayer~
     }
-    
+
     class ConfigOverrides {
         +Option~PathBuf~ cwd
         +Option~PathBuf~ codex_linux_sandbox_exe
         +Option~PathBuf~ main_execve_wrapper_exe
     }
-    
+
     ConfigBuilder --> Config : builds
     Config --> ConfigLayerStack : contains
     ConfigBuilder --> ConfigOverrides : accepts
@@ -165,17 +163,17 @@ Sources: [codex-rs/core/src/config/mod.rs:587-641](), [codex-rs/core/src/config/
 
 The `Config` struct contains all runtime configuration:
 
-| Field Category | Key Fields | Description |
-|----------------|-----------|-------------|
-| **Provenance** | `config_layer_stack`, `startup_warnings` | Configuration sources and load warnings |
-| **Model** | `model`, `service_tier`, `review_model`, `model_provider`, `model_reasoning_effort` | Model selection and behavior |
-| **Permissions** | `permissions` | Sandbox policies, approval policies, filesystem/network access |
-| **Features** | `features` | Centralized feature flag state |
-| **Tools** | `mcp_servers`, `web_search_mode`, `web_search_config` | External tool configuration |
-| **Paths** | `codex_home`, `sqlite_home`, `log_dir`, `cwd` | Filesystem locations |
-| **Agents** | `agent_roles`, `agent_max_threads`, `agent_max_depth` | Multi-agent settings |
-| **UI** | `tui_alternate_screen`, `tui_theme`, `tui_status_line` | TUI preferences |
-| **Memories** | `memories` | Memory subsystem configuration |
+| Field Category  | Key Fields                                                                          | Description                                                    |
+| --------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| **Provenance**  | `config_layer_stack`, `startup_warnings`                                            | Configuration sources and load warnings                        |
+| **Model**       | `model`, `service_tier`, `review_model`, `model_provider`, `model_reasoning_effort` | Model selection and behavior                                   |
+| **Permissions** | `permissions`                                                                       | Sandbox policies, approval policies, filesystem/network access |
+| **Features**    | `features`                                                                          | Centralized feature flag state                                 |
+| **Tools**       | `mcp_servers`, `web_search_mode`, `web_search_config`                               | External tool configuration                                    |
+| **Paths**       | `codex_home`, `sqlite_home`, `log_dir`, `cwd`                                       | Filesystem locations                                           |
+| **Agents**      | `agent_roles`, `agent_max_threads`, `agent_max_depth`                               | Multi-agent settings                                           |
+| **UI**          | `tui_alternate_screen`, `tui_theme`, `tui_status_line`                              | TUI preferences                                                |
+| **Memories**    | `memories`                                                                          | Memory subsystem configuration                                 |
 
 Sources: [codex-rs/core/src/config/mod.rs:163-544]()
 
@@ -196,7 +194,7 @@ classDiagram
         +Option~WindowsSandboxModeToml~ windows_sandbox_mode
         +Option~MacOsSeatbeltProfileExtensions~ macos_seatbelt_profile_extensions
     }
-    
+
     class FileSystemSandboxPolicy {
         +FileSystemSandboxKind kind
         +Vec~FileSystemSandboxEntry~ entries
@@ -204,24 +202,24 @@ classDiagram
         +has_full_disk_write_access() bool
         +resolve_access_with_cwd(Path, Path) FileSystemAccessMode
     }
-    
+
     class NetworkSandboxPolicy {
         <<enumeration>>
         Restricted
         Enabled
     }
-    
+
     class FileSystemSandboxEntry {
         +FileSystemPath path
         +FileSystemAccessMode access
     }
-    
+
     class FileSystemPath {
         <<enumeration>>
         Path
         Special
     }
-    
+
     class FileSystemSpecialPath {
         <<enumeration>>
         Root
@@ -232,7 +230,7 @@ classDiagram
         SlashTmp
         Unknown
     }
-    
+
     Permissions --> FileSystemSandboxPolicy
     Permissions --> NetworkSandboxPolicy
     FileSystemSandboxPolicy --> FileSystemSandboxEntry
@@ -271,12 +269,12 @@ classDiagram
         +Option~FeaturesToml~ features
         +Option~WindowsToml~ windows
     }
-    
+
     class ConfigToml {
         +Option~String~ default_profile
         +Option~HashMap~String,ConfigProfile~~ profiles
     }
-    
+
     ConfigToml --> ConfigProfile : contains
 ```
 
@@ -320,14 +318,14 @@ classDiagram
     class Config {
         +ManagedFeatures features
     }
-    
+
     class ManagedFeatures {
         +Features value
         +Vec~FeatureSpec~ specs
         +enabled(Feature) bool
         +experimental_features() Vec~Feature~
     }
-    
+
     class Features {
         -BTreeSet~Feature~ enabled
         -BTreeSet~LegacyFeatureUsage~ legacy_usages
@@ -337,11 +335,11 @@ classDiagram
         +apply_map(BTreeMap) void
         +from_config(ConfigToml, ConfigProfile, FeatureOverrides) Features
     }
-    
+
     class FeaturesToml {
         +BTreeMap~String,bool~ entries
     }
-    
+
     Config --> ManagedFeatures
     ManagedFeatures --> Features
     Features --> FeaturesToml : loads from
@@ -394,34 +392,34 @@ Sources: [codex-rs/core/src/config/permissions.rs:21-136]()
 flowchart TB
     ProfileName["default_permissions = 'workspace'"]
     PermissionsToml["[permissions.workspace]"]
-    
+
     Resolve["resolve_permission_profile"]
     CompileFS["compile_filesystem_permission"]
     CompileNet["compile_network_sandbox_policy"]
-    
+
     FSPolicy["FileSystemSandboxPolicy"]
     NetPolicy["NetworkSandboxPolicy"]
-    
+
     ParseSpecial["parse_special_path<br/>:root, :minimal, :project_roots"]
     ParseAbsolute["parse_absolute_path<br/>Validate absolute paths"]
-    
+
     ResolveEntries["FileSystemSandboxEntry<br/>path + access mode"]
-    
+
     ProfileName --> Resolve
     PermissionsToml --> Resolve
-    
+
     Resolve --> CompileFS
     Resolve --> CompileNet
-    
+
     CompileFS --> ParseSpecial
     CompileFS --> ParseAbsolute
-    
+
     ParseSpecial --> ResolveEntries
     ParseAbsolute --> ResolveEntries
-    
+
     ResolveEntries --> FSPolicy
     CompileNet --> NetPolicy
-    
+
     FSPolicy --> PermissionsStruct["Config.permissions"]
     NetPolicy --> PermissionsStruct
 ```
@@ -442,14 +440,14 @@ Sources: [codex-rs/core/src/config/permissions.rs:147-225](), [codex-rs/core/src
 
 Special paths provide symbolic references that resolve at runtime:
 
-| Special Path | Resolves To | Description |
-|-------------|-------------|-------------|
-| `:root` | `/` (Unix) or drive roots (Windows) | Full filesystem access |
-| `:minimal` | Platform-specific safe paths | Shell config, common libraries |
-| `:project_roots` | Git repo roots or cwd | Project workspace roots |
-| `:project_roots."subpath"` | `<project_root>/subpath` | Scoped project subpath |
-| `:tmpdir` | `$TMPDIR` or `/tmp` | Temporary directory |
-| `:slash_tmp` | `/tmp` | Unix temporary directory |
+| Special Path               | Resolves To                         | Description                    |
+| -------------------------- | ----------------------------------- | ------------------------------ |
+| `:root`                    | `/` (Unix) or drive roots (Windows) | Full filesystem access         |
+| `:minimal`                 | Platform-specific safe paths        | Shell config, common libraries |
+| `:project_roots`           | Git repo roots or cwd               | Project workspace roots        |
+| `:project_roots."subpath"` | `<project_root>/subpath`            | Scoped project subpath         |
+| `:tmpdir`                  | `$TMPDIR` or `/tmp`                 | Temporary directory            |
+| `:slash_tmp`               | `/tmp`                              | Unix temporary directory       |
 
 Forward compatibility: Unknown special paths (`:unknown_future_path`) are preserved as `FileSystemSpecialPath::Unknown` so older Codex versions don't reject newer config files.
 
@@ -497,11 +495,11 @@ classDiagram
         +Option~Vec~String~~ scopes
         +Option~String~ oauth_resource
     }
-    
+
     class McpServerTransportConfig {
         <<enumeration>>
     }
-    
+
     class StdioTransport {
         +String command
         +Vec~String~ args
@@ -509,14 +507,14 @@ classDiagram
         +Vec~String~ env_vars
         +Option~PathBuf~ cwd
     }
-    
+
     class StreamableHttpTransport {
         +String url
         +Option~String~ bearer_token_env_var
         +Option~HashMap~String,String~~ http_headers
         +Option~HashMap~String,String~~ env_http_headers
     }
-    
+
     McpServerConfig --> McpServerTransportConfig
     McpServerTransportConfig <|-- StdioTransport
     McpServerTransportConfig <|-- StreamableHttpTransport
@@ -565,7 +563,7 @@ classDiagram
         SetPath
         ClearPath
     }
-    
+
     class ConfigEditsBuilder {
         -Vec~ConfigEdit~ edits
         -Option~String~ profile
@@ -574,7 +572,7 @@ classDiagram
         +with_edit(ConfigEdit) Self
         +apply_to_file(PathBuf) Result
     }
-    
+
     class ConfigDocument {
         -DocumentMut doc
         -Option~String~ profile
@@ -583,7 +581,7 @@ classDiagram
         -write_value(Scope, segments, TomlItem) bool
         -insert(segments, TomlItem) bool
     }
-    
+
     ConfigEditsBuilder --> ConfigEdit : contains
     ConfigEditsBuilder --> ConfigDocument : creates
     ConfigDocument --> ConfigEdit : applies
@@ -610,11 +608,11 @@ pub async fn apply_blocking(edits: Vec<ConfigEdit>, config_path: PathBuf, profil
     let (final_path, temp_path) = resolve_symlink_write_paths(&config_path);
     let mut doc = load_document(&final_path)?;
     let mut config_doc = ConfigDocument::new(doc, profile);
-    
+
     for edit in edits {
         config_doc.apply(&edit)?;
     }
-    
+
     write_atomically(&final_path, &temp_path, config_doc.doc.to_string().as_bytes())?;
 }
 ```
@@ -661,27 +659,27 @@ Sources: [codex-rs/core/src/config/agent_roles.rs:18-106]()
 ```mermaid
 flowchart TB
     Layers["ConfigLayerStack<br/>Lowest → Highest Precedence"]
-    
+
     DeclaredRoles["Extract [agents] Table<br/>from each layer"]
     DiscoverFiles["Discover .codex/agents/*.toml<br/>in layer config_folder"]
-    
+
     ParseDeclared["Parse AgentRoleToml<br/>May reference config_file"]
     ParseDiscovered["Parse agent role file<br/>name + description required"]
-    
+
     MergeFields["Merge missing fields<br/>from lower-precedence layers"]
     ValidateDesc["Validate required<br/>description field"]
-    
+
     RolesMap["BTreeMap~String, AgentRoleConfig~"]
-    
+
     Layers --> DeclaredRoles
     Layers --> DiscoverFiles
-    
+
     DeclaredRoles --> ParseDeclared
     DiscoverFiles --> ParseDiscovered
-    
+
     ParseDeclared --> MergeFields
     ParseDiscovered --> MergeFields
-    
+
     MergeFields --> ValidateDesc
     ValidateDesc --> RolesMap
 ```
@@ -712,20 +710,20 @@ classDiagram
         +Option~PathBuf~ config_file
         +Option~Vec~String~~ nickname_candidates
     }
-    
+
     class AgentRoleToml {
         +Option~AbsolutePathBuf~ config_file
         +Option~String~ description
         +Option~Vec~String~~ nickname_candidates
     }
-    
+
     class ResolvedAgentRoleFile {
         +String role_name
         +Option~String~ description
         +Option~Vec~String~~ nickname_candidates
         +TomlValue config
     }
-    
+
     AgentRoleToml --> AgentRoleConfig : converts to
     ResolvedAgentRoleFile --> AgentRoleConfig : contributes to
 ```
@@ -757,6 +755,7 @@ pub fn generate_config_schema() -> serde_json::Value {
 ```
 
 The schema file `codex-rs/core/config.schema.json` is used by:
+
 - IDE extensions for config.toml autocompletion
 - Documentation generators for reference docs
 - Validation tools to catch config errors early
@@ -795,12 +794,12 @@ Sources: [codex-rs/core/src/config/mod.rs:806-839]()
 
 ### Primary Loading Methods
 
-| Method | Use Case | Applies Requirements |
-|--------|----------|---------------------|
-| `Config::load_with_cli_overrides()` | Standard TUI/CLI startup | ✓ Yes |
-| `Config::load_with_cli_overrides_and_harness_overrides()` | Test harnesses, exec mode | ✓ Yes |
-| `Config::load_default_with_cli_overrides()` | Fallback when user config invalid | ✗ No (safe defaults) |
-| `ConfigBuilder::default().build()` | Custom loading with builder pattern | ✓ Yes |
+| Method                                                    | Use Case                            | Applies Requirements |
+| --------------------------------------------------------- | ----------------------------------- | -------------------- |
+| `Config::load_with_cli_overrides()`                       | Standard TUI/CLI startup            | ✓ Yes                |
+| `Config::load_with_cli_overrides_and_harness_overrides()` | Test harnesses, exec mode           | ✓ Yes                |
+| `Config::load_default_with_cli_overrides()`               | Fallback when user config invalid   | ✗ No (safe defaults) |
+| `ConfigBuilder::default().build()`                        | Custom loading with builder pattern | ✓ Yes                |
 
 Sources: [codex-rs/core/src/config/mod.rs:644-694]()
 
@@ -874,12 +873,12 @@ Sources: [codex-rs/core/src/config/mod.rs:917-973]()
 
 ## Configuration File Locations
 
-| File | Purpose | Schema |
-|------|---------|--------|
-| `~/.codex/config.toml` | Global user configuration | Full `ConfigToml` |
-| `.codex/config.toml` | Project-specific overrides | Full `ConfigToml` |
-| `~/.codex/agents/*.toml` | Agent role definitions | `RawAgentRoleFileToml` |
-| `.codex/agents/*.toml` | Project agent roles | `RawAgentRoleFileToml` |
-| `requirements.toml` | Enterprise constraints | Cloud-provided |
+| File                     | Purpose                    | Schema                 |
+| ------------------------ | -------------------------- | ---------------------- |
+| `~/.codex/config.toml`   | Global user configuration  | Full `ConfigToml`      |
+| `.codex/config.toml`     | Project-specific overrides | Full `ConfigToml`      |
+| `~/.codex/agents/*.toml` | Agent role definitions     | `RawAgentRoleFileToml` |
+| `.codex/agents/*.toml`   | Project agent roles        | `RawAgentRoleFileToml` |
+| `requirements.toml`      | Enterprise constraints     | Cloud-provided         |
 
 Sources: [codex-rs/core/src/config/mod.rs:137](), [docs/config.md:1-11]()

@@ -27,7 +27,7 @@ The following files were used as context for generating this wiki page:
 - [packages/amazon-bedrock/package.json](packages/amazon-bedrock/package.json)
 - [packages/anthropic/CHANGELOG.md](packages/anthropic/CHANGELOG.md)
 - [packages/anthropic/package.json](packages/anthropic/package.json)
-- [packages/cohere/src/__snapshots__/cohere-embedding-model.test.ts.snap](packages/cohere/src/__snapshots__/cohere-embedding-model.test.ts.snap)
+- [packages/cohere/src/**snapshots**/cohere-embedding-model.test.ts.snap](packages/cohere/src/__snapshots__/cohere-embedding-model.test.ts.snap)
 - [packages/cohere/src/cohere-chat-language-model.test.ts](packages/cohere/src/cohere-chat-language-model.test.ts)
 - [packages/cohere/src/cohere-chat-language-model.ts](packages/cohere/src/cohere-chat-language-model.ts)
 - [packages/cohere/src/cohere-embedding-model.test.ts](packages/cohere/src/cohere-embedding-model.test.ts)
@@ -44,8 +44,6 @@ The following files were used as context for generating this wiki page:
 - [pnpm-lock.yaml](pnpm-lock.yaml)
 
 </details>
-
-
 
 ## Overview
 
@@ -71,52 +69,51 @@ graph TB
     subgraph "Direct Implementations"
         MISTRAL_PKG["@ai-sdk/mistral<br/>packages/mistral/"]
         MISTRAL_MODEL["MistralChatLanguageModel"]
-        
+
         COHERE_PKG["@ai-sdk/cohere<br/>packages/cohere/"]
         COHERE_MODEL["CohereChatLanguageModel"]
     end
-    
+
     subgraph "Composite Provider"
         VERTEX_PKG["@ai-sdk/google-vertex<br/>packages/google-vertex/"]
         VERTEX_MODEL["VertexLanguageModel"]
         VERTEX_ANT["VertexAnthropicLanguageModel"]
     end
-    
+
     subgraph "Multi-Model Provider"
         BEDROCK_PKG["@ai-sdk/amazon-bedrock<br/>packages/amazon-bedrock/"]
         BEDROCK_CONVERSE["BedrockConverseLanguageModel"]
         BEDROCK_ANT["BedrockAnthropicLanguageModel"]
     end
-    
+
     subgraph "Base Providers"
         GOOGLE_BASE["@ai-sdk/google"]
         ANT_BASE["@ai-sdk/anthropic"]
         PROVIDER_V3["LanguageModelV3<br/>Interface"]
         PROVIDER_UTILS["@ai-sdk/provider-utils"]
     end
-    
+
     MISTRAL_PKG --> PROVIDER_UTILS
     MISTRAL_MODEL --> PROVIDER_V3
-    
+
     COHERE_PKG --> PROVIDER_UTILS
     COHERE_MODEL --> PROVIDER_V3
-    
+
     VERTEX_PKG --> GOOGLE_BASE
     VERTEX_PKG --> ANT_BASE
     VERTEX_MODEL --> PROVIDER_V3
     VERTEX_ANT --> PROVIDER_V3
-    
+
     BEDROCK_PKG --> ANT_BASE
     BEDROCK_PKG --> PROVIDER_UTILS
     BEDROCK_CONVERSE --> PROVIDER_V3
     BEDROCK_ANT --> PROVIDER_V3
-    
+
     GOOGLE_BASE --> PROVIDER_V3
     ANT_BASE --> PROVIDER_V3
 ```
 
 **Sources:** [packages/mistral/package.json:1-79](), [packages/amazon-bedrock/package.json:1-89](), [packages/google-vertex/package.json:1-100]()
-
 
 ---
 
@@ -135,18 +132,18 @@ graph TB
         GENERATE["doGenerate()"]
         STREAM["doStream()"]
     end
-    
+
     subgraph "Request Processing"
         GET_ARGS["getArgs()"]
         CONVERT_MSGS["convertToMistralChatMessages()"]
         PREP_TOOLS["prepareTools()"]
     end
-    
+
     subgraph "API Communication"
         POST["postJsonToApi()"]
         ENDPOINT["/chat/completions"]
     end
-    
+
     GENERATE --> GET_ARGS
     STREAM --> GET_ARGS
     GET_ARGS --> CONVERT_MSGS
@@ -163,12 +160,12 @@ Mistral provides three model tiers with distinct capabilities:
 
 #### Model IDs and Types
 
-| Category | Model IDs | Purpose |
-|----------|-----------|---------|
-| **Premier** | `ministral-3b-latest`, `ministral-8b-latest`, `mistral-large-latest`, `mistral-medium-latest`, `mistral-small-latest`, `pixtral-large-latest` | Production-grade models with full feature support |
-| **Reasoning** | `magistral-small-2507`, `magistral-medium-2507` | Step-by-step thinking with reasoning content extraction |
-| **Free** | `pixtral-12b-2409` | Community access models |
-| **Legacy** | `open-mistral-7b`, `open-mixtral-8x7b`, `open-mixtral-8x22b` | Older model versions |
+| Category      | Model IDs                                                                                                                                     | Purpose                                                 |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| **Premier**   | `ministral-3b-latest`, `ministral-8b-latest`, `mistral-large-latest`, `mistral-medium-latest`, `mistral-small-latest`, `pixtral-large-latest` | Production-grade models with full feature support       |
+| **Reasoning** | `magistral-small-2507`, `magistral-medium-2507`                                                                                               | Step-by-step thinking with reasoning content extraction |
+| **Free**      | `pixtral-12b-2409`                                                                                                                            | Community access models                                 |
+| **Legacy**    | `open-mistral-7b`, `open-mixtral-8x7b`, `open-mixtral-8x22b`                                                                                  | Older model versions                                    |
 
 **Sources:** [packages/mistral/src/mistral-chat-options.ts:4-25]()
 
@@ -180,12 +177,12 @@ Mistral reasoning models return structured thinking content that the SDK extract
 const result = await generateText({
   model: mistral('magistral-small-2507'),
   prompt: 'What is 15 * 24?',
-});
+})
 
-console.log('REASONING:', result.reasoningText);
+console.log('REASONING:', result.reasoningText)
 // Output: "Let me calculate this step by step..."
 
-console.log('ANSWER:', result.text);
+console.log('ANSWER:', result.text)
 // Output: "360"
 ```
 
@@ -193,9 +190,9 @@ The reasoning extraction occurs in `doGenerate()` where content parts with `type
 
 ```typescript
 if (part.type === 'thinking') {
-  const reasoningText = extractReasoningContent(part.thinking);
+  const reasoningText = extractReasoningContent(part.thinking)
   if (reasoningText.length > 0) {
-    content.push({ type: 'reasoning', text: reasoningText });
+    content.push({ type: 'reasoning', text: reasoningText })
   }
 }
 ```
@@ -209,24 +206,26 @@ Mistral models support PDF document processing with configurable limits:
 ```typescript
 const result = await generateText({
   model: mistral('mistral-small-latest'),
-  messages: [{
-    role: 'user',
-    content: [
-      { type: 'text', text: 'Summarize this document' },
-      {
-        type: 'file',
-        data: new URL('https://example.com/document.pdf'),
-        mediaType: 'application/pdf',
-      },
-    ],
-  }],
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Summarize this document' },
+        {
+          type: 'file',
+          data: new URL('https://example.com/document.pdf'),
+          mediaType: 'application/pdf',
+        },
+      ],
+    },
+  ],
   providerOptions: {
     mistral: {
-      documentImageLimit: 8,  // max images to extract
-      documentPageLimit: 64,  // max pages to process
+      documentImageLimit: 8, // max images to extract
+      documentPageLimit: 64, // max pages to process
     },
   },
-});
+})
 ```
 
 The `supportedUrls` property defines PDF support for HTTPS URLs:
@@ -257,7 +256,7 @@ const result = await generateObject({
     }),
   }),
   prompt: 'Generate a recipe',
-});
+})
 ```
 
 The provider sends the schema using Mistral's `json_schema` format:
@@ -283,21 +282,21 @@ When no schema is provided or `structuredOutputs: false`, the SDK injects JSON i
 ### Provider Options
 
 ```typescript
-import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
+import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral'
 
 await generateText({
   model: mistral('mistral-large-latest'),
   providerOptions: {
     mistral: {
-      safePrompt: true,              // inject safety prompt
-      parallelToolCalls: false,      // one tool per response
-      strictJsonSchema: false,       // strict schema validation
-      structuredOutputs: true,       // use json_schema format
-      documentImageLimit: 8,         // PDF image extraction limit
-      documentPageLimit: 64,         // PDF page processing limit
+      safePrompt: true, // inject safety prompt
+      parallelToolCalls: false, // one tool per response
+      strictJsonSchema: false, // strict schema validation
+      structuredOutputs: true, // use json_schema format
+      documentImageLimit: 8, // PDF image extraction limit
+      documentPageLimit: 64, // PDF page processing limit
     } satisfies MistralLanguageModelOptions,
   },
-});
+})
 ```
 
 **Sources:** [packages/mistral/src/mistral-chat-options.ts:27-59](), [content/providers/01-ai-sdk-providers/20-mistral.mdx:82-98]()
@@ -319,19 +318,19 @@ graph TB
         DO_GEN["doGenerate()"]
         DO_STREAM["doStream()"]
     end
-    
+
     subgraph "Cohere-Specific Processing"
         CONVERT["convertToCohereChatPrompt()"]
         DOCS["Extract RAG documents"]
         PREP["prepareTools()"]
         THINKING["thinking config"]
     end
-    
+
     subgraph "API"
         POST_API["postJsonToApi()"]
         CHAT_EP["https://api.cohere.com/v2/chat"]
     end
-    
+
     DO_GEN --> CONVERT
     DO_GEN --> DOCS
     DO_GEN --> PREP
@@ -344,13 +343,13 @@ graph TB
 
 ### Model Capabilities
 
-| Model | Object Generation | Tool Usage | Tool Streaming | Reasoning |
-|-------|------------------|------------|----------------|-----------|
-| `command-a-03-2025` | ✓ | ✓ | ✓ | ✗ |
-| `command-a-reasoning-08-2025` | ✓ | ✓ | ✓ | ✓ |
-| `command-r7b-12-2024` | ✓ | ✓ | ✓ | ✗ |
-| `command-r-plus-04-2024` | ✓ | ✓ | ✓ | ✗ |
-| `command-r-plus` | ✓ | ✓ | ✓ | ✗ |
+| Model                         | Object Generation | Tool Usage | Tool Streaming | Reasoning |
+| ----------------------------- | ----------------- | ---------- | -------------- | --------- |
+| `command-a-03-2025`           | ✓                 | ✓          | ✓              | ✗         |
+| `command-a-reasoning-08-2025` | ✓                 | ✓          | ✓              | ✓         |
+| `command-r7b-12-2024`         | ✓                 | ✓          | ✓              | ✗         |
+| `command-r-plus-04-2024`      | ✓                 | ✓          | ✓              | ✗         |
+| `command-r-plus`              | ✓                 | ✓          | ✓              | ✗         |
 
 **Sources:** [content/providers/01-ai-sdk-providers/25-cohere.mdx:106-112]()
 
@@ -370,15 +369,18 @@ const result = await generateText({
           type: 'text',
           text: 'Document content here',
           experimental_providerMetadata: {
-            cohere: { 
-              document: { title: 'My Document', url: 'https://example.com/doc' }
+            cohere: {
+              document: {
+                title: 'My Document',
+                url: 'https://example.com/doc',
+              },
             },
           },
         },
       ],
     },
   ],
-});
+})
 ```
 
 Documents are extracted from message content during prompt conversion:
@@ -388,7 +390,7 @@ const {
   messages: chatPrompt,
   documents: cohereDocuments,
   warnings: promptWarnings,
-} = convertToCohereChatPrompt(prompt);
+} = convertToCohereChatPrompt(prompt)
 
 // In the request:
 return {
@@ -396,7 +398,7 @@ return {
     messages: chatPrompt,
     ...(cohereDocuments.length > 0 && { documents: cohereDocuments }),
   },
-};
+}
 ```
 
 **Sources:** [packages/cohere/src/cohere-chat-language-model.ts:82-86](), [packages/cohere/src/cohere-chat-language-model.ts:122](), [content/providers/01-ai-sdk-providers/25-cohere.mdx:121-156]()
@@ -406,7 +408,7 @@ return {
 Cohere's reasoning models (`command-a-reasoning-08-2025`) support extended thinking with configurable token budgets:
 
 ```typescript
-import { cohere, type CohereLanguageModelOptions } from '@ai-sdk/cohere';
+import { cohere, type CohereLanguageModelOptions } from '@ai-sdk/cohere'
 
 const result = await generateText({
   model: cohere('command-a-reasoning-08-2025'),
@@ -414,15 +416,15 @@ const result = await generateText({
   providerOptions: {
     cohere: {
       thinking: {
-        type: 'enabled',      // or 'disabled'
-        tokenBudget: 5000,    // max tokens for thinking
+        type: 'enabled', // or 'disabled'
+        tokenBudget: 5000, // max tokens for thinking
       },
     } satisfies CohereLanguageModelOptions,
   },
-});
+})
 
-console.log(result.reasoningText); // extracted thinking content
-console.log(result.text);          // final answer
+console.log(result.reasoningText) // extracted thinking content
+console.log(result.text) // final answer
 ```
 
 The thinking content is extracted during response processing:
@@ -430,7 +432,7 @@ The thinking content is extracted during response processing:
 ```typescript
 for (const item of response.message.content ?? []) {
   if (item.type === 'thinking' && item.thinking.length > 0) {
-    content.push({ type: 'reasoning', text: item.thinking });
+    content.push({ type: 'reasoning', text: item.thinking })
   }
 }
 ```
@@ -446,7 +448,7 @@ const {
   tools: cohereTools,
   toolChoice: cohereToolChoice,
   toolWarnings,
-} = prepareTools({ tools, toolChoice });
+} = prepareTools({ tools, toolChoice })
 
 return {
   args: {
@@ -454,7 +456,7 @@ return {
     tool_choice: cohereToolChoice,
     // ...
   },
-};
+}
 ```
 
 Tool calls are extracted from the response:
@@ -466,7 +468,7 @@ for (const tool_call of response.message.tool_calls ?? []) {
     toolCallId: tool_call.id,
     toolName: tool_call.function.name,
     input: tool_call.function.arguments,
-  });
+  })
 }
 ```
 
@@ -480,13 +482,13 @@ for (const tool_call of response.message.tool_calls ?? []) {
 
 Amazon Bedrock provides access to multiple foundation models from different providers through a unified AWS API. The `@ai-sdk/amazon-bedrock` package implements two distinct API integrations:
 
-| Dependency | Purpose |
-|------------|---------|
-| `@ai-sdk/anthropic` | Base Anthropic provider implementation for Claude models |
-| `@ai-sdk/provider` | V3 specification interfaces |
-| `@ai-sdk/provider-utils` | Shared utilities for HTTP, streaming, schema conversion |
-| `@smithy/eventstream-codec` | AWS event stream decoding |
-| `aws4fetch` | AWS Signature Version 4 request signing |
+| Dependency                  | Purpose                                                  |
+| --------------------------- | -------------------------------------------------------- |
+| `@ai-sdk/anthropic`         | Base Anthropic provider implementation for Claude models |
+| `@ai-sdk/provider`          | V3 specification interfaces                              |
+| `@ai-sdk/provider-utils`    | Shared utilities for HTTP, streaming, schema conversion  |
+| `@smithy/eventstream-codec` | AWS event stream decoding                                |
+| `aws4fetch`                 | AWS Signature Version 4 request signing                  |
 
 **Bedrock API Architecture**
 
@@ -495,40 +497,40 @@ graph TB
     subgraph "Application Layer"
         APP["Application Code"]
     end
-    
+
     subgraph "Bedrock Provider Package"
         BEDROCK_FACTORY["bedrock() factory"]
         BEDROCK_ANT_FACTORY["bedrock.anthropic() factory"]
-        
+
         CONVERSE_MODEL["BedrockConverseLanguageModel<br/>(Converse API)"]
         ANT_MODEL["BedrockAnthropicLanguageModel<br/>(InvokeModel API)"]
     end
-    
+
     subgraph "Model Support"
         NOVA["AWS Nova<br/>nova-pro, nova-lite, nova-micro"]
         CLAUDE["Anthropic Claude<br/>claude-3, claude-4"]
         MISTRAL_M["Mistral<br/>mistral-large, mistral-small"]
         COHERE_M["Cohere<br/>command-r, command-r-plus"]
     end
-    
+
     subgraph "AWS Bedrock APIs"
         CONVERSE_API["Converse API<br/>(Multi-model)"]
         INVOKE_API["InvokeModel API<br/>(Anthropic-specific)"]
     end
-    
+
     APP --> BEDROCK_FACTORY
     APP --> BEDROCK_ANT_FACTORY
-    
+
     BEDROCK_FACTORY --> CONVERSE_MODEL
     BEDROCK_ANT_FACTORY --> ANT_MODEL
-    
+
     CONVERSE_MODEL --> NOVA
     CONVERSE_MODEL --> CLAUDE
     CONVERSE_MODEL --> MISTRAL_M
     CONVERSE_MODEL --> COHERE_M
-    
+
     ANT_MODEL --> CLAUDE
-    
+
     CONVERSE_MODEL --> CONVERSE_API
     ANT_MODEL --> INVOKE_API
 ```
@@ -542,16 +544,17 @@ Amazon Bedrock provides access to multiple model families through the Converse A
 #### Anthropic Claude Models
 
 ```typescript
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { bedrock } from '@ai-sdk/amazon-bedrock'
 
 // Via Converse API
-const model1 = bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0');
+const model1 = bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0')
 
 // Via native Anthropic InvokeModel API
-const model2 = bedrock.anthropic('anthropic.claude-3-5-sonnet-20241022-v2:0');
+const model2 = bedrock.anthropic('anthropic.claude-3-5-sonnet-20241022-v2:0')
 ```
 
 The native Anthropic API path (`bedrock.anthropic()`) provides:
+
 - Direct use of Anthropic's Message API format
 - Support for all Anthropic-specific features (prompt caching, thinking mode, etc.)
 - Tool calling with structured outputs
@@ -562,11 +565,12 @@ The native Anthropic API path (`bedrock.anthropic()`) provides:
 #### AWS Nova Models
 
 ```typescript
-const model = bedrock('us.amazon.nova-pro-v1:0');
+const model = bedrock('us.amazon.nova-pro-v1:0')
 // Also: nova-lite-v1:0, nova-micro-v1:0
 ```
 
 Nova models support:
+
 - Extended reasoning with `maxReasoningEffort` configuration
 - Embedding models with task-specific parameters
 - Native AWS optimizations
@@ -576,7 +580,7 @@ Nova models support:
 #### Mistral Models
 
 ```typescript
-const model = bedrock('mistral.mistral-large-2407-v1:0');
+const model = bedrock('mistral.mistral-large-2407-v1:0')
 ```
 
 Note: Mistral models on Bedrock require tool call ID normalization to exactly 9 alphanumeric characters to meet Mistral's validation requirements.
@@ -586,10 +590,11 @@ Note: Mistral models on Bedrock require tool call ID normalization to exactly 9 
 #### Cohere Models
 
 ```typescript
-const model = bedrock('cohere.command-r-plus-v1:0');
+const model = bedrock('cohere.command-r-plus-v1:0')
 ```
 
 Cohere models support:
+
 - Command and Command-R model families
 - RAG with document support
 - Citations in responses
@@ -601,15 +606,16 @@ Cohere models support:
 Bedrock provider uses AWS credentials for authentication:
 
 ```typescript
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { bedrock } from '@ai-sdk/amazon-bedrock'
 
 const model = bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0', {
   region: 'us-east-1', // AWS region
   // Credentials from environment or AWS SDK default credential chain
-});
+})
 ```
 
 The provider uses `aws4fetch` to sign requests with AWS Signature Version 4, supporting:
+
 - Environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
 - AWS credential files
 - IAM roles (when running on AWS infrastructure)
@@ -635,7 +641,7 @@ graph TD
     STREAM["/model/model-id/converse-stream"]
     PARSE["Parse Response"]
     RESULT["LanguageModelV3Result"]
-    
+
     APP --> GET_ARGS
     GET_ARGS --> CONVERT
     GET_ARGS --> PREP_TOOLS
@@ -669,7 +675,7 @@ const result = await generateText({
     },
     { role: 'user', content: 'Question?' },
   ],
-});
+})
 ```
 
 Cache usage statistics are returned in the response metadata.
@@ -684,9 +690,9 @@ Bedrock exposes stop sequences that triggered generation to halt:
 const result = await generateText({
   model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
   prompt: 'Generate a story',
-});
+})
 
-console.log(result.providerMetadata?.bedrock?.stopSequence);
+console.log(result.providerMetadata?.bedrock?.stopSequence)
 // Output: "The end" or null
 ```
 
@@ -700,10 +706,10 @@ Bedrock models can return citations for grounded responses:
 const result = await generateText({
   model: bedrock('cohere.command-r-plus-v1:0'),
   prompt: 'What is quantum computing?',
-});
+})
 
 // Citations available in provider metadata
-const citations = result.providerMetadata?.bedrock?.citations;
+const citations = result.providerMetadata?.bedrock?.citations
 ```
 
 **Sources:** [packages/amazon-bedrock/CHANGELOG.md:469]()
@@ -713,20 +719,20 @@ const citations = result.providerMetadata?.bedrock?.citations;
 Bedrock provides embedding model support for Nova and Cohere:
 
 ```typescript
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { bedrock } from '@ai-sdk/amazon-bedrock'
 
 // AWS Nova embeddings
-const novaEmbedding = bedrock.textEmbeddingModel('amazon.titan-embed-text-v2:0');
+const novaEmbedding = bedrock.textEmbeddingModel('amazon.titan-embed-text-v2:0')
 
 const embedding = await embed({
   model: novaEmbedding,
   value: 'Text to embed',
-});
+})
 
 // Cohere embeddings with output dimension
 const cohereEmbedding = bedrock.textEmbeddingModel('cohere.embed-english-v3', {
   outputDimension: 1024, // 256, 512, 1024, or 1536
-});
+})
 ```
 
 Nova embedding models require `taskType` and `singleEmbeddingParams` in the request payload, which the provider handles automatically.
@@ -738,9 +744,9 @@ Nova embedding models require `taskType` and `singleEmbeddingParams` in the requ
 Bedrock supports reranking models with shorthand names:
 
 ```typescript
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { bedrock } from '@ai-sdk/amazon-bedrock'
 
-const reranker = bedrock.rerankingModel('cohere-rerank-v3');
+const reranker = bedrock.rerankingModel('cohere-rerank-v3')
 
 const results = await rerank({
   model: reranker,
@@ -750,7 +756,7 @@ const results = await rerank({
     'Deep learning uses...',
     'AI systems can...',
   ],
-});
+})
 ```
 
 **Sources:** [packages/amazon-bedrock/CHANGELOG.md:454](), [packages/amazon-bedrock/CHANGELOG.md:462]()
@@ -768,7 +774,7 @@ const result = await generateObject({
       parameters: z.object({ city: z.string() }),
       execute: async ({ city }) => {
         // Tool execution
-        return { temperature: 72 };
+        return { temperature: 72 }
       },
     },
   },
@@ -777,10 +783,11 @@ const result = await generateObject({
     temperature: z.number(),
   }),
   prompt: 'What is the weather in San Francisco?',
-});
+})
 ```
 
 The provider automatically:
+
 - Uses `tool_choice: { type: 'required' }` when structured output is requested
 - Converts JSON tool responses to text content
 - Maps finish reasons from `tool_use` to `stop` for structured outputs
@@ -790,7 +797,10 @@ The provider automatically:
 ### Provider Options
 
 ```typescript
-import { bedrock, type BedrockLanguageModelOptions } from '@ai-sdk/amazon-bedrock';
+import {
+  bedrock,
+  type BedrockLanguageModelOptions,
+} from '@ai-sdk/amazon-bedrock'
 
 await generateText({
   model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
@@ -799,12 +809,10 @@ await generateText({
       additionalModelRequestFields: {
         // Model-specific parameters
       },
-      additionalModelResponseFieldPaths: [
-        '/stop_sequence',
-      ],
+      additionalModelResponseFieldPaths: ['/stop_sequence'],
     } satisfies BedrockLanguageModelOptions,
   },
-});
+})
 ```
 
 **Sources:** [packages/amazon-bedrock/CHANGELOG.md:425-431]()
@@ -817,13 +825,13 @@ await generateText({
 
 Google Vertex AI (`@ai-sdk/google-vertex`) composes both Google Gemini and Anthropic Claude models through a unified interface, leveraging the base implementations from `@ai-sdk/google` and `@ai-sdk/anthropic`.
 
-| Dependency | Purpose |
-|------------|---------|
-| `@ai-sdk/google` | Base Google Gemini provider implementation |
-| `@ai-sdk/anthropic` | Base Anthropic Claude provider implementation |
-| `@ai-sdk/provider` | V3 specification interfaces |
-| `@ai-sdk/provider-utils` | Shared utilities |
-| `google-auth-library` | Google Cloud authentication |
+| Dependency               | Purpose                                       |
+| ------------------------ | --------------------------------------------- |
+| `@ai-sdk/google`         | Base Google Gemini provider implementation    |
+| `@ai-sdk/anthropic`      | Base Anthropic Claude provider implementation |
+| `@ai-sdk/provider`       | V3 specification interfaces                   |
+| `@ai-sdk/provider-utils` | Shared utilities                              |
+| `google-auth-library`    | Google Cloud authentication                   |
 
 **Vertex AI Model Access Paths**
 
@@ -832,28 +840,28 @@ graph TB
     subgraph "Application"
         APP["Application Code"]
     end
-    
+
     subgraph "Vertex Provider Exports"
         VERTEX_FACTORY["vertex() factory<br/>Google Gemini models"]
         VERTEX_ANT_FACTORY["vertexAnthropic() factory<br/>Anthropic Claude models"]
     end
-    
+
     subgraph "Base Implementations"
         GOOGLE_BASE["GoogleGenerativeAILanguageModel<br/>@ai-sdk/google"]
         ANT_BASE["AnthropicMessagesLanguageModel<br/>@ai-sdk/anthropic"]
     end
-    
+
     subgraph "Google Vertex AI APIs"
         GEMINI_API["Vertex AI Gemini API<br/>generativelanguage.googleapis.com"]
         CLAUDE_API["Vertex AI Anthropic API<br/>via Anthropic Messages format"]
     end
-    
+
     APP --> VERTEX_FACTORY
     APP --> VERTEX_ANT_FACTORY
-    
+
     VERTEX_FACTORY --> GOOGLE_BASE
     VERTEX_ANT_FACTORY --> ANT_BASE
-    
+
     GOOGLE_BASE --> GEMINI_API
     ANT_BASE --> CLAUDE_API
 ```
@@ -863,17 +871,18 @@ graph TB
 ### Google Gemini Models via Vertex
 
 ```typescript
-import { vertex } from '@ai-sdk/google-vertex';
+import { vertex } from '@ai-sdk/google-vertex'
 
-const model = vertex('gemini-2.0-flash-exp');
+const model = vertex('gemini-2.0-flash-exp')
 
 const result = await generateText({
   model,
   prompt: 'Explain quantum computing',
-});
+})
 ```
 
 Vertex Gemini models inherit all features from the base Google provider including:
+
 - Google Search and File Search provider tools
 - Enterprise web search
 - Grounding with Google Maps
@@ -885,17 +894,18 @@ Vertex Gemini models inherit all features from the base Google provider includin
 ### Anthropic Claude Models via Vertex
 
 ```typescript
-import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic'
 
-const model = vertexAnthropic('claude-3-5-sonnet-v2@20241022');
+const model = vertexAnthropic('claude-3-5-sonnet-v2@20241022')
 
 const result = await generateText({
   model,
   prompt: 'Write a story',
-});
+})
 ```
 
 Vertex Anthropic models inherit all features from the base Anthropic provider including:
+
 - Thinking mode and reasoning
 - Prompt caching
 - Tool calling with structured outputs
@@ -910,16 +920,17 @@ The Vertex Anthropic implementation automatically sends the required beta header
 Vertex AI uses Google Cloud authentication:
 
 ```typescript
-import { vertex } from '@ai-sdk/google-vertex';
+import { vertex } from '@ai-sdk/google-vertex'
 
 // Uses Application Default Credentials (ADC)
 const model = vertex('gemini-2.0-flash-exp', {
   project: 'my-project-id',
   location: 'us-central1',
-});
+})
 ```
 
 Authentication sources (in order of precedence):
+
 1. `GOOGLE_APPLICATION_CREDENTIALS` environment variable pointing to a service account key file
 2. Google Cloud SDK credentials (`gcloud auth application-default login`)
 3. Compute Engine/Cloud Run service account (when running on Google Cloud)
@@ -939,7 +950,7 @@ const result = await generateText({
       useExpressMode: true,
     },
   },
-});
+})
 ```
 
 Express mode sends API keys as headers instead of URL arguments for reduced latency.
@@ -951,9 +962,9 @@ Express mode sends API keys as headers instead of URL arguments for reduced late
 Vertex AI provides video generation capabilities through Gemini models:
 
 ```typescript
-import { vertex } from '@ai-sdk/google-vertex';
+import { vertex } from '@ai-sdk/google-vertex'
 
-const videoModel = vertex.videoGenerationModel('imagen-3.0-generate-002');
+const videoModel = vertex.videoGenerationModel('imagen-3.0-generate-002')
 
 const { video } = await experimental_generateVideo({
   model: videoModel,
@@ -964,7 +975,7 @@ const { video } = await experimental_generateVideo({
       negativePrompt: 'blurry, low quality',
     },
   },
-});
+})
 ```
 
 **Sources:** [packages/google-vertex/CHANGELOG.md:65-66](), [packages/google-vertex/CHANGELOG.md:7-8]()
@@ -979,17 +990,22 @@ All providers in this document implement the `LanguageModelV3` interface with re
 
 ```typescript
 interface LanguageModelV3 {
-  readonly specificationVersion: 'v3';
-  readonly modelId: string;
-  readonly provider: string;
-  readonly supportedUrls: Record<string, RegExp[]>;
-  
-  doGenerate(options: LanguageModelV3CallOptions): Promise<LanguageModelV3GenerateResult>;
-  doStream(options: LanguageModelV3CallOptions): Promise<LanguageModelV3StreamResult>;
+  readonly specificationVersion: 'v3'
+  readonly modelId: string
+  readonly provider: string
+  readonly supportedUrls: Record<string, RegExp[]>
+
+  doGenerate(
+    options: LanguageModelV3CallOptions
+  ): Promise<LanguageModelV3GenerateResult>
+  doStream(
+    options: LanguageModelV3CallOptions
+  ): Promise<LanguageModelV3StreamResult>
 }
 ```
 
 Each provider sets its `provider` field to a unique identifier:
+
 - Mistral: `"mistral"`
 - Amazon Bedrock: `"bedrock"` (Converse) or `"bedrock-anthropic"` (InvokeModel)
 - Cohere: `"cohere"`
@@ -1012,7 +1028,7 @@ graph TD
     POST["postJsonToApi()"]
     HANDLE["Handle Response"]
     RESULT["LanguageModelV3Result"]
-    
+
     OPTIONS --> GET_ARGS
     GET_ARGS --> PARSE_OPTS
     GET_ARGS --> CONVERT
@@ -1033,15 +1049,16 @@ Composite providers (Bedrock, Vertex) delegate to their base implementations aft
 
 All providers leverage common utilities from `@ai-sdk/provider-utils`:
 
-| Utility | Purpose | Usage |
-|---------|---------|-------|
-| `postJsonToApi()` | HTTP POST with error handling | All API calls |
-| `createJsonResponseHandler()` | Parse JSON responses | Non-streaming requests |
-| `createEventSourceResponseHandler()` | Parse SSE streams | Streaming requests (Mistral, Cohere) |
-| `combineHeaders()` | Merge custom and default headers | Request configuration |
-| `parseProviderOptions()` | Validate provider-specific options | Options processing |
+| Utility                              | Purpose                            | Usage                                |
+| ------------------------------------ | ---------------------------------- | ------------------------------------ |
+| `postJsonToApi()`                    | HTTP POST with error handling      | All API calls                        |
+| `createJsonResponseHandler()`        | Parse JSON responses               | Non-streaming requests               |
+| `createEventSourceResponseHandler()` | Parse SSE streams                  | Streaming requests (Mistral, Cohere) |
+| `combineHeaders()`                   | Merge custom and default headers   | Request configuration                |
+| `parseProviderOptions()`             | Validate provider-specific options | Options processing                   |
 
 Amazon Bedrock additionally uses AWS-specific utilities:
+
 - `@smithy/eventstream-codec`: Decode AWS event streams
 - `aws4fetch`: Sign requests with AWS Signature Version 4
 
@@ -1051,12 +1068,12 @@ Amazon Bedrock additionally uses AWS-specific utilities:
 
 All providers process multiple content types in their responses:
 
-| Content Type | SDK V3 Type | Mistral | Bedrock | Cohere | Vertex |
-|--------------|-------------|---------|---------|--------|--------|
-| Text | `{ type: 'text', text }` | ✓ | ✓ | ✓ | ✓ (delegated) |
-| Reasoning | `{ type: 'reasoning', text }` | ✓ (from `thinking`) | ✓ (varies by model) | ✓ (from `thinking`) | ✓ (delegated) |
-| Tool Call | `{ type: 'tool-call', toolCallId, toolName, input }` | ✓ | ✓ | ✓ | ✓ (delegated) |
-| File | `{ type: 'file', data, mimeType }` | ✗ | ✓ (via InvokeModel) | ✗ | ✓ (Gemini only) |
+| Content Type | SDK V3 Type                                          | Mistral             | Bedrock             | Cohere              | Vertex          |
+| ------------ | ---------------------------------------------------- | ------------------- | ------------------- | ------------------- | --------------- |
+| Text         | `{ type: 'text', text }`                             | ✓                   | ✓                   | ✓                   | ✓ (delegated)   |
+| Reasoning    | `{ type: 'reasoning', text }`                        | ✓ (from `thinking`) | ✓ (varies by model) | ✓ (from `thinking`) | ✓ (delegated)   |
+| Tool Call    | `{ type: 'tool-call', toolCallId, toolName, input }` | ✓                   | ✓                   | ✓                   | ✓ (delegated)   |
+| File         | `{ type: 'file', data, mimeType }`                   | ✗                   | ✓ (via InvokeModel) | ✗                   | ✓ (Gemini only) |
 
 **Sources:** [packages/mistral/src/mistral-chat-language-model.ts:197-238](), [packages/cohere/src/cohere-chat-language-model.ts:157-177](), [packages/amazon-bedrock/CHANGELOG.md:1023-1042]()
 
@@ -1066,12 +1083,20 @@ Each provider maps API-specific finish reasons to the unified V3 format:
 
 ```typescript
 type LanguageModelV3FinishReason = {
-  unified: 'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown';
-  raw: string | undefined;
-};
+  unified:
+    | 'stop'
+    | 'length'
+    | 'content-filter'
+    | 'tool-calls'
+    | 'error'
+    | 'other'
+    | 'unknown'
+  raw: string | undefined
+}
 ```
 
 Provider implementations use mapping functions to convert provider-specific finish reasons:
+
 - Mistral: `mapMistralFinishReason()` (handles `stop`, `length`, `tool_calls`, `model_length`)
 - Cohere: `mapCohereFinishReason()` (handles `COMPLETE`, `MAX_TOKENS`, `ERROR`, `TOOL_CALL`)
 - Bedrock: `mapBedrockFinishReason()` (handles Converse API reasons including `stop_sequence`)
@@ -1086,10 +1111,10 @@ All providers convert provider-specific usage formats to the V3 standard:
 
 ```typescript
 type LanguageModelV3Usage = {
-  promptTokens: number;
-  completionTokens: number;
-  totalTokens: number;
-};
+  promptTokens: number
+  completionTokens: number
+  totalTokens: number
+}
 ```
 
 Conversion functions (`convertMistralUsage()`, `convertCohereUsage()`) handle mapping from provider APIs like Mistral's `{ input_tokens, output_tokens }` or Cohere's `{ tokens: { input_tokens, output_tokens } }` to the unified format.

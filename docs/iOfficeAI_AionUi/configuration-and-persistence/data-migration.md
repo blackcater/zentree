@@ -11,8 +11,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page documents AionUi's data migration systems, which handle two critical types of migration:
@@ -30,12 +28,12 @@ Data migration in AionUi is designed to be **non-disruptive** and **reversible**
 
 ### Migration Timeline
 
-| Migration Phase | Trigger Point | Impact |
-|----------------|---------------|---------|
-| **Legacy Path Migration** | Application startup (one-time) | Moves all data from temp to config directory |
-| **CLI-Safe Symlinks** | Every startup (macOS only) | Creates/verifies `~/.aionui` and `~/.aionui-config` symlinks |
-| **Database Migration** | On-demand (lazy) | Migrates conversations/messages from files to SQLite when accessed |
-| **Schema Migrations** | Configuration load | Updates assistant presets, adds default skills, fixes enabled flags |
+| Migration Phase           | Trigger Point                  | Impact                                                              |
+| ------------------------- | ------------------------------ | ------------------------------------------------------------------- |
+| **Legacy Path Migration** | Application startup (one-time) | Moves all data from temp to config directory                        |
+| **CLI-Safe Symlinks**     | Every startup (macOS only)     | Creates/verifies `~/.aionui` and `~/.aionui-config` symlinks        |
+| **Database Migration**    | On-demand (lazy)               | Migrates conversations/messages from files to SQLite when accessed  |
+| **Schema Migrations**     | Configuration load             | Updates assistant presets, adds default skills, fixes enabled flags |
 
 **Sources**: [src/process/initStorage.ts:43-88](), [src/process/initStorage.ts:580-700](), [src/process/utils.ts:27-92]()
 
@@ -57,10 +55,10 @@ graph LR
     OldTemp["Old: app.getPath('temp')/aionui<br/>(Temporary, platform-specific)"]
     NewConfig["New: app.getPath('userData')/config<br/>(Persistent, versioned)"]
     Symlink["macOS Symlink: ~/.aionui-config<br/>(CLI-safe, no spaces)"]
-    
+
     OldTemp -->|"migrateLegacyData()"| NewConfig
     NewConfig -->|"ensureCliSafeSymlink()"| Symlink
-    
+
     style OldTemp fill:#fff4e1
     style NewConfig fill:#e8f5e9
     style Symlink fill:#e1f5ff
@@ -77,23 +75,23 @@ flowchart TD
     Start[Application Startup] --> CheckOld{Old temp<br/>directory exists?}
     CheckOld -->|No| Skip[Skip migration]
     CheckOld -->|Yes| CheckNew{New config<br/>directory empty?}
-    
+
     CheckNew -->|No| Skip
     CheckNew -->|Yes| CreateNew[Create new directory]
-    
+
     CreateNew --> Copy[Copy all files<br/>copyDirectoryRecursively]
     Copy --> Verify{Verify files<br/>verifyDirectoryFiles}
-    
+
     Verify -->|Failed| Warn[Warn user, keep old]
     Verify -->|Success| PathCheck{Same path?}
-    
+
     PathCheck -->|Yes| Complete[Migration complete]
     PathCheck -->|No| Cleanup[Delete old directory]
-    
+
     Cleanup --> Complete
     Warn --> Complete
     Skip --> Complete
-    
+
     Complete --> CreateSymlinks[Create CLI-safe symlinks<br/>macOS only]
     CreateSymlinks --> InitStorage[Continue initialization]
 ```
@@ -146,11 +144,13 @@ The migration is implemented in three key functions:
 ### Problem: Spaces in Default Paths
 
 On macOS, the default config path is:
+
 ```
 ~/Library/Application Support/Electron/config
 ```
 
 This path contains **spaces**, which breaks CLI tools that cannot properly handle quoted paths. The Qwen CLI tool, for example, fails with:
+
 ```
 Error: ENOENT: no such file or directory '/Users/username/Library/Application'
 ```
@@ -165,15 +165,15 @@ graph TB
         ConfigDir["~/Library/Application Support/<br/>Electron/config"]
         DataDir["~/Library/Application Support/<br/>Electron/aionui"]
     end
-    
+
     subgraph "Symlinks (no spaces)"
         ConfigLink["~/.aionui-config<br/>(symlink)"]
         DataLink["~/.aionui<br/>(symlink)"]
     end
-    
+
     ConfigLink -.->|"readlink → target"| ConfigDir
     DataLink -.->|"readlink → target"| DataDir
-    
+
     CLI[CLI Tools<br/>Qwen, Claude, etc.] -->|"Uses symlink path"| ConfigLink
     CLI -->|"Uses symlink path"| DataLink
 ```
@@ -200,6 +200,7 @@ The `ensureCliSafeSymlink()` function handles several edge cases:
 ```
 
 **Error Handling**:
+
 - **Broken Symlink (#841)**: If target directory deleted, recreate it ([src/process/utils.ts:44-45]())
 - **File Blocking Path (#841)**: Remove regular file at symlink path ([src/process/utils.ts:56]())
 - **Creation Failure**: Fall back to original path ([src/process/utils.ts:69-71]())
@@ -243,16 +244,16 @@ graph TB
         ChatFile["aionui-chat.txt<br/>(conversation metadata)"]
         MessageFiles["aionui-chat-history/<br/>{conversation_id}.txt<br/>(per-conversation messages)"]
     end
-    
+
     subgraph "New Storage"
         SQLite["SQLite Database<br/>conversations + messages tables"]
     end
-    
+
     subgraph "Migration Layer"
         LazyMigrate["migrateConversationToDatabase()<br/>On-demand migration"]
         Check{Conversation<br/>in database?}
     end
-    
+
     Frontend[Frontend Request] --> Check
     Check -->|Yes| SQLite
     Check -->|No| ChatFile
@@ -268,11 +269,11 @@ graph TB
 
 Migration occurs automatically when conversations are accessed:
 
-| Operation | File | Lines | Migration Behavior |
-|-----------|------|-------|-------------------|
-| **Get Single Conversation** | conversationBridge.ts | [325-358]() | Try database first, fallback to file + migrate in background |
-| **Get Associated Conversations** | conversationBridge.ts | [100-144]() | Load from database, merge file-only conversations, migrate all |
-| **Get User Conversations** | databaseBridge.ts | [27-66]() | Database as source of truth, backfill from file, migrate missing |
+| Operation                        | File                  | Lines       | Migration Behavior                                               |
+| -------------------------------- | --------------------- | ----------- | ---------------------------------------------------------------- |
+| **Get Single Conversation**      | conversationBridge.ts | [325-358]() | Try database first, fallback to file + migrate in background     |
+| **Get Associated Conversations** | conversationBridge.ts | [100-144]() | Load from database, merge file-only conversations, migrate all   |
+| **Get User Conversations**       | databaseBridge.ts     | [27-66]()   | Database as source of truth, backfill from file, migrate missing |
 
 **Sources**: [src/process/bridge/conversationBridge.ts:325-358](), [src/process/bridge/conversationBridge.ts:100-144](), [src/process/bridge/databaseBridge.ts:27-66]()
 
@@ -285,15 +286,15 @@ flowchart TD
     Start[Conversation Accessed] --> CheckDB{In database?}
     CheckDB -->|Yes| UpdateTime[Update modifyTime only]
     CheckDB -->|No| CreateConv[Create conversation in DB]
-    
+
     CreateConv --> CheckResult{Creation<br/>successful?}
     CheckResult -->|No| Error[Log error, return]
     CheckResult -->|Yes| LoadMessages[Load messages from file]
-    
+
     LoadMessages --> HasMessages{Messages<br/>exist?}
     HasMessages -->|No| Complete[Migration complete]
     HasMessages -->|Yes| InsertLoop[Batch insert messages]
-    
+
     InsertLoop --> Complete
     UpdateTime --> Complete
     Error --> Complete
@@ -325,11 +326,11 @@ graph TB
         FileSecond -->|Not found| NotFound[Return empty]
         Migrate --> ReturnFile[Return from file + migrate in background]
     end
-    
+
     subgraph "Write Operations"
         Write[Write Request] --> WriteDB[Write to database only]
     end
-    
+
     style DBFirst fill:#e1f5ff
     style Migrate fill:#fff4e1
     style WriteDB fill:#e8f5e9
@@ -354,9 +355,9 @@ The system includes automatic schema migrations for assistant configurations to 
 
 **Migration Flags** ([src/process/initStorage.ts:623-695]()):
 
-| Flag Key | Purpose | When Applied |
-|----------|---------|--------------|
-| `migration.assistantEnabledFixed` | Fix all assistants defaulting to enabled | First run after upgrade |
+| Flag Key                                 | Purpose                                          | When Applied                        |
+| ---------------------------------------- | ------------------------------------------------ | ----------------------------------- |
+| `migration.assistantEnabledFixed`        | Fix all assistants defaulting to enabled         | First run after upgrade             |
 | `migration.builtinDefaultSkillsAdded_v2` | Add default enabled skills to builtin assistants | First run after skills system added |
 
 ### Migration Pattern: Conditional Updates
@@ -366,24 +367,24 @@ flowchart TD
     Start[Load Assistant Config] --> CheckFlag{Migration flag<br/>exists?}
     CheckFlag -->|Yes| Skip[Skip migration]
     CheckFlag -->|No| CheckAgents{Existing agents<br/>present?}
-    
+
     CheckAgents -->|No| Skip
     CheckAgents -->|Yes| UpdateLoop[Iterate over builtin assistants]
-    
+
     UpdateLoop --> FindAgent{Agent exists<br/>in config?}
     FindAgent -->|No| AddNew[Add new builtin assistant]
     FindAgent -->|Yes| CheckUpdates{Fields need<br/>update?}
-    
+
     CheckUpdates -->|No| Continue[Continue to next]
     CheckUpdates -->|Yes| MergeUpdate[Merge updates, preserve user settings]
-    
+
     MergeUpdate --> Continue
     AddNew --> Continue
     Continue --> MoreAgents{More agents?}
-    
+
     MoreAgents -->|Yes| UpdateLoop
     MoreAgents -->|No| SetFlag[Set migration flag]
-    
+
     SetFlag --> Save[Save updated config]
     Skip --> Complete[Complete]
     Save --> Complete
@@ -396,10 +397,12 @@ flowchart TD
 The assistant migration preserves **user settings** while updating **system metadata**:
 
 **Fields Updated** ([src/process/initStorage.ts:648]()):
+
 - `name`, `description`, `avatar` (system metadata)
 - `isPreset`, `isBuiltin` (system flags)
 
 **Fields Preserved** ([src/process/initStorage.ts:654-657](), [src/process/initStorage.ts:669-674]()):
+
 - `enabled` (user preference)
 - `presetAgentType` (user selection)
 - `enabledSkills` (user selection, migrated only if empty)
@@ -461,14 +464,14 @@ graph TB
     MigrateOp[Migration Operation] --> TryCatch{Try}
     TryCatch -->|Success| Verify{Verification}
     TryCatch -->|Error| LogError[Log error, continue]
-    
+
     Verify -->|Pass| Cleanup[Clean up old data]
     Verify -->|Fail| Warn[Warn user, keep old data]
-    
+
     Cleanup --> Success[Migration success]
     Warn --> Partial[Partial success]
     LogError --> Fallback[Use fallback path]
-    
+
     style Success fill:#e8f5e9
     style Partial fill:#fff4e1
     style Fallback fill:#ffe1e1
@@ -499,10 +502,10 @@ sequenceDiagram
     participant Symlink as ensureCliSafeSymlink()
     participant Config as Configuration System
     participant DB as Database
-    
+
     App->>Init: Start initialization
     Init->>Migrate: Execute legacy migration
-    
+
     alt Old directory exists & new empty
         Migrate->>Migrate: Copy all files
         Migrate->>Migrate: Verify integrity
@@ -510,28 +513,28 @@ sequenceDiagram
             Migrate->>Migrate: Delete old directory
         end
     end
-    
+
     Migrate-->>Init: Migration complete
-    
+
     Init->>Symlink: Create CLI-safe symlinks (macOS)
     Symlink->>Symlink: Check/create ~/.aionui
     Symlink->>Symlink: Check/create ~/.aionui-config
     Symlink-->>Init: Symlinks ready
-    
+
     Init->>Config: Initialize storage interceptors
     Config->>Config: Load configuration
     Config->>Config: Check migration flags
-    
+
     alt Schema migration needed
         Config->>Config: Update assistant presets
         Config->>Config: Set migration flag
     end
-    
+
     Config-->>Init: Configuration loaded
-    
+
     Init->>DB: Initialize database
     Note over DB: Lazy migration happens<br/>on first access
-    
+
     DB-->>Init: Database ready
     Init-->>App: Initialization complete
 ```
@@ -542,12 +545,12 @@ sequenceDiagram
 
 Migration impact on startup time:
 
-| Migration Type | When | Blocking | Typical Duration |
-|----------------|------|----------|------------------|
-| **Legacy Path** | First startup only | Yes | 100-500ms (depends on data size) |
-| **CLI Symlinks** | Every startup | Yes | <10ms |
-| **Schema Updates** | First startup after upgrade | Yes | <50ms |
-| **Database Migration** | On-demand | No (background) | N/A (lazy) |
+| Migration Type         | When                        | Blocking        | Typical Duration                 |
+| ---------------------- | --------------------------- | --------------- | -------------------------------- |
+| **Legacy Path**        | First startup only          | Yes             | 100-500ms (depends on data size) |
+| **CLI Symlinks**       | Every startup               | Yes             | <10ms                            |
+| **Schema Updates**     | First startup after upgrade | Yes             | <50ms                            |
+| **Database Migration** | On-demand                   | No (background) | N/A (lazy)                       |
 
 The lazy database migration design ensures that **startup time is not affected** by the size of existing data, as conversations are migrated only when accessed.
 
@@ -566,6 +569,7 @@ AionUi's data migration system handles three critical transitions:
 The system is designed for **safety** (verification, fallbacks), **performance** (lazy migration), and **transparency** (no user intervention required).
 
 **Key Files**:
+
 - [src/process/initStorage.ts]() - Main migration entry point
 - [src/process/utils.ts:27-306]() - Path handling and verification utilities
 - [src/process/bridge/migrationUtils.ts]() - Database migration logic

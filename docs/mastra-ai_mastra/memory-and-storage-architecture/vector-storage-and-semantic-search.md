@@ -29,11 +29,10 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the vector storage abstraction layer and semantic search capabilities in Mastra's memory system. It covers the `MastraVector` interface, vector database adapters (Pinecone, Qdrant, Chroma, Lance, Weaviate, Turbopuffer), embedding model integration, index management, and semantic recall functionality.
 
 For information about:
+
 - Overall memory architecture, see [Memory System Architecture](#7.1)
 - RAG document processing and chunking, see [RAG System and Document Processing](#7.7)
 - Message storage and thread management, see [Thread Management and Message Storage](#7.2)
@@ -47,7 +46,7 @@ graph TB
     subgraph "Core Abstraction"
         MastraVector["MastraVector Interface"]
     end
-    
+
     subgraph "Vector Adapters"
         Pinecone["@mastra/pinecone<br/>PineconeVector"]
         Qdrant["@mastra/qdrant<br/>QdrantVector"]
@@ -58,12 +57,12 @@ graph TB
         PgVector["@mastra/pg<br/>PgVector"]
         LibSQLVector["@mastra/libsql<br/>LibSQLVector"]
     end
-    
+
     subgraph "Memory Integration"
         Memory["Memory class<br/>packages/memory/src/index.ts"]
         SemanticRecall["SemanticRecall processor<br/>packages/core/src/processors/memory"]
     end
-    
+
     MastraVector -->|implements| Pinecone
     MastraVector -->|implements| Qdrant
     MastraVector -->|implements| Chroma
@@ -72,7 +71,7 @@ graph TB
     MastraVector -->|implements| Turbopuffer
     MastraVector -->|implements| PgVector
     MastraVector -->|implements| LibSQLVector
-    
+
     Memory -->|uses| MastraVector
     SemanticRecall -->|uses| MastraVector
 ```
@@ -83,13 +82,13 @@ Sources: [packages/core/src/memory/memory.ts:118-121](), [stores/pg/package.json
 
 The `MastraVector` interface requires implementations to provide:
 
-| Method | Purpose |
-|--------|---------|
-| `createIndex()` | Creates a vector index with specified dimensions and configuration |
-| `upsert()` | Inserts or updates vectors with associated metadata |
-| `query()` | Performs similarity search returning top-k nearest neighbors |
-| `deleteByFilter()` | Removes vectors matching metadata filters |
-| `indexSeparator` | Character used to separate index name components (default: `_`) |
+| Method             | Purpose                                                            |
+| ------------------ | ------------------------------------------------------------------ |
+| `createIndex()`    | Creates a vector index with specified dimensions and configuration |
+| `upsert()`         | Inserts or updates vectors with associated metadata                |
+| `query()`          | Performs similarity search returning top-k nearest neighbors       |
+| `deleteByFilter()` | Removes vectors matching metadata filters                          |
+| `indexSeparator`   | Character used to separate index name components (default: `_`)    |
 
 ## Embedding Integration
 
@@ -104,17 +103,17 @@ graph LR
         EmbedderInstance["MastraEmbeddingModel Instance<br/>fastembed.small"]
         ModelRouterEmbedding["ModelRouterEmbeddingModel"]
     end
-    
+
     subgraph "Memory Setup"
         MemoryConstructor["Memory constructor"]
         SetEmbedder["setEmbedder() method"]
     end
-    
+
     EmbedderString -->|converted to| ModelRouterEmbedding
     EmbedderInstance -->|used directly| MemoryConstructor
     EmbedderString -->|via constructor| MemoryConstructor
     EmbedderInstance -->|via method| SetEmbedder
-    
+
     MemoryConstructor -->|stores as| EmbedderField["memory.embedder"]
     SetEmbedder -->|updates| EmbedderField
 ```
@@ -133,7 +132,7 @@ Message content is chunked and embedded with aggressive caching to avoid redunda
 ```mermaid
 graph TB
     MessageContent["Message Content<br/>string or parts array"]
-    
+
     subgraph "Embedding Pipeline"
         XXHashKey["XXHash Key<br/>packages/memory/src/index.ts:601"]
         CacheCheck["Embedding Cache<br/>Map<number, cached result>"]
@@ -141,9 +140,9 @@ graph TB
         EmbedMany["embedMany() / embedManyV5 / embedManyV6<br/>packages/memory/src/index.ts:616-638"]
         FastEmbedWait["FastEmbed Download Wait<br/>packages/memory/src/index.ts:610-614"]
     end
-    
+
     Result["Result<br/>{embeddings, chunks, usage, dimension}"]
-    
+
     MessageContent -->|hash| XXHashKey
     XXHashKey -->|lookup| CacheCheck
     CacheCheck -->|miss| ChunkText
@@ -171,24 +170,24 @@ graph TB
         GetDimension["getEmbeddingDimension()<br/>packages/core/src/memory/memory.ts:275-295"]
         ProbeEmbed["Probe embedder<br/>doEmbed({values: ['a']})"]
         CacheDimension["Cache dimension promise"]
-        
+
         GetIndexName["getEmbeddingIndexName(dimension)<br/>packages/core/src/memory/memory.ts:301-307"]
         DefaultName["memory_messages<br/>(1536 dimensions)"]
         CustomName["memory_messages_768<br/>(non-default dimensions)"]
-        
+
         CreateIndex["createEmbeddingIndex(dimension, config)<br/>packages/core/src/memory/memory.ts:309-340"]
         IndexConfig["VectorIndexConfig<br/>type, metric, ivf, hnsw"]
     end
-    
+
     GetDimension -->|first call| ProbeEmbed
     ProbeEmbed -->|cache| CacheDimension
     CacheDimension -->|subsequent calls| GetDimension
-    
+
     GetDimension -->|1536| DefaultName
     GetDimension -->|other| CustomName
     DefaultName --> CreateIndex
     CustomName --> CreateIndex
-    
+
     IndexConfig -->|PG-specific| CreateIndex
 ```
 
@@ -202,22 +201,22 @@ PostgreSQL with pgvector supports advanced index configuration, while other vect
 
 ```typescript
 interface VectorIndexConfig {
-  type?: 'ivfflat' | 'hnsw' | 'flat';
-  metric?: 'cosine' | 'euclidean' | 'dotproduct';
-  ivf?: { lists?: number };
-  hnsw?: { m?: number; efConstruction?: number };
+  type?: 'ivfflat' | 'hnsw' | 'flat'
+  metric?: 'cosine' | 'euclidean' | 'dotproduct'
+  ivf?: { lists?: number }
+  hnsw?: { m?: number; efConstruction?: number }
 }
 ```
 
 Sources: [packages/core/src/memory/types.ts:206-287]()
 
-| Option | Default | Purpose |
-|--------|---------|---------|
-| `type` | `'ivfflat'` | Index algorithm: IVFFlat (balanced), HNSW (fast), or Flat (exact) |
-| `metric` | `'cosine'` | Distance function: cosine (text), euclidean (geometric), dotproduct (OpenAI) |
-| `ivf.lists` | `100` | Number of inverted lists (higher = better recall, slower build) |
-| `hnsw.m` | `16` | Max bidirectional links per node (higher = better recall, larger index) |
-| `hnsw.efConstruction` | `64` | Dynamic candidate list size (higher = better quality, slower build) |
+| Option                | Default     | Purpose                                                                      |
+| --------------------- | ----------- | ---------------------------------------------------------------------------- |
+| `type`                | `'ivfflat'` | Index algorithm: IVFFlat (balanced), HNSW (fast), or Flat (exact)            |
+| `metric`              | `'cosine'`  | Distance function: cosine (text), euclidean (geometric), dotproduct (OpenAI) |
+| `ivf.lists`           | `100`       | Number of inverted lists (higher = better recall, slower build)              |
+| `hnsw.m`              | `16`        | Max bidirectional links per node (higher = better recall, larger index)      |
+| `hnsw.efConstruction` | `64`        | Dynamic candidate list size (higher = better quality, slower build)          |
 
 These settings are passed to `vector.createIndex()` at lines 323-338, but only PostgreSQL adapters use them. Other vector stores (Pinecone, Qdrant, etc.) ignore these parameters.
 
@@ -234,17 +233,17 @@ graph TB
         ExtractText["Extract text from content<br/>lines 692-710"]
         EmbedContent["embedMessageContent()<br/>lines 713"]
     end
-    
+
     subgraph "Batch Operations"
         CollectEmbeddings["Collect embeddings<br/>parallel, CPU-bound<br/>lines 691-728"]
         FlattenVectors["Flatten to single arrays<br/>lines 739-749"]
         BatchUpsert["vector.upsert()<br/>single call<br/>lines 751-755"]
     end
-    
+
     subgraph "Metadata Storage"
         MessageMetadata["Metadata per chunk<br/>{message_id, thread_id, resource_id}"]
     end
-    
+
     SaveMessages -->|for each message| ExtractText
     ExtractText -->|text content| EmbedContent
     EmbedContent -->|embeddings + chunks| CollectEmbeddings
@@ -259,6 +258,7 @@ Sources: [packages/memory/src/index.ts:652-760]()
 **Key optimization**: All embeddings are computed concurrently (lines 691-728) since embedding is CPU-bound and doesn't consume database connections. Results are then batched into a single `upsert()` call (line 751) to avoid pool exhaustion that occurred when each message triggered a separate database write.
 
 Text extraction handles multiple content formats:
+
 - Direct string content: `message.content.content` (line 698)
 - Parts array: Concatenates all text parts (lines 701-708)
 - Empty content: Skipped (line 711)
@@ -275,24 +275,24 @@ graph TB
         RecallCall["recall({threadId, vectorSearchString, ...})<br/>packages/memory/src/index.ts:151-287"]
         CheckSemantic["if config.semanticRecall && vectorSearchString"]
     end
-    
+
     subgraph "Embedding Query"
         EmbedQuery["embedMessageContent(vectorSearchString)<br/>line 221"]
         GetIndex["createEmbeddingIndex(dimension, config)<br/>line 224"]
         VectorQuery["vector.query()<br/>lines 235-246"]
     end
-    
+
     subgraph "Filtering"
         ScopeCheck["scope === 'resource' ? resource_id : thread_id<br/>lines 206-208, 239-245"]
         TopK["topK results<br/>lines 237"]
         MessageRange["messageRange: before/after<br/>lines 266-273"]
     end
-    
+
     subgraph "Message Retrieval"
         Include["include: [{id, threadId, withPreviousMessages, withNextMessages}]<br/>lines 261-276"]
         ListMessages["memoryStore.listMessages()<br/>lines 254-277"]
     end
-    
+
     RecallCall --> CheckSemantic
     CheckSemantic -->|enabled| EmbedQuery
     EmbedQuery --> GetIndex
@@ -327,13 +327,13 @@ graph TB
         CheckConfig["if config.semanticRecall"]
         CheckDuplicates["Check if user added SemanticRecall manually"]
     end
-    
+
     subgraph "Processor Creation"
         ProbeEmbedder["await getEmbeddingDimension()<br/>line 709"]
         GetIndexName["getEmbeddingIndexName(dimension)<br/>line 710"]
         CreateProcessor["new SemanticRecall({storage, vector, embedder, indexName, ...})<br/>lines 712-721"]
     end
-    
+
     subgraph "Processor Configuration"
         TopK["topK: number"]
         MessageRange["messageRange: number | {before, after}"]
@@ -341,13 +341,13 @@ graph TB
         Threshold["threshold?: number"]
         IndexName["indexName: string (dimension-aware)"]
     end
-    
+
     GetInputProcessors --> CheckConfig
     CheckConfig -->|enabled| CheckDuplicates
     CheckDuplicates -->|not added| ProbeEmbedder
     ProbeEmbedder --> GetIndexName
     GetIndexName --> CreateProcessor
-    
+
     CreateProcessor -->|uses| TopK
     CreateProcessor -->|uses| MessageRange
     CreateProcessor -->|uses| Scope
@@ -358,6 +358,7 @@ graph TB
 Sources: [packages/core/src/memory/memory.ts:675-723]()
 
 The processor is created with:
+
 - **Storage adapter**: For loading messages (line 714)
 - **Vector instance**: For similarity search (line 715)
 - **Embedder**: For query embedding (line 716)
@@ -372,9 +373,9 @@ The dimension probe (line 709) ensures the processor uses the same index name as
 ### Basic Setup
 
 ```typescript
-import { Memory } from '@mastra/memory';
-import { PgVector } from '@mastra/pg';
-import { fastembed } from '@mastra/fastembed';
+import { Memory } from '@mastra/memory'
+import { PgVector } from '@mastra/pg'
+import { fastembed } from '@mastra/fastembed'
 
 const memory = new Memory({
   vector: new PgVector({ connectionString: 'postgres://...' }),
@@ -386,7 +387,7 @@ const memory = new Memory({
       scope: 'resource',
     },
   },
-});
+})
 ```
 
 ### PostgreSQL Index Optimization
@@ -406,21 +407,21 @@ const memory = new Memory({
       },
     },
   },
-});
+})
 ```
 
 Sources: [packages/core/src/memory/types.ts:288-373]()
 
 ### Semantic Recall Configuration Matrix
 
-| Field | Type | Default | Purpose |
-|-------|------|---------|---------|
-| `topK` | `number` | Required | Number of similar messages to retrieve |
-| `messageRange` | `number \| {before, after}` | Required | Surrounding context messages per match |
-| `scope` | `'thread' \| 'resource'` | `'resource'` | Search within thread or across all threads |
-| `threshold` | `number` (0-1) | None | Minimum similarity score filter |
-| `indexName` | `string` | Auto-generated | Custom index name override |
-| `indexConfig` | `VectorIndexConfig` | Adapter defaults | PostgreSQL index optimization |
+| Field          | Type                        | Default          | Purpose                                    |
+| -------------- | --------------------------- | ---------------- | ------------------------------------------ |
+| `topK`         | `number`                    | Required         | Number of similar messages to retrieve     |
+| `messageRange` | `number \| {before, after}` | Required         | Surrounding context messages per match     |
+| `scope`        | `'thread' \| 'resource'`    | `'resource'`     | Search within thread or across all threads |
+| `threshold`    | `number` (0-1)              | None             | Minimum similarity score filter            |
+| `indexName`    | `string`                    | Auto-generated   | Custom index name override                 |
+| `indexConfig`  | `VectorIndexConfig`         | Adapter defaults | PostgreSQL index optimization              |
 
 Sources: [packages/core/src/memory/types.ts:288-373]()
 
@@ -429,11 +430,13 @@ Sources: [packages/core/src/memory/types.ts:288-373]()
 The `scope` parameter controls the search boundary:
 
 **Resource scope** (default):
+
 - Searches across all threads owned by the same `resourceId` (user)
 - Enables cross-conversation recall
 - Filter: `{ resource_id: resourceId }` [packages/memory/src/index.ts:240-242]()
 
 **Thread scope**:
+
 - Searches only within the current thread
 - Isolated per-conversation
 - Filter: `{ thread_id: threadId }` [packages/memory/src/index.ts:243-245]()
@@ -444,16 +447,16 @@ If resource scope is enabled but no `resourceId` is provided, an error is thrown
 
 Each adapter implements the `MastraVector` interface with provider-specific optimizations:
 
-| Package | Provider | Index Separator | Notes |
-|---------|----------|-----------------|-------|
-| `@mastra/pinecone` | Pinecone | `-` | Managed cloud vector database |
-| `@mastra/qdrant` | Qdrant | `_` | Self-hosted or cloud, high performance |
-| `@mastra/chroma` | Chroma | `_` | Embedded or client-server |
-| `@mastra/lance` | LanceDB | `_` | Embedded, columnar format |
-| `@mastra/weaviate` | Weaviate | `_` | GraphQL API, semantic search |
-| `@mastra/turbopuffer` | Turbopuffer | `_` | High-speed serverless vector DB |
-| `@mastra/pg` | PostgreSQL + pgvector | `_` | SQL database with vector extension |
-| `@mastra/libsql` | LibSQL | `_` | SQLite-compatible, edge-optimized |
+| Package               | Provider              | Index Separator | Notes                                  |
+| --------------------- | --------------------- | --------------- | -------------------------------------- |
+| `@mastra/pinecone`    | Pinecone              | `-`             | Managed cloud vector database          |
+| `@mastra/qdrant`      | Qdrant                | `_`             | Self-hosted or cloud, high performance |
+| `@mastra/chroma`      | Chroma                | `_`             | Embedded or client-server              |
+| `@mastra/lance`       | LanceDB               | `_`             | Embedded, columnar format              |
+| `@mastra/weaviate`    | Weaviate              | `_`             | GraphQL API, semantic search           |
+| `@mastra/turbopuffer` | Turbopuffer           | `_`             | High-speed serverless vector DB        |
+| `@mastra/pg`          | PostgreSQL + pgvector | `_`             | SQL database with vector extension     |
+| `@mastra/libsql`      | LibSQL                | `_`             | SQLite-compatible, edge-optimized      |
 
 The `indexSeparator` character is used in index name generation: `memory{separator}messages` or `memory{separator}messages{separator}{dimension}`.
 
@@ -464,6 +467,7 @@ Sources: [packages/memory/package.json:1-92](), [stores/pg/package.json:1-75]()
 ### Embedding Cache Benefits
 
 The xxhash-based cache (line 586-601) provides:
+
 - **Deduplication**: Repeated messages don't re-embed
 - **Memory efficiency**: Integer keys instead of full strings
 - **Cross-call persistence**: Cache survives multiple `saveMessages()` calls within the process lifetime
@@ -471,6 +475,7 @@ The xxhash-based cache (line 586-601) provides:
 ### Batch Upsert Strategy
 
 The single-call upsert pattern (line 751) prevents:
+
 - **Pool exhaustion**: Multiple concurrent database writes were exhausting connection pools
 - **Transaction overhead**: Batching reduces round trips
 - **Lock contention**: Single write instead of many small writes
@@ -482,6 +487,7 @@ Sources: [packages/memory/src/index.ts:730-756]()
 ### FastEmbed Download Handling
 
 FastEmbed models require special handling (lines 610-614):
+
 - **Problem**: Multiple concurrent calls fail if model not downloaded
 - **Solution**: Wait for first call to complete, then allow subsequent calls
 - **Implementation**: `this.firstEmbed` promise serializes initial downloads
@@ -498,18 +504,18 @@ graph TB
         DBSave["memoryStore.saveMessages()<br/>lines 676-678"]
         VectorEmbedding["Embed and upsert vectors<br/>lines 682-757"]
     end
-    
+
     subgraph "Recall Flow"
         RecallCall["recall()"]
         VectorQuery["Vector query for matches<br/>lines 220-250"]
         DBList["memoryStore.listMessages({include})<br/>lines 254-277"]
         MessageList["MessageList conversion<br/>lines 281-284"]
     end
-    
+
     SaveMessagesCall --> StripWorkingMemory
     StripWorkingMemory --> DBSave
     DBSave --> VectorEmbedding
-    
+
     RecallCall --> VectorQuery
     VectorQuery -->|message IDs| DBList
     DBList --> MessageList

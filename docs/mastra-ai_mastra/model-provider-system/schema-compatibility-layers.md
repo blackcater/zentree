@@ -10,7 +10,7 @@ The following files were used as context for generating this wiki page:
 - [docs/src/content/en/models/gateways/openrouter.mdx](docs/src/content/en/models/gateways/openrouter.mdx)
 - [docs/src/content/en/models/gateways/vercel.mdx](docs/src/content/en/models/gateways/vercel.mdx)
 - [docs/src/content/en/models/index.mdx](docs/src/content/en/models/index.mdx)
-- [docs/src/content/en/models/providers/_meta.ts](docs/src/content/en/models/providers/_meta.ts)
+- [docs/src/content/en/models/providers/\_meta.ts](docs/src/content/en/models/providers/_meta.ts)
 - [docs/src/content/en/models/providers/alibaba-cn.mdx](docs/src/content/en/models/providers/alibaba-cn.mdx)
 - [docs/src/content/en/models/providers/alibaba.mdx](docs/src/content/en/models/providers/alibaba.mdx)
 - [docs/src/content/en/models/providers/anthropic.mdx](docs/src/content/en/models/providers/anthropic.mdx)
@@ -49,8 +49,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 Schema compatibility layers transform Zod and JSON schemas to accommodate provider-specific limitations and requirements. These layers ensure that tool definitions and structured output schemas work correctly across all 79+ providers, even when providers have constraints like regex pattern restrictions, field length limits, or format requirements.
 
 For information about the broader model provider system, see [Model Provider System](#5). For details on dynamic model selection and fallbacks, see [Dynamic Model Selection](#5.4) and [Model Fallbacks and Error Handling](#5.5).
@@ -61,14 +59,14 @@ For information about the broader model provider system, see [Model Provider Sys
 
 Different LLM providers impose specific limitations on the JSON schemas they accept. Schema compatibility layers automatically apply transformations to ensure schemas conform to these provider-specific requirements.
 
-| Provider | Compatibility Layer | Primary Constraints |
-|----------|-------------------|-------------------|
-| OpenAI | `OpenAISchemaCompatLayer` | General schema normalization |
-| OpenAI (Reasoning) | `OpenAIReasoningSchemaCompatLayer` | No regex patterns in string schemas |
-| Google | `GoogleSchemaCompatLayer` | Provider-specific format transformations |
-| Anthropic | `AnthropicSchemaCompatLayer` | Field description length limits |
-| DeepSeek | `DeepSeekSchemaCompatLayer` | DeepSeek-specific requirements |
-| Meta | `MetaSchemaCompatLayer` | Meta-specific format requirements |
+| Provider           | Compatibility Layer                | Primary Constraints                      |
+| ------------------ | ---------------------------------- | ---------------------------------------- |
+| OpenAI             | `OpenAISchemaCompatLayer`          | General schema normalization             |
+| OpenAI (Reasoning) | `OpenAIReasoningSchemaCompatLayer` | No regex patterns in string schemas      |
+| Google             | `GoogleSchemaCompatLayer`          | Provider-specific format transformations |
+| Anthropic          | `AnthropicSchemaCompatLayer`       | Field description length limits          |
+| DeepSeek           | `DeepSeekSchemaCompatLayer`        | DeepSeek-specific requirements           |
+| Meta               | `MetaSchemaCompatLayer`            | Meta-specific format requirements        |
 
 **Sources:** [packages/core/src/tools/tool-builder/builder.ts:1-11](), [packages/core/src/llm/model/model.ts:9-18]()
 
@@ -82,16 +80,16 @@ graph TB
         ZodSchema["Zod Schema<br/>z.object({ ... })"]
         JSONSchema["JSON Schema<br/>{ type: 'object', ... }"]
     end
-    
+
     subgraph "Conversion Layer"
         zodToJson["zodToJsonSchema()<br/>@mastra/schema-compat"]
     end
-    
+
     subgraph "Compatibility Layer Selection"
         ProviderDetection["Provider Detection<br/>modelString → providerId"]
         LayerSelection["Select Compatibility Layer<br/>Based on provider"]
     end
-    
+
     subgraph "Available Layers"
         OpenAILayer["OpenAISchemaCompatLayer"]
         OpenAIReasoningLayer["OpenAIReasoningSchemaCompatLayer"]
@@ -100,42 +98,42 @@ graph TB
         DeepSeekLayer["DeepSeekSchemaCompatLayer"]
         MetaLayer["MetaSchemaCompatLayer"]
     end
-    
+
     subgraph "Application"
         ApplyCompat["applyCompatLayer()<br/>Transform schema"]
         ProviderSchema["Provider-Specific Schema<br/>Compatible with provider API"]
     end
-    
+
     subgraph "Usage Contexts"
         ToolDef["Tool Definition<br/>CoreToolBuilder"]
         StructuredOutput["Structured Output<br/>MastraLLMV1"]
     end
-    
+
     ZodSchema --> zodToJson
     zodToJson --> JSONSchema
     JSONSchema --> ProviderDetection
-    
+
     ProviderDetection --> LayerSelection
-    
+
     LayerSelection --> OpenAILayer
     LayerSelection --> OpenAIReasoningLayer
     LayerSelection --> GoogleLayer
     LayerSelection --> AnthropicLayer
     LayerSelection --> DeepSeekLayer
     LayerSelection --> MetaLayer
-    
+
     OpenAILayer --> ApplyCompat
     OpenAIReasoningLayer --> ApplyCompat
     GoogleLayer --> ApplyCompat
     AnthropicLayer --> ApplyCompat
     DeepSeekLayer --> ApplyCompat
     MetaLayer --> ApplyCompat
-    
+
     ApplyCompat --> ProviderSchema
-    
+
     ProviderSchema --> ToolDef
     ProviderSchema --> StructuredOutput
-    
+
     style LayerSelection fill:#e1f5ff,stroke:#333,stroke-width:2px
     style ApplyCompat fill:#ffe1e1,stroke:#333,stroke-width:2px
 ```
@@ -155,47 +153,47 @@ graph LR
     subgraph "Input Schema"
         Input["Tool Input Schema<br/>or Structured Output Schema"]
     end
-    
+
     subgraph "Tool Builder Layer"
         GetParams["CoreToolBuilder.getParameters()<br/>Extract schema"]
         CheckType["Check if Zod or JSON Schema"]
     end
-    
+
     subgraph "Conversion"
         ConvertZod["convertZodSchemaToAISDKSchema()<br/>Zod → JSON Schema"]
         ZodToJson["zodToJsonSchema()<br/>Fallback converter"]
     end
-    
+
     subgraph "Provider Detection"
         DetectProvider["Detect Provider<br/>from model string"]
         SelectLayer["Select Layer<br/>OpenAI/Google/Anthropic/etc"]
     end
-    
+
     subgraph "Layer Application"
         ApplyLayer["applyCompatLayer(schema, layer)<br/>Transform schema fields"]
         ValidateOutput["Validate transformed schema"]
     end
-    
+
     subgraph "Usage"
         AISDKCall["AI SDK Call<br/>generateText/streamObject"]
         ProviderAPI["Provider API<br/>/chat/completions"]
     end
-    
+
     Input --> GetParams
     GetParams --> CheckType
-    
+
     CheckType -->|"Zod Schema"| ConvertZod
     CheckType -->|"JSON Schema"| DetectProvider
     ConvertZod --> ZodToJson
     ZodToJson --> DetectProvider
-    
+
     DetectProvider --> SelectLayer
     SelectLayer --> ApplyLayer
     ApplyLayer --> ValidateOutput
-    
+
     ValidateOutput --> AISDKCall
     AISDKCall --> ProviderAPI
-    
+
     style ApplyLayer fill:#fff4e1,stroke:#333,stroke-width:2px
     style SelectLayer fill:#e1ffe1,stroke:#333,stroke-width:2px
 ```
@@ -219,17 +217,17 @@ graph TB
     subgraph "Input Schema"
         OrigSchema["Original JSON Schema<br/>May contain various patterns"]
     end
-    
+
     subgraph "OpenAISchemaCompatLayer"
         Normalize["Normalize schema structure"]
         RemoveUnsupported["Remove unsupported fields"]
         ValidateTypes["Validate type definitions"]
     end
-    
+
     subgraph "Output"
         OpenAISchema["OpenAI-Compatible Schema<br/>Conforms to OpenAI API requirements"]
     end
-    
+
     OrigSchema --> Normalize
     Normalize --> RemoveUnsupported
     RemoveUnsupported --> ValidateTypes
@@ -249,22 +247,22 @@ graph TB
     subgraph "Input"
         SchemaWithRegex["Schema with Regex<br/>{ type: 'string', pattern: '^[0-9]+$' }"]
     end
-    
+
     subgraph "OpenAIReasoningSchemaCompatLayer"
         DetectPatterns["Detect pattern fields"]
         RemovePatterns["Remove pattern constraints"]
         PreserveOther["Preserve other validations<br/>(minLength, maxLength, etc)"]
     end
-    
+
     subgraph "Output"
         NoRegexSchema["Schema without Regex<br/>{ type: 'string' }"]
     end
-    
+
     SchemaWithRegex --> DetectPatterns
     DetectPatterns --> RemovePatterns
     RemovePatterns --> PreserveOther
     PreserveOther --> NoRegexSchema
-    
+
     style RemovePatterns fill:#ffe1e1,stroke:#333,stroke-width:2px
 ```
 
@@ -289,15 +287,15 @@ graph TB
         PropertyRestructure["Property restructuring"]
         TypeMapping["Type mapping adjustments"]
     end
-    
+
     subgraph "Google API Format"
         GoogleSchema["Google-compatible schema<br/>Matches Gemini API expectations"]
     end
-    
+
     FormatConversion --> GoogleSchema
     PropertyRestructure --> GoogleSchema
     TypeMapping --> GoogleSchema
-    
+
     style GoogleSchema fill:#e1f5ff,stroke:#333,stroke-width:2px
 ```
 
@@ -314,22 +312,22 @@ graph TB
     subgraph "Input Fields"
         LongDesc["Field with long description<br/>'This is a very detailed...'<br/>(500+ characters)"]
     end
-    
+
     subgraph "AnthropicSchemaCompatLayer"
         CheckLength["Check description length"]
         ApplyLimit["Apply length limit"]
         TruncateOrRestructure["Truncate or restructure"]
     end
-    
+
     subgraph "Output"
         ShortDesc["Description within limits<br/>'This is a very detailed...'<br/>(truncated)"]
     end
-    
+
     LongDesc --> CheckLength
     CheckLength --> ApplyLimit
     ApplyLimit --> TruncateOrRestructure
     TruncateOrRestructure --> ShortDesc
-    
+
     style ApplyLimit fill:#fff4e1,stroke:#333,stroke-width:2px
 ```
 
@@ -364,25 +362,25 @@ graph TB
         GetSchema["getParameters()<br/>Extract input schema"]
         GetOutput["getOutputSchema()<br/>Extract output schema"]
     end
-    
+
     subgraph "Schema Processing"
         ProcessInput["Process input schema<br/>Apply compatibility layer"]
         ProcessOutput["Process output schema<br/>Apply compatibility layer"]
     end
-    
+
     subgraph "CoreTool Output"
         CompatTool["CoreTool<br/>With provider-compatible schemas"]
     end
-    
+
     OrigTool --> GetSchema
     OrigTool --> GetOutput
-    
+
     GetSchema --> ProcessInput
     GetOutput --> ProcessOutput
-    
+
     ProcessInput --> CompatTool
     ProcessOutput --> CompatTool
-    
+
     style ProcessInput fill:#ffe1e1,stroke:#333,stroke-width:2px
     style ProcessOutput fill:#ffe1e1,stroke:#333,stroke-width:2px
 ```
@@ -405,28 +403,28 @@ graph TB
         StreamText["__stream()<br/>streamText"]
         StreamObj["__streamObject()<br/>streamObject"]
     end
-    
+
     subgraph "Schema Handling"
         ExtractSchema["Extract schema<br/>from options"]
         DetectModel["Detect provider<br/>from model config"]
         SelectCompat["Select compatibility layer"]
         ApplyTransform["Apply transformation"]
     end
-    
+
     subgraph "AI SDK Call"
         SDKCall["AI SDK Function<br/>with compatible schema"]
     end
-    
+
     GenText --> ExtractSchema
     GenObject --> ExtractSchema
     StreamText --> ExtractSchema
     StreamObj --> ExtractSchema
-    
+
     ExtractSchema --> DetectModel
     DetectModel --> SelectCompat
     SelectCompat --> ApplyTransform
     ApplyTransform --> SDKCall
-    
+
     style SelectCompat fill:#e1ffe1,stroke:#333,stroke-width:2px
     style ApplyTransform fill:#ffe1e1,stroke:#333,stroke-width:2px
 ```
@@ -450,10 +448,10 @@ When using OpenAI's o1 or o3 reasoning models, regex patterns are automatically 
 const validateEmailTool = createTool({
   id: 'validate-email',
   inputSchema: z.object({
-    email: z.string().regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
+    email: z.string().regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/),
   }),
-  execute: async ({ email }) => ({ valid: true })
-});
+  execute: async ({ email }) => ({ valid: true }),
+})
 
 // Internal transformation for openai/o1-preview
 // OpenAIReasoningSchemaCompatLayer removes pattern field:
@@ -474,10 +472,10 @@ When using Claude models, long field descriptions are truncated:
 const schema = z.object({
   analysis: z.string().describe(
     'A comprehensive analysis covering methodology, results, implications, ' +
-    'future research directions, limitations, and recommendations spanning ' +
-    'multiple paragraphs with extensive detail...' // 500+ chars
-  )
-});
+      'future research directions, limitations, and recommendations spanning ' +
+      'multiple paragraphs with extensive detail...' // 500+ chars
+  ),
+})
 
 // Internal transformation for anthropic/claude-opus-4
 // AnthropicSchemaCompatLayer truncates descriptions to provider limits
@@ -491,13 +489,13 @@ The `AnthropicSchemaCompatLayer` at [packages/core/src/tools/tool-builder/builde
 
 The compatibility system automatically selects the appropriate layer based on the model string:
 
-| Model String | Selected Layer | Applied Transformations |
-|-------------|----------------|------------------------|
-| `openai/gpt-4o` | `OpenAISchemaCompatLayer` | Standard normalization |
-| `openai/o1-preview` | `OpenAIReasoningSchemaCompatLayer` | Regex removal + normalization |
-| `anthropic/claude-opus-4` | `AnthropicSchemaCompatLayer` | Description length limits |
-| `google/gemini-2.5-flash` | `GoogleSchemaCompatLayer` | Google format transformations |
-| `deepseek/deepseek-chat` | `DeepSeekSchemaCompatLayer` | DeepSeek requirements |
+| Model String              | Selected Layer                     | Applied Transformations       |
+| ------------------------- | ---------------------------------- | ----------------------------- |
+| `openai/gpt-4o`           | `OpenAISchemaCompatLayer`          | Standard normalization        |
+| `openai/o1-preview`       | `OpenAIReasoningSchemaCompatLayer` | Regex removal + normalization |
+| `anthropic/claude-opus-4` | `AnthropicSchemaCompatLayer`       | Description length limits     |
+| `google/gemini-2.5-flash` | `GoogleSchemaCompatLayer`          | Google format transformations |
+| `deepseek/deepseek-chat`  | `DeepSeekSchemaCompatLayer`        | DeepSeek requirements         |
 
 **Sources:** [packages/core/src/llm/model/model.ts:9-18]()
 

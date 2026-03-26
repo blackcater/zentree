@@ -31,8 +31,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document covers the Vue (`@ai-sdk/vue`) and Svelte (`@ai-sdk/svelte`) integration packages, which provide framework-specific wrappers around the common Chat architecture. Both packages adapt the framework-agnostic `AbstractChat` class to their respective reactivity systems—Vue's composables and Svelte 5's runes.
 
 For details on the underlying Chat architecture, see [Chat Interface Architecture (useChat)](#4.1). For React integration patterns, see [React Integration (@ai-sdk/react)](#4.2).
@@ -41,10 +39,10 @@ For details on the underlying Chat architecture, see [Chat Interface Architectur
 
 Both packages follow a similar organizational pattern:
 
-| Package | Version | Peer Dependencies | Key Dependencies |
-|---------|---------|-------------------|------------------|
-| `@ai-sdk/vue` | 3.0.99 | Vue ^3.3.4 | `ai`, `@ai-sdk/provider-utils`, `swrv` |
-| `@ai-sdk/svelte` | 4.0.99 | Svelte ^5.31.0 | `ai`, `@ai-sdk/provider-utils` |
+| Package          | Version | Peer Dependencies | Key Dependencies                       |
+| ---------------- | ------- | ----------------- | -------------------------------------- |
+| `@ai-sdk/vue`    | 3.0.99  | Vue ^3.3.4        | `ai`, `@ai-sdk/provider-utils`, `swrv` |
+| `@ai-sdk/svelte` | 4.0.99  | Svelte ^5.31.0    | `ai`, `@ai-sdk/provider-utils`         |
 
 Both packages expose a `Chat` class as their primary API. Unlike `@ai-sdk/react` which exports a `useChat` hook, Vue and Svelte consumers instantiate `Chat` directly and access its reactive properties through their framework's native reactivity system.
 
@@ -100,20 +98,20 @@ graph LR
         Messages["#messages<br/>$state&lt;UI_MESSAGE[]&gt;"]
         Error["#error<br/>$state&lt;Error | undefined&gt;"]
         Status["#status<br/>$state&lt;ChatStatus&gt;"]
-        
+
         GetMessages["get messages()"]
         GetError["get error()"]
         GetStatus["get status()"]
-        
+
         PushMsg["pushMessage()"]
         PopMsg["popMessage()"]
         SetError["setError()"]
     end
-    
+
     Messages -->|"accessed via"| GetMessages
     Error -->|"accessed via"| GetError
     Status -->|"accessed via"| GetStatus
-    
+
     PushMsg -->|"mutates"| Messages
     PopMsg -->|"mutates"| Messages
     SetError -->|"mutates"| Error
@@ -124,6 +122,7 @@ The implementation uses Svelte's `$state` rune for reactive private fields:
 [packages/svelte/src/chat.svelte.ts:10-48]()
 
 Key characteristics:
+
 - **Private reactive state**: Fields like `#messages`, `#error`, and `#status` use `$state()` for reactivity
 - **Getter methods**: Public getters expose the private state values
 - **Direct mutations**: Methods like `pushMessage()` directly mutate array state using `.push()`, `.pop()`, etc.
@@ -143,11 +142,11 @@ Sources: [packages/svelte/src/chat.svelte.ts:12-21](), [packages/svelte/src/chat
 
 The Svelte integration requires Svelte ^5.31.0 and leverages the runes system introduced in Svelte 5:
 
-| Rune | Purpose | Usage in Chat |
-|------|---------|---------------|
-| `$state()` | Declare reactive state | Private fields: `#messages`, `#error`, `#status` |
-| `$derived()` | Computed values | Not used directly (handled by getters) |
-| `$effect()` | Side effects | Not needed in Chat class itself |
+| Rune         | Purpose                | Usage in Chat                                    |
+| ------------ | ---------------------- | ------------------------------------------------ |
+| `$state()`   | Declare reactive state | Private fields: `#messages`, `#error`, `#status` |
+| `$derived()` | Computed values        | Not used directly (handled by getters)           |
+| `$effect()`  | Side effects           | Not needed in Chat class itself                  |
 
 Sources: [packages/svelte/package.json:46-48](), [packages/svelte/src/chat.svelte.ts:23-47]()
 
@@ -200,15 +199,15 @@ Sources: [packages/vue/package.json:1-76](), [packages/ai/src/ui/chat.ts:140-300
 
 The following table compares how each framework handles reactivity for the `Chat` state:
 
-| Aspect | React (`@ai-sdk/react`) | Vue (`@ai-sdk/vue`) | Svelte (`@ai-sdk/svelte`) |
-|--------|------------------------|---------------------|---------------------------|
-| **Public API** | `useChat()` hook | `Chat` class instance | `Chat` class instance |
-| **State Primitive** | `useSyncExternalStore` | `ref()` / Vue Composition API | `$state()` runes (Svelte 5) |
-| **Subscription Model** | Manual subscribe/unsubscribe via `~registerMessagesCallback` | Automatic via Vue proxy | Automatic via Svelte compiler |
-| **Update Mechanism** | Callback-based with optional throttling | Vue reactivity system | Direct mutation with runes |
-| **State Container** | External `Chat` instance held in `useRef` | `Chat` instance created by consumer | `Chat` instance created by consumer |
-| **Throttling** | Built-in via `throttleit` (`experimental_throttle`) | N/A (framework handles scheduling) | N/A (framework handles scheduling) |
-| **Extra dependency** | `swr`, `throttleit` | `swrv` | none |
+| Aspect                 | React (`@ai-sdk/react`)                                      | Vue (`@ai-sdk/vue`)                 | Svelte (`@ai-sdk/svelte`)           |
+| ---------------------- | ------------------------------------------------------------ | ----------------------------------- | ----------------------------------- |
+| **Public API**         | `useChat()` hook                                             | `Chat` class instance               | `Chat` class instance               |
+| **State Primitive**    | `useSyncExternalStore`                                       | `ref()` / Vue Composition API       | `$state()` runes (Svelte 5)         |
+| **Subscription Model** | Manual subscribe/unsubscribe via `~registerMessagesCallback` | Automatic via Vue proxy             | Automatic via Svelte compiler       |
+| **Update Mechanism**   | Callback-based with optional throttling                      | Vue reactivity system               | Direct mutation with runes          |
+| **State Container**    | External `Chat` instance held in `useRef`                    | `Chat` instance created by consumer | `Chat` instance created by consumer |
+| **Throttling**         | Built-in via `throttleit` (`experimental_throttle`)          | N/A (framework handles scheduling)  | N/A (framework handles scheduling)  |
+| **Extra dependency**   | `swr`, `throttleit`                                          | `swrv`                              | none                                |
 
 Sources: [packages/react/src/use-chat.ts:43-56](), [packages/react/src/use-chat.ts:111-135](), [packages/svelte/src/chat.svelte.ts:1-48](), [packages/vue/package.json:33-43](), [packages/react/package.json:33-36]()
 
@@ -279,24 +278,24 @@ sequenceDiagram
     participant Transport as "ChatTransport"
     participant API as "API Endpoint"
     participant State as "State System"
-    
+
     UI->>Chat: sendMessage()
     Chat->>State: set status='submitted'
     State-->>UI: (reactive update)
-    
+
     Chat->>Transport: sendMessages()
     Transport->>API: POST /api/chat
     API-->>Transport: Stream chunks
-    
+
     loop For each chunk
         Transport->>Chat: process chunk
         Chat->>State: update messages
         State-->>UI: (reactive update)
     end
-    
+
     Chat->>State: set status='ready'
     State-->>UI: (final update)
-    
+
     Note over State,UI: React: useSyncExternalStore<br/>Vue: ref() reactivity<br/>Svelte: $state runes
 ```
 
@@ -306,11 +305,11 @@ Sources: [packages/ai/src/ui/chat.ts:100-600]()
 
 Both integrations use the same underlying transport mechanism from the core `ai` package:
 
-| Transport Type | Class | Purpose |
-|----------------|-------|---------|
-| Default | `DefaultChatTransport` | Standard JSON-based streaming |
-| Text Stream | `TextStreamChatTransport` | Simple text streaming |
-| HTTP | `HttpChatTransport` | Base HTTP transport with customization |
+| Transport Type | Class                     | Purpose                                |
+| -------------- | ------------------------- | -------------------------------------- |
+| Default        | `DefaultChatTransport`    | Standard JSON-based streaming          |
+| Text Stream    | `TextStreamChatTransport` | Simple text streaming                  |
+| HTTP           | `HttpChatTransport`       | Base HTTP transport with customization |
 
 The `processUIMessageStream` function handles chunk processing identically across all frameworks:
 
@@ -323,13 +322,15 @@ Sources: [packages/ai/src/ui/default-chat-transport.ts:1-30](), [packages/ai/src
 Both packages follow similar testing approaches using `@ai-sdk/test-server` and framework-specific testing libraries:
 
 ### Svelte Tests
+
 - Uses `@testing-library/svelte` v5.2.4
 - Tests with `vitest` v3.0.0
 - Direct Chat class instantiation in tests
 
 [packages/svelte/src/chat.svelte.test.ts:1-1450]()
 
-### Vue Tests  
+### Vue Tests
+
 - Uses `@testing-library/vue` v8.1.0
 - Tests with `vitest` v2.1.4
 - Component-based testing with useChat composable
@@ -342,30 +343,30 @@ Sources: [packages/svelte/package.json:54-74](), [packages/vue/package.json:38-5
 
 Both Vue and Svelte integrations support the same core features:
 
-| Feature | Supported | Notes |
-|---------|-----------|-------|
-| Message streaming | ✓ | Via `processUIMessageStream` |
-| Tool calling | ✓ | Static and dynamic tools |
-| File attachments | ✓ | Via `convertFileListToFileUIParts` |
-| Error handling | ✓ | Reactive error state |
-| Status tracking | ✓ | 'submitted', 'streaming', 'ready', 'error' |
-| Message regeneration | ✓ | `regenerate()` method |
-| Stream resumption | ✓ | `resumeStream()` method |
-| Tool approval | ✓ | `addToolApprovalResponse()` method |
-| Custom transports | ✓ | Any `ChatTransport` implementation |
+| Feature              | Supported | Notes                                      |
+| -------------------- | --------- | ------------------------------------------ |
+| Message streaming    | ✓         | Via `processUIMessageStream`               |
+| Tool calling         | ✓         | Static and dynamic tools                   |
+| File attachments     | ✓         | Via `convertFileListToFileUIParts`         |
+| Error handling       | ✓         | Reactive error state                       |
+| Status tracking      | ✓         | 'submitted', 'streaming', 'ready', 'error' |
+| Message regeneration | ✓         | `regenerate()` method                      |
+| Stream resumption    | ✓         | `resumeStream()` method                    |
+| Tool approval        | ✓         | `addToolApprovalResponse()` method         |
+| Custom transports    | ✓         | Any `ChatTransport` implementation         |
 
 Sources: [packages/ai/src/ui/chat.ts:1-600](), [packages/ai/src/ui/index.ts:1-50]()
 
 ## Implementation Differences Summary
 
-| Aspect | Vue | Svelte |
-|--------|-----|--------|
-| **Package Version** | 3.0.3 | 4.0.3 |
-| **Framework Version** | Vue 3.3.4+ | Svelte 5.31.0+ |
-| **API Style** | Composable function | Class instance |
-| **State Management** | Vue 3 Composition API | Svelte 5 runes |
-| **Data Fetching** | swrv library | Native (no external lib) |
-| **Bundle Approach** | Dual (ESM + CJS) | ESM only |
-| **Test Library** | @testing-library/vue v8 | @testing-library/svelte v5 |
+| Aspect                | Vue                     | Svelte                     |
+| --------------------- | ----------------------- | -------------------------- |
+| **Package Version**   | 3.0.3                   | 4.0.3                      |
+| **Framework Version** | Vue 3.3.4+              | Svelte 5.31.0+             |
+| **API Style**         | Composable function     | Class instance             |
+| **State Management**  | Vue 3 Composition API   | Svelte 5 runes             |
+| **Data Fetching**     | swrv library            | Native (no external lib)   |
+| **Bundle Approach**   | Dual (ESM + CJS)        | ESM only                   |
+| **Test Library**      | @testing-library/vue v8 | @testing-library/svelte v5 |
 
 Sources: [packages/vue/package.json:1-76](), [packages/svelte/package.json:1-89]()

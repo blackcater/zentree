@@ -27,8 +27,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the `codex mcp` subcommands that allow users to manage Model Context Protocol (MCP) server configurations from the command line. These commands provide a convenient interface for adding, removing, listing, and authenticating with MCP servers without manually editing configuration files.
 
 For information about the MCP server configuration structure and connection lifecycle, see [MCP Server Configuration](#6.1) and [MCP Connection Manager](#6.2). For details on OAuth implementation, see [OAuth Authentication for MCP](#6.5).
@@ -40,6 +38,7 @@ For information about the MCP server configuration structure and connection life
 The MCP CLI commands are implemented as subcommands under `codex mcp`. All commands operate on the global MCP server configuration stored in `~/.codex/config.toml` (or `$CODEX_HOME/config.toml`).
 
 **Available Commands**:
+
 - `list` — Display all configured MCP servers with their status
 - `get <name>` — Show detailed configuration for a specific server
 - `add <name>` — Add a new MCP server configuration
@@ -58,42 +57,42 @@ graph TB
     CLI["MultitoolCli"]
     McpCli["McpCli"]
     Subcommand["McpSubcommand"]
-    
+
     RunMethod["McpCli::run()"]
-    
+
     List["run_list()"]
     Get["run_get()"]
     Add["run_add()"]
     Remove["run_remove()"]
     Login["run_login()"]
     Logout["run_logout()"]
-    
+
     ConfigLoader["Config::load_with_cli_overrides()"]
     GlobalMcp["load_global_mcp_servers()"]
     ConfigBuilder["ConfigEditsBuilder::new()"]
-    
+
     CLI --> McpCli
     McpCli --> RunMethod
     RunMethod --> Subcommand
-    
+
     Subcommand -->|"McpSubcommand::List"| List
     Subcommand -->|"McpSubcommand::Get"| Get
     Subcommand -->|"McpSubcommand::Add"| Add
     Subcommand -->|"McpSubcommand::Remove"| Remove
     Subcommand -->|"McpSubcommand::Login"| Login
     Subcommand -->|"McpSubcommand::Logout"| Logout
-    
+
     List --> ConfigLoader
     Get --> ConfigLoader
     Login --> ConfigLoader
     Logout --> ConfigLoader
-    
+
     Add --> GlobalMcp
     Remove --> GlobalMcp
-    
+
     Add --> ConfigBuilder
     Remove --> ConfigBuilder
-    
+
     ConfigBuilder -->|"replace_mcp_servers()"|ConfigFile["~/.codex/config.toml"]
 ```
 
@@ -157,7 +156,7 @@ With `--json`, the command outputs an array of server configurations with full d
       "type": "stdio",
       "command": "docs-server",
       "args": ["--port", "4000"],
-      "env": {"TOKEN": "secret"},
+      "env": { "TOKEN": "secret" },
       "env_vars": ["APP_TOKEN"],
       "cwd": null
     },
@@ -173,6 +172,7 @@ Sources: [codex-rs/cli/src/mcp_cmd.rs:478-534]()
 ### Authentication Status Computation
 
 The `list` command calls `compute_auth_statuses()` to determine OAuth status for each server. This function:
+
 1. Checks if the transport supports OAuth (streamable-http only)
 2. Attempts to load stored credentials from the configured store mode
 3. Returns `McpAuthStatus`:
@@ -236,11 +236,13 @@ The `add` command creates a new MCP server configuration. It supports two transp
 ### Usage
 
 **Stdio transport**:
+
 ```bash
 codex mcp add <name> [--env KEY=VALUE]... -- <command> [args...]
 ```
 
 **Streamable HTTP transport**:
+
 ```bash
 codex mcp add <name> --url <url> [--bearer-token-env-var <var>]
 ```
@@ -249,13 +251,13 @@ codex mcp add <name> --url <url> [--bearer-token-env-var <var>]
 
 The `AddArgs` struct defines the argument structure:
 
-| Argument | Type | Description |
-|----------|------|-------------|
-| `name` | String | Server identifier (must match `^[a-zA-Z0-9_-]+$`) |
-| `--env` | KEY=VALUE pairs | Environment variables for stdio servers |
-| `command` | Trailing args | Executable and arguments after `--` |
-| `--url` | String | HTTP endpoint for streamable-http servers |
-| `--bearer-token-env-var` | String | Environment variable containing auth token |
+| Argument                 | Type            | Description                                       |
+| ------------------------ | --------------- | ------------------------------------------------- |
+| `name`                   | String          | Server identifier (must match `^[a-zA-Z0-9_-]+$`) |
+| `--env`                  | KEY=VALUE pairs | Environment variables for stdio servers           |
+| `command`                | Trailing args   | Executable and arguments after `--`               |
+| `--url`                  | String          | HTTP endpoint for streamable-http servers         |
+| `--bearer-token-env-var` | String          | Environment variable containing auth token        |
 
 The command uses `ArgGroup` to ensure exactly one transport type is specified.
 
@@ -268,34 +270,34 @@ graph TB
     ParseArgs["run_add()<br/>Parse AddArgs"]
     ValidateName["validate_server_name()"]
     LoadServers["load_global_mcp_servers()"]
-    
+
     CheckTransport{"Transport type?"}
-    
+
     StdioPath["McpServerTransportConfig::Stdio"]
     HttpPath["McpServerTransportConfig::StreamableHttp"]
-    
+
     CreateConfig["McpServerConfig::new()<br/>enabled=true<br/>required=false"]
     InsertMap["servers.insert(name, config)"]
     WriteConfig["ConfigEditsBuilder::new()<br/>.replace_mcp_servers()<br/>.apply()"]
-    
+
     CheckOAuth{"oauth_login_support()?"}
     AutoLogin["perform_oauth_login_retry_without_scopes()"]
     Done["println! success"]
-    
+
     ParseArgs --> ValidateName
     ValidateName --> LoadServers
     LoadServers --> CheckTransport
-    
+
     CheckTransport -->|"stdio"| StdioPath
     CheckTransport -->|"streamable_http"| HttpPath
-    
+
     StdioPath --> CreateConfig
     HttpPath --> CreateConfig
-    
+
     CreateConfig --> InsertMap
     InsertMap --> WriteConfig
     WriteConfig --> CheckOAuth
-    
+
     CheckOAuth -->|"McpOAuthLoginSupport::Supported"| AutoLogin
     CheckOAuth -->|"Unsupported/Unknown"| Done
     AutoLogin --> Done
@@ -320,6 +322,7 @@ Sources: [codex-rs/cli/src/mcp_cmd.rs:321-344]()
 ### Server Name Validation
 
 Server names must conform to `^[a-zA-Z0-9_-]+$`. The `validate_server_name()` function enforces this to ensure:
+
 - No conflicts with TOML syntax
 - Names are filesystem-safe
 - Compatibility with the qualified tool name format (`mcp__<server>__<tool>`)
@@ -383,38 +386,38 @@ graph TB
     LoadConfig["Config::load_with_cli_overrides()"]
     CheckServer{"mcp_servers.get(name)?"}
     CheckTransport{"McpServerTransportConfig?"}
-    
+
     GetScopes{"LoginArgs.scopes?"}
     DiscoverScopes["discover_supported_scopes()"]
     ResolveScopes["resolve_oauth_scopes()"]
-    
+
     StartOAuth["perform_oauth_login_retry_without_scopes()"]
-    
+
     CallbackServer["spawn_callback_server()<br/>tiny_http::Server"]
     OAuthStart["OAuthState::start_authorization()"]
     Browser["open::that(auth_url)"]
     UserAuth["User authorizes"]
     Callback["HTTP GET /callback?code=..."]
     HandleCallback["OAuthState::handle_callback()"]
-    
+
     StoreTokens["Store StoredOAuthTokens<br/>via OAuthCredentialsStoreMode"]
     Done["println! success"]
-    
+
     RunLogin --> LoadConfig
     LoadConfig --> CheckServer
     CheckServer -->|"None"| Error1["bail! not found"]
     CheckServer -->|"Some(server)"| CheckTransport
-    
+
     CheckTransport -->|"Stdio"| Error2["bail! HTTP only"]
     CheckTransport -->|"StreamableHttp"| GetScopes
-    
+
     GetScopes -->|"--scopes present"| ResolveScopes
     GetScopes -->|"None + server.scopes None"| DiscoverScopes
     GetScopes -->|"None + server.scopes Some"| ResolveScopes
-    
+
     DiscoverScopes --> ResolveScopes
     ResolveScopes --> StartOAuth
-    
+
     StartOAuth --> CallbackServer
     CallbackServer --> OAuthStart
     OAuthStart --> Browser
@@ -482,6 +485,7 @@ The function returns `Ok(true)` if credentials existed and were deleted, `Ok(fal
 Sources: [codex-rs/cli/src/mcp_cmd.rs:433-461]()
 
 **Storage Locations**:
+
 - **File mode**: `~/.codex/.credentials/{server_name}.json`
 - **Keychain mode**: Platform keychain (Keychain on macOS, Windows Credential Manager, Secret Service on Linux)
 
@@ -504,7 +508,7 @@ graph LR
     Builder["ConfigEditsBuilder::new(codex_home)"]
     Replace[".replace_mcp_servers(&servers)"]
     Apply[".apply().await<br/>(atomic write)"]
-    
+
     Load --> Modify
     Modify --> Builder
     Builder --> Replace
@@ -514,6 +518,7 @@ graph LR
 **Diagram: Configuration Update Pipeline**
 
 The `ConfigEditsBuilder::replace_mcp_servers()` method:
+
 1. Serializes the `mcp_servers` map to TOML
 2. Parses the existing config file
 3. Replaces the `[mcp_servers]` table
@@ -527,17 +532,17 @@ Sources: [codex-rs/cli/src/mcp_cmd.rs:313-318](), [codex-rs/cli/src/mcp_cmd.rs:3
 
 Each server entry is a `McpServerConfig`:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `transport` | `McpServerTransportConfig` | stdio or streamable_http details |
-| `enabled` | `bool` | Whether to load server on startup |
-| `required` | `bool` | Session fails if startup fails |
-| `disabled_reason` | `Option<String>` | Human-readable disable reason |
-| `startup_timeout_sec` | `Option<Duration>` | Override default 10s timeout |
-| `tool_timeout_sec` | `Option<Duration>` | Override default 60s timeout |
-| `enabled_tools` | `Option<Vec<String>>` | Allowlist (none = all allowed) |
-| `disabled_tools` | `Option<Vec<String>>` | Blocklist |
-| `scopes` | `Option<Vec<String>>` | Default OAuth scopes |
+| Field                 | Type                       | Description                       |
+| --------------------- | -------------------------- | --------------------------------- |
+| `transport`           | `McpServerTransportConfig` | stdio or streamable_http details  |
+| `enabled`             | `bool`                     | Whether to load server on startup |
+| `required`            | `bool`                     | Session fails if startup fails    |
+| `disabled_reason`     | `Option<String>`           | Human-readable disable reason     |
+| `startup_timeout_sec` | `Option<Duration>`         | Override default 10s timeout      |
+| `tool_timeout_sec`    | `Option<Duration>`         | Override default 60s timeout      |
+| `enabled_tools`       | `Option<Vec<String>>`      | Allowlist (none = all allowed)    |
+| `disabled_tools`      | `Option<Vec<String>>`      | Blocklist                         |
+| `scopes`              | `Option<Vec<String>>`      | Default OAuth scopes              |
 
 Sources: [codex-rs/core/src/config/types.rs:464-476]()
 
@@ -568,6 +573,7 @@ Sources: [codex-rs/rmcp-client/src/oauth.rs:79-97]()
 The `server_key` is computed as `sha256(server_name + url)` to create a unique identifier for each server configuration.
 
 **Format** (`StoredOAuthTokens` struct):
+
 ```json
 {
   "server_name": "github",
@@ -589,6 +595,7 @@ Sources: [codex-rs/rmcp-client/src/oauth.rs:67-77](), [codex-rs/rmcp-client/src/
 ### Keychain Storage
 
 Uses platform-specific secure storage via the `keyring` crate:
+
 - **macOS**: Keychain Access (via `security` framework, `apple-native` feature)
 - **Windows**: Windows Credential Manager (via `wincred` API, `windows-native` feature)
 - **Linux**: DBus Secret Service + kernel keyutils (via `linux-native-async-persistent` feature)
@@ -618,13 +625,13 @@ Sources: [codex-rs/rmcp-client/src/oauth.rs:149-163](), [codex-rs/rmcp-client/sr
 
 ### Common Error Cases
 
-| Error | Command | Cause |
-|-------|---------|-------|
-| "invalid server name" | `add`, `remove`, `login`, `logout` | Name contains invalid characters |
-| "No MCP server named 'X' found" | `get`, `login`, `logout` | Server not in config |
-| "OAuth login is only supported for streamable HTTP servers" | `login` | Attempted OAuth with stdio server |
-| "Environment variable {var} for MCP server '{name}' is not set" | Runtime (not CLI) | Missing required env var |
-| "exactly one of --command or --url must be provided" | `add` | Missing or conflicting transport args |
+| Error                                                           | Command                            | Cause                                 |
+| --------------------------------------------------------------- | ---------------------------------- | ------------------------------------- |
+| "invalid server name"                                           | `add`, `remove`, `login`, `logout` | Name contains invalid characters      |
+| "No MCP server named 'X' found"                                 | `get`, `login`, `logout`           | Server not in config                  |
+| "OAuth login is only supported for streamable HTTP servers"     | `login`                            | Attempted OAuth with stdio server     |
+| "Environment variable {var} for MCP server '{name}' is not set" | Runtime (not CLI)                  | Missing required env var              |
+| "exactly one of --command or --url must be provided"            | `add`                              | Missing or conflicting transport args |
 
 Sources: [codex-rs/core/src/connectors.rs:59-79](), [codex-rs/cli/src/mcp_cmd.rs:394-406]()
 

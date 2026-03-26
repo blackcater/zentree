@@ -37,8 +37,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Control UI is the browser-based single-page application (SPA) that provides a dashboard for the OpenClaw Gateway. It runs in a standard web browser and communicates with the Gateway exclusively over a WebSocket connection. This page covers the SPA's component architecture, state management, Gateway client, view routing, settings persistence, and theming system.
 
 For information about the Gateway WebSocket protocol the UI connects to, see [WebSocket Protocol](#2.1). For details on authentication modes used during the connect handshake, see [Authentication & Device Pairing](#2.2). For the native iOS/macOS/Android node clients (which are a distinct type of Gateway client), see [Native Clients (Nodes)](#6).
@@ -101,11 +99,11 @@ It **does not** use Shadow DOM — `createRenderRoot()` returns `this` [ui/src/u
 
 ### Lifecycle
 
-| Lifecycle Method | Handler |
-|---|---|
-| `connectedCallback` | `handleConnected` in `app-lifecycle.ts` |
-| `firstUpdated` | `handleFirstUpdated` in `app-lifecycle.ts` |
-| `updated` | `handleUpdated` in `app-lifecycle.ts` |
+| Lifecycle Method       | Handler                                    |
+| ---------------------- | ------------------------------------------ |
+| `connectedCallback`    | `handleConnected` in `app-lifecycle.ts`    |
+| `firstUpdated`         | `handleFirstUpdated` in `app-lifecycle.ts` |
+| `updated`              | `handleUpdated` in `app-lifecycle.ts`      |
 | `disconnectedCallback` | `handleDisconnected` in `app-lifecycle.ts` |
 
 The `firstUpdated` hook is where the Gateway connection is initiated and URL-based settings (`token`, `session`, `gatewayUrl` query params) are consumed via `applySettingsFromUrl` [ui/src/ui/app-settings.ts:89-149]().
@@ -124,19 +122,19 @@ Rather than passing `this` (the `OpenClawApp` instance) directly to rendering an
 
 `OpenClawApp` declares all UI state as `@state()` properties, grouped by feature domain:
 
-| Domain | Key Properties |
-|---|---|
-| **Connection** | `connected`, `hello`, `lastError`, `lastErrorCode`, `client` |
-| **Chat** | `chatMessages`, `chatStream`, `chatStreamStartedAt`, `chatSending`, `chatRunId`, `chatQueue`, `chatAttachments` |
-| **Sessions** | `sessionsResult`, `sessionsLoading`, `sessionsFilterActive`, `sessionsFilterLimit` |
-| **Agents** | `agentsList`, `agentsSelectedId`, `agentsPanel`, `agentFilesList`, `agentIdentityById` |
-| **Cron** | `cronJobs`, `cronStatus`, `cronForm`, `cronRuns`, `cronFieldErrors` |
-| **Config** | `configSnapshot`, `configSchema`, `configForm`, `configFormDirty` |
-| **Nodes/Devices** | `nodes`, `devicesList`, `execApprovalsForm`, `execApprovalQueue` |
-| **Logs** | `logsEntries`, `logsLevelFilters`, `logsAtBottom` |
-| **Skills** | `skillsReport`, `skillEdits`, `skillMessages` |
-| **Usage** | `usageResult`, `usageCostSummary`, `usageTimeSeries` |
-| **UI** | `tab`, `theme`, `themeResolved`, `settings`, `onboarding`, `sidebarOpen`, `splitRatio` |
+| Domain            | Key Properties                                                                                                  |
+| ----------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Connection**    | `connected`, `hello`, `lastError`, `lastErrorCode`, `client`                                                    |
+| **Chat**          | `chatMessages`, `chatStream`, `chatStreamStartedAt`, `chatSending`, `chatRunId`, `chatQueue`, `chatAttachments` |
+| **Sessions**      | `sessionsResult`, `sessionsLoading`, `sessionsFilterActive`, `sessionsFilterLimit`                              |
+| **Agents**        | `agentsList`, `agentsSelectedId`, `agentsPanel`, `agentFilesList`, `agentIdentityById`                          |
+| **Cron**          | `cronJobs`, `cronStatus`, `cronForm`, `cronRuns`, `cronFieldErrors`                                             |
+| **Config**        | `configSnapshot`, `configSchema`, `configForm`, `configFormDirty`                                               |
+| **Nodes/Devices** | `nodes`, `devicesList`, `execApprovalsForm`, `execApprovalQueue`                                                |
+| **Logs**          | `logsEntries`, `logsLevelFilters`, `logsAtBottom`                                                               |
+| **Skills**        | `skillsReport`, `skillEdits`, `skillMessages`                                                                   |
+| **Usage**         | `usageResult`, `usageCostSummary`, `usageTimeSeries`                                                            |
+| **UI**            | `tab`, `theme`, `themeResolved`, `settings`, `onboarding`, `sidebarOpen`, `splitRatio`                          |
 
 Sources: [ui/src/ui/app.ts:113-385]()
 
@@ -146,18 +144,18 @@ Settings that survive page reloads are persisted to `localStorage` under the key
 
 ```typescript
 type UiSettings = {
-  gatewayUrl: string;           // ws:// or wss:// URL of the Gateway
-  token: string;                // shared auth token
-  sessionKey: string;           // last selected chat session key
-  lastActiveSessionKey: string; // most recently active chat session key
-  theme: ThemeMode;             // "dark" | "light" | "system"
-  chatFocusMode: boolean;       // hides nav/header in chat view
-  chatShowThinking: boolean;    // shows tool result messages
-  splitRatio: number;           // sidebar split ratio (0.4–0.7)
-  navCollapsed: boolean;        // whether the sidebar nav is hidden
-  navGroupsCollapsed: Record<string, boolean>; // per-group collapse state
-  locale?: string;              // UI language code
-};
+  gatewayUrl: string // ws:// or wss:// URL of the Gateway
+  token: string // shared auth token
+  sessionKey: string // last selected chat session key
+  lastActiveSessionKey: string // most recently active chat session key
+  theme: ThemeMode // "dark" | "light" | "system"
+  chatFocusMode: boolean // hides nav/header in chat view
+  chatShowThinking: boolean // shows tool result messages
+  splitRatio: number // sidebar split ratio (0.4–0.7)
+  navCollapsed: boolean // whether the sidebar nav is hidden
+  navGroupsCollapsed: Record<string, boolean> // per-group collapse state
+  locale?: string // UI language code
+}
 ```
 
 `loadSettings()` is called at component construction time. `saveSettings()` is called by `applySettings()` on every settings mutation [ui/src/ui/storage.ts:20-](), [ui/src/ui/app-settings.ts:64-76]().
@@ -200,6 +198,7 @@ sequenceDiagram
 ### Authentication
 
 The client sends one of:
+
 - **Shared token**: `auth.token` from `UiSettings.token`
 - **Device token**: Rotated token derived from a browser-generated ECDSA keypair stored in `IndexedDB` (only in secure contexts where `crypto.subtle` is available)
 - **Password**: `auth.password`
@@ -288,19 +287,19 @@ The navigation sidebar organizes tabs into collapsible groups via `TAB_GROUPS` f
 
 When `setTab()` is called, `refreshActiveTab()` [ui/src/ui/app-settings.ts:186-244]() loads the relevant data for the newly active tab:
 
-| Tab | Data Loaded |
-|---|---|
-| `overview` | `loadOverview()` (presence count, sessions count, cron status) |
-| `channels` | `loadChannels()` |
-| `instances` | `loadPresence()` |
-| `sessions` | `loadSessions()` |
-| `cron` | `loadCronStatus()`, `loadCronJobs()`, `loadCronRuns()` |
-| `agents` | `loadAgents()`, `loadToolsCatalog()`, `loadConfig()`, `loadAgentIdentities()` |
-| `nodes` | `loadNodes()`, `loadDevices()`, `loadConfig()`, `loadExecApprovals()` |
-| `chat` | `refreshChat()`, scroll to bottom |
-| `logs` | `loadLogs()`, starts polling interval |
-| `debug` | `loadDebug()`, starts polling interval |
-| `skills` | `loadSkills()` |
+| Tab         | Data Loaded                                                                   |
+| ----------- | ----------------------------------------------------------------------------- |
+| `overview`  | `loadOverview()` (presence count, sessions count, cron status)                |
+| `channels`  | `loadChannels()`                                                              |
+| `instances` | `loadPresence()`                                                              |
+| `sessions`  | `loadSessions()`                                                              |
+| `cron`      | `loadCronStatus()`, `loadCronJobs()`, `loadCronRuns()`                        |
+| `agents`    | `loadAgents()`, `loadToolsCatalog()`, `loadConfig()`, `loadAgentIdentities()` |
+| `nodes`     | `loadNodes()`, `loadDevices()`, `loadConfig()`, `loadExecApprovals()`         |
+| `chat`      | `refreshChat()`, scroll to bottom                                             |
+| `logs`      | `loadLogs()`, starts polling interval                                         |
+| `debug`     | `loadDebug()`, starts polling interval                                        |
+| `skills`    | `loadSkills()`                                                                |
 
 ---
 
@@ -320,12 +319,12 @@ The UI uses a CSS Grid shell defined in [ui/src/styles/layout.css:1-50](). The t
 
 CSS class modifiers on `.shell`:
 
-| Class | Effect |
-|---|---|
+| Class                   | Effect                                           |
+| ----------------------- | ------------------------------------------------ |
 | `.shell--nav-collapsed` | Sets `grid-template-columns: 0px 1fr`, hides nav |
-| `.shell--chat-focus` | Collapses nav and topbar; full-screen chat |
-| `.shell--chat` | Prevents overflow scrolling on the shell |
-| `.shell--onboarding` | Hides topbar row (`grid-template-rows: 0 1fr`) |
+| `.shell--chat-focus`    | Collapses nav and topbar; full-screen chat       |
+| `.shell--chat`          | Prevents overflow scrolling on the shell         |
+| `.shell--onboarding`    | Hides topbar row (`grid-template-rows: 0 1fr`)   |
 
 Sources: [ui/src/styles/layout.css:1-622]()
 
@@ -375,12 +374,12 @@ Sources: [ui/src/ui/app-gateway.ts:260-328]()
 
 `handleChatEvent()` [ui/src/ui/controllers/chat.ts:220-285]() processes `ChatEventPayload` with these state values:
 
-| `payload.state` | Effect on UI |
-|---|---|
-| `"delta"` | Appends streamed text to `chatStream` |
-| `"final"` | Moves final message to `chatMessages`, clears `chatStream` |
-| `"aborted"` | Moves aborted message content to `chatMessages`, clears stream |
-| `"error"` | Sets `lastError`, clears stream |
+| `payload.state` | Effect on UI                                                   |
+| --------------- | -------------------------------------------------------------- |
+| `"delta"`       | Appends streamed text to `chatStream`                          |
+| `"final"`       | Moves final message to `chatMessages`, clears `chatStream`     |
+| `"aborted"`     | Moves aborted message content to `chatMessages`, clears stream |
+| `"error"`       | Sets `lastError`, clears stream                                |
 
 After a terminal event (`final`, `error`, `aborted`), `resetToolStream()` is called and any queued chat messages are flushed via `flushChatQueueForEvent()` [ui/src/ui/app-gateway.ts:224-244]().
 
@@ -403,14 +402,14 @@ Theme changes are animated via `startThemeTransition()` [ui/src/ui/app-lifecycle
 
 The Agents tab is more complex than other tabs: it has an internal panel switcher within the view. The `agentsPanel` state field selects among:
 
-| Panel | Contents |
-|---|---|
-| `"overview"` | Agent identity, model selection, model fallbacks |
-| `"files"` | Agent workspace files (AGENTS.md, SOUL.md, etc.) editor |
-| `"tools"` | Tools catalog and tool policy controls |
-| `"skills"` | Installed skills with enable/disable toggles |
-| `"channels"` | Channel status filtered to the selected agent |
-| `"cron"` | Cron jobs for the selected agent |
+| Panel        | Contents                                                |
+| ------------ | ------------------------------------------------------- |
+| `"overview"` | Agent identity, model selection, model fallbacks        |
+| `"files"`    | Agent workspace files (AGENTS.md, SOUL.md, etc.) editor |
+| `"tools"`    | Tools catalog and tool policy controls                  |
+| `"skills"`   | Installed skills with enable/disable toggles            |
+| `"channels"` | Channel status filtered to the selected agent           |
+| `"cron"`     | Cron jobs for the selected agent                        |
 
 Config mutations from the agents view (model changes, tool profile, skill enable/disable) use `updateConfigFormValue()` / `removeConfigFormValue()` to patch `configForm` in memory, then call `saveConfig()` to persist via the Gateway's `config.patch` RPC [ui/src/ui/app-render.ts:639-869]().
 
@@ -430,12 +429,12 @@ The operator can respond with `allow-once`, `allow-always`, or `deny`. This call
 
 On initial load, the app reads the following query parameters (then strips them from the URL):
 
-| Parameter | Effect |
-|---|---|
-| `token` | Sets `UiSettings.token` |
-| `session` | Sets the active session key |
-| `gatewayUrl` | Prompts the user to confirm switching gateway URLs |
-| `password` | Stripped only (never persisted) |
+| Parameter      | Effect                                                  |
+| -------------- | ------------------------------------------------------- |
+| `token`        | Sets `UiSettings.token`                                 |
+| `session`      | Sets the active session key                             |
+| `gatewayUrl`   | Prompts the user to confirm switching gateway URLs      |
+| `password`     | Stripped only (never persisted)                         |
 | `onboarding=1` | Activates onboarding mode (hides topbar, collapses nav) |
 
 Sources: [ui/src/ui/app-settings.ts:89-149](), [ui/src/ui/app.ts:97-108]()
@@ -444,21 +443,21 @@ Sources: [ui/src/ui/app-settings.ts:89-149](), [ui/src/ui/app.ts:97-108]()
 
 ## Key File Index
 
-| File | Role |
-|---|---|
-| `ui/src/ui/app.ts` | `OpenClawApp` LitElement root component |
-| `ui/src/ui/app-view-state.ts` | `AppViewState` structural type for rendering |
-| `ui/src/ui/app-render.ts` | `renderApp()` — top-level render function |
-| `ui/src/ui/app-gateway.ts` | `connectGateway()`, `handleGatewayEvent()` |
-| `ui/src/ui/gateway.ts` | `GatewayBrowserClient` WebSocket client |
-| `ui/src/ui/storage.ts` | `UiSettings`, `loadSettings()`, `saveSettings()` |
-| `ui/src/ui/app-settings.ts` | `setTab()`, `applySettings()`, `refreshActiveTab()` |
-| `ui/src/ui/app-lifecycle.ts` | LitElement lifecycle handlers |
-| `ui/src/ui/app-chat.ts` | Chat message sending/queueing logic |
-| `ui/src/ui/navigation.ts` | `TAB_GROUPS`, `pathForTab()`, `tabFromPath()` |
-| `ui/src/ui/views/*.ts` | Per-tab view renderers |
-| `ui/src/ui/controllers/*.ts` | Data-loading functions calling `GatewayBrowserClient` |
-| `ui/src/styles/base.css` | CSS design tokens (colors, typography, spacing) |
-| `ui/src/styles/layout.css` | Shell grid and topbar/nav/content layout |
-| `ui/src/styles/components.css` | Shared components (buttons, cards, forms, pills) |
-| `ui/src/styles/chat/layout.css` | Chat-specific layout |
+| File                            | Role                                                  |
+| ------------------------------- | ----------------------------------------------------- |
+| `ui/src/ui/app.ts`              | `OpenClawApp` LitElement root component               |
+| `ui/src/ui/app-view-state.ts`   | `AppViewState` structural type for rendering          |
+| `ui/src/ui/app-render.ts`       | `renderApp()` — top-level render function             |
+| `ui/src/ui/app-gateway.ts`      | `connectGateway()`, `handleGatewayEvent()`            |
+| `ui/src/ui/gateway.ts`          | `GatewayBrowserClient` WebSocket client               |
+| `ui/src/ui/storage.ts`          | `UiSettings`, `loadSettings()`, `saveSettings()`      |
+| `ui/src/ui/app-settings.ts`     | `setTab()`, `applySettings()`, `refreshActiveTab()`   |
+| `ui/src/ui/app-lifecycle.ts`    | LitElement lifecycle handlers                         |
+| `ui/src/ui/app-chat.ts`         | Chat message sending/queueing logic                   |
+| `ui/src/ui/navigation.ts`       | `TAB_GROUPS`, `pathForTab()`, `tabFromPath()`         |
+| `ui/src/ui/views/*.ts`          | Per-tab view renderers                                |
+| `ui/src/ui/controllers/*.ts`    | Data-loading functions calling `GatewayBrowserClient` |
+| `ui/src/styles/base.css`        | CSS design tokens (colors, typography, spacing)       |
+| `ui/src/styles/layout.css`      | Shell grid and topbar/nav/content layout              |
+| `ui/src/styles/components.css`  | Shared components (buttons, cards, forms, pills)      |
+| `ui/src/styles/chat/layout.css` | Chat-specific layout                                  |

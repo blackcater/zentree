@@ -30,8 +30,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document explains the OpenAI-compatible provider architecture in the AI SDK, which enables multiple AI service providers to share a common implementation by conforming to OpenAI's API format. The `@ai-sdk/openai-compatible` package serves as a base layer that providers like XAI, TogetherAI, Cerebras, Fireworks, and DeepInfra extend to implement their language models.
@@ -54,7 +52,7 @@ graph TB
         OpenAICompat["@ai-sdk/openai-compatible<br/>OpenAI API Client<br/>Request/Response Handling<br/>Schema Validation"]
         CompatInternal["Internal API<br/>/internal export"]
     end
-    
+
     subgraph "OpenAI-Compatible Providers"
         XAI["@ai-sdk/xai<br/>XAI/Grok Models<br/>x_search, web_search tools"]
         TogetherAI["@ai-sdk/togetherai<br/>Multiple Model Providers<br/>Reranking Support"]
@@ -62,33 +60,33 @@ graph TB
         Fireworks["@ai-sdk/fireworks<br/>Fireworks AI Models<br/>Image Generation"]
         DeepInfra["@ai-sdk/deepinfra<br/>DeepInfra Models<br/>Cost-Effective Inference"]
     end
-    
+
     subgraph "Different Pattern"
         OpenAI["@ai-sdk/openai<br/>Direct OpenAI Implementation<br/>Chat + Responses APIs"]
         Azure["@ai-sdk/azure<br/>Uses OpenAI Provider"]
         Mistral["@ai-sdk/mistral<br/>Custom Implementation"]
     end
-    
+
     subgraph "Shared Dependencies"
         Provider["@ai-sdk/provider<br/>ProviderV3 Interface"]
         ProviderUtils["@ai-sdk/provider-utils<br/>Shared Utilities"]
     end
-    
+
     OpenAICompat --> Provider
     OpenAICompat --> ProviderUtils
-    
+
     XAI --> OpenAICompat
     TogetherAI --> OpenAICompat
     Cerebras --> OpenAICompat
     Fireworks --> OpenAICompat
     DeepInfra --> OpenAICompat
-    
+
     OpenAI --> Provider
     OpenAI --> ProviderUtils
     Azure --> OpenAI
     Mistral --> Provider
     Mistral --> ProviderUtils
-    
+
     XAI --> Provider
     XAI --> ProviderUtils
     TogetherAI --> Provider
@@ -99,7 +97,7 @@ graph TB
     Fireworks --> ProviderUtils
     DeepInfra --> Provider
     DeepInfra --> ProviderUtils
-    
+
     style OpenAICompat fill:#e1f5ff,stroke:#333,stroke-width:3px
     style XAI fill:#90EE90
     style TogetherAI fill:#90EE90
@@ -109,6 +107,7 @@ graph TB
 ```
 
 **Key Characteristics:**
+
 - **Base Layer:** `@ai-sdk/openai-compatible` implements OpenAI API protocol
 - **Adapter Providers:** Five providers extend the base layer with minimal customization
 - **Alternative Patterns:** OpenAI, Azure (via OpenAI), and Mistral use different architectures
@@ -129,11 +128,11 @@ graph LR
     subgraph "Public API"
         MainExport["index<br/>Provider Factory<br/>Language Models<br/>Embedding Models"]
     end
-    
+
     subgraph "Internal API"
         InternalExport["/internal<br/>Extended Functionality<br/>Custom Schemas<br/>Provider-Specific Logic"]
     end
-    
+
     subgraph "Implementation"
         ChatModel["Chat Model<br/>doGenerate<br/>doStream"]
         EmbedModel["Embedding Model<br/>doEmbed"]
@@ -141,13 +140,13 @@ graph LR
         RequestHandler["Request Handler<br/>API Communication<br/>Error Handling"]
         ResponseParser["Response Parser<br/>Schema Validation<br/>Type Conversion"]
     end
-    
+
     MainExport --> ChatModel
     MainExport --> EmbedModel
     MainExport --> ImageModel
     InternalExport --> RequestHandler
     InternalExport --> ResponseParser
-    
+
     ChatModel --> RequestHandler
     ChatModel --> ResponseParser
     EmbedModel --> RequestHandler
@@ -157,6 +156,7 @@ graph LR
 ```
 
 The package exports two APIs:
+
 - **Main Export (`.`)**: Standard provider factory and model constructors
 - **Internal Export (`./internal`)**: Extended functionality for provider-specific customizations
 
@@ -164,19 +164,19 @@ The package exports two APIs:
 
 ### Feature Support
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Language Models (LanguageModelV3) | ✅ Full | Chat completions with streaming |
-| Embedding Models (EmbeddingModelV3) | ✅ Full | Text embeddings |
-| Image Models (ImageModelV3) | ✅ Full | Image generation and editing |
-| Tool Calling | ✅ Full | Function and provider-defined tools |
-| Structured Outputs | ✅ Full | JSON schema validation |
-| Reasoning/Thinking | ✅ Full | Extended reasoning support |
-| Streaming | ✅ Full | Server-Sent Events (SSE) |
-| Multi-Modal Input | ✅ Full | Text, images, URLs |
-| Tool Approval | ✅ Full | Execution gating |
-| Provider Tools | Varies | Provider-specific implementation |
-| Strict Mode | ✅ Full | Tool-specific strict validation |
+| Feature                             | Status  | Notes                               |
+| ----------------------------------- | ------- | ----------------------------------- |
+| Language Models (LanguageModelV3)   | ✅ Full | Chat completions with streaming     |
+| Embedding Models (EmbeddingModelV3) | ✅ Full | Text embeddings                     |
+| Image Models (ImageModelV3)         | ✅ Full | Image generation and editing        |
+| Tool Calling                        | ✅ Full | Function and provider-defined tools |
+| Structured Outputs                  | ✅ Full | JSON schema validation              |
+| Reasoning/Thinking                  | ✅ Full | Extended reasoning support          |
+| Streaming                           | ✅ Full | Server-Sent Events (SSE)            |
+| Multi-Modal Input                   | ✅ Full | Text, images, URLs                  |
+| Tool Approval                       | ✅ Full | Execution gating                    |
+| Provider Tools                      | Varies  | Provider-specific implementation    |
+| Strict Mode                         | ✅ Full | Tool-specific strict validation     |
 
 **Sources:** [packages/openai-compatible/CHANGELOG.md:95-141]()
 
@@ -188,22 +188,22 @@ sequenceDiagram
     participant Provider as Provider<br/>(xai, togetherai, etc)
     participant Base as openai-compatible<br/>Base Layer
     participant API as Provider API<br/>(OpenAI-compatible endpoint)
-    
+
     App->>Provider: createLanguageModel(modelId)
     Provider->>Base: Configure base URL + headers
-    
+
     App->>Provider: model.doGenerate(options)
     Provider->>Provider: Apply provider customizations
     Provider->>Base: Call base implementation
     Base->>Base: Prepare OpenAI-format request
     Base->>API: POST /chat/completions
-    
+
     API-->>Base: OpenAI-format response
     Base->>Base: Parse and validate
     Base->>Base: Convert to LanguageModelV3 format
     Base-->>Provider: Standard response
     Provider-->>App: LanguageModelV3 result
-    
+
     Note over Base,API: Same flow for streaming<br/>with SSE handling
 ```
 
@@ -220,6 +220,7 @@ Each OpenAI-compatible provider extends the base layer with provider-specific co
 The XAI provider implements Grok models with provider-specific tools for X (Twitter) integration.
 
 **Key Features:**
+
 - **Models:** Grok-4, Grok-4-Fast, Grok-Code-Fast variants
 - **Provider Tools:** `x_search`, `web_search`, `code_execution`, `view_x_video`
 - **Special Handling:** Encrypted reasoning content, custom tool call types
@@ -232,32 +233,33 @@ graph TB
         XAIChat["XAI Language Model<br/>Grok Models"]
         XAITools["Provider Tools<br/>x_search<br/>web_search<br/>code_execution<br/>view_x_video"]
     end
-    
+
     subgraph "Base Layer Integration"
         BaseConfig["OpenAI-Compatible Config<br/>Custom Headers<br/>Request Transform"]
         CompatAPI["OpenAI API Client"]
     end
-    
+
     subgraph "Special Features"
         Reasoning["Reasoning Content<br/>Encrypted Support<br/>providerMetadata"]
         CustomToolCall["custom_tool_call Type<br/>Streaming Input Chunks"]
         ImageSupport["Image Support<br/>Responses API"]
     end
-    
+
     XAIProvider --> XAIChat
     XAIProvider --> XAITools
     XAIChat --> BaseConfig
     XAIChat --> CompatAPI
-    
+
     XAIChat --> Reasoning
     XAITools --> CustomToolCall
     XAIChat --> ImageSupport
-    
+
     style XAIProvider fill:#e1f5ff,stroke:#333,stroke-width:2px
     style XAITools fill:#fff4e1
 ```
 
 **Provider-Specific Configurations:**
+
 - **API Endpoint:** `https://api.x.ai/v1`
 - **Authentication:** `XAI_API_KEY` environment variable
 - **Parallel Function Calling:** `parallel_function_calling` provider option
@@ -271,6 +273,7 @@ graph TB
 TogetherAI aggregates multiple model providers with additional reranking support.
 
 **Key Features:**
+
 - **Multi-Provider:** Access to models from various providers
 - **Reranking:** Dedicated reranking model support
 - **Embedding Models:** Text embedding with shorthand names
@@ -283,11 +286,13 @@ TogetherAI aggregates multiple model providers with additional reranking support
 Cerebras provides high-speed inference on Wafer-Scale Engines.
 
 **Key Features:**
+
 - **Models:** Qwen-3, GPT-OSS, Llama variants optimized for Cerebras hardware
 - **Structured Outputs:** Full structured output support
 - **High Performance:** Optimized for CS-3 systems
 
 **Supported Models:**
+
 - `gpt-oss-120b` (120B parameters)
 - `qwen-3-235b-a22b-instruct-2507` (235B instruction-tuned)
 - `qwen-3-235b-a22b-thinking-2507` (235B enhanced reasoning)
@@ -302,6 +307,7 @@ Cerebras provides high-speed inference on Wafer-Scale Engines.
 Fireworks AI provides fast inference with image generation capabilities.
 
 **Key Features:**
+
 - **Language Models:** Various open-source and proprietary models
 - **Image Models:** Image generation with `ImageModelV3`
 - **Image Editing:** Support for image editing operations
@@ -313,6 +319,7 @@ Fireworks AI provides fast inference with image generation capabilities.
 DeepInfra offers cost-effective inference for open-source models.
 
 **Key Features:**
+
 - **Cost-Effective:** Optimized for economical model access
 - **Language Models:** Wide range of open-source models
 - **Standard Features:** Full LanguageModelV3 support
@@ -332,7 +339,7 @@ graph TB
     subgraph "Base Layer Feature"
         BaseFeature["openai-compatible<br/>New Feature<br/>e.g., Tool Approval"]
     end
-    
+
     subgraph "Automatic Propagation"
         XAIProp["XAI Provider<br/>Inherits Feature"]
         TogetherProp["TogetherAI Provider<br/>Inherits Feature"]
@@ -340,38 +347,38 @@ graph TB
         FireworksProp["Fireworks Provider<br/>Inherits Feature"]
         DeepInfraProp["DeepInfra Provider<br/>Inherits Feature"]
     end
-    
+
     subgraph "Version Coordination"
         Changelog["Shared CHANGELOG<br/>Dependencies Updated<br/>Synchronized Releases"]
     end
-    
+
     BaseFeature --> XAIProp
     BaseFeature --> TogetherProp
     BaseFeature --> CerebrasProp
     BaseFeature --> FireworksProp
     BaseFeature --> DeepInfraProp
-    
+
     XAIProp --> Changelog
     TogetherProp --> Changelog
     CerebrasProp --> Changelog
     FireworksProp --> Changelog
     DeepInfraProp --> Changelog
-    
+
     style BaseFeature fill:#e1f5ff,stroke:#333,stroke-width:3px
 ```
 
 ### Recent Feature Propagations
 
-| Feature | Base Version | Propagated To | Impact |
-|---------|--------------|---------------|--------|
-| Tool Approval (`e8109d3`) | v2.0.0-beta | All providers | Execution gating with `needsApproval` |
-| Tool-Specific Strict Mode (`1bd7d32`) | v2.0.0-beta | All providers | Per-tool strict validation |
-| Image Editing (`9061dc0`) | v2.0.0-beta | All providers | `ImageModelV3` editing operations |
-| Text Verbosity (`b689220`) | v2.0.0-beta | All providers | Provider option for text verbosity |
-| Loose Schema Validation (`d54c380`) | v2.0.5 | All providers | Improved non-standard API compatibility |
-| Thought Signature (`cd7bb0e`) | v2.0.7 | All providers | Google models reasoning support |
-| Strict JSON Schema (`bc02a3c`) | v2.0.9 | All providers | Enhanced schema validation |
-| Transform Request Body (`78a133a`) | v2.0.12 | All providers | Custom request transformation |
+| Feature                               | Base Version | Propagated To | Impact                                  |
+| ------------------------------------- | ------------ | ------------- | --------------------------------------- |
+| Tool Approval (`e8109d3`)             | v2.0.0-beta  | All providers | Execution gating with `needsApproval`   |
+| Tool-Specific Strict Mode (`1bd7d32`) | v2.0.0-beta  | All providers | Per-tool strict validation              |
+| Image Editing (`9061dc0`)             | v2.0.0-beta  | All providers | `ImageModelV3` editing operations       |
+| Text Verbosity (`b689220`)            | v2.0.0-beta  | All providers | Provider option for text verbosity      |
+| Loose Schema Validation (`d54c380`)   | v2.0.5       | All providers | Improved non-standard API compatibility |
+| Thought Signature (`cd7bb0e`)         | v2.0.7       | All providers | Google models reasoning support         |
+| Strict JSON Schema (`bc02a3c`)        | v2.0.9       | All providers | Enhanced schema validation              |
+| Transform Request Body (`78a133a`)    | v2.0.12      | All providers | Custom request transformation           |
 
 **Sources:** [packages/openai-compatible/CHANGELOG.md:14-141](), [packages/xai/CHANGELOG.md:185-241](), [packages/togetherai/CHANGELOG.md:107-150](), [packages/cerebras/CHANGELOG.md:100-162](), [packages/fireworks/CHANGELOG.md:107-148](), [packages/deepinfra/CHANGELOG.md:107-148]()
 
@@ -390,12 +397,12 @@ const provider = createProvider({
   apiKey: process.env.PROVIDER_API_KEY,
   headers: {
     // Custom headers
-  }
-});
+  },
+})
 
 const model = provider.languageModel('model-id', {
   // Model-specific settings
-});
+})
 ```
 
 ### Configuration Options Hierarchy
@@ -407,28 +414,28 @@ graph TB
         ModelLevel["Model Level<br/>modelId<br/>settings<br/>supportsStructuredOutputs"]
         CallLevel["Call Level<br/>providerOptions<br/>per-request settings"]
     end
-    
+
     subgraph "Provider Options"
         OpenAIOptions["providerOptions.provider<br/>Provider-specific options<br/>passed to API"]
     end
-    
+
     ProviderLevel --> ModelLevel
     ModelLevel --> CallLevel
     CallLevel --> OpenAIOptions
-    
+
     style ProviderLevel fill:#e1f5ff
     style CallLevel fill:#fff4e1
 ```
 
 ### Environment Variables
 
-| Provider | API Key Env Var | Base URL Env Var | Default Base URL |
-|----------|----------------|------------------|------------------|
-| XAI | `XAI_API_KEY` | - | `https://api.x.ai/v1` |
-| TogetherAI | `TOGETHER_API_KEY` | - | `https://api.together.xyz/v1` |
-| Cerebras | `CEREBRAS_API_KEY` | - | `https://api.cerebras.ai/v1` |
-| Fireworks | `FIREWORKS_API_KEY` | - | `https://api.fireworks.ai/inference/v1` |
-| DeepInfra | `DEEPINFRA_API_KEY` | - | `https://api.deepinfra.com/v1/openai` |
+| Provider   | API Key Env Var     | Base URL Env Var | Default Base URL                        |
+| ---------- | ------------------- | ---------------- | --------------------------------------- |
+| XAI        | `XAI_API_KEY`       | -                | `https://api.x.ai/v1`                   |
+| TogetherAI | `TOGETHER_API_KEY`  | -                | `https://api.together.xyz/v1`           |
+| Cerebras   | `CEREBRAS_API_KEY`  | -                | `https://api.cerebras.ai/v1`            |
+| Fireworks  | `FIREWORKS_API_KEY` | -                | `https://api.fireworks.ai/inference/v1` |
+| DeepInfra  | `DEEPINFRA_API_KEY` | -                | `https://api.deepinfra.com/v1/openai`   |
 
 **Sources:** [packages/xai/CHANGELOG.md:1-241](), [packages/togetherai/CHANGELOG.md:1-150](), [packages/cerebras/CHANGELOG.md:1-162]()
 
@@ -467,12 +474,14 @@ Providers can use custom schemas for validation:
 Providers can define custom provider-executed tools:
 
 **XAI Provider Tools:**
+
 - `x_search`: Search X (Twitter) content
 - `web_search`: General web search
 - `code_execution`: Execute code server-side
 - `view_x_video`: View X video content
 
 **Tool Definition Pattern:**
+
 ```typescript
 // Conceptual tool definition
 providerTools: {
@@ -491,6 +500,7 @@ providerTools: {
 Providers can customize reasoning behavior:
 
 **XAI Implementation:**
+
 - Encrypted reasoning content support
 - Custom `providerMetadata` structure
 - Reasoning-end before text-start in streaming
@@ -520,7 +530,7 @@ graph TB
         OpenAIDirect --> ChatAPI
         OpenAIDirect --> ResponsesAPI
     end
-    
+
     subgraph "OpenAI-Compatible Pattern"
         CompatBase["@ai-sdk/openai-compatible<br/>Base Layer"]
         CompatProviders["XAI, TogetherAI<br/>Cerebras, Fireworks<br/>DeepInfra"]
@@ -528,14 +538,14 @@ graph TB
         CompatBase --> CompatAPI
         CompatProviders --> CompatBase
     end
-    
+
     subgraph "Hybrid Pattern"
         AzureProvider["@ai-sdk/azure<br/>Uses OpenAI Provider"]
         AzureAPI["Azure OpenAI Service<br/>OpenAI Implementation"]
         AzureProvider --> OpenAIDirect
         OpenAIDirect --> AzureAPI
     end
-    
+
     style OpenAIDirect fill:#10a37f
     style CompatBase fill:#e1f5ff,stroke:#333,stroke-width:3px
     style AzureProvider fill:#0078d4
@@ -543,36 +553,39 @@ graph TB
 
 ### Feature Comparison Table
 
-| Aspect | @ai-sdk/openai | @ai-sdk/openai-compatible |
-|--------|----------------|---------------------------|
-| **Implementation** | Custom, OpenAI-specific | Generic, adaptable |
-| **APIs Supported** | Chat Completions + Responses | Chat Completions (OpenAI format) |
-| **Provider Tools** | OpenAI native (code_interpreter, file_search, web_search, image_generation, shell, apply_patch) | Provider-specific (varies by provider) |
-| **Responses API** | ✅ Full support | ❌ Not applicable |
-| **Image Generation** | DALL-E models | Provider-specific models |
-| **Speech/Transcription** | Whisper, TTS | ❌ Not supported |
-| **File Handling** | OpenAI Files API integration | Limited (varies by provider) |
-| **Reasoning Modes** | GPT-5/o-series native reasoning | Provider-specific reasoning |
-| **Internal Export** | Yes, for Azure reuse | Yes, for provider extensions |
-| **Configuration** | OpenAI-specific options | Generic OpenAI-compatible options |
+| Aspect                   | @ai-sdk/openai                                                                                  | @ai-sdk/openai-compatible              |
+| ------------------------ | ----------------------------------------------------------------------------------------------- | -------------------------------------- |
+| **Implementation**       | Custom, OpenAI-specific                                                                         | Generic, adaptable                     |
+| **APIs Supported**       | Chat Completions + Responses                                                                    | Chat Completions (OpenAI format)       |
+| **Provider Tools**       | OpenAI native (code_interpreter, file_search, web_search, image_generation, shell, apply_patch) | Provider-specific (varies by provider) |
+| **Responses API**        | ✅ Full support                                                                                 | ❌ Not applicable                      |
+| **Image Generation**     | DALL-E models                                                                                   | Provider-specific models               |
+| **Speech/Transcription** | Whisper, TTS                                                                                    | ❌ Not supported                       |
+| **File Handling**        | OpenAI Files API integration                                                                    | Limited (varies by provider)           |
+| **Reasoning Modes**      | GPT-5/o-series native reasoning                                                                 | Provider-specific reasoning            |
+| **Internal Export**      | Yes, for Azure reuse                                                                            | Yes, for provider extensions           |
+| **Configuration**        | OpenAI-specific options                                                                         | Generic OpenAI-compatible options      |
 
 **Sources:** [packages/openai/CHANGELOG.md:1-200](), [packages/openai-compatible/CHANGELOG.md:1-141](), [packages/azure/CHANGELOG.md:1-163]()
 
 ### When to Use Each Pattern
 
 **Use @ai-sdk/openai when:**
+
 - Targeting OpenAI or Azure OpenAI specifically
 - Need Responses API features (advanced provider tools, conversations API)
 - Require OpenAI-specific models (GPT-5, DALL-E, Whisper, TTS)
 - Need tight integration with OpenAI Files API
 
 **Use @ai-sdk/openai-compatible when:**
+
 - Building a provider for an OpenAI-compatible API
 - Need to minimize implementation effort
 - API follows standard OpenAI format
 - Provider-specific customization is minimal
 
 **Create custom implementation when:**
+
 - API differs significantly from OpenAI format (e.g., Mistral)
 - Need specialized features not in OpenAI format
 - Performance optimizations require custom code
@@ -610,14 +623,14 @@ When a new feature is added to `@ai-sdk/openai-compatible`:
 
 **Example Release Flow (Tool Approval Feature):**
 
-| Package | Change | Version |
-|---------|--------|---------|
-| @ai-sdk/openai-compatible | Added tool approval (`e8109d3`) | 2.0.0-beta |
-| @ai-sdk/xai | Updated dependency | 2.0.0-beta.8 |
-| @ai-sdk/togetherai | Updated dependency | 2.0.0-beta |
-| @ai-sdk/cerebras | Updated dependency | 2.0.0-beta |
-| @ai-sdk/fireworks | Updated dependency | 2.0.0-beta |
-| @ai-sdk/deepinfra | Updated dependency | 2.0.0-beta |
+| Package                   | Change                          | Version      |
+| ------------------------- | ------------------------------- | ------------ |
+| @ai-sdk/openai-compatible | Added tool approval (`e8109d3`) | 2.0.0-beta   |
+| @ai-sdk/xai               | Updated dependency              | 2.0.0-beta.8 |
+| @ai-sdk/togetherai        | Updated dependency              | 2.0.0-beta   |
+| @ai-sdk/cerebras          | Updated dependency              | 2.0.0-beta   |
+| @ai-sdk/fireworks         | Updated dependency              | 2.0.0-beta   |
+| @ai-sdk/deepinfra         | Updated dependency              | 2.0.0-beta   |
 
 **Sources:** [packages/xai/package.json:35-38](), [packages/xai/CHANGELOG.md:185-241](), [packages/openai-compatible/CHANGELOG.md:125-128]()
 
@@ -630,6 +643,7 @@ When a new feature is added to `@ai-sdk/openai-compatible`:
 To create a new provider using the OpenAI-compatible base:
 
 **Step 1: Package Setup**
+
 ```json
 // package.json structure
 {
@@ -643,21 +657,25 @@ To create a new provider using the OpenAI-compatible base:
 ```
 
 **Step 2: Provider Factory**
+
 - Import base implementation from `@ai-sdk/openai-compatible`
 - Configure base URL and authentication
 - Add provider-specific headers if needed
 
 **Step 3: Model Configuration**
+
 - Define supported model IDs
 - Configure model capabilities (structured outputs, tools, reasoning)
 - Set default parameters
 
 **Step 4: Provider-Specific Extensions**
+
 - Define custom provider tools (if applicable)
 - Implement request/response transformations (if needed)
 - Add provider metadata handling
 
 **Step 5: Testing**
+
 - Test with standard OpenAI-compatible endpoints
 - Verify feature compatibility
 - Test provider-specific extensions

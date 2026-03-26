@@ -14,8 +14,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The events system provides scheduled and immediate task execution for mom, enabling wake-ups at specific times, recurring tasks via cron schedules, and instant triggers from external programs. Events are represented as JSON files in the `workspace/events/` directory, monitored by the `EventsWatcher` class and executed through the existing `ChannelQueue` mechanism.
 
 For information about mom's overall architecture and workspace structure, see [Architecture & Workspace Structure](#8.1). For details on the artifacts server (another scheduled service mom can manage), see [Artifacts Server](#8.3).
@@ -84,33 +82,33 @@ graph TB
     EventsDir["events/ directory<br/>(JSON files)"]
     FSWatcher["Node.js fs.watch()<br/>with 100ms debounce"]
     EventsWatcher["EventsWatcher<br/>━━━━━━━━━━━<br/>• timers: Map<string, NodeJS.Timeout><br/>• crons: Map<string, Cron><br/>• knownFiles: Set<string><br/>• startTime: number"]
-    
+
     ParseRetry["Parse Event<br/>with retry logic<br/>(3 attempts, exponential backoff)"]
-    
+
     ImmediateHandler["handleImmediate()<br/>• Check staleness (mtime vs startTime)<br/>• Execute immediately<br/>• Delete file"]
     OneShotHandler["handleOneShot()<br/>• Check if at > now<br/>• setTimeout(delay)<br/>• Store in timers Map"]
     PeriodicHandler["handlePeriodic()<br/>• new Cron(schedule, timezone)<br/>• Store in crons Map<br/>• No catch-up for missed runs"]
-    
+
     Execute["execute(filename, event)<br/>• Format message: [EVENT:file:type:schedule] text<br/>• Create synthetic SlackEvent<br/>• Call slack.enqueueEvent()"]
-    
+
     SlackBot["SlackBot.enqueueEvent()<br/>• Max 5 events per channel<br/>• Always queues (no 'busy' rejection)<br/>• Returns false if queue full"]
-    
+
     ChannelQueue["ChannelQueue<br/>• Sequential processing<br/>• One queue per channel"]
-    
+
     EventsDir --> FSWatcher
     FSWatcher --> EventsWatcher
     EventsWatcher --> ParseRetry
     ParseRetry --> ImmediateHandler
     ParseRetry --> OneShotHandler
     ParseRetry --> PeriodicHandler
-    
+
     ImmediateHandler --> Execute
     OneShotHandler -.timer fires.-> Execute
     PeriodicHandler -.cron trigger.-> Execute
-    
+
     Execute --> SlackBot
     SlackBot --> ChannelQueue
-    
+
     ChannelQueue --> AgentRunner["AgentRunner.run()"]
 ```
 
@@ -131,18 +129,18 @@ sequenceDiagram
     participant SlackBot as "SlackBot"
     participant Queue as "ChannelQueue"
     participant Agent as "AgentRunner"
-    
+
     rect rgb(240, 240, 240)
         Note over User,FS: Event Creation
         User->>FS: Write event.json<br/>(immediate/one-shot/periodic)
         FS->>Watcher: fs.watch() event (debounced 100ms)
     end
-    
+
     rect rgb(240, 240, 240)
         Note over Watcher,Timer: Parse & Schedule
         Watcher->>Watcher: readFile() with retry<br/>(3 attempts, exponential backoff)
         Watcher->>Watcher: parseEvent(content)
-        
+
         alt Immediate Event
             Watcher->>Watcher: Check mtime < startTime?
             alt Stale (created before harness start)
@@ -171,7 +169,7 @@ sequenceDiagram
             end
         end
     end
-    
+
     rect rgb(240, 240, 240)
         Note over SlackBot,Agent: Execution
         SlackBot->>Queue: Add to channel queue<br/>(max 5 events)
@@ -226,15 +224,16 @@ workspace/
 
 The three event types are represented as TypeScript interfaces [packages/mom/src/events.ts:12-33]():
 
-| Type | Required Fields | Optional Fields | Notes |
-|------|----------------|-----------------|-------|
-| `ImmediateEvent` | `type`, `channelId`, `text` | - | Deleted after execution |
-| `OneShotEvent` | `type`, `channelId`, `text`, `at` | - | `at` must be ISO 8601 with timezone |
-| `PeriodicEvent` | `type`, `channelId`, `text`, `schedule`, `timezone` | - | Persists until manually deleted |
+| Type             | Required Fields                                     | Optional Fields | Notes                               |
+| ---------------- | --------------------------------------------------- | --------------- | ----------------------------------- |
+| `ImmediateEvent` | `type`, `channelId`, `text`                         | -               | Deleted after execution             |
+| `OneShotEvent`   | `type`, `channelId`, `text`, `at`                   | -               | `at` must be ISO 8601 with timezone |
+| `PeriodicEvent`  | `type`, `channelId`, `text`, `schedule`, `timezone` | -               | Persists until manually deleted     |
 
 **Validation:**
 
 The `parseEvent()` method [packages/mom/src/events.ts:221-256]() validates:
+
 - Required fields present for each type
 - Event type is recognized (`immediate`, `one-shot`, or `periodic`)
 - Format constraints (e.g., `at` field for one-shot, `schedule` and `timezone` for periodic)
@@ -256,6 +255,7 @@ The event is formatted into a message string [packages/mom/src/events.ts:318-343
 ```
 
 Examples:
+
 - Immediate: `[EVENT:webhook-123.json:immediate] New support ticket`
 - One-shot: `[EVENT:dentist.json:one-shot:2025-12-15T09:00:00+01:00] Remind Mario`
 - Periodic: `[EVENT:daily-inbox.json:periodic:0 9 * * 1-5] Check inbox`
@@ -292,11 +292,11 @@ Immediate events created before the harness started are considered stale and del
 
 ```typescript
 // Check if stale (created before harness started)
-const stat = statSync(filePath);
+const stat = statSync(filePath)
 if (stat.mtimeMs < this.startTime) {
-    log.logInfo(`Stale immediate event, deleting: ${filename}`);
-    this.deleteFile(filename);
-    return;
+  log.logInfo(`Stale immediate event, deleting: ${filename}`)
+  this.deleteFile(filename)
+  return
 }
 ```
 
@@ -308,13 +308,16 @@ Periodic events often check for activity (new emails, notifications, etc.) and m
 
 ```typescript
 // Check for [SILENT] marker - delete message and thread instead of posting
-if (finalText.trim() === "[SILENT]" || finalText.trim().startsWith("[SILENT]")) {
-    try {
-        await ctx.deleteMessage();
-        log.logInfo("Silent response - deleted message and thread");
-    } catch (err) {
-        // ...
-    }
+if (
+  finalText.trim() === '[SILENT]' ||
+  finalText.trim().startsWith('[SILENT]')
+) {
+  try {
+    await ctx.deleteMessage()
+    log.logInfo('Silent response - deleted message and thread')
+  } catch (err) {
+    // ...
+  }
 }
 ```
 
@@ -326,8 +329,8 @@ A maximum of 5 events can be queued per channel [packages/mom/src/slack.ts:250](
 
 ```typescript
 if (queue.size() >= 5) {
-    log.logWarning(`Event queue full for ${event.channel}, discarding: ...`);
-    return false;
+  log.logWarning(`Event queue full for ${event.channel}, discarding: ...`)
+  return false
 }
 ```
 
@@ -392,17 +395,18 @@ Sources: [packages/mom/src/agent.ts:226-285](), [packages/mom/docs/events.md:216
 Failed JSON parses are retried with exponential backoff [packages/mom/src/events.ts:186-197]():
 
 ```typescript
-for (let i = 0; i < MAX_RETRIES; i++) {  // MAX_RETRIES = 3
-    try {
-        const content = await readFile(filePath, "utf-8");
-        event = this.parseEvent(content, filename);
-        break;
-    } catch (err) {
-        lastError = err instanceof Error ? err : new Error(String(err));
-        if (i < MAX_RETRIES - 1) {
-            await this.sleep(RETRY_BASE_MS * 2 ** i);  // 100ms, 200ms, 400ms
-        }
+for (let i = 0; i < MAX_RETRIES; i++) {
+  // MAX_RETRIES = 3
+  try {
+    const content = await readFile(filePath, 'utf-8')
+    event = this.parseEvent(content, filename)
+    break
+  } catch (err) {
+    lastError = err instanceof Error ? err : new Error(String(err))
+    if (i < MAX_RETRIES - 1) {
+      await this.sleep(RETRY_BASE_MS * 2 ** i) // 100ms, 200ms, 400ms
     }
+  }
 }
 ```
 
@@ -414,13 +418,16 @@ Invalid cron schedules are caught during `Cron` construction [packages/mom/src/e
 
 ```typescript
 try {
-    const cron = new Cron(event.schedule, { timezone: event.timezone }, () => {
-        // ...
-    });
+  const cron = new Cron(event.schedule, { timezone: event.timezone }, () => {
     // ...
+  })
+  // ...
 } catch (err) {
-    log.logWarning(`Invalid cron schedule for ${filename}: ${event.schedule}`, String(err));
-    this.deleteFile(filename);
+  log.logWarning(
+    `Invalid cron schedule for ${filename}: ${event.schedule}`,
+    String(err)
+  )
+  this.deleteFile(filename)
 }
 ```
 
@@ -442,14 +449,14 @@ On harness startup, `EventsWatcher.start()` [packages/mom/src/events.ts:61-79]()
 **Missed Events:**
 
 - **Immediate**: Stale events (mtime < startTime) are deleted without execution
-- **One-shot**: Past events (at < now) are deleted without execution  
+- **One-shot**: Past events (at < now) are deleted without execution
 - **Periodic**: No catch-up for missed runs; waits for next scheduled time from cron
 
 The watcher is started in `main.ts` after `SlackBot` initialization [packages/mom/src/main.ts:351-352]():
 
 ```typescript
-const eventsWatcher = createEventsWatcher(workingDir, bot);
-eventsWatcher.start();
+const eventsWatcher = createEventsWatcher(workingDir, bot)
+eventsWatcher.start()
 ```
 
 **Shutdown:**
@@ -468,10 +475,11 @@ Sources: [packages/mom/src/events.ts:61-111](), [packages/mom/src/main.ts:351-36
 The events system uses the `croner` library for cron scheduling [packages/mom/src/events.ts:1]():
 
 ```typescript
-import { Cron } from "croner";
+import { Cron } from 'croner'
 ```
 
 The `Cron` constructor supports:
+
 - Standard cron syntax (5-field format)
 - Timezone option using IANA timezone names
 - Callback function executed on each trigger

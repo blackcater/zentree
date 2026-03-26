@@ -17,8 +17,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the configuration UI for the three active messaging platform integrations: **Telegram**, **Lark/Feishu**, and **DingTalk**. It covers the React components that allow users to enter bot credentials, test connections, enable/disable bots, select AI agents and models, and manage authorized users.
 
 For the underlying backend architecture that processes messages from these platforms (plugin lifecycle, session management, pairing codes), see [Channel Architecture](#6.1).
@@ -73,16 +71,16 @@ Sources: [src/renderer/components/SettingsModal/contents/WebuiModalContent.tsx:6
 
 ### State managed per platform
 
-| State variable | Type | Purpose |
-|---|---|---|
-| `pluginStatus` | `IChannelPluginStatus \| null` | Telegram plugin status |
-| `larkPluginStatus` | `IChannelPluginStatus \| null` | Lark plugin status |
-| `dingtalkPluginStatus` | `IChannelPluginStatus \| null` | DingTalk plugin status |
-| `enableLoading` / `larkEnableLoading` / `dingtalkEnableLoading` | `boolean` | Enable/disable in-progress indicator |
-| `collapseKeys` | `Record<string, boolean>` | Collapse state of each panel |
-| `telegramModelSelection` | `GeminiModelSelection` | Persisted model for Telegram |
-| `larkModelSelection` | `GeminiModelSelection` | Persisted model for Lark |
-| `dingtalkModelSelection` | `GeminiModelSelection` | Persisted model for DingTalk |
+| State variable                                                  | Type                           | Purpose                              |
+| --------------------------------------------------------------- | ------------------------------ | ------------------------------------ |
+| `pluginStatus`                                                  | `IChannelPluginStatus \| null` | Telegram plugin status               |
+| `larkPluginStatus`                                              | `IChannelPluginStatus \| null` | Lark plugin status                   |
+| `dingtalkPluginStatus`                                          | `IChannelPluginStatus \| null` | DingTalk plugin status               |
+| `enableLoading` / `larkEnableLoading` / `dingtalkEnableLoading` | `boolean`                      | Enable/disable in-progress indicator |
+| `collapseKeys`                                                  | `Record<string, boolean>`      | Collapse state of each panel         |
+| `telegramModelSelection`                                        | `GeminiModelSelection`         | Persisted model for Telegram         |
+| `larkModelSelection`                                            | `GeminiModelSelection`         | Persisted model for Lark             |
+| `dingtalkModelSelection`                                        | `GeminiModelSelection`         | Persisted model for DingTalk         |
 
 ### Toggle handlers
 
@@ -101,6 +99,7 @@ Sources: [src/renderer/components/SettingsModal/contents/ChannelModalContent.tsx
 ### ChannelHeader
 
 `ChannelHeader` [src/renderer/components/SettingsModal/contents/channels/ChannelHeader.tsx]() displays:
+
 - Platform logo SVG (`channel-logos/telegram.svg`, `lark.svg`, `dingtalk.svg`, etc.)
 - Channel title
 - A `coming_soon` tag for Slack and Discord
@@ -112,15 +111,15 @@ The switch `onClick` is `stopPropagation`-guarded to prevent triggering the coll
 
 The `ChannelConfig` type (in `src/renderer/components/SettingsModal/contents/channels/types.ts`) carries:
 
-| Field | Description |
-|---|---|
-| `id` | Platform key (`telegram`, `lark`, `dingtalk`, …) |
-| `status` | `'active'` or `'coming_soon'` |
-| `enabled` | Whether the bot is currently on |
-| `isConnected` | Whether the plugin's WebSocket/polling is live |
-| `botUsername` | Bot username if connected (Telegram) |
-| `defaultModel` | Display name of the selected model |
-| `content` | The platform-specific `React.ReactNode` form |
+| Field          | Description                                      |
+| -------------- | ------------------------------------------------ |
+| `id`           | Platform key (`telegram`, `lark`, `dingtalk`, …) |
+| `status`       | `'active'` or `'coming_soon'`                    |
+| `enabled`      | Whether the bot is currently on                  |
+| `isConnected`  | Whether the plugin's WebSocket/polling is live   |
+| `botUsername`  | Bot username if connected (Telegram)             |
+| `defaultModel` | Display name of the selected model               |
+| `content`      | The platform-specific `React.ReactNode` form     |
 
 Sources: [src/renderer/components/SettingsModal/contents/channels/ChannelItem.tsx](), [src/renderer/components/SettingsModal/contents/channels/ChannelHeader.tsx](), [src/renderer/components/SettingsModal/contents/ChannelModalContent.tsx:303-363]()
 
@@ -165,12 +164,12 @@ Sources: [src/renderer/components/SettingsModal/contents/TelegramConfigForm.tsx:
 
 `LarkConfigForm` [src/renderer/components/SettingsModal/contents/LarkConfigForm.tsx]() requires two mandatory credentials and has optional security fields:
 
-| Field | Required | Description |
-|---|---|---|
-| App ID | ✓ | From Feishu Developer Console (`cli_xxxxxxxxxx`) |
-| App Secret | ✓ | From Feishu Developer Console |
-| Encrypt Key | — | For event encryption (Event Subscription settings) |
-| Verification Token | — | For event verification |
+| Field              | Required | Description                                        |
+| ------------------ | -------- | -------------------------------------------------- |
+| App ID             | ✓        | From Feishu Developer Console (`cli_xxxxxxxxxx`)   |
+| App Secret         | ✓        | From Feishu Developer Console                      |
+| Encrypt Key        | —        | For event encryption (Event Subscription settings) |
+| Verification Token | —        | For event verification                             |
 
 Optional fields are hidden under a collapsible toggle. The `LARK_DEV_DOCS_URL` constant [src/renderer/components/SettingsModal/contents/LarkConfigForm.tsx:59]() points to the Feishu bot echo bot documentation.
 
@@ -186,9 +185,9 @@ Sources: [src/renderer/components/SettingsModal/contents/LarkConfigForm.tsx:61-2
 
 `DingTalkConfigForm` follows the same pattern as `LarkConfigForm` and requires:
 
-| Field | Description |
-|---|---|
-| Client ID | From DingTalk Open Platform |
+| Field         | Description                 |
+| ------------- | --------------------------- |
+| Client ID     | From DingTalk Open Platform |
 | Client Secret | From DingTalk Open Platform |
 
 DingTalk uses a WebSocket Stream connection via the `dingtalk-stream` SDK, established in `DingTalkPlugin` [src/channels/plugins/dingtalk/DingTalkPlugin.ts:104-119](). The credentials flow through `channel.enablePlugin` into `ChannelManager.enablePlugin`, which extracts `clientId` and `clientSecret` from the config object [src/channels/core/ChannelManager.ts:232-240]().
@@ -212,10 +211,10 @@ Each platform config form contains two independent selectors: a **model selector
 
 **Config keys:**
 
-| Platform | Config key |
-|---|---|
+| Platform | Config key                        |
+| -------- | --------------------------------- |
 | Telegram | `assistant.telegram.defaultModel` |
-| Lark | `assistant.lark.defaultModel` |
+| Lark     | `assistant.lark.defaultModel`     |
 | DingTalk | `assistant.dingtalk.defaultModel` |
 
 The main process reads these via `ProcessConfig.get('assistant.{platform}.defaultModel')` inside `getChannelDefaultModel` [src/channels/actions/SystemActions.ts:30-86]() when creating a new conversation for an incoming message.
@@ -224,11 +223,11 @@ The main process reads these via `ProcessConfig.get('assistant.{platform}.defaul
 
 Each config form independently loads available agents via `acpConversation.getAvailableAgents.invoke()`. The list is filtered to exclude preset agents [src/renderer/components/SettingsModal/contents/TelegramConfigForm.tsx:113-115](). A dropdown allows the user to choose among:
 
-| Backend value | Channel agent type | Display |
-|---|---|---|
-| `gemini` | `gemini` | 🤖 Gemini |
-| `claude` | `acp` | 🧠 Claude |
-| `codex` | `codex` | ⚡ Codex |
+| Backend value      | Channel agent type | Display     |
+| ------------------ | ------------------ | ----------- |
+| `gemini`           | `gemini`           | 🤖 Gemini   |
+| `claude`           | `acp`              | 🧠 Claude   |
+| `codex`            | `codex`            | ⚡ Codex    |
 | `openclaw-gateway` | `openclaw-gateway` | 🦞 OpenClaw |
 
 The selection is persisted to `assistant.{platform}.agent` via `ConfigStorage.set` and synchronized via `channel.syncChannelSettings` [src/renderer/components/SettingsModal/contents/TelegramConfigForm.tsx:135-144]().
@@ -284,6 +283,7 @@ All three config forms share identical pairing and user management UI patterns.
 ### Pending pairing requests
 
 On mount, the form calls `channel.getPendingPairings.invoke()` and filters results for its own platform. It also subscribes to `channel.pairingRequested` to receive real-time updates when a new user scans a code. Each pending request shows:
+
 - Display name
 - Pairing code
 - Request time
@@ -295,6 +295,7 @@ On mount, the form calls `channel.getPendingPairings.invoke()` and filters resul
 ### Authorized users
 
 `channel.getAuthorizedUsers.invoke()` loads the current list. The form also listens to `channel.userAuthorized` for real-time additions when a pairing is approved on the main process side. Each authorized user entry shows:
+
 - Display name, platform user ID
 - Authorization timestamp
 - A revoke button that calls `channel.revokeUser.invoke({userId})`
@@ -335,21 +336,21 @@ The renderer communicates with the main process channel system exclusively throu
 
 **IPC calls used by the platform integration UI:**
 
-| IPC call | Direction | Purpose |
-|---|---|---|
-| `channel.getPluginStatus` | invoke | Get `IChannelPluginStatus[]` for all plugins |
-| `channel.enablePlugin` | invoke | Start a plugin with given config |
-| `channel.disablePlugin` | invoke | Stop a running plugin |
-| `channel.testPlugin` | invoke | Validate credentials without persisting |
-| `channel.getPendingPairings` | invoke | Fetch pending `IChannelPairingRequest[]` |
-| `channel.getAuthorizedUsers` | invoke | Fetch `IChannelUser[]` |
-| `channel.approvePairing` | invoke | Approve a pending pairing by code |
-| `channel.rejectPairing` | invoke | Reject a pending pairing by code |
-| `channel.revokeUser` | invoke | Remove an authorized user |
-| `channel.syncChannelSettings` | invoke | Push agent + model selection to main process |
-| `channel.pluginStatusChanged` | event (on) | Plugin status updates |
-| `channel.pairingRequested` | event (on) | New pairing request notification |
-| `channel.userAuthorized` | event (on) | Pairing approval confirmation |
+| IPC call                      | Direction  | Purpose                                      |
+| ----------------------------- | ---------- | -------------------------------------------- |
+| `channel.getPluginStatus`     | invoke     | Get `IChannelPluginStatus[]` for all plugins |
+| `channel.enablePlugin`        | invoke     | Start a plugin with given config             |
+| `channel.disablePlugin`       | invoke     | Stop a running plugin                        |
+| `channel.testPlugin`          | invoke     | Validate credentials without persisting      |
+| `channel.getPendingPairings`  | invoke     | Fetch pending `IChannelPairingRequest[]`     |
+| `channel.getAuthorizedUsers`  | invoke     | Fetch `IChannelUser[]`                       |
+| `channel.approvePairing`      | invoke     | Approve a pending pairing by code            |
+| `channel.rejectPairing`       | invoke     | Reject a pending pairing by code             |
+| `channel.revokeUser`          | invoke     | Remove an authorized user                    |
+| `channel.syncChannelSettings` | invoke     | Push agent + model selection to main process |
+| `channel.pluginStatusChanged` | event (on) | Plugin status updates                        |
+| `channel.pairingRequested`    | event (on) | New pairing request notification             |
+| `channel.userAuthorized`      | event (on) | Pairing approval confirmation                |
 
 **IPC-to-ChannelManager code path**
 

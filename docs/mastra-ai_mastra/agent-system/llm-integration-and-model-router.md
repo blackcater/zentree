@@ -10,7 +10,7 @@ The following files were used as context for generating this wiki page:
 - [docs/src/content/en/models/gateways/openrouter.mdx](docs/src/content/en/models/gateways/openrouter.mdx)
 - [docs/src/content/en/models/gateways/vercel.mdx](docs/src/content/en/models/gateways/vercel.mdx)
 - [docs/src/content/en/models/index.mdx](docs/src/content/en/models/index.mdx)
-- [docs/src/content/en/models/providers/_meta.ts](docs/src/content/en/models/providers/_meta.ts)
+- [docs/src/content/en/models/providers/\_meta.ts](docs/src/content/en/models/providers/_meta.ts)
 - [docs/src/content/en/models/providers/alibaba-cn.mdx](docs/src/content/en/models/providers/alibaba-cn.mdx)
 - [docs/src/content/en/models/providers/alibaba.mdx](docs/src/content/en/models/providers/alibaba.mdx)
 - [docs/src/content/en/models/providers/anthropic.mdx](docs/src/content/en/models/providers/anthropic.mdx)
@@ -47,7 +47,7 @@ The following files were used as context for generating this wiki page:
 - [examples/bird-checker-with-express/src/index.ts](examples/bird-checker-with-express/src/index.ts)
 - [examples/bird-checker-with-nextjs-and-eval/src/lib/mastra/actions.ts](examples/bird-checker-with-nextjs-and-eval/src/lib/mastra/actions.ts)
 - [packages/core/src/action/index.ts](packages/core/src/action/index.ts)
-- [packages/core/src/agent/__tests__/utils.test.ts](packages/core/src/agent/__tests__/utils.test.ts)
+- [packages/core/src/agent/**tests**/utils.test.ts](packages/core/src/agent/__tests__/utils.test.ts)
 - [packages/core/src/agent/agent-legacy.ts](packages/core/src/agent/agent-legacy.ts)
 - [packages/core/src/agent/agent.test.ts](packages/core/src/agent/agent.test.ts)
 - [packages/core/src/agent/agent.ts](packages/core/src/agent/agent.ts)
@@ -76,8 +76,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The LLM Integration and Model Router system provides unified access to 3373+ language models across 94 providers through a single consistent interface. It handles model resolution, API credential management, version compatibility across AI SDK v1-v6, and automatic failover between models.
 
 For agent execution patterns that use these models, see [Agent Configuration and Execution](#3.1). For the execution loop architecture that calls these models, see [Agentic Execution Loop (The Loop)](#3.8). For provider-specific schema adaptations, see [Schema Compatibility Layers](#5.6).
@@ -92,13 +90,13 @@ graph TB
         RegistryJSON["provider-registry.json<br/>94 providers, 3373+ models"]
         GeneratedTypes["provider-types.generated.d.ts<br/>TypeScript autocomplete types"]
     end
-    
+
     subgraph "Registry Access Layer"
         PROVIDER_REGISTRY["PROVIDER_REGISTRY<br/>In-memory cache"]
         ParseModelString["parseModelString()<br/>Parse 'provider/model-name'"]
         GetProviderConfig["getProviderConfig()<br/>Lookup provider metadata"]
     end
-    
+
     subgraph "Provider Configuration"
         ProviderURL["url<br/>API endpoint base URL"]
         APIKeyEnvVar["apiKeyEnvVar<br/>Environment variable name"]
@@ -107,25 +105,25 @@ graph TB
         GatewayFlag["gateway<br/>'models.dev' for gateways"]
         NPMPackage["npm<br/>AI SDK package hint"]
     end
-    
+
     subgraph "Environment Variables"
         EnvFile[".env file"]
         ProcessEnv["process.env"]
     end
-    
+
     RegistryJSON --> PROVIDER_REGISTRY
     RegistryJSON --> GeneratedTypes
-    
+
     PROVIDER_REGISTRY --> ParseModelString
     PROVIDER_REGISTRY --> GetProviderConfig
-    
+
     GetProviderConfig --> ProviderURL
     GetProviderConfig --> APIKeyEnvVar
     GetProviderConfig --> APIKeyHeader
     GetProviderConfig --> ModelsList
     GetProviderConfig --> GatewayFlag
     GetProviderConfig --> NPMPackage
-    
+
     APIKeyEnvVar --> EnvFile
     EnvFile --> ProcessEnv
     ProcessEnv --> ModelResolution["Model Resolution"]
@@ -137,16 +135,16 @@ graph TB
 
 The `provider-registry.json` file defines each provider with these properties:
 
-| Property | Type | Purpose | Example |
-|----------|------|---------|---------|
-| `url` | string | API endpoint base URL | `"https://api.openai.com/v1"` |
-| `apiKeyEnvVar` | string | Environment variable for API key | `"OPENAI_API_KEY"` |
-| `apiKeyHeader` | string | HTTP header for authentication | `"Authorization"` |
-| `name` | string | Display name | `"OpenAI"` |
-| `models` | string[] | Array of model IDs | `["gpt-4", "gpt-5"]` |
-| `gateway` | string (optional) | Gateway type identifier | `"models.dev"` |
-| `npm` | string (optional) | AI SDK package hint | `"@ai-sdk/openai"` |
-| `docUrl` | string (optional) | Provider documentation URL | `"https://platform.openai.com/docs"` |
+| Property       | Type              | Purpose                          | Example                              |
+| -------------- | ----------------- | -------------------------------- | ------------------------------------ |
+| `url`          | string            | API endpoint base URL            | `"https://api.openai.com/v1"`        |
+| `apiKeyEnvVar` | string            | Environment variable for API key | `"OPENAI_API_KEY"`                   |
+| `apiKeyHeader` | string            | HTTP header for authentication   | `"Authorization"`                    |
+| `name`         | string            | Display name                     | `"OpenAI"`                           |
+| `models`       | string[]          | Array of model IDs               | `["gpt-4", "gpt-5"]`                 |
+| `gateway`      | string (optional) | Gateway type identifier          | `"models.dev"`                       |
+| `npm`          | string (optional) | AI SDK package hint              | `"@ai-sdk/openai"`                   |
+| `docUrl`       | string (optional) | Provider documentation URL       | `"https://platform.openai.com/docs"` |
 
 **Sources:** [packages/core/src/llm/model/provider-registry.json:1-50]()
 
@@ -162,14 +160,14 @@ export type ProviderModelsMap = {
     'gpt-5',
     'gpt-5-mini',
     // ... 43 more models
-  ];
+  ]
   readonly anthropic: readonly [
     'claude-opus-4.6',
     'claude-sonnet-4.6',
     // ... 21 more models
-  ];
+  ]
   // ... 92 more providers
-};
+}
 ```
 
 **Sources:** [packages/core/src/llm/model/provider-types.generated.d.ts:1-100]()
@@ -185,18 +183,18 @@ graph LR
         DirectAnthropic["anthropic<br/>First-party API"]
         DirectGoogle["google<br/>First-party API"]
     end
-    
+
     subgraph "Gateway Providers"
         GatewayOpenRouter["openrouter<br/>Aggregates 198 models"]
         GatewayVercel["vercel<br/>Aggregates 217 models"]
         GatewayNetlify["netlify<br/>Aggregates 63 models"]
     end
-    
+
     subgraph "Specialized Providers"
         SpecializedAlibabaCodePlan["alibaba-coding-plan<br/>Code-focused models"]
         SpecializedZenMux["zenmux<br/>Multi-provider gateway"]
     end
-    
+
     DirectOpenAI --> SingleProviderAPI["Single provider API"]
     GatewayOpenRouter --> MultiProviderAPI["Multiple provider APIs<br/>with caching/rate-limiting"]
     SpecializedAlibabaCodePlan --> NicheUseCase["Niche use case API"]
@@ -215,7 +213,7 @@ graph TB
         ConfigObject["Config Object<br/>{id, url, apiKey, headers}"]
         AISDKModel["AI SDK Model<br/>openai('gpt-4')"]
     end
-    
+
     subgraph "Resolution Process"
         ResolveModelConfig["resolveModelConfig()<br/>Normalize input"]
         ParseModelString["parseModelString()<br/>Extract provider/model"]
@@ -223,16 +221,16 @@ graph TB
         ReadAPIKey["Read API key<br/>from process.env"]
         CreateLanguageModel["createLanguageModel()<br/>Instantiate model"]
     end
-    
+
     subgraph "Output"
         LanguageModelV2["LanguageModelV2<br/>AI SDK v5/v6 instance"]
         ModelMetadata["Model Metadata<br/>{provider, modelId, url}"]
     end
-    
+
     MagicString --> ResolveModelConfig
     ConfigObject --> ResolveModelConfig
     AISDKModel --> LanguageModelV2
-    
+
     ResolveModelConfig --> ParseModelString
     ParseModelString --> GetProviderConfig
     GetProviderConfig --> ReadAPIKey
@@ -258,11 +256,11 @@ Magic strings use the format `"provider/model-name"` and are resolved by looking
 
 The `parseModelString` function handles both simple and namespaced model IDs:
 
-| Input | Provider | Model |
-|-------|----------|-------|
-| `"openai/gpt-5"` | `"openai"` | `"gpt-5"` |
+| Input                                    | Provider       | Model                         |
+| ---------------------------------------- | -------------- | ----------------------------- |
+| `"openai/gpt-5"`                         | `"openai"`     | `"gpt-5"`                     |
 | `"openrouter/anthropic/claude-opus-4.6"` | `"openrouter"` | `"anthropic/claude-opus-4.6"` |
-| `"custom/my-model"` | `"custom"` | `"my-model"` |
+| `"custom/my-model"`                      | `"custom"`     | `"my-model"`                  |
 
 **Sources:** [packages/core/src/llm/model/provider-registry.ts:100-200]()
 
@@ -310,7 +308,7 @@ graph TB
         GetProvider["provider<br/>Getter property"]
         GetModelId["modelId<br/>Getter property"]
     end
-    
+
     subgraph "Schema Compatibility"
         DetectProvider["detectProviderFromModel()<br/>Identify provider type"]
         ApplyCompatLayer["applyCompatLayer()<br/>Transform schema"]
@@ -320,29 +318,29 @@ graph TB
         DeepSeekLayer["DeepSeekSchemaCompatLayer"]
         MetaLayer["MetaSchemaCompatLayer"]
     end
-    
+
     subgraph "Wrapped Model"
         LanguageModelV2["LanguageModelV2<br/>AI SDK instance"]
         ModelDoGenerate["model.doGenerate()"]
         ModelDoStream["model.doStream()"]
     end
-    
+
     Constructor --> GetProvider
     Constructor --> GetModelId
-    
+
     DoGenerate --> DetectProvider
     DoStream --> DetectProvider
-    
+
     DetectProvider --> ApplyCompatLayer
     ApplyCompatLayer --> OpenAILayer
     ApplyCompatLayer --> AnthropicLayer
     ApplyCompatLayer --> GoogleLayer
     ApplyCompatLayer --> DeepSeekLayer
     ApplyCompatLayer --> MetaLayer
-    
+
     OpenAILayer --> ModelDoGenerate
     OpenAILayer --> ModelDoStream
-    
+
     LanguageModelV2 --> ModelDoGenerate
     LanguageModelV2 --> ModelDoStream
 ```
@@ -356,12 +354,12 @@ The router identifies the provider from the model's `modelId` property:
 ```typescript
 function detectProviderFromModel(model: LanguageModelV2): string {
   // Extract provider from modelId like "openai:gpt-5" or "anthropic:claude-opus-4.6"
-  const modelId = model.modelId;
-  const colonIndex = modelId.indexOf(':');
+  const modelId = model.modelId
+  const colonIndex = modelId.indexOf(':')
   if (colonIndex !== -1) {
-    return modelId.slice(0, colonIndex);
+    return modelId.slice(0, colonIndex)
   }
-  return 'unknown';
+  return 'unknown'
 }
 ```
 
@@ -371,14 +369,14 @@ function detectProviderFromModel(model: LanguageModelV2): string {
 
 Each provider may have specific requirements for tool schemas. The router applies the appropriate compatibility layer:
 
-| Provider | Layer | Transformations |
-|----------|-------|-----------------|
-| OpenAI | `OpenAISchemaCompatLayer` | Strict mode support, additional properties handling |
-| OpenAI Reasoning | `OpenAIReasoningSchemaCompatLayer` | Reasoning mode schema adjustments |
-| Anthropic | `AnthropicSchemaCompatLayer` | Cache control annotations |
-| Google | `GoogleSchemaCompatLayer` | Gemini-specific schema format |
-| DeepSeek | `DeepSeekSchemaCompatLayer` | DeepSeek model adjustments |
-| Meta | `MetaSchemaCompatLayer` | Llama model schema format |
+| Provider         | Layer                              | Transformations                                     |
+| ---------------- | ---------------------------------- | --------------------------------------------------- |
+| OpenAI           | `OpenAISchemaCompatLayer`          | Strict mode support, additional properties handling |
+| OpenAI Reasoning | `OpenAIReasoningSchemaCompatLayer` | Reasoning mode schema adjustments                   |
+| Anthropic        | `AnthropicSchemaCompatLayer`       | Cache control annotations                           |
+| Google           | `GoogleSchemaCompatLayer`          | Gemini-specific schema format                       |
+| DeepSeek         | `DeepSeekSchemaCompatLayer`        | DeepSeek model adjustments                          |
+| Meta             | `MetaSchemaCompatLayer`            | Llama model schema format                           |
 
 **Sources:** [packages/core/src/tools/tool-builder/builder.ts:1-50]()
 
@@ -396,32 +394,32 @@ graph TB
         V5["AI SDK v5<br/>LanguageModelV2"]
         V6["AI SDK v6<br/>LanguageModelV2"]
     end
-    
+
     subgraph "Mastra Abstraction Layer"
         MastraLLMV1["MastraLLMV1<br/>Wraps v1-v4 models"]
         MastraLLMVNext["MastraLLMVNext<br/>Wraps v5-v6 models"]
     end
-    
+
     subgraph "Unified Interface"
         Generate["generate()<br/>Non-streaming generation"]
         Stream["stream()<br/>Streaming generation"]
         StructuredOutput["structured output support"]
     end
-    
+
     V1 --> MastraLLMV1
     V2 --> MastraLLMV1
     V3 --> MastraLLMV1
     V4 --> MastraLLMV1
-    
+
     V5 --> MastraLLMVNext
     V6 --> MastraLLMVNext
-    
+
     MastraLLMV1 --> Generate
     MastraLLMVNext --> Generate
-    
+
     MastraLLMV1 --> Stream
     MastraLLMVNext --> Stream
-    
+
     MastraLLMV1 --> StructuredOutput
     MastraLLMVNext --> StructuredOutput
 ```
@@ -436,14 +434,14 @@ The `MastraLLMV1` class wraps AI SDK v1-v4 models (which use `LanguageModelV1` i
 // Located in packages/core/src/llm/model/model.ts
 export class MastraLLMV1 extends MastraBase {
   #model: LanguageModelV1;
-  
+
   constructor({ model, mastra, options }) {
     super({ name: 'aisdk' });
     this.#model = model;
     this.#options = options;
     this.#mastra = mastra;
   }
-  
+
   async generate({ messages, tools, schema, ... }) {
     // Call AI SDK v4 generateText or generateObject
     if (schema) {
@@ -451,7 +449,7 @@ export class MastraLLMV1 extends MastraBase {
     }
     return this.#generateText({ messages, tools, ... });
   }
-  
+
   async stream({ messages, tools, ... }) {
     // Call AI SDK v4 streamText or streamObject
     return this.#streamText({ messages, tools, ... });
@@ -469,14 +467,14 @@ The `MastraLLMVNext` class wraps AI SDK v5-v6 models (which use `LanguageModelV2
 // Located in packages/core/src/llm/model/model.loop.ts
 export class MastraLLMVNext extends MastraBase {
   #model: LanguageModelV2;
-  
+
   constructor({ model, mastra, options }) {
     super({ name: 'aisdk-vnext' });
     this.#model = model;
     this.#options = options;
     this.#mastra = mastra;
   }
-  
+
   async generate({ messages, tools, schema, ... }) {
     // Use modelLoop for agentic execution with tool calls
     return this.#runModelLoop({
@@ -487,7 +485,7 @@ export class MastraLLMVNext extends MastraBase {
       ...
     });
   }
-  
+
   async stream({ messages, tools, ... }) {
     // Stream version of model loop
     return this.#streamModelLoop({
@@ -507,22 +505,29 @@ export class MastraLLMVNext extends MastraBase {
 The `isSupportedLanguageModel` function determines which abstraction layer to use:
 
 ```typescript
-export function isSupportedLanguageModel(model: unknown): model is SupportedLanguageModel {
-  if (!model || typeof model !== 'object') return false;
-  
+export function isSupportedLanguageModel(
+  model: unknown
+): model is SupportedLanguageModel {
+  if (!model || typeof model !== 'object') return false
+
   // Check for AI SDK v5/v6 (LanguageModelV2)
-  if ('specificationVersion' in model && 
-      (model.specificationVersion === 'v5' || model.specificationVersion === 'v6')) {
-    return true;
+  if (
+    'specificationVersion' in model &&
+    (model.specificationVersion === 'v5' || model.specificationVersion === 'v6')
+  ) {
+    return true
   }
-  
+
   // Check for AI SDK v1-v4 (LanguageModelV1)
-  if ('doGenerate' in model && 'doStream' in model && 
-      !('specificationVersion' in model)) {
-    return true;
+  if (
+    'doGenerate' in model &&
+    'doStream' in model &&
+    !('specificationVersion' in model)
+  ) {
+    return true
   }
-  
-  return false;
+
+  return false
 }
 ```
 
@@ -540,7 +545,7 @@ graph TB
         SecondaryModel["Secondary Model<br/>{model, maxRetries: 2}"]
         TertiaryModel["Tertiary Model<br/>{model, maxRetries: 1}"]
     end
-    
+
     subgraph "Execution Flow"
         StartExecution["Start Execution"]
         TryPrimary["Try Primary Model<br/>Retry up to maxRetries"]
@@ -551,11 +556,11 @@ graph TB
         AllFailed["All Models Failed<br/>Throw error"]
         Success["Return Result"]
     end
-    
+
     FallbackArray --> PrimaryModel
     FallbackArray --> SecondaryModel
     FallbackArray --> TertiaryModel
-    
+
     StartExecution --> TryPrimary
     TryPrimary --> CheckPrimaryError
     CheckPrimaryError -->|Yes| TrySecondary
@@ -580,10 +585,10 @@ const agent = new Agent({
   instructions: 'You are a helpful assistant.',
   model: [
     {
-      id: 'fallback-1',          // Optional identifier
-      model: 'openai/gpt-5',     // Primary model
-      maxRetries: 3,             // Retry count for this model
-      enabled: true,             // Optional, defaults to true
+      id: 'fallback-1', // Optional identifier
+      model: 'openai/gpt-5', // Primary model
+      maxRetries: 3, // Retry count for this model
+      enabled: true, // Optional, defaults to true
     },
     {
       id: 'fallback-2',
@@ -596,7 +601,7 @@ const agent = new Agent({
       maxRetries: 1,
     },
   ],
-});
+})
 ```
 
 **Sources:** [packages/core/src/agent/types.ts:125-131](), [docs/src/content/en/models/index.mdx:276-297]()
@@ -608,13 +613,13 @@ The agent's model resolution converts the array to a `ModelFallbacks` structure 
 ```typescript
 // In Agent constructor
 if (Array.isArray(config.model)) {
-  this.model = config.model.map(mdl => ({
+  this.model = config.model.map((mdl) => ({
     id: mdl.id ?? randomUUID(),
     model: mdl.model,
     maxRetries: mdl.maxRetries ?? config?.maxRetries ?? 0,
     enabled: mdl.enabled ?? true,
-  })) as ModelFallbacks;
-  this.#originalModel = [...this.model];
+  })) as ModelFallbacks
+  this.#originalModel = [...this.model]
 }
 ```
 
@@ -623,22 +628,22 @@ During execution, the system iterates through enabled fallbacks until one succee
 ```typescript
 // Conceptual flow in agent execution
 for (const fallbackConfig of modelFallbacks) {
-  if (!fallbackConfig.enabled) continue;
-  
-  let attempts = 0;
+  if (!fallbackConfig.enabled) continue
+
+  let attempts = 0
   while (attempts < fallbackConfig.maxRetries) {
     try {
-      const result = await executeWithModel(fallbackConfig.model);
-      return result; // Success
+      const result = await executeWithModel(fallbackConfig.model)
+      return result // Success
     } catch (error) {
-      attempts++;
+      attempts++
       if (attempts >= fallbackConfig.maxRetries) {
-        break; // Try next fallback
+        break // Try next fallback
       }
     }
   }
 }
-throw new Error('All model fallbacks failed');
+throw new Error('All model fallbacks failed')
 ```
 
 **Sources:** [packages/core/src/agent/agent.ts:244-250](), [packages/core/src/agent/workflows/prepare-stream/map-results-step.ts:1-100]()
@@ -655,28 +660,28 @@ graph TB
         ModelsDevGateway["ModelsDevGateway<br/>models.dev aggregator"]
         CustomGateway["Custom Gateway<br/>User-defined"]
     end
-    
+
     subgraph "Gateway Interface"
         CreateModel["createModel()<br/>Factory method"]
         GetModelIdFromRequest["getModelIdFromRequest()<br/>Extract model from request"]
         PrepareHeaders["prepareHeaders()<br/>Add auth headers"]
         GetURL["getURL()<br/>Construct endpoint URL"]
     end
-    
+
     subgraph "Registration"
         MastraConfig["Mastra Config<br/>gateways: {...}"]
         AgentConfig["Agent Config<br/>model: {...}"]
     end
-    
+
     AzureOpenAI --> CreateModel
     NetlifyGateway --> CreateModel
     ModelsDevGateway --> CreateModel
     CustomGateway --> CreateModel
-    
+
     CreateModel --> GetModelIdFromRequest
     CreateModel --> PrepareHeaders
     CreateModel --> GetURL
-    
+
     MastraConfig --> AzureOpenAI
     AgentConfig --> AzureOpenAI
 ```
@@ -689,31 +694,31 @@ All gateways extend the abstract `MastraModelGateway` class:
 
 ```typescript
 export abstract class MastraModelGateway {
-  protected config: ProviderConfig;
-  
+  protected config: ProviderConfig
+
   constructor(config: ProviderConfig) {
-    this.config = config;
+    this.config = config
   }
-  
+
   // Factory method to create model instance
   abstract createModel(options: {
-    modelId: string;
-    requestContext?: RequestContext;
-  }): LanguageModelV2;
-  
+    modelId: string
+    requestContext?: RequestContext
+  }): LanguageModelV2
+
   // Extract model ID from deployment-specific request
-  getModelIdFromRequest?(request: any): string | undefined;
-  
+  getModelIdFromRequest?(request: any): string | undefined
+
   // Prepare authentication headers
   protected abstract prepareHeaders(options: {
-    requestContext?: RequestContext;
-  }): Record<string, string>;
-  
+    requestContext?: RequestContext
+  }): Record<string, string>
+
   // Construct API endpoint URL
   protected abstract getURL(options: {
-    modelId: string;
-    requestContext?: RequestContext;
-  }): string;
+    modelId: string
+    requestContext?: RequestContext
+  }): string
 }
 ```
 
@@ -726,37 +731,37 @@ The Azure OpenAI gateway handles Azure-specific deployment names and API version
 ```typescript
 export class AzureOpenAIGateway extends MastraModelGateway {
   constructor(config: AzureOpenAIGatewayConfig) {
-    super(config);
+    super(config)
     // config includes: resourceName, apiVersion, deployments{}
   }
-  
+
   createModel({ modelId, requestContext }) {
     // Map modelId to Azure deployment name
-    const deployment = this.config.deployments[modelId];
+    const deployment = this.config.deployments[modelId]
     if (!deployment) {
-      throw new Error(`No deployment found for model: ${modelId}`);
+      throw new Error(`No deployment found for model: ${modelId}`)
     }
-    
+
     // Construct Azure-specific URL
-    const url = `https://${this.config.resourceName}.openai.azure.com/openai/deployments/${deployment}/chat/completions?api-version=${this.config.apiVersion}`;
-    
+    const url = `https://${this.config.resourceName}.openai.azure.com/openai/deployments/${deployment}/chat/completions?api-version=${this.config.apiVersion}`
+
     // Return LanguageModelV2 instance with Azure config
     return createAzureOpenAI({
       deployment,
       url,
       apiKey: this.getAPIKey(requestContext),
-    });
+    })
   }
-  
+
   protected prepareHeaders({ requestContext }) {
     return {
       'api-key': this.getAPIKey(requestContext),
-    };
+    }
   }
-  
+
   protected getURL({ modelId, requestContext }) {
-    const deployment = this.config.deployments[modelId];
-    return `https://${this.config.resourceName}.openai.azure.com/openai/deployments/${deployment}/chat/completions?api-version=${this.config.apiVersion}`;
+    const deployment = this.config.deployments[modelId]
+    return `https://${this.config.resourceName}.openai.azure.com/openai/deployments/${deployment}/chat/completions?api-version=${this.config.apiVersion}`
   }
 }
 ```
@@ -780,7 +785,7 @@ const mastra = new Mastra({
       },
     }),
   },
-});
+})
 ```
 
 Agents can then reference gateway models:
@@ -793,7 +798,7 @@ const agent = new Agent({
     gateway: 'azure-prod',
     id: 'gpt-5',
   },
-});
+})
 ```
 
 **Sources:** [packages/core/src/mastra/index.ts:236-241]()
@@ -810,38 +815,38 @@ graph TB
         AgentStream["agent.stream()<br/>Prepare execution"]
         ModelField["model field<br/>DynamicArgument<MastraModelConfig | ModelFallbacks>"]
     end
-    
+
     subgraph "Model Resolution in Agent"
         ResolveDynamic["Resolve DynamicArgument<br/>Call function with RequestContext"]
         DetectFormat["Detect format<br/>string | config | array"]
         ResolveToConfig["resolveModelConfig()<br/>Normalize to MastraModelConfig"]
         CreateModelManager["Create ModelManager<br/>from config or fallbacks"]
     end
-    
+
     subgraph "ModelManager"
         SelectModel["selectModel()<br/>Choose from fallbacks"]
         InstantiateModel["Instantiate model<br/>MastraLLMV1 or MastraLLMVNext"]
         WrapInRouter["Wrap in ModelRouter<br/>if needed"]
     end
-    
+
     subgraph "Execution"
         PrepareStreamWorkflow["createPrepareStreamWorkflow()<br/>Build execution pipeline"]
         ExecuteLLM["Execute LLM call<br/>via MastraLLMV1/VNext"]
         HandleErrors["Handle errors<br/>Retry or fallback"]
     end
-    
+
     AgentConstructor --> ModelField
     AgentGenerate --> ResolveDynamic
     AgentStream --> ResolveDynamic
-    
+
     ResolveDynamic --> DetectFormat
     DetectFormat --> ResolveToConfig
     ResolveToConfig --> CreateModelManager
-    
+
     CreateModelManager --> SelectModel
     SelectModel --> InstantiateModel
     InstantiateModel --> WrapInRouter
-    
+
     WrapInRouter --> PrepareStreamWorkflow
     PrepareStreamWorkflow --> ExecuteLLM
     ExecuteLLM --> HandleErrors
@@ -857,23 +862,27 @@ The agent's `model` field accepts multiple formats:
 
 ```typescript
 export class Agent<TAgentId extends string = string> {
-  model: DynamicArgument<MastraModelConfig | ModelWithRetries[]> | ModelFallbacks;
-  #originalModel: DynamicArgument<MastraModelConfig | ModelWithRetries[]> | ModelFallbacks;
-  
+  model:
+    | DynamicArgument<MastraModelConfig | ModelWithRetries[]>
+    | ModelFallbacks
+  #originalModel:
+    | DynamicArgument<MastraModelConfig | ModelWithRetries[]>
+    | ModelFallbacks
+
   constructor(config: AgentConfig<TAgentId>) {
     // Store model configuration
     if (Array.isArray(config.model)) {
       // Convert to ModelFallbacks structure
-      this.model = config.model.map(mdl => ({
+      this.model = config.model.map((mdl) => ({
         id: mdl.id ?? randomUUID(),
         model: mdl.model,
         maxRetries: mdl.maxRetries ?? config?.maxRetries ?? 0,
         enabled: mdl.enabled ?? true,
-      })) as ModelFallbacks;
+      })) as ModelFallbacks
     } else {
-      this.model = config.model;
+      this.model = config.model
     }
-    this.#originalModel = config.model;
+    this.#originalModel = config.model
   }
 }
 ```
@@ -896,12 +905,12 @@ async resolveModelForExecution(options: {
       requestContext: options.requestContext,
     });
   }
-  
+
   // If modelConfig is ModelFallbacks array, return as-is
   if (Array.isArray(modelConfig)) {
     return modelConfig as ModelFallbacks;
   }
-  
+
   // Otherwise resolve single model config
   return await resolveModelConfig(modelConfig, {
     mastra: this.#mastra,
@@ -921,27 +930,27 @@ The `createPrepareStreamWorkflow` function creates a `ModelManager` that handles
 const prepareToolsStep = createStep({
   id: 'prepare-tools',
   execute: async ({ context }) => {
-    const { resolvedModel } = context;
-    
+    const { resolvedModel } = context
+
     // Create ModelManager from resolved model
     const modelManager = new ModelManager({
       model: resolvedModel,
       mastra: context.mastra,
-    });
-    
+    })
+
     // Select model (handles fallback selection)
     const selectedModel = await modelManager.selectModel({
       requestContext: context.requestContext,
-    });
-    
+    })
+
     // Instantiate model wrapper
     const llm = isSupportedLanguageModelV2(selectedModel)
       ? new MastraLLMVNext({ model: selectedModel, mastra: context.mastra })
-      : new MastraLLMV1({ model: selectedModel, mastra: context.mastra });
-    
-    return { llm };
+      : new MastraLLMV1({ model: selectedModel, mastra: context.mastra })
+
+    return { llm }
   },
-});
+})
 ```
 
 **Sources:** [packages/core/src/agent/workflows/prepare-stream/index.ts:1-200]()
@@ -956,16 +965,16 @@ const agent = new Agent({
   name: 'Dynamic Assistant',
   model: ({ requestContext }) => {
     // Select model based on user tier
-    const tier = requestContext.get('user-tier');
+    const tier = requestContext.get('user-tier')
     if (tier === 'premium') {
-      return 'openai/gpt-5';
+      return 'openai/gpt-5'
     } else if (tier === 'standard') {
-      return 'anthropic/claude-opus-4.6';
+      return 'anthropic/claude-opus-4.6'
     } else {
-      return 'openai/gpt-4o-mini';
+      return 'openai/gpt-4o-mini'
     }
   },
-});
+})
 ```
 
 **Sources:** [docs/src/content/en/models/index.mdx:193-213](), [packages/core/src/agent/types.ts:155-195]()

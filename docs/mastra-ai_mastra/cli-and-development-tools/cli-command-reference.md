@@ -42,7 +42,7 @@ The following files were used as context for generating this wiki page:
 - [packages/create-mastra/src/utils.ts](packages/create-mastra/src/utils.ts)
 - [packages/create-mastra/tsconfig.json](packages/create-mastra/tsconfig.json)
 - [packages/deployer/src/build/analyze.ts](packages/deployer/src/build/analyze.ts)
-- [packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap](packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap)
+- [packages/deployer/src/build/analyze/**snapshots**/analyzeEntry.test.ts.snap](packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap)
 - [packages/deployer/src/build/analyze/analyzeEntry.test.ts](packages/deployer/src/build/analyze/analyzeEntry.test.ts)
 - [packages/deployer/src/build/analyze/analyzeEntry.ts](packages/deployer/src/build/analyze/analyzeEntry.ts)
 - [packages/deployer/src/build/analyze/bundleExternals.test.ts](packages/deployer/src/build/analyze/bundleExternals.test.ts)
@@ -53,7 +53,7 @@ The following files were used as context for generating this wiki page:
 - [packages/deployer/src/build/watcher.test.ts](packages/deployer/src/build/watcher.test.ts)
 - [packages/deployer/src/build/watcher.ts](packages/deployer/src/build/watcher.ts)
 - [packages/deployer/src/bundler/index.ts](packages/deployer/src/bundler/index.ts)
-- [packages/deployer/src/server/__tests__/option-studio-base.test.ts](packages/deployer/src/server/__tests__/option-studio-base.test.ts)
+- [packages/deployer/src/server/**tests**/option-studio-base.test.ts](packages/deployer/src/server/__tests__/option-studio-base.test.ts)
 - [packages/deployer/src/server/index.ts](packages/deployer/src/server/index.ts)
 - [packages/playground/e2e/tests/auth/infrastructure.spec.ts](packages/playground/e2e/tests/auth/infrastructure.spec.ts)
 - [packages/playground/e2e/tests/auth/viewer-role.spec.ts](packages/playground/e2e/tests/auth/viewer-role.spec.ts)
@@ -62,8 +62,6 @@ The following files were used as context for generating this wiki page:
 - [packages/playground/src/components/ui/app-sidebar.tsx](packages/playground/src/components/ui/app-sidebar.tsx)
 
 </details>
-
-
 
 This document provides a comprehensive reference for all Mastra CLI commands, their options, arguments, and implementation details. It covers the command-line interface for project creation, initialization, development, building, deployment, and maintenance.
 
@@ -81,7 +79,7 @@ The Mastra CLI is built using the Commander.js library and provides a unified in
 graph TB
     CLI["CLI Entry Point<br/>packages/cli/src/index.ts"]
     CreateMastra["create-mastra Entry<br/>packages/create-mastra/src/index.ts"]
-    
+
     subgraph "Command Actions"
         CreateAction["createProject()<br/>actions/create-project.ts"]
         InitAction["initProject()<br/>actions/init-project.ts"]
@@ -94,7 +92,7 @@ graph TB
         AddScorerAction["addScorer()<br/>actions/add-scorer.ts"]
         ListScorerAction["listScorers()<br/>actions/list-scorers.ts"]
     end
-    
+
     subgraph "Core Logic"
         CreateCore["create()<br/>commands/create/create.ts"]
         InitCore["init()<br/>commands/init/init.ts"]
@@ -102,7 +100,7 @@ graph TB
         BuildBundler["BuildBundler<br/>buildBundler()"]
         DevBundler["DevBundler<br/>devBundler()"]
     end
-    
+
     CLI --> CreateAction
     CLI --> InitAction
     CLI --> DevAction
@@ -113,16 +111,16 @@ graph TB
     CLI --> LintAction
     CLI --> AddScorerAction
     CLI --> ListScorerAction
-    
+
     CreateMastra --> CreateCore
-    
+
     CreateAction --> CreateCore
     InitAction --> InitCore
     DevAction --> DevCore
     BuildAction --> BuildBundler
-    
+
     DevCore --> DevBundler
-    
+
     style CLI fill:#f9f9f9,stroke:#333,stroke-width:2px
     style CreateMastra fill:#f9f9f9,stroke:#333,stroke-width:2px
 ```
@@ -141,23 +139,23 @@ graph LR
         Options["option()<br/>add flags"]
         Action["action()<br/>handler function"]
     end
-    
+
     subgraph "Analytics Layer"
         Track["analytics.trackCommandExecution()"]
         PosthogAnalytics["PosthogAnalytics"]
     end
-    
+
     subgraph "Version Detection"
         GetVersionTag["getVersionTag()"]
         DistTags["npm dist-tag ls mastra"]
     end
-    
+
     Program --> Command
     Command --> Options
     Options --> Action
     Action --> Track
     Track --> PosthogAnalytics
-    
+
     Action --> GetVersionTag
     GetVersionTag --> DistTags
 ```
@@ -179,6 +177,7 @@ The function queries `npm dist-tag ls mastra` and matches the current CLI versio
 ### Analytics
 
 All commands send telemetry via PosthogAnalytics with:
+
 - Command name and arguments
 - Execution time and success/failure status
 - Origin tracking (`MASTRA_ANALYTICS_ORIGIN` environment variable)
@@ -188,6 +187,7 @@ All commands send telemetry via PosthogAnalytics with:
 ### Package Manager Detection
 
 The CLI detects the active package manager from:
+
 1. `npm_config_user_agent` environment variable
 2. `npm_execpath` environment variable
 3. Lock file presence (`.pnpm-lock.yaml`, `package-lock.json`, etc.)
@@ -211,20 +211,20 @@ mastra create [project-name] [options]
 
 #### Options
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `-p, --project-name <string>` | string | Project directory name | - |
-| `--default` | boolean | Quick start with defaults (src, OpenAI, examples) | `false` |
-| `-c, --components <components>` | string | Comma-separated components: `agents`, `workflows`, `tools`, `scorers` | - |
-| `-l, --llm <model-provider>` | string | Default model provider: `openai`, `anthropic`, `groq`, `google`, `cerebras`, `mistral` | - |
-| `-k, --llm-api-key <api-key>` | string | API key for the model provider | - |
-| `-e, --example` | boolean | Include example code | - |
-| `-n, --no-example` | boolean | Do not include example code | - |
-| `-t, --timeout [timeout]` | number | Package installation timeout (ms) | `60000` |
-| `-d, --dir <directory>` | string | Target directory for Mastra source code | `src/` |
-| `-m, --mcp <editor>` | string | MCP Server for code editor: `cursor`, `cursor-global`, `windsurf`, `vscode`, `antigravity` | - |
-| `--skills <agents>` | string | Comma-separated agent names for skill installation | - |
-| `--template [template-name]` | string/boolean | Create from template (name, GitHub URL, or interactive) | - |
+| Option                          | Type           | Description                                                                                | Default |
+| ------------------------------- | -------------- | ------------------------------------------------------------------------------------------ | ------- |
+| `-p, --project-name <string>`   | string         | Project directory name                                                                     | -       |
+| `--default`                     | boolean        | Quick start with defaults (src, OpenAI, examples)                                          | `false` |
+| `-c, --components <components>` | string         | Comma-separated components: `agents`, `workflows`, `tools`, `scorers`                      | -       |
+| `-l, --llm <model-provider>`    | string         | Default model provider: `openai`, `anthropic`, `groq`, `google`, `cerebras`, `mistral`     | -       |
+| `-k, --llm-api-key <api-key>`   | string         | API key for the model provider                                                             | -       |
+| `-e, --example`                 | boolean        | Include example code                                                                       | -       |
+| `-n, --no-example`              | boolean        | Do not include example code                                                                | -       |
+| `-t, --timeout [timeout]`       | number         | Package installation timeout (ms)                                                          | `60000` |
+| `-d, --dir <directory>`         | string         | Target directory for Mastra source code                                                    | `src/`  |
+| `-m, --mcp <editor>`            | string         | MCP Server for code editor: `cursor`, `cursor-global`, `windsurf`, `vscode`, `antigravity` | -       |
+| `--skills <agents>`             | string         | Comma-separated agent names for skill installation                                         | -       |
+| `--template [template-name]`    | string/boolean | Create from template (name, GitHub URL, or interactive)                                    | -       |
 
 #### Behavior
 
@@ -291,6 +291,7 @@ Identical to `mastra create` options (see above).
 #### Implementation Details
 
 The `create-mastra` package:
+
 - Wraps the `create()` function from `mastra` CLI
 - Detects its own version tag via `getCreateVersionTag()`
 - Passes `createVersionTag` to ensure matching Mastra versions
@@ -311,16 +312,16 @@ mastra init [options]
 
 #### Options
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `--default` | boolean | Quick start with defaults (src, OpenAI, examples) | `false` |
-| `-d, --dir <directory>` | string | Directory for Mastra files | `src/` |
-| `-c, --components <components>` | string | Comma-separated components: `agents`, `workflows`, `tools`, `scorers` | - |
-| `-l, --llm <model-provider>` | string | Default model provider | - |
-| `-k, --llm-api-key <api-key>` | string | API key for the model provider | - |
-| `-e, --example` | boolean | Include example code | - |
-| `-n, --no-example` | boolean | Do not include example code | - |
-| `-m, --mcp <editor>` | string | MCP Server for code editor | - |
+| Option                          | Type    | Description                                                           | Default |
+| ------------------------------- | ------- | --------------------------------------------------------------------- | ------- |
+| `--default`                     | boolean | Quick start with defaults (src, OpenAI, examples)                     | `false` |
+| `-d, --dir <directory>`         | string  | Directory for Mastra files                                            | `src/`  |
+| `-c, --components <components>` | string  | Comma-separated components: `agents`, `workflows`, `tools`, `scorers` | -       |
+| `-l, --llm <model-provider>`    | string  | Default model provider                                                | -       |
+| `-k, --llm-api-key <api-key>`   | string  | API key for the model provider                                        | -       |
+| `-e, --example`                 | boolean | Include example code                                                  | -       |
+| `-n, --no-example`              | boolean | Do not include example code                                           | -       |
+| `-m, --mcp <editor>`            | string  | MCP Server for code editor                                            | -       |
 
 #### Behavior
 
@@ -377,18 +378,18 @@ mastra dev [options]
 
 #### Options
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `-d, --dir <dir>` | string | Path to your Mastra folder | Auto-detected |
-| `-r, --root <root>` | string | Path to your root folder | Current directory |
-| `-t, --tools <toolsDirs>` | string | Comma-separated tool file paths | - |
-| `-e, --env <env>` | string | Custom env file path | `.env` |
-| `-i, --inspect [host:port]` | string/boolean | Enable Node.js inspector | - |
-| `-b, --inspect-brk [host:port]` | string/boolean | Enable inspector and break at start | - |
-| `-c, --custom-args <args>` | string | Comma-separated Node.js arguments | - |
-| `-s, --https` | boolean | Enable local HTTPS | `false` |
-| `--request-context-presets <file>` | string | Path to request context presets JSON | - |
-| `--debug` | boolean | Enable debug logs | `false` |
+| Option                             | Type           | Description                          | Default           |
+| ---------------------------------- | -------------- | ------------------------------------ | ----------------- |
+| `-d, --dir <dir>`                  | string         | Path to your Mastra folder           | Auto-detected     |
+| `-r, --root <root>`                | string         | Path to your root folder             | Current directory |
+| `-t, --tools <toolsDirs>`          | string         | Comma-separated tool file paths      | -                 |
+| `-e, --env <env>`                  | string         | Custom env file path                 | `.env`            |
+| `-i, --inspect [host:port]`        | string/boolean | Enable Node.js inspector             | -                 |
+| `-b, --inspect-brk [host:port]`    | string/boolean | Enable inspector and break at start  | -                 |
+| `-c, --custom-args <args>`         | string         | Comma-separated Node.js arguments    | -                 |
+| `-s, --https`                      | boolean        | Enable local HTTPS                   | `false`           |
+| `--request-context-presets <file>` | string         | Path to request context presets JSON | -                 |
+| `--debug`                          | boolean        | Enable debug logs                    | `false`           |
 
 #### Behavior
 
@@ -397,37 +398,37 @@ The development server workflow:
 ```mermaid
 graph TB
     Start["mastra dev"]
-    
+
     subgraph "Initialization"
         LoadEnv["Load .env file<br/>(unless MASTRA_SKIP_DOTENV)"]
         DetectDir["Detect Mastra directory<br/>(or use --dir)"]
         ParseOpts["Parse options:<br/>inspect, custom-args, etc."]
     end
-    
+
     subgraph "DevBundler"
         AnalyzeDeps["Analyze dependencies<br/>(analyzeBundle)"]
         CreateBundle["Create Rollup bundle<br/>(watch mode)"]
         OutputCode["Write to .mastra/output/server.js"]
     end
-    
+
     subgraph "Server Process"
         SpawnNode["spawn('node', args)<br/>with --import tsx/esm"]
         InspectArgs["Add --inspect or --inspect-brk<br/>(if specified)"]
         CustomArgs["Add custom Node args<br/>(--experimental-transform-types)"]
         ServerRun["Server listens on port 4111"]
     end
-    
+
     subgraph "File Watching"
         RollupWatch["Rollup watcher<br/>monitors source changes"]
         Rebuild["Incremental rebuild"]
         RestartServer["Restart Node process"]
     end
-    
+
     subgraph "Studio UI"
         ServeStatic["Serve studio UI<br/>(if SERVE_STUDIO_UI=true)"]
         StudioPort["Accessible at localhost:4111"]
     end
-    
+
     Start --> LoadEnv
     LoadEnv --> DetectDir
     DetectDir --> ParseOpts
@@ -438,10 +439,10 @@ graph TB
     SpawnNode --> InspectArgs
     InspectArgs --> CustomArgs
     CustomArgs --> ServerRun
-    
+
     ServerRun --> ServeStatic
     ServeStatic --> StudioPort
-    
+
     RollupWatch --> Rebuild
     Rebuild --> RestartServer
     RestartServer --> ServerRun
@@ -450,6 +451,7 @@ graph TB
 #### Inspector Mode
 
 When using `--inspect` or `--inspect-brk`, the CLI parses the argument:
+
 - Format: `[host:]port` (e.g., `0.0.0.0:9229`, `9229`)
 - Default host: `127.0.0.1`
 - Passes to Node.js as `--inspect=host:port`
@@ -470,13 +472,13 @@ mastra build [options]
 
 #### Options
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `-d, --dir <path>` | string | Path to your Mastra folder | Auto-detected |
-| `-r, --root <path>` | string | Path to your root folder | Current directory |
-| `-t, --tools <toolsDirs>` | string | Comma-separated tool file paths | - |
-| `-s, --studio` | boolean | Bundle Studio UI with the build | `false` |
-| `--debug` | boolean | Enable debug logs | `false` |
+| Option                    | Type    | Description                     | Default           |
+| ------------------------- | ------- | ------------------------------- | ----------------- |
+| `-d, --dir <path>`        | string  | Path to your Mastra folder      | Auto-detected     |
+| `-r, --root <path>`       | string  | Path to your root folder        | Current directory |
+| `-t, --tools <toolsDirs>` | string  | Comma-separated tool file paths | -                 |
+| `-s, --studio`            | boolean | Bundle Studio UI with the build | `false`           |
+| `--debug`                 | boolean | Enable debug logs               | `false`           |
 
 #### Behavior
 
@@ -507,12 +509,12 @@ The build process:
 
 **Platform-Specific Outputs:**
 
-| Platform | Entry Point | Output Location | Config File |
-|----------|-------------|-----------------|-------------|
-| Cloudflare Workers | `index.mjs` | `.mastra/output/` | `wrangler.jsonc` |
-| Vercel Edge | `index.mjs` | `.vercel/output/functions/api/` | `.vc-config.json` |
-| Netlify Functions | `index.mjs` | `.netlify/functions/api/` | `config.json` |
-| Generic Node.js | `server.js` | `.mastra/output/` | - |
+| Platform           | Entry Point | Output Location                 | Config File       |
+| ------------------ | ----------- | ------------------------------- | ----------------- |
+| Cloudflare Workers | `index.mjs` | `.mastra/output/`               | `wrangler.jsonc`  |
+| Vercel Edge        | `index.mjs` | `.vercel/output/functions/api/` | `.vc-config.json` |
+| Netlify Functions  | `index.mjs` | `.netlify/functions/api/`       | `config.json`     |
+| Generic Node.js    | `server.js` | `.mastra/output/`               | -                 |
 
 **Sources:** [packages/cli/src/index.ts:134-142](), [packages/cli/src/commands/actions/build-project.ts]() (referenced)
 
@@ -530,11 +532,11 @@ mastra start [options]
 
 #### Options
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `-d, --dir <path>` | string | Path to built output directory | `.mastra/output` |
-| `-e, --env <env>` | string | Custom env file path | `.env` |
-| `-c, --custom-args <args>` | string | Comma-separated Node.js arguments | - |
+| Option                     | Type   | Description                       | Default          |
+| -------------------------- | ------ | --------------------------------- | ---------------- |
+| `-d, --dir <path>`         | string | Path to built output directory    | `.mastra/output` |
+| `-e, --env <env>`          | string | Custom env file path              | `.env`           |
+| `-c, --custom-args <args>` | string | Comma-separated Node.js arguments | -                |
 
 #### Behavior
 
@@ -558,15 +560,15 @@ mastra studio [options]
 
 #### Options
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `-p, --port <port>` | number | Studio UI port | `3000` |
-| `-e, --env <env>` | string | Custom env file path | `.env` |
-| `-h, --server-host <serverHost>` | string | Mastra API server host | `localhost` |
-| `-s, --server-port <serverPort>` | number | Mastra API server port | `4111` |
-| `-x, --server-protocol <serverProtocol>` | string | Mastra API protocol | `http` |
-| `--server-api-prefix <serverApiPrefix>` | string | API route prefix | `/api` |
-| `--request-context-presets <file>` | string | Path to request context presets JSON | - |
+| Option                                   | Type   | Description                          | Default     |
+| ---------------------------------------- | ------ | ------------------------------------ | ----------- |
+| `-p, --port <port>`                      | number | Studio UI port                       | `3000`      |
+| `-e, --env <env>`                        | string | Custom env file path                 | `.env`      |
+| `-h, --server-host <serverHost>`         | string | Mastra API server host               | `localhost` |
+| `-s, --server-port <serverPort>`         | number | Mastra API server port               | `4111`      |
+| `-x, --server-protocol <serverProtocol>` | string | Mastra API protocol                  | `http`      |
+| `--server-api-prefix <serverApiPrefix>`  | string | API route prefix                     | `/api`      |
+| `--request-context-presets <file>`       | string | Path to request context presets JSON | -           |
 
 #### Behavior
 
@@ -575,6 +577,7 @@ mastra studio [options]
 - Loads request context presets for multi-tenant testing
 
 **Use Case:** Running Studio UI separate from the API server, useful for:
+
 - Production monitoring
 - Remote debugging
 - Multi-environment testing
@@ -595,13 +598,13 @@ mastra migrate [options]
 
 #### Options
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `-d, --dir <path>` | string | Path to your Mastra folder | Auto-detected |
-| `-r, --root <path>` | string | Path to your root folder | Current directory |
-| `-e, --env <env>` | string | Custom env file path | `.env` |
-| `--debug` | boolean | Enable debug logs | `false` |
-| `-y, --yes` | boolean | Skip confirmation prompt (for CI/automation) | `false` |
+| Option              | Type    | Description                                  | Default           |
+| ------------------- | ------- | -------------------------------------------- | ----------------- |
+| `-d, --dir <path>`  | string  | Path to your Mastra folder                   | Auto-detected     |
+| `-r, --root <path>` | string  | Path to your root folder                     | Current directory |
+| `-e, --env <env>`   | string  | Custom env file path                         | `.env`            |
+| `--debug`           | boolean | Enable debug logs                            | `false`           |
+| `-y, --yes`         | boolean | Skip confirmation prompt (for CI/automation) | `false`           |
 
 #### Behavior
 
@@ -614,6 +617,7 @@ mastra migrate [options]
 4. Prompts for confirmation (unless `-y` specified)
 
 **Migration Scope:**
+
 - Agent storage tables: `agents`, `agent_versions`
 - Memory tables: `threads`, `messages`, `resources`, `observational_memory`
 - Workflow tables: `workflow_runs`, `workflow_state`
@@ -636,15 +640,16 @@ mastra lint [options]
 
 #### Options
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `-d, --dir <path>` | string | Path to your Mastra folder | Auto-detected |
-| `-r, --root <path>` | string | Path to your root folder | Current directory |
-| `-t, --tools <toolsDirs>` | string | Comma-separated tool file paths | - |
+| Option                    | Type   | Description                     | Default           |
+| ------------------------- | ------ | ------------------------------- | ----------------- |
+| `-d, --dir <path>`        | string | Path to your Mastra folder      | Auto-detected     |
+| `-r, --root <path>`       | string | Path to your root folder        | Current directory |
+| `-t, --tools <toolsDirs>` | string | Comma-separated tool file paths | -                 |
 
 #### Behavior
 
 Performs validation checks:
+
 - Agent configuration (instructions, model, tools)
 - Workflow step definitions and graph consistency
 - Tool schemas (Zod validation)
@@ -667,8 +672,8 @@ mastra scorers add [scorer-name] [options]
 
 #### Options
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
+| Option             | Type   | Description                   | Default       |
+| ------------------ | ------ | ----------------------------- | ------------- |
 | `-d, --dir <path>` | string | Path to your Mastra directory | Auto-detected |
 
 #### Behavior
@@ -694,6 +699,7 @@ mastra scorers list
 #### Behavior
 
 Displays available scorer templates with descriptions:
+
 - Prebuilt scorers from `@mastra/evals`
 - Custom scorer patterns
 - LLM-judged scorer examples
@@ -712,7 +718,7 @@ Components must be one of: `agents`, `workflows`, `tools`, `scorers`.
 
 ```typescript
 export function areValidComponents(values: string[]): values is Component[] {
-  return values.every(value => COMPONENTS.includes(value as Component));
+  return values.every((value) => COMPONENTS.includes(value as Component))
 }
 ```
 
@@ -726,14 +732,14 @@ Supported providers: `openai`, `anthropic`, `groq`, `google`, `cerebras`, `mistr
 
 **Model Mapping:** [packages/cli/src/commands/init/utils.ts:44-60]()
 
-| Provider | Default Model |
-|----------|---------------|
-| `openai` | `openai/gpt-4o` |
-| `anthropic` | `anthropic/claude-sonnet-4-5` |
-| `groq` | `groq/llama-3.3-70b-versatile` |
-| `google` | `google/gemini-2.5-pro` |
-| `cerebras` | `cerebras/llama-3.3-70b` |
-| `mistral` | `mistral/mistral-medium-2508` |
+| Provider    | Default Model                  |
+| ----------- | ------------------------------ |
+| `openai`    | `openai/gpt-4o`                |
+| `anthropic` | `anthropic/claude-sonnet-4-5`  |
+| `groq`      | `groq/llama-3.3-70b-versatile` |
+| `google`    | `google/gemini-2.5-pro`        |
+| `cerebras`  | `cerebras/llama-3.3-70b`       |
+| `mistral`   | `mistral/mistral-medium-2508`  |
 
 ### MCP Editor Validation
 
@@ -742,6 +748,7 @@ Supported editors: `cursor`, `cursor-global`, `windsurf`, `vscode`, `antigravity
 **Implementation:** [packages/cli/src/commands/utils.ts:44-49]()
 
 **Config Paths:**
+
 - `cursor-global`: `~/.cursor/mcp.json`
 - `windsurf`: `~/.windsurf/mcp_settings.json`
 - `antigravity`: `~/.antigravity/mcp.json`
@@ -758,14 +765,14 @@ Templates are defined in `https://mastra.ai/api/templates.json` with the followi
 
 ```typescript
 interface Template {
-  githubUrl: string;     // "https://github.com/mastra-ai/template-browsing-agent"
-  title: string;         // "Browsing Agent"
-  slug: string;          // "template-browsing-agent"
-  agents: string[];      // ["web-agent"]
-  mcp: string[];         // []
-  tools: string[];       // ["search-tool", "scraper-tool"]
-  networks: string[];    // []
-  workflows: string[];   // ["research-workflow"]
+  githubUrl: string // "https://github.com/mastra-ai/template-browsing-agent"
+  title: string // "Browsing Agent"
+  slug: string // "template-browsing-agent"
+  agents: string[] // ["web-agent"]
+  mcp: string[] // []
+  tools: string[] // ["search-tool", "scraper-tool"]
+  networks: string[] // []
+  workflows: string[] // ["research-workflow"]
 }
 ```
 
@@ -787,6 +794,7 @@ Select a template:
 ### GitHub URL Validation
 
 When using a GitHub URL as a template, the CLI validates:
+
 1. `package.json` exists and contains `@mastra/core` dependency
 2. `src/mastra/index.ts` exists and exports a Mastra instance
 
@@ -795,14 +803,17 @@ When using a GitHub URL as a template, the CLI validates:
 ### Template Cloning
 
 Cloning uses two strategies:
+
 1. **Primary**: `npx degit` (fast, no git history)
 2. **Fallback**: `git clone` + remove `.git` directory
 
 **Branch Support:**
+
 - Degit: `npx degit owner/repo#branch`
 - Git: `git clone --branch <branch> <url>`
 
 **Post-Clone Steps:**
+
 1. Update `package.json` name field
 2. Copy `.env.example` to `.env`
 3. Update `MODEL` in `.env` based on selected LLM provider
@@ -826,6 +837,7 @@ npx skills add mastra-ai/skills --agent cursor claude-code -y
 ### Supported Agents
 
 The CLI supports skills installation for 40+ coding agents including:
+
 - Popular: `claude-code`, `cursor`, `windsurf`, `github-copilot`, `cline`, `continue`
 - Full list includes: `codex`, `opencode`, `gemini-cli`, `replit`, `roo`, `adal`, `amp`, `antigravity`, and more
 
@@ -834,6 +846,7 @@ The CLI supports skills installation for 40+ coding agents including:
 ### Generated Documentation
 
 After skills installation, the CLI generates:
+
 - `AGENTS.md`: General guidance for AI coding agents
 - `CLAUDE.md`: Specific instructions for Claude Code (if selected)
 
@@ -848,29 +861,30 @@ After skills installation, the CLI generates:
 API keys are written to `.env` or `.env.example` using safe shell quoting:
 
 ```typescript
-const escapedKey = shellQuote.quote([key]);
-const escapedApiKey = shellQuote.quote([apiKey ? apiKey : 'your-api-key']);
-await exec(`echo ${escapedKey}=${escapedApiKey} >> ${envFileName}`);
+const escapedKey = shellQuote.quote([key])
+const escapedApiKey = shellQuote.quote([apiKey ? apiKey : 'your-api-key'])
+await exec(`echo ${escapedKey}=${escapedApiKey} >> ${envFileName}`)
 ```
 
 **Implementation:** [packages/cli/src/commands/init/utils.ts:612-622]()
 
 ### Environment Variable Mapping
 
-| Provider | Environment Variable |
-|----------|---------------------|
-| OpenAI | `OPENAI_API_KEY` |
-| Anthropic | `ANTHROPIC_API_KEY` |
-| Groq | `GROQ_API_KEY` |
-| Google | `GOOGLE_GENERATIVE_AI_API_KEY` |
-| Cerebras | `CEREBRAS_API_KEY` |
-| Mistral | `MISTRAL_API_KEY` |
+| Provider  | Environment Variable           |
+| --------- | ------------------------------ |
+| OpenAI    | `OPENAI_API_KEY`               |
+| Anthropic | `ANTHROPIC_API_KEY`            |
+| Groq      | `GROQ_API_KEY`                 |
+| Google    | `GOOGLE_GENERATIVE_AI_API_KEY` |
+| Cerebras  | `CEREBRAS_API_KEY`             |
+| Mistral   | `MISTRAL_API_KEY`              |
 
 **Sources:** [packages/cli/src/commands/init/utils.ts:589-610]()
 
 ### Dotenv Loading
 
 By default, the CLI loads `.env` files using `dotenv`. This can be skipped by setting:
+
 ```bash
 export MASTRA_SKIP_DOTENV=true
 # or
@@ -890,10 +904,10 @@ If project creation fails, the CLI automatically removes the partially created d
 ```typescript
 if (projectPath && fsSync.existsSync(projectPath)) {
   try {
-    process.chdir(originalCwd);
-    await fs.rm(projectPath, { recursive: true, force: true });
+    process.chdir(originalCwd)
+    await fs.rm(projectPath, { recursive: true, force: true })
   } catch (cleanupError) {
-    console.error(`Warning: Failed to clean up project directory`);
+    console.error(`Warning: Failed to clean up project directory`)
   }
 }
 ```
@@ -917,10 +931,10 @@ If installation with specific version tag fails, the CLI falls back to `@latest`
 
 ```typescript
 try {
-  await installMastraDependency(pm, 'mastra', versionTag, true, timeout);
+  await installMastraDependency(pm, 'mastra', versionTag, true, timeout)
 } catch (error) {
   // Fallback to @latest
-  await installMastraDependency(pm, 'mastra', '@latest', true, timeout);
+  await installMastraDependency(pm, 'mastra', '@latest', true, timeout)
 }
 ```
 
@@ -930,17 +944,17 @@ try {
 
 ## Summary of CLI Commands
 
-| Command | Primary Purpose | Interactive Mode | Requires Existing Project |
-|---------|----------------|------------------|---------------------------|
-| `mastra create` / `npx create-mastra` | Create new project | Yes | No |
-| `mastra init` | Initialize in existing project | Yes | Yes |
-| `mastra dev` | Start development server | No | Yes |
-| `mastra build` | Build for production | No | Yes |
-| `mastra start` | Run production build | No | Yes (built) |
-| `mastra studio` | Start Studio UI | No | Yes |
-| `mastra migrate` | Update database schema | Yes (confirmation) | Yes |
-| `mastra lint` | Validate configuration | No | Yes |
-| `mastra scorers add` | Add scorer template | Yes | Yes |
-| `mastra scorers list` | List available scorers | No | No |
+| Command                               | Primary Purpose                | Interactive Mode   | Requires Existing Project |
+| ------------------------------------- | ------------------------------ | ------------------ | ------------------------- |
+| `mastra create` / `npx create-mastra` | Create new project             | Yes                | No                        |
+| `mastra init`                         | Initialize in existing project | Yes                | Yes                       |
+| `mastra dev`                          | Start development server       | No                 | Yes                       |
+| `mastra build`                        | Build for production           | No                 | Yes                       |
+| `mastra start`                        | Run production build           | No                 | Yes (built)               |
+| `mastra studio`                       | Start Studio UI                | No                 | Yes                       |
+| `mastra migrate`                      | Update database schema         | Yes (confirmation) | Yes                       |
+| `mastra lint`                         | Validate configuration         | No                 | Yes                       |
+| `mastra scorers add`                  | Add scorer template            | Yes                | Yes                       |
+| `mastra scorers list`                 | List available scorers         | No                 | No                        |
 
 **Sources:** [packages/cli/src/index.ts:37-187]()

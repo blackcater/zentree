@@ -14,11 +14,11 @@ The following files were used as context for generating this wiki page:
 - [packages/openai/CHANGELOG.md](packages/openai/CHANGELOG.md)
 - [packages/openai/package.json](packages/openai/package.json)
 - [packages/openai/src/openai-tools.ts](packages/openai/src/openai-tools.ts)
-- [packages/openai/src/responses/__fixtures__/openai-phase.1.chunks.txt](packages/openai/src/responses/__fixtures__/openai-phase.1.chunks.txt)
-- [packages/openai/src/responses/__fixtures__/openai-phase.1.json](packages/openai/src/responses/__fixtures__/openai-phase.1.json)
-- [packages/openai/src/responses/__fixtures__/openai-web-search-tool.1.chunks.txt](packages/openai/src/responses/__fixtures__/openai-web-search-tool.1.chunks.txt)
-- [packages/openai/src/responses/__fixtures__/openai-web-search-tool.1.json](packages/openai/src/responses/__fixtures__/openai-web-search-tool.1.json)
-- [packages/openai/src/responses/__snapshots__/openai-responses-language-model.test.ts.snap](packages/openai/src/responses/__snapshots__/openai-responses-language-model.test.ts.snap)
+- [packages/openai/src/responses/**fixtures**/openai-phase.1.chunks.txt](packages/openai/src/responses/__fixtures__/openai-phase.1.chunks.txt)
+- [packages/openai/src/responses/**fixtures**/openai-phase.1.json](packages/openai/src/responses/__fixtures__/openai-phase.1.json)
+- [packages/openai/src/responses/**fixtures**/openai-web-search-tool.1.chunks.txt](packages/openai/src/responses/__fixtures__/openai-web-search-tool.1.chunks.txt)
+- [packages/openai/src/responses/**fixtures**/openai-web-search-tool.1.json](packages/openai/src/responses/__fixtures__/openai-web-search-tool.1.json)
+- [packages/openai/src/responses/**snapshots**/openai-responses-language-model.test.ts.snap](packages/openai/src/responses/__snapshots__/openai-responses-language-model.test.ts.snap)
 - [packages/openai/src/responses/convert-to-openai-responses-input.test.ts](packages/openai/src/responses/convert-to-openai-responses-input.test.ts)
 - [packages/openai/src/responses/convert-to-openai-responses-input.ts](packages/openai/src/responses/convert-to-openai-responses-input.ts)
 - [packages/openai/src/responses/openai-responses-api.test.ts](packages/openai/src/responses/openai-responses-api.test.ts)
@@ -36,8 +36,6 @@ The following files were used as context for generating this wiki page:
 - [packages/provider-utils/package.json](packages/provider-utils/package.json)
 
 </details>
-
-
 
 ## Purpose and Scope
 
@@ -57,49 +55,49 @@ graph TB
         GenerateText["generateText()"]
         StreamText["streamText()"]
     end
-    
+
     subgraph "OpenAI Provider"
         ProviderFactory["openai() / openai.responses()"]
         ResponsesModel["OpenAIResponsesLanguageModel"]
-        
+
         subgraph "Conversion Layer"
             InputConverter["convertToOpenAIResponsesInput()"]
             OutputParser["Response Parser"]
             UsageConverter["convertOpenAIResponsesUsage()"]
         end
-        
+
         subgraph "Tool Management"
             ToolPreparer["prepareResponsesTools()"]
             ToolNameMapping["createToolNameMapping()"]
         end
-        
+
         subgraph "API Types"
             InputTypes["OpenAIResponsesInput"]
             OutputTypes["OpenAIResponsesOutput"]
             ChunkTypes["OpenAIResponsesChunk"]
         end
     end
-    
+
     subgraph "OpenAI Responses API"
         Endpoint["/v1/responses"]
     end
-    
+
     GenerateText --> ProviderFactory
     StreamText --> ProviderFactory
     ProviderFactory --> ResponsesModel
-    
+
     ResponsesModel --> InputConverter
     ResponsesModel --> ToolPreparer
     ToolPreparer --> ToolNameMapping
-    
+
     InputConverter --> InputTypes
     InputTypes --> Endpoint
-    
+
     Endpoint --> OutputTypes
     Endpoint --> ChunkTypes
     OutputTypes --> OutputParser
     ChunkTypes --> OutputParser
-    
+
     OutputParser --> UsageConverter
     OutputParser --> ResponsesModel
     UsageConverter --> ResponsesModel
@@ -113,12 +111,12 @@ The `OpenAIResponsesLanguageModel` class implements the `LanguageModelV3` interf
 
 ### Class Structure
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `specificationVersion` | `'v3'` | Identifies this as a V3 provider |
-| `modelId` | `OpenAIResponsesModelId` | The specific model identifier |
-| `provider` | `string` | Provider name (typically "openai" or "azure") |
-| `supportedUrls` | `Record<string, RegExp[]>` | URL patterns for images and PDFs |
+| Property               | Type                       | Description                                   |
+| ---------------------- | -------------------------- | --------------------------------------------- |
+| `specificationVersion` | `'v3'`                     | Identifies this as a V3 provider              |
+| `modelId`              | `OpenAIResponsesModelId`   | The specific model identifier                 |
+| `provider`             | `string`                   | Provider name (typically "openai" or "azure") |
+| `supportedUrls`        | `Record<string, RegExp[]>` | URL patterns for images and PDFs              |
 
 **Key Methods:**
 
@@ -135,15 +133,15 @@ The implementation maintains lists of model IDs to determine model capabilities:
 ```mermaid
 graph LR
     ModelId["Model ID"]
-    
+
     ReasoningCheck{"In openaiResponsesReasoningModelIds?"}
     ModelCapabilities["getOpenAILanguageModelCapabilities()"]
-    
+
     ConfigCheck{"forceReasoning option?"}
-    
+
     IsReasoning["isReasoningModel = true"]
     NotReasoning["isReasoningModel = false"]
-    
+
     ModelId --> ReasoningCheck
     ReasoningCheck -->|Yes| IsReasoning
     ReasoningCheck -->|No| ConfigCheck
@@ -170,17 +168,17 @@ graph TB
         ToolCall["tool-call parts"]
         ToolResult["tool-result parts"]
     end
-    
+
     subgraph "Conversion Logic"
         SystemMode{"systemMessageMode"}
         FileIdCheck{"isFileId()?"}
         StoreCheck{"store = true?"}
-        
+
         MessageConverter["Message Converter"]
         ToolConverter["Tool Result Converter"]
         ReferenceBuilder["Item Reference Builder"]
     end
-    
+
     subgraph "Responses API Format"
         SystemItem["OpenAIResponsesSystemMessage"]
         DeveloperItem["role: 'developer'"]
@@ -192,30 +190,30 @@ graph TB
         ShellCall["OpenAIResponsesShellCall"]
         ShellOutput["OpenAIResponsesShellCallOutput"]
     end
-    
+
     Prompt --> MessageConverter
-    
+
     SystemMsg --> SystemMode
     SystemMode -->|"system"| SystemItem
     SystemMode -->|"developer"| DeveloperItem
     SystemMode -->|"remove"| MessageConverter
-    
+
     UserMsg --> FileIdCheck
     FileIdCheck -->|"Yes"| UserItem
     FileIdCheck -->|"No (base64)"| UserItem
-    
+
     AssistantMsg --> StoreCheck
     StoreCheck -->|"Yes + has itemId"| ItemRef
     StoreCheck -->|"No"| AssistantItem
-    
+
     ToolCall --> ToolConverter
     ToolResult --> ToolConverter
-    
+
     ToolConverter --> FunctionCall
     ToolConverter --> FunctionOutput
     ToolConverter --> ShellCall
     ToolConverter --> ShellOutput
-    
+
     AssistantMsg --> ReferenceBuilder
     ReferenceBuilder --> ItemRef
 ```
@@ -224,11 +222,11 @@ graph TB
 
 The conversion supports three modes for system messages:
 
-| Mode | Target Role | Use Case |
-|------|-------------|----------|
-| `system` | `system` | Standard models |
+| Mode        | Target Role | Use Case                                     |
+| ----------- | ----------- | -------------------------------------------- |
+| `system`    | `system`    | Standard models                              |
 | `developer` | `developer` | Reasoning models (default for o1, o3, gpt-5) |
-| `remove` | _(omitted)_ | Models that don't support system messages |
+| `remove`    | _(omitted)_ | Models that don't support system messages    |
 
 **Sources:** [packages/openai/src/responses/convert-to-openai-responses-input.ts:70-95](), [packages/openai/src/responses/openai-responses-language-model.ts:203-208]()
 
@@ -239,8 +237,8 @@ The converter supports file IDs from OpenAI's Files API:
 ```typescript
 // Detection based on configurable prefixes
 function isFileId(data: string, prefixes?: readonly string[]): boolean {
-  if (!prefixes) return false;
-  return prefixes.some(prefix => data.startsWith(prefix));
+  if (!prefixes) return false
+  return prefixes.some((prefix) => data.startsWith(prefix))
 }
 ```
 
@@ -260,14 +258,14 @@ graph LR
     HasItemId{"Has itemId in providerMetadata?"}
     StoreFalse["store: false"]
     StoreTrue["store: true"]
-    
+
     FullContent["Full content items"]
     ItemReference["type: 'item_reference'<br/>id: itemId"]
-    
+
     AssistantMsg --> HasItemId
     HasItemId -->|No| FullContent
     HasItemId -->|Yes| StoreCheck
-    
+
     StoreCheck{"store?"}
     StoreCheck -->|false| FullContent
     StoreCheck -->|true| ItemReference
@@ -288,7 +286,7 @@ graph TB
     subgraph "User-Defined Tools"
         FunctionTool["type: 'function'<br/>Client-side execution"]
     end
-    
+
     subgraph "Provider-Defined Tools"
         WebSearch["openai.tools.webSearch<br/>web_search"]
         WebSearchPreview["openai.tools.webSearchPreview<br/>web_search_preview"]
@@ -300,13 +298,13 @@ graph TB
         MCP["openai.tools.mcp<br/>mcp"]
         ApplyPatch["openai.tools.applyPatch<br/>apply_patch"]
     end
-    
+
     subgraph "Tool Preparation"
         PrepareTools["prepareResponsesTools()"]
         ToolNameMapping["ToolNameMapping"]
         SchemaValidation["Schema Validation"]
     end
-    
+
     PrepareTools --> FunctionTool
     PrepareTools --> WebSearch
     PrepareTools --> FileSearch
@@ -315,10 +313,10 @@ graph TB
     PrepareTools --> Shell
     PrepareTools --> ApplyPatch
     PrepareTools --> MCP
-    
+
     PrepareTools --> ToolNameMapping
     PrepareTools --> SchemaValidation
-    
+
     style WebSearch fill:#f9f9f9
     style FileSearch fill:#f9f9f9
     style CodeInterpreter fill:#f9f9f9
@@ -331,17 +329,17 @@ graph TB
 
 The SDK uses a consistent naming scheme to identify provider tools:
 
-| SDK Tool ID | Provider Tool Name | Description |
-|-------------|-------------------|-------------|
-| `openai.web_search` | `web_search` | Web search with source citations |
+| SDK Tool ID                 | Provider Tool Name   | Description                            |
+| --------------------------- | -------------------- | -------------------------------------- |
+| `openai.web_search`         | `web_search`         | Web search with source citations       |
 | `openai.web_search_preview` | `web_search_preview` | Preview version with enhanced features |
-| `openai.file_search` | `file_search` | Vector store file search |
-| `openai.code_interpreter` | `code_interpreter` | Code execution in sandbox |
-| `openai.image_generation` | `image_generation` | DALL-E image generation |
-| `openai.local_shell` | `local_shell` | Local terminal commands |
-| `openai.shell` | `shell` | Remote shell execution |
-| `openai.mcp` | `mcp` | Model Context Protocol tools |
-| `openai.apply_patch` | `apply_patch` | File patching operations |
+| `openai.file_search`        | `file_search`        | Vector store file search               |
+| `openai.code_interpreter`   | `code_interpreter`   | Code execution in sandbox              |
+| `openai.image_generation`   | `image_generation`   | DALL-E image generation                |
+| `openai.local_shell`        | `local_shell`        | Local terminal commands                |
+| `openai.shell`              | `shell`              | Remote shell execution                 |
+| `openai.mcp`                | `mcp`                | Model Context Protocol tools           |
+| `openai.apply_patch`        | `apply_patch`        | File patching operations               |
 
 The mapping is created in `getArgs()`:
 
@@ -359,12 +357,12 @@ openai.tools.webSearch({
   userLocation: {
     type: 'approximate',
     city: 'San Francisco',
-    region: 'California'
+    region: 'California',
   },
   filters: {
     allowedDomains: ['example.com'],
-    blockedDomains: ['spam.com']
-  }
+    blockedDomains: ['spam.com'],
+  },
 })
 ```
 
@@ -379,7 +377,7 @@ Executes Python code in a sandboxed environment:
 ```typescript
 openai.tools.codeInterpreter({
   maxExecutionTimeMs: 30000,
-  containerId: 'custom-container-id'
+  containerId: 'custom-container-id',
 })
 ```
 
@@ -399,8 +397,8 @@ openai.tools.fileSearch({
     type: 'comparison',
     key: 'category',
     type: 'eq',
-    value: 'technical'
-  }
+    value: 'technical',
+  },
 })
 ```
 
@@ -426,10 +424,10 @@ Reasoning models (o1, o3, o4-mini, gpt-5 series) have special handling for exten
 graph TB
     IsReasoning{"isReasoningModel?"}
     ReasoningEffort{"reasoningEffort"}
-    
+
     AllowParams["Allow temperature, topP"]
     RemoveParams["Remove temperature, topP<br/>Add warnings"]
-    
+
     IsReasoning -->|No| AllowParams
     IsReasoning -->|Yes| ReasoningEffort
     ReasoningEffort -->|"'none' AND<br/>supportsNonReasoningParameters"| AllowParams
@@ -437,6 +435,7 @@ graph TB
 ```
 
 Reasoning models don't support:
+
 - `temperature` (except gpt-5.1/5.2 with `reasoningEffort: 'none'`)
 - `topP` (except gpt-5.1/5.2 with `reasoningEffort: 'none'`)
 - `seed`
@@ -457,14 +456,14 @@ providerOptions: {
 }
 ```
 
-| Effort Level | Availability | Description |
-|--------------|--------------|-------------|
-| `none` | gpt-5.1, gpt-5.2 only | Disables reasoning, allows temperature/topP |
-| `minimal` | All reasoning models | Minimal thinking |
-| `low` | All reasoning models | Light reasoning |
-| `medium` | All reasoning models | Default balanced reasoning |
-| `high` | All reasoning models | Extended reasoning |
-| `xhigh` | gpt-5.1-codex-max only | Maximum reasoning depth |
+| Effort Level | Availability           | Description                                 |
+| ------------ | ---------------------- | ------------------------------------------- |
+| `none`       | gpt-5.1, gpt-5.2 only  | Disables reasoning, allows temperature/topP |
+| `minimal`    | All reasoning models   | Minimal thinking                            |
+| `low`        | All reasoning models   | Light reasoning                             |
+| `medium`     | All reasoning models   | Default balanced reasoning                  |
+| `high`       | All reasoning models   | Extended reasoning                          |
+| `xhigh`      | gpt-5.1-codex-max only | Maximum reasoning depth                     |
 
 **Sources:** [packages/openai/src/responses/openai-responses-options.ts:120-124](), [packages/openai/src/responses/openai-responses-language-model.ts:322-331]()
 
@@ -475,16 +474,16 @@ Reasoning content appears as separate items in the response:
 ```mermaid
 graph LR
     ResponseOutput["response.output[]"]
-    
+
     ReasoningItem["type: 'reasoning'<br/>summary: [{text}]"]
     MessageItem["type: 'message'<br/>content: [{text}]"]
-    
+
     ReasoningContent["LanguageModelV3Content<br/>type: 'reasoning'"]
     TextContent["LanguageModelV3Content<br/>type: 'text'"]
-    
+
     ResponseOutput --> ReasoningItem
     ResponseOutput --> MessageItem
-    
+
     ReasoningItem --> ReasoningContent
     MessageItem --> TextContent
 ```
@@ -499,13 +498,13 @@ The `OpenAILanguageModelResponsesOptions` type defines all available provider-sp
 
 ### Core Options
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `parallelToolCalls` | `boolean` | Enable parallel tool execution (default: `true`) |
-| `store` | `boolean` | Store conversation for continuity (default: `true`) |
-| `maxToolCalls` | `number` | Maximum total provider tool calls |
-| `metadata` | `Record<string, string>` | Additional metadata to store |
-| `user` | `string` | End-user identifier for abuse monitoring |
+| Option              | Type                     | Description                                         |
+| ------------------- | ------------------------ | --------------------------------------------------- |
+| `parallelToolCalls` | `boolean`                | Enable parallel tool execution (default: `true`)    |
+| `store`             | `boolean`                | Store conversation for continuity (default: `true`) |
+| `maxToolCalls`      | `number`                 | Maximum total provider tool calls                   |
+| `metadata`          | `Record<string, string>` | Additional metadata to store                        |
+| `user`              | `string`                 | End-user identifier for abuse monitoring            |
 
 **Sources:** [packages/openai/src/responses/openai-responses-options.ts:23-85]()
 
@@ -542,12 +541,12 @@ providerOptions: {
 }
 ```
 
-| Tier | Availability | Behavior |
-|------|--------------|----------|
-| `auto` | All models | Default routing |
-| `flex` | o3, o4-mini, gpt-5 | 50% cheaper, increased latency |
-| `priority` | gpt-4, gpt-5, gpt-5-mini, o3, o4-mini | Faster with Enterprise access |
-| `default` | All models | Standard processing |
+| Tier       | Availability                          | Behavior                       |
+| ---------- | ------------------------------------- | ------------------------------ |
+| `auto`     | All models                            | Default routing                |
+| `flex`     | o3, o4-mini, gpt-5                    | 50% cheaper, increased latency |
+| `priority` | gpt-4, gpt-5, gpt-5-mini, o3, o4-mini | Faster with Enterprise access  |
+| `default`  | All models                            | Standard processing            |
 
 **Sources:** [packages/openai/src/responses/openai-responses-options.ts:109-112](), [packages/openai/src/responses/openai-responses-language-model.ts:382-409]()
 
@@ -592,13 +591,14 @@ providerOptions: {
       'code_interpreter_call.outputs',
       'file_search_call.results',
       'message.output_text.logprobs',
-      'reasoning.encrypted_content'
+      'reasoning.encrypted_content',
     ]
   }
 }
 ```
 
 Some includes are added automatically by the SDK:
+
 - Logprobs when `logprobs` option is set
 - Web search sources when web search tool is present
 - Code interpreter outputs when code interpreter tool is present
@@ -618,24 +618,24 @@ sequenceDiagram
     participant Converter as convertToOpenAIResponsesInput()
     participant ToolPrep as prepareResponsesTools()
     participant API as OpenAI /responses
-    
+
     App->>Model: doGenerate(options)
     Model->>GetArgs: Prepare arguments
-    
+
     GetArgs->>Converter: Convert prompt
     Converter-->>GetArgs: input + warnings
-    
+
     GetArgs->>ToolPrep: Prepare tools
     ToolPrep-->>GetArgs: tools + toolChoice + warnings
-    
+
     GetArgs-->>Model: args + warnings + metadata
-    
+
     Model->>API: POST /responses<br/>Body: {model, input, tools, ...}
     API-->>Model: Response with output[]
-    
+
     Model->>Model: Parse output items<br/>Map to LanguageModelV3Content
     Model->>Model: Extract usage<br/>Extract providerMetadata
-    
+
     Model-->>App: LanguageModelV3GenerateResult
 ```
 
@@ -649,13 +649,13 @@ sequenceDiagram
     participant Model as OpenAIResponsesLanguageModel
     participant API as OpenAI /responses (stream)
     participant Parser as Stream Parser
-    
+
     App->>Model: doStream(options)
     Model->>API: POST /responses<br/>Headers: text/event-stream
-    
+
     loop Event Stream
         API-->>Parser: data: {...chunk...}
-        
+
         alt response.output_item.added
             Parser->>Parser: Track item creation
         else response.output_item.done
@@ -673,7 +673,7 @@ sequenceDiagram
             Parser-->>App: {type: 'finish', usage}
         end
     end
-    
+
     Model-->>App: LanguageModelV3StreamResult
 ```
 
@@ -683,20 +683,20 @@ sequenceDiagram
 
 The model maps OpenAI response items to SDK content types:
 
-| OpenAI Item Type | SDK Content Type | Notes |
-|------------------|------------------|-------|
-| `reasoning` | `type: 'reasoning'` | With `reasoningEncryptedContent` in metadata |
-| `message` | `type: 'text'` | With annotations for citations |
-| `function_call` | `type: 'tool-call'` | User-defined tools |
-| `web_search_call` | `type: 'tool-call'` + `type: 'tool-result'` | Provider-executed |
-| `code_interpreter_call` | `type: 'tool-call'` + `type: 'tool-result'` | Provider-executed |
-| `file_search_call` | `type: 'tool-call'` + `type: 'tool-result'` | Provider-executed |
-| `image_generation_call` | `type: 'tool-call'` + `type: 'tool-result'` | Provider-executed |
-| `local_shell_call` | `type: 'tool-call'` | Client-executed with approval |
-| `shell_call` | `type: 'tool-call'` | Client-executed |
-| `apply_patch_call` | `type: 'tool-call'` | Client-executed |
-| `mcp_call` | `type: 'tool-call'` + `type: 'tool-result'` | Provider-executed |
-| `mcp_approval_request` | `type: 'tool-call'` + `type: 'tool-approval-request'` | Requires user approval |
+| OpenAI Item Type        | SDK Content Type                                      | Notes                                        |
+| ----------------------- | ----------------------------------------------------- | -------------------------------------------- |
+| `reasoning`             | `type: 'reasoning'`                                   | With `reasoningEncryptedContent` in metadata |
+| `message`               | `type: 'text'`                                        | With annotations for citations               |
+| `function_call`         | `type: 'tool-call'`                                   | User-defined tools                           |
+| `web_search_call`       | `type: 'tool-call'` + `type: 'tool-result'`           | Provider-executed                            |
+| `code_interpreter_call` | `type: 'tool-call'` + `type: 'tool-result'`           | Provider-executed                            |
+| `file_search_call`      | `type: 'tool-call'` + `type: 'tool-result'`           | Provider-executed                            |
+| `image_generation_call` | `type: 'tool-call'` + `type: 'tool-result'`           | Provider-executed                            |
+| `local_shell_call`      | `type: 'tool-call'`                                   | Client-executed with approval                |
+| `shell_call`            | `type: 'tool-call'`                                   | Client-executed                              |
+| `apply_patch_call`      | `type: 'tool-call'`                                   | Client-executed                              |
+| `mcp_call`              | `type: 'tool-call'` + `type: 'tool-result'`           | Provider-executed                            |
+| `mcp_approval_request`  | `type: 'tool-call'` + `type: 'tool-approval-request'` | Requires user approval                       |
 
 **Sources:** [packages/openai/src/responses/openai-responses-language-model.ts:486-873]()
 
@@ -707,22 +707,22 @@ Text annotations in message content are converted to source documents:
 ```mermaid
 graph TB
     TextAnnotation["message.content.annotations[]"]
-    
+
     UrlCitation["type: 'url_citation'"]
     FileCitation["type: 'file_citation'"]
     ContainerCitation["type: 'container_file_citation'"]
     FilePath["type: 'file_path'"]
-    
+
     SourceUrl["LanguageModelV3Content<br/>type: 'source'<br/>sourceType: 'url'"]
     SourceDoc1["LanguageModelV3Content<br/>type: 'source'<br/>sourceType: 'document'<br/>fileId in metadata"]
     SourceDoc2["LanguageModelV3Content<br/>type: 'source'<br/>sourceType: 'document'<br/>containerId in metadata"]
     SourceDoc3["LanguageModelV3Content<br/>type: 'source'<br/>sourceType: 'document'<br/>fileId in metadata"]
-    
+
     TextAnnotation --> UrlCitation
     TextAnnotation --> FileCitation
     TextAnnotation --> ContainerCitation
     TextAnnotation --> FilePath
-    
+
     UrlCitation --> SourceUrl
     FileCitation --> SourceDoc1
     ContainerCitation --> SourceDoc2
@@ -740,9 +740,9 @@ The Responses API returns rich metadata at multiple levels.
 ```typescript
 type OpenaiResponsesProviderMetadata = {
   openai: {
-    responseId: string | null | undefined;
-    logprobs?: Array<OpenAIResponsesLogprobs>;
-    serviceTier?: string;
+    responseId: string | null | undefined
+    logprobs?: Array<OpenAIResponsesLogprobs>
+    serviceTier?: string
   }
 }
 ```
@@ -755,8 +755,8 @@ The `responseId` can be used for conversation continuity via `previousResponseId
 
 ```typescript
 type ResponsesTextProviderMetadata = {
-  itemId: string;
-  annotations?: Array<Annotation>;
+  itemId: string
+  annotations?: Array<Annotation>
 }
 ```
 
@@ -768,8 +768,8 @@ Text content includes the `itemId` for reference in future requests and any inli
 
 ```typescript
 type ResponsesReasoningProviderMetadata = {
-  itemId: string;
-  reasoningEncryptedContent: string | null;
+  itemId: string
+  reasoningEncryptedContent: string | null
 }
 ```
 
@@ -780,21 +780,21 @@ Reasoning parts include encrypted content when `store: false` and the include op
 ### Source Document Metadata
 
 ```typescript
-type ResponsesSourceDocumentProviderMetadata = 
+type ResponsesSourceDocumentProviderMetadata =
   | {
-      type: 'file_citation';
-      fileId: string;
-      index: number;
+      type: 'file_citation'
+      fileId: string
+      index: number
     }
   | {
-      type: 'container_file_citation';
-      fileId: string;
-      containerId: string;
+      type: 'container_file_citation'
+      fileId: string
+      containerId: string
     }
   | {
-      type: 'file_path';
-      fileId: string;
-      index: number;
+      type: 'file_path'
+      fileId: string
+      index: number
     }
 ```
 
@@ -804,14 +804,14 @@ Source documents include the file ID and location information for retrieval.
 
 ## Key Implementation Files
 
-| File | Primary Responsibility |
-|------|----------------------|
-| [openai-responses-language-model.ts:97-1383]() | Core `OpenAIResponsesLanguageModel` class, `doGenerate()` and `doStream()` |
-| [openai-responses-api.ts:1-766]() | Type definitions and Zod schemas for API structures |
-| [openai-responses-options.ts:1-223]() | Provider options schema and model ID lists |
-| [convert-to-openai-responses-input.ts:39-478]() | Prompt to API input conversion |
-| [openai-responses-prepare-tools.ts:15-110]() | Tool preparation and validation |
-| [convert-openai-responses-usage.ts:1-29]() | Token usage extraction and conversion |
-| [openai-responses-provider-metadata.ts:1-115]() | Provider metadata type definitions |
+| File                                            | Primary Responsibility                                                     |
+| ----------------------------------------------- | -------------------------------------------------------------------------- |
+| [openai-responses-language-model.ts:97-1383]()  | Core `OpenAIResponsesLanguageModel` class, `doGenerate()` and `doStream()` |
+| [openai-responses-api.ts:1-766]()               | Type definitions and Zod schemas for API structures                        |
+| [openai-responses-options.ts:1-223]()           | Provider options schema and model ID lists                                 |
+| [convert-to-openai-responses-input.ts:39-478]() | Prompt to API input conversion                                             |
+| [openai-responses-prepare-tools.ts:15-110]()    | Tool preparation and validation                                            |
+| [convert-openai-responses-usage.ts:1-29]()      | Token usage extraction and conversion                                      |
+| [openai-responses-provider-metadata.ts:1-115]() | Provider metadata type definitions                                         |
 
 **Sources:** All files cited in this section

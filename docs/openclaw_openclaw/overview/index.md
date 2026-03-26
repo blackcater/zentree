@@ -53,8 +53,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document introduces OpenClaw as a self-hosted multi-agent AI gateway system. It explains the high-level architecture, core capabilities, and deployment model. For hands-on setup instructions, see [Getting Started](#1.1). For conceptual deep-dives on agents, sessions, and routing, see [Core Concepts](#1.2). For detailed architectural diagrams and subsystem interactions, see [System Architecture](#1.3).
@@ -84,7 +82,7 @@ graph TB
         WebUI["Control UI<br/>ui/"]
         MobileNodes["Mobile Nodes<br/>iOS/Android apps"]
     end
-    
+
     subgraph "Messaging Channels"
         WhatsApp["WhatsApp<br/>Baileys"]
         Telegram["Telegram<br/>grammY"]
@@ -92,7 +90,7 @@ graph TB
         Slack["Slack<br/>Bolt SDK"]
         OtherChannels["Signal/iMessage/Matrix/etc"]
     end
-    
+
     subgraph "Gateway Process"
         GatewayServer["Gateway Server<br/>src/gateway/server.ts<br/>ws://127.0.0.1:18789"]
         SessionManager["Session Manager<br/>src/session/"]
@@ -101,41 +99,41 @@ graph TB
         ToolRegistry["Tool Registry<br/>src/tools/registry.ts"]
         CronService["Cron Service<br/>src/cron/"]
     end
-    
+
     subgraph "Agent Runtime"
         PiAgent["Pi Agent<br/>@mariozechner/pi-agent-core<br/>@mariozechner/pi-ai"]
         AgentWorkspace["Agent Workspace<br/>~/.openclaw/workspace<br/>SOUL.md, AGENTS.md"]
         SkillsSystem["Skills System<br/>skills/, SKILL.md"]
         MemoryIndex["Memory Index<br/>sqlite-vec<br/>~/.openclaw/memory/"]
     end
-    
+
     subgraph "Plugin System"
         PluginSDK["Plugin SDK<br/>openclaw/plugin-sdk"]
         ChannelPlugins["Channel Plugins<br/>extensions/*/"]
         ToolPlugins["Tool Plugins"]
     end
-    
+
     CLI --> GatewayServer
     WebUI --> GatewayServer
     MobileNodes --> GatewayServer
-    
+
     WhatsApp --> GatewayServer
     Telegram --> GatewayServer
     Discord --> GatewayServer
     Slack --> GatewayServer
     OtherChannels --> GatewayServer
-    
+
     GatewayServer --> SessionManager
     GatewayServer --> AgentRouter
     GatewayServer --> ConfigManager
     GatewayServer --> CronService
-    
+
     AgentRouter --> PiAgent
     PiAgent --> ToolRegistry
     PiAgent --> AgentWorkspace
     PiAgent --> SkillsSystem
     PiAgent --> MemoryIndex
-    
+
     ToolRegistry --> PluginSDK
     ChannelPlugins --> PluginSDK
     ToolPlugins --> PluginSDK
@@ -169,6 +167,7 @@ OpenClaw embeds the **Pi Agent** system for agent execution:
 - `@mariozechner/pi-coding-agent`: Coding-specific tools
 
 **Agent isolation:** Each agent has:
+
 - Dedicated workspace directory (`~/.openclaw/workspace` or `~/.openclaw/workspace-<agentId>`)
 - Separate session store (`~/.openclaw/agents/<agentId>/sessions/`)
 - Independent auth profiles (`~/.openclaw/agents/<agentId>/agent/auth-profiles.json`)
@@ -208,6 +207,7 @@ Tools are registered in `src/tools/registry.ts` with multi-layered policy enforc
 - **Per-tool policies**: Fine-grained access control
 
 **Built-in tools:**
+
 - `bash`/`exec`: Shell command execution
 - `read`, `write`, `edit`: File operations
 - `browser_*`: Browser automation via Playwright
@@ -255,18 +255,18 @@ The plugin system supports extensibility via `openclaw/plugin-sdk`:
 
 ## Key Capabilities
 
-| Capability | Description | Code Reference |
-|------------|-------------|----------------|
-| **Multi-channel messaging** | WhatsApp, Telegram, Discord, Slack, Signal, iMessage, Matrix, and 20+ more | [extensions/*/]() |
-| **Multi-agent routing** | Isolated agents with independent workspaces, sessions, and auth | [docs/concepts/multi-agent.md:1-10]() |
-| **Tool execution** | Bash, file ops, browser control, memory search, agent messaging | [src/tools/]() |
-| **Context compaction** | Automatic session summarization when context window fills | [README.md:174-176]() |
-| **Cron scheduling** | Background agent tasks with configurable delivery | [src/cron/](), [README.md:167-169]() |
-| **WebSocket RPC** | Real-time bidirectional communication for all clients | [docs/gateway/index.md:71-77]() |
-| **OAuth integration** | Token refresh for Anthropic, OpenAI, Google providers | [docs/cli/index.md:459]() |
-| **Device pairing** | Secure node registration with challenge-response auth | [docs/gateway/troubleshooting.md:93-150]() |
-| **Hot reload** | Config changes apply without restart (hybrid mode default) | [docs/gateway/index.md:63-66]() |
-| **Sandboxing** | Per-session Docker isolation for non-main sessions | [README.md:334-338]() |
+| Capability                  | Description                                                                | Code Reference                             |
+| --------------------------- | -------------------------------------------------------------------------- | ------------------------------------------ |
+| **Multi-channel messaging** | WhatsApp, Telegram, Discord, Slack, Signal, iMessage, Matrix, and 20+ more | [extensions/\*/]()                         |
+| **Multi-agent routing**     | Isolated agents with independent workspaces, sessions, and auth            | [docs/concepts/multi-agent.md:1-10]()      |
+| **Tool execution**          | Bash, file ops, browser control, memory search, agent messaging            | [src/tools/]()                             |
+| **Context compaction**      | Automatic session summarization when context window fills                  | [README.md:174-176]()                      |
+| **Cron scheduling**         | Background agent tasks with configurable delivery                          | [src/cron/](), [README.md:167-169]()       |
+| **WebSocket RPC**           | Real-time bidirectional communication for all clients                      | [docs/gateway/index.md:71-77]()            |
+| **OAuth integration**       | Token refresh for Anthropic, OpenAI, Google providers                      | [docs/cli/index.md:459]()                  |
+| **Device pairing**          | Secure node registration with challenge-response auth                      | [docs/gateway/troubleshooting.md:93-150]() |
+| **Hot reload**              | Config changes apply without restart (hybrid mode default)                 | [docs/gateway/index.md:63-66]()            |
+| **Sandboxing**              | Per-session Docker isolation for non-main sessions                         | [README.md:334-338]()                      |
 
 **Sources:** [README.md:126-176](), [docs/gateway/index.md:69-77]()
 
@@ -274,11 +274,11 @@ The plugin system supports extensibility via `openclaw/plugin-sdk`:
 
 ### Operating Systems
 
-| Platform | Gateway Support | Node Support | Installation Method |
-|----------|----------------|--------------|---------------------|
-| **macOS** | ✓ Full | ✓ Full | npm, installer script, native app |
-| **Linux** | ✓ Full | ✓ Full | npm, installer script, Docker |
-| **Windows** | ✓ WSL2 required | ✓ Via WSL2 | npm, PowerShell installer |
+| Platform    | Gateway Support | Node Support | Installation Method               |
+| ----------- | --------------- | ------------ | --------------------------------- |
+| **macOS**   | ✓ Full          | ✓ Full       | npm, installer script, native app |
+| **Linux**   | ✓ Full          | ✓ Full       | npm, installer script, Docker     |
+| **Windows** | ✓ WSL2 required | ✓ Via WSL2   | npm, PowerShell installer         |
 
 **Native clients:**
 
@@ -310,6 +310,7 @@ openclaw onboard --install-daemon
 ```
 
 The wizard configures:
+
 1. Model authentication (API key or OAuth)
 2. Gateway settings (port, bind, auth)
 3. Channel connections (optional)
@@ -322,12 +323,12 @@ For detailed setup instructions, see [Getting Started](#1.1).
 
 ### Alternative Installations
 
-| Method | Use Case | Command |
-|--------|----------|---------|
-| **Docker** | Container deployment | See [Docker docs](#) |
-| **Nix** | Declarative config | See [Nix docs](#) |
-| **Install script** | Automated setup | `curl -fsSL https://openclaw.ai/install.sh \| bash` |
-| **From source** | Development | `git clone && pnpm install && pnpm build` |
+| Method             | Use Case             | Command                                             |
+| ------------------ | -------------------- | --------------------------------------------------- |
+| **Docker**         | Container deployment | See [Docker docs](#)                                |
+| **Nix**            | Declarative config   | See [Nix docs](#)                                   |
+| **Install script** | Automated setup      | `curl -fsSL https://openclaw.ai/install.sh \| bash` |
+| **From source**    | Development          | `git clone && pnpm install && pnpm build`           |
 
 **Sources:** [README.md:82-111](), [docs/start/getting-started.md:30-53]()
 
@@ -340,7 +341,7 @@ A minimal `~/.openclaw/openclaw.json` requires only a model:
 ```json5
 {
   agent: {
-    model: "anthropic/claude-opus-4-6",
+    model: 'anthropic/claude-opus-4-6',
   },
 }
 ```
@@ -349,15 +350,15 @@ A minimal `~/.openclaw/openclaw.json` requires only a model:
 
 ### Key Configuration Sections
 
-| Section | Purpose | Example |
-|---------|---------|---------|
-| `gateway` | Port, bind, auth, Tailscale | `gateway: { port: 18789, auth: { mode: "token" } }` |
-| `agents` | Agent list, workspaces, bindings | `agents: { list: [{ name: "work", workspace: "..." }] }` |
-| `channels` | Channel credentials and policies | `channels: { whatsapp: { allowFrom: ["+1..."] } }` |
-| `tools` | Tool policies and allowlists | `tools: { global: { allowlist: ["bash", "read"] } }` |
-| `skills` | Skills configuration and gating | `skills: { entries: { mcp: { enabled: true } } }` |
-| `memory` | Vector search config | `memory: { provider: "openai" }` |
-| `cron` | Scheduled jobs | `cron: { jobs: [{ schedule: "0 9 * * *" }] }` |
+| Section    | Purpose                          | Example                                                  |
+| ---------- | -------------------------------- | -------------------------------------------------------- |
+| `gateway`  | Port, bind, auth, Tailscale      | `gateway: { port: 18789, auth: { mode: "token" } }`      |
+| `agents`   | Agent list, workspaces, bindings | `agents: { list: [{ name: "work", workspace: "..." }] }` |
+| `channels` | Channel credentials and policies | `channels: { whatsapp: { allowFrom: ["+1..."] } }`       |
+| `tools`    | Tool policies and allowlists     | `tools: { global: { allowlist: ["bash", "read"] } }`     |
+| `skills`   | Skills configuration and gating  | `skills: { entries: { mcp: { enabled: true } } }`        |
+| `memory`   | Vector search config             | `memory: { provider: "openai" }`                         |
+| `cron`     | Scheduled jobs                   | `cron: { jobs: [{ schedule: "0 9 * * *" }] }`            |
 
 For complete configuration reference, see [Configuration](#2.3.1).
 
@@ -372,7 +373,7 @@ graph TB
         LocalChannels["Channels<br/>Same machine"]
         LocalAgent["Agent Runtime<br/>Same process"]
     end
-    
+
     subgraph "Remote Gateway"
         RemoteGW["Gateway<br/>Linux VPS"]
         RemoteChannels["Channels<br/>VPS"]
@@ -380,39 +381,42 @@ graph TB
         LocalCLI["CLI Client<br/>Developer machine"]
         LocalUI["Control UI<br/>Browser"]
     end
-    
+
     subgraph "Hybrid with Nodes"
         HybridGW["Gateway<br/>Linux/macOS"]
         HybridChannels["Channels<br/>Gateway host"]
         HybridAgent["Agent Runtime<br/>Gateway host"]
         DeviceNodes["Device Nodes<br/>iOS/Android/macOS"]
     end
-    
+
     LocalChannels --> LocalGW
     LocalGW --> LocalAgent
-    
+
     RemoteChannels --> RemoteGW
     RemoteGW --> RemoteAgent
     LocalCLI --> RemoteGW
     LocalUI --> RemoteGW
-    
+
     HybridChannels --> HybridGW
     HybridGW --> HybridAgent
     DeviceNodes --> HybridGW
 ```
 
 ### Local Deployment
+
 - Gateway runs on developer machine (macOS/Linux)
 - Best for: Development, single-user personal use
 - Access: Loopback only (127.0.0.1) or LAN bind
 
 ### Remote Gateway
+
 - Gateway runs on VPS/server
 - Clients connect via Tailscale or SSH tunnel
 - Best for: Always-on availability, team usage
 - See [Remote Access](#2.5) for setup details
 
 ### Hybrid with Nodes
+
 - Gateway on server or macOS
 - Device nodes (iOS/Android/macOS) paired for local actions
 - `node.invoke` routes device-specific commands (camera, screen recording, notifications)

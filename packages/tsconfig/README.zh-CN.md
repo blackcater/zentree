@@ -4,6 +4,7 @@
 基础配置、Node.js 目标设置和 React 特定预设。
 
 **配置：**
+
 - `base.json` - 启用严格模式的基础配置
 - `nextjs.json` - Next.js 特定设置
 - `react-native.json` - React Native 设置

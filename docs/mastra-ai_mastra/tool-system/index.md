@@ -8,7 +8,7 @@ The following files were used as context for generating this wiki page:
 - [examples/bird-checker-with-express/src/index.ts](examples/bird-checker-with-express/src/index.ts)
 - [examples/bird-checker-with-nextjs-and-eval/src/lib/mastra/actions.ts](examples/bird-checker-with-nextjs-and-eval/src/lib/mastra/actions.ts)
 - [packages/core/src/action/index.ts](packages/core/src/action/index.ts)
-- [packages/core/src/agent/__tests__/utils.test.ts](packages/core/src/agent/__tests__/utils.test.ts)
+- [packages/core/src/agent/**tests**/utils.test.ts](packages/core/src/agent/__tests__/utils.test.ts)
 - [packages/core/src/agent/agent-legacy.ts](packages/core/src/agent/agent-legacy.ts)
 - [packages/core/src/agent/agent.test.ts](packages/core/src/agent/agent.test.ts)
 - [packages/core/src/agent/agent.ts](packages/core/src/agent/agent.ts)
@@ -27,7 +27,7 @@ The following files were used as context for generating this wiki page:
 - [packages/core/src/llm/model/model.loop.types.ts](packages/core/src/llm/model/model.loop.types.ts)
 - [packages/core/src/llm/model/model.test.ts](packages/core/src/llm/model/model.test.ts)
 - [packages/core/src/llm/model/model.ts](packages/core/src/llm/model/model.ts)
-- [packages/core/src/loop/__snapshots__/loop.test.ts.snap](packages/core/src/loop/__snapshots__/loop.test.ts.snap)
+- [packages/core/src/loop/**snapshots**/loop.test.ts.snap](packages/core/src/loop/__snapshots__/loop.test.ts.snap)
 - [packages/core/src/loop/index.ts](packages/core/src/loop/index.ts)
 - [packages/core/src/loop/loop.test.ts](packages/core/src/loop/loop.test.ts)
 - [packages/core/src/loop/loop.ts](packages/core/src/loop/loop.ts)
@@ -64,8 +64,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Tool System provides a unified interface for defining, converting, and executing functions that agents and workflows can call. It handles schema validation, context injection, observability tracing, and format conversion between Mastra tools, Vercel AI SDK tools, and provider-defined tools. For model provider integration, see [Model Provider System](#5). For agent execution that calls tools, see [Agent System](#3).
 
 ## Tool Definition and Types
@@ -79,14 +77,14 @@ graph TB
         ToolClass["Tool class<br/>MASTRA_TOOL_MARKER symbol"]
         ToolAction["ToolAction interface<br/>packages/core/src/tools/types.ts"]
     end
-    
+
     subgraph "Tool Format Types"
         MastraTool["Mastra Tools<br/>Tool<TSchemaIn, TSchemaOut>"]
         VercelTool["Vercel AI SDK Tools<br/>Tool (v4), ToolV5 (v5)"]
         ProviderTool["Provider-Defined Tools<br/>type: 'provider-defined'<br/>id: 'provider.toolName'"]
         McpTool["MCP Tools<br/>From external MCP servers"]
     end
-    
+
     subgraph "Schema Types"
         InputSchema["inputSchema<br/>StandardSchemaWithJSON<TSchemaIn>"]
         OutputSchema["outputSchema<br/>StandardSchemaWithJSON<TSchemaOut>"]
@@ -94,22 +92,22 @@ graph TB
         ResumeSchema["resumeSchema<br/>For resume data"]
         RequestContextSchema["requestContextSchema<br/>For context validation"]
     end
-    
+
     subgraph "Execution Signature"
         MastraExecute["execute(inputData, context)<br/>Mastra signature"]
         AISDKExecute["execute(params, options)<br/>AI SDK signature"]
     end
-    
+
     CreateTool --> ToolClass
     ToolClass -.implements.-> ToolAction
-    
+
     ToolAction --> MastraTool
     ToolAction --> InputSchema
     ToolAction --> OutputSchema
     ToolAction --> SuspendSchema
     ToolAction --> ResumeSchema
     ToolAction --> RequestContextSchema
-    
+
     MastraTool --> MastraExecute
     VercelTool --> AISDKExecute
     ProviderTool --> AISDKExecute
@@ -118,12 +116,12 @@ graph TB
 
 **Tool Format Types**
 
-| Format | Signature | Use Case |
-|--------|-----------|----------|
-| **Mastra Tool** | `execute(inputData, context)` | User-defined tools with full Mastra context |
-| **Vercel AI SDK Tool** | `execute(params, options)` | AI SDK v4/v5 compatibility |
-| **Provider-Defined Tool** | `execute(params, options)` | Native LLM tools like `openai.web_search` |
-| **MCP Tool** | `execute(inputData, context)` | Tools from Model Context Protocol servers |
+| Format                    | Signature                     | Use Case                                    |
+| ------------------------- | ----------------------------- | ------------------------------------------- |
+| **Mastra Tool**           | `execute(inputData, context)` | User-defined tools with full Mastra context |
+| **Vercel AI SDK Tool**    | `execute(params, options)`    | AI SDK v4/v5 compatibility                  |
+| **Provider-Defined Tool** | `execute(params, options)`    | Native LLM tools like `openai.web_search`   |
+| **MCP Tool**              | `execute(inputData, context)` | Tools from Model Context Protocol servers   |
 
 Sources: [packages/core/src/tools/tool.ts:1-450](), [packages/core/src/tools/types.ts:1-350]()
 
@@ -135,20 +133,20 @@ Tools receive different execution contexts based on their invocation source. The
 graph TB
     subgraph "Execution Context Types"
         BaseContext["Common Context<br/>mastra, memory, runId<br/>requestContext, workspace<br/>writer, abortSignal<br/>suspend, resumeData"]
-        
+
         AgentContext["AgentToolExecutionContext<br/>toolCallId, messages<br/>threadId, resourceId<br/>writableStream"]
-        
+
         WorkflowContext["WorkflowToolExecutionContext<br/>runId, workflowId<br/>state, setState"]
-        
+
         MCPContext["MCPToolExecutionContext<br/>extra (RequestHandlerExtra)<br/>elicitation.sendRequest"]
     end
-    
+
     subgraph "Context Injection Points"
         CoreToolBuilder["CoreToolBuilder<br/>packages/core/src/tools/tool-builder/builder.ts:310-556"]
         ToolCallStep["Tool Call Step<br/>packages/core/src/loop/workflows/agentic-execution/tool-call-step.ts"]
         MCPClient["MCP Client<br/>Adds mcpMetadata"]
     end
-    
+
     subgraph "Context Properties"
         Suspend["suspend(payload, options)<br/>Pause execution"]
         ResumeData["resumeData<br/>Resume from suspension"]
@@ -156,15 +154,15 @@ graph TB
         Workspace["Workspace<br/>File operations"]
         Mastra["mastra/MastraPrimitives<br/>Access to agents, storage"]
     end
-    
+
     BaseContext --> AgentContext
     BaseContext --> WorkflowContext
     BaseContext --> MCPContext
-    
+
     CoreToolBuilder --> BaseContext
     ToolCallStep --> AgentContext
     MCPClient --> MCPContext
-    
+
     BaseContext --> Suspend
     BaseContext --> ResumeData
     BaseContext --> Writer
@@ -173,18 +171,21 @@ graph TB
 ```
 
 **Agent Context Properties**
+
 - `toolCallId`: Unique identifier for this tool invocation
 - `messages`: Full conversation history for context-aware tools
 - `threadId`/`resourceId`: Memory identifiers for stateful operations
 - `writableStream`: Original AI SDK WritableStream for streaming responses
 
 **Workflow Context Properties**
+
 - `runId`: Workflow execution identifier
 - `workflowId`: Workflow definition identifier
 - `state`: Current workflow state (read)
 - `setState`: Function to update workflow state
 
 **MCP Context Properties**
+
 - `extra`: MCP protocol context from the server
 - `elicitation.sendRequest`: Handler for interactive user input during execution
 
@@ -201,24 +202,24 @@ graph TB
         VercelInput["Vercel AI SDK Tool<br/>Tool/ToolV5"]
         ProviderInput["Provider-Defined Tool<br/>type: 'provider-defined'"]
     end
-    
+
     subgraph "CoreToolBuilder Conversion"
         Constructor["CoreToolBuilder constructor<br/>packages/core/src/tools/tool-builder/builder.ts:66-118"]
         Build["build() method<br/>Returns CoreTool"]
-        
+
         GetParameters["getParameters()<br/>Extract input schema"]
         GetOutputSchema["getOutputSchema()<br/>Extract output schema"]
         CreateExecute["createExecute()<br/>Wrap with context injection"]
         BuildProviderTool["buildProviderTool()<br/>Handle provider-defined tools"]
     end
-    
+
     subgraph "Schema Conversion"
         ZodToAISDK["Zod → AI SDK Schema<br/>convertZodSchemaToAISDKSchema"]
         StandardToJSON["StandardSchema → JSON<br/>standardSchemaToJSONSchema"]
         JSONToAISDK["JSON → AI SDK Schema<br/>jsonSchema wrapper"]
         CompatLayers["Schema Compat Layers<br/>OpenAI, Anthropic, Google, etc."]
     end
-    
+
     subgraph "Output Format"
         CoreTool["CoreTool<br/>AI SDK-compatible format"]
         Parameters["parameters: Schema"]
@@ -226,28 +227,28 @@ graph TB
         ProviderOptions["providerOptions<br/>Provider-specific config"]
         MCPProperties["mcp?: MCPToolProperties<br/>annotations, _meta"]
     end
-    
+
     MastraInput --> Constructor
     VercelInput --> Constructor
     ProviderInput --> Constructor
-    
+
     Constructor --> Build
     Build --> GetParameters
     Build --> GetOutputSchema
     Build --> CreateExecute
     Build --> BuildProviderTool
-    
+
     GetParameters --> ZodToAISDK
     GetParameters --> StandardToJSON
     GetParameters --> JSONToAISDK
     ZodToAISDK --> CompatLayers
-    
+
     CreateExecute --> CoreTool
     GetParameters --> Parameters
     Parameters --> CoreTool
     GetOutputSchema --> CoreTool
     BuildProviderTool --> CoreTool
-    
+
     CoreTool --> Execute
     CoreTool --> ProviderOptions
     CoreTool --> MCPProperties
@@ -279,53 +280,53 @@ graph TB
         SuspendSchema["suspendSchema<br/>Validates suspend payload"]
         ResumeSchema["resumeSchema<br/>Validates resume data"]
     end
-    
+
     subgraph "Schema Formats"
         ZodSchema["Zod Schema<br/>z.object(...)"]
         JSONSchema7["JSON Schema<br/>JSONSchema7"]
         StandardSchema["StandardSchemaWithJSON<br/>Cross-library format"]
     end
-    
+
     subgraph "Validation Points"
         ValidateInput["validateToolInput()<br/>packages/core/src/tools/validation.ts:32-83"]
         ValidateOutput["validateToolOutput()<br/>packages/core/src/tools/validation.ts:85-136"]
         ValidateSuspend["validateToolSuspendData()<br/>packages/core/src/tools/validation.ts:138-189"]
         ValidateContext["validateRequestContext()<br/>packages/core/src/tools/validation.ts:191-242"]
     end
-    
+
     subgraph "Validation Errors"
         ValidationError["ValidationError<br/>Structured error with issues"]
         SchemaIssue["issues: SchemaIssue[]<br/>path, message, expected"]
     end
-    
+
     ZodSchema --> StandardSchema
     JSONSchema7 --> StandardSchema
-    
+
     InputSchema -.uses.-> StandardSchema
     OutputSchema -.uses.-> StandardSchema
     SuspendSchema -.uses.-> StandardSchema
     ResumeSchema -.uses.-> StandardSchema
-    
+
     InputSchema --> ValidateInput
     OutputSchema --> ValidateOutput
     SuspendSchema --> ValidateSuspend
-    
+
     ValidateInput --> ValidationError
     ValidateOutput --> ValidationError
     ValidateSuspend --> ValidationError
     ValidateContext --> ValidationError
-    
+
     ValidationError --> SchemaIssue
 ```
 
 **Validation Lifecycle**
 
-| Stage | Function | Purpose |
-|-------|----------|---------|
-| **Before Execution** | `validateToolInput()` | Validate tool parameters before execute() |
-| **After Execution** | `validateToolOutput()` | Validate tool result before returning to LLM |
-| **On Suspend** | `validateToolSuspendData()` | Validate suspension payload |
-| **Context Check** | `validateRequestContext()` | Validate requestContext against schema |
+| Stage                | Function                    | Purpose                                      |
+| -------------------- | --------------------------- | -------------------------------------------- |
+| **Before Execution** | `validateToolInput()`       | Validate tool parameters before execute()    |
+| **After Execution**  | `validateToolOutput()`      | Validate tool result before returning to LLM |
+| **On Suspend**       | `validateToolSuspendData()` | Validate suspension payload                  |
+| **Context Check**    | `validateRequestContext()`  | Validate requestContext against schema       |
 
 **Auto-Resume Schema Injection**
 
@@ -339,7 +340,7 @@ z.object({ query: z.string() })
 z.object({
   query: z.string(),
   suspendedToolRunId: z.string().nullable().optional(),
-  resumeData: z.any().optional()
+  resumeData: z.any().optional(),
 })
 ```
 
@@ -357,49 +358,49 @@ graph TB
         CoreToolExecute["CoreTool.execute()<br/>AI SDK signature"]
         BuilderExecute["CoreToolBuilder.createExecute()<br/>packages/core/src/tools/tool-builder/builder.ts:310-556"]
     end
-    
+
     subgraph "Span Creation"
         GetOrCreateSpan["getOrCreateSpan()<br/>Create tool span"]
         SpanType["SpanType.TOOL_CALL or<br/>SpanType.MCP_TOOL_CALL"]
         SpanAttributes["attributes:<br/>toolDescription, toolType<br/>mcpServer, serverVersion"]
     end
-    
+
     subgraph "Context Assembly"
         BaseContext["Base Context<br/>mastra, memory, runId<br/>requestContext, workspace"]
         AgentProps["Agent Properties<br/>toolCallId, messages<br/>threadId, resourceId"]
         WorkflowProps["Workflow Properties<br/>workflowId, state<br/>setState"]
         MCPProps["MCP Properties<br/>extra, elicitation"]
     end
-    
+
     subgraph "Tool Type Execution"
         VercelExec["Vercel Tool<br/>tool.execute(args, options)"]
         MastraExec["Mastra Tool<br/>tool.execute(inputData, context)"]
     end
-    
+
     subgraph "Result Handling"
         ValidateOutput["validateToolOutput()<br/>If outputSchema present"]
         ValidateSuspend["validateToolSuspendData()<br/>If suspended"]
         EndSpan["span.end(result)<br/>Record successful execution"]
         ErrorSpan["span.error(error)<br/>Record failure"]
     end
-    
+
     CoreToolExecute --> BuilderExecute
     BuilderExecute --> GetOrCreateSpan
     GetOrCreateSpan --> SpanType
     GetOrCreateSpan --> SpanAttributes
-    
+
     BuilderExecute --> BaseContext
     BaseContext --> AgentProps
     BaseContext --> WorkflowProps
     BaseContext --> MCPProps
-    
+
     AgentProps --> MastraExec
     WorkflowProps --> MastraExec
     MCPProps --> MastraExec
-    
+
     BuilderExecute --> VercelExec
     BuilderExecute --> MastraExec
-    
+
     VercelExec --> ValidateOutput
     MastraExec --> ValidateOutput
     ValidateOutput --> ValidateSuspend
@@ -410,11 +411,13 @@ graph TB
 **Span Types and Attributes**
 
 **Regular Tool Call:**
+
 - `type`: `SpanType.TOOL_CALL`
 - `name`: `"tool: '<toolName>'"`
 - `attributes`: `{ toolDescription, toolType }`
 
 **MCP Tool Call:**
+
 - `type`: `SpanType.MCP_TOOL_CALL`
 - `name`: `"mcp_tool: '<toolName>' on '<serverName>'"`
 - `attributes`: `{ mcpServer, serverVersion, toolDescription }`
@@ -425,13 +428,12 @@ The builder determines execution context based on presence of properties:
 
 ```typescript
 // Agent execution: has toolCallId and messages
-const isAgentExecution = 
-  (options.toolCallId && options.messages) || 
+const isAgentExecution =
+  (options.toolCallId && options.messages) ||
   (agentName && threadId && !workflowId)
 
 // Workflow execution: has workflow properties
-const isWorkflowExecution = 
-  !isAgentExecution && (workflow || workflowId)
+const isWorkflowExecution = !isAgentExecution && (workflow || workflowId)
 
 // MCP execution: has MCP context
 const isMCPExecution = options.mcp !== undefined
@@ -452,49 +454,49 @@ graph TB
         WorkspaceTools["Workspace tools<br/>Auto-injected from workspace"]
         SkillTools["Skill tools<br/>Auto-generated from workspace.skills"]
     end
-    
+
     subgraph "Workflow Integration"
         WorkflowTools["workflow tools<br/>Per-step tools"]
         AgentStep["Agent step<br/>Inherits agent's tools"]
         ToolStep["Tool step<br/>createStep(tool)"]
     end
-    
+
     subgraph "MCP Integration"
         MCPServer["MCPServerBase<br/>packages/core/src/mcp"]
         ListTools["listTools()<br/>Discover available tools"]
         CallTool["callTool(name, args)<br/>Execute remote tool"]
         MCPClient["MCP Client<br/>Creates local tool wrappers"]
     end
-    
+
     subgraph "Tool Registry"
         MastraTools["mastra.tools<br/>Global tool registry"]
         AddTool["mastra.addTool(tool, key)<br/>Register tool"]
         GetTool["mastra.getTool(key)<br/>Retrieve tool"]
     end
-    
+
     subgraph "Tool Builder Pipeline"
         PrepareTools["Prepare Tools Step<br/>packages/core/src/agent/workflows/prepare-stream/prepare-tools-step.ts"]
         CoreToolBuilder["CoreToolBuilder<br/>Convert to CoreTool format"]
         MakeCoreTool["makeCoreTool()<br/>AI SDK conversion"]
     end
-    
+
     AgentTools --> PrepareTools
     AgentToolsets --> PrepareTools
     ClientTools --> PrepareTools
     WorkspaceTools --> PrepareTools
     SkillTools --> PrepareTools
-    
+
     WorkflowTools --> ToolStep
     AgentStep --> AgentTools
-    
+
     MCPServer --> ListTools
     MCPServer --> CallTool
     ListTools --> MCPClient
     MCPClient --> PrepareTools
-    
+
     MastraTools --> AddTool
     AddTool --> GetTool
-    
+
     PrepareTools --> CoreToolBuilder
     CoreToolBuilder --> MakeCoreTool
 ```
@@ -533,39 +535,39 @@ graph TB
         Parameters["parameters: Schema<br/>Input schema"]
         OutputSchema["outputSchema?: Schema<br/>Optional output schema"]
     end
-    
+
     subgraph "Detection and Handling"
         FindProviderTool["findProviderToolByName()<br/>packages/core/src/tools/provider-tool-utils.ts:14-28"]
         InferExecuted["inferProviderExecuted()<br/>Determine if provider executed"]
         ProviderExecutedFlag["providerExecuted: boolean<br/>Attached to tool calls/results"]
     end
-    
+
     subgraph "Execution Flow"
         LLMCall["LLM generates tool call<br/>May execute immediately"]
         ToolCallChunk["tool-call chunk<br/>providerExecuted flag set"]
         SkipClientExec["Skip client execution<br/>If providerExecuted = true"]
         ToolResultChunk["tool-result chunk<br/>Contains provider result"]
     end
-    
+
     subgraph "Message Storage"
         MessageList["MessageList<br/>Store tool call and result"]
         ProviderMetadata["providerMetadata<br/>Provider-specific data"]
         ToolInvocation["Tool invocation part<br/>In message content"]
     end
-    
+
     ProviderType --> ProviderID
     ProviderID --> Parameters
     Parameters --> OutputSchema
-    
+
     ProviderID --> FindProviderTool
     FindProviderTool --> InferExecuted
     InferExecuted --> ProviderExecutedFlag
-    
+
     LLMCall --> ToolCallChunk
     ToolCallChunk --> ProviderExecutedFlag
     ProviderExecutedFlag --> SkipClientExec
     SkipClientExec --> ToolResultChunk
-    
+
     ToolCallChunk --> MessageList
     ToolResultChunk --> MessageList
     MessageList --> ProviderMetadata
@@ -577,7 +579,7 @@ graph TB
 Provider tools are identified by their `id` format:
 
 - **Format**: `"provider.toolName"` (contains a dot separator)
-- **Examples**: 
+- **Examples**:
   - `"openai.web_search"`: OpenAI web search
   - `"anthropic.computer_use"`: Anthropic computer use
   - `"google.code_execution"`: Google code execution
@@ -599,10 +601,10 @@ The tool call step skips execution for provider-executed tools:
 // In tool-call-step.ts
 if (providerExecuted) {
   // Provider already executed, just record the result
-  return { result: alreadyExecutedResult };
+  return { result: alreadyExecutedResult }
 }
 // Otherwise, execute client-side
-const result = await tool.execute(args, context);
+const result = await tool.execute(args, context)
 ```
 
 Sources: [packages/core/src/tools/provider-tool-utils.ts:1-50](), [packages/core/src/loop/workflows/agentic-execution/llm-execution-step.ts:475-496](), [packages/core/src/loop/workflows/agentic-execution/tool-call-step.ts:47-175]()
@@ -619,38 +621,38 @@ graph TB
         SuspendOptions["SuspendOptions<br/>resumeSchema"]
         WorkflowSuspend["Workflow suspend()<br/>Throws SUSPEND error"]
     end
-    
+
     subgraph "Metadata Storage"
         AddMetadata["addToolMetadata()<br/>packages/core/src/loop/workflows/agentic-execution/tool-call-step.ts:59-115"]
         SuspendedTools["metadata.suspendedTools<br/>Keyed by toolName"]
         ToolMetadata["{ toolCallId, toolName,<br/>args, runId,<br/>suspendPayload,<br/>resumeSchema }"]
     end
-    
+
     subgraph "Resume Flow"
         ResumeRequest["Client calls agent with<br/>tool args + resumeData"]
         AutoResumeSchema["Auto-injected schema fields<br/>suspendedToolRunId<br/>resumeData"]
         ToolExecuteResume["Tool receives resumeData<br/>in context"]
         CompleteExecution["Tool completes execution"]
     end
-    
+
     subgraph "Tool Approval"
         RequireApproval["tool.requireApproval = true"]
         PendingApprovals["metadata.pendingToolApprovals"]
         ApprovalData["{ toolCallId, toolName,<br/>args, type: 'approval',<br/>runId }"]
     end
-    
+
     ToolExecute --> SuspendPayload
     SuspendPayload --> SuspendOptions
     SuspendOptions --> WorkflowSuspend
-    
+
     WorkflowSuspend --> AddMetadata
     AddMetadata --> SuspendedTools
     SuspendedTools --> ToolMetadata
-    
+
     RequireApproval --> AddMetadata
     AddMetadata --> PendingApprovals
     PendingApprovals --> ApprovalData
-    
+
     ResumeRequest --> AutoResumeSchema
     AutoResumeSchema --> ToolExecuteResume
     ToolExecuteResume --> CompleteExecution
@@ -658,10 +660,10 @@ graph TB
 
 **Suspension Types**
 
-| Type | Trigger | Metadata Key | Use Case |
-|------|---------|--------------|----------|
-| **Tool Suspension** | Tool calls `suspend()` | `suspendedTools` | Tool needs additional input mid-execution |
-| **Tool Approval** | `requireApproval: true` | `pendingToolApprovals` | Tool needs explicit user approval before execution |
+| Type                | Trigger                 | Metadata Key           | Use Case                                           |
+| ------------------- | ----------------------- | ---------------------- | -------------------------------------------------- |
+| **Tool Suspension** | Tool calls `suspend()`  | `suspendedTools`       | Tool needs additional input mid-execution          |
+| **Tool Approval**   | `requireApproval: true` | `pendingToolApprovals` | Tool needs explicit user approval before execution |
 
 **Resume Schema Auto-Injection**
 
@@ -672,8 +674,8 @@ For tools that may suspend (agents, workflows), `CoreToolBuilder` extends the in
 if (tool.id?.startsWith('agent-') || tool.id?.startsWith('workflow-')) {
   tool.inputSchema = baseSchema.extend({
     suspendedToolRunId: z.string().nullable().optional(),
-    resumeData: z.any().optional()
-  });
+    resumeData: z.any().optional(),
+  })
 }
 ```
 
@@ -701,7 +703,7 @@ graph TB
         RunId["runId: execution ID"]
         OutputWriter["outputWriter<br/>Workflow OutputWriter"]
     end
-    
+
     subgraph "Streaming Methods"
         WriteText["writeText(text)<br/>Stream text content"]
         WriteJSON["writeJSON(data)<br/>Stream JSON data"]
@@ -709,36 +711,36 @@ graph TB
         WriteToolCall["writeToolCall()<br/>Nested tool calls"]
         WriteToolResult["writeToolResult()<br/>Nested tool results"]
     end
-    
+
     subgraph "Chunk Format"
         ChunkType["ChunkType<br/>packages/core/src/stream/types.ts"]
         ToolStreamChunk["{ type: 'tool-stream',<br/>from: ChunkFrom.AGENT,<br/>runId, payload }"]
         Payload["payload: {<br/>prefix, callId,<br/>name, data }"]
     end
-    
+
     subgraph "Output Writer Pipeline"
         WorkflowWriter["Workflow OutputWriter"]
         ChunkEnqueue["Enqueue chunks to stream"]
         ClientConsume["Client consumes stream"]
     end
-    
+
     Writer --> Prefix
     Writer --> CallId
     Writer --> RunId
     Writer --> OutputWriter
-    
+
     Writer --> WriteText
     Writer --> WriteJSON
     Writer --> WriteError
     Writer --> WriteToolCall
     Writer --> WriteToolResult
-    
+
     WriteText --> ChunkType
     WriteJSON --> ChunkType
     WriteError --> ChunkType
     ChunkType --> ToolStreamChunk
     ToolStreamChunk --> Payload
-    
+
     OutputWriter --> WorkflowWriter
     WorkflowWriter --> ChunkEnqueue
     ChunkEnqueue --> ClientConsume
@@ -747,24 +749,26 @@ graph TB
 **ToolStream API**
 
 **Basic Streaming:**
+
 ```typescript
-await context.writer.writeText('Processing...');
-await context.writer.writeJSON({ progress: 50 });
+await context.writer.writeText('Processing...')
+await context.writer.writeJSON({ progress: 50 })
 ```
 
 **Nested Tool Calls:**
+
 ```typescript
 await context.writer.writeToolCall({
   toolName: 'subTool',
   toolCallId: 'call-123',
-  args: { query: 'test' }
-});
+  args: { query: 'test' },
+})
 
 await context.writer.writeToolResult({
   toolName: 'subTool',
   toolCallId: 'call-123',
-  result: { data: 'response' }
-});
+  result: { data: 'response' },
+})
 ```
 
 **Chunk Format**
@@ -799,7 +803,7 @@ graph TB
         Annotations["annotations:<br/>ToolAnnotations"]
         Meta["_meta:<br/>Record<string, unknown>"]
     end
-    
+
     subgraph "Tool Annotations"
         Title["title: string<br/>Display name"]
         ReadOnly["readOnlyHint: boolean<br/>No side effects"]
@@ -807,34 +811,34 @@ graph TB
         Idempotent["idempotentHint: boolean<br/>Idempotent behavior"]
         OpenWorld["openWorldHint: boolean<br/>External interactions"]
     end
-    
+
     subgraph "CoreTool Conversion"
         BuildTool["CoreToolBuilder.build()"]
         PreserveMCP["Preserve mcp properties"]
         CoreToolMCP["CoreTool.mcp<br/>Passed to AI SDK"]
     end
-    
+
     subgraph "MCP Server Usage"
         ListTools["server.listTools()"]
         ToolInfo["ListToolsResult"]
         ClientReceives["MCP client receives<br/>tool metadata"]
         UIPresentation["UI presentation<br/>Based on annotations"]
     end
-    
+
     MCPProp --> ToolType
     MCPProp --> Annotations
     MCPProp --> Meta
-    
+
     Annotations --> Title
     Annotations --> ReadOnly
     Annotations --> Destructive
     Annotations --> Idempotent
     Annotations --> OpenWorld
-    
+
     MCPProp --> BuildTool
     BuildTool --> PreserveMCP
     PreserveMCP --> CoreToolMCP
-    
+
     CoreToolMCP --> ListTools
     ListTools --> ToolInfo
     ToolInfo --> ClientReceives
@@ -844,6 +848,7 @@ graph TB
 **Annotation Examples**
 
 **Read-only Tool (e.g., search):**
+
 ```typescript
 mcp: {
   annotations: {
@@ -857,6 +862,7 @@ mcp: {
 ```
 
 **Destructive Tool (e.g., delete):**
+
 ```typescript
 mcp: {
   annotations: {
@@ -870,6 +876,7 @@ mcp: {
 ```
 
 **External API Tool (e.g., web search):**
+
 ```typescript
 mcp: {
   annotations: {

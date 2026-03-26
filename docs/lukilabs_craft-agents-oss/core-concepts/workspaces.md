@@ -13,8 +13,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page explains the workspace concept: what a workspace is, its on-disk layout, how workspaces are created, configured, and switched, and which features are scoped to a workspace.
 
 For the global config file format that tracks workspace registrations, see [Storage & Configuration](#2.8). For features that live inside a workspace (sessions, sources, skills, statuses, automations, themes), see the individual pages linked in the feature table below.
@@ -27,10 +25,10 @@ A workspace is the primary organizational unit in Craft Agents. Every session, s
 
 A workspace has two representations:
 
-| Representation | Location | Purpose |
-|---|---|---|
-| `Workspace` record | `~/.craft-agent/config.json` → `workspaces[]` | Global registry: id, rootPath, icon, last-accessed time |
-| `WorkspaceConfig` file | `{rootPath}/config.json` | Authoritative name, defaults (working dir, permission mode, model) |
+| Representation         | Location                                      | Purpose                                                            |
+| ---------------------- | --------------------------------------------- | ------------------------------------------------------------------ |
+| `Workspace` record     | `~/.craft-agent/config.json` → `workspaces[]` | Global registry: id, rootPath, icon, last-accessed time            |
+| `WorkspaceConfig` file | `{rootPath}/config.json`                      | Authoritative name, defaults (working dir, permission mode, model) |
 
 The workspace's `name` is always read from `{rootPath}/config.json`, never from the global registry. `getWorkspaces()` resolves it on every call.
 
@@ -109,15 +107,15 @@ Sources: [packages/shared/src/config/storage.ts:46-70](), [packages/shared/src/c
 
 The per-workspace `config.json` (loaded via `loadWorkspaceConfig(rootPath)`) holds:
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | `string` | UUID, must match the global registry |
-| `name` | `string` | Display name (authoritative source) |
-| `createdAt` | `number` | Unix timestamp |
-| `defaults.workingDirectory` | `string` | Default working directory for agent sessions |
-| `defaults.permissionMode` | `string` | Default permission mode (`safe`, `ask`, `allow-all`) |
-| `defaults.cyclablePermissionModes` | `string[]` | Modes available via SHIFT+TAB cycling |
-| `defaults.model` | `string` | Per-workspace model override (e.g. `claude-sonnet-4-6`) |
+| Field                              | Type       | Description                                             |
+| ---------------------------------- | ---------- | ------------------------------------------------------- |
+| `id`                               | `string`   | UUID, must match the global registry                    |
+| `name`                             | `string`   | Display name (authoritative source)                     |
+| `createdAt`                        | `number`   | Unix timestamp                                          |
+| `defaults.workingDirectory`        | `string`   | Default working directory for agent sessions            |
+| `defaults.permissionMode`          | `string`   | Default permission mode (`safe`, `ask`, `allow-all`)    |
+| `defaults.cyclablePermissionModes` | `string[]` | Modes available via SHIFT+TAB cycling                   |
+| `defaults.model`                   | `string`   | Per-workspace model override (e.g. `claude-sonnet-4-6`) |
 
 See [Permission System](#4.5) for permission mode details. See [Authentication Setup](#3.3) for LLM connections.
 
@@ -127,15 +125,15 @@ Sources: [packages/shared/src/config/storage.ts:378-381](), [packages/shared/src
 
 ## Per-Workspace Features
 
-| Feature | Storage Path | Wiki Page |
-|---|---|---|
-| Sessions | `{rootPath}/sessions/*.jsonl` | [Sessions](#4.2) |
-| Sources | `{rootPath}/sources/` | [Sources](#4.3) |
-| Skills | `{rootPath}/skills/*.md` | [Skills](#4.4) |
-| Status Definitions | `{rootPath}/statuses/` | [Status Workflow](#4.6) |
-| Labels | Applied to sessions | [Labels](#4.7) |
-| Theme Override | `{rootPath}/theme.json` | [Theme System](#4.8) |
-| Automations | `{rootPath}/automations.json` | [Hooks & Automation](#4.9) |
+| Feature            | Storage Path                  | Wiki Page                  |
+| ------------------ | ----------------------------- | -------------------------- |
+| Sessions           | `{rootPath}/sessions/*.jsonl` | [Sessions](#4.2)           |
+| Sources            | `{rootPath}/sources/`         | [Sources](#4.3)            |
+| Skills             | `{rootPath}/skills/*.md`      | [Skills](#4.4)             |
+| Status Definitions | `{rootPath}/statuses/`        | [Status Workflow](#4.6)    |
+| Labels             | Applied to sessions           | [Labels](#4.7)             |
+| Theme Override     | `{rootPath}/theme.json`       | [Theme System](#4.8)       |
+| Automations        | `{rootPath}/automations.json` | [Hooks & Automation](#4.9) |
 
 ---
 

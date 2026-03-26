@@ -5,6 +5,7 @@ and data structures. Generated from TypeScript types, these schemas enable
 validation and IDE auto-completion.
 
 **Schema Types:**
+
 - Vault configuration schema
 - Project settings schema
 - Agent config schema

@@ -22,8 +22,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the build system, CI/CD pipelines, and distribution infrastructure for Codex. It covers the Cargo workspace structure, platform build matrix, code signing procedures, artifact packaging, and distribution channels (npm, Homebrew, WinGet, GitHub Releases).
 
 For information about development environment setup and local tooling, see [Development Setup](#8.1). For workspace organization and crate relationships, see [Repository Structure](#1.2).
@@ -40,6 +38,7 @@ The Codex build and distribution system supports multiple execution modes and pl
 4. **Distribution Channels**: Publishes to npm (default and alpha tags), Homebrew cask (macOS), WinGet (Windows), and GitHub Releases (all platforms)
 
 **Build Targets**: The release pipeline builds for 8 platform triples:
+
 - macOS: `aarch64-apple-darwin`, `x86_64-apple-darwin`
 - Linux GNU: `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`
 - Linux MUSL: `x86_64-unknown-linux-musl`, `aarch64-unknown-linux-musl`
@@ -55,17 +54,17 @@ Sources: [.github/workflows/rust-release.yml:1-687](), [.github/workflows/rust-c
 
 The Codex project uses a Cargo workspace with multiple crates:
 
-| Crate | Purpose | Binary Outputs |
-|-------|---------|----------------|
-| `codex-rs` | Workspace root | - |
-| `codex-core` | Core agent engine | - |
-| `codex-tui` | Terminal UI | - |
-| `codex-cli` | CLI entry point | `codex` |
-| `codex-exec` | Execution mode | - |
-| `codex-app-server` | IDE integration server | - |
-| `codex-responses-api-proxy` | API proxy | `codex-responses-api-proxy` |
+| Crate                         | Purpose                | Binary Outputs                |
+| ----------------------------- | ---------------------- | ----------------------------- |
+| `codex-rs`                    | Workspace root         | -                             |
+| `codex-core`                  | Core agent engine      | -                             |
+| `codex-tui`                   | Terminal UI            | -                             |
+| `codex-cli`                   | CLI entry point        | `codex`                       |
+| `codex-exec`                  | Execution mode         | -                             |
+| `codex-app-server`            | IDE integration server | -                             |
+| `codex-responses-api-proxy`   | API proxy              | `codex-responses-api-proxy`   |
 | `codex-windows-sandbox-setup` | Windows sandbox helper | `codex-windows-sandbox-setup` |
-| `codex-command-runner` | Windows command runner | `codex-command-runner` |
+| `codex-command-runner`        | Windows command runner | `codex-command-runner`        |
 
 **Toolchain Management**: The workspace pins the Rust toolchain version in `rust-toolchain.toml`:
 
@@ -76,11 +75,13 @@ components = ["clippy", "rustfmt", "rust-src"]
 ```
 
 **Platform-Specific Configuration**: The `.cargo/config.toml` file defines platform-specific linker flags:
+
 - Windows MSVC targets use `/STACK:8388608` to increase stack size
 - Windows ARM64 targets add `/arm64hazardfree` to suppress Cortex-A53 warnings
 - Windows GNU targets use `-Wl,--stack,8388608`
 
 **Build Profiles**: The workspace uses multiple build profiles:
+
 - `dev`: Debug profile for local development
 - `release`: Release profile with configurable LTO (`thin` for CI feedback, `fat` for production releases)
 - `ci-test`: Custom profile for CI test runs
@@ -94,6 +95,7 @@ Sources: [codex-rs/rust-toolchain.toml:1-4](), [codex-rs/.cargo/config.toml:1-11
 ### Workflow Triggers
 
 The `rust-ci.yml` workflow runs on:
+
 - All pull requests
 - Pushes to `main` branch
 - Manual workflow dispatch
@@ -117,25 +119,26 @@ The CI pipeline runs two job matrices:
 
 **1. Lint and Build Matrix** (`lint_build` job):
 
-| Runner | Target | Profile | Purpose |
-|--------|--------|---------|---------|
-| `macos-15-xlarge` | `aarch64-apple-darwin` | `dev` | macOS ARM debug build + clippy |
-| `macos-15-xlarge` | `x86_64-apple-darwin` | `dev` | macOS x64 debug build + clippy |
-| `ubuntu-24.04` | `x86_64-unknown-linux-musl` | `dev` | Linux MUSL x64 debug build + clippy |
-| `ubuntu-24.04` | `x86_64-unknown-linux-gnu` | `dev` | Linux GNU x64 debug build + clippy |
-| `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | `dev` | Linux MUSL ARM debug build + clippy |
-| `ubuntu-24.04-arm` | `aarch64-unknown-linux-gnu` | `dev` | Linux GNU ARM debug build + clippy |
-| `windows-x64` | `x86_64-pc-windows-msvc` | `dev` | Windows x64 debug build + clippy |
-| `windows-arm64` | `aarch64-pc-windows-msvc` | `dev` | Windows ARM debug build + clippy |
-| `macos-15-xlarge` | `aarch64-apple-darwin` | `release` | macOS ARM release build (pre-warm cache) |
-| `ubuntu-24.04` | `x86_64-unknown-linux-musl` | `release` | Linux MUSL x64 release build |
-| `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | `release` | Linux MUSL ARM release build |
-| `windows-x64` | `x86_64-pc-windows-msvc` | `release` | Windows x64 release build |
-| `windows-arm64` | `aarch64-pc-windows-msvc` | `release` | Windows ARM release build |
+| Runner             | Target                       | Profile   | Purpose                                  |
+| ------------------ | ---------------------------- | --------- | ---------------------------------------- |
+| `macos-15-xlarge`  | `aarch64-apple-darwin`       | `dev`     | macOS ARM debug build + clippy           |
+| `macos-15-xlarge`  | `x86_64-apple-darwin`        | `dev`     | macOS x64 debug build + clippy           |
+| `ubuntu-24.04`     | `x86_64-unknown-linux-musl`  | `dev`     | Linux MUSL x64 debug build + clippy      |
+| `ubuntu-24.04`     | `x86_64-unknown-linux-gnu`   | `dev`     | Linux GNU x64 debug build + clippy       |
+| `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | `dev`     | Linux MUSL ARM debug build + clippy      |
+| `ubuntu-24.04-arm` | `aarch64-unknown-linux-gnu`  | `dev`     | Linux GNU ARM debug build + clippy       |
+| `windows-x64`      | `x86_64-pc-windows-msvc`     | `dev`     | Windows x64 debug build + clippy         |
+| `windows-arm64`    | `aarch64-pc-windows-msvc`    | `dev`     | Windows ARM debug build + clippy         |
+| `macos-15-xlarge`  | `aarch64-apple-darwin`       | `release` | macOS ARM release build (pre-warm cache) |
+| `ubuntu-24.04`     | `x86_64-unknown-linux-musl`  | `release` | Linux MUSL x64 release build             |
+| `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | `release` | Linux MUSL ARM release build             |
+| `windows-x64`      | `x86_64-pc-windows-msvc`     | `release` | Windows x64 release build                |
+| `windows-arm64`    | `aarch64-pc-windows-msvc`    | `release` | Windows ARM release build                |
 
 **2. Test Matrix** (`tests` job):
 
 Runs `cargo nextest` tests on a subset of platforms:
+
 - `macos-15-xlarge` / `aarch64-apple-darwin`
 - `ubuntu-24.04` / `x86_64-unknown-linux-gnu`
 - `ubuntu-24.04-arm` / `aarch64-unknown-linux-gnu`
@@ -190,31 +193,31 @@ graph TB
         Push["Push to main"]
         Manual["Workflow Dispatch"]
     end
-    
+
     subgraph "Changed Path Detection"
         Changed["changed job<br/>Detect codex/* and .github/* changes"]
     end
-    
+
     subgraph "Parallel Jobs"
         General["general job<br/>cargo fmt check"]
         Shear["cargo_shear job<br/>Dependency audit"]
         LintBuild["lint_build matrix<br/>8 dev + 5 release builds<br/>cargo clippy"]
         Tests["tests matrix<br/>5 platforms<br/>cargo nextest"]
     end
-    
+
     subgraph "Result Aggregation"
         Results["results job<br/>Required status check<br/>Aggregates all job outcomes"]
     end
-    
+
     PR --> Changed
     Push --> Changed
     Manual --> Changed
-    
+
     Changed --> General
     Changed --> Shear
     Changed --> LintBuild
     Changed --> Tests
-    
+
     General --> Results
     Shear --> Results
     LintBuild --> Results
@@ -238,6 +241,7 @@ git push origin rust-v0.1.0
 ```
 
 **Tag Validation**: The `tag-check` job ensures:
+
 1. The tag matches the regex `^rust-v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta)(\.[0-9]+)?)?$`
 2. The version in the tag matches the version in `codex-rs/Cargo.toml`
 
@@ -247,16 +251,17 @@ Sources: [.github/workflows/rust-release.yml:1-47]()
 
 The release pipeline builds binaries for 6 non-Windows platforms in the `build` job matrix:
 
-| Runner | Target | Output Binaries |
-|--------|--------|----------------|
-| `macos-15-xlarge` | `aarch64-apple-darwin` | `codex`, `codex-responses-api-proxy` |
-| `macos-15-xlarge` | `x86_64-apple-darwin` | `codex`, `codex-responses-api-proxy` |
-| `ubuntu-24.04` | `x86_64-unknown-linux-musl` | `codex`, `codex-responses-api-proxy` |
-| `ubuntu-24.04` | `x86_64-unknown-linux-gnu` | `codex`, `codex-responses-api-proxy` |
+| Runner             | Target                       | Output Binaries                      |
+| ------------------ | ---------------------------- | ------------------------------------ |
+| `macos-15-xlarge`  | `aarch64-apple-darwin`       | `codex`, `codex-responses-api-proxy` |
+| `macos-15-xlarge`  | `x86_64-apple-darwin`        | `codex`, `codex-responses-api-proxy` |
+| `ubuntu-24.04`     | `x86_64-unknown-linux-musl`  | `codex`, `codex-responses-api-proxy` |
+| `ubuntu-24.04`     | `x86_64-unknown-linux-gnu`   | `codex`, `codex-responses-api-proxy` |
 | `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | `codex`, `codex-responses-api-proxy` |
-| `ubuntu-24.04-arm` | `aarch64-unknown-linux-gnu` | `codex`, `codex-responses-api-proxy` |
+| `ubuntu-24.04-arm` | `aarch64-unknown-linux-gnu`  | `codex`, `codex-responses-api-proxy` |
 
 **LTO Configuration**: Releases use configurable link-time optimization:
+
 - Alpha releases: `CARGO_PROFILE_RELEASE_LTO=thin` (faster builds, larger binaries)
 - Stable releases: Currently also using `thin` due to timeout issues on ARM runners
 - Environment variable: Set via `CARGO_PROFILE_RELEASE_LTO` in the workflow
@@ -273,11 +278,11 @@ Windows builds use a two-stage process:
 
 Builds two bundles per target to parallelize compilation:
 
-| Target | Bundle | Binaries |
-|--------|--------|----------|
-| `x86_64-pc-windows-msvc` | `primary` | `codex.exe`, `codex-responses-api-proxy.exe` |
-| `x86_64-pc-windows-msvc` | `helpers` | `codex-windows-sandbox-setup.exe`, `codex-command-runner.exe` |
-| `aarch64-pc-windows-msvc` | `primary` | `codex.exe`, `codex-responses-api-proxy.exe` |
+| Target                    | Bundle    | Binaries                                                      |
+| ------------------------- | --------- | ------------------------------------------------------------- |
+| `x86_64-pc-windows-msvc`  | `primary` | `codex.exe`, `codex-responses-api-proxy.exe`                  |
+| `x86_64-pc-windows-msvc`  | `helpers` | `codex-windows-sandbox-setup.exe`, `codex-command-runner.exe` |
+| `aarch64-pc-windows-msvc` | `primary` | `codex.exe`, `codex-responses-api-proxy.exe`                  |
 | `aarch64-pc-windows-msvc` | `helpers` | `codex-windows-sandbox-setup.exe`, `codex-command-runner.exe` |
 
 **Stage 2: Sign and Package** (`build-windows` job):
@@ -296,17 +301,20 @@ Sources: [.github/workflows/rust-release-windows.yml:1-265]()
 macOS binaries undergo a two-step signing process:
 
 **Step 1: Sign Binaries**
+
 - Uses Apple Developer certificates stored in GitHub secrets
 - Signs `codex` and `codex-responses-api-proxy` binaries
 - Uploads signed binaries to Apple's notarization service
 - Waits for notarization approval
 
 **Step 2: Create and Sign DMG**
+
 - Builds a DMG containing the signed binaries
 - Signs the DMG itself
 - Notarizes the DMG
 
 **Secrets Required**:
+
 - `APPLE_CERTIFICATE_P12`: Developer ID certificate
 - `APPLE_CERTIFICATE_PASSWORD`: Certificate password
 - `APPLE_NOTARIZATION_KEY_P8`: App Store Connect API key
@@ -334,6 +342,7 @@ Sources: [.github/workflows/rust-release.yml:226-232]()
 Windows executables are signed using Azure Trusted Signing via OIDC authentication:
 
 **Credentials** (all stored as secrets):
+
 - `AZURE_TRUSTED_SIGNING_CLIENT_ID`
 - `AZURE_TRUSTED_SIGNING_TENANT_ID`
 - `AZURE_TRUSTED_SIGNING_SUBSCRIPTION_ID`
@@ -342,6 +351,7 @@ Windows executables are signed using Azure Trusted Signing via OIDC authenticati
 - `AZURE_TRUSTED_SIGNING_CERTIFICATE_PROFILE_NAME`
 
 **Signed Binaries**:
+
 1. `codex.exe`
 2. `codex-responses-api-proxy.exe`
 3. `codex-windows-sandbox-setup.exe`
@@ -354,6 +364,7 @@ Sources: [.github/actions/windows-code-sign/action.yml:1-58](), [.github/workflo
 After code signing, binaries are staged and compressed into multiple formats:
 
 **Compression Formats**:
+
 - `.zst`: Zstandard compression (space-efficient, requires `zstd` tool)
 - `.tar.gz`: Gzip tarball (universal compatibility)
 - `.zip`: Zip archive (Windows compatibility, used by WinGet)
@@ -388,12 +399,14 @@ Sources: [.github/workflows/rust-release.yml:323-357](), [.github/workflows/rust
 The `release` job aggregates all build artifacts and publishes them to GitHub Releases:
 
 **Release Name and Tag**:
+
 - Release name: Version number without `rust-v` prefix (e.g., `0.1.0`)
 - Tag name: Full tag (e.g., `rust-v0.1.0`)
 
 **Release Notes**: Extracted from the annotated tag's commit message
 
 **Release Assets**:
+
 - All platform binaries (compressed in multiple formats)
 - Signature bundles (`.sigstore` for Linux, embedded in executables for macOS/Windows)
 - DMG files (macOS)
@@ -410,6 +423,7 @@ Sources: [.github/workflows/rust-release.yml:383-535]()
 The release workflow stages npm packages using `scripts/stage_npm_packages.py`:
 
 **Staged Packages**:
+
 1. `@openai/codex`: Main CLI with platform-specific binaries
    - Base package: `codex-npm-{version}.tgz`
    - Platform packages: `codex-npm-{platform}-{arch}-{version}.tgz`
@@ -427,60 +441,60 @@ graph TB
     subgraph "Trigger"
         Tag["Git Tag Push<br/>rust-v*.*.*"]
     end
-    
+
     subgraph "Tag Validation"
         TagCheck["tag-check job<br/>Validate tag matches Cargo.toml"]
     end
-    
+
     subgraph "Build Jobs"
         BuildUnix["build job (6 platforms)<br/>macOS arm64/x64<br/>Linux GNU/MUSL arm64/x64"]
         BuildWinBinaries["build-windows-binaries<br/>2 targets × 2 bundles<br/>Compile .exe files"]
         BuildWin["build-windows<br/>Sign + package Windows"]
         ShellToolMCP["shell-tool-mcp workflow<br/>Patched Bash/Zsh"]
     end
-    
+
     subgraph "Code Signing"
         MacOSSign["macOS Sign + Notarize<br/>Binaries + DMG"]
         LinuxSign["Cosign<br/>Detached Sigstore bundles"]
         WindowsSign["Azure Trusted Signing<br/>OIDC authentication"]
     end
-    
+
     subgraph "Artifact Assembly"
         Stage["Stage artifacts<br/>dist/{target}/*"]
         Compress["Compress<br/>.zst + .tar.gz + .zip"]
         NPMStage["Stage npm packages<br/>Platform-specific binaries"]
     end
-    
+
     subgraph "Release Creation"
         GHRelease["GitHub Release<br/>All artifacts + schema<br/>Install scripts"]
     end
-    
+
     subgraph "Distribution"
         PublishNPM["publish-npm job<br/>OIDC trusted publishing"]
         WinGet["winget job<br/>Update winget-pkgs PR"]
         UpdateBranch["Update latest-alpha-cli branch"]
     end
-    
+
     Tag --> TagCheck
     TagCheck --> BuildUnix
     TagCheck --> BuildWinBinaries
     TagCheck --> ShellToolMCP
-    
+
     BuildUnix --> MacOSSign
     BuildUnix --> LinuxSign
     BuildWinBinaries --> BuildWin
     BuildWin --> WindowsSign
-    
+
     MacOSSign --> Stage
     LinuxSign --> Stage
     WindowsSign --> Stage
-    
+
     Stage --> Compress
     Compress --> NPMStage
-    
+
     NPMStage --> GHRelease
     ShellToolMCP --> GHRelease
-    
+
     GHRelease --> PublishNPM
     GHRelease --> WinGet
     GHRelease --> UpdateBranch
@@ -497,18 +511,19 @@ Sources: [.github/workflows/rust-release.yml:1-687]()
 The `publish-npm` job publishes packages to npm using OIDC trusted publishing (no manual token required):
 
 **Publishing Criteria**:
+
 - Stable releases (`x.y.z`): Publish to all channels with `default` npm tag
 - Alpha releases (`x.y.z-alpha.N`): Publish with `alpha` npm tag
 - Other versions: Skip publishing
 
 **Published Packages**:
 
-| Package | Tag Examples | Purpose |
-|---------|-------------|---------|
-| `@openai/codex` | `default`, `alpha` | Main CLI (base package) |
-| `@openai/codex` | `linux-x64-musl`, `darwin-arm64`, `win32-x64` | Platform-specific binaries |
-| `@openai/codex-responses-api-proxy` | `default`, `alpha` | API proxy |
-| `@openai/codex-sdk` | `default`, `alpha` | TypeScript SDK |
+| Package                             | Tag Examples                                  | Purpose                    |
+| ----------------------------------- | --------------------------------------------- | -------------------------- |
+| `@openai/codex`                     | `default`, `alpha`                            | Main CLI (base package)    |
+| `@openai/codex`                     | `linux-x64-musl`, `darwin-arm64`, `win32-x64` | Platform-specific binaries |
+| `@openai/codex-responses-api-proxy` | `default`, `alpha`                            | API proxy                  |
+| `@openai/codex-sdk`                 | `default`, `alpha`                            | TypeScript SDK             |
 
 **npm Tag Logic** (from `rust-release.yml:586-644`):
 
@@ -533,6 +548,7 @@ Sources: [.github/workflows/rust-release.yml:539-645]()
 Homebrew distribution is managed by the community `homebrew-cask` repository. The release workflow does **not** directly update the cask; instead, the GitHub Release triggers a Homebrew bot to create a pull request.
 
 **Artifacts Used**:
+
 - `.dmg` files from GitHub Releases
 - macOS-only (both `aarch64-apple-darwin` and `x86_64-apple-darwin`)
 
@@ -545,6 +561,7 @@ The `winget` job uses the `vedantmgoyal9/winget-releaser` action to automaticall
 **Publishing Criteria**: Stable releases only (versions without `-` suffix)
 
 **WinGet Manifest**:
+
 - Identifier: `OpenAI.Codex`
 - Version: Extracted from release tag
 - Installers: Both `codex-x86_64-pc-windows-msvc.exe.zip` and `codex-aarch64-pc-windows-msvc.exe.zip`
@@ -559,6 +576,7 @@ Sources: [.github/workflows/rust-release.yml:646-668]()
 All platforms publish artifacts to GitHub Releases:
 
 **Artifact Organization**:
+
 ```
 Release: 0.1.0 (rust-v0.1.0)
 ├── codex-aarch64-apple-darwin.dmg
@@ -587,6 +605,7 @@ Release: 0.1.0 (rust-v0.1.0)
 ```
 
 **Installation Scripts**:
+
 - `install.sh`: Detects platform, downloads appropriate binary, extracts to `~/.codex/bin`
 - `install.ps1`: PowerShell equivalent for Windows
 
@@ -599,23 +618,23 @@ graph LR
     subgraph "Release Assets"
         GHRelease["GitHub Release<br/>rust-v{version}"]
     end
-    
+
     subgraph "npm Registry"
         NPMDefault["npm default tag<br/>@openai/codex@latest"]
         NPMAlpha["npm alpha tag<br/>@openai/codex@alpha"]
         NPMPlatforms["Platform packages<br/>linux-x64-musl, darwin-arm64, etc."]
     end
-    
+
     subgraph "Package Managers"
         Homebrew["Homebrew Cask<br/>brew install --cask codex"]
         WinGet["WinGet<br/>winget install OpenAI.Codex"]
     end
-    
+
     subgraph "Direct Downloads"
         DirectDL["Direct Download<br/>github.com/openai/codex/releases"]
         InstallScript["install.sh / install.ps1<br/>Scripted installation"]
     end
-    
+
     GHRelease -->|"Stable: x.y.z"| NPMDefault
     GHRelease -->|"Alpha: x.y.z-alpha.N"| NPMAlpha
     GHRelease --> NPMPlatforms
@@ -645,21 +664,21 @@ The workflow builds patched shells across 11 OS/distribution variants:
 
 **Bash Builds** (`bash-linux` and `bash-darwin` jobs):
 
-| Runner | Target | Variant | Image/OS |
-|--------|--------|---------|----------|
-| `ubuntu-24.04` | `x86_64-unknown-linux-musl` | `ubuntu-24.04` | `ubuntu:24.04` |
-| `ubuntu-24.04` | `x86_64-unknown-linux-musl` | `ubuntu-22.04` | `ubuntu:22.04` |
-| `ubuntu-24.04` | `x86_64-unknown-linux-musl` | `debian-12` | `debian:12` |
-| `ubuntu-24.04` | `x86_64-unknown-linux-musl` | `debian-11` | `debian:11` |
-| `ubuntu-24.04` | `x86_64-unknown-linux-musl` | `centos-9` | `quay.io/centos/centos:stream9` |
-| `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | `ubuntu-24.04` | `arm64v8/ubuntu:24.04` |
-| `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | `ubuntu-22.04` | `arm64v8/ubuntu:22.04` |
-| `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | `ubuntu-20.04` | `arm64v8/ubuntu:20.04` |
-| `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | `debian-12` | `arm64v8/debian:12` |
-| `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | `debian-11` | `arm64v8/debian:11` |
-| `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | `centos-9` | `quay.io/centos/centos:stream9` |
-| `macos-15-xlarge` | `aarch64-apple-darwin` | `macos-15` | macOS 15 |
-| `macos-14` | `aarch64-apple-darwin` | `macos-14` | macOS 14 |
+| Runner             | Target                       | Variant        | Image/OS                        |
+| ------------------ | ---------------------------- | -------------- | ------------------------------- |
+| `ubuntu-24.04`     | `x86_64-unknown-linux-musl`  | `ubuntu-24.04` | `ubuntu:24.04`                  |
+| `ubuntu-24.04`     | `x86_64-unknown-linux-musl`  | `ubuntu-22.04` | `ubuntu:22.04`                  |
+| `ubuntu-24.04`     | `x86_64-unknown-linux-musl`  | `debian-12`    | `debian:12`                     |
+| `ubuntu-24.04`     | `x86_64-unknown-linux-musl`  | `debian-11`    | `debian:11`                     |
+| `ubuntu-24.04`     | `x86_64-unknown-linux-musl`  | `centos-9`     | `quay.io/centos/centos:stream9` |
+| `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | `ubuntu-24.04` | `arm64v8/ubuntu:24.04`          |
+| `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | `ubuntu-22.04` | `arm64v8/ubuntu:22.04`          |
+| `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | `ubuntu-20.04` | `arm64v8/ubuntu:20.04`          |
+| `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | `debian-12`    | `arm64v8/debian:12`             |
+| `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | `debian-11`    | `arm64v8/debian:11`             |
+| `ubuntu-24.04-arm` | `aarch64-unknown-linux-musl` | `centos-9`     | `quay.io/centos/centos:stream9` |
+| `macos-15-xlarge`  | `aarch64-apple-darwin`       | `macos-15`     | macOS 15                        |
+| `macos-14`         | `aarch64-apple-darwin`       | `macos-14`     | macOS 14                        |
 
 **Zsh Builds** (`zsh-linux` and `zsh-darwin` jobs): Same matrix as Bash
 
@@ -716,6 +735,7 @@ Sources: [.github/workflows/shell-tool-mcp.yml:145-160](), [.github/workflows/sh
 The `package` job assembles all built shell binaries into a single npm package:
 
 **Artifact Directory Structure**:
+
 ```
 vendor/
 ├── x86_64-unknown-linux-musl/
@@ -736,6 +756,7 @@ vendor/
 ```
 
 **Package Creation**:
+
 1. Download all build artifacts
 2. Merge `vendor/` directories from all jobs
 3. Update `package.json` version field
@@ -752,32 +773,32 @@ graph TB
     subgraph "Metadata Computation"
         Metadata["metadata job<br/>Parse version from tag<br/>Determine npm_tag and should_publish"]
     end
-    
+
     subgraph "Parallel Builds (13 variants)"
         BashLinux["bash-linux matrix<br/>6 distros × 2 arches<br/>Container builds"]
         BashDarwin["bash-darwin matrix<br/>2 macOS versions<br/>Native builds"]
         ZshLinux["zsh-linux matrix<br/>6 distros × 2 arches<br/>Container builds"]
         ZshDarwin["zsh-darwin matrix<br/>2 macOS versions<br/>Native builds + smoke test"]
     end
-    
+
     subgraph "Artifact Assembly"
         Package["package job<br/>Download all artifacts<br/>Merge vendor/ directories<br/>Create npm tarball"]
     end
-    
+
     subgraph "Publishing"
         Publish["publish job<br/>npm publish with OIDC<br/>default or alpha tag"]
     end
-    
+
     Metadata --> BashLinux
     Metadata --> BashDarwin
     Metadata --> ZshLinux
     Metadata --> ZshDarwin
-    
+
     BashLinux --> Package
     BashDarwin --> Package
     ZshLinux --> Package
     ZshDarwin --> Package
-    
+
     Package --> Publish
 ```
 
@@ -794,6 +815,7 @@ The release pipeline uses DotSlash to wrap platform-specific tools:
 **`.github/workflows/zstd`**: DotSlash wrapper for the `zstd` compression tool on Windows runners. The wrapper downloads `zstd.exe` from GitHub releases and provides a consistent interface across platforms.
 
 **Usage in Workflows**:
+
 ```bash
 # Compress artifacts
 "${GITHUB_WORKSPACE}/.github/workflows/zstd" -T0 -19 "$dest/$base"

@@ -21,13 +21,12 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document covers the framework-specific devtools packages that provide integration points for React and Solid.js applications. These packages wrap `@tanstack/ai-devtools-core` (see [Core Devtools](#8.1)) with framework-specific lifecycle management and component APIs.
 
 Framework-specific devtools handle:
+
 - Framework-specific component definitions for mounting the devtools UI
 - Framework reactivity integration (React hooks, Solid signals)
 - Production build configurations that eliminate devtools code from production bundles
@@ -48,36 +47,36 @@ graph TB
         SOLID_PKG["@tanstack/solid-ai-devtools"]
         PREACT_PKG["@tanstack/preact-ai-devtools"]
     end
-    
+
     subgraph "Core_Devtools"
         CORE_PKG["@tanstack/ai-devtools-core"]
         DEVTOOLS_UI["@tanstack/devtools-ui"]
         DEVTOOLS_UTILS["@tanstack/devtools-utils"]
     end
-    
+
     subgraph "Framework_Libraries"
         REACT["react"]
         SOLID["solid-js"]
         PREACT["preact"]
     end
-    
+
     subgraph "AI_System"
         AI_CORE["@tanstack/ai"]
         EVENT_CLIENT["aiEventClient"]
     end
-    
+
     REACT_PKG -->|"depends on"| CORE_PKG
     SOLID_PKG -->|"depends on"| CORE_PKG
     PREACT_PKG -->|"depends on"| CORE_PKG
     REACT_PKG -->|"peer dependency"| REACT
     SOLID_PKG -->|"peer dependency"| SOLID
     PREACT_PKG -->|"peer dependency"| PREACT
-    
+
     CORE_PKG -->|"depends on"| DEVTOOLS_UI
     CORE_PKG -->|"depends on"| DEVTOOLS_UTILS
     CORE_PKG -->|"depends on"| SOLID
     CORE_PKG -->|"monitors"| AI_CORE
-    
+
     AI_CORE -->|"contains"| EVENT_CLIENT
     EVENT_CLIENT -->|"emits events to"| CORE_PKG
 ```
@@ -86,12 +85,12 @@ graph TB
 
 ### Package Roles
 
-| Package | Role | Dependencies | Exports |
-|---------|------|--------------|---------|
-| `@tanstack/ai-devtools-core` | Core UI and event handling | `@tanstack/ai`, `@tanstack/devtools-ui`, `solid-js` | Main UI, `/production` no-op |
-| `@tanstack/react-ai-devtools` | React integration | `@tanstack/ai-devtools-core` (peer: `react ^17\|^18\|^19`) | React component, `/production` |
-| `@tanstack/solid-ai-devtools` | Solid integration | `@tanstack/ai-devtools-core` (peer: `solid-js >=1.9.7`) | Solid component, `/production` |
-| `@tanstack/preact-ai-devtools` | Preact integration | `@tanstack/ai-devtools-core` (peer: `preact >=10.0.0`) | Preact component, `/production` |
+| Package                        | Role                       | Dependencies                                               | Exports                         |
+| ------------------------------ | -------------------------- | ---------------------------------------------------------- | ------------------------------- |
+| `@tanstack/ai-devtools-core`   | Core UI and event handling | `@tanstack/ai`, `@tanstack/devtools-ui`, `solid-js`        | Main UI, `/production` no-op    |
+| `@tanstack/react-ai-devtools`  | React integration          | `@tanstack/ai-devtools-core` (peer: `react ^17\|^18\|^19`) | React component, `/production`  |
+| `@tanstack/solid-ai-devtools`  | Solid integration          | `@tanstack/ai-devtools-core` (peer: `solid-js >=1.9.7`)    | Solid component, `/production`  |
+| `@tanstack/preact-ai-devtools` | Preact integration         | `@tanstack/ai-devtools-core` (peer: `preact >=10.0.0`)     | Preact component, `/production` |
 
 **Sources:** [packages/typescript/ai-devtools/package.json:48-54](), [packages/typescript/solid-ai-devtools/package.json:49-55](), [packages/typescript/react-ai-devtools/package.json:50-56]()
 
@@ -107,17 +106,17 @@ graph LR
         MAIN["Main Entry<br/>./dist/esm/index.js"]
         PROD["Production Entry<br/>./dist/esm/production.js"]
     end
-    
+
     subgraph "Import Patterns"
         DEV_IMPORT["import { AIDevtools } from '@tanstack/solid-ai-devtools'"]
         PROD_IMPORT["import { AIDevtools } from '@tanstack/solid-ai-devtools/production'"]
     end
-    
+
     subgraph "Runtime Behavior"
         DEVTOOLS_UI["Renders devtools UI<br/>Connects to event stream"]
         NO_OP["No-op component<br/>Zero bundle impact"]
     end
-    
+
     DEV_IMPORT --> MAIN
     PROD_IMPORT --> PROD
     MAIN --> DEVTOOLS_UI
@@ -144,7 +143,7 @@ graph LR
     SOURCE["src/**/*.tsx"]
     VITE["vite build<br/>with vite-plugin-solid"]
     OUTPUT["dist/esm/**/*.js"]
-    
+
     SOURCE --> VITE
     VITE --> OUTPUT
 ```
@@ -169,18 +168,18 @@ graph TB
         REACT_SRC["src/index.tsx"]
         REACT_PROD["src/production.tsx"]
     end
-    
+
     subgraph "Build_Output"
         REACT_DIST["dist/esm/index.js"]
         REACT_DIST_PROD["dist/esm/production.js"]
     end
-    
+
     subgraph "Dependencies"
         REACT_CORE["@tanstack/ai-devtools-core"]
         REACT_LIB["react ^17|^18|^19"]
         REACT_TYPES["@types/react ^17|^18|^19"]
     end
-    
+
     REACT_SRC --> REACT_DIST
     REACT_PROD --> REACT_DIST_PROD
     REACT_DIST --> REACT_CORE
@@ -212,17 +211,17 @@ graph TB
         PREACT_SRC["src/index.tsx"]
         PREACT_PROD["src/production.tsx"]
     end
-    
+
     subgraph "Build_Output"
         PREACT_DIST["dist/esm/index.js"]
         PREACT_DIST_PROD["dist/esm/production.js"]
     end
-    
+
     subgraph "Dependencies"
         PREACT_CORE["@tanstack/ai-devtools-core"]
         PREACT_LIB["preact >=10.0.0"]
     end
-    
+
     PREACT_SRC --> PREACT_DIST
     PREACT_PROD --> PREACT_DIST_PROD
     PREACT_DIST --> PREACT_CORE
@@ -249,18 +248,18 @@ graph TB
         DEV_PATH["@tanstack/.../devtools"]
         FULL_DEVTOOLS["Full Devtools<br/>UI + Event handlers"]
     end
-    
+
     subgraph "Production_Build"
         PROD_CODE["Application Code"]
         PROD_IMPORT["import AIDevtools"]
         PROD_PATH["@tanstack/.../devtools/production"]
         NO_OP_STUB["No-op Component<br/>Zero runtime overhead"]
     end
-    
+
     DEV_CODE --> DEV_IMPORT
     DEV_IMPORT --> DEV_PATH
     DEV_PATH --> FULL_DEVTOOLS
-    
+
     PROD_CODE --> PROD_IMPORT
     PROD_IMPORT --> PROD_PATH
     PROD_PATH --> NO_OP_STUB
@@ -303,18 +302,18 @@ sequenceDiagram
     participant Component as "AIDevtools"
     participant Core as "@tanstack/ai-devtools-core"
     participant Events as "aiEventClient"
-    
+
     App->>Component: "Mount <AIDevtools />"
     Component->>Core: "Initialize UI"
     Core->>Events: "Subscribe to events"
-    
+
     loop "During Chat"
         Events->>Core: "Emit chat events"
         Core->>Core: "Update signals"
         Core->>Component: "Reactive update"
         Component->>App: "Update DOM"
     end
-    
+
     App->>Component: "onCleanup()"
     Component->>Core: "Dispose UI"
     Core->>Events: "Unsubscribe"
@@ -332,18 +331,18 @@ sequenceDiagram
     participant Component as "AIDevtools"
     participant Core as "@tanstack/ai-devtools-core"
     participant Events as "aiEventClient"
-    
+
     App->>Component: "Mount <AIDevtools />"
     Component->>Core: "Initialize UI"
     Core->>Events: "Subscribe to events"
-    
+
     loop "During Chat"
         Events->>Core: "Emit chat events"
         Core->>Core: "Update state"
         Core->>Component: "setState()"
         Component->>App: "Re-render"
     end
-    
+
     App->>Component: "useEffect cleanup"
     Component->>Core: "Dispose UI"
     Core->>Events: "Unsubscribe"
@@ -361,18 +360,18 @@ sequenceDiagram
     participant Component as "AIDevtools"
     participant Core as "@tanstack/ai-devtools-core"
     participant Events as "aiEventClient"
-    
+
     App->>Component: "Mount <AIDevtools />"
     Component->>Core: "Initialize UI"
     Core->>Events: "Subscribe to events"
-    
+
     loop "During Chat"
         Events->>Core: "Emit chat events"
         Core->>Core: "Update state"
         Core->>Component: "setState()"
         Component->>App: "Re-render"
     end
-    
+
     App->>Component: "useEffect cleanup"
     Component->>Core: "Dispose UI"
     Core->>Events: "Unsubscribe"
@@ -386,13 +385,13 @@ Both framework packages depend on `@tanstack/ai-devtools-core`, which provides:
 
 ### Core Capabilities
 
-| Feature | Implementation | Description |
-|---------|----------------|-------------|
-| **Event Subscription** | `aiEventClient` | Connects to `@tanstack/ai` event client to receive chat events |
-| **UI Rendering** | `@tanstack/devtools-ui` | Provides consistent devtools interface across frameworks |
-| **Utilities** | `@tanstack/devtools-utils` | Common devtools patterns and helpers |
-| **Styling** | `goober` | CSS-in-JS styling with zero runtime CSS overhead |
-| **Reactivity** | `solid-js` | Efficient reactive UI updates using Solid's fine-grained reactivity |
+| Feature                | Implementation             | Description                                                         |
+| ---------------------- | -------------------------- | ------------------------------------------------------------------- |
+| **Event Subscription** | `aiEventClient`            | Connects to `@tanstack/ai` event client to receive chat events      |
+| **UI Rendering**       | `@tanstack/devtools-ui`    | Provides consistent devtools interface across frameworks            |
+| **Utilities**          | `@tanstack/devtools-utils` | Common devtools patterns and helpers                                |
+| **Styling**            | `goober`                   | CSS-in-JS styling with zero runtime CSS overhead                    |
+| **Reactivity**         | `solid-js`                 | Efficient reactive UI updates using Solid's fine-grained reactivity |
 
 **Sources:** [packages/typescript/ai-devtools/package.json:48-54]()
 
@@ -403,21 +402,21 @@ Both framework packages depend on `@tanstack/ai-devtools-core`, which provides:
 ```mermaid
 graph TB
     CORE["@tanstack/ai-devtools-core"]
-    
+
     AI["@tanstack/ai"]
     EVENT["aiEventClient"]
     UI["@tanstack/devtools-ui"]
     UTILS["@tanstack/devtools-utils"]
     GOOBER["goober"]
     SOLID["solid-js"]
-    
+
     CORE --> AI
     AI --> EVENT
     CORE --> UI
     CORE --> UTILS
     CORE --> GOOBER
     CORE --> SOLID
-    
+
     EVENT -.->|"emits events"| CORE
 ```
 
@@ -434,16 +433,16 @@ All devtools packages use Vite for building with framework-specific plugins wher
 ```mermaid
 graph LR
     VITE_CONFIG["vite.config.ts"]
-    
+
     subgraph "Build_Targets"
         ESM["dist/esm/"]
     end
-    
+
     subgraph "Framework_Plugins"
         SOLID_PLUGIN["vite-plugin-solid"]
         REACT_PLUGIN["@vitejs/plugin-react"]
     end
-    
+
     VITE_CONFIG --> ESM
     VITE_CONFIG -.->|"Solid only"| SOLID_PLUGIN
     VITE_CONFIG -.->|"React only"| REACT_PLUGIN
@@ -455,13 +454,13 @@ graph LR
 
 Standard build scripts across all devtools packages:
 
-| Script | Command | Purpose |
-|--------|---------|---------|
-| `build` | `vite build` | Compile TypeScript to ESM |
-| `clean` | `premove ./build ./dist` | Remove build artifacts |
-| `test:build` | `publint --strict` | Validate package.json exports |
-| `test:eslint` | `eslint ./src` | Lint source code |
-| `test:types` | `tsc` | Type check without emitting |
+| Script        | Command                  | Purpose                       |
+| ------------- | ------------------------ | ----------------------------- |
+| `build`       | `vite build`             | Compile TypeScript to ESM     |
+| `clean`       | `premove ./build ./dist` | Remove build artifacts        |
+| `test:build`  | `publint --strict`       | Validate package.json exports |
+| `test:eslint` | `eslint ./src`           | Lint source code              |
+| `test:types`  | `tsc`                    | Type check without emitting   |
 
 **Sources:** [packages/typescript/solid-ai-devtools/package.json:31-39](), [packages/typescript/ai-devtools/package.json:30-38]()
 
@@ -480,7 +479,7 @@ graph TB
         FRAMEWORK_TYPES["Framework package<br/>dist/esm/*.d.ts"]
         APP_TYPES["Application<br/>TypeScript compilation"]
     end
-    
+
     CORE_TYPES --> FRAMEWORK_TYPES
     FRAMEWORK_TYPES --> APP_TYPES
 ```
@@ -501,6 +500,7 @@ Both packages include only essential files in npm distributions:
 ```
 
 This ensures:
+
 - Built outputs in `dist/` are available for runtime
 - Source code in `src/` is available for source maps and debugging
 - Development artifacts (tests, config) are excluded
@@ -520,6 +520,7 @@ All packages output ES modules only (`"type": "module"`):
 ```
 
 This provides:
+
 - Tree-shaking support in modern bundlers
 - Native ES module support in Node.js 18+
 - Simplified module resolution without dual packages

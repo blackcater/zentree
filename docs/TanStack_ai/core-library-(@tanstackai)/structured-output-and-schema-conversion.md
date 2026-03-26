@@ -23,8 +23,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page documents TanStack AI's structured output support, which enables constraining model responses to specific JSON structures. It covers the core schema input types, the `ResponseFormat<TData>` interface for structured output configuration, provider-specific structured output capabilities, and OpenAI's specialized schema conversion utilities that handle the provider's strict structured output requirements.
@@ -42,23 +40,23 @@ graph TB
     SchemaInput["SchemaInput<br/>(Union Type)"]
     StandardSchema["StandardJSONSchemaV1<br/>(from @standard-schema/spec)"]
     PlainJSON["JSONSchema<br/>(Plain Object)"]
-    
+
     Zod["Zod v4.2+<br/>(Preferred)"]
     ArkType["ArkType v2.1.28+"]
     Valibot["Valibot v1.2+<br/>(via toStandardJsonSchema)"]
-    
+
     SchemaInput --> StandardSchema
     SchemaInput --> PlainJSON
-    
+
     StandardSchema -.natively supports.-> Zod
     StandardSchema -.natively supports.-> ArkType
     StandardSchema -.converted via helper.-> Valibot
-    
+
     InferType["InferSchemaType<T><br/>(Type Inference)"]
-    
+
     StandardSchema --> InferType
     PlainJSON -.no type inference.-> InferType
-    
+
     style SchemaInput fill:#f9f9f9
     style InferType fill:#f9f9f9
 ```
@@ -74,6 +72,7 @@ type SchemaInput = StandardJSONSchemaV1<any, any> | JSONSchema
 ```
 
 Standard JSON Schema support includes:
+
 - **Zod v4.2+** - Natively supports `StandardJSONSchemaV1` (preferred)
 - **ArkType v2.1.28+** - Natively supports `StandardJSONSchemaV1`
 - **Valibot v1.2+** - Via `toStandardJsonSchema()` from `@valibot/to-json-schema`
@@ -104,25 +103,25 @@ The `ResponseFormat<TData>` interface defines structured output configuration fo
 ```mermaid
 graph LR
     ResponseFormat["ResponseFormat&lt;TData&gt;"]
-    
+
     Type["type: 'json_object' | 'json_schema'"]
     JsonSchema["json_schema?"]
     DataType["__data?: TData<br/>(Type-only)"]
-    
+
     Name["name: string"]
     Description["description?: string"]
     Schema["schema: Record&lt;string, any&gt;"]
     Strict["strict?: boolean"]
-    
+
     ResponseFormat --> Type
     ResponseFormat --> JsonSchema
     ResponseFormat --> DataType
-    
+
     JsonSchema --> Name
     JsonSchema --> Description
     JsonSchema --> Schema
     JsonSchema --> Strict
-    
+
     style ResponseFormat fill:#f9f9f9
     style DataType fill:#f9f9f9
 ```
@@ -131,12 +130,13 @@ graph LR
 
 ### Response Format Types
 
-| Type | Description | Schema Required |
-|------|-------------|-----------------|
-| `json_object` | Forces model to output valid JSON (any structure) | No |
-| `json_schema` | Validates output against provided JSON Schema (strict structure) | Yes |
+| Type          | Description                                                      | Schema Required |
+| ------------- | ---------------------------------------------------------------- | --------------- |
+| `json_object` | Forces model to output valid JSON (any structure)                | No              |
+| `json_schema` | Validates output against provided JSON Schema (strict structure) | Yes             |
 
 When using `json_schema`, the `json_schema` object must include:
+
 - `name` - Unique identifier for the schema (used in logs/debugging)
 - `schema` - JSON Schema definition (draft 2020-12 compatible)
 - `description` - Optional documentation of schema purpose
@@ -153,14 +153,15 @@ The `TextOptions` interface includes an `outputSchema` field for structured outp
 ```typescript
 interface TextOptions<...> {
   // ... other options
-  
+
   outputSchema?: SchemaInput
-  
+
   // ... other options
 }
 ```
 
 When `outputSchema` is provided:
+
 1. The adapter uses the provider's native structured output API
 2. The schema is converted to JSON Schema format before being sent to the provider
 3. The response is validated and conforms to the schema structure
@@ -180,31 +181,31 @@ graph TB
         OAI_SUPPORT["Structured Output Support"]
         OAI_MODELS["Supported Models"]
         OAI_FEATURES["Features & Requirements"]
-        
+
         OAI_SUPPORT --> OAI_MODELS
         OAI_SUPPORT --> OAI_FEATURES
     end
-    
+
     subgraph "Gemini Provider"
         GEM_SUPPORT["Structured Output Support"]
         GEM_OPTIONS["GeminiStructuredOutputOptions"]
     end
-    
+
     subgraph "Anthropic Provider"
         ANT_SUPPORT["Limited Support"]
         ANT_APPROACH["Tool-based Approach"]
     end
-    
+
     OAI_MODELS --> |"gpt-5.2, gpt-5.1, gpt-5"| M1["streaming ✓<br/>function_calling ✓<br/>structured_outputs ✓"]
     OAI_MODELS --> |"gpt-5-mini, gpt-5-nano"| M2["streaming ✓<br/>structured_outputs ✓"]
     OAI_MODELS --> |"o3, o4-mini, o1"| M3["structured_outputs ✓<br/>streaming ✓"]
     OAI_MODELS --> |"gpt-4o, gpt-4o-mini"| M4["streaming ✓<br/>structured_outputs ✓"]
-    
+
     OAI_FEATURES --> F1["All properties required"]
     OAI_FEATURES --> F2["Optional fields nullable"]
     OAI_FEATURES --> F3["additionalProperties: false"]
     OAI_FEATURES --> F4["oneOf NOT supported"]
-    
+
     style OAI_SUPPORT fill:#f9f9f9
     style GEM_SUPPORT fill:#f9f9f9
     style ANT_SUPPORT fill:#f9f9f9
@@ -244,12 +245,12 @@ Anthropic does not have a dedicated structured output API comparable to OpenAI's
 
 OpenAI's structured output implementation has strict requirements that differ from standard JSON Schema:
 
-| Requirement | Standard JSON Schema | OpenAI Requirement |
-|-------------|---------------------|-------------------|
-| Required fields | Optional `required` array | ALL properties must be in `required` array |
-| Optional fields | Omit from `required` array | Add `null` to type union: `["string", "null"]` |
-| Additional properties | Can be true or false | Must be `false` for objects |
-| Union types | `oneOf`, `anyOf` supported | `oneOf` NOT supported, only `anyOf` |
+| Requirement           | Standard JSON Schema       | OpenAI Requirement                             |
+| --------------------- | -------------------------- | ---------------------------------------------- |
+| Required fields       | Optional `required` array  | ALL properties must be in `required` array     |
+| Optional fields       | Omit from `required` array | Add `null` to type union: `["string", "null"]` |
+| Additional properties | Can be true or false       | Must be `false` for objects                    |
+| Union types           | `oneOf`, `anyOf` supported | `oneOf` NOT supported, only `anyOf`            |
 
 These requirements ensure OpenAI can guarantee output conformance but require schema transformation when using Standard JSON Schema libraries like Zod.
 
@@ -262,10 +263,10 @@ graph TB
     Input["Standard JSON Schema<br/>(e.g., from Zod)"]
     Converter["makeOpenAIStructuredOutputCompatible"]
     Output["OpenAI-Compatible Schema"]
-    
+
     Input --> Converter
     Converter --> Output
-    
+
     subgraph "Transformation Rules"
         R1["1. Collect all property names"]
         R2["2. For optional properties:<br/>Add null to type union"]
@@ -275,7 +276,7 @@ graph TB
         R6["6. Transform anyOf unions"]
         R7["7. Reject oneOf (unsupported)"]
     end
-    
+
     Converter --> R1
     R1 --> R2
     R2 --> R3
@@ -283,14 +284,14 @@ graph TB
     R4 --> R5
     R5 --> R6
     R6 --> R7
-    
+
     Response["OpenAI API Response<br/>(nulls for optional fields)"]
     NullTransform["transformNullsToUndefined"]
     Final["Final Output<br/>(undefined for optional fields)"]
-    
+
     Response --> NullTransform
     NullTransform --> Final
-    
+
     style Input fill:#f9f9f9
     style Output fill:#f9f9f9
     style Final fill:#f9f9f9
@@ -303,10 +304,11 @@ graph TB
 Located at [packages/typescript/ai-openai/src/utils/schema-converter.ts:48-134](), this function transforms JSON schemas to meet OpenAI's requirements:
 
 **Function signature:**
+
 ```typescript
 function makeOpenAIStructuredOutputCompatible(
   schema: Record<string, any>,
-  originalRequired: Array<string> = [],
+  originalRequired: Array<string> = []
 ): Record<string, any>
 ```
 
@@ -329,7 +331,7 @@ function makeOpenAIStructuredOutputCompatible(
 
 6. **Unsupported feature detection** - Throw error if `oneOf` is encountered:
    ```
-   Error: oneOf is not supported in OpenAI structured output schemas. 
+   Error: oneOf is not supported in OpenAI structured output schemas.
    Check the supported outputs here: https://platform.openai.com/docs/guides/structured-outputs#supported-types
    ```
 
@@ -340,6 +342,7 @@ function makeOpenAIStructuredOutputCompatible(
 Located at [packages/typescript/ai-openai/src/utils/schema-converter.ts:12-35](), this function converts OpenAI's null values back to undefined after receiving responses:
 
 **Function signature:**
+
 ```typescript
 function transformNullsToUndefined<T>(obj: T): T
 ```
@@ -357,6 +360,7 @@ function transformNullsToUndefined<T>(obj: T): T
 4. Otherwise, return value unchanged
 
 **Example:**
+
 ```typescript
 // OpenAI response
 { name: "John", email: null, notes: null }
@@ -376,28 +380,28 @@ Tools support schema validation through `inputSchema` and `outputSchema` fields:
 ```mermaid
 graph LR
     Tool["Tool Interface"]
-    
+
     Name["name: string"]
     Desc["description: string"]
     Input["inputSchema?: SchemaInput"]
     Output["outputSchema?: SchemaInput"]
     Execute["execute?: Function"]
-    
+
     Tool --> Name
     Tool --> Desc
     Tool --> Input
     Tool --> Output
     Tool --> Execute
-    
+
     InputVal["Input Validation<br/>(LLM arguments)"]
     OutputVal["Output Validation<br/>(Execution result)"]
-    
+
     Input --> InputVal
     Output --> OutputVal
-    
+
     InputVal --> LLM["Sent to LLM Provider"]
     OutputVal --> Result["Validated Result"]
-    
+
     style Tool fill:#f9f9f9
 ```
 

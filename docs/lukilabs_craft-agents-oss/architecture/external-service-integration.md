@@ -14,8 +14,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents how Craft Agents connects to external services at the code level: source types and transports, the `SourceServerBuilder` that assembles MCP and API server configurations, the dynamic API tool factory (`createApiTool` / `createApiServer`), the `CraftOAuth` class and its RFC-compliant discovery, and the `TokenRefreshManager` that handles the token refresh lifecycle.
 
 For user-facing source configuration, see page 4.3. For credential encryption details, see page 7.2. For the agent system that consumes these servers, see page 2.3.
@@ -24,13 +22,13 @@ For user-facing source configuration, see page 4.3. For credential encryption de
 
 ## Overview
 
-External services are modeled as *sources*, each with a `SourceType`:
+External services are modeled as _sources_, each with a `SourceType`:
 
-| `SourceType` | Transport | Authentication |
-|---|---|---|
-| `mcp` | `http`, `sse`, or `stdio` | `oauth`, `bearer`, or `none` |
-| `api` | HTTP/REST (in-process) | `bearer`, `header`, `query`, `basic`, `oauth`, or `none` |
-| `local` | Filesystem path | None |
+| `SourceType` | Transport                 | Authentication                                           |
+| ------------ | ------------------------- | -------------------------------------------------------- |
+| `mcp`        | `http`, `sse`, or `stdio` | `oauth`, `bearer`, or `none`                             |
+| `api`        | HTTP/REST (in-process)    | `bearer`, `header`, `query`, `basic`, `oauth`, or `none` |
+| `local`      | Filesystem path           | None                                                     |
 
 The primary code path for turning a `LoadedSource` into something usable by the agent runs through `SourceServerBuilder` (`packages/shared/src/sources/server-builder.ts`). For MCP sources it produces a `McpServerConfig` consumed by the Claude Agent SDK. For API sources it creates an in-process MCP server wrapping a single flexible tool built by the dynamic API tool factory.
 
@@ -46,12 +44,12 @@ Sources: [packages/shared/src/sources/types.ts:16-27](), [packages/shared/src/so
 
 **Class: `SourceServerBuilder`**
 
-| Method | Returns | Description |
-|---|---|---|
-| `buildMcpServer(source, token)` | `McpServerConfig \| null` | Produces an HTTP, SSE, or stdio config for MCP sources |
-| `buildApiServer(source, credential, getToken?, sessionPath?, summarize?)` | `Promise<SdkMcpServer \| null>` | Creates an in-process MCP server wrapping a REST API tool |
-| `buildApiConfig(source)` | `ApiConfig` | Maps `ApiSourceConfig` fields to the `ApiConfig` shape consumed by the tool factory |
-| `buildAll(sourcesWithCredentials, getTokenForSource?, sessionPath?, summarize?)` | `Promise<BuiltServers>` | Builds all MCP and API servers for a set of sources in one call |
+| Method                                                                           | Returns                         | Description                                                                         |
+| -------------------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------- |
+| `buildMcpServer(source, token)`                                                  | `McpServerConfig \| null`       | Produces an HTTP, SSE, or stdio config for MCP sources                              |
+| `buildApiServer(source, credential, getToken?, sessionPath?, summarize?)`        | `Promise<SdkMcpServer \| null>` | Creates an in-process MCP server wrapping a REST API tool                           |
+| `buildApiConfig(source)`                                                         | `ApiConfig`                     | Maps `ApiSourceConfig` fields to the `ApiConfig` shape consumed by the tool factory |
+| `buildAll(sourcesWithCredentials, getTokenForSource?, sessionPath?, summarize?)` | `Promise<BuiltServers>`         | Builds all MCP and API servers for a set of sources in one call                     |
 
 `buildAll()` returns a `BuiltServers` object with three fields: `mcpServers` (configs keyed by source slug), `apiServers` (in-process SDK MCP servers keyed by slug), and `errors` (sources that failed to build).
 
@@ -105,24 +103,24 @@ For `api`-type sources, the system creates a single flexible MCP tool per API ra
 
 Every API tool is named `api_{sourceSlug}` and accepts four arguments:
 
-| Argument | Type | Description |
-|---|---|---|
-| `path` | `string` | API endpoint path, e.g. `/v1/messages` |
-| `method` | `'GET' \| 'POST' \| 'PUT' \| 'DELETE' \| 'PATCH'` | HTTP method |
-| `params` | `Record<string, unknown>` (optional) | Body for non-GET, query params for GET |
-| `_intent` | `string` (optional) | Describes the goal — used for large-response summarization context |
+| Argument  | Type                                              | Description                                                        |
+| --------- | ------------------------------------------------- | ------------------------------------------------------------------ |
+| `path`    | `string`                                          | API endpoint path, e.g. `/v1/messages`                             |
+| `method`  | `'GET' \| 'POST' \| 'PUT' \| 'DELETE' \| 'PATCH'` | HTTP method                                                        |
+| `params`  | `Record<string, unknown>` (optional)              | Body for non-GET, query params for GET                             |
+| `_intent` | `string` (optional)                               | Describes the goal — used for large-response summarization context |
 
 ### Authentication Injection
 
 `buildHeaders()` and `buildUrl()` are responsible for injecting credentials into requests. The auth type determines the injection point:
 
-| `ApiAuthType` | Injection point | Notes |
-|---|---|---|
-| `bearer` | `Authorization` header | `buildAuthorizationHeader(authScheme, token)` — defaults to `"Bearer"` prefix, supports custom schemes or empty string (raw token) |
-| `header` | Named header (e.g. `x-api-key`) | Supports single and multi-header credentials via `isMultiHeaderCredential()` |
-| `query` | URL query parameter | `buildUrl()` appends `?{queryParam}={token}` |
-| `basic` | `Authorization: Basic` header | Requires `BasicAuthCredential` with `username`/`password` |
-| `none` | No injection | Public APIs |
+| `ApiAuthType` | Injection point                 | Notes                                                                                                                              |
+| ------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `bearer`      | `Authorization` header          | `buildAuthorizationHeader(authScheme, token)` — defaults to `"Bearer"` prefix, supports custom schemes or empty string (raw token) |
+| `header`      | Named header (e.g. `x-api-key`) | Supports single and multi-header credentials via `isMultiHeaderCredential()`                                                       |
+| `query`       | URL query parameter             | `buildUrl()` appends `?{queryParam}={token}`                                                                                       |
+| `basic`       | `Authorization: Basic` header   | Requires `BasicAuthCredential` with `username`/`password`                                                                          |
+| `none`        | No injection                    | Public APIs                                                                                                                        |
 
 ### `ApiCredentialSource`
 
@@ -229,13 +227,13 @@ Sources: [packages/shared/src/auth/oauth.ts:42-444](), [packages/shared/src/auth
 
 ### Core Methods
 
-| Method | Description |
-|---|---|
-| `needsRefresh(source)` | Returns `true` if the stored token is expired or within 5 minutes of expiry; also returns `true` if no `expiresAt` is present (forces a refresh to populate the field) |
-| `ensureFreshToken(source)` | Single entry point for token refresh: checks cooldown, loads credential, refreshes if needed, returns `TokenRefreshResult` |
-| `getSourcesNeedingRefresh(sources)` | Filters `sources` to OAuth sources (via `isOAuthSource()`) that need refresh and are not in cooldown |
-| `refreshSources(sources)` | Refreshes multiple sources in parallel, returns `{ refreshed, failed }` |
-| `createTokenGetter(refreshManager, source)` | Returns `() => Promise<string>` suitable for use as `ApiCredentialSource` |
+| Method                                      | Description                                                                                                                                                            |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `needsRefresh(source)`                      | Returns `true` if the stored token is expired or within 5 minutes of expiry; also returns `true` if no `expiresAt` is present (forces a refresh to populate the field) |
+| `ensureFreshToken(source)`                  | Single entry point for token refresh: checks cooldown, loads credential, refreshes if needed, returns `TokenRefreshResult`                                             |
+| `getSourcesNeedingRefresh(sources)`         | Filters `sources` to OAuth sources (via `isOAuthSource()`) that need refresh and are not in cooldown                                                                   |
+| `refreshSources(sources)`                   | Refreshes multiple sources in parallel, returns `{ refreshed, failed }`                                                                                                |
+| `createTokenGetter(refreshManager, source)` | Returns `() => Promise<string>` suitable for use as `ApiCredentialSource`                                                                                              |
 
 ### Rate Limiting
 
@@ -274,17 +272,17 @@ Sources: [packages/shared/src/sources/token-refresh-manager.ts:39-255]()
 
 Three REST API providers use OAuth: Google, Slack, and Microsoft. They are identified by the `provider` field on `FolderSourceConfig`. The constant `API_OAUTH_PROVIDERS = ['google', 'microsoft', 'slack']` is used by `isApiOAuthProvider()` and `isOAuthSource()` to identify them.
 
-| Provider | `ApiSourceConfig` fields | Scopes |
-|---|---|---|
-| **Google** | `googleService` (gmail/calendar/drive/docs/sheets), `googleScopes[]`, `googleOAuthClientId`, `googleOAuthClientSecret` | Determined by `googleService` or explicit `googleScopes` |
-| **Slack** | `slackService`, `slackUserScopes[]` | User-scoped (`user_scope`) so actions appear as the user, not a bot |
-| **Microsoft** | `microsoftService` (outlook/microsoft-calendar/onedrive/teams/sharepoint), `microsoftScopes[]` | Microsoft Graph scopes |
+| Provider      | `ApiSourceConfig` fields                                                                                               | Scopes                                                              |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **Google**    | `googleService` (gmail/calendar/drive/docs/sheets), `googleScopes[]`, `googleOAuthClientId`, `googleOAuthClientSecret` | Determined by `googleService` or explicit `googleScopes`            |
+| **Slack**     | `slackService`, `slackUserScopes[]`                                                                                    | User-scoped (`user_scope`) so actions appear as the user, not a bot |
+| **Microsoft** | `microsoftService` (outlook/microsoft-calendar/onedrive/teams/sharepoint), `microsoftScopes[]`                         | Microsoft Graph scopes                                              |
 
 `inferGoogleServiceFromUrl()`, `inferSlackServiceFromUrl()`, and `inferMicrosoftServiceFromUrl()` in `packages/shared/src/sources/types.ts` can infer the service enum from the `baseUrl` for sources configured without an explicit `googleService`/`slackService`/`microsoftService` field.
 
 For Google and Slack, `SourceServerBuilder.buildApiServer()` requires `isAuthenticated` to be true and a `getToken` function (produced by `createTokenGetter()`). The token getter is called before every request so the tool always uses a fresh token.
 
-**Note on Google OAuth credentials:** Google credentials are *not* bundled into the build. Users must supply their own `googleOAuthClientId` and `googleOAuthClientSecret` in the source's `api` config block, obtained by creating an OAuth 2.0 Desktop App credential in Google Cloud Console. Slack and Microsoft client IDs/secrets are baked into the build at compile time via environment variables.
+**Note on Google OAuth credentials:** Google credentials are _not_ bundled into the build. Users must supply their own `googleOAuthClientId` and `googleOAuthClientSecret` in the source's `api` config block, obtained by creating an OAuth 2.0 Desktop App credential in Google Cloud Console. Slack and Microsoft client IDs/secrets are baked into the build at compile time via environment variables.
 
 Sources: [packages/shared/src/sources/types.ts:157-199](), [packages/shared/src/sources/server-builder.ts:158-202](), [README.md:199-253]()
 
@@ -300,11 +298,11 @@ For full details on the encryption implementation and key management, see page 7
 
 ### Encryption Properties
 
-| Property | Value |
-|---|---|
-| **Algorithm** | AES-256-GCM |
-| **Key Size** | 256 bits |
-| **IV** | Random per encryption operation |
+| Property            | Value                            |
+| ------------------- | -------------------------------- |
+| **Algorithm**       | AES-256-GCM                      |
+| **Key Size**        | 256 bits                         |
+| **IV**              | Random per encryption operation  |
 | **Credential file** | `~/.craft-agent/credentials.enc` |
 
 Sources: [packages/shared/src/sources/token-refresh-manager.ts:95-104](), [README.md:295-301]()
@@ -323,27 +321,27 @@ graph TB
         ServerConfig["MCP Server Config<br/>Command + Args"]
         UserEnv["User-specified env<br/>From source config"]
     end
-    
+
     subgraph "packages/shared/src/sources/ or main process"
         EnvFilter["Environment Variable Filter"]
         BlockList["Blocked Variables:<br/>ANTHROPIC_API_KEY<br/>CLAUDE_CODE_OAUTH_TOKEN<br/>AWS_ACCESS_KEY_ID<br/>AWS_SECRET_ACCESS_KEY<br/>AWS_SESSION_TOKEN<br/>GITHUB_TOKEN<br/>GH_TOKEN<br/>OPENAI_API_KEY<br/>GOOGLE_API_KEY<br/>STRIPE_SECRET_KEY<br/>NPM_TOKEN"]
         AllowedEnv["Allowed Variables:<br/>PATH, HOME, USER<br/>+ User-specified"]
     end
-    
+
     subgraph "Subprocess Environment"
         FilteredEnv["Filtered Environment"]
         MCPProcess["MCP Server Process<br/>stdio transport"]
     end
-    
+
     ServerConfig --> EnvFilter
     UserEnv --> AllowedEnv
-    
+
     EnvFilter --> BlockList
     EnvFilter --> AllowedEnv
-    
+
     BlockList --> FilteredEnv
     AllowedEnv --> FilteredEnv
-    
+
     FilteredEnv --> MCPProcess
 ```
 
@@ -351,12 +349,12 @@ graph TB
 
 The following environment variables are **always filtered** from MCP subprocess environments:
 
-| Category | Variables |
-|----------|-----------|
-| **Craft Agents Auth** | `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN` |
-| **AWS Credentials** | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` |
-| **Third-Party APIs** | `GITHUB_TOKEN`, `GH_TOKEN`, `OPENAI_API_KEY`, `GOOGLE_API_KEY` |
-| **Payment/Publishing** | `STRIPE_SECRET_KEY`, `NPM_TOKEN` |
+| Category               | Variables                                                         |
+| ---------------------- | ----------------------------------------------------------------- |
+| **Craft Agents Auth**  | `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`                    |
+| **AWS Credentials**    | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` |
+| **Third-Party APIs**   | `GITHUB_TOKEN`, `GH_TOKEN`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`    |
+| **Payment/Publishing** | `STRIPE_SECRET_KEY`, `NPM_TOKEN`                                  |
 
 ### Explicit Variable Passing
 
@@ -383,15 +381,16 @@ Variables specified in the `env` field are passed to the subprocess regardless o
 
 The following table summarizes authentication and credential handling for each external service:
 
-| Service | Auth Type | Credentials Stored | Token Refresh | Environment Variables |
-|---------|-----------|-------------------|---------------|----------------------|
-| **Anthropic** | API Key | `apiKey` | N/A (static key) | `ANTHROPIC_API_KEY` |
-| **Craft MCP** | Bearer Token | `url`, `token` | N/A (static token) | None (HTTP headers) |
-| **Google** | OAuth 2.0 Desktop | `accessToken`, `refreshToken`, `expiresAt` | Automatic | None (API clients) |
-| **Slack** | OAuth 2.0 Standard | `accessToken`, `refreshToken`, `expiresAt` | Automatic | None (API clients) |
-| **Microsoft** | OAuth 2.0 PKCE | `accessToken`, `refreshToken`, `expiresAt` | Automatic | None (API clients) |
+| Service       | Auth Type          | Credentials Stored                         | Token Refresh      | Environment Variables |
+| ------------- | ------------------ | ------------------------------------------ | ------------------ | --------------------- |
+| **Anthropic** | API Key            | `apiKey`                                   | N/A (static key)   | `ANTHROPIC_API_KEY`   |
+| **Craft MCP** | Bearer Token       | `url`, `token`                             | N/A (static token) | None (HTTP headers)   |
+| **Google**    | OAuth 2.0 Desktop  | `accessToken`, `refreshToken`, `expiresAt` | Automatic          | None (API clients)    |
+| **Slack**     | OAuth 2.0 Standard | `accessToken`, `refreshToken`, `expiresAt` | Automatic          | None (API clients)    |
+| **Microsoft** | OAuth 2.0 PKCE     | `accessToken`, `refreshToken`, `expiresAt` | Automatic          | None (API clients)    |
 
 All credentials are:
+
 1. Encrypted with AES-256-GCM before storage
 2. Stored in `~/.craft-agent/credentials.enc`
 3. Retrieved by `getAuthState()` during session initialization

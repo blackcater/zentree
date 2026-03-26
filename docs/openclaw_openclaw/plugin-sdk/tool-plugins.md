@@ -26,8 +26,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 Tool plugins extend OpenClaw agents with new capabilities by providing custom tool implementations that integrate with the tool registry and policy system. Unlike channel plugins (see [Channel Plugins](#9.2)), which add new messaging platform integrations, tool plugins add new actions agents can perform during execution.
 
 For information about the broader plugin architecture and discovery system, see [Plugin Architecture](#9.1). For the skills system that complements plugin-provided tools, see [Skills System](#5).
@@ -56,37 +54,37 @@ graph TB
         PkgJson["package.json<br/>openclaw.extensions field"]
         Discovery["Plugin Discovery<br/>loadExtensions()"]
     end
-    
+
     subgraph "Plugin SDK"
         CoreExports["openclaw/plugin-sdk<br/>Core Types & Utilities"]
         CompatExports["openclaw/plugin-sdk/compat<br/>Compatibility Layer"]
         ToolTypes["Tool Definition Types<br/>ToolPlugin interface"]
     end
-    
+
     subgraph "Plugin Registration"
         PluginRegistry["Plugin Registry<br/>registerPlugin()"]
         ToolRegistry["Tool Registry<br/>Global Tool List"]
         PolicyEngine["Policy Engine<br/>Tool Filtering"]
     end
-    
+
     subgraph "Runtime Integration"
         AgentRuntime["Agent Runtime<br/>Tool Execution"]
         ToolDispatch["Tool Dispatch<br/>Plugin Tool Invocation"]
         Context["Plugin Context<br/>Config, Logger, Runtime Info"]
     end
-    
+
     ExtDir --> Discovery
     PkgJson --> Discovery
     Discovery --> PluginRegistry
-    
+
     CoreExports --> PluginRegistry
     CompatExports --> PluginRegistry
     ToolTypes --> PluginRegistry
-    
+
     PluginRegistry --> ToolRegistry
     ToolRegistry --> PolicyEngine
     PolicyEngine --> AgentRuntime
-    
+
     AgentRuntime --> ToolDispatch
     ToolDispatch --> Context
 ```
@@ -104,12 +102,12 @@ graph TB
 
 The plugin SDK provides multiple entry points for different plugin types and compatibility layers:
 
-| Export Path | Purpose | Key Exports |
-|-------------|---------|-------------|
-| `openclaw/plugin-sdk` | Main entry point | Core plugin types, utilities, common interfaces |
-| `openclaw/plugin-sdk/core` | Core functionality | Tool definition types, runtime context, base classes |
-| `openclaw/plugin-sdk/compat` | Compatibility layer | Legacy plugin format support, migration helpers |
-| `openclaw/plugin-sdk/<extension>` | Extension-specific | Isolated exports for specific plugins (e.g., `memory-core`, `diffs`) |
+| Export Path                       | Purpose             | Key Exports                                                          |
+| --------------------------------- | ------------------- | -------------------------------------------------------------------- |
+| `openclaw/plugin-sdk`             | Main entry point    | Core plugin types, utilities, common interfaces                      |
+| `openclaw/plugin-sdk/core`        | Core functionality  | Tool definition types, runtime context, base classes                 |
+| `openclaw/plugin-sdk/compat`      | Compatibility layer | Legacy plugin format support, migration helpers                      |
+| `openclaw/plugin-sdk/<extension>` | Extension-specific  | Isolated exports for specific plugins (e.g., `memory-core`, `diffs`) |
 
 **Available Plugin SDK Modules** (from package.json exports):
 
@@ -141,27 +139,27 @@ graph LR
         PkgJsonExt["package.json<br/>openclaw.extensions"]
         ToolImpl["tool-implementation.ts<br/>Tool Logic"]
     end
-    
+
     subgraph "Entry Point Exports"
         InitFn["export default async function"]
         RegisterCall["context.registerTool()"]
         ToolDef["Tool Definition Object"]
     end
-    
+
     subgraph "Integration Points"
         ToolRegistry2["Tool Registry"]
         PolicyCheck2["Policy Enforcement"]
         Runtime2["Agent Runtime"]
     end
-    
+
     PkgRoot --> IndexTs
     PkgRoot --> PkgJsonExt
     PkgRoot --> ToolImpl
-    
+
     IndexTs --> InitFn
     InitFn --> RegisterCall
     RegisterCall --> ToolDef
-    
+
     ToolDef --> ToolRegistry2
     ToolRegistry2 --> PolicyCheck2
     PolicyCheck2 --> Runtime2
@@ -204,24 +202,24 @@ sequenceDiagram
     participant Policy as Policy Engine
     participant Agent as Agent Runtime
     participant Dispatch as Tool Dispatch
-    
+
     Boot->>Discovery: loadExtensions()
     Discovery->>Discovery: Scan extensions/ directory
     Discovery->>Discovery: Read package.json openclaw.extensions
-    
+
     Discovery->>Plugin: import('./index.ts')
     Plugin->>Plugin: Initialize plugin context
-    
+
     Plugin->>Registry: context.registerTool(toolDef)
     Registry->>Registry: Validate tool schema
     Registry->>Registry: Add to global tool list
-    
+
     Note over Registry,Policy: Tool appears in agent turns
-    
+
     Agent->>Policy: Request available tools
     Policy->>Policy: Apply multi-tier policies
     Policy-->>Agent: Filtered tool list
-    
+
     Agent->>Agent: LLM requests tool call
     Agent->>Dispatch: executeTool(name, args)
     Dispatch->>Dispatch: Resolve plugin-provided tool
@@ -252,29 +250,29 @@ graph TB
         Params["parameters: JSONSchema<br/>Tool arguments schema"]
         Exec["execute: Function<br/>Tool implementation"]
     end
-    
+
     subgraph "Execution Context"
         Args["args: Record<string,any><br/>Parsed tool arguments"]
         Ctx["context: ToolContext<br/>Runtime information"]
         Config["config: Config<br/>Agent configuration"]
         Logger["logger: Logger<br/>Structured logging"]
     end
-    
+
     subgraph "Execution Result"
         Success["Success<br/>Return value"]
         Error["Error<br/>Throw exception"]
         Streams["Streaming<br/>Async generators"]
     end
-    
+
     Name --> Exec
     Desc --> Exec
     Params --> Exec
-    
+
     Exec --> Args
     Exec --> Ctx
     Ctx --> Config
     Ctx --> Logger
-    
+
     Exec --> Success
     Exec --> Error
     Exec --> Streams
@@ -288,6 +286,7 @@ graph TB
 - `execute`: Async function that implements the tool logic
 
 The `execute` function receives:
+
 - Parsed arguments matching the parameters schema
 - Runtime context with configuration, logger, and agent metadata
 - Access to other runtime services if needed
@@ -307,28 +306,28 @@ graph TB
         Group["Group Policy<br/>Channel-specific rules"]
         Sandbox["Sandbox Policy<br/>none/readonly/workspace"]
     end
-    
+
     subgraph "Plugin Tools"
         PluginTool1["diagnostics_otel<br/>OTEL exporter tool"]
         PluginTool2["memory_search<br/>LanceDB search"]
         PluginTool3["llm_task<br/>Subtask delegation"]
     end
-    
+
     subgraph "Policy Evaluation"
         Filter["Tool Filter<br/>filterToolsByPolicy()"]
         Available["Available Tools<br/>Filtered list"]
     end
-    
+
     Global --> Filter
     Agent --> Filter
     Provider --> Filter
     Group --> Filter
     Sandbox --> Filter
-    
+
     PluginTool1 --> Filter
     PluginTool2 --> Filter
     PluginTool3 --> Filter
-    
+
     Filter --> Available
 ```
 
@@ -360,6 +359,7 @@ extensions/memory-lancedb/
 ```
 
 **Key Features**:
+
 - Integrates with LanceDB for vector storage
 - Provides `memory_search` tool for semantic recall
 - Supports multiple embedding providers (OpenAI, etc.)
@@ -378,6 +378,7 @@ extensions/diagnostics-otel/
 ```
 
 **Key Features**:
+
 - Integrates with OpenTelemetry SDK
 - Exports traces, metrics, and logs to OTLP collectors
 - Configurable endpoints and sampling
@@ -396,6 +397,7 @@ extensions/llm-task/
 ```
 
 **Key Features**:
+
 - Allows agents to spawn subtasks with isolated context
 - Uses TypeBox for runtime validation
 - Supports result aggregation from subtasks
@@ -419,6 +421,7 @@ When developing tool plugins:
 **Distribution Options**:
 
 Plugins can be distributed via:
+
 - **Local Directory**: Place in `extensions/` for workspace-local plugins
 - **npm Package**: Publish with `@openclaw/<plugin-name>` naming convention
 - **Monorepo**: Include in the pnpm workspace for development
@@ -431,14 +434,15 @@ The plugin SDK uses subpath exports to prevent monolithic imports. Plugins shoul
 
 ```typescript
 // ❌ Avoid: Imports all plugins
-import { something } from 'openclaw/plugin-sdk';
+import { something } from 'openclaw/plugin-sdk'
 
 // ✅ Preferred: Import specific modules
-import { coreTypes } from 'openclaw/plugin-sdk/core';
-import { memoryUtils } from 'openclaw/plugin-sdk/memory-core';
+import { coreTypes } from 'openclaw/plugin-sdk/core'
+import { memoryUtils } from 'openclaw/plugin-sdk/memory-core'
 ```
 
 This prevents:
+
 - Bloated dependency graphs when only a subset of functionality is needed
 - Circular dependencies between plugins
 - Unnecessary loading of unrelated plugin code

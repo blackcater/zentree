@@ -23,8 +23,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes how Codex constructs and executes a single turn. It covers the `TurnContext` structure, prompt assembly (history + tools + instructions), and request construction for the model API. For overall session lifecycle and thread management, see [Codex Interface and Session Lifecycle](#3.1). For how the model client sends requests and handles responses, see [Model Client and API Communication](#3.2). For how response events are processed and state updated, see [Event Processing and State Management](#3.4).
 
 ---
@@ -37,29 +35,29 @@ Each turn creates a `TurnContext` that holds all configuration, policies, and me
 
 The `TurnContext` struct contains:
 
-| Field Category | Key Fields | Purpose |
-|---|---|---|
-| **Identity** | `sub_id`, `session_source` | Unique submission ID, session origin (CLI/TUI/VS Code) |
-| **Model Selection** | `model_info`, `provider`, `reasoning_effort`, `reasoning_summary` | Model capabilities, provider config, reasoning controls |
-| **Policies** | `approval_policy`, `sandbox_policy`, `windows_sandbox_level` | Execution approval requirements, sandboxing strategy |
-| **Instructions** | `base_instructions`, `developer_instructions`, `user_instructions`, `compact_prompt`, `personality` | System instructions and personality configuration |
-| **Environment** | `cwd`, `shell_environment_policy` | Working directory, shell environment handling |
-| **Tools** | `tools_config`, `dynamic_tools` | Available tool registry, custom tool specs |
-| **Metadata** | `turn_metadata_header`, `otel_manager` | Git context, telemetry tracking |
-| **State** | `tool_call_gate`, `truncation_policy`, `final_output_json_schema` | Tool execution readiness, truncation rules, output schema |
+| Field Category      | Key Fields                                                                                          | Purpose                                                   |
+| ------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| **Identity**        | `sub_id`, `session_source`                                                                          | Unique submission ID, session origin (CLI/TUI/VS Code)    |
+| **Model Selection** | `model_info`, `provider`, `reasoning_effort`, `reasoning_summary`                                   | Model capabilities, provider config, reasoning controls   |
+| **Policies**        | `approval_policy`, `sandbox_policy`, `windows_sandbox_level`                                        | Execution approval requirements, sandboxing strategy      |
+| **Instructions**    | `base_instructions`, `developer_instructions`, `user_instructions`, `compact_prompt`, `personality` | System instructions and personality configuration         |
+| **Environment**     | `cwd`, `shell_environment_policy`                                                                   | Working directory, shell environment handling             |
+| **Tools**           | `tools_config`, `dynamic_tools`                                                                     | Available tool registry, custom tool specs                |
+| **Metadata**        | `turn_metadata_header`, `otel_manager`                                                              | Git context, telemetry tracking                           |
+| **State**           | `tool_call_gate`, `truncation_policy`, `final_output_json_schema`                                   | Tool execution readiness, truncation rules, output schema |
 
 ```mermaid
 graph TB
     SessionConfig["SessionConfiguration<br/>(session-scoped)"]
     PerTurnConfig["per_turn_config<br/>(Config clone)"]
     ModelInfo["ModelInfo<br/>(from ModelsManager)"]
-    
+
     SessionConfig --> BuildContext["Session::make_turn_context"]
     PerTurnConfig --> BuildContext
     ModelInfo --> BuildContext
-    
+
     BuildContext --> TurnContext["TurnContext<br/>(turn-scoped)"]
-    
+
     TurnContext --> approval_policy["approval_policy: AskForApproval"]
     TurnContext --> sandbox_policy["sandbox_policy: SandboxPolicy"]
     TurnContext --> tools_config["tools_config: ToolsConfig"]
@@ -82,19 +80,19 @@ The `Session::make_turn_context` function creates a `TurnContext` by combining s
 ```mermaid
 graph TD
     Start["SessionTask::execute_turn"]
-    
+
     Start --> BuildPerTurn["Session::build_per_turn_config<br/>(clones Config, applies turn settings)"]
     BuildPerTurn --> ResolveWebSearch["resolve_web_search_mode_for_turn<br/>(applies sandbox constraints)"]
-    
+
     Start --> GetModelInfo["models_manager.get_model_info<br/>(retrieves model capabilities)"]
-    
+
     BuildPerTurn --> MakeTurnContext["Session::make_turn_context"]
     GetModelInfo --> MakeTurnContext
-    
+
     MakeTurnContext --> BuildToolsConfig["ToolsConfig::new<br/>(model_info, features, web_search_mode)"]
-    
+
     BuildToolsConfig --> TurnContext["TurnContext<br/>(ready for execution)"]
-    
+
     TurnContext --> SpawnMetadata["spawn_turn_metadata_header_task<br/>(background git context)"]
 ```
 
@@ -119,7 +117,7 @@ The `Prompt` struct represents the complete API request payload for a single mod
 ```mermaid
 graph LR
     Prompt["Prompt"]
-    
+
     Prompt --> input["input: Vec&lt;ResponseItem&gt;<br/>(conversation history)"]
     Prompt --> tools["tools: Vec&lt;ToolSpec&gt;<br/>(available tool specs)"]
     Prompt --> parallel_tool_calls["parallel_tool_calls: bool"]
@@ -130,14 +128,14 @@ graph LR
 
 The `input` vector contains the full conversation history in chronological order:
 
-| Item Type | Purpose | Example |
-|---|---|---|
-| **Developer message** | Permissions and policy instructions | Sandbox mode explanation, approval policy |
-| **User message** | User instructions from `AGENTS.md` or config | Custom instructions, skill definitions |
-| **User message** | Environment context | CWD, shell type, OS version |
-| **User message** | Initial user input | User's request text |
-| **Assistant message** | Prior assistant responses | Text output, reasoning, function calls |
-| **Function call output** | Tool execution results | Shell command output, patch results |
+| Item Type                | Purpose                                      | Example                                   |
+| ------------------------ | -------------------------------------------- | ----------------------------------------- |
+| **Developer message**    | Permissions and policy instructions          | Sandbox mode explanation, approval policy |
+| **User message**         | User instructions from `AGENTS.md` or config | Custom instructions, skill definitions    |
+| **User message**         | Environment context                          | CWD, shell type, OS version               |
+| **User message**         | Initial user input                           | User's request text                       |
+| **Assistant message**    | Prior assistant responses                    | Text output, reasoning, function calls    |
+| **Function call output** | Tool execution results                       | Shell command output, patch results       |
 
 **Sources:** [codex-rs/core/src/client_common.rs:26-45]()
 
@@ -152,25 +150,25 @@ Prompt construction happens within the `run_turn` function, which is called by t
 ```mermaid
 graph TD
     Start["run_turn<br/>(called from RegularTask::run)"]
-    
+
     Start --> LoadHistory["session.load_conversation_history<br/>(from ContextManager)"]
     LoadHistory --> BuildBasePrompt["build_prompt_from_history<br/>(creates Prompt with input items)"]
-    
+
     BuildBasePrompt --> AddInitialContext["add_initial_context_messages<br/>(permissions, user_instructions, environment)"]
-    
+
     AddInitialContext --> AddDeveloperMsg["Add developer message<br/>(permissions instructions)"]
     AddDeveloperMsg --> AddUserInstructions["Add user message<br/>(user_instructions + skills)"]
     AddUserInstructions --> AddEnvironment["Add user message<br/>(environment_context)"]
-    
+
     AddEnvironment --> AddUserInput["append_user_input_items<br/>(new UserInput items)"]
-    
+
     Start --> BuildToolRegistry["ToolRegistryBuilder::new<br/>(from turn_context.tools_config)"]
     BuildToolRegistry --> AddMcpTools["register_mcp_tools<br/>(from McpConnectionManager)"]
     AddMcpTools --> AddDynamicTools["register_dynamic_tools<br/>(from turn_context.dynamic_tools)"]
-    
+
     AddUserInput --> AssemblePrompt["Assemble Prompt<br/>(input + tools + base_instructions)"]
     AddDynamicTools --> AssemblePrompt
-    
+
     AssemblePrompt --> CreateSession["model_client.new_session<br/>(or use prewarmed)"]
     CreateSession --> StreamRequest["client_session.stream<br/>(send prompt to model API)"]
 ```
@@ -191,15 +189,15 @@ graph TD
     DeveloperInstructions["developer_instructions<br/>(developer message)"]
     UserInstructions["user_instructions<br/>(user message)"]
     EnvironmentContext["environment_context<br/>(user message)"]
-    
+
     BaseInstructions --> ModelAPI["Model API<br/>(instructions field)"]
-    
+
     DeveloperInstructions --> PermissionsMsg["Developer Message<br/>permissions policy, sandbox mode"]
-    
+
     UserInstructions --> UserMsg["User Message<br/>AGENTS.md instructions + skills"]
-    
+
     EnvironmentContext --> EnvMsg["User Message<br/>cwd, shell, OS info"]
-    
+
     ModelAPI --> FinalPrompt["Final Prompt"]
     PermissionsMsg --> FinalPrompt
     UserMsg --> FinalPrompt
@@ -207,20 +205,24 @@ graph TD
 ```
 
 **Base Instructions:** Set in `SessionConfiguration.base_instructions` at session initialization. Priority order:
+
 1. `config.base_instructions` override
 2. Resumed session's `session_meta.base_instructions`
 3. Model's default instructions (from `ModelInfo.get_model_instructions(personality)`)
 
 **Developer Instructions:** Injected as the first developer-role message in the input. Contains:
+
 - Permissions policy explanation (sandbox mode, writable paths)
 - Approval requirements
 - Tool usage guidelines
 
 **User Instructions:** Injected as the second user-role message. Contains:
+
 - `config.user_instructions` (from `~/.codex/config.toml` or `AGENTS.md`)
 - Skills injections (skill summaries and metadata)
 
 **Environment Context:** Injected as the third user-role message. Contains:
+
 - Current working directory
 - Shell type and version
 - Operating system and architecture
@@ -239,9 +241,9 @@ Tools are selected based on model capabilities and feature flags, then converted
 ```mermaid
 graph TB
     TurnContext["TurnContext"]
-    
+
     TurnContext --> ToolsConfig["tools_config: ToolsConfig<br/>(built from model_info + features)"]
-    
+
     ToolsConfig --> ShellTools["Shell Tools<br/>(shell, local_shell, shell_command)"]
     ToolsConfig --> PatchTools["Patch Tools<br/>(apply_patch)"]
     ToolsConfig --> ExecTools["Unified Exec Tools<br/>(exec_command, write_stdin)"]
@@ -249,7 +251,7 @@ graph TB
     ToolsConfig --> WebSearch["Web Search<br/>(web_search with external_web_access)"]
     ToolsConfig --> CollabTools["Collaboration Tools<br/>(spawn_thread, send_message, etc.)"]
     ToolsConfig --> MemoryTools["Memory Tools<br/>(compact_memory, rollback_conversation)"]
-    
+
     ShellTools --> BuildSpecs["build_specs<br/>(ToolRegistryBuilder)"]
     PatchTools --> BuildSpecs
     ExecTools --> BuildSpecs
@@ -257,24 +259,24 @@ graph TB
     WebSearch --> BuildSpecs
     CollabTools --> BuildSpecs
     MemoryTools --> BuildSpecs
-    
+
     BuildSpecs --> McpManager["McpConnectionManager<br/>list_tools"]
     BuildSpecs --> DynamicTools["dynamic_tools<br/>(from TurnContext)"]
-    
+
     McpManager --> ConvertToSpec["Convert to ToolSpec<br/>(Function, LocalShell, WebSearch, Freeform)"]
     DynamicTools --> ConvertToSpec
-    
+
     ConvertToSpec --> ToolList["Vec&lt;ToolSpec&gt;<br/>(in Prompt)"]
 ```
 
 **Tool Spec Types:**
 
-| ToolSpec Variant | API Type | Example Tools |
-|---|---|---|
-| `ToolSpec::Function` | `type: "function"` | `shell`, `apply_patch`, MCP tools (with qualified names like `mcp__server__tool`) |
-| `ToolSpec::LocalShell` | `type: "local_shell"` | Native local shell execution |
-| `ToolSpec::WebSearch` | `type: "web_search"` | Web search with `external_web_access` flag |
-| `ToolSpec::Freeform` | `type: "custom"` | Custom tools with freeform input format |
+| ToolSpec Variant       | API Type              | Example Tools                                                                     |
+| ---------------------- | --------------------- | --------------------------------------------------------------------------------- |
+| `ToolSpec::Function`   | `type: "function"`    | `shell`, `apply_patch`, MCP tools (with qualified names like `mcp__server__tool`) |
+| `ToolSpec::LocalShell` | `type: "local_shell"` | Native local shell execution                                                      |
+| `ToolSpec::WebSearch`  | `type: "web_search"`  | Web search with `external_web_access` flag                                        |
+| `ToolSpec::Freeform`   | `type: "custom"`      | Custom tools with freeform input format                                           |
 
 **MCP Tool Qualification:** MCP tool names are qualified with the server name prefix to avoid collisions: `mcp__<server_name>__<tool_name>`. Names are sanitized to match OpenAI API requirements (`^[a-zA-Z0-9_-]+$`).
 
@@ -291,7 +293,7 @@ graph TB
 ```mermaid
 graph LR
     BuildOptions["build_responses_options"]
-    
+
     BuildOptions --> reasoning["reasoning: Option&lt;Reasoning&gt;<br/>(effort + summary)"]
     BuildOptions --> include["include: Vec&lt;String&gt;<br/>(['reasoning.encrypted_content'])"]
     BuildOptions --> prompt_cache_key["prompt_cache_key: Some(conversation_id)"]
@@ -329,33 +331,33 @@ The `x-codex-turn-metadata` header provides git context to the model API. Constr
 ```mermaid
 graph TD
     Create["TurnMetadataState::new<br/>(in make_turn_context)"]
-    
+
     Create --> CheckRepo["get_git_repo_root(cwd)<br/>(synchronous .git check)"]
-    
+
     CheckRepo --> BuildBase["build_turn_metadata_bag<br/>(turn_id + sandbox tag only)"]
-    
+
     BuildBase --> BaseHeader["base_header: String<br/>(immediate JSON, no git data)"]
-    
+
     Create --> OptionalSpawn{repo_root<br/>exists?}
-    
+
     OptionalSpawn -- No --> Done["State ready<br/>(base_header only)"]
-    
+
     OptionalSpawn -- Yes --> SpawnEnrich["spawn_git_enrichment_task<br/>(called later if needed)"]
-    
+
     SpawnEnrich --> BackgroundTask["tokio::spawn<br/>(enrichment task)"]
-    
+
     BackgroundTask --> FetchGit["fetch_workspace_git_metadata<br/>(tokio::join! parallel git calls)"]
-    
+
     FetchGit --> GetCommit["get_head_commit_hash<br/>(git rev-parse HEAD with 5s timeout)"]
     FetchGit --> GetRemotes["get_git_remote_urls_assume_git_repo<br/>(git remote -v with 5s timeout)"]
     FetchGit --> GetChanges["get_has_changes<br/>(git status --porcelain with 5s timeout)"]
-    
+
     GetCommit --> BuildEnriched["build_turn_metadata_bag<br/>(adds workspaces map)"]
     GetRemotes --> BuildEnriched
     GetChanges --> BuildEnriched
-    
+
     BuildEnriched --> StoreEnriched["Store in enriched_header<br/>(Arc<RwLock<Option<String>>>)"]
-    
+
     Done --> CurrentHeader["current_header_value()<br/>(returns base or enriched)"]
     StoreEnriched --> CurrentHeader
 ```
@@ -363,6 +365,7 @@ graph TD
 **Usage Pattern:**
 
 When `ModelClientSession` needs the metadata header:
+
 1. It calls `turn_metadata_state.current_header_value()`
 2. This returns the enriched header if ready, otherwise the base header
 3. No blocking—git enrichment runs in background and may not complete before first API call
@@ -400,41 +403,41 @@ This section shows how prompt construction integrates with the overall turn exec
 ```mermaid
 graph TD
     UserInput["Op::UserInput<br/>(submitted via Codex::submit)"]
-    
+
     UserInput --> SubmissionLoop["submission_loop<br/>(processes rx_sub channel)"]
-    
+
     SubmissionLoop --> HandleUserTurn["handle Op::UserInput<br/>(dispatch to task)"]
-    
+
     HandleUserTurn --> CreateTask["RegularTask::default<br/>(or take startup_regular_task)"]
-    
+
     CreateTask --> SpawnTask["Session::spawn_task<br/>(wraps task in Arc<dyn SessionTask>)"]
-    
+
     SpawnTask --> MakeTurnContext["Session::make_turn_context<br/>(combines SessionConfiguration + per_turn_config)"]
-    
+
     MakeTurnContext --> TaskRun["tokio::spawn<br/>(task.run in background)"]
-    
+
     TaskRun --> RegularRun["RegularTask::run<br/>(takes prewarmed_session)"]
-    
+
     RegularRun --> RunTurn["run_turn<br/>(main turn execution logic)"]
-    
+
     RunTurn --> BuildPrompt["build_prompt<br/>(history + tools + instructions)"]
-    
+
     BuildPrompt --> CreateClientSession["model_client.new_session<br/>(or use prewarmed_session)"]
-    
+
     CreateClientSession --> StreamCall["client_session.stream<br/>(sends prompt to model API)"]
-    
+
     StreamCall --> BuildRequest["build_responses_request<br/>(convert to wire format)"]
     BuildRequest --> BuildOptions["build_responses_options<br/>(headers, reasoning, compression)"]
-    
+
     BuildOptions --> SendRequest["HTTP POST or WebSocket send<br/>(to provider API endpoint)"]
-    
+
     SendRequest --> ResponseStream["ResponseStream<br/>(iterate ResponseEvent)"]
-    
+
     ResponseStream --> HandleResponse["handle_response_item<br/>(process each event)"]
-    
+
     HandleResponse --> ToolRouter["ToolRouter::handle_function_call<br/>(execute tools)"]
     ToolRouter --> EmitEvent["Session::send_event<br/>(publish EventMsg)"]
-    
+
     EmitEvent --> TurnComplete["EventMsg::TurnComplete<br/>(signal completion)"]
 ```
 
@@ -445,6 +448,7 @@ graph TD
 ## Key Configuration Points
 
 **Session-Scoped (SessionConfiguration):**
+
 - `base_instructions`: System prompt text (resolved at session init)
 - `developer_instructions`: Developer message content
 - `user_instructions`: User message content
@@ -456,6 +460,7 @@ graph TD
 - `dynamic_tools`: Custom tool specs (persisted and restored on resume)
 
 **Turn-Scoped (TurnContext):**
+
 - `model_info`: Model capabilities (from ModelsManager)
 - `reasoning_effort`: Reasoning level override (from collaboration_mode)
 - `reasoning_summary`: Summary verbosity (Concise/Detailed/None)
@@ -464,6 +469,7 @@ graph TD
 - `turn_metadata_header`: Git context (computed asynchronously)
 
 **Request-Scoped (ApiResponsesOptions):**
+
 - `reasoning`: Effort + summary config (sent to API)
 - `text`: Verbosity + output schema (sent to API)
 - `extra_headers`: Beta features, turn state, turn metadata

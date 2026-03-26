@@ -42,8 +42,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 The Permission & Confirmation System provides a multi-tier approval strategy for controlling AI agent tool execution. It mediates dangerous operations (command execution, file modifications, MCP tool calls) through user confirmation dialogs, session-level "always allow" caching, and mode-based auto-approval policies. This system prevents unintended changes while minimizing user friction through intelligent permission memory.
@@ -67,52 +65,52 @@ graph TB
         AcpAgent["ACP Agent<br/>(AcpAgent)"]
         CodexAgent["Codex Agent<br/>(CodexAgent)"]
     end
-    
+
     subgraph "Approval Decision Layer"
         GeminiStore["GeminiApprovalStore"]
         AcpStore["AcpApprovalStore"]
         CodexStore["CodexApprovalStore"]
-        
+
         ModeCheck{{"Mode-Based<br/>Auto-Approval"}}
         StoreCheck{{"ApprovalStore<br/>Cache Check"}}
     end
-    
+
     subgraph "Confirmation UI Layer"
         AddConfirmation["addConfirmation()<br/>Queue Permission Dialog"]
         ConfirmDialog["Permission Dialog<br/>(Frontend)"]
         UserDecision{{"User Decision"}}
         ConfirmMethod["confirm()<br/>Send Response to Agent"]
     end
-    
+
     GeminiWorker -->|"Tool requires approval"| ModeCheck
     AcpAgent -->|"Permission request"| ModeCheck
     CodexAgent -->|"Elicitation event"| ModeCheck
-    
+
     ModeCheck -->|"yolo/autoEdit mode"| AutoApprove["Auto-approve"]
     ModeCheck -->|"default mode"| StoreCheck
-    
+
     StoreCheck -->|"Always allow cached"| AutoApprove
     StoreCheck -->|"Always reject cached"| AutoReject["Auto-reject"]
     StoreCheck -->|"Not cached"| AddConfirmation
-    
+
     AddConfirmation --> ConfirmDialog
     ConfirmDialog --> UserDecision
-    
+
     UserDecision -->|"allow_once"| ConfirmMethod
     UserDecision -->|"allow_always"| StoreDecision["Store in ApprovalStore"]
     UserDecision -->|"reject_once"| ConfirmMethod
     UserDecision -->|"reject_always"| StoreDecision
-    
+
     StoreDecision --> ConfirmMethod
-    
+
     ConfirmMethod --> GeminiWorker
     ConfirmMethod --> AcpAgent
     ConfirmMethod --> CodexAgent
-    
+
     AutoApprove --> GeminiWorker
     AutoApprove --> AcpAgent
     AutoApprove --> CodexAgent
-    
+
     AutoReject --> GeminiWorker
     AutoReject --> AcpAgent
     AutoReject --> CodexAgent
@@ -128,13 +126,13 @@ Sources: [src/process/task/GeminiAgentManager.ts:360-383](), [src/agent/acp/inde
 
 Different agent types handle different permission categories:
 
-| Permission Type | Gemini | ACP | Codex | Description |
-|----------------|--------|-----|-------|-------------|
-| **File Edit** (`edit`) | ✓ | ✓ | ✓ | Write or modify files in workspace |
-| **Command Execution** (`exec`) | ✓ | ✓ | ✓ | Execute shell commands |
-| **File Read** (`info`) | ✓ | - | - | Read file contents |
-| **MCP Tool Call** (`mcp`) | ✓ | - | ✓ | Call external MCP server tools |
-| **ACP Permission** | - | ✓ | - | Generic ACP permission requests |
+| Permission Type                | Gemini | ACP | Codex | Description                        |
+| ------------------------------ | ------ | --- | ----- | ---------------------------------- |
+| **File Edit** (`edit`)         | ✓      | ✓   | ✓     | Write or modify files in workspace |
+| **Command Execution** (`exec`) | ✓      | ✓   | ✓     | Execute shell commands             |
+| **File Read** (`info`)         | ✓      | -   | -     | Read file contents                 |
+| **MCP Tool Call** (`mcp`)      | ✓      | -   | ✓     | Call external MCP server tools     |
+| **ACP Permission**             | -      | ✓   | -     | Generic ACP permission requests    |
 
 ### Request Flow Diagram
 
@@ -145,15 +143,15 @@ sequenceDiagram
     participant Store as "ApprovalStore"
     participant UI as "Confirmation UI"
     participant User as "User"
-    
+
     Agent->>Manager: Tool requires approval
     Manager->>Manager: Check currentMode
-    
+
     alt yolo/autoEdit mode matches
         Manager->>Agent: Auto-approve (ProceedOnce)
     else default mode
         Manager->>Store: Check cache (approval key)
-        
+
         alt Cache hit: allow_always
             Manager->>Agent: Auto-approve from cache
         else Cache hit: reject_always
@@ -163,11 +161,11 @@ sequenceDiagram
             UI->>User: Show permission dialog
             User->>UI: Select option
             UI->>Manager: confirm(callId, decision)
-            
+
             alt allow_always or reject_always
                 Manager->>Store: Store decision
             end
-            
+
             Manager->>Agent: Send decision
         end
     end
@@ -188,6 +186,7 @@ Approval keys are generated from permission request metadata to ensure consisten
 **Gemini** [src/agent/gemini/GeminiApprovalStore.ts:23-66]():
 
 The `getApprovalKey()` method generates keys based on confirmation type:
+
 - **Edit**: `editFile:${fileName}:${isModifying ? 'modify' : 'create'}`
 - **Exec**: `exec:${rootCommand}` (e.g., `exec:curl`, `exec:npm`)
 - **Info** (read): `info:${prompt || urls?.join(';')}`
@@ -198,6 +197,7 @@ These keys match the `action` and `commandType` fields on `IConfirmation`, which
 **ACP** [src/agent/acp/ApprovalStore.ts:20-41]():
 
 The `createAcpApprovalKey()` function generates keys from `AcpPermissionRequest`:
+
 - Uses `kind`, `title`, and `rawInput?.description` fields
 - Example: `execute:Execute command ls:Run command: ls in /home/user`
 - Falls back to JSON stringification for unrecognized permission types
@@ -205,6 +205,7 @@ The `createAcpApprovalKey()` function generates keys from `AcpPermissionRequest`
 **Codex** [src/agent/codex/core/ApprovalStore.ts:35-85]():
 
 Separate key generation methods for each permission type:
+
 - **Exec**: `createExecApprovalKey(command, cwd)` → `exec:${normalizedCommand}:${normalizedCwd}`
   - Normalizes paths to ensure cache hits across different relative path formats
 - **Patch**: `createPatchApprovalKey(files)` → `patch:${sortedFilePaths.join(',')}`
@@ -257,6 +258,7 @@ classDiagram
 ```
 
 **Implementation Notes**:
+
 - `GeminiApprovalStore` uses composition, wrapping a `BaseApprovalStore` instance
 - `AcpApprovalStore` extends `BaseApprovalStore` via inheritance
 - `CodexApprovalStore` is an independent implementation with domain-specific methods
@@ -272,11 +274,11 @@ The system supports three session modes that control auto-approval behavior:
 
 ### Mode Definitions
 
-| Mode | Description | Auto-Approves | Requires User Confirmation |
-|------|-------------|---------------|---------------------------|
-| **Plan** (`default`) | Default safe mode | None | All operations |
-| **Auto Edit** (`autoEdit`) | Auto-approve read/write | File edit (`edit`), File read (`info`) | Exec, MCP tools |
-| **Full Auto** (`yolo`) | Bypass all confirmations | All operations | None |
+| Mode                       | Description              | Auto-Approves                          | Requires User Confirmation |
+| -------------------------- | ------------------------ | -------------------------------------- | -------------------------- |
+| **Plan** (`default`)       | Default safe mode        | None                                   | All operations             |
+| **Auto Edit** (`autoEdit`) | Auto-approve read/write  | File edit (`edit`), File read (`info`) | Exec, MCP tools            |
+| **Full Auto** (`yolo`)     | Bypass all confirmations | All operations                         | None                       |
 
 ### Mode Implementation by Agent
 
@@ -341,15 +343,15 @@ The unified confirmation interface is defined in [src/common/chatLib.ts:281-298]
 
 Each confirmation carries:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | `string` | Unique identifier for the confirmation dialog |
-| `callId` | `string` | Tool call ID used to route the response back to the agent |
-| `title` | `string?` | Dialog title (i18n key) |
-| `description` | `string` | Dialog body text (i18n key) |
-| `options` | `Array<{label, value, params?}>` | User-facing buttons |
-| `action` | `string?` | Action name for `GeminiApprovalStore` cache lookup |
-| `commandType` | `string?` | Root command for exec confirmations (e.g., `curl`, `npm`) |
+| Field         | Type                             | Description                                               |
+| ------------- | -------------------------------- | --------------------------------------------------------- |
+| `id`          | `string`                         | Unique identifier for the confirmation dialog             |
+| `callId`      | `string`                         | Tool call ID used to route the response back to the agent |
+| `title`       | `string?`                        | Dialog title (i18n key)                                   |
+| `description` | `string`                         | Dialog body text (i18n key)                               |
+| `options`     | `Array<{label, value, params?}>` | User-facing buttons                                       |
+| `action`      | `string?`                        | Action name for `GeminiApprovalStore` cache lookup        |
+| `commandType` | `string?`                        | Root command for exec confirmations (e.g., `curl`, `npm`) |
 
 Sources: [src/common/chatLib.ts:281-298]()
 
@@ -361,14 +363,14 @@ Sources: [src/common/chatLib.ts:281-298]()
 
 **IPC Bridge subscriptions** (initialized in a single `useEffect`):
 
-| IPC Channel | Direction | Purpose |
-|-------------|-----------|---------|
-| `ipcBridge.conversation.confirmation.list.invoke` | invoke | Load all pending confirmations on mount |
-| `ipcBridge.conversation.confirmation.add.on` | subscribe | Receive new confirmations in real time |
-| `ipcBridge.conversation.confirmation.remove.on` | subscribe | Remove resolved confirmations |
-| `ipcBridge.conversation.confirmation.update.on` | subscribe | Mutate in-place (e.g., status change) |
-| `ipcBridge.conversation.confirmation.confirm.invoke` | invoke | Submit the user's selected option |
-| `ipcBridge.conversation.approval.check.invoke` | invoke | Check `GeminiApprovalStore` for auto-approval |
+| IPC Channel                                          | Direction | Purpose                                       |
+| ---------------------------------------------------- | --------- | --------------------------------------------- |
+| `ipcBridge.conversation.confirmation.list.invoke`    | invoke    | Load all pending confirmations on mount       |
+| `ipcBridge.conversation.confirmation.add.on`         | subscribe | Receive new confirmations in real time        |
+| `ipcBridge.conversation.confirmation.remove.on`      | subscribe | Remove resolved confirmations                 |
+| `ipcBridge.conversation.confirmation.update.on`      | subscribe | Mutate in-place (e.g., status change)         |
+| `ipcBridge.conversation.confirmation.confirm.invoke` | invoke    | Submit the user's selected option             |
+| `ipcBridge.conversation.approval.check.invoke`       | invoke    | Check `GeminiApprovalStore` for auto-approval |
 
 Sources: [src/renderer/pages/conversation/components/ConversationChatConfirm.tsx:59-117]()
 
@@ -432,16 +434,19 @@ Sources: [src/renderer/pages/conversation/components/ConversationChatConfirm.tsx
 Different permission types provide different approval options:
 
 **File Edit** ([src/process/task/GeminiAgentManager.ts:273-286]()):
+
 - `yesAllowOnce`: Approve this edit
 - `yesAllowAlways`: Always allow edits to this file
 - `no`: Reject this edit
 
 **Command Execution** ([src/process/task/GeminiAgentManager.ts:290-303]()):
+
 - `yesAllowOnce`: Run this command
 - `yesAllowAlways`: Always allow this root command (e.g., always allow `curl`)
 - `no`: Don't run
 
 **MCP Tool** ([src/process/task/GeminiAgentManager.ts:324-351]()):
+
 - `yesAllowOnce`: Call this tool once
 - `yesAlwaysAllowTool`: Always allow this specific tool
 - `yesAlwaysAllowServer`: Always allow all tools from this server
@@ -451,12 +456,12 @@ Different permission types provide different approval options:
 
 All Codex permission types (`COMMAND_EXECUTION`, `FILE_WRITE`, `FILE_READ`) share these four standard options derived from `BASE_PERMISSION_OPTIONS`:
 
-| `optionId` | `kind` | `PermissionSeverity` | Description |
-|-----------|--------|---------------------|-------------|
-| `allow_once` | `allow_once` | `LOW` | Approve this single operation |
-| `allow_always` | `allow_always` | `MEDIUM` | Approve for entire session |
-| `reject_once` | `reject_once` | `LOW` | Reject this single operation |
-| `reject_always` | `reject_always` | `HIGH` | Reject and block for session |
+| `optionId`      | `kind`          | `PermissionSeverity` | Description                   |
+| --------------- | --------------- | -------------------- | ----------------------------- |
+| `allow_once`    | `allow_once`    | `LOW`                | Approve this single operation |
+| `allow_always`  | `allow_always`  | `MEDIUM`             | Approve for entire session    |
+| `reject_once`   | `reject_once`   | `LOW`                | Reject this single operation  |
+| `reject_always` | `reject_always` | `HIGH`               | Reject and block for session  |
 
 The `createPermissionOptionsForType()` function [src/common/codex/utils/permissionUtils.ts:45-77]() generates these options with type-specific i18n keys. For example, `FILE_WRITE` permissions get keys like `"messages.confirmation.fileWriteAllowOnce"` while `COMMAND_EXECUTION` gets `"messages.confirmation.commandExecutionAllowOnce"`.
 
@@ -473,6 +478,7 @@ Sources: [src/common/chatLib.ts:281-298](), [src/process/task/GeminiAgentManager
 The `GeminiAgentManager` maintains a `GeminiApprovalStore` instance for session-level caching. Confirmation checks happen in `handleConformationMessage()` which filters tool groups for status `'Confirming'`.
 
 **Key Methods**:
+
 - `tryAutoApprove(content)`: Mode-based auto-approval check [src/process/task/GeminiAgentManager.ts:364-383]()
 - `getConfirmationButtons(confirmationDetails, t)`: Generate approval options [src/process/task/GeminiAgentManager.ts:266-359]()
 - `handleConformationMessage(message)`: Process incoming tool confirmations [src/process/task/GeminiAgentManager.ts:385-425]()
@@ -491,7 +497,7 @@ flowchart TD
     UserResp["User selects option"]
     StoreDecision["approvalStore<br/>.storeDecision()"]
     PostMsg["postMessagePromise()<br/>Send to worker"]
-    
+
     ToolConfirm --> TryAuto
     TryAuto --> CheckMode
     CheckMode -->|"'yolo'"| PostMsg
@@ -515,6 +521,7 @@ Sources: [src/process/task/GeminiAgentManager.ts:66-67](), [src/process/task/Gem
 The `AcpAgent` class maintains an `AcpApprovalStore` and a metadata map for permission requests. The `AcpConnection` class handles low-level permission request/response protocol.
 
 **Key Components**:
+
 - `handlePermissionRequest()`: Process incoming `AcpPermissionRequest` from CLI ([line 670-721]())
 - `confirmMessage()`: Send user decision back to ACP CLI ([line 570-607]())
 - `onPermissionRequest`: Async callback that pauses CLI and waits for user response ([AcpConnection.ts:90-92]())
@@ -528,12 +535,12 @@ sequenceDiagram
     participant Agent as "AcpAgent"
     participant Store as "AcpApprovalStore"
     participant UI as "Frontend"
-    
+
     CLI->>Conn: permission/request (JSON-RPC)
     Conn->>Conn: pauseSessionPromptTimeouts()
     Conn->>Agent: onPermissionRequest(data)
     Agent->>Store: Check cache (approval key)
-    
+
     alt Cache hit
         Agent->>Conn: Return cached decision
     else Cache miss
@@ -543,7 +550,7 @@ sequenceDiagram
         Agent->>Store: Store if 'allow_always'
         Agent->>Conn: Resolve promise with decision
     end
-    
+
     Conn->>Conn: resumeSessionPromptTimeouts()
     Conn->>CLI: permission/response (JSON-RPC)
 ```
@@ -563,11 +570,13 @@ Sources: [src/agent/acp/index.ts:111-113](), [src/agent/acp/index.ts:670-721](),
 Codex uses a unified permission handler in `CodexEventHandler` that routes both `exec_approval_request` and `apply_patch_approval_request` events through a single flow. The `CodexToolHandlers` class stores patch changes and exec metadata.
 
 **Key Methods in CodexEventHandler** [src/agent/codex/handlers/CodexEventHandler.ts:15-27]():
+
 - `handleUnifiedPermissionRequest(msg)`: Deduplicate and route permission events [src/agent/codex/handlers/CodexEventHandler.ts:161-180]()
 - `processExecApprovalRequest(msg, unifiedRequestId)`: Handle command execution approvals [src/agent/codex/handlers/CodexEventHandler.ts:182-229]()
 - `processApplyPatchRequest(msg, unifiedRequestId)`: Handle file patch approvals [src/agent/codex/handlers/CodexEventHandler.ts:231-281]()
 
 **Key Methods in CodexAgentManager** [src/process/task/CodexAgentManager.ts:45-72]():
+
 - `confirm(data)`: Map UI decision to `ReviewDecision`, apply patches, call `respondElicitation()` [src/process/task/CodexAgentManager.ts:393-433]()
 
 **Patch Application Flow**:
@@ -581,7 +590,7 @@ flowchart TD
     UserApprove["User approves"]
     ApplyPatch["applyPatchChanges()<br/>Write files"]
     Respond["respondElicitation()<br/>Send JSON-RPC response"]
-    
+
     PatchReq --> StoreChanges
     StoreChanges --> CheckStore
     CheckStore -->|"Cache hit"| Respond
@@ -595,16 +604,17 @@ flowchart TD
 
 Codex CLI expects snake_case `ReviewDecision` values. The `PERMISSION_DECISION_MAP` constant [src/common/codex/types/permissionTypes.ts:36-41]() defines the mapping from UI option `kind` to backend protocol value:
 
-| UI `kind` | Codex `ReviewDecision` | Action |
-|-----------|----------------------|---------|
-| `allow_once` | `approved` | Proceed once |
-| `allow_always` | `approved_for_session` | Proceed and cache for session |
-| `reject_once` | `denied` | Reject once |
-| `reject_always` | `abort` | Reject and cache for session |
+| UI `kind`       | Codex `ReviewDecision` | Action                        |
+| --------------- | ---------------------- | ----------------------------- |
+| `allow_once`    | `approved`             | Proceed once                  |
+| `allow_always`  | `approved_for_session` | Proceed and cache for session |
+| `reject_once`   | `denied`               | Reject once                   |
+| `reject_always` | `abort`                | Reject and cache for session  |
 
 The `mapPermissionDecision()` utility [src/common/codex/utils/permissionUtils.ts:96-108]() applies this map, defaulting to `denied` for unknown keys. The `confirm()` method in `CodexAgentManager` first applies patches (for file write approvals) using `applyPatchChanges()`, then sends the decision to the CLI via `agent.respondElicitation()`.
 
 **Permission Type Utilities**: `permissionUtils.ts` provides factory functions consumed by `CodexEventHandler` when building `IConfirmation` objects:
+
 - `createPermissionOptionsForType(permissionType)` — returns the four standard options with type-scoped description i18n keys
 - `getPermissionDisplayInfo(type)` — returns `titleKey`, `descriptionKey`, `icon`, and `severity` for each `PermissionType`
 
@@ -627,7 +637,7 @@ The `handlePermissionRequest()` method checks `this.pendingPermissions` Map befo
 ```typescript
 // Check for duplicate permission requests
 if (this.pendingPermissions.has(toolCall.toolCallId || msg_id)) {
-  return Promise.resolve({ optionId: 'reject_once' });
+  return Promise.resolve({ optionId: 'reject_once' })
 }
 ```
 
@@ -636,11 +646,11 @@ if (this.pendingPermissions.has(toolCall.toolCallId || msg_id)) {
 Maintains a `pendingConfirmations: Set<string>` in the `CodexToolHandlers` class. The `handleUnifiedPermissionRequest()` method generates a `unifiedRequestId` from the event's `call_id`, then checks the set:
 
 ```typescript
-const unifiedRequestId = `permission_${callId}`;
+const unifiedRequestId = `permission_${callId}`
 if (this.toolHandlers.getPendingConfirmations().has(unifiedRequestId)) {
-  return; // Skip duplicate
+  return // Skip duplicate
 }
-this.toolHandlers.getPendingConfirmations().add(unifiedRequestId);
+this.toolHandlers.getPendingConfirmations().add(unifiedRequestId)
 ```
 
 This prevents both `exec_approval_request` and `apply_patch_approval_request` events with the same `call_id` from creating duplicate dialogs.
@@ -694,16 +704,16 @@ The system includes logic to migrate from the legacy `yoloMode` boolean flag (st
 
 ```typescript
 // Determine yoloMode from legacy config
-const legacyYoloMode = this.forceYoloMode ?? config?.yoloMode ?? false;
+const legacyYoloMode = this.forceYoloMode ?? config?.yoloMode ?? false
 
 // Migrate legacy yoloMode config to currentMode
 if (legacyYoloMode && this.currentMode === 'default' && !data.sessionMode) {
-  this.currentMode = 'yolo';
+  this.currentMode = 'yolo'
 }
 
 // When user explicitly chose a non-yolo mode, clear legacy config
 if (legacyYoloMode && data.sessionMode && data.sessionMode !== 'yolo') {
-  void this.clearLegacyYoloConfig();
+  void this.clearLegacyYoloConfig()
 }
 ```
 

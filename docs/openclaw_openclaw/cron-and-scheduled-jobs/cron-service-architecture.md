@@ -46,8 +46,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes the architecture of the **Cron Service**, which provides background job scheduling and execution for OpenClaw agents. The cron service runs a persistent timer loop, manages job state, executes scheduled agent turns, and delivers results to configured channels.
@@ -66,7 +64,7 @@ graph TB
     CronService["CronService<br/>src/cron/service.ts"]
     State["CronServiceState<br/>src/cron/service/state.ts"]
     Store["CronStoreFile<br/>jobs: CronJob[]"]
-    
+
     subgraph "Service Dependencies"
         Deps["CronServiceDeps"]
         Logger["Logger (pino)"]
@@ -74,21 +72,21 @@ graph TB
         EnqueueSys["enqueueSystemEvent()"]
         ReqHeartbeat["requestHeartbeatNow()"]
     end
-    
+
     subgraph "State Management"
         State
         Store
         StorePath["storePath<br/>~/.openclaw/state/cron/jobs.json"]
         Lock["Async Lock<br/>locked() wrapper"]
     end
-    
+
     subgraph "Timer Loop"
         Timer["state.timer<br/>NodeJS.Timeout"]
         ArmTimer["armTimer(state)"]
         OnTimer["onTimer(state)"]
         MaxDelay["MAX_TIMER_DELAY_MS = 60s"]
     end
-    
+
     GatewayInit --> CronService
     CronService --> State
     CronService --> Deps
@@ -99,7 +97,7 @@ graph TB
     ArmTimer --> OnTimer
     OnTimer --> MaxDelay
     OnTimer --> Lock
-    
+
     Deps --> Logger
     Deps --> RunIsolated
     Deps --> EnqueueSys
@@ -110,12 +108,12 @@ graph TB
 
 The `CronService` class manages the lifecycle of scheduled jobs. It maintains an in-memory `CronServiceState` that holds the loaded job store, an active timer, and a running flag. All state mutations happen within the `locked()` wrapper to prevent concurrent modifications.
 
-| Component | Type | Purpose |
-|-----------|------|---------|
-| `CronService` | Class | Public API for job management (add, update, remove, list, run) |
-| `CronServiceState` | Type | Internal state container with store, timer, lock, and deps |
-| `CronStoreFile` | Type | Persisted job list (`{ version: 1, jobs: CronJob[] }`) |
-| `locked()` | Function | Async mutex wrapper for state operations |
+| Component          | Type     | Purpose                                                        |
+| ------------------ | -------- | -------------------------------------------------------------- |
+| `CronService`      | Class    | Public API for job management (add, update, remove, list, run) |
+| `CronServiceState` | Type     | Internal state container with store, timer, lock, and deps     |
+| `CronStoreFile`    | Type     | Persisted job list (`{ version: 1, jobs: CronJob[] }`)         |
+| `locked()`         | Function | Async mutex wrapper for state operations                       |
 
 ---
 
@@ -131,7 +129,7 @@ sequenceDiagram
     participant Store as ensureLoaded()
     participant Timer as armTimer()
     participant Missed as runMissedJobs()
-    
+
     Gateway->>Svc: new CronService(deps)
     Gateway->>Svc: await start()
     Svc->>Ops: start(state)
@@ -161,10 +159,10 @@ sequenceDiagram
 
 **Staggering parameters** (configurable via `CronServiceDeps`):
 
-| Parameter | Default | Purpose |
-|-----------|---------|---------|
-| `missedJobStaggerMs` | 5000 | Delay between missed job executions |
-| `maxMissedJobsPerRestart` | 5 | Max jobs to run immediately on startup |
+| Parameter                 | Default | Purpose                                |
+| ------------------------- | ------- | -------------------------------------- |
+| `missedJobStaggerMs`      | 5000    | Delay between missed job executions    |
+| `maxMissedJobsPerRestart` | 5       | Max jobs to run immediately on startup |
 
 ---
 
@@ -206,18 +204,18 @@ graph TB
     RearmRecheck["armRunningRecheckTimer()<br/>60s fixed delay"]
     SetRunning["state.running = true"]
     ArmWatchdog["armRunningRecheckTimer()<br/>60s watchdog"]
-    
+
     LoadDue["locked() &#123;<br/>ensureLoaded(forceReload=true)<br/>collectRunnableJobs(nowMs)<br/>&#125;"]
-    
+
     MarkRunning["Set job.state.runningAtMs = now<br/>persist()"]
     ExecuteJobs["runDueJob() concurrent<br/>up to maxConcurrentRuns"]
-    
+
     ApplyOutcome["locked() &#123;<br/>ensureLoaded(forceReload=true)<br/>applyOutcomeToStoredJob(result)<br/>recomputeNextRunsForMaintenance()<br/>persist()<br/>&#125;"]
-    
+
     SessionReaper["sweepCronRunSessions()<br/>(piggyback reaper)"]
     ClearRunning["state.running = false"]
     ArmNext["armTimer(state)"]
-    
+
     Wake --> CheckRunning
     CheckRunning -->|true| RearmRecheck
     CheckRunning -->|false| SetRunning
@@ -261,29 +259,29 @@ graph LR
         LastRun["lastRunAtMs<br/>Last execution start"]
         Running["runningAtMs<br/>In-flight marker"]
     end
-    
+
     subgraph "Execution Outcome"
         Status["lastRunStatus<br/>ok | error | skipped"]
         Error["lastError<br/>Error text"]
         ErrorReason["lastErrorReason<br/>FailoverReason"]
         Duration["lastDurationMs<br/>Execution time"]
     end
-    
+
     subgraph "Retry State"
         ConsecErrors["consecutiveErrors<br/>Backoff counter"]
         ScheduleErrors["scheduleErrorCount<br/>Auto-disable counter"]
     end
-    
+
     subgraph "Delivery State"
         DeliveryStatus["lastDeliveryStatus<br/>delivered | not-delivered | unknown"]
         DeliveryError["lastDeliveryError<br/>Delivery failure text"]
         Delivered["lastDelivered<br/>Boolean outcome"]
     end
-    
+
     subgraph "Alert State"
         AlertTime["lastFailureAlertAtMs<br/>Cooldown timestamp"]
     end
-    
+
     NextRun -.-> Running
     Running -.-> LastRun
     LastRun -.-> Status
@@ -302,25 +300,25 @@ sequenceDiagram
     participant Run as executeJobCoreWithTimeout()
     participant Apply as applyJobResult()
     participant Compute as computeJobNextRunAtMs()
-    
+
     Note over Timer,Collect: Phase 1: Mark Running
     Timer->>Collect: findDueJobs(nowMs)
     Collect->>Collect: nextRunAtMs <= nowMs && !runningAtMs
     Collect->>Collect: job.state.runningAtMs = nowMs
     Collect->>Timer: persist() [running markers]
-    
+
     Note over Timer,Run: Phase 2: Execute
     Timer->>Run: runDueJob(job)
     Run->>Run: executeJobCore(state, job, abortSignal)
     Run->>Run: Timeout after jobTimeoutMs
     Run-->>Timer: result: status, error, startedAt, endedAt
-    
+
     Note over Timer,Apply: Phase 3: Apply Outcome
     Timer->>Apply: locked(applyOutcomeToStoredJob)
     Apply->>Apply: job.state.runningAtMs = undefined
     Apply->>Apply: job.state.lastRunAtMs = startedAt
     Apply->>Apply: job.state.lastRunStatus = status
-    
+
     alt status == "error"
         Apply->>Apply: consecutiveErrors++
         Apply->>Apply: Check transient error patterns
@@ -339,7 +337,7 @@ sequenceDiagram
             Apply->>Compute: computeJobNextRunAtMs(job, endedAt)
         end
     end
-    
+
     Apply->>Timer: persist() [updated state]
 ```
 
@@ -361,19 +359,19 @@ graph TB
     BuildPrompt["Build commandBody with timeLine"]
     WrapExternal["Wrap external hook content<br/>(if isExternalHookSession)"]
     ResolveAuth["resolveSessionAuthProfileOverride()"]
-    
+
     RunAttempt["runWithModelFallback()"]
     RunEmbedded["runEmbeddedPiAgent() or runCliAgent()"]
-    
+
     CheckInterim{"Interim ack?"}
     FollowUp["Run continuation prompt<br/>(guardrail for interim acks)"]
-    
+
     UpdateSession["Update session store<br/>(tokens, model, cliSessionId)"]
-    
+
     DispatchDelivery["dispatchCronDelivery()"]
-    
+
     Return["Return RunCronAgentTurnResult"]
-    
+
     Start --> ResolveAgent
     ResolveAgent --> ResolveModel
     ResolveModel --> ResolveSession
@@ -401,26 +399,26 @@ The isolated runner applies a strict model selection cascade:
 graph TB
     Start["Model Selection Start"]
     Default["resolveConfiguredModelRef(cfg)<br/>DEFAULT_PROVIDER/DEFAULT_MODEL"]
-    
+
     CheckSubagent{"subagents.model<br/>defined?"}
     CheckAllowed1["resolveAllowedModelRef(subagentModel)"]
     ApplySubagent["provider, model = subagentModel"]
-    
+
     CheckGmail{"sessionKey starts with<br/>'hook:gmail:'?"}
     ResolveGmail["resolveHooksGmailModel(cfg)"]
     CheckAllowed2["getModelRefStatus(gmailModel)"]
     ApplyGmail["provider, model = gmailModel"]
-    
+
     CheckPayload{"job.payload.model<br/>defined?"}
     CheckAllowed3["resolveAllowedModelRef(payloadModel)"]
     ApplyPayload["provider, model = payloadModel"]
-    
+
     CheckSession{"session.modelOverride<br/>defined?"}
     CheckAllowed4["resolveAllowedModelRef(sessionOverride)"]
     ApplySession["provider, model = sessionOverride"]
-    
+
     Final["Final: provider, model"]
-    
+
     Start --> Default
     Default --> CheckSubagent
     CheckSubagent -->|Yes| CheckAllowed1
@@ -428,20 +426,20 @@ graph TB
     CheckAllowed1 -->|Not Allowed| CheckGmail
     CheckSubagent -->|No| CheckGmail
     ApplySubagent --> CheckGmail
-    
+
     CheckGmail -->|Yes| ResolveGmail
     ResolveGmail --> CheckAllowed2
     CheckAllowed2 -->|Allowed| ApplyGmail
     CheckAllowed2 -->|Not Allowed| CheckPayload
     CheckGmail -->|No| CheckPayload
     ApplyGmail --> CheckPayload
-    
+
     CheckPayload -->|Yes| CheckAllowed3
     CheckAllowed3 -->|Allowed| ApplyPayload
     CheckAllowed3 -->|Not Allowed| CheckSession
     CheckPayload -->|No| CheckSession
     ApplyPayload --> CheckSession
-    
+
     CheckSession -->|Yes| CheckAllowed4
     CheckAllowed4 -->|Allowed| ApplySession
     CheckAllowed4 -->|Not Allowed| Final
@@ -471,7 +469,7 @@ All overrides pass through `resolveAllowedModelRef()` to enforce agent-level mod
 graph TB
     Error["Execution Error"]
     Classify["isTransientCronError(error, retryOn)"]
-    
+
     subgraph "Transient Patterns"
         RateLimit["rate_limit<br/>429, rate limit, tokens per day"]
         Overloaded["overloaded<br/>529, high demand, capacity exceeded"]
@@ -479,19 +477,19 @@ graph TB
         Timeout["timeout<br/>ETIMEDOUT"]
         ServerError["server_error<br/>5xx codes"]
     end
-    
+
     Classify --> RateLimit
     Classify --> Overloaded
     Classify --> Network
     Classify --> Timeout
     Classify --> ServerError
-    
+
     RateLimit -.-> Transient["Transient: Retry"]
     Overloaded -.-> Transient
     Network -.-> Transient
     Timeout -.-> Transient
     ServerError -.-> Transient
-    
+
     Classify --> Permanent["Permanent: Disable Job"]
 ```
 
@@ -505,10 +503,10 @@ sequenceDiagram
     participant Apply as applyJobResult()
     participant Retry as Retry Config
     participant Backoff as errorBackoffMs()
-    
+
     Job->>Apply: status="error", error="429 rate limit"
     Apply->>Apply: consecutiveErrors++
-    
+
     alt One-Shot Job (kind="at")
         Apply->>Retry: Check retryOn patterns
         alt Transient && attempts <= maxAttempts
@@ -533,21 +531,21 @@ sequenceDiagram
 
 **Default backoff schedule:**
 
-| Consecutive Errors | Delay |
-|--------------------|-------|
-| 1 | 30 seconds |
-| 2 | 60 seconds |
-| 3 | 5 minutes |
-| 4 | 15 minutes |
-| 5+ | 60 minutes |
+| Consecutive Errors | Delay      |
+| ------------------ | ---------- |
+| 1                  | 30 seconds |
+| 2                  | 60 seconds |
+| 3                  | 5 minutes  |
+| 4                  | 15 minutes |
+| 5+                 | 60 minutes |
 
 **Retry configuration** (via `CronConfig.retry`):
 
-| Field | Default | Description |
-|-------|---------|-------------|
-| `maxAttempts` | 3 | Max retries for one-shot transient errors |
-| `backoffMs` | `[30s, 60s, 5m]` | Custom backoff schedule |
-| `retryOn` | All patterns | Limit retry to specific error types |
+| Field         | Default          | Description                               |
+| ------------- | ---------------- | ----------------------------------------- |
+| `maxAttempts` | 3                | Max retries for one-shot transient errors |
+| `backoffMs`   | `[30s, 60s, 5m]` | Custom backoff schedule                   |
+| `retryOn`     | All patterns     | Limit retry to specific error types       |
 
 ---
 
@@ -558,28 +556,28 @@ sequenceDiagram
 ```mermaid
 graph TB
     Delivery["job.delivery.mode"]
-    
+
     None["none<br/>No delivery"]
     Announce["announce<br/>Send to channel"]
     Webhook["webhook<br/>HTTP POST"]
-    
+
     Delivery --> None
     Delivery --> Announce
     Delivery --> Webhook
-    
+
     subgraph "Announce Delivery"
         ResolveChannel["resolveDeliveryTarget()<br/>channel, to, accountId"]
         MatchTool{"message tool<br/>already sent?"}
         DirectSend["deliverOutboundPayloads()<br/>(direct channel send)"]
         SubagentFlow["runSubagentAnnounceFlow()<br/>(spawn announce subagent)"]
     end
-    
+
     subgraph "Webhook Delivery"
         BuildPayload["Build JSON payload<br/>(job, status, summary, error)"]
         PostWebhook["fetchWithSsrFGuard(webhookUrl)"]
         RetryWebhook["Retry with backoff<br/>(transient failures)"]
     end
-    
+
     Announce --> ResolveChannel
     ResolveChannel --> MatchTool
     MatchTool -->|Yes| Return["delivered = true"]
@@ -588,7 +586,7 @@ graph TB
     DirectSend -->|Failure & bestEffort=false| Error["delivered = false, error"]
     DirectSend -->|Failure & bestEffort=true| SubagentFlow
     SubagentFlow --> Return
-    
+
     Webhook --> BuildPayload
     BuildPayload --> PostWebhook
     PostWebhook -->|Transient Error| RetryWebhook
@@ -649,18 +647,18 @@ The delivery system skips announce delivery for **heartbeat-only responses** to 
 
 ```javascript
 function isHeartbeatOnlyResponse(payloads, ackMaxChars) {
-  const deliveryPayload = pickLastDeliverablePayload(payloads);
-  const hasStructuredContent = 
-    deliveryPayload?.mediaUrl || 
+  const deliveryPayload = pickLastDeliverablePayload(payloads)
+  const hasStructuredContent =
+    deliveryPayload?.mediaUrl ||
     deliveryPayload?.mediaUrls?.length > 0 ||
-    Object.keys(deliveryPayload?.channelData ?? {}).length > 0;
-  
-  if (hasStructuredContent) return false;
-  
-  const text = pickLastNonEmptyTextFromPayloads(payloads)?.trim() ?? "";
-  const charLimit = ackMaxChars >= 0 ? ackMaxChars : 50;
-  
-  return /^HEARTBEAT_OK\b/i.test(text) && text.length <= charLimit;
+    Object.keys(deliveryPayload?.channelData ?? {}).length > 0
+
+  if (hasStructuredContent) return false
+
+  const text = pickLastNonEmptyTextFromPayloads(payloads)?.trim() ?? ''
+  const charLimit = ackMaxChars >= 0 ? ackMaxChars : 50
+
+  return /^HEARTBEAT_OK\b/i.test(text) && text.length <= charLimit
 }
 ```
 
@@ -679,7 +677,7 @@ graph LR
     Gateway["Gateway Server<br/>setupGateway()"]
     CreateState["createGatewayCronState(cfg)"]
     CronService["new CronService(deps)"]
-    
+
     subgraph "Dependencies"
         RunIsolated["runIsolatedAgentJob<br/>(runCronIsolatedAgentTurn)"]
         EnqueueSys["enqueueSystemEvent"]
@@ -687,7 +685,7 @@ graph LR
         RunHeart["runHeartbeatOnce"]
         SendFailure["sendCronFailureAlert"]
     end
-    
+
     Gateway --> CreateState
     CreateState --> CronService
     CronService --> RunIsolated
@@ -701,28 +699,28 @@ graph LR
 
 **Key integration points:**
 
-| Dependency | Purpose |
-|------------|---------|
-| `runIsolatedAgentJob` | Wraps `runCronIsolatedAgentTurn()` with logging and run log persistence |
-| `enqueueSystemEvent` | Fallback delivery for `wakeMode="now"` jobs when announce fails |
-| `requestHeartbeatNow` | Triggers heartbeat for `wakeMode="next-heartbeat"` jobs |
-| `runHeartbeatOnce` | Synchronous heartbeat execution for `wakeMode="now"` jobs |
-| `sendCronFailureAlert` | Delivers failure alerts via announce or webhook |
+| Dependency             | Purpose                                                                 |
+| ---------------------- | ----------------------------------------------------------------------- |
+| `runIsolatedAgentJob`  | Wraps `runCronIsolatedAgentTurn()` with logging and run log persistence |
+| `enqueueSystemEvent`   | Fallback delivery for `wakeMode="now"` jobs when announce fails         |
+| `requestHeartbeatNow`  | Triggers heartbeat for `wakeMode="next-heartbeat"` jobs                 |
+| `runHeartbeatOnce`     | Synchronous heartbeat execution for `wakeMode="now"` jobs               |
+| `sendCronFailureAlert` | Delivers failure alerts via announce or webhook                         |
 
 ### RPC Methods
 
 The cron service exposes these RPC methods via the gateway protocol:
 
-| Method | Operation | Scope |
-|--------|-----------|-------|
-| `cron.status` | Get service status | `operator` |
-| `cron.list` | List jobs (filtered) | `operator` |
-| `cron.list_page` | Paginated job list | `operator` |
-| `cron.add` | Create new job | `operator` |
-| `cron.update` | Update job config | `operator` |
-| `cron.remove` | Delete job | `operator` |
-| `cron.run` | Manual job execution | `operator` |
-| `cron.runs_list` | List run history | `operator` |
+| Method           | Operation            | Scope      |
+| ---------------- | -------------------- | ---------- |
+| `cron.status`    | Get service status   | `operator` |
+| `cron.list`      | List jobs (filtered) | `operator` |
+| `cron.list_page` | Paginated job list   | `operator` |
+| `cron.add`       | Create new job       | `operator` |
+| `cron.update`    | Update job config    | `operator` |
+| `cron.remove`    | Delete job           | `operator` |
+| `cron.run`       | Manual job execution | `operator` |
+| `cron.runs_list` | List run history     | `operator` |
 
 **Sources:** [src/gateway/protocol/schema/cron.ts:1-246]()
 
@@ -739,11 +737,11 @@ async function locked<T>(
   state: CronServiceState,
   fn: () => Promise<T>
 ): Promise<T> {
-  await state.lock.acquire();
+  await state.lock.acquire()
   try {
-    return await fn();
+    return await fn()
   } finally {
-    state.lock.release();
+    state.lock.release()
   }
 }
 ```
@@ -768,24 +766,25 @@ Jobs can execute concurrently within a timer tick, controlled by `maxConcurrentR
 
 ```typescript
 const concurrency = Math.min(
-  resolveRunConcurrency(state),  // Default: 1
+  resolveRunConcurrency(state), // Default: 1
   Math.max(1, dueJobs.length)
-);
+)
 
 const workers = Array.from({ length: concurrency }, async () => {
   for (;;) {
-    const index = cursor++;
-    if (index >= dueJobs.length) return;
-    results[index] = await runDueJob(dueJobs[index]);
+    const index = cursor++
+    if (index >= dueJobs.length) return
+    results[index] = await runDueJob(dueJobs[index])
   }
-});
+})
 
-await Promise.all(workers);
+await Promise.all(workers)
 ```
 
 **Sources:** [src/cron/service/timer.ts:653-669]()
 
 This worker pool pattern ensures:
+
 - Jobs execute in parallel up to `maxConcurrentRuns`
 - Results preserve original job order for deterministic application
 - Timer remains responsive during long-running jobs via watchdog re-arm

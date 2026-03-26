@@ -27,8 +27,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes how Codex synchronizes sandbox execution state with MCP servers through a custom protocol extension. When Codex enforces sandbox restrictions (read-only access, workspace boundaries, specific sandboxing mechanisms), MCP servers need awareness of these constraints to adapt their tool behavior accordingly.
@@ -62,21 +60,21 @@ graph TB
         McpManager["McpConnectionManager"]
         InitState["initial_sandbox_state:<br/>SandboxState"]
     end
-    
+
     subgraph "MCP Servers"
         Server1["MCP Server 1<br/>Capability: codex/sandbox-state"]
         Server2["MCP Server 2<br/>No sandbox capability"]
         Server3["MCP Server 3<br/>Capability: codex/sandbox-state"]
     end
-    
+
     Config -->|"sandbox_policy<br/>sandbox_cwd"| InitState
     InitState -->|"new() startup"| McpManager
     Session -->|"policy change"| McpManager
-    
+
     McpManager -->|"send_custom_request<br/>codex/sandbox-state/update"| Server1
     McpManager -.->|"skipped"| Server2
     McpManager -->|"send_custom_request<br/>codex/sandbox-state/update"| Server3
-    
+
     Server1 -->|"ack response"| McpManager
     Server3 -->|"ack response"| McpManager
 ```
@@ -91,12 +89,12 @@ Sources: [codex-rs/core/src/mcp_connection_manager.rs:635-756](), [codex-rs/core
 
 The `SandboxState` struct contains all information MCP servers need to understand Codex's execution environment:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `sandbox_policy` | `SandboxPolicy` | Active policy: `ReadOnly`, `WorkspaceWrite`, or `DangerFullAccess` |
+| Field                     | Type              | Description                                                        |
+| ------------------------- | ----------------- | ------------------------------------------------------------------ |
+| `sandbox_policy`          | `SandboxPolicy`   | Active policy: `ReadOnly`, `WorkspaceWrite`, or `DangerFullAccess` |
 | `codex_linux_sandbox_exe` | `Option<PathBuf>` | Path to Linux sandbox wrapper executable (landlock implementation) |
-| `sandbox_cwd` | `PathBuf` | Current working directory for sandboxed operations |
-| `use_legacy_landlock` | `bool` | Whether to use legacy landlock implementation (default: false) |
+| `sandbox_cwd`             | `PathBuf`         | Current working directory for sandboxed operations                 |
+| `use_legacy_landlock`     | `bool`            | Whether to use legacy landlock implementation (default: false)     |
 
 The structure is serialized as JSON when sent over MCP transport with camelCase field names:
 
@@ -138,15 +136,15 @@ sequenceDiagram
     participant Codex
     participant RmcpClient
     participant McpServer
-    
+
     Codex->>RmcpClient: initialize()
     RmcpClient->>McpServer: initialize request
     McpServer-->>RmcpClient: capabilities response
     RmcpClient-->>Codex: InitializeResult
-    
+
     Codex->>Codex: Check experimental.codex/sandbox-state
     Codex->>Codex: Set server_supports_sandbox_state_capability
-    
+
     alt Capability Supported
         Codex->>McpServer: send_custom_request<br/>(codex/sandbox-state/update)
         McpServer-->>Codex: ack
@@ -189,12 +187,12 @@ graph LR
 
 The initial state is captured when creating the `McpConnectionManager`:
 
-| Parameter | Source |
-|-----------|--------|
-| `initial_sandbox_state` | Constructed from current `Config` and `Session` state |
-| `sandbox_policy` | From `config.permissions.sandbox_policy` |
-| `sandbox_cwd` | From current session working directory |
-| `codex_linux_sandbox_exe` | Platform-specific sandbox executable path |
+| Parameter                 | Source                                                |
+| ------------------------- | ----------------------------------------------------- |
+| `initial_sandbox_state`   | Constructed from current `Config` and `Session` state |
+| `sandbox_policy`          | From `config.permissions.sandbox_policy`              |
+| `sandbox_cwd`             | From current session working directory                |
+| `codex_linux_sandbox_exe` | Platform-specific sandbox executable path             |
 
 Sources: [codex-rs/core/src/mcp_connection_manager.rs:687-703]()
 
@@ -207,10 +205,10 @@ sequenceDiagram
     participant Session
     participant McpManager["McpConnectionManager"]
     participant Servers["MCP Servers"]
-    
+
     Session->>Session: User changes sandbox policy
     Session->>McpManager: notify_all_sandbox_state_change(new_state)
-    
+
     loop For Each Connected Server
         McpManager->>McpManager: Check server_supports_sandbox_state_capability
         alt Capability Supported
@@ -221,7 +219,7 @@ sequenceDiagram
             McpManager->>McpManager: Skip
         end
     end
-    
+
     McpManager-->>Session: Complete
 ```
 
@@ -237,10 +235,10 @@ Sources: [codex-rs/core/src/mcp_connection_manager.rs:1058-1069]()
 
 The notification uses the MCP custom request mechanism with a Codex-specific method name:
 
-| Constant | Value | Usage |
-|----------|-------|-------|
-| `MCP_SANDBOX_STATE_CAPABILITY` | `"codex/sandbox-state"` | Capability identifier in server metadata |
-| `MCP_SANDBOX_STATE_METHOD` | `"codex/sandbox-state/update"` | Custom request method name |
+| Constant                       | Value                          | Usage                                    |
+| ------------------------------ | ------------------------------ | ---------------------------------------- |
+| `MCP_SANDBOX_STATE_CAPABILITY` | `"codex/sandbox-state"`        | Capability identifier in server metadata |
+| `MCP_SANDBOX_STATE_METHOD`     | `"codex/sandbox-state/update"` | Custom request method name               |
 
 ### Request Format
 
@@ -263,12 +261,12 @@ Sources: [codex-rs/core/src/mcp_connection_manager.rs:581-585](), [codex-rs/core
 
 ### Key Types
 
-| Type | Location | Purpose |
-|------|----------|---------|
-| `SandboxState` | [codex-rs/core/src/mcp_connection_manager.rs:587-595]() | State payload structure |
-| `ManagedClient` | [codex-rs/core/src/mcp_connection_manager.rs:370-421]() | Per-server connection wrapper with capability tracking |
-| `AsyncManagedClient` | [codex-rs/core/src/mcp_connection_manager.rs:423-579]() | Async wrapper for startup and notifications |
-| `McpConnectionManager` | [codex-rs/core/src/mcp_connection_manager.rs:598-1095]() | Connection pool coordinator |
+| Type                   | Location                                                 | Purpose                                                |
+| ---------------------- | -------------------------------------------------------- | ------------------------------------------------------ |
+| `SandboxState`         | [codex-rs/core/src/mcp_connection_manager.rs:587-595]()  | State payload structure                                |
+| `ManagedClient`        | [codex-rs/core/src/mcp_connection_manager.rs:370-421]()  | Per-server connection wrapper with capability tracking |
+| `AsyncManagedClient`   | [codex-rs/core/src/mcp_connection_manager.rs:423-579]()  | Async wrapper for startup and notifications            |
+| `McpConnectionManager` | [codex-rs/core/src/mcp_connection_manager.rs:598-1095]() | Connection pool coordinator                            |
 
 ### Key Methods
 
@@ -276,6 +274,7 @@ Sources: [codex-rs/core/src/mcp_connection_manager.rs:581-585](), [codex-rs/core
 // Check capability and send notification
 async fn notify_sandbox_state_change(&self, sandbox_state: &SandboxState) -> Result<()>
 ```
+
 Location: [codex-rs/core/src/mcp_connection_manager.rs:407-420]()
 
 Purpose: Sends state update to a single server if it supports the capability.
@@ -284,6 +283,7 @@ Purpose: Sends state update to a single server if it supports the capability.
 // Public API for runtime updates
 pub async fn notify_all_sandbox_state_change(&self, sandbox_state: &SandboxState) -> Result<()>
 ```
+
 Location: [codex-rs/core/src/mcp_connection_manager.rs:1058-1069]()
 
 Purpose: Broadcasts state update to all connected servers, logging errors but not failing on individual server errors.
@@ -331,11 +331,11 @@ The `codex_linux_sandbox_exe` field provides the path to the Linux-specific sand
 
 ### Cross-Platform Behavior
 
-| Platform | Sandbox Mechanism | `codex_linux_sandbox_exe` Value |
-|----------|-------------------|--------------------------------|
-| Linux | Landlock LSM | Path to `codex-linux-sandbox` binary |
-| macOS | Seatbelt profiles | `None` (not applicable) |
-| Windows | Restricted tokens | `None` (not applicable) |
+| Platform | Sandbox Mechanism | `codex_linux_sandbox_exe` Value      |
+| -------- | ----------------- | ------------------------------------ |
+| Linux    | Landlock LSM      | Path to `codex-linux-sandbox` binary |
+| macOS    | Seatbelt profiles | `None` (not applicable)              |
+| Windows  | Restricted tokens | `None` (not applicable)              |
 
 MCP servers can inspect the platform-specific fields to determine which sandboxing approach to use or whether to skip sandboxing entirely on unsupported platforms.
 

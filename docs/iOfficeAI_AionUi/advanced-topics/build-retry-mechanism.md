@@ -14,8 +14,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes the automated retry mechanisms in AionUi's build and release pipeline for handling transient build failures. The system implements two independent tiers:
@@ -29,10 +27,10 @@ For the overall build pipeline structure see page 11.1 (Build Pipeline). For cod
 
 ## Retry Strategy Overview
 
-| Failure Type | Detection Method | Retry Strategy | Cooldown | Max Attempts |
-|---|---|---|---|---|
-| **Any build pipeline failure** | `needs: build-pipeline` result | GitHub Actions full workflow rerun via API | 5 minutes (`sleep 300`) | 2 total (1 retry) |
-| **DMG creation failure (hdiutil)** | `.app` exists but `.dmg` missing | `buildWithDmgRetry()` with `--prepackaged` flag | 30 seconds | 3 (`DMG_RETRY_MAX`) |
+| Failure Type                       | Detection Method                 | Retry Strategy                                  | Cooldown                | Max Attempts        |
+| ---------------------------------- | -------------------------------- | ----------------------------------------------- | ----------------------- | ------------------- |
+| **Any build pipeline failure**     | `needs: build-pipeline` result   | GitHub Actions full workflow rerun via API      | 5 minutes (`sleep 300`) | 2 total (1 retry)   |
+| **DMG creation failure (hdiutil)** | `.app` exists but `.dmg` missing | `buildWithDmgRetry()` with `--prepackaged` flag | 30 seconds              | 3 (`DMG_RETRY_MAX`) |
 
 Both tiers are designed to be non-recursive: the workflow retry gate is `github.run_attempt == 1` and the DMG loop has a hard cap of `DMG_RETRY_MAX`.
 
@@ -104,12 +102,12 @@ This job is defined directly in `build-and-release.yml` alongside the main `buil
 
 #### Job Definition Summary
 
-| Property | Value |
-|---|---|
-| `runs-on` | `ubuntu-latest` |
-| `needs` | `build-pipeline` |
-| Condition | `failure() && github.run_attempt == 1 && (push or schedule event)` |
-| Cooldown | `sleep 300` (5 minutes) |
+| Property    | Value                                                                |
+| ----------- | -------------------------------------------------------------------- |
+| `runs-on`   | `ubuntu-latest`                                                      |
+| `needs`     | `build-pipeline`                                                     |
+| Condition   | `failure() && github.run_attempt == 1 && (push or schedule event)`   |
+| Cooldown    | `sleep 300` (5 minutes)                                              |
 | Rerun scope | Full workflow (`/actions/runs/{run_id}/rerun`), not just failed jobs |
 
 Sources: [.github/workflows/build-and-release.yml:38-91]()
@@ -172,6 +170,7 @@ Before each retry: runs `hdiutil info`, extracts `/dev/diskN` paths, and calls `
 **`createDmgWithPrepackaged(appDir, targetArch)`** [scripts/build-with-builder.js:148-158]()
 
 Runs:
+
 ```
 bunx electron-builder --mac dmg --{targetArch} --prepackaged "{appPath}" --publish=never
 ```
@@ -188,17 +187,16 @@ Sources: [scripts/build-with-builder.js:18-195](), [electron-builder.yml:117-146
 
 ---
 
-
 ## Configuration Reference
 
 ### Retry Parameters
 
-| Parameter | File | Value | Purpose |
-|---|---|---|---|
-| `DMG_RETRY_MAX` | [scripts/build-with-builder.js:24]() | `3` | Maximum DMG creation attempts |
-| `DMG_RETRY_DELAY_SEC` | [scripts/build-with-builder.js:25]() | `30` | Seconds between DMG retries |
-| Workflow cooldown (`sleep`) | [.github/workflows/build-and-release.yml:63]() | `300` (5 min) | Wait before triggering rerun |
-| `github.run_attempt` guard | [.github/workflows/build-and-release.yml:45]() | `== 1` | Prevents infinite retry loops |
+| Parameter                   | File                                           | Value         | Purpose                       |
+| --------------------------- | ---------------------------------------------- | ------------- | ----------------------------- |
+| `DMG_RETRY_MAX`             | [scripts/build-with-builder.js:24]()           | `3`           | Maximum DMG creation attempts |
+| `DMG_RETRY_DELAY_SEC`       | [scripts/build-with-builder.js:25]()           | `30`          | Seconds between DMG retries   |
+| Workflow cooldown (`sleep`) | [.github/workflows/build-and-release.yml:63]() | `300` (5 min) | Wait before triggering rerun  |
+| `github.run_attempt` guard  | [.github/workflows/build-and-release.yml:45]() | `== 1`        | Prevents infinite retry loops |
 
 Sources: [scripts/build-with-builder.js:24-25](), [.github/workflows/build-and-release.yml:43-46](), [.github/workflows/build-and-release.yml:59-65]()
 
@@ -210,13 +208,13 @@ Sources: [scripts/build-with-builder.js:24-25](), [.github/workflows/build-and-r
 
 The `build-pipeline` job delegates all platform-specific work to the reusable workflow `_build-reusable.yml` via the `uses:` key. The matrix passed to it covers five build targets [.github/workflows/build-and-release.yml:26-32]():
 
-| `platform` | `os` | `command` | `artifact-name` |
-|---|---|---|---|
-| `macos-arm64` | `macos-14` | `build-with-builder.js arm64 --mac --arm64` | `macos-build-arm64` |
-| `macos-x64` | `macos-14` | `build-with-builder.js x64 --mac --x64` | `macos-build-x64` |
-| `windows-x64` | `windows-2022` | `build-with-builder.js x64 --win --x64` | `windows-build-x64` |
-| `windows-arm64` | `windows-2022` | `build-with-builder.js arm64 --win --arm64` | `windows-build-arm64` |
-| `linux` | `ubuntu-latest` | `bun run dist:linux` | `linux-build` |
+| `platform`      | `os`            | `command`                                   | `artifact-name`       |
+| --------------- | --------------- | ------------------------------------------- | --------------------- |
+| `macos-arm64`   | `macos-14`      | `build-with-builder.js arm64 --mac --arm64` | `macos-build-arm64`   |
+| `macos-x64`     | `macos-14`      | `build-with-builder.js x64 --mac --x64`     | `macos-build-x64`     |
+| `windows-x64`   | `windows-2022`  | `build-with-builder.js x64 --win --x64`     | `windows-build-x64`   |
+| `windows-arm64` | `windows-2022`  | `build-with-builder.js arm64 --win --arm64` | `windows-build-arm64` |
+| `linux`         | `ubuntu-latest` | `bun run dist:linux`                        | `linux-build`         |
 
 The `auto-retry-workflow` job watches the aggregate result of `build-pipeline` (which covers all matrix entries). If any matrix entry fails and the conditions are met, the full workflow — including all matrix jobs — is rerun.
 
@@ -235,6 +233,7 @@ Sources: [.github/workflows/build-and-release.yml:19-34](), [.github/workflows/b
 ### hdiutil Transient Errors
 
 Common errors on GitHub Actions macOS runners:
+
 - `Device not configured` - stale disk image mounts
 - `Resource busy` - concurrent disk operations
 - `Operation not permitted` - file system race conditions

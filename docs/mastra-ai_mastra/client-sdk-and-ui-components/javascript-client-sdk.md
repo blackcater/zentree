@@ -12,7 +12,7 @@ The following files were used as context for generating this wiki page:
 - [client-sdks/client-js/src/resources/index.ts](client-sdks/client-js/src/resources/index.ts)
 - [client-sdks/client-js/src/types.ts](client-sdks/client-js/src/types.ts)
 - [e2e-tests/create-mastra/create-mastra.test.ts](e2e-tests/create-mastra/create-mastra.test.ts)
-- [packages/core/src/agent/__tests__/dynamic-model-fallback.test.ts](packages/core/src/agent/__tests__/dynamic-model-fallback.test.ts)
+- [packages/core/src/agent/**tests**/dynamic-model-fallback.test.ts](packages/core/src/agent/__tests__/dynamic-model-fallback.test.ts)
 - [packages/core/src/memory/mock.ts](packages/core/src/memory/mock.ts)
 - [packages/core/src/storage/mock.test.ts](packages/core/src/storage/mock.test.ts)
 - [packages/core/src/stream/aisdk/v5/transform.test.ts](packages/core/src/stream/aisdk/v5/transform.test.ts)
@@ -30,8 +30,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The JavaScript Client SDK (`@mastra/client-js`) provides a type-safe HTTP client for interacting with Mastra server APIs from frontend applications. It implements a resource-based architecture with built-in retry logic, streaming support, and request context propagation.
 
 **Scope**: This document covers the client SDK architecture, resource patterns, streaming protocols, and client-side tool execution. For server-side API endpoint details, see [Server and API Layer](#9). For React-specific hooks and components, see [React SDK and Hooks](#10.5).
@@ -44,7 +42,7 @@ The client SDK communicates with Mastra servers via HTTP/HTTPS, supporting multi
 graph TB
     App["Client Application"]
     MastraClient["MastraClient<br/>client-sdks/client-js/src/client.ts"]
-    
+
     subgraph "Resource Layer"
         Agent["Agent<br/>client-sdks/client-js/src/resources/agent.ts"]
         Workflow["Workflow<br/>client-sdks/client-js/src/resources/workflow.ts"]
@@ -53,35 +51,35 @@ graph TB
         Vector["Vector"]
         BaseResource["BaseResource<br/>Retry Logic + Request Handling"]
     end
-    
+
     subgraph "Transport Layer"
         Fetch["fetch API<br/>with SSE support"]
         StreamProcessor["processMastraStream()<br/>client-sdks/client-js/src/utils/process-mastra-stream.ts"]
     end
-    
+
     subgraph "Server Endpoints"
         NodeServer["Node.js Server<br/>:4111/api"]
         CFWorker["Cloudflare Workers<br/>/api"]
         VercelFn["Vercel Functions<br/>/api"]
         NetlifyFn["Netlify Functions<br/>/api"]
     end
-    
+
     App --> MastraClient
     MastraClient --> Agent
     MastraClient --> Workflow
     MastraClient --> MemoryThread
     MastraClient --> Tool
     MastraClient --> Vector
-    
+
     Agent --> BaseResource
     Workflow --> BaseResource
     MemoryThread --> BaseResource
     Tool --> BaseResource
     Vector --> BaseResource
-    
+
     BaseResource --> Fetch
     BaseResource --> StreamProcessor
-    
+
     Fetch --> NodeServer
     Fetch --> CFWorker
     Fetch --> VercelFn
@@ -96,17 +94,17 @@ graph TB
 
 The `ClientOptions` interface defines configuration for the `MastraClient`:
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `baseUrl` | `string` | Base URL for API requests | Required |
-| `apiPrefix` | `string` | API route prefix | `/api` |
-| `retries` | `number` | Retry attempts for failed requests | `3` |
-| `backoffMs` | `number` | Initial backoff time (ms) | `1000` |
-| `maxBackoffMs` | `number` | Maximum backoff time (ms) | `30000` |
-| `headers` | `Record<string, string>` | Custom headers | `{}` |
-| `abortSignal` | `AbortSignal` | Abort signal for requests | `undefined` |
-| `credentials` | `'omit' \| 'same-origin' \| 'include'` | Credentials mode | `'same-origin'` |
-| `fetch` | `typeof fetch` | Custom fetch implementation | `globalThis.fetch` |
+| Option         | Type                                   | Description                        | Default            |
+| -------------- | -------------------------------------- | ---------------------------------- | ------------------ |
+| `baseUrl`      | `string`                               | Base URL for API requests          | Required           |
+| `apiPrefix`    | `string`                               | API route prefix                   | `/api`             |
+| `retries`      | `number`                               | Retry attempts for failed requests | `3`                |
+| `backoffMs`    | `number`                               | Initial backoff time (ms)          | `1000`             |
+| `maxBackoffMs` | `number`                               | Maximum backoff time (ms)          | `30000`            |
+| `headers`      | `Record<string, string>`               | Custom headers                     | `{}`               |
+| `abortSignal`  | `AbortSignal`                          | Abort signal for requests          | `undefined`        |
+| `credentials`  | `'omit' \| 'same-origin' \| 'include'` | Credentials mode                   | `'same-origin'`    |
+| `fetch`        | `typeof fetch`                         | Custom fetch implementation        | `globalThis.fetch` |
 
 **Sources**: [client-sdks/client-js/src/types.ts:51-70]()
 
@@ -115,15 +113,15 @@ The `ClientOptions` interface defines configuration for the `MastraClient`:
 The `MastraClient` class serves as the main entry point for all client SDK operations.
 
 ```typescript
-import { MastraClient } from '@mastra/client-js';
+import { MastraClient } from '@mastra/client-js'
 
 const client = new MastraClient({
   baseUrl: 'https://api.example.com',
   apiPrefix: '/api', // matches server configuration
   headers: {
-    'Authorization': 'Bearer token'
-  }
-});
+    Authorization: 'Bearer token',
+  },
+})
 ```
 
 ### Factory Methods
@@ -133,25 +131,25 @@ The `MastraClient` provides factory methods that return resource instances:
 ```mermaid
 graph LR
     MastraClient["MastraClient"]
-    
+
     GetAgent["getAgent(agentId)"]
     GetWorkflow["getWorkflow(workflowId)"]
     GetMemoryThread["getMemoryThread(threadId)"]
     GetTool["getTool(toolId)"]
     GetVector["getVector(name)"]
-    
+
     AgentInstance["Agent instance"]
     WorkflowInstance["Workflow instance"]
     ThreadInstance["MemoryThread instance"]
     ToolInstance["Tool instance"]
     VectorInstance["Vector instance"]
-    
+
     MastraClient --> GetAgent
     MastraClient --> GetWorkflow
     MastraClient --> GetMemoryThread
     MastraClient --> GetTool
     MastraClient --> GetVector
-    
+
     GetAgent --> AgentInstance
     GetWorkflow --> WorkflowInstance
     GetMemoryThread --> ThreadInstance
@@ -165,12 +163,12 @@ graph LR
 
 The client provides methods to list available resources:
 
-| Method | Return Type | Description |
-|--------|-------------|-------------|
-| `listAgents(requestContext?, partial?)` | `Promise<Record<string, GetAgentResponse>>` | List all agents |
-| `listWorkflows(requestContext?, partial?)` | `Promise<Record<string, GetWorkflowResponse>>` | List all workflows |
-| `listTools(requestContext?)` | `Promise<Record<string, GetToolResponse>>` | List all tools |
-| `listProcessors(requestContext?)` | `Promise<Record<string, GetProcessorResponse>>` | List all processors |
+| Method                                     | Return Type                                     | Description         |
+| ------------------------------------------ | ----------------------------------------------- | ------------------- |
+| `listAgents(requestContext?, partial?)`    | `Promise<Record<string, GetAgentResponse>>`     | List all agents     |
+| `listWorkflows(requestContext?, partial?)` | `Promise<Record<string, GetWorkflowResponse>>`  | List all workflows  |
+| `listTools(requestContext?)`               | `Promise<Record<string, GetToolResponse>>`      | List all tools      |
+| `listProcessors(requestContext?)`          | `Promise<Record<string, GetProcessorResponse>>` | List all processors |
 
 **Sources**: [client-sdks/client-js/src/client.ts:122-140](), [client-sdks/client-js/src/client.ts:400-418](), [client-sdks/client-js/src/client.ts:344-355](), [client-sdks/client-js/src/client.ts:371-384]()
 
@@ -181,7 +179,7 @@ All resource classes extend `BaseResource`, which provides core HTTP functionali
 ```mermaid
 graph TB
     BaseResource["BaseResource<br/>client-sdks/client-js/src/resources/base.ts"]
-    
+
     subgraph "Request Method"
         Request["request(path, options)"]
         BuildUrl["Build URL<br/>baseUrl + apiPrefix + path"]
@@ -189,7 +187,7 @@ graph TB
         RetryLogic["Exponential Backoff<br/>backoffMs * 2^attempt"]
         ParseResponse["Parse JSON/Stream Response"]
     end
-    
+
     subgraph "Resource Implementations"
         Agent["Agent"]
         Workflow["Workflow"]
@@ -198,13 +196,13 @@ graph TB
         Processor["Processor"]
         Vector["Vector"]
     end
-    
+
     BaseResource --> Request
     Request --> BuildUrl
     BuildUrl --> ExecuteFetch
     ExecuteFetch --> RetryLogic
     RetryLogic --> ParseResponse
-    
+
     Agent -.extends.-> BaseResource
     Workflow -.extends.-> BaseResource
     MemoryThread -.extends.-> BaseResource
@@ -234,31 +232,31 @@ The `Agent` class provides methods for interacting with AI agents, including tex
 ```mermaid
 graph TB
     Agent["Agent<br/>client-sdks/client-js/src/resources/agent.ts"]
-    
+
     subgraph "Core Methods"
         Details["details(requestContext?)"]
         Generate["generate(messages, options?)"]
         Stream["stream(messages, options?)"]
         Network["network(messages, options?)"]
     end
-    
+
     subgraph "Legacy Methods"
         GenerateLegacy["generateLegacy(params)"]
         StreamLegacy["streamLegacy(params)"]
     end
-    
+
     subgraph "Voice Methods"
         Voice["voice.speak(text, options?)"]
         Listen["voice.listen(audio, options?)"]
         GetSpeakers["voice.getSpeakers(requestContext?)"]
         GetListener["voice.getListener(requestContext?)"]
     end
-    
+
     subgraph "Management"
         Clone["clone(params?)"]
         EnhanceInstructions["enhanceInstructions(instructions, comment)"]
     end
-    
+
     Agent --> Details
     Agent --> Generate
     Agent --> Stream
@@ -281,20 +279,21 @@ The `generate()` method provides synchronous text generation with optional struc
 
 ```typescript
 // Basic generation
-const result = await agent.generate(['What is the weather?']);
+const result = await agent.generate(['What is the weather?'])
 
 // With structured output
 const result = await agent.generate(['Analyze this'], {
   structuredOutput: {
     schema: z.object({
       sentiment: z.enum(['positive', 'negative', 'neutral']),
-      score: z.number()
-    })
-  }
-});
+      score: z.number(),
+    }),
+  },
+})
 ```
 
 **Type signatures**:
+
 - `generate(messages, options?)` → `Promise<FullOutput<undefined>>`
 - `generate<OUTPUT>(messages, options)` → `Promise<FullOutput<OUTPUT>>`
 
@@ -305,22 +304,22 @@ const result = await agent.generate(['Analyze this'], {
 The `stream()` method returns a `Response` object with a `processDataStream()` method for consuming SSE events:
 
 ```typescript
-const response = await agent.stream(['Tell me a story']);
+const response = await agent.stream(['Tell me a story'])
 
 await response.processDataStream({
   onChunk: async (chunk) => {
     if (chunk.type === 'text-delta') {
-      console.log(chunk.payload.text);
+      console.log(chunk.payload.text)
     }
   },
   onToolCall: async ({ toolCall }) => {
     // Handle tool calls
-    return toolResult;
+    return toolResult
   },
   onFinish: async ({ message, finishReason }) => {
-    console.log('Done:', finishReason);
-  }
-});
+    console.log('Done:', finishReason)
+  },
+})
 ```
 
 **Sources**: [client-sdks/client-js/src/resources/agent.ts:778-886]()
@@ -335,7 +334,7 @@ sequenceDiagram
     participant Agent as Agent.stream()
     participant Server as Mastra Server
     participant Tool as Client Tool
-    
+
     Client->>Agent: stream(messages, {clientTools})
     Agent->>Server: POST /agents/:id/stream
     Server-->>Agent: tool-call chunk
@@ -348,6 +347,7 @@ sequenceDiagram
 ```
 
 **Implementation details**:
+
 1. Server emits `type: 'tool-call'` chunk with tool name and arguments
 2. Client checks if tool exists in `clientTools` parameter
 3. If found, client executes tool locally via `tool.execute()`
@@ -366,18 +366,18 @@ const response = await agent.network(['Create a report'], {
   structuredOutput: {
     schema: z.object({
       title: z.string(),
-      sections: z.array(z.string())
-    })
-  }
-});
+      sections: z.array(z.string()),
+    }),
+  },
+})
 
 await response.processDataStream({
   onChunk: async (chunk) => {
     if (chunk.type === 'iteration') {
-      console.log('Selected resource:', chunk.payload.resourceType);
+      console.log('Selected resource:', chunk.payload.resourceType)
     }
-  }
-});
+  },
+})
 ```
 
 **Sources**: [client-sdks/client-js/src/resources/agent.ts:1025-1150]()
@@ -391,19 +391,19 @@ The `Workflow` class manages workflow execution, run persistence, and state obse
 ```mermaid
 graph TB
     Workflow["Workflow<br/>client-sdks/client-js/src/resources/workflow.ts"]
-    
+
     subgraph "Metadata"
         Details["details(requestContext?)"]
         GetSchema["getSchema()"]
     end
-    
+
     subgraph "Run Management"
         CreateRun["createRun(params?)"]
         Runs["runs(params?, requestContext?)"]
         RunById["runById(runId, options?)"]
         DeleteRunById["deleteRunById(runId)"]
     end
-    
+
     subgraph "Run Instance"
         Start["run.start(inputData, options?)"]
         Stream["run.stream(inputData, options?)"]
@@ -412,14 +412,14 @@ graph TB
         Observe["run.observe()"]
         TimeTravel["run.timeTravel(params)"]
     end
-    
+
     Workflow --> Details
     Workflow --> GetSchema
     Workflow --> CreateRun
     Workflow --> Runs
     Workflow --> RunById
     Workflow --> DeleteRunById
-    
+
     CreateRun --> Start
     CreateRun --> Stream
     CreateRun --> Resume
@@ -435,20 +435,20 @@ graph TB
 Workflow execution follows a create-run pattern where each execution is a separate run instance:
 
 ```typescript
-const workflow = client.getWorkflow('data-pipeline');
+const workflow = client.getWorkflow('data-pipeline')
 
 // Create run instance
 const run = await workflow.createRun({
   runId: 'custom-run-id', // optional
-  resourceId: 'user-123',  // optional
-  disableScorers: false    // optional
-});
+  resourceId: 'user-123', // optional
+  disableScorers: false, // optional
+})
 
 // Execute workflow
 const result = await run.start({
   inputData: { files: ['data.csv'] },
-  requestContext: { userId: '123' }
-});
+  requestContext: { userId: '123' },
+})
 ```
 
 **Sources**: [client-sdks/client-js/src/resources/workflow.ts:160-181]()
@@ -459,21 +459,22 @@ The `run.stream()` method provides real-time updates during workflow execution:
 
 ```typescript
 const stream = await run.stream({
-  inputData: { query: 'search term' }
-});
+  inputData: { query: 'search term' },
+})
 
 await stream.processDataStream({
   onChunk: async (event) => {
     if (event.type === 'step-start') {
-      console.log('Step started:', event.payload.stepId);
+      console.log('Step started:', event.payload.stepId)
     } else if (event.type === 'step-complete') {
-      console.log('Step completed:', event.payload.result);
+      console.log('Step completed:', event.payload.result)
     }
-  }
-});
+  },
+})
 ```
 
 **Chunk types**:
+
 - `step-start`: Step execution begins
 - `step-complete`: Step execution completes
 - `step-error`: Step encounters error
@@ -488,13 +489,13 @@ Workflows can suspend execution and resume later with additional data:
 
 ```typescript
 // Start workflow that may suspend
-const stream = await run.stream({ inputData: { task: 'approval' } });
+const stream = await run.stream({ inputData: { task: 'approval' } })
 
 // Workflow suspends at approval step
 // Later, resume with approval decision
 const resumeStream = await run.resumeStream({
-  resumeData: { approved: true, reason: 'Looks good' }
-});
+  resumeData: { approved: true, reason: 'Looks good' },
+})
 ```
 
 **Sources**: [client-sdks/client-js/src/resources/run.ts](), [packages/server/src/server/handlers/workflows.ts:396-451]()
@@ -508,19 +509,19 @@ The client provides methods for managing conversation threads and messages.
 ```mermaid
 graph TB
     Client["MastraClient"]
-    
+
     subgraph "Thread Operations"
         ListThreads["listMemoryThreads(params)"]
         CreateThread["createMemoryThread(params)"]
         GetThread["getMemoryThread({threadId, agentId?})"]
         DeleteThread["deleteThread(threadId, opts)"]
     end
-    
+
     subgraph "Message Operations"
         ListMessages["listThreadMessages(threadId, opts)"]
         SaveMessages["saveMessageToMemory(params)"]
     end
-    
+
     subgraph "MemoryThread Instance"
         Details["thread.details()"]
         Update["thread.update(params)"]
@@ -528,13 +529,13 @@ graph TB
         Clone["thread.clone(params)"]
         Search["thread.search(params)"]
     end
-    
+
     subgraph "Observational Memory"
         GetStatus["getMemoryStatus(agentId, rc?, opts?)"]
         GetOM["getObservationalMemory(params)"]
         AwaitBuffer["awaitBufferStatus(params)"]
     end
-    
+
     Client --> ListThreads
     Client --> CreateThread
     Client --> GetThread
@@ -544,7 +545,7 @@ graph TB
     Client --> GetStatus
     Client --> GetOM
     Client --> AwaitBuffer
-    
+
     GetThread --> Details
     GetThread --> Update
     GetThread --> Messages
@@ -560,19 +561,19 @@ The `listMemoryThreads()` method supports filtering by `resourceId`, `metadata`,
 
 ```typescript
 const threads = await client.listMemoryThreads({
-  resourceId: 'user-123',          // filter by resource
-  metadata: { tag: 'support' },     // filter by metadata
-  page: 0,                          // pagination
+  resourceId: 'user-123', // filter by resource
+  metadata: { tag: 'support' }, // filter by metadata
+  page: 0, // pagination
   perPage: 20,
-  orderBy: 'updatedAt',             // sort field
+  orderBy: 'updatedAt', // sort field
   sortDirection: 'DESC',
-  agentId: 'agent-1',               // optional agent context
-  requestContext: { env: 'prod' }   // optional request context
-});
+  agentId: 'agent-1', // optional agent context
+  requestContext: { env: 'prod' }, // optional request context
+})
 
 // Response includes pagination metadata
-console.log(threads.total);        // total count
-console.log(threads.hasMore);      // more pages available
+console.log(threads.total) // total count
+console.log(threads.hasMore) // more pages available
 ```
 
 **Sources**: [client-sdks/client-js/src/client.ts:160-196](), [client-sdks/client-js/src/types.ts:309-332]()
@@ -584,13 +585,13 @@ The `getMemoryConfig()` method retrieves agent memory settings including semanti
 ```typescript
 const config = await client.getMemoryConfig({
   agentId: 'agent-1',
-  requestContext: { userId: '123' }
-});
+  requestContext: { userId: '123' },
+})
 
 // Returns memory configuration
-console.log(config.config.lastMessages);         // message window size
-console.log(config.config.semanticRecall);       // RAG settings
-console.log(config.config.observationalMemory);  // compression settings
+console.log(config.config.lastMessages) // message window size
+console.log(config.config.semanticRecall) // RAG settings
+console.log(config.config.observationalMemory) // compression settings
 ```
 
 **Sources**: [client-sdks/client-js/src/client.ts:203-207](), [client-sdks/client-js/src/types.ts:334-351]()
@@ -607,13 +608,13 @@ sequenceDiagram
     participant Fetch as fetch()
     participant Server as Mastra Server
     participant Processor as processMastraStream()
-    
+
     Client->>Fetch: POST /agents/:id/stream
     Fetch->>Server: HTTP request
     Server-->>Fetch: Response with SSE stream
     Fetch-->>Client: ReadableStream<Uint8Array>
     Client->>Processor: processDataStream({onChunk})
-    
+
     loop For each SSE message
         Processor->>Processor: Parse "data: {...}\
 \
@@ -621,7 +622,7 @@ sequenceDiagram
         Processor->>Processor: JSON.parse(chunk)
         Processor->>Client: onChunk(parsedChunk)
     end
-    
+
     Server-->>Processor: "data: [DONE]\
 \
 "
@@ -629,6 +630,7 @@ sequenceDiagram
 ```
 
 **SSE message format**:
+
 ```
 data: {"type":"text-delta","payload":{"text":"Hello"},"runId":"run-1","from":"AGENT"}
 
@@ -650,7 +652,7 @@ graph TB
     Reader["stream.getReader()"]
     Decoder["TextDecoder"]
     Buffer["String Buffer"]
-    
+
     subgraph "Processing Loop"
         Read["reader.read()"]
         Decode["decoder.decode(chunk)"]
@@ -661,7 +663,7 @@ graph TB
         Parse["Parse complete lines"]
         Emit["onChunk(parsedData)"]
     end
-    
+
     Input --> Reader
     Reader --> Read
     Read --> Decode
@@ -671,11 +673,12 @@ graph TB
     Split --> Parse
     Parse --> Emit
     Emit --> Read
-    
+
     Parse -.incomplete line.-> Buffer
 ```
 
 **Key implementation details**:
+
 1. Maintains string buffer for incomplete SSE messages
 2. Splits on `\
 \
@@ -691,12 +694,12 @@ graph TB
 
 The stream processor implements graceful error handling:
 
-| Error Type | Handling Strategy |
-|------------|-------------------|
-| JSON parse error | Log error, continue processing next chunk |
-| Network error | Propagate to caller, release reader lock |
-| `[DONE]` marker | Clean termination, return successfully |
-| Stream interruption | Release reader in `finally` block |
+| Error Type          | Handling Strategy                         |
+| ------------------- | ----------------------------------------- |
+| JSON parse error    | Log error, continue processing next chunk |
+| Network error       | Propagate to caller, release reader lock  |
+| `[DONE]` marker     | Clean termination, return successfully    |
+| Stream interruption | Release reader in `finally` block         |
 
 **Sources**: [client-sdks/client-js/src/utils/process-mastra-stream.ts:36-49]()
 
@@ -708,14 +711,14 @@ The client SDK provides comprehensive TypeScript types for all operations.
 
 Key type exports from `types.ts`:
 
-| Type Category | Types |
-|--------------|-------|
-| Client Configuration | `ClientOptions`, `RequestOptions` |
-| Agent Types | `GetAgentResponse`, `StreamParams`, `GenerateLegacyParams`, `NetworkStreamParams` |
-| Workflow Types | `GetWorkflowResponse`, `ListWorkflowRunsParams`, `WorkflowRunResult` |
-| Memory Types | `CreateMemoryThreadParams`, `ListMemoryThreadsParams`, `SaveMessageToMemoryParams` |
-| Tool Types | `GetToolResponse` |
-| Storage Types | `StoredAgentResponse`, `CreateStoredAgentParams`, `UpdateStoredAgentParams` |
+| Type Category        | Types                                                                              |
+| -------------------- | ---------------------------------------------------------------------------------- |
+| Client Configuration | `ClientOptions`, `RequestOptions`                                                  |
+| Agent Types          | `GetAgentResponse`, `StreamParams`, `GenerateLegacyParams`, `NetworkStreamParams`  |
+| Workflow Types       | `GetWorkflowResponse`, `ListWorkflowRunsParams`, `WorkflowRunResult`               |
+| Memory Types         | `CreateMemoryThreadParams`, `ListMemoryThreadsParams`, `SaveMessageToMemoryParams` |
+| Tool Types           | `GetToolResponse`                                                                  |
+| Storage Types        | `StoredAgentResponse`, `CreateStoredAgentParams`, `UpdateStoredAgentParams`        |
 
 **Sources**: [client-sdks/client-js/src/types.ts:1-1338]()
 
@@ -724,17 +727,17 @@ Key type exports from `types.ts`:
 The client SDK automatically converts Zod schemas to JSON Schema for transmission:
 
 ```typescript
-import { z } from 'zod';
+import { z } from 'zod'
 
 // Client code uses Zod
 const outputSchema = z.object({
   name: z.string(),
-  age: z.number().min(0)
-});
+  age: z.number().min(0),
+})
 
 await agent.stream(['Hello'], {
-  structuredOutput: { schema: outputSchema }
-});
+  structuredOutput: { schema: outputSchema },
+})
 
 // SDK converts to JSON Schema before transmission
 // Server receives:
@@ -768,7 +771,7 @@ graph LR
     Base64["base64RequestContext()"]
     QueryParam["?requestContext=base64..."]
     Server["Server Endpoint"]
-    
+
     ClientRC --> Parser
     Parser --> PlainObject
     PlainObject --> Base64
@@ -777,6 +780,7 @@ graph LR
 ```
 
 **Transformation flow**:
+
 1. Client creates `RequestContext` instance (Map-like)
 2. `parseClientRequestContext()` converts to plain object
 3. `base64RequestContext()` encodes as Base64 for query params
@@ -800,7 +804,7 @@ graph TB
     Retry["Retry Request"]
     Return["Return Response"]
     Throw["Throw Error"]
-    
+
     Request --> Success
     Success -->|Yes| Return
     Success -->|No| RetryCheck
@@ -812,11 +816,13 @@ graph TB
 ```
 
 **Retry conditions**:
+
 - Network errors (connection failures)
 - 5xx status codes (server errors)
 - Timeout errors
 
 **Non-retry conditions**:
+
 - 4xx status codes (client errors)
 - Successful responses (2xx, 3xx)
 
@@ -826,14 +832,14 @@ graph TB
 
 Common error scenarios and their handling:
 
-| Error | Status | Client Behavior |
-|-------|--------|-----------------|
-| Network failure | N/A | Retry with backoff |
-| Authentication | 401 | No retry, throw immediately |
-| Not found | 404 | No retry, throw immediately |
-| Server error | 500 | Retry up to `retries` limit |
-| Rate limit | 429 | Retry with backoff |
-| Validation error | 400 | No retry, throw immediately |
+| Error            | Status | Client Behavior             |
+| ---------------- | ------ | --------------------------- |
+| Network failure  | N/A    | Retry with backoff          |
+| Authentication   | 401    | No retry, throw immediately |
+| Not found        | 404    | No retry, throw immediately |
+| Server error     | 500    | Retry up to `retries` limit |
+| Rate limit       | 429    | Retry with backoff          |
+| Validation error | 400    | No retry, throw immediately |
 
 **Sources**: [client-sdks/client-js/src/resources/base.ts]()
 
@@ -845,13 +851,14 @@ The client SDK includes comprehensive test coverage for streaming, tool executio
 
 Key test files and their focus:
 
-| Test File | Coverage |
-|-----------|----------|
-| `agent.test.ts` | Parameter transformation, RequestContext handling, client tools |
-| `agent.vnext.test.ts` | Streaming lifecycle, recursive tool execution, error propagation |
-| `process-mastra-stream.test.ts` | SSE parsing, buffer handling, JSON errors |
+| Test File                       | Coverage                                                         |
+| ------------------------------- | ---------------------------------------------------------------- |
+| `agent.test.ts`                 | Parameter transformation, RequestContext handling, client tools  |
+| `agent.vnext.test.ts`           | Streaming lifecycle, recursive tool execution, error propagation |
+| `process-mastra-stream.test.ts` | SSE parsing, buffer handling, JSON errors                        |
 
 **Test patterns demonstrated**:
+
 1. Mock SSE responses with `ReadableStream`
 2. Verify parameter transformation (Zod → JSON Schema)
 3. Test recursive stream calls on `tool-calls` finish reason

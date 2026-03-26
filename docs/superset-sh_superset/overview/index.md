@@ -36,8 +36,8 @@ The following files were used as context for generating this wiki page:
 - [apps/desktop/src/main/lib/auto-updater.ts](apps/desktop/src/main/lib/auto-updater.ts)
 - [apps/desktop/src/renderer/env.renderer.ts](apps/desktop/src/renderer/env.renderer.ts)
 - [apps/desktop/src/renderer/index.html](apps/desktop/src/renderer/index.html)
-- [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx)
-- [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts)
+- [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx)
+- [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts)
 - [apps/desktop/vite/helpers.ts](apps/desktop/vite/helpers.ts)
 - [apps/web/src/app/auth/desktop/success/page.tsx](apps/web/src/app/auth/desktop/success/page.tsx)
 - [apps/web/src/trpc/react.tsx](apps/web/src/trpc/react.tsx)
@@ -50,11 +50,10 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 Superset is a developer tool desktop application designed to streamline software development workflows. This page provides a high-level introduction to the codebase architecture, monorepo organization, and core technologies.
 
 For detailed information about specific subsystems:
+
 - Architecture patterns and process model: see [Architecture Overview](#1.1)
 - Technology choices and rationale: see [Technology Stack](#1.2)
 - Core domain models: see [Core Concepts](#1.3)
@@ -76,7 +75,7 @@ The desktop application is the flagship product, complemented by web, API, and a
 ```mermaid
 graph TB
     ROOT["@superset/repo<br/>(Root)"]
-    
+
     subgraph APPS["apps/"]
         DESKTOP["@superset/desktop<br/>Electron app"]
         API["@superset/api<br/>Next.js backend"]
@@ -88,7 +87,7 @@ graph TB
         ELECTRIC_PROXY["electric-proxy<br/>Cloudflare Worker"]
         STREAMS["streams<br/>Durable stream service"]
     end
-    
+
     subgraph PACKAGES["packages/"]
         DB["@superset/db<br/>Drizzle ORM schemas"]
         LOCAL_DB["@superset/local-db<br/>SQLite schemas"]
@@ -105,15 +104,15 @@ graph TB
         EMAIL["@superset/email<br/>Email templates"]
         AGENT["@superset/agent<br/>Agent framework"]
     end
-    
+
     subgraph TOOLING["tooling/"]
         TYPESCRIPT["@superset/typescript<br/>Shared TS config"]
     end
-    
+
     ROOT --> APPS
     ROOT --> PACKAGES
     ROOT --> TOOLING
-    
+
     DESKTOP --> DB
     DESKTOP --> LOCAL_DB
     DESKTOP --> TRPC
@@ -123,17 +122,17 @@ graph TB
     DESKTOP --> DESKTOP_MCP
     DESKTOP --> HOST_SERVICE
     DESKTOP --> WORKSPACE_FS
-    
+
     API --> DB
     API --> TRPC
     API --> AUTH
     API --> MCP
-    
+
     WEB --> DB
     WEB --> TRPC
     WEB --> AUTH
     WEB --> UI
-    
+
     ADMIN --> DB
     ADMIN --> TRPC
     ADMIN --> AUTH
@@ -146,11 +145,11 @@ graph TB
 
 The repository is a Bun workspace monorepo [package.json:43-46]() organized into three top-level directories:
 
-| Directory | Purpose | Package Count |
-|-----------|---------|---------------|
-| `apps/` | Deployable applications | 9 applications |
-| `packages/` | Shared libraries | 13 packages |
-| `tooling/` | Development configuration | 1 package |
+| Directory   | Purpose                   | Package Count  |
+| ----------- | ------------------------- | -------------- |
+| `apps/`     | Deployable applications   | 9 applications |
+| `packages/` | Shared libraries          | 13 packages    |
+| `tooling/`  | Development configuration | 1 package      |
 
 **Build Orchestration:** Turbo handles monorepo task execution with caching and parallel builds [package.json:11]().
 
@@ -165,6 +164,7 @@ The repository is a Bun workspace monorepo [package.json:43-46]() organized into
 ### Desktop Application (`apps/desktop`)
 
 The flagship Electron application providing the primary user interface. Built with:
+
 - **Framework:** Electron 40.2.1 [apps/desktop/package.json:239]()
 - **UI:** React 19.2.0 + TanStack Router [apps/desktop/package.json:187,99]()
 - **Build System:** electron-vite + electron-builder [apps/desktop/package.json:240-241]()
@@ -184,6 +184,7 @@ The flagship Electron application providing the primary user interface. Built wi
 ### API Application (`apps/api`)
 
 Next.js backend providing tRPC endpoints, authentication, and Electric SQL proxy:
+
 - **Framework:** Next.js 16.0.10 [apps/api/package.json:44]()
 - **Database:** PostgreSQL via Drizzle ORM [apps/api/package.json:40]()
 - **Authentication:** better-auth with OAuth [apps/api/package.json:38]()
@@ -225,7 +226,7 @@ graph TB
         RADIX["Radix UI<br/>Accessible primitives"]
         TAILWIND["Tailwind CSS 4.1<br/>Styling"]
     end
-    
+
     subgraph "Data Layer"
         TRPC["tRPC 11.7<br/>Type-safe RPC"]
         ELECTRIC["Electric SQL 1.5<br/>Real-time sync"]
@@ -234,13 +235,13 @@ graph TB
         TANSTACK_QUERY["TanStack Query 5.90<br/>Async state mgmt"]
         ZUSTAND["Zustand 5.0<br/>Local state"]
     end
-    
+
     subgraph "Backend Services"
         NEXTJS["Next.js 16.0<br/>API routes"]
         POSTGRES["PostgreSQL<br/>Neon serverless"]
         BETTER_AUTH["better-auth 1.4<br/>OAuth + JWT"]
     end
-    
+
     subgraph "Build & Deploy"
         BUN["Bun 1.3.6<br/>Package manager"]
         TURBO["Turbo 2.8<br/>Monorepo builds"]
@@ -249,37 +250,37 @@ graph TB
         VERCEL["Vercel<br/>Web hosting"]
         FLY["Fly.io<br/>Electric deployment"]
     end
-    
+
     REACT --> ELECTRON
     TANSTACK_ROUTER --> REACT
     RADIX --> REACT
     TAILWIND --> REACT
-    
+
     TRPC --> REACT
     ELECTRIC --> TANSTACK_QUERY
     BETTER_SQLITE --> DRIZZLE
     ZUSTAND --> REACT
-    
+
     NEXTJS --> POSTGRES
     NEXTJS --> BETTER_AUTH
     TRPC --> NEXTJS
-    
+
     BUN --> TURBO
     VITE --> ELECTRON_BUILDER
 ```
 
 **Key Technology Decisions:**
 
-| Technology | Purpose | Rationale |
-|------------|---------|-----------|
-| Electron | Desktop platform | Native OS integration, mature ecosystem |
-| React 19 | UI framework | Latest features (React Compiler ready) |
-| TanStack Router | Routing | File-based, type-safe routing for Electron |
-| tRPC | API layer | End-to-end type safety, no code generation |
-| Electric SQL | Real-time sync | Local-first, offline-capable data layer |
-| Drizzle ORM | Database | Type-safe SQL with minimal overhead |
-| better-auth | Authentication | Flexible OAuth + session management |
-| Bun | Package manager | Fast installs, native TypeScript support |
+| Technology      | Purpose          | Rationale                                  |
+| --------------- | ---------------- | ------------------------------------------ |
+| Electron        | Desktop platform | Native OS integration, mature ecosystem    |
+| React 19        | UI framework     | Latest features (React Compiler ready)     |
+| TanStack Router | Routing          | File-based, type-safe routing for Electron |
+| tRPC            | API layer        | End-to-end type safety, no code generation |
+| Electric SQL    | Real-time sync   | Local-first, offline-capable data layer    |
+| Drizzle ORM     | Database         | Type-safe SQL with minimal overhead        |
+| better-auth     | Authentication   | Flexible OAuth + session management        |
+| Bun             | Package manager  | Fast installs, native TypeScript support   |
 
 **Sources:** [apps/desktop/package.json:37-217](), [apps/api/package.json:13-50]()
 
@@ -296,13 +297,13 @@ graph LR
         LOCAL_SQLITE["Local SQLite<br/>better-sqlite3<br/>settings/projects/workspaces"]
         ELECTRIC_COLLECTIONS["Electric Collections<br/>@tanstack/electric-db-collection<br/>tasks/PRs/chats"]
     end
-    
+
     subgraph "Network Layer"
         TRPC_IPC["electronTrpc<br/>IPC channel<br/>Main process API"]
         TRPC_HTTP["trpcClient<br/>HTTP channel<br/>API mutations"]
         ELECTRIC_WS["Electric Client<br/>WebSocket<br/>Shape subscriptions"]
     end
-    
+
     subgraph "Backend"
         MAIN_PROCESS["Main Process<br/>TRPC routers"]
         API_SERVER["API Server<br/>Next.js + tRPC"]
@@ -310,34 +311,34 @@ graph LR
         ELECTRIC_SERVICE["Electric SQL<br/>Fly.io service"]
         POSTGRES["PostgreSQL<br/>Neon<br/>Source of truth"]
     end
-    
+
     RENDERER --> TRPC_IPC
     RENDERER --> TRPC_HTTP
     RENDERER --> ELECTRIC_COLLECTIONS
-    
+
     TRPC_IPC <--> MAIN_PROCESS
     TRPC_HTTP --> API_SERVER
     ELECTRIC_COLLECTIONS --> ELECTRIC_WS
-    
+
     MAIN_PROCESS --> LOCAL_SQLITE
-    
+
     ELECTRIC_WS --> ELECTRIC_PROXY
     ELECTRIC_PROXY --> ELECTRIC_SERVICE
     ELECTRIC_SERVICE <--> POSTGRES
-    
+
     API_SERVER --> POSTGRES
 ```
 
 **Data Flow Patterns:**
 
 1. **Local State:** Settings, projects, and workspace metadata stored in SQLite [apps/desktop/src/main/lib/local-db.ts]()
-2. **Real-time Subscriptions:** Tasks, PRs, and chat messages synced via Electric SQL shapes [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:1-455]()
-3. **Command Mutations:** Writes go through tRPC → API → PostgreSQL, then sync back via Electric [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:119-136]()
+2. **Real-time Subscriptions:** Tasks, PRs, and chat messages synced via Electric SQL shapes [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:1-455]()
+3. **Command Mutations:** Writes go through tRPC → API → PostgreSQL, then sync back via Electric [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:119-136]()
 4. **Authentication:** JWT tokens for desktop, session cookies for web [apps/api/src/app/api/electric/[...path]/route.ts:11-32]()
 
 **Data Isolation:** Organization-scoped WHERE clauses injected at the Electric proxy [apps/api/src/app/api/electric/[...path]/utils.ts:1-120]().
 
-**Sources:** [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:1-455](), [apps/api/src/app/api/electric/[...path]/route.ts:1-90](), [apps/api/src/app/api/electric/[...path]/utils.ts:1-120]()
+**Sources:** [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:1-455](), [apps/api/src/app/api/electric/[...path]/route.ts:1-90](), [apps/api/src/app/api/electric/[...path]/utils.ts:1-120]()
 
 ---
 
@@ -351,7 +352,7 @@ graph TB
         GITHUB_RELEASES["GitHub Releases<br/>Desktop installers"]
         ELECTRON_UPDATER["electron-updater<br/>Auto-update client"]
     end
-    
+
     subgraph "Web Infrastructure"
         VERCEL_API["Vercel<br/>api.superset.sh"]
         VERCEL_WEB["Vercel<br/>app.superset.sh"]
@@ -359,14 +360,14 @@ graph TB
         VERCEL_MARKETING["Vercel<br/>superset.sh"]
         VERCEL_DOCS["Vercel<br/>docs.superset.sh"]
     end
-    
+
     subgraph "Data Services"
         NEON["Neon PostgreSQL<br/>Primary database"]
         FLY_ELECTRIC["Fly.io<br/>Electric SQL<br/>Real-time sync"]
         UPSTASH["Upstash Redis<br/>Rate limiting + KV"]
         VERCEL_BLOB["Vercel Blob<br/>File storage"]
     end
-    
+
     subgraph "External Services"
         STRIPE["Stripe<br/>Billing"]
         LINEAR["Linear<br/>Issue tracking"]
@@ -374,38 +375,39 @@ graph TB
         SLACK["Slack<br/>Notifications"]
         ANTHROPIC["Anthropic<br/>Claude AI"]
     end
-    
+
     GITHUB_RELEASES --> ELECTRON_UPDATER
-    
+
     VERCEL_API --> NEON
     VERCEL_API --> FLY_ELECTRIC
     VERCEL_API --> UPSTASH
     VERCEL_API --> VERCEL_BLOB
-    
+
     FLY_ELECTRIC --> NEON
-    
+
     VERCEL_API --> STRIPE
     VERCEL_API --> LINEAR
     VERCEL_API --> GITHUB_APP
     VERCEL_API --> SLACK
     VERCEL_API --> ANTHROPIC
-    
+
     VERCEL_WEB --> VERCEL_API
     VERCEL_ADMIN --> VERCEL_API
 ```
 
 **Deployment Targets:**
 
-| Application | Platform | Environment Variables | CI/CD Workflow |
-|-------------|----------|----------------------|----------------|
-| Desktop | GitHub Releases | Build-time env injection | [.github/workflows/release-desktop.yml]() |
-| API | Vercel | Runtime secrets | [.github/workflows/deploy-production.yml:42-175]() |
-| Web | Vercel | Runtime secrets | [.github/workflows/deploy-production.yml:176-264]() |
-| Admin | Vercel | Runtime secrets | [.github/workflows/deploy-production.yml:350-440]() |
-| Marketing | Vercel | Runtime secrets | [.github/workflows/deploy-production.yml:266-348]() |
-| Electric SQL | Fly.io | DATABASE_URL secret | [fly.toml:1-33]() |
+| Application  | Platform        | Environment Variables    | CI/CD Workflow                                      |
+| ------------ | --------------- | ------------------------ | --------------------------------------------------- |
+| Desktop      | GitHub Releases | Build-time env injection | [.github/workflows/release-desktop.yml]()           |
+| API          | Vercel          | Runtime secrets          | [.github/workflows/deploy-production.yml:42-175]()  |
+| Web          | Vercel          | Runtime secrets          | [.github/workflows/deploy-production.yml:176-264]() |
+| Admin        | Vercel          | Runtime secrets          | [.github/workflows/deploy-production.yml:350-440]() |
+| Marketing    | Vercel          | Runtime secrets          | [.github/workflows/deploy-production.yml:266-348]() |
+| Electric SQL | Fly.io          | DATABASE_URL secret      | [fly.toml:1-33]()                                   |
 
 **Preview Environments:** Each pull request creates:
+
 - Neon database branch [.github/workflows/deploy-preview.yml:47-63]()
 - Electric SQL app instance on Fly.io [.github/workflows/deploy-preview.yml:99-110]()
 - Vercel preview deployments for all web apps [.github/workflows/deploy-preview.yml:160-271]()
@@ -436,13 +438,13 @@ bun run lint
 
 **Desktop-Specific Scripts:**
 
-| Command | Purpose | Implementation |
-|---------|---------|----------------|
-| `bun run dev` | Development with hot reload | [apps/desktop/package.json:21]() |
-| `bun run compile:app` | electron-vite build | [apps/desktop/package.json:22]() |
-| `bun run copy:native-modules` | Materialize Bun symlinks | [apps/desktop/scripts/copy-native-modules.ts:1-300]() |
-| `bun run validate:native-runtime` | Verify native deps | [apps/desktop/scripts/validate-native-runtime.ts:1-200]() |
-| `bun run package` | Create installers | [apps/desktop/package.json:28]() |
+| Command                           | Purpose                     | Implementation                                            |
+| --------------------------------- | --------------------------- | --------------------------------------------------------- |
+| `bun run dev`                     | Development with hot reload | [apps/desktop/package.json:21]()                          |
+| `bun run compile:app`             | electron-vite build         | [apps/desktop/package.json:22]()                          |
+| `bun run copy:native-modules`     | Materialize Bun symlinks    | [apps/desktop/scripts/copy-native-modules.ts:1-300]()     |
+| `bun run validate:native-runtime` | Verify native deps          | [apps/desktop/scripts/validate-native-runtime.ts:1-200]() |
+| `bun run package`                 | Create installers           | [apps/desktop/package.json:28]()                          |
 
 **Sources:** [package.json:18-40](), [apps/desktop/package.json:16-36]()
 
@@ -457,6 +459,7 @@ Bun 1.3+ uses isolated installs with symlinks in `node_modules/`. electron-build
 3. **Validation:** [apps/desktop/scripts/validate-native-runtime.ts:1-200]() ensures no accidental bundling
 
 **Critical Native Modules:**
+
 - `better-sqlite3` - SQLite database driver
 - `node-pty` - Terminal pseudoterminal
 - `@parcel/watcher` - File system monitoring
@@ -471,14 +474,17 @@ Bun 1.3+ uses isolated installs with symlinks in `node_modules/`. electron-build
 Environment variables are validated using **@t3-oss/env-core** with Zod schemas:
 
 **Main Process:** [apps/desktop/src/main/env.main.ts:1-53]()
+
 - Node.js `process.env` available at runtime
 - Used for server-side operations (API calls, database connections)
 
 **Renderer Process:** [apps/desktop/src/renderer/env.renderer.ts:1-70]()
+
 - Values injected at BUILD TIME by Vite's `define` [apps/desktop/electron.vite.config.ts:161-208]()
 - String replacement in compiled bundles (not runtime `process.env`)
 
 **API Server:** [apps/api/src/env.ts:1-77]()
+
 - Next.js environment variable validation
 - Runtime secrets for integrations (Stripe, GitHub, Linear, etc.)
 
@@ -489,12 +495,14 @@ Environment variables are validated using **@t3-oss/env-core** with Zod schemas:
 ### Release Process
 
 **Stable Releases:**
+
 1. Tag commit with `desktop-v*.*.*` format
 2. GitHub Actions builds for macOS (arm64 + x64) and Linux [.github/workflows/build-desktop.yml:1-256]()
 3. Artifacts uploaded to GitHub Releases [.github/workflows/release-desktop.yml:138-146]()
 4. electron-updater polls `/releases/latest/download/` feed [apps/desktop/src/main/lib/auto-updater.ts:29-32]()
 
 **Canary Releases:**
+
 1. Automated builds every 12 hours via cron [.github/workflows/release-desktop-canary.yml:4-6]()
 2. Version format: `1.1.5-canary.20250215120000` (timestamp suffix)
 3. Publishes to `desktop-canary` rolling tag [.github/workflows/release-desktop-canary.yml:140-157]()
@@ -510,14 +518,14 @@ Environment variables are validated using **@t3-oss/env-core** with Zod schemas:
 
 Key files to begin exploring the codebase:
 
-| File | Purpose |
-|------|---------|
-| [apps/desktop/src/main/index.ts:1-328]() | Main process entry point, app lifecycle |
-| [apps/desktop/src/renderer/index.tsx]() | Renderer process entry point |
-| [apps/desktop/electron.vite.config.ts:1-265]() | Build configuration |
-| [apps/api/src/app/api/trpc/[trpc]/route.ts]() | API tRPC handler |
-| [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:1-455]() | Electric SQL collections setup |
-| [packages/local-db/drizzle/schema.ts]() | Local SQLite schema |
-| [packages/db/schema/index.ts]() | PostgreSQL schema |
+| File                                                                                                    | Purpose                                 |
+| ------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| [apps/desktop/src/main/index.ts:1-328]()                                                                | Main process entry point, app lifecycle |
+| [apps/desktop/src/renderer/index.tsx]()                                                                 | Renderer process entry point            |
+| [apps/desktop/electron.vite.config.ts:1-265]()                                                          | Build configuration                     |
+| [apps/api/src/app/api/trpc/[trpc]/route.ts]()                                                           | API tRPC handler                        |
+| [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:1-455]() | Electric SQL collections setup          |
+| [packages/local-db/drizzle/schema.ts]()                                                                 | Local SQLite schema                     |
+| [packages/db/schema/index.ts]()                                                                         | PostgreSQL schema                       |
 
 **Sources:** [apps/desktop/src/main/index.ts:1-328](), [apps/desktop/electron.vite.config.ts:1-265]()

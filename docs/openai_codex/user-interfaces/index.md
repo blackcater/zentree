@@ -34,8 +34,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes the four user-facing interfaces through which users interact with Codex: the **Terminal User Interface (TUI)** for interactive sessions, **headless execution mode** (`codex exec`) for non-interactive automation, the **CLI entry point** that dispatches to different modes, and the **App Server** for IDE integrations. Each interface provides a different interaction model while sharing the same underlying core engine described in [Core Agent System](#3).
@@ -55,40 +53,40 @@ graph TB
         NPM["npm -g @openai/codex"]
         Brew["brew install codex"]
     end
-    
+
     subgraph "Execution Modes"
         TUI["Interactive TUI<br/>(codex)"]
         Exec["Headless Exec<br/>(codex exec)"]
         AppServer["App Server<br/>(codex app-server)"]
         Review["Code Review<br/>(codex review)"]
     end
-    
+
     subgraph "Core Integration"
         ThreadMgr["ThreadManager"]
         Codex["Codex Session"]
     end
-    
+
     subgraph "IDE Clients"
         VSCode["VS Code Extension"]
         Cursor["Cursor IDE"]
         Other["Other IDEs"]
     end
-    
+
     NPM --> CLI
     Brew --> CLI
-    
+
     CLI --> TUI
     CLI --> Exec
     CLI --> Review
     CLI --> AppServer
-    
+
     TUI --> ThreadMgr
     Exec --> ThreadMgr
     Review --> ThreadMgr
     AppServer --> ThreadMgr
-    
+
     ThreadMgr --> Codex
-    
+
     AppServer --> VSCode
     AppServer --> Cursor
     AppServer --> Other
@@ -96,12 +94,12 @@ graph TB
 
 **Execution Mode Characteristics:**
 
-| Mode | Interactive | Output Format | Primary Use Case |
-|------|-------------|---------------|------------------|
-| TUI | Yes | Rich terminal UI | Human-driven development sessions |
-| Exec | No | Plain text or JSONL | CI/CD, scripting, automation |
-| Review | No | Plain text | Code review workflows |
-| App Server | Yes (via IDE) | JSON-RPC | IDE integrations (VS Code, Cursor) |
+| Mode       | Interactive   | Output Format       | Primary Use Case                   |
+| ---------- | ------------- | ------------------- | ---------------------------------- |
+| TUI        | Yes           | Rich terminal UI    | Human-driven development sessions  |
+| Exec       | No            | Plain text or JSONL | CI/CD, scripting, automation       |
+| Review     | No            | Plain text          | Code review workflows              |
+| App Server | Yes (via IDE) | JSON-RPC            | IDE integrations (VS Code, Cursor) |
 
 Sources: [codex-rs/cli/src/main.rs:56-111](), [codex-rs/tui/src/lib.rs:1-227](), [codex-rs/exec/src/lib.rs:1-100](), [Diagram 1 from high-level architecture]()
 
@@ -121,7 +119,7 @@ graph LR
         Interactive["interactive<br/>(TuiCli)"]
         Subcommand["subcommand<br/>(Option<Subcommand>)"]
     end
-    
+
     subgraph "Subcommands"
         ExecCmd["Exec(ExecCli)"]
         ReviewCmd["Review(ReviewArgs)"]
@@ -132,7 +130,7 @@ graph LR
         AppServerCmd["AppServer"]
         AppCmd["App (macOS only)"]
     end
-    
+
     Subcommand --> ExecCmd
     Subcommand --> ReviewCmd
     Subcommand --> LoginCmd
@@ -141,7 +139,7 @@ graph LR
     Subcommand --> McpServerCmd
     Subcommand --> AppServerCmd
     Subcommand --> AppCmd
-    
+
     ExecCmd --> ExecMain["codex_exec::run_main()"]
     ReviewCmd --> ExecMain
     Interactive --> TuiMain["codex_tui::run_main()"]
@@ -161,7 +159,7 @@ sequenceDiagram
     participant Parser as CliConfigOverrides
     participant Builder as ConfigBuilder
     participant Mode as Execution Mode
-    
+
     User->>CLI: codex -c key=value exec "task"
     CLI->>Parser: parse_overrides()
     Parser-->>CLI: HashMap<String, TomlValue>
@@ -188,49 +186,49 @@ graph TB
         Tui["Tui<br/>(terminal wrapper)"]
         EventLoop["Event Loop<br/>(TuiEvent stream)"]
     end
-    
+
     subgraph "Widget Layer"
         ChatWidget["ChatWidget<br/>(chatwidget.rs)"]
         BottomPane["BottomPane<br/>(bottom_pane/mod.rs)"]
         Overlay["Overlay<br/>(transcript/help)"]
     end
-    
+
     subgraph "Input Components"
         ChatComposer["ChatComposer<br/>(chat_composer.rs)"]
         TextArea["TextArea<br/>(textarea.rs)"]
         Popups["Popups<br/>(command/file/skill)"]
     end
-    
+
     subgraph "Display Components"
         HistoryCells["History Cells<br/>(history_cell.rs)"]
         StatusIndicator["StatusIndicatorWidget<br/>(status_indicator_widget.rs)"]
         SessionHeader["SessionHeader"]
     end
-    
+
     subgraph "State Management"
         ThreadEventStore["ThreadEventStore<br/>(buffered events)"]
         ThreadManager["ThreadManager<br/>(codex-core)"]
         CodexThread["CodexThread"]
     end
-    
+
     App --> ChatWidget
     App --> Overlay
     App --> EventLoop
     App --> Tui
-    
+
     ChatWidget --> BottomPane
     ChatWidget --> HistoryCells
     ChatWidget --> StatusIndicator
     ChatWidget --> SessionHeader
-    
+
     BottomPane --> ChatComposer
     ChatComposer --> TextArea
     ChatComposer --> Popups
-    
+
     App --> ThreadEventStore
     ThreadEventStore --> ThreadManager
     ThreadManager --> CodexThread
-    
+
     EventLoop -.->|KeyEvent| App
     App -.->|Op| ThreadManager
     ThreadManager -.->|Event| App
@@ -238,13 +236,13 @@ graph TB
 
 **Key Components:**
 
-| Component | File | Responsibility |
-|-----------|------|----------------|
-| `App` | [tui/src/app.rs]() | Top-level event loop, thread switching, lifecycle |
-| `ChatWidget` | [tui/src/chatwidget.rs]() | Session UI state, event-to-UI translation, history management |
-| `BottomPane` | [tui/src/bottom_pane/mod.rs]() | Input routing, view stack (composer/popups/overlays) |
-| `ChatComposer` | [tui/src/bottom_pane/chat_composer.rs]() | Text input, paste handling, slash commands |
-| `HistoryCell` | [tui/src/history_cell.rs]() | Transcript display trait, concrete cell types |
+| Component      | File                                     | Responsibility                                                |
+| -------------- | ---------------------------------------- | ------------------------------------------------------------- |
+| `App`          | [tui/src/app.rs]()                       | Top-level event loop, thread switching, lifecycle             |
+| `ChatWidget`   | [tui/src/chatwidget.rs]()                | Session UI state, event-to-UI translation, history management |
+| `BottomPane`   | [tui/src/bottom_pane/mod.rs]()           | Input routing, view stack (composer/popups/overlays)          |
+| `ChatComposer` | [tui/src/bottom_pane/chat_composer.rs]() | Text input, paste handling, slash commands                    |
+| `HistoryCell`  | [tui/src/history_cell.rs]()              | Transcript display trait, concrete cell types                 |
 
 Sources: [codex-rs/tui/src/app.rs:1-113](), [codex-rs/tui/src/chatwidget.rs:1-270](), [codex-rs/tui/src/bottom_pane/mod.rs:1-152]()
 
@@ -261,19 +259,19 @@ sequenceDiagram
     participant BottomPane
     participant ThreadMgr as ThreadManager
     participant Core as CodexThread
-    
+
     User->>Tui: Keystroke
     Tui->>App: TuiEvent::Key
     App->>ChatWidget: handle_key
     ChatWidget->>BottomPane: handle_key
-    
+
     alt Input Submitted
         BottomPane-->>ChatWidget: InputResult::Submit
         ChatWidget->>ChatWidget: Build UserInput
         ChatWidget->>ThreadMgr: submit(Op::UserInput)
         ThreadMgr->>Core: Process turn
     end
-    
+
     loop Event Stream
         Core-->>ThreadMgr: Event
         ThreadMgr-->>App: Event (via channel)
@@ -302,13 +300,13 @@ The `App::run` method orchestrates the main event loop:
 ```mermaid
 graph TB
     Start["App::run()"]
-    
+
     subgraph "Initialization"
         LoadState["Load ThreadEventStore<br/>from session history"]
         CreateWidget["Create ChatWidget<br/>with InProcessAppServerClient"]
         SpawnAgent["Spawn agent thread<br/>(spawn_agent)"]
     end
-    
+
     subgraph "Event Loop"
         Select["tokio::select!"]
         TuiEvent["TUI event<br/>(key/mouse/resize)"]
@@ -316,50 +314,50 @@ graph TB
         AppEvent["App event<br/>(internal channel)"]
         TickEvent["Periodic tick<br/>(frame request)"]
     end
-    
+
     subgraph "Event Handlers"
         HandleKey["handle_key_event"]
         HandleCodex["handle_codex_event"]
         HandleApp["handle_app_event"]
         HandleTick["handle_tick"]
     end
-    
+
     subgraph "Rendering"
         CheckDirty["Check dirty flag"]
         Draw["tui.draw()"]
         ClearDirty["Clear dirty flag"]
     end
-    
+
     subgraph "Exit"
         Cleanup["Cleanup resources"]
         ExitInfo["Return AppExitInfo"]
     end
-    
+
     Start --> LoadState
     LoadState --> CreateWidget
     CreateWidget --> SpawnAgent
     SpawnAgent --> Select
-    
+
     Select --> TuiEvent
     Select --> CoreEvent
     Select --> AppEvent
     Select --> TickEvent
-    
+
     TuiEvent --> HandleKey
     CoreEvent --> HandleCodex
     AppEvent --> HandleApp
     TickEvent --> HandleTick
-    
+
     HandleKey --> CheckDirty
     HandleCodex --> CheckDirty
     HandleApp --> CheckDirty
     HandleTick --> CheckDirty
-    
+
     CheckDirty -->|dirty| Draw
     Draw --> ClearDirty
     CheckDirty -->|not dirty| Select
     ClearDirty --> Select
-    
+
     HandleApp -->|Exit| Cleanup
     Cleanup --> ExitInfo
 ```
@@ -377,28 +375,28 @@ Sources: [codex-rs/tui/src/app.rs:580-800](), [codex-rs/tui/src/lib.rs:230-535](
 ```mermaid
 stateDiagram-v2
     [*] --> Idle
-    
+
     Idle --> WaitingForConfigured: SessionConfiguredEvent
     WaitingForConfigured --> Ready: Apply config/cwd/permissions
-    
+
     Ready --> TurnActive: UserMessageEvent
     TurnActive --> Streaming: AgentMessageDeltaEvent
     Streaming --> ToolExecution: ExecCommandBeginEvent
     ToolExecution --> Streaming: ExecCommandEndEvent
     Streaming --> TurnComplete: TurnCompleteEvent
     TurnComplete --> Ready
-    
+
     TurnActive --> Interrupted: Op::Interrupt
     Streaming --> Interrupted: Op::Interrupt
     ToolExecution --> Interrupted: Op::Interrupt
     Interrupted --> Ready: Cleanup active_cell
-    
+
     Ready --> ThreadSwitch: Switch to different thread
     ThreadSwitch --> WaitingForConfigured: Replay ThreadEventSnapshot
-    
+
     TurnActive --> ApprovalPending: ExecApprovalRequestEvent
     ApprovalPending --> TurnActive: ApprovalOverlay dismissed
-    
+
     Ready --> [*]: AppEvent::Exit
 ```
 
@@ -419,7 +417,7 @@ graph TB
         Composer["composer<br/>(ChatComposer)"]
         StatusRow["status_indicator<br/>(StatusIndicatorWidget)"]
     end
-    
+
     subgraph "Views (Popups/Overlays)"
         ApprovalOverlay["ApprovalOverlay"]
         SelectionView["ListSelectionView"]
@@ -427,26 +425,26 @@ graph TB
         McpElicitation["McpServerElicitationOverlay"]
         RequestInput["RequestUserInputOverlay"]
     end
-    
+
     subgraph "Composer Components"
         TextArea["TextArea<br/>(editable buffer)"]
         CommandPopup["CommandPopup<br/>(slash commands)"]
         FileSearchPopup["FileSearchPopup"]
         SkillPopup["SkillPopup<br/>(@mentions)"]
     end
-    
+
     KeyEvent["KeyEvent"]
-    
+
     KeyEvent --> ViewStack
     ViewStack -->|If view active| Views
     ViewStack -->|If empty| Composer
-    
+
     Views --> ApprovalOverlay
     Views --> SelectionView
     Views --> CustomPromptView
     Views --> McpElicitation
     Views --> RequestInput
-    
+
     Composer --> TextArea
     Composer --> CommandPopup
     Composer --> FileSearchPopup
@@ -479,36 +477,36 @@ classDiagram
         +desired_transcript_height(width: u16) u16
         +transcript_animation_tick() Option~u64~
     }
-    
+
     class UserHistoryCell {
         +message: String
         +text_elements: Vec~TextElement~
         +local_image_paths: Vec~PathBuf~
         +remote_image_urls: Vec~String~
     }
-    
+
     class AgentMessageCell {
         +content: String
         +phase: Option~MessagePhase~
     }
-    
+
     class ExecCell {
         +calls: Vec~ExecCall~
         +running: bool
     }
-    
+
     class WebSearchCell {
         +query: String
         +results: Vec~SearchResult~
         +status: SearchStatus
     }
-    
+
     class McpToolCallCell {
         +tool_name: String
         +arguments: Value
         +result: Option~String~
     }
-    
+
     HistoryCell <|.. UserHistoryCell
     HistoryCell <|.. AgentMessageCell
     HistoryCell <|.. ExecCell
@@ -541,51 +539,51 @@ graph TB
         ExecCLI["codex exec [args]<br/>(Cli::Exec)"]
         ReviewCLI["codex review [args]<br/>(Cli::Review)"]
     end
-    
+
     subgraph "Configuration"
         ConfigBuilder["ConfigBuilder"]
         ExecArgs["Parse CLI args"]
         Overrides["Apply overrides<br/>(-c, --enable, etc.)"]
     end
-    
+
     subgraph "App Server Client"
         InProcess["InProcessAppServerClient"]
         ServerEvents["InProcessServerEvent channel"]
         ThreadStart["thread/start or thread/resume"]
     end
-    
+
     subgraph "Event Processing"
         Processor["EventProcessor trait"]
         HumanOutput["EventProcessorWithHumanOutput"]
         JsonlOutput["EventProcessorWithJsonOutput"]
     end
-    
+
     subgraph "Core Integration"
         ThreadMgr["ThreadManager"]
         CodexThread["CodexThread"]
     end
-    
+
     subgraph "Output"
         Stdout["stdout<br/>(final message or JSONL)"]
         Stderr["stderr<br/>(errors/warnings)"]
     end
-    
+
     ExecCLI --> ConfigBuilder
     ReviewCLI --> ConfigBuilder
     ConfigBuilder --> ExecArgs
     ExecArgs --> Overrides
     Overrides --> InProcess
-    
+
     InProcess --> ThreadStart
     ThreadStart --> ThreadMgr
     ThreadMgr --> CodexThread
-    
+
     CodexThread --> ServerEvents
     ServerEvents --> Processor
-    
+
     Processor --> HumanOutput
     Processor --> JsonlOutput
-    
+
     HumanOutput --> Stdout
     HumanOutput --> Stderr
     JsonlOutput --> Stdout
@@ -611,18 +609,18 @@ classDiagram
         +process_mcp_elicitation(&mut self, request: &McpElicitation) Result~Response~
         +finish(&mut self) Result
     }
-    
+
     class EventProcessorWithHumanOutput {
         -terminal_supports_color: bool
         -emitted_any_message: bool
         -approval_manager: ApprovalManager
     }
-    
+
     class EventProcessorWithJsonOutput {
         -stdout_writer: BufWriter
         -event_sequence: u64
     }
-    
+
     EventProcessor <|.. EventProcessorWithHumanOutput
     EventProcessor <|.. EventProcessorWithJsonOutput
 ```
@@ -658,10 +656,10 @@ sequenceDiagram
     participant Client as InProcessClient
     participant Processor as EventProcessor
     participant Policy as ApprovalPolicy
-    
+
     Core->>Client: ExecApprovalRequestEvent
     Client->>Processor: process_approval_request()
-    
+
     alt Approval Policy = Never
         Processor-->>Client: Approved (true)
     else Approval Policy = Always
@@ -671,17 +669,17 @@ sequenceDiagram
         Policy-->>Processor: Allow/Deny/Warn
         Processor-->>Client: Decision (bool)
     end
-    
+
     Client->>Core: Op::ApprovalResponse
 ```
 
 **Approval Behavior by Policy:**
 
-| `approval_policy` | Behavior |
-|-------------------|----------|
-| `Never` | Auto-approve all requests |
-| `Always` | Deny all requests (exec mode cannot prompt user) |
-| `OnRequest` | Use `exec_policy` rules to decide [codex-rs/core/src/exec_policy.rs]() |
+| `approval_policy` | Behavior                                                               |
+| ----------------- | ---------------------------------------------------------------------- |
+| `Never`           | Auto-approve all requests                                              |
+| `Always`          | Deny all requests (exec mode cannot prompt user)                       |
+| `OnRequest`       | Use `exec_policy` rules to decide [codex-rs/core/src/exec_policy.rs]() |
 
 Sources: [codex-rs/exec/src/event_processor_with_human_output.rs:1-500](), [codex-rs/exec/src/lib.rs:1-100]()
 
@@ -696,13 +694,13 @@ sequenceDiagram
     participant Client as InProcessClient
     participant ThreadMgr as ThreadManager
     participant ReviewAgent as Review Sub-Agent
-    
+
     CLI->>ExecMain: ReviewArgs
     ExecMain->>ExecMain: Parse --targets, --guidelines
     ExecMain->>Client: thread/start
     Client->>ThreadMgr: NewThread with SessionSource::Review
     ThreadMgr->>ReviewAgent: Spawn with review prompt
-    
+
     ReviewAgent->>ReviewAgent: Analyze targets
     ReviewAgent->>ReviewAgent: Apply guidelines
     ReviewAgent-->>ThreadMgr: ReviewCompleteEvent
@@ -714,6 +712,7 @@ sequenceDiagram
 **Review Configuration:**
 
 Review sessions use a restricted config [exec/src/lib.rs:200-300]():
+
 - `approval_policy = Never`
 - `web_search = Disabled`
 - Sandboxed to target paths only
@@ -734,49 +733,49 @@ graph TB
         Extension["VS Code Extension<br/>or Cursor"]
         JSONRPC["JSON-RPC Client"]
     end
-    
+
     subgraph "App Server"
         Listener["TCP/WebSocket Listener"]
         Processor["CodexMessageProcessor"]
         ThreadMgrWrapper["ThreadManager wrapper"]
     end
-    
+
     subgraph "Protocol v2 API"
         ThreadAPI["thread/* methods"]
         TurnAPI["turn/* methods"]
         ConfigAPI["config/* methods"]
         AuthAPI["auth/* methods"]
     end
-    
+
     subgraph "Core Integration"
         ThreadMgr["ThreadManager"]
         CodexThread["CodexThread"]
     end
-    
+
     subgraph "Bidirectional Messaging"
         ClientRequests["Client → Server<br/>(requests)"]
         ServerRequests["Server → Client<br/>(elicitations)"]
         Notifications["Server → Client<br/>(events)"]
     end
-    
+
     Extension --> JSONRPC
     JSONRPC --> Listener
     Listener --> Processor
-    
+
     Processor --> ThreadAPI
     Processor --> TurnAPI
     Processor --> ConfigAPI
     Processor --> AuthAPI
-    
+
     ThreadAPI --> ThreadMgrWrapper
     TurnAPI --> ThreadMgrWrapper
     ThreadMgrWrapper --> ThreadMgr
     ThreadMgr --> CodexThread
-    
+
     Processor --> ClientRequests
     Processor --> ServerRequests
     Processor --> Notifications
-    
+
     ClientRequests --> ThreadMgr
     ServerRequests --> JSONRPC
     Notifications --> JSONRPC
@@ -784,12 +783,12 @@ graph TB
 
 **Key Protocol Methods:**
 
-| Category | Methods | Purpose |
-|----------|---------|---------|
-| Thread | `thread/start`, `thread/resume`, `thread/fork` | Session lifecycle |
-| Turn | `turn/start`, `turn/interrupt`, `turn/undo` | Conversation control |
-| Config | `config/read`, `config/write`, `config/layer/*` | Settings management |
-| Auth | `auth/login`, `auth/logout`, `auth/info` | Authentication |
+| Category | Methods                                         | Purpose              |
+| -------- | ----------------------------------------------- | -------------------- |
+| Thread   | `thread/start`, `thread/resume`, `thread/fork`  | Session lifecycle    |
+| Turn     | `turn/start`, `turn/interrupt`, `turn/undo`     | Conversation control |
+| Config   | `config/read`, `config/write`, `config/layer/*` | Settings management  |
+| Auth     | `auth/login`, `auth/logout`, `auth/info`        | Authentication       |
 
 Sources: [codex-rs/app-server/src/lib.rs](), [codex-rs/app-server-protocol/src/lib.rs]()
 
@@ -803,24 +802,24 @@ sequenceDiagram
     participant Client as InProcessClient
     participant Server as AppServer
     participant ThreadMgr as ThreadManager
-    
+
     UI->>Client: start(InProcessClientStartArgs)
     Client->>Server: Spawn server task
     Server->>ThreadMgr: Initialize ThreadManager
-    
+
     UI->>Client: send_request(thread/start)
     Client->>Server: ClientRequest via channel
     Server->>ThreadMgr: NewThread
     ThreadMgr-->>Server: ThreadStartResponse
     Server-->>Client: ServerResponse
     Client-->>UI: Deserialized response
-    
+
     loop Event Stream
         ThreadMgr->>Server: Event
         Server->>Client: ServerNotification
         Client->>UI: InProcessServerEvent::Event
     end
-    
+
     loop Server Requests
         Server->>Client: ServerRequest (elicitation)
         Client->>UI: InProcessServerEvent::ServerRequest
@@ -848,26 +847,26 @@ graph TB
         ActiveThread["active_thread_id"]
         EventChannels["thread_event_channels<br/>HashMap<ThreadId, ThreadEventChannel>"]
     end
-    
+
     subgraph "ThreadEventChannel"
         Sender["mpsc::Sender<Event>"]
         Receiver["mpsc::Receiver<Event>"]
         Store["Arc<Mutex<ThreadEventStore>>"]
     end
-    
+
     subgraph "ThreadEventStore"
         SessionConfigured["session_configured: Option<Event>"]
         Buffer["buffer: VecDeque<Event><br/>(max 32768)"]
         InputState["input_state: Option<ThreadInputState>"]
     end
-    
+
     ActiveThread --> EventChannels
     EventChannels --> ThreadEventChannel
-    
+
     ThreadEventChannel --> Sender
     ThreadEventChannel --> Receiver
     ThreadEventChannel --> Store
-    
+
     Store --> SessionConfigured
     Store --> Buffer
     Store --> InputState
@@ -899,28 +898,28 @@ graph LR
         RolloutFile["rollout.jsonl<br/>(persisted events)"]
         SessionIndex["session_index.jsonl<br/>(metadata)"]
     end
-    
+
     subgraph "Resume Operation"
         ResumePicker["Resume Picker<br/>(Ctrl+P)"]
         LoadEvents["Load rollout events"]
         ReplayHistory["Replay into ChatWidget"]
         ContinueThread["Continue existing thread"]
     end
-    
+
     subgraph "Fork Operation"
         ForkCommand["/fork command"]
         CopyEvents["Copy rollout events"]
         NewThread["Create new thread"]
         IndependentHistory["Independent history"]
     end
-    
+
     RolloutFile --> LoadEvents
     SessionIndex --> ResumePicker
-    
+
     ResumePicker --> LoadEvents
     LoadEvents --> ReplayHistory
     ReplayHistory --> ContinueThread
-    
+
     ResumePicker --> CopyEvents
     CopyEvents --> NewThread
     NewThread --> IndependentHistory
@@ -928,16 +927,17 @@ graph LR
 
 **Key Differences:**
 
-| Aspect | Resume | Fork |
-|--------|--------|------|
-| Thread ID | Same as original | New UUID |
-| History | Append to existing rollout | Copy to new rollout |
-| State | Restore session state | Fresh session with copied history |
-| Metadata | Preserve original name/tags | New name, links to parent |
+| Aspect    | Resume                      | Fork                              |
+| --------- | --------------------------- | --------------------------------- |
+| Thread ID | Same as original            | New UUID                          |
+| History   | Append to existing rollout  | Copy to new rollout               |
+| State     | Restore session state       | Fresh session with copied history |
+| Metadata  | Preserve original name/tags | New name, links to parent         |
 
 **Resume Implementation:**
 
 The TUI loads a `ThreadEventSnapshot` [app.rs:264-269]() containing:
+
 - `SessionConfiguredEvent` (config/cwd/permissions)
 - Filtered event buffer (excludes answered approvals)
 - Input state (draft message, queued inputs)
@@ -959,6 +959,7 @@ Events are persisted to `~/.codex/sessions/<thread-id>/rollout.jsonl` [core/src/
 **Persistence Policy:**
 
 Not all events are persisted [core/src/rollout/policy.rs]():
+
 - Persisted: User messages, agent messages, tool calls, errors, turn metadata
 - Filtered: Streaming deltas, intermediate reasoning, rate limit snapshots
 
@@ -971,16 +972,19 @@ Sources: [codex-rs/core/src/rollout/mod.rs](), [codex-rs/core/src/rollout/policy
 ## Sources Summary
 
 **Overall Architecture:**
+
 - [codex-rs/Cargo.lock:1-400]()
 - [codex-rs/Cargo.toml:1-395]()
 - [codex-rs/README.md:1-100]()
 - [High-level architecture diagrams provided]()
 
 **CLI Entry Point:**
+
 - [codex-rs/cli/src/main.rs:56-111]()
 - [codex-rs/cli/Cargo.toml:1-80]()
 
 **TUI Implementation:**
+
 - [codex-rs/tui/src/lib.rs:1-227]()
 - [codex-rs/tui/src/app.rs:1-113]()
 - [codex-rs/tui/src/chatwidget.rs:1-656]()
@@ -996,11 +1000,13 @@ Sources: [codex-rs/core/src/rollout/mod.rs](), [codex-rs/core/src/rollout/policy
 - [codex-rs/tui/Cargo.toml:1-120]()
 
 **Exec Mode:**
+
 - [codex-rs/exec/src/lib.rs:1-100]()
 - [codex-rs/exec/src/cli.rs:1-120]()
 - [codex-rs/exec/Cargo.toml:1-80]()
 
 **Core Integration:**
+
 - [codex-rs/core/src/lib.rs:1-178]()
 - [codex-rs/core/Cargo.toml:1-160]()
 - [codex-rs/core/src/model_provider_info.rs:1-200]()

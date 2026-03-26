@@ -33,8 +33,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Configuration System provides runtime configuration loading, validation, hot-reload, and management for the OpenClaw gateway and all its subsystems (channels, agents, tools, models, etc.). It reads configuration from `~/.openclaw/openclaw.json` in JSON5 format, validates it against a strict Zod schema, resolves secrets and includes, and exposes a runtime snapshot to all gateway components. The system supports multiple reload modes, programmatic updates via RPC, and automatic migration from legacy formats.
 
 For channel-specific configuration patterns, see [Channels](#4). For agent and model configuration, see [Agents](#3). For the complete field reference, see page [2.3.1](#2.3.1).
@@ -53,14 +51,14 @@ flowchart TD
     EnvFiles[".env files"]
     Includes["$include files"]
     SecretRefs["SecretRef sources<br/>(env/file/exec)"]
-    
+
     Parser["parseConfigJson5()<br/>JSON5 → object<br/>${VAR} substitution"]
     IncludeResolver["resolveConfigIncludes()<br/>Deep merge"]
     ZodValidation["OpenClawSchema.parse()<br/>Strict validation"]
     SecretResolver["resolveSecretsInConfig()<br/>SecretRef resolution"]
     Migration["migrateLegacyConfig()<br/>Schema migrations"]
     RuntimeSnapshot["getRuntimeConfigSnapshot()<br/>Cached snapshot"]
-    
+
     File --> Parser
     EnvFiles --> Parser
     Includes --> IncludeResolver
@@ -70,7 +68,7 @@ flowchart TD
     ZodValidation --> SecretResolver
     SecretRefs --> SecretResolver
     SecretResolver --> RuntimeSnapshot
-    
+
     RuntimeSnapshot --> Gateway["Gateway Server<br/>(port, bind, auth)"]
     RuntimeSnapshot --> Channels["Channel Monitors<br/>(telegram, discord, etc)"]
     RuntimeSnapshot --> Agents["Agent Runtime<br/>(runEmbeddedAttempt)"]
@@ -96,7 +94,7 @@ flowchart LR
     migrate["migrateLegacyConfig()<br/>Auto-upgrade old formats"]
     resolveIncludes["resolveConfigIncludes()<br/>$include deep merge"]
     resolveSecrets["resolveSecretsInConfig()<br/>Resolve env/file/exec refs"]
-    
+
     loadConfig --> readSnapshot
     readSnapshot --> parseJson5
     parseJson5 --> migrate
@@ -106,14 +104,14 @@ flowchart LR
     resolveSecrets --> RuntimeSnapshot["getRuntimeConfigSnapshot()<br/>In-memory cache"]
 ```
 
-| Function | Purpose | Key Implementation |
-|----------|---------|-------------------|
-| `loadConfig()` | Full config load + cache | Returns cached snapshot or re-parses file |
-| `parseConfigJson5()` | JSON5 parse + env substitution | Supports `${VAR_NAME}` syntax in strings |
-| `OpenClawSchema.parse()` | Zod validation | Root schema with `.strict()` on all objects |
-| `migrateLegacyConfig()` | Schema migrations | Auto-upgrades deprecated field paths |
-| `resolveConfigIncludes()` | $include merge | Supports nested includes up to 10 levels |
-| `resolveSecretsInConfig()` | SecretRef resolution | Resolves `{ $ref: "env:VAR" }` patterns |
+| Function                   | Purpose                        | Key Implementation                          |
+| -------------------------- | ------------------------------ | ------------------------------------------- |
+| `loadConfig()`             | Full config load + cache       | Returns cached snapshot or re-parses file   |
+| `parseConfigJson5()`       | JSON5 parse + env substitution | Supports `${VAR_NAME}` syntax in strings    |
+| `OpenClawSchema.parse()`   | Zod validation                 | Root schema with `.strict()` on all objects |
+| `migrateLegacyConfig()`    | Schema migrations              | Auto-upgrades deprecated field paths        |
+| `resolveConfigIncludes()`  | $include merge                 | Supports nested includes up to 10 levels    |
+| `resolveSecretsInConfig()` | SecretRef resolution           | Resolves `{ $ref: "env:VAR" }` patterns     |
 
 **Sources:** [src/config/zod-schema.ts:206-850](), [docs/gateway/configuration.md:12-604]()
 
@@ -127,7 +125,7 @@ All configuration is validated against `OpenClawSchema`, a comprehensive Zod sch
 flowchart TD
     RawConfig["Raw Config Object<br/>(JSON5 parsed)"]
     OpenClawSchema["OpenClawSchema<br/>z.object().strict()"]
-    
+
     GatewaySchema["gateway:<br/>GatewaySchema"]
     AgentsSchema["agents:<br/>AgentsSchema"]
     ChannelsSchema["channels:<br/>ChannelsSchema"]
@@ -136,7 +134,7 @@ flowchart TD
     CronSchema["cron: z.object()"]
     HooksSchema["hooks: z.object()"]
     SessionSchema["session:<br/>SessionSchema"]
-    
+
     OpenClawSchema --> GatewaySchema
     OpenClawSchema --> AgentsSchema
     OpenClawSchema --> ChannelsSchema
@@ -145,12 +143,13 @@ flowchart TD
     OpenClawSchema --> CronSchema
     OpenClawSchema --> HooksSchema
     OpenClawSchema --> SessionSchema
-    
+
     RawConfig --> OpenClawSchema
     OpenClawSchema --> Validated["Validated Config<br/>(type: OpenClawConfig)"]
 ```
 
 **Key Schema Characteristics:**
+
 - **Strict mode**: `.strict()` on all object schemas rejects unknown keys (except `$schema` at root)
 - **Optional by default**: Most fields have `.optional()` to support partial configs
 - **Custom transforms**: Fields like `meta.lastTouchedAt` auto-coerce numeric timestamps to ISO strings [src/config/zod-schema.ts:217-225]()
@@ -169,16 +168,20 @@ The SecretRef system allows config values to reference secrets stored outside th
 {
   gateway: {
     auth: {
-      token: { source: "env", provider: "default", id: "OPENCLAW_GATEWAY_TOKEN" }
-    }
+      token: {
+        source: 'env',
+        provider: 'default',
+        id: 'OPENCLAW_GATEWAY_TOKEN',
+      },
+    },
   },
   models: {
     providers: {
       openai: {
-        apiKey: { source: "env", provider: "default", id: "OPENAI_API_KEY" }
-      }
-    }
-  }
+        apiKey: { source: 'env', provider: 'default', id: 'OPENAI_API_KEY' },
+      },
+    },
+  },
 }
 ```
 
@@ -188,29 +191,29 @@ The SecretRef system allows config values to reference secrets stored outside th
 flowchart LR
     ConfigField["Config Field<br/>(e.g., apiKey)"]
     SecretInputSchema["SecretInputSchema<br/>z.union([z.string(), SecretRef])"]
-    
+
     PlainString["Plain String<br/>(literal value)"]
     RefObject["SecretRef Object<br/>{source, provider, id}"]
-    
+
     ConfigField --> SecretInputSchema
     SecretInputSchema --> PlainString
     SecretInputSchema --> RefObject
-    
+
     RefObject --> EnvProvider["env: provider<br/>→ process.env[id]"]
     RefObject --> FileProvider["file: provider<br/>→ read file at id"]
     RefObject --> ExecProvider["exec: provider<br/>→ run command id"]
-    
+
     EnvProvider --> ResolvedValue["Resolved String"]
     FileProvider --> ResolvedValue
     ExecProvider --> ResolvedValue
     PlainString --> ResolvedValue
 ```
 
-| Provider | ID Format | Resolution |
-|----------|-----------|------------|
-| `env` | `VAR_NAME` | `process.env.VAR_NAME` |
-| `file` | `/absolute/path` | Read file content, trim whitespace |
-| `exec` | `command args` | Run command, capture stdout, trim |
+| Provider | ID Format        | Resolution                         |
+| -------- | ---------------- | ---------------------------------- |
+| `env`    | `VAR_NAME`       | `process.env.VAR_NAME`             |
+| `file`   | `/absolute/path` | Read file content, trim whitespace |
+| `exec`   | `command args`   | Run command, capture stdout, trim  |
 
 **Sensitive field redaction:** Fields marked with `.register(sensitive)` are automatically redacted in logs [src/config/zod-schema.ts:16](), [src/config/zod-schema.sensitive.ts:1-16]().
 
@@ -227,38 +230,39 @@ The gateway watches `~/.openclaw/openclaw.json` and applies changes automaticall
 ```mermaid
 stateDiagram-v2
     [*] --> FileWatch: chokidar.watch()
-    
+
     FileWatch --> Debounce: File change event
     Debounce --> LoadNew: After debounceMs
     LoadNew --> Diff: Compare old vs new
-    
+
     Diff --> HotApply: Safe change + (hot|hybrid)
     Diff --> Restart: Critical change + hybrid
     Diff --> LogWarn: Critical change + hot
     Diff --> Ignore: Any change + off
-    
+
     HotApply --> [*]: Changes applied
     Restart --> [*]: Gateway restarted
     LogWarn --> [*]: No action
     Ignore --> [*]: No action
 ```
 
-| Mode | Behavior | When to use |
-|------|----------|-------------|
-| **`hybrid`** (default) | Hot-apply safe changes instantly; auto-restart for critical ones | Production (safest) |
-| **`hot`** | Hot-apply safe changes only; log warnings for critical ones | Manual restart control |
-| **`restart`** | Restart on any config change | Testing/development |
-| **`off`** | Disable file watching entirely | External orchestration |
+| Mode                   | Behavior                                                         | When to use            |
+| ---------------------- | ---------------------------------------------------------------- | ---------------------- |
+| **`hybrid`** (default) | Hot-apply safe changes instantly; auto-restart for critical ones | Production (safest)    |
+| **`hot`**              | Hot-apply safe changes only; log warnings for critical ones      | Manual restart control |
+| **`restart`**          | Restart on any config change                                     | Testing/development    |
+| **`off`**              | Disable file watching entirely                                   | External orchestration |
 
 **Configuration:**
+
 ```json5
 {
   gateway: {
     reload: {
-      mode: "hybrid",        // hot | restart | hybrid | off
-      debounceMs: 300        // Coalesce rapid edits
-    }
-  }
+      mode: 'hybrid', // hot | restart | hybrid | off
+      debounceMs: 300, // Coalesce rapid edits
+    },
+  },
 }
 ```
 
@@ -266,19 +270,20 @@ stateDiagram-v2
 
 The system classifies config fields into "hot-apply" and "restart-required" categories:
 
-| Category | Fields | Restart? |
-|----------|--------|----------|
-| Channels | `channels.*`, `web.*` | No |
-| Agents & Models | `agents.*`, `models.*`, `bindings.*` | No |
-| Automation | `hooks.*`, `cron.*` | No |
-| Sessions & Messages | `session.*`, `messages.*` | No |
-| Tools & Media | `tools.*`, `browser.*`, `skills.*` | No |
-| **Gateway Server** | `gateway.port`, `gateway.bind`, `gateway.auth.*` | **Yes** |
-| **Infrastructure** | `discovery.*`, `plugins.*` | **Yes** |
+| Category            | Fields                                           | Restart? |
+| ------------------- | ------------------------------------------------ | -------- |
+| Channels            | `channels.*`, `web.*`                            | No       |
+| Agents & Models     | `agents.*`, `models.*`, `bindings.*`             | No       |
+| Automation          | `hooks.*`, `cron.*`                              | No       |
+| Sessions & Messages | `session.*`, `messages.*`                        | No       |
+| Tools & Media       | `tools.*`, `browser.*`, `skills.*`               | No       |
+| **Gateway Server**  | `gateway.port`, `gateway.bind`, `gateway.auth.*` | **Yes**  |
+| **Infrastructure**  | `discovery.*`, `plugins.*`                       | **Yes**  |
 
 **Exceptions:** `gateway.reload` and `gateway.remote` do **not** trigger restarts when changed [docs/gateway/configuration.md:380-390]()
 
 **Implementation:**
+
 - Field classification logic: [src/gateway/config-reload.ts:100-200]()
 - Hot-reload orchestration: [src/gateway/config-reload.ts:200-400]()
 - Restart coordination: [src/gateway/restart.ts:1-300]()
@@ -296,23 +301,24 @@ Config files can be split and composed using `$include` directives, which suppor
 ```mermaid
 flowchart TD
     RootConfig["openclaw.json"]
-    
+
     SingleInclude["{ agents: { $include: './agents.json5' } }"]
     ArrayInclude["{ broadcast: { $include: ['a.json5', 'b.json5'] } }"]
-    
+
     RootConfig --> SingleInclude
     RootConfig --> ArrayInclude
-    
+
     SingleInclude --> ReplaceObject["Replace entire 'agents' object"]
     ArrayInclude --> DeepMerge["Deep merge array in order<br/>(later wins)"]
-    
+
     ReplaceObject --> Siblings["Sibling keys override<br/>included values"]
     DeepMerge --> Siblings
-    
+
     Siblings --> FinalConfig["Final Merged Config"]
 ```
 
 **Semantics:**
+
 - **Single file**: `{ $include: "./file.json5" }` replaces the containing object
 - **Array of files**: `{ $include: ["a.json5", "b.json5"] }` deep-merges in order (later wins)
 - **Sibling keys**: Merged after includes, overriding included values
@@ -320,18 +326,20 @@ flowchart TD
 - **Relative paths**: Resolved relative to the including file
 
 **Example:**
+
 ```json5
 // ~/.openclaw/openclaw.json
 {
   gateway: { port: 18789 },
-  agents: { $include: "./agents.json5" },
+  agents: { $include: './agents.json5' },
   broadcast: {
-    $include: ["./clients/a.json5", "./clients/b.json5"]
-  }
+    $include: ['./clients/a.json5', './clients/b.json5'],
+  },
 }
 ```
 
 **Error handling:**
+
 - Missing files, parse errors, and circular includes produce clear diagnostics
 - Validation happens **after** full include resolution
 
@@ -352,32 +360,34 @@ sequenceDiagram
     participant Validator as Zod Validator
     participant FileSystem as Config File
     participant Restarter as Restart Manager
-    
+
     Client->>GatewayRPC: config.get()
     GatewayRPC-->>Client: { raw, hash }
-    
+
     Client->>GatewayRPC: config.patch({ raw, baseHash })
     GatewayRPC->>Validator: Merge + validate
     Validator-->>GatewayRPC: Valid or errors
     GatewayRPC->>FileSystem: Atomic write
     GatewayRPC->>Restarter: Schedule restart (if needed)
     Restarter-->>Client: Restart sentinel
-    
+
     Note over GatewayRPC,Restarter: 30s cooldown between restarts
 ```
 
 **Rate Limiting:**
+
 - Control-plane writes (`config.apply`, `config.patch`, `update.run`) are limited to **3 requests per 60 seconds** per `deviceId+clientIp`
 - When limited, RPC returns `UNAVAILABLE` with `retryAfterMs`
 
-| Method | Purpose | Key Params |
-|--------|---------|------------|
-| `config.get` | Fetch current config + hash | — |
-| `config.apply` | Full config replacement | `raw`, `baseHash`, `sessionKey?` |
-| `config.patch` | Partial update (JSON merge patch) | `raw`, `baseHash`, `sessionKey?` |
-| `config.schema.lookup` | Inspect single config path | `path` |
+| Method                 | Purpose                           | Key Params                       |
+| ---------------------- | --------------------------------- | -------------------------------- |
+| `config.get`           | Fetch current config + hash       | —                                |
+| `config.apply`         | Full config replacement           | `raw`, `baseHash`, `sessionKey?` |
+| `config.patch`         | Partial update (JSON merge patch) | `raw`, `baseHash`, `sessionKey?` |
+| `config.schema.lookup` | Inspect single config path        | `path`                           |
 
 **Restart coordination:**
+
 - Pending restart requests are coalesced while one is in-flight
 - 30-second cooldown applies between restart cycles
 - Optional `sessionKey` param enables post-restart wake-up ping
@@ -397,18 +407,19 @@ flowchart TD
     DotEnvProfile["~/.openclaw/.env"]
     ShellEnv["Login Shell Env<br/>(optional)"]
     ConfigEnv["config.env.vars"]
-    
+
     ProcessEnv --> Merged["Merged Runtime Env"]
     DotEnvCwd -.->|"no override"| Merged
     DotEnvProfile -.->|"no override"| Merged
     ShellEnv -.->|"if enabled"| Merged
     ConfigEnv -->|"inline vars"| Merged
-    
+
     Merged --> Substitution["${VAR} substitution<br/>in config strings"]
     Merged --> SecretRef["env:VAR SecretRef<br/>resolution"]
 ```
 
 **Load order (no override):**
+
 1. `process.env` (highest precedence)
 2. `.env` from current working directory
 3. `~/.openclaw/.env` (global fallback)
@@ -416,26 +427,28 @@ flowchart TD
 5. `config.env.vars` (inline config vars)
 
 **Shell environment import:**
+
 ```json5
 {
   env: {
     shellEnv: {
-      enabled: true,      // Run login shell to import missing vars
-      timeoutMs: 15000    // Shell resolution timeout
+      enabled: true, // Run login shell to import missing vars
+      timeoutMs: 15000, // Shell resolution timeout
     },
     vars: {
-      GROQ_API_KEY: "gsk-..."  // Inline var injection
-    }
-  }
+      GROQ_API_KEY: 'gsk-...', // Inline var injection
+    },
+  },
 }
 ```
 
 **Substitution syntax:**
+
 ```json5
 {
   gateway: {
-    auth: { token: "${OPENCLAW_GATEWAY_TOKEN}" }
-  }
+    auth: { token: '${OPENCLAW_GATEWAY_TOKEN}' },
+  },
 }
 ```
 
@@ -453,7 +466,7 @@ flowchart LR
     Detector["detectLegacyFields()"]
     Migrator["migrateLegacyConfig()"]
     NewConfig["Migrated Config<br/>(e.g. channels.telegram.dmPolicy)"]
-    
+
     OldConfig --> Detector
     Detector -->|"legacy detected"| Migrator
     Migrator --> NewConfig
@@ -462,14 +475,15 @@ flowchart LR
 
 **Migration examples:**
 
-| Legacy Field | New Field | Notes |
-|--------------|-----------|-------|
-| `channels.telegram.dm.policy` | `channels.telegram.dmPolicy` | DM policy flattening |
-| `channels.discord.dm.allowFrom` | `channels.discord.allowFrom` | DM allowlist flattening |
-| `heartbeat` (root) | `agents.defaults.heartbeat` | Agent-scoped heartbeat |
-| `channels.telegram.groups."*".requireMention: false` | `requireMention: true` (new default) | Mention gating flip |
+| Legacy Field                                         | New Field                            | Notes                   |
+| ---------------------------------------------------- | ------------------------------------ | ----------------------- |
+| `channels.telegram.dm.policy`                        | `channels.telegram.dmPolicy`         | DM policy flattening    |
+| `channels.discord.dm.allowFrom`                      | `channels.discord.allowFrom`         | DM allowlist flattening |
+| `heartbeat` (root)                                   | `agents.defaults.heartbeat`          | Agent-scoped heartbeat  |
+| `channels.telegram.groups."*".requireMention: false` | `requireMention: true` (new default) | Mention gating flip     |
 
 **Behavior:**
+
 - Migrations run **before** Zod validation
 - Legacy fields are removed after successful migration
 - Migration failures block startup; run `openclaw doctor --fix` to repair
@@ -489,9 +503,9 @@ The validated, resolved config is cached as a runtime snapshot. All gateway subs
 flowchart TD
     LoadConfig["loadConfig()<br/>Parse + validate + cache"]
     Snapshot["Runtime Snapshot<br/>In-memory cache<br/>(OpenClawConfig type)"]
-    
+
     LoadConfig --> Snapshot
-    
+
     Snapshot --> Gateway["Gateway Server<br/>(port, bind, auth)"]
     Snapshot --> Channels["Channel Monitors<br/>(telegram, discord, etc)"]
     Snapshot --> Agents["Agent Runtime<br/>(runEmbeddedAttempt)"]
@@ -499,12 +513,13 @@ flowchart TD
     Snapshot --> Browser["Browser Controller<br/>(CDP profiles)"]
     Snapshot --> Cron["Cron Manager<br/>(job scheduling)"]
     Snapshot --> Memory["Memory Managers<br/>(MemoryIndexManager.get)"]
-    
+
     HotReload["Hot Reload Event<br/>(file watcher)"] -.->|"setRuntimeConfigSnapshot()"| Snapshot
     RpcPatch["config.patch RPC"] -.->|"write + reload"| Snapshot
 ```
 
 **Cache invalidation:**
+
 - **Hot reload**: Snapshot swapped atomically after successful validation
 - **Gateway restart**: Cache cleared on process start
 - **Manual**: Used by test harnesses to reset config state
@@ -525,27 +540,27 @@ The config system includes rich metadata for Control UI rendering, CLI help text
 flowchart TD
     OpenClawSchema["OpenClawSchema<br/>(Zod root)"]
     BaseHints["buildBaseHints()<br/>(FIELD_LABELS + FIELD_HELP)"]
-    
+
     PluginMetadata["Plugin UI Metadata<br/>(configSchema, configUiHints)"]
     ChannelMetadata["Channel UI Metadata<br/>(configSchema, configUiHints)"]
-    
+
     OpenClawSchema --> ToJSONSchema["schema.toJSONSchema()<br/>(draft-07)"]
     BaseHints --> ApplySensitive["applySensitiveHints()<br/>Mark sensitive fields"]
-    
+
     ToJSONSchema --> MergePlugins["applyPluginSchemas()<br/>Merge plugin.configSchema"]
     ToJSONSchema --> MergeChannels["applyChannelSchemas()<br/>Merge channel.configSchema"]
-    
+
     PluginMetadata --> MergePlugins
     ChannelMetadata --> MergeChannels
     PluginMetadata --> ApplyPluginHints["applyPluginHints()<br/>Merge plugin.configUiHints"]
     ChannelMetadata --> ApplyChannelHints["applyChannelHints()<br/>Merge channel.configUiHints"]
-    
+
     MergePlugins --> FinalSchema["ConfigSchemaResponse"]
     MergeChannels --> FinalSchema
     ApplySensitive --> ApplyPluginHints
     ApplyPluginHints --> ApplyChannelHints
     ApplyChannelHints --> FinalHints["uiHints"]
-    
+
     FinalSchema --> ControlUI["Control UI<br/>Form Renderer"]
     FinalHints --> ControlUI
 ```
@@ -557,27 +572,29 @@ flowchart LR
     LookupPath["lookupConfigSchema(path)<br/>(e.g., 'agents.list.0.tools')"]
     NormalizePath["normalizeLookupPath()<br/>Convert [0] → .0"]
     SplitPath["splitLookupPath()<br/>Split on dots"]
-    
+
     LookupPath --> NormalizePath
     NormalizePath --> SplitPath
     SplitPath --> ResolveSchema["resolveLookupChildSchema()<br/>Walk properties/items"]
-    
+
     ResolveSchema --> StripSchema["stripSchemaForLookup()<br/>Keep type/enum/const only"]
     ResolveSchema --> BuildChildren["buildLookupChildren()<br/>List child keys"]
-    
+
     StripSchema --> Result["ConfigSchemaLookupResult"]
     BuildChildren --> Result
-    
+
     Result --> CLI["CLI config commands"]
     Result --> ControlUI["Control UI navigation"]
 ```
 
 **Metadata sources:**
+
 - **Field labels**: [src/config/schema.labels.ts:1-500]() — Human-readable field names
 - **Field help**: [src/config/schema.help.ts:1-500]() — Detailed descriptions and guidance
 - **UI hints**: Merged from plugins/channels via `applyPluginHints()`, `applyChannelHints()` [src/config/schema.ts:167-241]()
 
 **Usage:**
+
 - **Control UI**: Calls `buildConfigSchema()` to render forms with labels, help text, and validation
 - **CLI**: Uses `lookupConfigSchema()` for path-specific field metadata
 - **Schema introspection**: Gateway exposes `config.schema.lookup` RPC for dynamic field discovery
@@ -594,19 +611,20 @@ Validation failures produce structured error messages with exact field paths and
 flowchart TD
     ValidateCall["validateConfigObject()"]
     ZodParse["schema.parse(config)"]
-    
+
     ZodParse -->|"Success"| ValidConfig["Valid Config"]
     ZodParse -->|"ZodError"| FormatErrors["formatZodErrors()"]
-    
+
     FormatErrors --> ErrorList["Structured Error List<br/>(path, message, code)"]
     ErrorList --> CliOutput["CLI Error Display"]
     ErrorList --> LogOutput["Log Output"]
     ErrorList --> RpcError["RPC Error Response"]
-    
+
     CliOutput --> DoctorFix["openclaw doctor --fix"]
 ```
 
 **Error structure:**
+
 ```typescript
 {
   path: ["channels", "telegram", "dmPolicy"],
@@ -616,6 +634,7 @@ flowchart TD
 ```
 
 **Error handling paths:**
+
 - **Startup**: Gateway refuses to boot; only diagnostic commands work (`doctor`, `logs`, `health`, `status`)
 - **Hot reload**: Changes rejected; gateway continues with old config
 - **RPC**: `config.apply`/`config.patch` return detailed validation errors
@@ -630,27 +649,29 @@ flowchart TD
 ```mermaid
 flowchart TD
     Profile["Profile Selection"]
-    
+
     Profile -->|"--dev"| DevPath["~/.openclaw-dev/"]
     Profile -->|"--profile NAME"| CustomPath["~/.openclaw-NAME/"]
     Profile -->|"default"| DefaultPath["~/.openclaw/"]
-    
+
     DefaultPath --> ConfigFile["openclaw.json"]
     DefaultPath --> EnvFile[".env"]
     DefaultPath --> CredDir["credentials/"]
     DefaultPath --> StateDir["state/"]
-    
+
     DevPath --> ConfigFile
     CustomPath --> ConfigFile
 ```
 
 **Standard paths:**
+
 - **Config file**: `~/.openclaw/openclaw.json` (JSON5 format)
 - **Global env**: `~/.openclaw/.env`
 - **Credentials**: `~/.openclaw/credentials/` (channel auth, OAuth tokens)
 - **State**: `~/.openclaw/state/` (sessions, cron, pairing store)
 
 **Profile isolation:**
+
 - `--dev`: Shifts all paths to `~/.openclaw-dev/` and default ports (+100 offset)
 - `--profile NAME`: Shifts all paths to `~/.openclaw-NAME/`
 - Profiles are fully isolated; no shared state

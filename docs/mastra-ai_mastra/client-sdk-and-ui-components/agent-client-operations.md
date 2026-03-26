@@ -12,7 +12,7 @@ The following files were used as context for generating this wiki page:
 - [client-sdks/client-js/src/resources/index.ts](client-sdks/client-js/src/resources/index.ts)
 - [client-sdks/client-js/src/types.ts](client-sdks/client-js/src/types.ts)
 - [e2e-tests/create-mastra/create-mastra.test.ts](e2e-tests/create-mastra/create-mastra.test.ts)
-- [packages/core/src/agent/__tests__/dynamic-model-fallback.test.ts](packages/core/src/agent/__tests__/dynamic-model-fallback.test.ts)
+- [packages/core/src/agent/**tests**/dynamic-model-fallback.test.ts](packages/core/src/agent/__tests__/dynamic-model-fallback.test.ts)
 - [packages/core/src/memory/mock.ts](packages/core/src/memory/mock.ts)
 - [packages/core/src/storage/mock.test.ts](packages/core/src/storage/mock.test.ts)
 - [packages/core/src/stream/aisdk/v5/transform.test.ts](packages/core/src/stream/aisdk/v5/transform.test.ts)
@@ -30,8 +30,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the client-side operations for interacting with agents through the `@mastra/client-js` SDK. It covers the `Agent` resource class, its methods for generating responses, streaming, client-side tool execution, voice operations, and network collaboration.
 
 For server-side agent implementation and configuration, see [Agent System](#3). For workflow client operations, see [Workflow Client Operations](#10.3).
@@ -47,7 +45,7 @@ graph TB
         Agent["Agent<br/>(BaseResource)"]
         AgentVoice["AgentVoice"]
     end
-    
+
     subgraph "HTTP API"
         DETAILS["/agents/:id"]
         GENERATE["/agents/:id/generate"]
@@ -58,16 +56,16 @@ graph TB
         CLONE["/agents/:id/clone"]
         VOICE_ENDPOINTS["/agents/:id/voice/*"]
     end
-    
+
     subgraph "Response Processing"
         ToolExecution["executeToolCallAndRespond()"]
         StreamProcessor["processMastraStream()"]
         ChatProcessor["processChatResponse()"]
     end
-    
+
     MastraClient -->|getAgent| Agent
     Agent -->|has| AgentVoice
-    
+
     Agent -->|GET| DETAILS
     Agent -->|POST| GENERATE
     Agent -->|POST| STREAM
@@ -76,12 +74,12 @@ graph TB
     Agent -->|POST| NETWORK
     Agent -->|POST| CLONE
     AgentVoice -->|calls| VOICE_ENDPOINTS
-    
+
     GENERATE -->|finishReason: tool-calls| ToolExecution
     STREAM -->|finishReason: tool-calls| ToolExecution
     ToolExecution -->|recursive call| GENERATE
     ToolExecution -->|recursive call| STREAM
-    
+
     STREAM -->|ReadableStream| StreamProcessor
     STREAM_LEGACY -->|ReadableStream| ChatProcessor
 ```
@@ -111,7 +109,7 @@ graph LR
     ClientTool["Execute Client Tool"]
     RecursiveCall["Recursive generate()"]
     Return["Return FullOutput"]
-    
+
     Client -->|messages, options| Generate
     Generate -->|HTTP Request| Server
     Server -->|response| ToolCheck
@@ -127,6 +125,7 @@ graph LR
 [client-sdks/client-js/src/resources/agent.ts:321-331]()
 
 **Key Features:**
+
 - **Structured Output**: Pass `structuredOutput` with a Zod schema or JSON Schema to get validated, typed responses
 - **Client Tools**: Tools executed on the client side via the `clientTools` parameter
 - **Memory Management**: Supports `memory` parameter with `resource` and `thread` for conversation persistence
@@ -154,7 +153,7 @@ graph TB
     ProcessRequest["Process Parameters<br/>- zodToJsonSchema<br/>- parseClientRequestContext<br/>- processClientTools"]
     HTTPRequest["POST /agents/:id/stream"]
     RecursiveStream["processStreamResponse()"]
-    
+
     subgraph "Response Stream Processing"
         CreateStreams["Create TransformStream"]
         PipeResponse["Pipe Server Response"]
@@ -165,9 +164,9 @@ graph TB
         CheckToolCalls{"finishReason ==<br/>tool-calls?"}
         RecursiveCall["Recursive stream()"]
     end
-    
+
     ReturnResponse["Return Response<br/>with .processDataStream()"]
-    
+
     StreamCall --> ProcessRequest
     ProcessRequest --> HTTPRequest
     HTTPRequest --> RecursiveStream
@@ -227,7 +226,7 @@ graph TB
         StatelessMessages["Full conversation<br/>(include original messages)"]
         RecursiveCall["Recursive agent.generate()<br/>or agent.stream()"]
     end
-    
+
     Request --> ServerGen
     ServerGen --> ToolCallResponse
     ToolCallResponse --> CheckTool
@@ -279,7 +278,7 @@ graph LR
     ClientExec["Execute Client Tool"]
     RecursiveGen["Recursive generate()"]
     Return["Return GenerateReturn"]
-    
+
     LegacyCall --> ParamTransform
     ParamTransform --> Request
     Request --> ToolCheck
@@ -295,12 +294,12 @@ graph LR
 
 **Differences from vNext API:**
 
-| Feature | Legacy | vNext |
-|---------|--------|-------|
-| Messages Parameter | Combined with options in single object | Separate first parameter |
-| Output Schema | `output` or `experimental_output` keys | `structuredOutput.schema` |
-| Memory | Separate `threadId` and `resourceId` keys | `memory: { thread, resource }` |
-| Endpoint | `/generate-legacy` | `/generate` |
+| Feature            | Legacy                                    | vNext                          |
+| ------------------ | ----------------------------------------- | ------------------------------ |
+| Messages Parameter | Combined with options in single object    | Separate first parameter       |
+| Output Schema      | `output` or `experimental_output` keys    | `structuredOutput.schema`      |
+| Memory             | Separate `threadId` and `resourceId` keys | `memory: { thread, resource }` |
+| Endpoint           | `/generate-legacy`                        | `/generate`                    |
 
 Sources: [client-sdks/client-js/src/resources/agent.ts:234-319](), [client-sdks/client-js/src/types.ts:136-154]()
 
@@ -333,7 +332,7 @@ graph TB
     NetworkCall["agent.network()"]
     PrepareParams["Prepare Parameters<br/>- messages<br/>- structuredOutput<br/>- clientTools<br/>- requestContext"]
     HTTPRequest["POST /agents/:id/network"]
-    
+
     subgraph "Network Stream Processing"
         NetworkStream["MastraAgentNetworkStream"]
         RoutingChunk{"type ==<br/>routing-decision?"}
@@ -341,9 +340,9 @@ graph TB
         CompletionChunk{"type ==<br/>completion?"}
         ProcessChunk["Process Chunk"]
     end
-    
+
     ReturnResponse["Return Response<br/>with .processDataStream()"]
-    
+
     NetworkCall --> PrepareParams
     PrepareParams --> HTTPRequest
     HTTPRequest --> NetworkStream
@@ -358,11 +357,11 @@ graph TB
 
 **Network Stream Events:**
 
-| Event Type | Payload | Description |
-|------------|---------|-------------|
+| Event Type         | Payload                                                 | Description                                     |
+| ------------------ | ------------------------------------------------------- | ----------------------------------------------- |
 | `routing-decision` | `{primitiveId, primitiveType, prompt, selectionReason}` | Routing agent decides which primitive to invoke |
-| `primitive-result` | `{primitiveId, result, metadata}` | Result from executed primitive |
-| `completion` | `{finalResult, steps}` | Network execution completed |
+| `primitive-result` | `{primitiveId, result, metadata}`                       | Result from executed primitive                  |
+| `completion`       | `{finalResult, steps}`                                  | Network execution completed                     |
 
 [client-sdks/client-js/src/resources/agent.ts:1135-1195]()
 
@@ -376,27 +375,27 @@ The `AgentVoice` class provides voice input/output capabilities for agents.
 graph LR
     Agent["Agent Instance"]
     Voice["agent.voice"]
-    
+
     subgraph "Voice Operations"
         Speak["speak(text, options)"]
         Listen["listen(audio, options)"]
         GetSpeakers["getSpeakers()"]
         GetListener["getListener()"]
     end
-    
+
     subgraph "API Endpoints"
         SpeakAPI["/agents/:id/voice/speak"]
         ListenAPI["/agents/:id/voice/listen"]
         SpeakersAPI["/agents/:id/voice/speakers"]
         ListenerAPI["/agents/:id/voice/listener"]
     end
-    
+
     Agent -->|property| Voice
     Voice --> Speak
     Voice --> Listen
     Voice --> GetSpeakers
     Voice --> GetListener
-    
+
     Speak -->|POST| SpeakAPI
     Listen -->|POST| ListenAPI
     GetSpeakers -->|GET| SpeakersAPI
@@ -439,13 +438,13 @@ Creates a stored agent copy from a code-defined agent:
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `newId` | `string?` | ID for cloned agent (derived from name if omitted) |
-| `newName` | `string?` | Name for cloned agent (defaults to "{name} (Clone)") |
-| `metadata` | `Record<string, unknown>?` | Additional metadata |
-| `authorId` | `string?` | Author identifier |
-| `requestContext` | `RequestContext?` | Context for resolving dynamic configuration |
+| Parameter        | Type                       | Description                                          |
+| ---------------- | -------------------------- | ---------------------------------------------------- |
+| `newId`          | `string?`                  | ID for cloned agent (derived from name if omitted)   |
+| `newName`        | `string?`                  | Name for cloned agent (defaults to "{name} (Clone)") |
+| `metadata`       | `Record<string, unknown>?` | Additional metadata                                  |
+| `authorId`       | `string?`                  | Author identifier                                    |
+| `requestContext` | `RequestContext?`          | Context for resolving dynamic configuration          |
 
 ### enhanceInstructions()
 
@@ -462,19 +461,19 @@ All agent methods process parameters through a consistent pipeline before transm
 ```mermaid
 graph TB
     RawParams["Raw Parameters<br/>from Client Code"]
-    
+
     subgraph "Processing Steps"
         ZodConvert["zodToJsonSchema()<br/>Convert Zod schemas<br/>to JSON Schema"]
         ContextParse["parseClientRequestContext()<br/>Serialize RequestContext<br/>to plain object"]
         ToolProcess["processClientTools()<br/>Normalize tool schemas"]
     end
-    
+
     ProcessedParams["Processed Parameters<br/>for HTTP Request"]
-    
+
     RawParams -->|structuredOutput.schema| ZodConvert
     RawParams -->|requestContext| ContextParse
     RawParams -->|clientTools| ToolProcess
-    
+
     ZodConvert --> ProcessedParams
     ContextParse --> ProcessedParams
     ToolProcess --> ProcessedParams

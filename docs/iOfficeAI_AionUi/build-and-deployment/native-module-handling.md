@@ -14,8 +14,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document explains how AionUi handles native Node.js modules (modules with C/C++ bindings) during the build and packaging process. It covers platform-specific rebuild strategies, ASAR unpacking requirements, and the configuration that ensures native modules work correctly in the packaged Electron application.
 
 For information about the overall build pipeline and CI/CD workflow, see [Build Pipeline](#11.1). For details on the two-phase build process using electron-vite and electron-builder, see [Two-Phase Build Process](#11.2).
@@ -24,12 +22,12 @@ For information about the overall build pipeline and CI/CD workflow, see [Build 
 
 AionUi uses several native modules that require compilation for the target platform and Electron version:
 
-| Module | Purpose | Critical Path |
-|--------|---------|---------------|
-| `better-sqlite3` | SQLite database for conversation history | Must be unpacked from ASAR |
+| Module              | Purpose                                   | Critical Path              |
+| ------------------- | ----------------------------------------- | -------------------------- |
+| `better-sqlite3`    | SQLite database for conversation history  | Must be unpacked from ASAR |
 | `bcrypt`/`bcryptjs` | Password hashing for WebUI authentication | Must be unpacked from ASAR |
-| `node-pty` | Pseudo-terminal for MCP stdio connections | Must be unpacked from ASAR |
-| `sharp` | Image processing (via `@mapbox/sharp-*`) | Optional dependency |
+| `node-pty`          | Pseudo-terminal for MCP stdio connections | Must be unpacked from ASAR |
+| `sharp`             | Image processing (via `@mapbox/sharp-*`)  | Optional dependency        |
 
 These modules contain compiled `.node` binaries that must match both the target operating system/architecture and the Electron version used by AionUi.
 
@@ -46,7 +44,7 @@ graph TB
         START --> VITE["electron-vite build"]
         VITE --> PLATFORM{Platform}
     end
-    
+
     subgraph "Windows Strategy"
         PLATFORM -->|Windows| WIN_STRATEGY["prebuild-install strategy"]
         WIN_STRATEGY --> PREBUILD["prebuild-install checks"]
@@ -57,18 +55,18 @@ graph TB
         WIN_FALLBACK --> WIN_REBUILD["Rebuild from source<br/>with node-gyp"]
         WIN_REBUILD --> WIN_DONE
     end
-    
+
     subgraph "macOS/Linux Strategy"
         PLATFORM -->|macOS/Linux| UNIX_STRATEGY["electron-builder strategy"]
         UNIX_STRATEGY --> INSTALL_DEPS["electron-builder<br/>install-app-deps"]
         INSTALL_DEPS --> UNIX_REBUILD["Rebuild all native modules<br/>for Electron"]
         UNIX_REBUILD --> UNIX_DONE["macOS/Linux natives ready"]
     end
-    
+
     WIN_DONE --> BUILDER["electron-builder package"]
     UNIX_DONE --> BUILDER
     BUILDER --> OUTPUT["Platform distributables"]
-    
+
     style WIN_STRATEGY fill:#f9f9f9
     style UNIX_STRATEGY fill:#f9f9f9
     style PREBUILD fill:#fff4e6
@@ -122,7 +120,7 @@ graph LR
         MATRIX --> WIN_ARM["windows-2022 + ARM64"]
         MATRIX --> LINUX["ubuntu-latest<br/>x64 + ARM64"]
     end
-    
+
     subgraph "Architecture Detection"
         MAC_ARM --> ARCH_FLAG_1["--arm64"]
         MAC_X64 --> ARCH_FLAG_2["--x64"]
@@ -130,7 +128,7 @@ graph LR
         WIN_ARM --> ARCH_FLAG_4["--arm64 + MSVC ARM64"]
         LINUX --> ARCH_FLAG_5["--x64 --arm64"]
     end
-    
+
     subgraph "Build Script"
         ARCH_FLAG_1 --> BUILD_SCRIPT["build-with-builder.js"]
         ARCH_FLAG_2 --> BUILD_SCRIPT
@@ -139,7 +137,7 @@ graph LR
         ARCH_FLAG_5 --> BUILD_SCRIPT
         BUILD_SCRIPT --> TARGET_ARCH["ELECTRON_BUILDER_ARCH env var"]
     end
-    
+
     subgraph "Native Module Compilation"
         TARGET_ARCH --> REBUILD["Native module rebuild<br/>for target architecture"]
         REBUILD --> VERIFY["Verify .node binaries<br/>match target arch"]
@@ -165,20 +163,20 @@ graph TB
         FILES --> ASAR["app.asar archive"]
         FILES --> UNPACKED["app.asar.unpacked/<br/>directory"]
     end
-    
+
     subgraph "Native Modules - Must Unpack"
         UNPACKED --> SQLITE["better-sqlite3/**/*<br/>.node binaries"]
         UNPACKED --> BCRYPT["bcrypt/**/*<br/>.node binaries"]
         UNPACKED --> PTY["node-pty/**/*<br/>pty.node binaries"]
         UNPACKED --> DEPS["Supporting modules<br/>prebuild-install<br/>node-gyp-build<br/>bindings"]
     end
-    
+
     subgraph "Special Cases"
         UNPACKED --> OPEN["open/**/*<br/>Windows ASAR compat"]
         UNPACKED --> TREESITTER["web-tree-sitter/**/*<br/>WASM files for fs.readFile"]
         UNPACKED --> BUILTIN["rules/ skills/<br/>fs.readdir with withFileTypes"]
     end
-    
+
     subgraph "Runtime Access"
         SQLITE --> RUNTIME["Electron runtime"]
         BCRYPT --> RUNTIME
@@ -188,7 +186,7 @@ graph TB
         TREESITTER --> RUNTIME
         BUILTIN --> RUNTIME
     end
-    
+
     style ASAR fill:#f9f9f9
     style UNPACKED fill:#fff4e6
 ```
@@ -219,6 +217,7 @@ asarUnpack:                    # What gets unpacked from ASAR
 ```
 
 **Why both are needed:**
+
 - `files` includes the module in the package
 - `asarUnpack` extracts it to `app.asar.unpacked/` at package time
 - Electron runtime resolves native modules from unpacked directory
@@ -244,12 +243,13 @@ This section ensures native modules are rebuilt against the correct Electron ver
 ### electron-builder.yml Directives
 
 ```yaml
-npmRebuild: false              # Skip npm rebuild
-buildDependenciesFromSource: false  # Don't recompile all deps
-nodeGypRebuild: false          # Disable global node-gyp rebuild
+npmRebuild: false # Skip npm rebuild
+buildDependenciesFromSource: false # Don't recompile all deps
+nodeGypRebuild: false # Disable global node-gyp rebuild
 ```
 
 These flags disable electron-builder's default rebuild behavior because:
+
 - Windows uses `prebuild-install` strategy (handled by npm postinstall)
 - macOS/Linux use explicit `install-app-deps` when needed
 - Global rebuilds are inefficient and can cause issues with mixed architectures
@@ -263,7 +263,7 @@ The build script sets ASAR compression level based on environment:
 ```javascript
 // CI: maximum compression (level 9) for smallest size
 // Local: normal compression (level 7) for 30-50% faster builds
-process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL = isCI ? '9' : '7';
+process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL = isCI ? '9' : '7'
 ```
 
 Native modules in `app.asar.unpacked/` are not compressed, ensuring optimal loading performance.
@@ -285,25 +285,25 @@ graph TB
         SQLITE --> NODE_GYP["node-gyp-build"]
         SQLITE --> DETECT_LIBC["detect-libc"]
     end
-    
+
     subgraph "bcrypt Dependencies"
         BCRYPT["bcrypt"]
         BCRYPT --> BINDINGS2["bindings"]
         BCRYPT --> NODE_GYP2["node-gyp-build"]
     end
-    
+
     subgraph "node-pty Dependencies"
         PTY["node-pty"]
         PTY --> BINDINGS3["bindings"]
         PTY --> NODE_GYP3["node-gyp-build"]
     end
-    
+
     subgraph "sharp Dependencies"
         SHARP["sharp"]
         SHARP --> MAPBOX["@mapbox/sharp-*"]
         SHARP --> DETECT_LIBC2["detect-libc"]
     end
-    
+
     subgraph "Packaging"
         BINDINGS --> FILES["electron-builder.yml<br/>files section"]
         PREBUILD --> FILES
@@ -362,7 +362,7 @@ graph LR
         INSTALLER --> VERIFY[".onVerifyInstDir function"]
         VERIFY --> CHECK{Check System<br/>Architecture}
     end
-    
+
     subgraph "x64 Installer"
         CHECK -->|x64 build| X64_SCRIPT["windows-installer-x64.nsh"]
         X64_SCRIPT --> X64_CHECK_1{RunningX64?}
@@ -371,7 +371,7 @@ graph LR
         X64_CHECK_2 -->|Yes| X64_BLOCK_ARM["Block: System is ARM64"]
         X64_CHECK_2 -->|No| X64_ALLOW["Allow installation"]
     end
-    
+
     subgraph "ARM64 Installer"
         CHECK -->|ARM64 build| ARM_SCRIPT["windows-installer-arm64.nsh"]
         ARM_SCRIPT --> ARM_CHECK{IsNativeARM64?}
@@ -389,11 +389,13 @@ These scripts are automatically included during single-architecture Windows buil
 After packaging, verify native modules are correctly handled:
 
 1. **Check unpacked directory exists:**
+
    ```
    out/mac-arm64/AionUi.app/Contents/Resources/app.asar.unpacked/
    ```
 
 2. **Verify native binaries match target architecture:**
+
    ```bash
    file app.asar.unpacked/node_modules/better-sqlite3/build/Release/better_sqlite3.node
    ```

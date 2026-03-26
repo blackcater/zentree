@@ -21,11 +21,10 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The tools system enables agents to interact with external capabilities through a structured interface. Every agent turn begins by assembling a filtered set of tools based on multi-layered policies. This page provides an overview of how tools are created, filtered, and invoked.
 
 **Related pages:**
+
 - Tool policy filtering and enforcement: [3.4.1](#3.4.1)
 - Exec tool and background process management: [3.4.2](#3.4.2)
 - Memory indexing and search: [3.4.3](#3.4.3)
@@ -41,7 +40,7 @@ Every agent turn assembles tools by calling `createOpenClawCodingTools` ([src/ag
 ```mermaid
 graph TB
     entry["createOpenClawCodingTools"]
-    
+
     subgraph "Tool Sources"
         base["codingTools<br/>(from @mariozechner/pi-coding-agent)"]
         exec["createExecTool"]
@@ -50,39 +49,39 @@ graph TB
         openclaw["createOpenClawTools"]
         channel["listChannelAgentTools"]
     end
-    
+
     subgraph "Base Mutations"
         read_swap["read → createOpenClawReadTool /<br/>createSandboxedReadTool"]
         write_swap["write → createHostWorkspaceWriteTool /<br/>createSandboxedWriteTool"]
         edit_swap["edit → createHostWorkspaceEditTool /<br/>createSandboxedEditTool"]
         bash_rm["bash → removed"]
     end
-    
+
     subgraph "Policy Filtering"
         msg_filter["applyMessageProviderToolPolicy"]
         model_filter["applyModelProviderToolPolicy"]
         owner_filter["applyOwnerOnlyToolPolicy"]
         policy_pipe["applyToolPolicyPipeline<br/>(profile, provider, global,<br/>agent, group, sandbox, subagent)"]
     end
-    
+
     subgraph "Post-Processing"
         normalize["normalizeToolParameters"]
         hook["wrapToolWithBeforeToolCallHook<br/>(loop detection)"]
         abort["wrapToolWithAbortSignal"]
     end
-    
+
     entry --> base
     entry --> exec
     entry --> proc
     entry --> patch
     entry --> openclaw
     entry --> channel
-    
+
     base --> read_swap
     base --> write_swap
     base --> edit_swap
     base --> bash_rm
-    
+
     read_swap --> concat["Concatenate all tools"]
     write_swap --> concat
     edit_swap --> concat
@@ -91,12 +90,12 @@ graph TB
     patch --> concat
     openclaw --> concat
     channel --> concat
-    
+
     concat --> msg_filter
     msg_filter --> model_filter
     model_filter --> owner_filter
     owner_filter --> policy_pipe
-    
+
     policy_pipe --> normalize
     normalize --> hook
     hook --> abort
@@ -113,12 +112,12 @@ Tools are sourced from three origins:
 
 The upstream `codingTools` array provides core filesystem tools. OpenClaw replaces several in-place:
 
-| Tool | Replacement | Source file |
-|---|---|---|
-| `read` | `createOpenClawReadTool` or `createSandboxedReadTool` | `pi-tools.read.ts` |
+| Tool    | Replacement                                                  | Source file        |
+| ------- | ------------------------------------------------------------ | ------------------ |
+| `read`  | `createOpenClawReadTool` or `createSandboxedReadTool`        | `pi-tools.read.ts` |
 | `write` | `createHostWorkspaceWriteTool` or `createSandboxedWriteTool` | `pi-tools.read.ts` |
-| `edit` | `createHostWorkspaceEditTool` or `createSandboxedEditTool` | `pi-tools.read.ts` |
-| `bash` | Removed (replaced by `exec`) | — |
+| `edit`  | `createHostWorkspaceEditTool` or `createSandboxedEditTool`   | `pi-tools.read.ts` |
+| `bash`  | Removed (replaced by `exec`)                                 | —                  |
 
 Sources: [src/agents/pi-tools.ts:366-408]()
 
@@ -126,17 +125,17 @@ Sources: [src/agents/pi-tools.ts:366-408]()
 
 The `createOpenClawTools` function ([src/agents/openclaw-tools.ts]()) creates tools organized by functional groups:
 
-| Group | Tools |
-|---|---|
-| `group:runtime` | `exec`, `process` |
-| `group:fs` | `read`, `write`, `edit`, `apply_patch` |
-| `group:sessions` | `sessions_list`, `sessions_history`, `sessions_send`, `sessions_spawn`, `sessions_yield`, `session_status` |
-| `group:memory` | `memory_search`, `memory_get` |
-| `group:web` | `web_search`, `web_fetch` |
-| `group:ui` | `browser`, `canvas` |
-| `group:automation` | `cron`, `gateway` |
-| `group:messaging` | `message` |
-| `group:nodes` | `nodes` |
+| Group              | Tools                                                                                                      |
+| ------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `group:runtime`    | `exec`, `process`                                                                                          |
+| `group:fs`         | `read`, `write`, `edit`, `apply_patch`                                                                     |
+| `group:sessions`   | `sessions_list`, `sessions_history`, `sessions_send`, `sessions_spawn`, `sessions_yield`, `session_status` |
+| `group:memory`     | `memory_search`, `memory_get`                                                                              |
+| `group:web`        | `web_search`, `web_fetch`                                                                                  |
+| `group:ui`         | `browser`, `canvas`                                                                                        |
+| `group:automation` | `cron`, `gateway`                                                                                          |
+| `group:messaging`  | `message`                                                                                                  |
+| `group:nodes`      | `nodes`                                                                                                    |
 
 Additional standalone tools: `image`, `agents_list`, `tts`.
 
@@ -157,37 +156,37 @@ Tool filtering is handled by multi-layered policies that are resolved and then a
 ```mermaid
 graph TB
     config["OpenClawConfig"]
-    
+
     subgraph "Policy Resolution"
         eff["resolveEffectiveToolPolicy<br/>(global, agent, provider policies)"]
         grp["resolveGroupToolPolicy<br/>(channel-level restrictions)"]
         sub["resolveSubagentToolPolicyForSession<br/>(depth-based limits)"]
         prof["resolveToolProfilePolicy<br/>(profile → allow set)"]
     end
-    
+
     subgraph "Policy Merging"
         merge["mergeAlsoAllowPolicy<br/>(profile + alsoAllow)"]
         collect["collectExplicitAllowlist<br/>(for plugin gating)"]
     end
-    
+
     subgraph "Application Pipeline"
         owner["applyOwnerOnlyToolPolicy"]
         pipeline["applyToolPolicyPipeline<br/>(ordered steps)"]
     end
-    
+
     config --> eff
     config --> grp
     config --> sub
     config --> prof
-    
+
     eff --> merge
     prof --> merge
     merge --> collect
     merge --> pipeline
-    
+
     collect --> owner
     owner --> pipeline
-    
+
     pipeline --> filtered["Filtered tools"]
 ```
 
@@ -211,12 +210,12 @@ Sources: [src/agents/pi-tools.ts:280-591](), [src/agents/pi-tools.policy.ts](), 
 
 Tool profiles establish a base allowlist before explicit `allow`/`deny` lists are applied:
 
-| Profile | Tools included |
-|---|---|
-| `minimal` | `session_status` only |
-| `coding` | `group:fs`, `group:runtime`, `group:sessions`, `group:memory`, `image` |
+| Profile     | Tools included                                                                            |
+| ----------- | ----------------------------------------------------------------------------------------- |
+| `minimal`   | `session_status` only                                                                     |
+| `coding`    | `group:fs`, `group:runtime`, `group:sessions`, `group:memory`, `image`                    |
 | `messaging` | `group:messaging`, `sessions_list`, `sessions_history`, `sessions_send`, `session_status` |
-| `full` | No restriction |
+| `full`      | No restriction                                                                            |
 
 Profiles can be set globally (`tools.profile`), per-provider (`tools.byProvider[key].profile`), or per-agent (`agents.list[].tools.profile`).
 
@@ -233,37 +232,37 @@ graph TD
     tool["Filesystem tool<br/>(read, write, edit)"]
     sandbox{"Sandbox<br/>enabled?"}
     wo{"workspaceOnly<br/>enabled?"}
-    
+
     subgraph "Sandbox Mode"
         sb_create["createSandboxedReadTool /<br/>createSandboxedWriteTool /<br/>createSandboxedEditTool"]
         sb_guard["wrapToolWorkspaceRootGuardWithOptions<br/>(containerWorkdir mapping)"]
     end
-    
+
     subgraph "Host Mode"
         host_create["createOpenClawReadTool /<br/>createHostWorkspaceWriteTool /<br/>createHostWorkspaceEditTool"]
         host_guard["wrapToolWorkspaceRootGuard"]
     end
-    
+
     tool --> sandbox
     sandbox -- yes --> sb_create
     sb_create --> wo
     wo -- yes --> sb_guard
     wo -- no --> sb_unguarded["Sandboxed (unguarded)"]
-    
+
     sandbox -- no --> host_create
     host_create --> wo2{"workspaceOnly?"}
     wo2 -- yes --> host_guard
     wo2 -- no --> host_unguarded["Host (unguarded)"]
-    
+
     sb_guard --> result["Tool with guard wrapper"]
     host_guard --> result
 ```
 
 **Guard Implementation**
 
-| Wrapper function | Applied when | Purpose |
-|---|---|---|
-| `wrapToolWorkspaceRootGuard` | Host mode + `workspaceOnly=true` | Rejects paths outside `workspaceRoot` |
+| Wrapper function                        | Applied when                        | Purpose                                                  |
+| --------------------------------------- | ----------------------------------- | -------------------------------------------------------- |
+| `wrapToolWorkspaceRootGuard`            | Host mode + `workspaceOnly=true`    | Rejects paths outside `workspaceRoot`                    |
 | `wrapToolWorkspaceRootGuardWithOptions` | Sandbox mode + `workspaceOnly=true` | Rejects paths outside sandbox root, maps container paths |
 
 The `workspaceRoot` is resolved by `resolveWorkspaceRoot` ([src/agents/workspace-dir.ts]()), which defaults to `options.workspaceDir` or the configured agent workspace.
@@ -271,7 +270,8 @@ The `workspaceRoot` is resolved by `resolveWorkspaceRoot` ([src/agents/workspace
 For `apply_patch`, a separate `applyPatchConfig.workspaceOnly` flag (defaults to `true`) controls whether patch operations can escape the workspace:
 
 ```typescript
-const applyPatchWorkspaceOnly = workspaceOnly || applyPatchConfig?.workspaceOnly !== false;
+const applyPatchWorkspaceOnly =
+  workspaceOnly || applyPatchConfig?.workspaceOnly !== false
 ```
 
 Sources: [src/agents/pi-tools.ts:339-388](), [src/agents/pi-tools.read.ts](), [src/agents/tool-fs-policy.ts]()
@@ -293,11 +293,13 @@ This is handled by `resolveExecConfig` ([src/agents/pi-tools.ts:133-160]()).
 **Exec/Process Interaction**
 
 When `process` is **allowed** by policy:
+
 - `exec` can background tasks using `yieldMs` or `background: true`
 - Backgrounded sessions are tracked in the process registry
 - `process` tool actions can poll/kill/write to these sessions
 
 When `process` is **denied** by policy:
+
 - `exec` runs synchronously only
 - `yieldMs` and `background` parameters are ignored
 - Long-running commands block until completion
@@ -316,10 +318,10 @@ After policy filtering, tools are adapted for provider compatibility.
 
 Every tool is passed through `normalizeToolParameters` ([src/agents/pi-tools.schema.ts]()):
 
-| Provider | Schema transformation |
-|---|---|
-| OpenAI, Anthropic, most others | Strip root-level union schemas (rejected by API) |
-| Gemini | Apply `cleanToolSchemaForGemini` (removes `minLength`, `pattern`, other constraint keywords) |
+| Provider                       | Schema transformation                                                                        |
+| ------------------------------ | -------------------------------------------------------------------------------------------- |
+| OpenAI, Anthropic, most others | Strip root-level union schemas (rejected by API)                                             |
+| Gemini                         | Apply `cleanToolSchemaForGemini` (removes `minLength`, `pattern`, other constraint keywords) |
 
 This prevents provider-specific schema validation errors at the API layer.
 
@@ -327,14 +329,15 @@ This prevents provider-specific schema validation errors at the API layer.
 
 Some tools are only available for specific providers:
 
-| Tool | Restriction | Check location |
-|---|---|---|
-| `apply_patch` | OpenAI-family models only | `isOpenAIProvider` + `isApplyPatchAllowedForModel` ([src/agents/pi-tools.ts:105-131]()) |
-| `web_search` (OpenClaw's) | Excluded for xAI/Grok (which has native `web_search`) | `applyModelProviderToolPolicy` ([src/agents/pi-tools.ts:93-103]()) |
+| Tool                      | Restriction                                           | Check location                                                                          |
+| ------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `apply_patch`             | OpenAI-family models only                             | `isOpenAIProvider` + `isApplyPatchAllowedForModel` ([src/agents/pi-tools.ts:105-131]()) |
+| `web_search` (OpenClaw's) | Excluded for xAI/Grok (which has native `web_search`) | `applyModelProviderToolPolicy` ([src/agents/pi-tools.ts:93-103]())                      |
 
 **Provider-Specific Overrides**
 
 Additional provider quirks:
+
 - **Anthropic OAuth transport**: Tool names are remapped to Claude Code–style names on the wire (handled in `@mariozechner/pi-ai`, transparent to OpenClaw)
 - **Message provider filtering**: `tts` is excluded when `messageProvider=voice` to avoid redundant voice output
 
@@ -358,9 +361,9 @@ Intercepts tool calls before execution to detect loops. Configured via `tools.lo
       globalCircuitBreakerThreshold: 30,
       historySize: 30,
       detectors: {
-        genericRepeat: true,      // Same tool + params repeatedly
+        genericRepeat: true, // Same tool + params repeatedly
         knownPollNoProgress: true, // Poll tools with identical output
-        pingPong: true,            // A/B/A/B patterns
+        pingPong: true, // A/B/A/B patterns
       },
     },
   },
@@ -381,7 +384,7 @@ graph LR
     hook["wrapToolWithBeforeToolCallHook<br/>(loop detection)"]
     abort["wrapToolWithAbortSignal<br/>(if abortSignal provided)"]
     final["Final wrapped tool"]
-    
+
     tool --> hook
     hook --> abort
     abort --> final
@@ -395,17 +398,18 @@ When `options.sandbox` is provided with `sandbox.enabled = true`, tool assembly 
 
 **Filesystem Tools**
 
-| Tool | Host mode | Sandbox mode |
-|---|---|---|
-| `read` | `createOpenClawReadTool` | `createSandboxedReadTool` (routes via `sandboxFsBridge`) |
-| `write` | `createHostWorkspaceWriteTool` | `createSandboxedWriteTool` |
-| `edit` | `createHostWorkspaceEditTool` | `createSandboxedEditTool` |
+| Tool    | Host mode                      | Sandbox mode                                             |
+| ------- | ------------------------------ | -------------------------------------------------------- |
+| `read`  | `createOpenClawReadTool`       | `createSandboxedReadTool` (routes via `sandboxFsBridge`) |
+| `write` | `createHostWorkspaceWriteTool` | `createSandboxedWriteTool`                               |
+| `edit`  | `createHostWorkspaceEditTool`  | `createSandboxedEditTool`                                |
 
 The sandbox filesystem bridge (`SandboxFsBridge`) maps host paths to container paths and performs I/O operations on the host.
 
 **Exec Tool**
 
 The `exec` tool receives a `sandbox` config object with:
+
 - `containerName`: Docker container name
 - `workspaceDir`: Sandbox workspace directory
 - `containerWorkdir`: Container working directory
@@ -427,16 +431,16 @@ Sources: [src/agents/pi-tools.ts:274](), [src/agents/pi-tools.ts:339-388](), [sr
 
 Tool calls in the Control UI are rendered with emoji, display names, and parameter summaries. This metadata is defined in [src/agents/tool-display.json]():
 
-| Tool | Emoji | Detail keys (extracted from params) |
-|---|---|---|
-| `exec` | 🛠️ | `command` |
-| `read` | 📖 | `path` |
-| `write` | 📝 | `path` |
-| `browser` | 🌐 | action-specific (`targetUrl`, `selector`, etc.) |
-| `nodes` | 📱 | action-specific (`node`, `facing`, etc.) |
-| `cron` | ⏰ | action-specific (`schedule`, `jobId`, etc.) |
-| `sessions_spawn` | 🤖 | `task`, `agentId`, `mode` |
-| `memory_search` | 🔍 | `query` |
+| Tool             | Emoji | Detail keys (extracted from params)             |
+| ---------------- | ----- | ----------------------------------------------- |
+| `exec`           | 🛠️    | `command`                                       |
+| `read`           | 📖    | `path`                                          |
+| `write`          | 📝    | `path`                                          |
+| `browser`        | 🌐    | action-specific (`targetUrl`, `selector`, etc.) |
+| `nodes`          | 📱    | action-specific (`node`, `facing`, etc.)        |
+| `cron`           | ⏰    | action-specific (`schedule`, `jobId`, etc.)     |
+| `sessions_spawn` | 🤖    | `task`, `agentId`, `mode`                       |
+| `memory_search`  | 🔍    | `query`                                         |
 
 A `fallback` entry handles unlisted tools with a generic display style.
 
@@ -446,28 +450,28 @@ Sources: [src/agents/tool-display.json]()
 
 ## Key Types and Files Reference
 
-| Symbol | File | Role |
-|---|---|---|
-| `createOpenClawCodingTools` | [src/agents/pi-tools.ts]() | Main tool assembly entry point |
-| `AnyAgentTool` | `src/agents/pi-tools.types.ts` | Union type for all tool objects |
-| `resolveEffectiveToolPolicy` | `src/agents/pi-tools.policy.ts` | Resolves global/agent/provider policies |
-| `resolveGroupToolPolicy` | `src/agents/pi-tools.policy.ts` | Resolves channel-level group restrictions |
-| `resolveSubagentToolPolicy` | `src/agents/pi-tools.policy.ts` | Depth-based subagent tool restrictions |
-| `applyToolPolicyPipeline` | `src/agents/tool-policy-pipeline.ts` | Applies ordered policy steps to tool list |
-| `applyOwnerOnlyToolPolicy` | `src/agents/tool-policy.ts` | Gates owner-only tools on `senderIsOwner` |
-| `resolveToolProfilePolicy` | `src/agents/tool-policy.ts` | Converts a profile string to an allow set |
-| `mergeAlsoAllowPolicy` | `src/agents/tool-policy.ts` | Merges `alsoAllow` extension into a profile policy |
-| `wrapToolWorkspaceRootGuard` | `src/agents/pi-tools.read.ts` | Enforces path containment (host mode) |
-| `createToolFsPolicy` | `src/agents/tool-fs-policy.ts` | Creates the fs policy object from config |
-| `resolveWorkspaceRoot` | `src/agents/workspace-dir.ts` | Resolves the effective workspace root path |
-| `normalizeToolParameters` | `src/agents/pi-tools.schema.ts` | Provider-aware JSON Schema normalization |
-| `cleanToolSchemaForGemini` | `src/agents/pi-tools.schema.ts` | Removes Gemini-incompatible schema keywords |
-| `wrapToolWithBeforeToolCallHook` | `src/agents/pi-tools.before-tool-call.ts` | Loop detection intercept |
-| `wrapToolWithAbortSignal` | `src/agents/pi-tools.abort.ts` | Abort signal wrapper |
-| `createExecTool` | `src/agents/bash-tools.ts` | Creates the `exec` tool |
-| `createProcessTool` | `src/agents/bash-tools.ts` | Creates the `process` tool |
-| `createApplyPatchTool` | `src/agents/apply-patch.ts` | Creates the `apply_patch` tool |
-| `createOpenClawTools` | `src/agents/openclaw-tools.ts` | Creates all OpenClaw-native tools |
-| `listChannelAgentTools` | `src/agents/channel-tools.ts` | Returns channel plugin–contributed tools |
-| `resolveExecConfig` | [src/agents/pi-tools.ts:118-145]() | Merges global + agent exec configuration |
-| `resolveToolLoopDetectionConfig` | [src/agents/pi-tools.ts:147-172]() | Merges global + agent loop detection config |
+| Symbol                           | File                                      | Role                                               |
+| -------------------------------- | ----------------------------------------- | -------------------------------------------------- |
+| `createOpenClawCodingTools`      | [src/agents/pi-tools.ts]()                | Main tool assembly entry point                     |
+| `AnyAgentTool`                   | `src/agents/pi-tools.types.ts`            | Union type for all tool objects                    |
+| `resolveEffectiveToolPolicy`     | `src/agents/pi-tools.policy.ts`           | Resolves global/agent/provider policies            |
+| `resolveGroupToolPolicy`         | `src/agents/pi-tools.policy.ts`           | Resolves channel-level group restrictions          |
+| `resolveSubagentToolPolicy`      | `src/agents/pi-tools.policy.ts`           | Depth-based subagent tool restrictions             |
+| `applyToolPolicyPipeline`        | `src/agents/tool-policy-pipeline.ts`      | Applies ordered policy steps to tool list          |
+| `applyOwnerOnlyToolPolicy`       | `src/agents/tool-policy.ts`               | Gates owner-only tools on `senderIsOwner`          |
+| `resolveToolProfilePolicy`       | `src/agents/tool-policy.ts`               | Converts a profile string to an allow set          |
+| `mergeAlsoAllowPolicy`           | `src/agents/tool-policy.ts`               | Merges `alsoAllow` extension into a profile policy |
+| `wrapToolWorkspaceRootGuard`     | `src/agents/pi-tools.read.ts`             | Enforces path containment (host mode)              |
+| `createToolFsPolicy`             | `src/agents/tool-fs-policy.ts`            | Creates the fs policy object from config           |
+| `resolveWorkspaceRoot`           | `src/agents/workspace-dir.ts`             | Resolves the effective workspace root path         |
+| `normalizeToolParameters`        | `src/agents/pi-tools.schema.ts`           | Provider-aware JSON Schema normalization           |
+| `cleanToolSchemaForGemini`       | `src/agents/pi-tools.schema.ts`           | Removes Gemini-incompatible schema keywords        |
+| `wrapToolWithBeforeToolCallHook` | `src/agents/pi-tools.before-tool-call.ts` | Loop detection intercept                           |
+| `wrapToolWithAbortSignal`        | `src/agents/pi-tools.abort.ts`            | Abort signal wrapper                               |
+| `createExecTool`                 | `src/agents/bash-tools.ts`                | Creates the `exec` tool                            |
+| `createProcessTool`              | `src/agents/bash-tools.ts`                | Creates the `process` tool                         |
+| `createApplyPatchTool`           | `src/agents/apply-patch.ts`               | Creates the `apply_patch` tool                     |
+| `createOpenClawTools`            | `src/agents/openclaw-tools.ts`            | Creates all OpenClaw-native tools                  |
+| `listChannelAgentTools`          | `src/agents/channel-tools.ts`             | Returns channel plugin–contributed tools           |
+| `resolveExecConfig`              | [src/agents/pi-tools.ts:118-145]()        | Merges global + agent exec configuration           |
+| `resolveToolLoopDetectionConfig` | [src/agents/pi-tools.ts:147-172]()        | Merges global + agent loop detection config        |

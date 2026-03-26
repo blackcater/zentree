@@ -24,8 +24,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 `@mariozechner/pi-ai` is the foundational LLM abstraction layer in the pi-mono repository. It provides a unified streaming API over multiple LLM providers, a model catalog, token/cost tracking, and OAuth credential management. All other packages in the repo that make LLM calls depend on this package.
 
 This page covers the public API surface, core types, and the streaming entry points. For the auto-generated model catalog and how models are discovered, see [Model Catalog](#2.1). For provider-specific streaming behavior and options, see [Streaming API & Providers](#2.2). For OAuth and API key resolution, see [Authentication & OAuth](#2.3). For how higher-level agent loops use this library, see [pi-agent-core: Agent Framework](#3).
@@ -40,16 +38,16 @@ Only models that support **tool calling** (function calling) are included in the
 
 **Key source files:**
 
-| File | Role |
-|---|---|
-| `packages/ai/src/types.ts` | All core TypeScript interfaces and type aliases |
-| `packages/ai/src/stream.ts` | Top-level `stream`, `complete`, `streamSimple`, `completeSimple` entry points |
-| `packages/ai/src/models.ts` | Runtime model registry; `getModel`, `getModels`, `getProviders`, `calculateCost` |
-| `packages/ai/src/models.generated.ts` | Auto-generated `MODELS` constant with every known model |
-| `packages/ai/src/api-registry.ts` | Maps API identifiers to provider implementations |
-| `packages/ai/src/providers/` | Per-API streaming implementations |
-| `packages/ai/src/utils/oauth/` | OAuth login and token refresh helpers |
-| `packages/ai/src/env-api-keys.ts` | Environment variable → provider API key mapping |
+| File                                  | Role                                                                             |
+| ------------------------------------- | -------------------------------------------------------------------------------- |
+| `packages/ai/src/types.ts`            | All core TypeScript interfaces and type aliases                                  |
+| `packages/ai/src/stream.ts`           | Top-level `stream`, `complete`, `streamSimple`, `completeSimple` entry points    |
+| `packages/ai/src/models.ts`           | Runtime model registry; `getModel`, `getModels`, `getProviders`, `calculateCost` |
+| `packages/ai/src/models.generated.ts` | Auto-generated `MODELS` constant with every known model                          |
+| `packages/ai/src/api-registry.ts`     | Maps API identifiers to provider implementations                                 |
+| `packages/ai/src/providers/`          | Per-API streaming implementations                                                |
+| `packages/ai/src/utils/oauth/`        | OAuth login and token refresh helpers                                            |
+| `packages/ai/src/env-api-keys.ts`     | Environment variable → provider API key mapping                                  |
 
 Sources: [packages/ai/src/index.ts](), [packages/ai/src/stream.ts](), [packages/ai/src/types.ts](), [packages/ai/src/models.ts]()
 
@@ -100,11 +98,11 @@ Sources: [packages/ai/src/types.ts:206-210]()
 
 A discriminated union of the three message roles:
 
-| Type | Role | Content |
-|---|---|---|
-| `UserMessage` | `"user"` | `string` or `(TextContent \| ImageContent)[]` |
-| `AssistantMessage` | `"assistant"` | `(TextContent \| ThinkingContent \| ToolCall)[]` + `usage`, `stopReason`, `model`, `api`, `provider` |
-| `ToolResultMessage` | `"toolResult"` | `toolCallId`, `toolName`, `content: (TextContent \| ImageContent)[]`, `isError` |
+| Type                | Role           | Content                                                                                              |
+| ------------------- | -------------- | ---------------------------------------------------------------------------------------------------- |
+| `UserMessage`       | `"user"`       | `string` or `(TextContent \| ImageContent)[]`                                                        |
+| `AssistantMessage`  | `"assistant"`  | `(TextContent \| ThinkingContent \| ToolCall)[]` + `usage`, `stopReason`, `model`, `api`, `provider` |
+| `ToolResultMessage` | `"toolResult"` | `toolCallId`, `toolName`, `content: (TextContent \| ImageContent)[]`, `isError`                      |
 
 `AssistantMessage` carries usage statistics and cost breakdowns via the `Usage` interface.
 
@@ -126,12 +124,12 @@ Sources: [packages/ai/src/types.ts:200-204]()
 
 ### Content Block Types
 
-| Interface | `type` discriminant | Key fields |
-|---|---|---|
-| `TextContent` | `"text"` | `text: string` |
-| `ThinkingContent` | `"thinking"` | `thinking: string`, `thinkingSignature?`, `redacted?` |
-| `ImageContent` | `"image"` | `data: string` (base64), `mimeType: string` |
-| `ToolCall` | `"toolCall"` | `id`, `name`, `arguments: Record<string, any>` |
+| Interface         | `type` discriminant | Key fields                                            |
+| ----------------- | ------------------- | ----------------------------------------------------- |
+| `TextContent`     | `"text"`            | `text: string`                                        |
+| `ThinkingContent` | `"thinking"`        | `thinking: string`, `thinkingSignature?`, `redacted?` |
+| `ImageContent`    | `"image"`           | `data: string` (base64), `mimeType: string`           |
+| `ToolCall`        | `"toolCall"`        | `id`, `name`, `arguments: Record<string, any>`        |
 
 Sources: [packages/ai/src/types.ts:121-149]()
 
@@ -207,17 +205,17 @@ Sources: [packages/ai/src/types.ts]()
 
 **Known API identifiers:**
 
-| `Api` value | Wire protocol | Implemented in |
-|---|---|---|
-| `"openai-completions"` | OpenAI Chat Completions (streaming) | `providers/openai-completions.ts` |
-| `"openai-responses"` | OpenAI Responses API | `providers/openai-responses.ts` |
-| `"azure-openai-responses"` | Azure OpenAI Responses | `providers/azure-openai-responses.ts` |
-| `"openai-codex-responses"` | ChatGPT OAuth / Codex endpoint | `providers/openai-codex-responses.ts` |
-| `"anthropic-messages"` | Anthropic Messages API | `providers/anthropic.ts` |
-| `"bedrock-converse-stream"` | AWS Bedrock Converse Stream | `providers/amazon-bedrock.ts` |
-| `"google-generative-ai"` | Google Generative AI SDK | `providers/google.ts` |
-| `"google-gemini-cli"` | Gemini CLI OAuth endpoint | `providers/google-gemini-cli.ts` |
-| `"google-vertex"` | Vertex AI | `providers/google-vertex.ts` |
+| `Api` value                 | Wire protocol                       | Implemented in                        |
+| --------------------------- | ----------------------------------- | ------------------------------------- |
+| `"openai-completions"`      | OpenAI Chat Completions (streaming) | `providers/openai-completions.ts`     |
+| `"openai-responses"`        | OpenAI Responses API                | `providers/openai-responses.ts`       |
+| `"azure-openai-responses"`  | Azure OpenAI Responses              | `providers/azure-openai-responses.ts` |
+| `"openai-codex-responses"`  | ChatGPT OAuth / Codex endpoint      | `providers/openai-codex-responses.ts` |
+| `"anthropic-messages"`      | Anthropic Messages API              | `providers/anthropic.ts`              |
+| `"bedrock-converse-stream"` | AWS Bedrock Converse Stream         | `providers/amazon-bedrock.ts`         |
+| `"google-generative-ai"`    | Google Generative AI SDK            | `providers/google.ts`                 |
+| `"google-gemini-cli"`       | Gemini CLI OAuth endpoint           | `providers/google-gemini-cli.ts`      |
+| `"google-vertex"`           | Vertex AI                           | `providers/google-vertex.ts`          |
 
 A `Model<TApi>` with `api: "anthropic-messages"` will always be handled by the Anthropic provider, regardless of which `provider` field it carries. This is how proxies like `opencode`, `vercel-ai-gateway`, and `minimax` work — their models use an existing API type but point to a different `baseUrl`.
 
@@ -240,15 +238,15 @@ These are the **provider-native** entry points. They accept provider-specific op
 ```typescript
 // packages/ai/src/stream.ts
 function stream<TApi extends Api>(
-    model: Model<TApi>,
-    context: Context,
-    options?: ProviderStreamOptions,
+  model: Model<TApi>,
+  context: Context,
+  options?: ProviderStreamOptions
 ): AssistantMessageEventStream
 
 async function complete<TApi extends Api>(
-    model: Model<TApi>,
-    context: Context,
-    options?: ProviderStreamOptions,
+  model: Model<TApi>,
+  context: Context,
+  options?: ProviderStreamOptions
 ): Promise<AssistantMessage>
 ```
 
@@ -260,15 +258,15 @@ These are the **provider-agnostic** entry points. They accept `SimpleStreamOptio
 
 ```typescript
 function streamSimple<TApi extends Api>(
-    model: Model<TApi>,
-    context: Context,
-    options?: SimpleStreamOptions,
+  model: Model<TApi>,
+  context: Context,
+  options?: SimpleStreamOptions
 ): AssistantMessageEventStream
 
 async function completeSimple<TApi extends Api>(
-    model: Model<TApi>,
-    context: Context,
-    options?: SimpleStreamOptions,
+  model: Model<TApi>,
+  context: Context,
+  options?: SimpleStreamOptions
 ): Promise<AssistantMessage>
 ```
 
@@ -280,19 +278,19 @@ Sources: [packages/ai/src/stream.ts](), [packages/ai/src/types.ts:43-112]()
 
 All options types extend `StreamOptions`:
 
-| Field | Type | Description |
-|---|---|---|
-| `temperature` | `number` | Sampling temperature |
-| `maxTokens` | `number` | Max output tokens |
-| `signal` | `AbortSignal` | Cancellation |
-| `apiKey` | `string` | Runtime API key override |
-| `cacheRetention` | `"none" \| "short" \| "long"` | Prompt cache TTL preference |
-| `sessionId` | `string` | Session key for cache routing |
-| `headers` | `Record<string, string>` | Additional HTTP headers |
-| `onPayload` | `(payload: unknown) => void` | Inspect the raw API payload before sending |
-| `maxRetryDelayMs` | `number` | Max delay to accept from server retry hints |
-| `metadata` | `Record<string, unknown>` | Provider-specific metadata (e.g., `user_id` for Anthropic) |
-| `transport` | `"sse" \| "websocket" \| "auto"` | Transport preference |
+| Field             | Type                             | Description                                                |
+| ----------------- | -------------------------------- | ---------------------------------------------------------- |
+| `temperature`     | `number`                         | Sampling temperature                                       |
+| `maxTokens`       | `number`                         | Max output tokens                                          |
+| `signal`          | `AbortSignal`                    | Cancellation                                               |
+| `apiKey`          | `string`                         | Runtime API key override                                   |
+| `cacheRetention`  | `"none" \| "short" \| "long"`    | Prompt cache TTL preference                                |
+| `sessionId`       | `string`                         | Session key for cache routing                              |
+| `headers`         | `Record<string, string>`         | Additional HTTP headers                                    |
+| `onPayload`       | `(payload: unknown) => void`     | Inspect the raw API payload before sending                 |
+| `maxRetryDelayMs` | `number`                         | Max delay to accept from server retry hints                |
+| `metadata`        | `Record<string, unknown>`        | Provider-specific metadata (e.g., `user_id` for Anthropic) |
+| `transport`       | `"sse" \| "websocket" \| "auto"` | Transport preference                                       |
 
 Sources: [packages/ai/src/types.ts:58-103]()
 
@@ -337,20 +335,20 @@ Sources: [packages/ai/src/stream.ts](), [packages/ai/src/providers/openai-comple
 
 **All event types (`AssistantMessageEvent` union):**
 
-| Event `type` | When emitted | Key properties |
-|---|---|---|
-| `"start"` | Stream begins | `partial: AssistantMessage` |
-| `"text_start"` | New text block begins | `contentIndex: number` |
-| `"text_delta"` | Text chunk arrives | `delta: string`, `contentIndex` |
-| `"text_end"` | Text block complete | `content: string`, `contentIndex` |
-| `"thinking_start"` | Thinking block begins | `contentIndex` |
-| `"thinking_delta"` | Thinking chunk arrives | `delta: string`, `contentIndex` |
-| `"thinking_end"` | Thinking block complete | `content: string`, `contentIndex` |
-| `"toolcall_start"` | Tool call begins | `contentIndex` |
+| Event `type`       | When emitted                 | Key properties                                                             |
+| ------------------ | ---------------------------- | -------------------------------------------------------------------------- |
+| `"start"`          | Stream begins                | `partial: AssistantMessage`                                                |
+| `"text_start"`     | New text block begins        | `contentIndex: number`                                                     |
+| `"text_delta"`     | Text chunk arrives           | `delta: string`, `contentIndex`                                            |
+| `"text_end"`       | Text block complete          | `content: string`, `contentIndex`                                          |
+| `"thinking_start"` | Thinking block begins        | `contentIndex`                                                             |
+| `"thinking_delta"` | Thinking chunk arrives       | `delta: string`, `contentIndex`                                            |
+| `"thinking_end"`   | Thinking block complete      | `content: string`, `contentIndex`                                          |
+| `"toolcall_start"` | Tool call begins             | `contentIndex`                                                             |
 | `"toolcall_delta"` | Tool argument JSON streaming | `delta: string`, `partial.content[contentIndex].arguments` (partial parse) |
-| `"toolcall_end"` | Tool call complete | `toolCall: ToolCall`, `contentIndex` |
-| `"done"` | Stream finished normally | `reason: "stop" \| "length" \| "toolUse"`, `message: AssistantMessage` |
-| `"error"` | Stream failed or aborted | `reason: "error" \| "aborted"`, `error: AssistantMessage` |
+| `"toolcall_end"`   | Tool call complete           | `toolCall: ToolCall`, `contentIndex`                                       |
+| `"done"`           | Stream finished normally     | `reason: "stop" \| "length" \| "toolUse"`, `message: AssistantMessage`     |
+| `"error"`          | Stream failed or aborted     | `reason: "error" \| "aborted"`, `error: AssistantMessage`                  |
 
 During `toolcall_delta`, `arguments` is a best-effort partial parse of the streaming JSON. The value is always at minimum `{}`. Full arguments are only guaranteed at `toolcall_end`.
 
@@ -366,14 +364,14 @@ The model registry is initialized from the auto-generated `MODELS` constant at m
 
 **Registry API:**
 
-| Function | Signature | Description |
-|---|---|---|
-| `getModel` | `(provider, modelId) => Model<TApi>` | Type-safe lookup by provider + model ID |
-| `getModels` | `(provider) => Model<TApi>[]` | All models for a provider |
-| `getProviders` | `() => KnownProvider[]` | All registered providers |
-| `calculateCost` | `(model, usage) => Usage["cost"]` | Computes dollar costs from token counts |
-| `modelsAreEqual` | `(a, b) => boolean` | Compares by `id` and `provider` |
-| `supportsXhigh` | `(model) => boolean` | Whether model supports `"xhigh"` thinking level |
+| Function         | Signature                            | Description                                     |
+| ---------------- | ------------------------------------ | ----------------------------------------------- |
+| `getModel`       | `(provider, modelId) => Model<TApi>` | Type-safe lookup by provider + model ID         |
+| `getModels`      | `(provider) => Model<TApi>[]`        | All models for a provider                       |
+| `getProviders`   | `() => KnownProvider[]`              | All registered providers                        |
+| `calculateCost`  | `(model, usage) => Usage["cost"]`    | Computes dollar costs from token counts         |
+| `modelsAreEqual` | `(a, b) => boolean`                  | Compares by `id` and `provider`                 |
+| `supportsXhigh`  | `(model) => boolean`                 | Whether model supports `"xhigh"` thinking level |
 
 `getModel` is fully typed: the return type's `TApi` is inferred from the `MODELS` constant structure, giving autocomplete for both provider names and model IDs.
 
@@ -397,13 +395,13 @@ For providers that use OAuth rather than API keys (Claude Pro/Max, GitHub Copilo
 
 **Exported OAuth utilities (`packages/ai/src/utils/oauth/index.ts`):**
 
-| Function/Constant | Provider |
-|---|---|
-| `loginAnthropic`, `refreshAnthropicToken`, `anthropicOAuthProvider` | Anthropic |
-| `loginGitHubCopilot`, `refreshGitHubCopilotToken`, `githubCopilotOAuthProvider` | GitHub Copilot |
-| `loginGeminiCli`, `refreshGoogleCloudToken`, `geminiCliOAuthProvider` | Google Gemini CLI |
-| `loginAntigravity`, `refreshAntigravityToken`, `antigravityOAuthProvider` | Google Antigravity |
-| `loginOpenAICodex`, `refreshOpenAICodexToken`, `openaiCodexOAuthProvider` | OpenAI Codex |
+| Function/Constant                                                               | Provider           |
+| ------------------------------------------------------------------------------- | ------------------ |
+| `loginAnthropic`, `refreshAnthropicToken`, `anthropicOAuthProvider`             | Anthropic          |
+| `loginGitHubCopilot`, `refreshGitHubCopilotToken`, `githubCopilotOAuthProvider` | GitHub Copilot     |
+| `loginGeminiCli`, `refreshGoogleCloudToken`, `geminiCliOAuthProvider`           | Google Gemini CLI  |
+| `loginAntigravity`, `refreshAntigravityToken`, `antigravityOAuthProvider`       | Google Antigravity |
+| `loginOpenAICodex`, `refreshOpenAICodexToken`, `openaiCodexOAuthProvider`       | OpenAI Codex       |
 
 OAuth providers implement `OAuthProviderInterface` and can be registered at runtime via `registerOAuthProvider`. The higher-level credential management (loading from `auth.json`, file locking, automatic refresh) lives in `packages/coding-agent/src/core/auth-storage.ts` — see [Authentication & OAuth](#2.3) for details.
 

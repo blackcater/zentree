@@ -16,6 +16,7 @@
 </cite>
 
 ## 目录
+
 1. [简介](#简介)
 2. [项目结构](#项目结构)
 3. [核心组件](#核心组件)
@@ -28,7 +29,9 @@
 10. [附录](#附录)
 
 ## 简介
+
 本文件为 Craft Agents 的 API 参考文档，覆盖以下方面：
+
 - WebSocket RPC API：连接握手、消息编解码、事件推送与实时交互模式
 - MCP（Model Context Protocol）协议 API：会话级工具接口、请求/响应格式与流式传输
 - CLI 命令行接口：命令语法、参数说明、返回值与使用示例
@@ -37,6 +40,7 @@
 - 已弃用功能与迁移建议（如适用）
 
 ## 项目结构
+
 本仓库采用多包工作区结构，核心与传输层位于 packages，应用层包括桌面端 Electron 应用与 CLI 工具，以及 MCP 服务相关包。
 
 ```mermaid
@@ -70,6 +74,7 @@ SESSION_TOOLS_PKG --> MCP_POOL
 ```
 
 图表来源
+
 - [apps/cli/package.json](file://apps/cli/package.json#L1-L25)
 - [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L1-L150)
 - [apps/cli/src/client.ts](file://apps/cli/src/client.ts#L1-L120)
@@ -80,12 +85,14 @@ SESSION_TOOLS_PKG --> MCP_POOL
 - [packages/shared/src/mcp/pool-server.ts](file://packages/shared/src/mcp/pool-server.ts#L40-L83)
 
 章节来源
+
 - [apps/cli/package.json](file://apps/cli/package.json#L1-L25)
 - [apps/electron/package.json](file://apps/electron/package.json#L1-L80)
 - [packages/session-mcp-server/package.json](file://packages/session-mcp-server/package.json#L1-L25)
 - [packages/session-tools-core/package.json](file://packages/session-tools-core/package.json#L1-L24)
 
 ## 核心组件
+
 - WebSocket RPC 客户端与服务端
   - CLI 使用轻量 RPC 客户端，仅支持握手、请求/响应与事件订阅
   - Electron 提供完整 RPC 客户端，具备自动重连、能力协商、连接状态管理等
@@ -96,12 +103,14 @@ SESSION_TOOLS_PKG --> MCP_POOL
   - 支持连接、健康检查、列出资源、发送消息、监听事件、运行一次性任务等
 
 章节来源
+
 - [apps/cli/src/client.ts](file://apps/cli/src/client.ts#L38-L129)
 - [apps/electron/src/transport/client.ts](file://apps/electron/src/transport/client.ts#L101-L151)
 - [packages/shared/src/mcp/pool-server.ts](file://packages/shared/src/mcp/pool-server.ts#L40-L83)
 - [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L240-L744)
 
 ## 架构总览
+
 下图展示 WebSocket RPC 与 MCP 的整体交互关系，以及 CLI/Electron 客户端如何与服务端通信。
 
 ```mermaid
@@ -120,6 +129,7 @@ WS_SRV --> MCP_HTTP
 ```
 
 图表来源
+
 - [apps/cli/src/client.ts](file://apps/cli/src/client.ts#L60-L129)
 - [apps/electron/src/transport/client.ts](file://apps/electron/src/transport/client.ts#L263-L334)
 - [apps/electron/src/transport/server.ts](file://apps/electron/src/transport/server.ts#L1-L2)
@@ -128,6 +138,7 @@ WS_SRV --> MCP_HTTP
 ## 详细组件分析
 
 ### WebSocket RPC API（CLI 与 Electron）
+
 - 连接与握手
   - 客户端在连接建立后发送握手包，包含协议版本、可选令牌与工作区标识
   - 服务端返回握手确认或错误，随后进入消息路由阶段
@@ -157,16 +168,19 @@ S-->>C : "事件流text_delta/tool_start/tool_result/complete/error/interrupted"
 ```
 
 图表来源
+
 - [apps/cli/src/client.ts](file://apps/cli/src/client.ts#L60-L129)
 - [apps/electron/src/transport/client.ts](file://apps/electron/src/transport/client.ts#L387-L471)
 - [packages/shared/src/mcp/pool-server.ts](file://packages/shared/src/mcp/pool-server.ts#L61-L83)
 
 章节来源
+
 - [apps/cli/src/client.ts](file://apps/cli/src/client.ts#L38-L239)
 - [apps/electron/src/transport/client.ts](file://apps/electron/src/transport/client.ts#L101-L727)
 - [apps/electron/src/transport/server.ts](file://apps/electron/src/transport/server.ts#L1-L2)
 
 ### MCP 协议 API（会话级工具）
+
 - 服务启动
   - 通过 HTTP 流式传输启动 MCP 服务，无状态模式下不维护会话状态
   - 返回本地地址供客户端连接
@@ -189,17 +203,20 @@ Clients --> Diagnose["可达性诊断超时/不可达"]
 ```
 
 图表来源
+
 - [packages/session-mcp-server/package.json](file://packages/session-mcp-server/package.json#L1-L25)
 - [packages/shared/src/mcp/pool-server.ts](file://packages/shared/src/mcp/pool-server.ts#L61-L83)
 - [packages/shared/src/agent/diagnostics.ts](file://packages/shared/src/agent/diagnostics.ts#L358-L388)
 
 章节来源
+
 - [packages/session-mcp-server/package.json](file://packages/session-mcp-server/package.json#L1-L25)
 - [packages/session-tools-core/package.json](file://packages/session-tools-core/package.json#L1-L24)
 - [packages/shared/src/mcp/pool-server.ts](file://packages/shared/src/mcp/pool-server.ts#L40-L83)
 - [packages/shared/src/agent/diagnostics.ts](file://packages/shared/src/agent/diagnostics.ts#L358-L388)
 
 ### CLI 命令参考
+
 - 命令概览
   - ping、health、versions、workspaces、sessions、connections、sources、session messages、session create/delete、send、run、cancel、invoke、listen、validate
 - 参数与行为要点
@@ -213,11 +230,13 @@ Clients --> Diagnose["可达性诊断超时/不可达"]
   - 一次性运行并清理：craft-cli --url ws://127.0.0.1:8080 --provider anthropic --model <model> --api-key <key> run "<prompt>"
 
 章节来源
+
 - [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L42-L152)
 - [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L241-L744)
 - [apps/cli/src/client.ts](file://apps/cli/src/client.ts#L38-L129)
 
 ## 依赖关系分析
+
 - 包导出与入口
   - Electron 传输层导出 RPC 服务端与客户端，并提供构建 API 的工具
   - CLI 与 Electron 均依赖共享协议与传输编解码模块
@@ -237,6 +256,7 @@ SESSION_TOOLS["session-tools-core/package.json"] --> MCP_PKG
 ```
 
 图表来源
+
 - [apps/cli/package.json](file://apps/cli/package.json#L1-L25)
 - [apps/electron/package.json](file://apps/electron/package.json#L1-L80)
 - [apps/electron/src/transport/index.ts](file://apps/electron/src/transport/index.ts#L1-L6)
@@ -244,11 +264,13 @@ SESSION_TOOLS["session-tools-core/package.json"] --> MCP_PKG
 - [packages/session-tools-core/package.json](file://packages/session-tools-core/package.json#L1-L24)
 
 章节来源
+
 - [apps/cli/package.json](file://apps/cli/package.json#L1-L25)
 - [apps/electron/package.json](file://apps/electron/package.json#L1-L80)
 - [apps/electron/src/transport/index.ts](file://apps/electron/src/transport/index.ts#L1-L6)
 
 ## 性能考量
+
 - 连接与重连
   - Electron 客户端支持指数回退自动重连，避免频繁抖动
   - CLI 客户端无自动重连，适合短任务与批处理
@@ -260,11 +282,13 @@ SESSION_TOOLS["session-tools-core/package.json"] --> MCP_PKG
   - run 命令默认清理临时会话，可通过开关关闭
 
 章节来源
+
 - [apps/electron/src/transport/client.ts](file://apps/electron/src/transport/client.ts#L571-L589)
 - [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L490-L504)
 - [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L653-L662)
 
 ## 故障排查指南
+
 - 连接问题
   - 鉴权失败、协议版本不兼容、握手超时、网络异常、远端主动关闭
   - Electron 客户端提供连接状态回调与错误分类；CLI 客户端提供连接/请求超时错误
@@ -275,14 +299,17 @@ SESSION_TOOLS["session-tools-core/package.json"] --> MCP_PKG
   - validate 命令执行端到端自检，输出详细失败原因
 
 章节来源
+
 - [apps/electron/src/transport/client.ts](file://apps/electron/src/transport/client.ts#L697-L726)
 - [packages/shared/src/agent/diagnostics.ts](file://packages/shared/src/agent/diagnostics.ts#L358-L388)
 - [apps/cli/src/index.ts](file://apps/cli/src/index.ts#L664-L691)
 
 ## 结论
+
 本参考文档梳理了 Craft Agents 的 WebSocket RPC 与 MCP 协议接口、CLI 命令行工具及其实现细节。通过统一的协议版本与消息编解码，CLI 与 Electron 客户端能够稳定地与服务端交互；MCP 服务通过 HTTP 流式传输提供会话级工具能力。建议在生产环境中合理配置超时与重连策略，并利用内置诊断与监听工具进行问题定位与性能优化。
 
 ## 附录
+
 - 版本信息
   - CLI 与 Electron 应用版本：0.7.1
   - MCP 服务与工具包版本：0.7.1
@@ -294,6 +321,7 @@ SESSION_TOOLS["session-tools-core/package.json"] --> MCP_PKG
   - 未发现明确的弃用功能说明；建议关注协议版本字段与错误码以确保兼容性
 
 章节来源
+
 - [apps/cli/package.json](file://apps/cli/package.json#L1-L25)
 - [apps/electron/package.json](file://apps/electron/package.json#L1-L80)
 - [packages/session-mcp-server/package.json](file://packages/session-mcp-server/package.json#L1-L25)

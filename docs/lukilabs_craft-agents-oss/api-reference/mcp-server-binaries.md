@@ -11,21 +11,19 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the two standalone MCP server binaries shipped with Craft Agents: **`session-mcp-server`** and **`bridge-mcp-server`**. These processes run as stdio subprocesses spawned by the main Electron process. They expose tool sets to agent backends (primarily Codex/OpenAI) that need to communicate with the Craft Agents runtime without direct access to Electron internals.
 
-For the session-scoped tool *handlers themselves* (the shared logic that both Claude and Codex use), see [Session-Scoped Tools](#8.5). For how sources are configured and connected, see [Sources](#4.3).
+For the session-scoped tool _handlers themselves_ (the shared logic that both Claude and Codex use), see [Session-Scoped Tools](#8.5). For how sources are configured and connected, see [Sources](#4.3).
 
 ---
 
 ## Package Overview
 
-| Package | Path | Transport | Primary Consumer |
-|---|---|---|---|
+| Package                           | Path                          | Transport      | Primary Consumer        |
+| --------------------------------- | ----------------------------- | -------------- | ----------------------- |
 | `@craft-agent/session-mcp-server` | `packages/session-mcp-server` | stdio JSON-RPC | Codex (OpenAI), Copilot |
-| `@craft-agent/bridge-mcp-server` | `packages/bridge-mcp-server` | stdio JSON-RPC | External MCP clients |
-| `@craft-agent/session-tools-core` | `packages/session-tools-core` | *(library)* | Both of the above |
+| `@craft-agent/bridge-mcp-server`  | `packages/bridge-mcp-server`  | stdio JSON-RPC | External MCP clients    |
+| `@craft-agent/session-tools-core` | `packages/session-tools-core` | _(library)_    | Both of the above       |
 
 `session-tools-core` is a shared library (not a binary) that provides the canonical tool registry, handler implementations, and type definitions used by both the MCP servers and by the main Electron process when running Claude sessions.
 
@@ -53,12 +51,12 @@ Sources: [packages/session-mcp-server/package.json:1-24](), [packages/session-mc
 
 The server accepts four command-line arguments:
 
-| Argument | Required | Description |
-|---|---|---|
-| `--session-id <id>` | Yes | Unique session identifier |
-| `--workspace-root <path>` | Yes | Path to `~/.craft-agent/workspaces/{id}` |
-| `--plans-folder <path>` | Yes | Path to the session's plans folder |
-| `--callback-port <port>` | No | HTTP port for `call_llm`/`spawn_session` callbacks |
+| Argument                  | Required | Description                                        |
+| ------------------------- | -------- | -------------------------------------------------- |
+| `--session-id <id>`       | Yes      | Unique session identifier                          |
+| `--workspace-root <path>` | Yes      | Path to `~/.craft-agent/workspaces/{id}`           |
+| `--plans-folder <path>`   | Yes      | Path to the session's plans folder                 |
+| `--callback-port <port>`  | No       | HTTP port for `call_llm`/`spawn_session` callbacks |
 
 If `--session-id`, `--workspace-root`, or `--plans-folder` are missing, the process exits with code 1.
 
@@ -119,10 +117,10 @@ __CALLBACK__{"__callback__":"plan_submitted","sessionId":"abc","planPath":"/path
 
 The `CallbackMessage` type is defined in `@craft-agent/session-tools-core`. Two callback types are used:
 
-| `__callback__` value | Trigger | Payload fields |
-|---|---|---|
-| `plan_submitted` | `SubmitPlan` tool invoked | `sessionId`, `planPath` |
-| `auth_request` | OAuth required for a source | Fields from `AuthRequest` type |
+| `__callback__` value | Trigger                     | Payload fields                 |
+| -------------------- | --------------------------- | ------------------------------ |
+| `plan_submitted`     | `SubmitPlan` tool invoked   | `sessionId`, `planPath`        |
+| `auth_request`       | OAuth required for a source | Fields from `AuthRequest` type |
 
 Sources: [packages/session-mcp-server/src/index.ts:66-76](), [packages/session-mcp-server/src/index.ts:176-190]()
 
@@ -146,9 +144,9 @@ The `createCredentialManager` function [packages/session-mcp-server/src/index.ts
 
 The `CredentialCacheEntry` format [packages/session-mcp-server/src/index.ts:86-89]():
 
-| Field | Type | Description |
-|---|---|---|
-| `value` | `string` | The credential token |
+| Field       | Type      | Description                                       |
+| ----------- | --------- | ------------------------------------------------- |
+| `value`     | `string`  | The credential token                              |
 | `expiresAt` | `number?` | Unix timestamp in ms; entry is invalid after this |
 
 Sources: [packages/session-mcp-server/src/index.ts:82-145]()
@@ -190,6 +188,7 @@ Sources: [packages/session-mcp-server/src/index.ts:532-564]()
 The `sessionToolRegistry` is populated by `getSessionToolRegistry` from `@craft-agent/session-tools-core`, which returns a feature-filtered map of tool name → `{ handler, inputSchema, description }`. The `includeDeveloperFeedback` flag gates the developer feedback tool.
 
 Tools are advertised via `ListToolsRequestSchema` as the union of:
+
 - Session tools from `createSessionTools(includeDeveloperFeedback)` — converts registry definitions to MCP `Tool` objects via `getToolDefsAsJsonSchema`
 - Docs upstream tools from `docsTools` (see [Docs Upstream Proxy](#docs-upstream-proxy) below)
 
@@ -228,17 +227,17 @@ Sources: [packages/session-mcp-server/src/index.ts:275-337]()
 
 The `createCodexContext` function [packages/session-mcp-server/src/index.ts:155-255]() assembles the `SessionToolContext` object passed to every tool handler. It provides:
 
-| Context field | Implementation |
-|---|---|
-| `fs` | Synchronous Node.js `fs` calls (`readFileSync`, `writeFileSync`, etc.) |
-| `callbacks.onPlanSubmitted` | Writes `plan_submitted` callback to stderr |
-| `callbacks.onAuthRequest` | Writes `auth_request` callback to stderr |
-| `credentialManager` | Reads from `.credential-cache.json` files |
-| `updatePreferences` | Directly writes to `~/.craft-agent/preferences.json` |
-| `submitFeedback` | Writes JSON files to `~/.craft-agent/feedback/` |
-| `loadSourceConfig` | Delegates to `loadSourceConfig` helper from `session-tools-core` |
+| Context field               | Implementation                                                         |
+| --------------------------- | ---------------------------------------------------------------------- |
+| `fs`                        | Synchronous Node.js `fs` calls (`readFileSync`, `writeFileSync`, etc.) |
+| `callbacks.onPlanSubmitted` | Writes `plan_submitted` callback to stderr                             |
+| `callbacks.onAuthRequest`   | Writes `auth_request` callback to stderr                               |
+| `credentialManager`         | Reads from `.credential-cache.json` files                              |
+| `updatePreferences`         | Directly writes to `~/.craft-agent/preferences.json`                   |
+| `submitFeedback`            | Writes JSON files to `~/.craft-agent/feedback/`                        |
+| `loadSourceConfig`          | Delegates to `loadSourceConfig` helper from `session-tools-core`       |
 
-Fields *not available* in the Codex context (require Electron internals): `saveSourceConfig`, validators, `renderMermaid`.
+Fields _not available_ in the Codex context (require Electron internals): `saveSourceConfig`, validators, `renderMermaid`.
 
 Sources: [packages/session-mcp-server/src/index.ts:155-255]()
 
@@ -250,14 +249,14 @@ Sources: [packages/session-mcp-server/src/index.ts:155-255]()
 
 Key exports used by `session-mcp-server`:
 
-| Export | Role |
-|---|---|
-| `getSessionToolRegistry` | Returns the feature-filtered map of tool name → definition + handler |
-| `getToolDefsAsJsonSchema` | Converts tool definitions to MCP-compatible JSON Schema objects |
-| `loadSourceConfig` | Reads a source's `config.json` from the workspace directory |
-| `errorResponse` | Constructs a standard MCP error result object |
-| `SessionToolContext` | Interface defining the context passed to all tool handlers |
-| `CallbackMessage` | Union type for `plan_submitted` / `auth_request` callback payloads |
+| Export                       | Role                                                                             |
+| ---------------------------- | -------------------------------------------------------------------------------- |
+| `getSessionToolRegistry`     | Returns the feature-filtered map of tool name → definition + handler             |
+| `getToolDefsAsJsonSchema`    | Converts tool definitions to MCP-compatible JSON Schema objects                  |
+| `loadSourceConfig`           | Reads a source's `config.json` from the workspace directory                      |
+| `errorResponse`              | Constructs a standard MCP error result object                                    |
+| `SessionToolContext`         | Interface defining the context passed to all tool handlers                       |
+| `CallbackMessage`            | Union type for `plan_submitted` / `auth_request` callback payloads               |
 | `CredentialManagerInterface` | Interface for credential lookup (implemented differently in main vs. subprocess) |
 
 Sources: [packages/session-mcp-server/src/index.ts:36-50](), [packages/session-tools-core/package.json:1-23]()

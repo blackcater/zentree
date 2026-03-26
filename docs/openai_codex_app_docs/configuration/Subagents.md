@@ -11,7 +11,7 @@ For the concepts and tradeoffs behind subagent workflows, including context poll
 Current Codex releases enable subagent workflows by default.
 
 Subagent activity is currently surfaced in the Codex app and CLI. Visibility
-  in the IDE Extension is coming soon.
+in the IDE Extension is coming soon.
 
 Codex only spawns subagents when you explicitly ask it to. Because each
 subagent does its own model and tool work, subagent workflows consume more

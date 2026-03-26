@@ -17,8 +17,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page covers how a tool handler's execution results are packaged and returned to the model, and how lifecycle events are broadcast to the UI. Specifically, it documents:
@@ -49,10 +47,10 @@ ToolOutput::Function {
 
 Defined in `codex-rs/protocol/src/models.rs`, this enum selects the wire format:
 
-| Variant | Wire representation |
-|---------|---------------------|
-| `FunctionCallOutputBody::Text(String)` | `output` field is a JSON string |
-| `FunctionCallOutputBody::ContentItems(Vec<FunctionCallOutputContentItem>)` | `output` field is a JSON array |
+| Variant                                                                    | Wire representation             |
+| -------------------------------------------------------------------------- | ------------------------------- |
+| `FunctionCallOutputBody::Text(String)`                                     | `output` field is a JSON string |
+| `FunctionCallOutputBody::ContentItems(Vec<FunctionCallOutputContentItem>)` | `output` field is a JSON array  |
 
 ### `FunctionCallOutputContentItem`
 
@@ -73,12 +71,12 @@ Container with a `body: FunctionCallOutputBody` field and a `content_items()` ac
 
 The wire type appended to the `input` array of the next API request:
 
-| Variant | Used for |
-|---------|----------|
-| `ResponseInputItem::FunctionCallOutput { call_id, output }` | Regular function-call tools (`shell`, `shell_command`, `apply_patch`, `view_image`) |
-| `ResponseInputItem::CustomToolCallOutput { call_id, output }` | Custom tools (`js_repl`) |
-| `ResponseInputItem::McpToolCallOutput { call_id, result }` | MCP server tools |
-| `ResponseInputItem::Message { content }` | Synthetic messages |
+| Variant                                                       | Used for                                                                            |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `ResponseInputItem::FunctionCallOutput { call_id, output }`   | Regular function-call tools (`shell`, `shell_command`, `apply_patch`, `view_image`) |
+| `ResponseInputItem::CustomToolCallOutput { call_id, output }` | Custom tools (`js_repl`)                                                            |
+| `ResponseInputItem::McpToolCallOutput { call_id, result }`    | MCP server tools                                                                    |
+| `ResponseInputItem::Message { content }`                      | Synthetic messages                                                                  |
 
 Sources: [codex-rs/core/src/tools/handlers/shell.rs:437-440](), [codex-rs/core/src/tools/handlers/unified_exec.rs:277-281](), [codex-rs/core/src/tools/js_repl/mod.rs:598-648](), [codex-rs/core/src/tools/parallel.rs:50-54]()
 
@@ -111,10 +109,10 @@ Every tool execution emits lifecycle events to the TUI and exec mode through `Se
 
 ### `ToolEmitter` Variants
 
-| Variant | Fields | Events emitted |
-|---------|--------|----------------|
-| `ToolEmitter::Shell` | `command`, `cwd`, `source`, `parsed_cmd`, `freeform: bool` | `ExecCommandBegin` / `ExecCommandEnd` |
-| `ToolEmitter::ApplyPatch` | `changes: HashMap<PathBuf, FileChange>`, `auto_approved` | `PatchApplyBegin` / `PatchApplyEnd` |
+| Variant                    | Fields                                                                 | Events emitted                                           |
+| -------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------- |
+| `ToolEmitter::Shell`       | `command`, `cwd`, `source`, `parsed_cmd`, `freeform: bool`             | `ExecCommandBegin` / `ExecCommandEnd`                    |
+| `ToolEmitter::ApplyPatch`  | `changes: HashMap<PathBuf, FileChange>`, `auto_approved`               | `PatchApplyBegin` / `PatchApplyEnd`                      |
 | `ToolEmitter::UnifiedExec` | `command`, `cwd`, `source`, `parsed_cmd`, `process_id: Option<String>` | `ExecCommandBegin` / `ExecCommandEnd` + streaming deltas |
 
 ### `ToolEventCtx`
@@ -197,14 +195,14 @@ Sources: [codex-rs/core/src/tools/events.rs:64-109](), [codex-rs/core/tests/suit
 
 ### Event Struct Fields
 
-| Event struct | Key fields |
-|-------------|------------|
-| `ExecCommandBeginEvent` | `call_id`, `process_id?`, `turn_id`, `command: Vec<String>`, `cwd`, `parsed_cmd`, `source: ExecCommandSource`, `interaction_input?` |
-| `ExecCommandEndEvent` | `call_id`, `exit_code: i32`, `stdout: String`, `aggregated_output: String`, `process_id?` |
-| `ExecCommandOutputDelta` | `call_id`, `chunk: Vec<u8>` |
-| `TerminalInteractionEvent` | `call_id`, `process_id: String`, `stdin: String` |
-| `PatchApplyBeginEvent` | `call_id`, `changes: HashMap<PathBuf, FileChange>` |
-| `PatchApplyEndEvent` | `call_id`, `success: bool`, `stdout?`, `stderr?` |
+| Event struct               | Key fields                                                                                                                          |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `ExecCommandBeginEvent`    | `call_id`, `process_id?`, `turn_id`, `command: Vec<String>`, `cwd`, `parsed_cmd`, `source: ExecCommandSource`, `interaction_input?` |
+| `ExecCommandEndEvent`      | `call_id`, `exit_code: i32`, `stdout: String`, `aggregated_output: String`, `process_id?`                                           |
+| `ExecCommandOutputDelta`   | `call_id`, `chunk: Vec<u8>`                                                                                                         |
+| `TerminalInteractionEvent` | `call_id`, `process_id: String`, `stdin: String`                                                                                    |
+| `PatchApplyBeginEvent`     | `call_id`, `changes: HashMap<PathBuf, FileChange>`                                                                                  |
+| `PatchApplyEndEvent`       | `call_id`, `success: bool`, `stdout?`, `stderr?`                                                                                    |
 
 `ExecCommandSource` distinguishes whether the event originated from the model (`ExecCommandSource::Agent`) or a user shell invocation (`ExcCommandSource::UserShell`).
 
@@ -219,12 +217,17 @@ Sources: [codex-rs/core/src/tasks/user_shell.rs:22-24](), [codex-rs/core/tests/s
 The `freeform` flag on `ToolEmitter::Shell` determines the wire format. It is `true` when `include_apply_patch_tool` is enabled in the session config.
 
 **`freeform = false` — JSON format:**
+
 ```json
-{"metadata":{"exit_code":0,"duration_seconds":0.123},"output":"hello\
-"}
+{
+  "metadata": { "exit_code": 0, "duration_seconds": 0.123 },
+  "output": "hello\
+"
+}
 ```
 
 **`freeform = true` — Plain text format:**
+
 ```
 Exit code: 0
 Wall time: 0.1234 seconds
@@ -271,16 +274,16 @@ The model uses the `session ID` value from "Process running with session ID N" a
 
 ### `UnifiedExecResponse` Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `event_call_id` | `String` | `call_id` for which the response was generated |
-| `chunk_id` | `String` | Random 6-char hex identifier for this yield window |
-| `wall_time` | `Duration` | Elapsed time during the yield window |
-| `output` | `String` | Possibly-truncated UTF-8 text from stdout/stderr |
-| `raw_output` | `Vec<u8>` | Pre-truncation raw bytes |
-| `process_id` | `Option<String>` | Present when the process is still running |
-| `exit_code` | `Option<i32>` | Present when the process has terminated |
-| `original_token_count` | `Option<usize>` | Set when output was truncated |
+| Field                  | Type             | Description                                        |
+| ---------------------- | ---------------- | -------------------------------------------------- |
+| `event_call_id`        | `String`         | `call_id` for which the response was generated     |
+| `chunk_id`             | `String`         | Random 6-char hex identifier for this yield window |
+| `wall_time`            | `Duration`       | Elapsed time during the yield window               |
+| `output`               | `String`         | Possibly-truncated UTF-8 text from stdout/stderr   |
+| `raw_output`           | `Vec<u8>`        | Pre-truncation raw bytes                           |
+| `process_id`           | `Option<String>` | Present when the process is still running          |
+| `exit_code`            | `Option<i32>`    | Present when the process has terminated            |
+| `original_token_count` | `Option<usize>`  | Set when output was truncated                      |
 
 Sources: [codex-rs/core/src/unified_exec/mod.rs:107-118]()
 
@@ -379,14 +382,14 @@ Sources: [codex-rs/core/src/unified_exec/mod.rs:107-118](), [codex-rs/core/src/t
 
 Both classic shell runtimes and unified exec cap output before returning it to the model:
 
-| Constant | Value | Location |
-|----------|-------|----------|
-| `UNIFIED_EXEC_OUTPUT_MAX_BYTES` | 1 MiB | [codex-rs/core/src/unified_exec/mod.rs:60]() |
+| Constant                         | Value           | Location                                     |
+| -------------------------------- | --------------- | -------------------------------------------- |
+| `UNIFIED_EXEC_OUTPUT_MAX_BYTES`  | 1 MiB           | [codex-rs/core/src/unified_exec/mod.rs:60]() |
 | `UNIFIED_EXEC_OUTPUT_MAX_TOKENS` | `MAX_BYTES / 4` | [codex-rs/core/src/unified_exec/mod.rs:61]() |
-| `DEFAULT_MAX_OUTPUT_TOKENS` | 10,000 tokens | [codex-rs/core/src/unified_exec/mod.rs:59]() |
-| `MAX_YIELD_TIME_MS` | 30,000 ms | [codex-rs/core/src/unified_exec/mod.rs:57]() |
-| `MIN_YIELD_TIME_MS` | 250 ms | [codex-rs/core/src/unified_exec/mod.rs:54]() |
-| `MIN_EMPTY_YIELD_TIME_MS` | 5,000 ms | [codex-rs/core/src/unified_exec/mod.rs:56]() |
+| `DEFAULT_MAX_OUTPUT_TOKENS`      | 10,000 tokens   | [codex-rs/core/src/unified_exec/mod.rs:59]() |
+| `MAX_YIELD_TIME_MS`              | 30,000 ms       | [codex-rs/core/src/unified_exec/mod.rs:57]() |
+| `MIN_YIELD_TIME_MS`              | 250 ms          | [codex-rs/core/src/unified_exec/mod.rs:54]() |
+| `MIN_EMPTY_YIELD_TIME_MS`        | 5,000 ms        | [codex-rs/core/src/unified_exec/mod.rs:56]() |
 
 When the raw output exceeds the token budget, the output text is truncated and `original_token_count` is set in `UnifiedExecResponse` so the model knows data was cut. The head-tail buffer (`HeadTailBuffer`) preserves the beginning and end of the output when truncation is applied, ensuring the model always sees both the command's initial output and its terminal output.
 

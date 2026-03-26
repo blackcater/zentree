@@ -27,8 +27,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page describes how the opencode plugin architecture works: how plugins are discovered, loaded, initialized, and how they interact with core systems via hooks. It covers both the internal machinery in `packages/opencode` and the public API surface exposed by `packages/plugin`.
 
 For documentation on the Tool System that plugins can extend, see [2.4](). For MCP-based tool extension, see [2.8](). For configuration options relevant to plugins, see [2.1]().
@@ -41,11 +39,11 @@ Plugins are JavaScript/TypeScript modules that export one or more functions conf
 
 The plugin system has three tiers:
 
-| Tier | Source | Examples |
-|---|---|---|
-| Internal plugins | Compiled into the binary | `CodexAuthPlugin`, `CopilotAuthPlugin`, `GitlabAuthPlugin` |
-| Built-in plugins | npm packages, auto-installed | `opencode-anthropic-auth@0.0.13` |
-| User plugins | npm packages or local files declared in config | Any user-defined package or `.ts` file |
+| Tier             | Source                                         | Examples                                                   |
+| ---------------- | ---------------------------------------------- | ---------------------------------------------------------- |
+| Internal plugins | Compiled into the binary                       | `CodexAuthPlugin`, `CopilotAuthPlugin`, `GitlabAuthPlugin` |
+| Built-in plugins | npm packages, auto-installed                   | `opencode-anthropic-auth@0.0.13`                           |
+| User plugins     | npm packages or local files declared in config | Any user-defined package or `.ts` file                     |
 
 ---
 
@@ -196,13 +194,14 @@ File paths are converted to `file://` URLs before being added to the plugin list
 
 ### Specifier Formats
 
-| Format | Example | Resolution |
-|---|---|---|
-| npm package with version | `oh-my-opencode@2.4.3` | Installed via `BunProc.install()` |
-| Scoped npm package | `@scope/pkg@1.0.0` | Installed via `BunProc.install()` |
-| Local file URL | `file:///path/to/plugin.ts` | Imported directly |
+| Format                   | Example                     | Resolution                        |
+| ------------------------ | --------------------------- | --------------------------------- |
+| npm package with version | `oh-my-opencode@2.4.3`      | Installed via `BunProc.install()` |
+| Scoped npm package       | `@scope/pkg@1.0.0`          | Installed via `BunProc.install()` |
+| Local file URL           | `file:///path/to/plugin.ts` | Imported directly                 |
 
 The canonical name used for deduplication is extracted by `getPluginName` in [packages/opencode/src/config/config.ts:474-483]():
+
 - For `file://` URLs: the filename without extension.
 - For npm specifiers: the package name without version.
 
@@ -225,14 +224,14 @@ The public API for plugin authors lives in `packages/plugin/src/index.ts`.
 
 Every plugin function receives this context object:
 
-| Field | Type | Description |
-|---|---|---|
-| `client` | `ReturnType<typeof createOpencodeClient>` | Typed HTTP client for the opencode API |
-| `project` | `Project` | Project metadata (id, worktree, etc.) |
-| `directory` | `string` | Current working directory |
-| `worktree` | `string` | Git worktree root |
-| `serverUrl` | `URL` | URL of the local opencode HTTP server |
-| `$` | `BunShell` | Bun shell instance for running subprocesses |
+| Field       | Type                                      | Description                                 |
+| ----------- | ----------------------------------------- | ------------------------------------------- |
+| `client`    | `ReturnType<typeof createOpencodeClient>` | Typed HTTP client for the opencode API      |
+| `project`   | `Project`                                 | Project metadata (id, worktree, etc.)       |
+| `directory` | `string`                                  | Current working directory                   |
+| `worktree`  | `string`                                  | Git worktree root                           |
+| `serverUrl` | `URL`                                     | URL of the local opencode HTTP server       |
+| `$`         | `BunShell`                                | Bun shell instance for running subprocesses |
 
 Sources: [packages/plugin/src/index.ts:26-33]()
 
@@ -271,17 +270,17 @@ Custom tools registered this way are surfaced to the agent's tool registry along
 
 The `Hooks` object returned by a plugin may include any of the following keys:
 
-| Hook | Trigger Point | Input | Output (mutatable) |
-|---|---|---|---|
-| `shell.env` | Before shell command execution | `{ sessionID }` | `{ env: Record<string, string> }` |
-| `session.system.prompt` | Before LLM call | `{ sessionID }` | `{ parts: string[] }` |
-| `tool.execute.before` | Before any tool runs | `{ tool, sessionID, callID }` | `{ args }` |
-| `tool.execute.after` | After any tool completes | `{ tool, sessionID, callID, args }` | result object |
-| `experimental.chat.messages.transform` | Before messages sent to LLM | `{}` | `{ messages: MessageV2.WithParts[] }` |
-| `event` | Every bus event | `{ event }` | — |
-| `config` | Plugin initialization | `Config` | — |
-| `auth` | Provider authentication flows | provider context | — |
-| `tool` | Tool registry population | — | `Record<string, ToolDefinition>` |
+| Hook                                   | Trigger Point                  | Input                               | Output (mutatable)                    |
+| -------------------------------------- | ------------------------------ | ----------------------------------- | ------------------------------------- |
+| `shell.env`                            | Before shell command execution | `{ sessionID }`                     | `{ env: Record<string, string> }`     |
+| `session.system.prompt`                | Before LLM call                | `{ sessionID }`                     | `{ parts: string[] }`                 |
+| `tool.execute.before`                  | Before any tool runs           | `{ tool, sessionID, callID }`       | `{ args }`                            |
+| `tool.execute.after`                   | After any tool completes       | `{ tool, sessionID, callID, args }` | result object                         |
+| `experimental.chat.messages.transform` | Before messages sent to LLM    | `{}`                                | `{ messages: MessageV2.WithParts[] }` |
+| `event`                                | Every bus event                | `{ event }`                         | —                                     |
+| `config`                               | Plugin initialization          | `Config`                            | —                                     |
+| `auth`                                 | Provider authentication flows  | provider context                    | —                                     |
+| `tool`                                 | Tool registry population       | —                                   | `Record<string, ToolDefinition>`      |
 
 > **Note:** `auth`, `event`, and `tool` are handled outside the standard `Plugin.trigger()` dispatch path. The `event` hook is wired through `Bus.subscribeAll()` in `Plugin.init()`. The `tool` hook populates the tool registry.
 
@@ -324,13 +323,13 @@ Sources: [packages/opencode/src/plugin/index.ts:106-121]()
 
 ### Where Hooks Are Triggered
 
-| Code Location | Hook Name |
-|---|---|
-| [packages/opencode/src/session/prompt.ts:406-413]() | `tool.execute.before` |
-| [packages/opencode/src/session/prompt.ts:454-463]() | `tool.execute.after` |
-| [packages/opencode/src/session/prompt.ts:648]() | `experimental.chat.messages.transform` |
-| [packages/opencode/src/plugin/index.ts:134-141]() | `event` (via `Bus.subscribeAll`) |
-| [packages/opencode/src/plugin/index.ts:128-133]() | `config` (on init) |
+| Code Location                                       | Hook Name                              |
+| --------------------------------------------------- | -------------------------------------- |
+| [packages/opencode/src/session/prompt.ts:406-413]() | `tool.execute.before`                  |
+| [packages/opencode/src/session/prompt.ts:454-463]() | `tool.execute.after`                   |
+| [packages/opencode/src/session/prompt.ts:648]()     | `experimental.chat.messages.transform` |
+| [packages/opencode/src/plugin/index.ts:134-141]()   | `event` (via `Bus.subscribeAll`)       |
+| [packages/opencode/src/plugin/index.ts:128-133]()   | `config` (on init)                     |
 
 ---
 
@@ -343,6 +342,7 @@ When a config directory contains plugins, opencode ensures the `@opencode-ai/plu
 3. Runs `bun install` in that directory.
 
 The check `needsInstall` in [packages/opencode/src/config/config.ts:288-321]() skips installation if:
+
 - The directory is not writable (e.g., managed/system config dirs).
 - `node_modules` already exists and the installed version matches the target.
 
@@ -392,11 +392,11 @@ Sources: [packages/opencode/src/plugin/index.ts:24-143](), [packages/opencode/sr
 
 Three auth plugins are compiled directly into the binary rather than loaded from npm:
 
-| Plugin Constant | Provider |
-|---|---|
-| `CodexAuthPlugin` | OpenAI Codex / GitHub Copilot OAuth |
-| `CopilotAuthPlugin` | GitHub Copilot |
-| `GitlabAuthPlugin` | GitLab (`@gitlab/opencode-gitlab-auth`) |
+| Plugin Constant     | Provider                                |
+| ------------------- | --------------------------------------- |
+| `CodexAuthPlugin`   | OpenAI Codex / GitHub Copilot OAuth     |
+| `CopilotAuthPlugin` | GitHub Copilot                          |
+| `GitlabAuthPlugin`  | GitLab (`@gitlab/opencode-gitlab-auth`) |
 
 These handle the `auth` hook to acquire and refresh tokens for their respective providers. They are listed in `INTERNAL_PLUGINS` at [packages/opencode/src/plugin/index.ts:22]() and cannot be disabled without rebuilding the binary.
 

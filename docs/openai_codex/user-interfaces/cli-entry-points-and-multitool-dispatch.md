@@ -24,8 +24,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page documents the **CLI entry point architecture** in the Codex binary, specifically how the `codex` executable acts as a **multitool dispatcher** that routes invocations to different execution modes (TUI, Exec, App Server, etc.) based on command-line arguments and binary name. The dispatch mechanism uses a `clap`-based parser with subcommand routing and an **arg0 dispatch** system for specialized binary invocations.
@@ -44,21 +42,21 @@ The `codex` binary uses a single `MultitoolCli` parser that defines the top-leve
 graph TB
     Binary["codex binary"]
     MultitoolCli["struct MultitoolCli"]
-    
+
     ConfigOverrides["config_overrides:<br/>CliConfigOverrides"]
     FeatureToggles["feature_toggles:<br/>FeatureToggles"]
     Interactive["interactive:<br/>TuiCli"]
     SubcommandField["subcommand:<br/>Option&lt;Subcommand&gt;"]
-    
+
     Binary --> MultitoolCli
     MultitoolCli --> ConfigOverrides
     MultitoolCli --> FeatureToggles
     MultitoolCli --> Interactive
     MultitoolCli --> SubcommandField
-    
+
     SubcommandField --> NoneVariant["None → codex_tui::run_main()"]
     SubcommandField --> SomeVariant["Some(variant)"]
-    
+
     SomeVariant --> ExecVariant["Subcommand::Exec(ExecCli)"]
     SomeVariant --> ReviewVariant["Subcommand::Review(ReviewArgs)"]
     SomeVariant --> LoginVariant["Subcommand::Login(LoginCommand)"]
@@ -77,28 +75,28 @@ The `#[clap(subcommand_negates_reqs = true)]` attribute on `MultitoolCli` (line 
 
 The following table maps each subcommand to its implementation crate and primary use case:
 
-| Subcommand | Enum Variant | Struct | Crate | Purpose |
-|------------|--------------|--------|-------|---------|
-| *(none)* | N/A | `TuiCli` | `codex-tui` | Interactive terminal UI (default mode) |
-| `exec` | `Subcommand::Exec` | `ExecCli` | `codex-exec` | Headless, non-interactive execution |
-| `review` | `Subcommand::Review` | `ReviewArgs` | `codex-exec` | Code review mode (delegates to exec) |
-| `login` | `Subcommand::Login` | `LoginCommand` | `codex-login` | Authenticate with ChatGPT or API key |
-| `logout` | `Subcommand::Logout` | `LogoutCommand` | `codex-login` | Remove stored credentials |
-| `mcp` | `Subcommand::Mcp` | `McpCli` | `codex-rmcp-client` | Manage external MCP servers |
-| `mcp-server` | `Subcommand::McpServer` | *(unit variant)* | `codex-mcp-server` | Run Codex as an MCP server (stdio) |
-| `app-server` | `Subcommand::AppServer` | `AppServerCommand` | `codex-app-server` | JSON-RPC 2.0 server for IDE integration |
-| `app` | `Subcommand::App` | `AppCommand` | `codex-cli` | Launch Codex desktop app (macOS only, cfg-gated) |
-| `apply` | `Subcommand::Apply` | `ApplyCommand` | `codex-chatgpt` | Apply agent-generated diffs to working tree |
-| `resume` | `Subcommand::Resume` | `ResumeCommand` | `codex-tui` | Resume a previous session (TUI picker) |
-| `fork` | `Subcommand::Fork` | `ForkCommand` | `codex-tui` | Fork a previous session |
-| `sandbox` | `Subcommand::Sandbox` | `SandboxArgs` | `codex-cli` | Test sandbox execution directly |
-| `completion` | `Subcommand::Completion` | `CompletionCommand` | `codex-cli` | Generate shell completion scripts |
-| `features` | `Subcommand::Features` | `FeaturesCli` | `codex-cli` | Inspect feature flags |
-| `cloud` | `Subcommand::Cloud` | `CloudTasksCli` | `codex-cloud-tasks` | Browse and apply Codex Cloud tasks |
-| `debug` | `Subcommand::Debug` | `DebugCommand` | `codex-cli` | Debugging utilities (app-server, clear-memories) |
-| `execpolicy` | `Subcommand::Execpolicy` | `ExecpolicyCommand` | `codex-execpolicy` | Execpolicy validation tools (hidden) |
-| `responses-api-proxy` | `Subcommand::ResponsesApiProxy` | `ResponsesApiProxyArgs` | `codex-responses-api-proxy` | Internal responses API proxy (hidden) |
-| `stdio-to-uds` | `Subcommand::StdioToUds` | `StdioToUdsCommand` | `codex-stdio-to-uds` | Relay stdio to Unix domain socket (hidden) |
+| Subcommand            | Enum Variant                    | Struct                  | Crate                       | Purpose                                          |
+| --------------------- | ------------------------------- | ----------------------- | --------------------------- | ------------------------------------------------ |
+| _(none)_              | N/A                             | `TuiCli`                | `codex-tui`                 | Interactive terminal UI (default mode)           |
+| `exec`                | `Subcommand::Exec`              | `ExecCli`               | `codex-exec`                | Headless, non-interactive execution              |
+| `review`              | `Subcommand::Review`            | `ReviewArgs`            | `codex-exec`                | Code review mode (delegates to exec)             |
+| `login`               | `Subcommand::Login`             | `LoginCommand`          | `codex-login`               | Authenticate with ChatGPT or API key             |
+| `logout`              | `Subcommand::Logout`            | `LogoutCommand`         | `codex-login`               | Remove stored credentials                        |
+| `mcp`                 | `Subcommand::Mcp`               | `McpCli`                | `codex-rmcp-client`         | Manage external MCP servers                      |
+| `mcp-server`          | `Subcommand::McpServer`         | _(unit variant)_        | `codex-mcp-server`          | Run Codex as an MCP server (stdio)               |
+| `app-server`          | `Subcommand::AppServer`         | `AppServerCommand`      | `codex-app-server`          | JSON-RPC 2.0 server for IDE integration          |
+| `app`                 | `Subcommand::App`               | `AppCommand`            | `codex-cli`                 | Launch Codex desktop app (macOS only, cfg-gated) |
+| `apply`               | `Subcommand::Apply`             | `ApplyCommand`          | `codex-chatgpt`             | Apply agent-generated diffs to working tree      |
+| `resume`              | `Subcommand::Resume`            | `ResumeCommand`         | `codex-tui`                 | Resume a previous session (TUI picker)           |
+| `fork`                | `Subcommand::Fork`              | `ForkCommand`           | `codex-tui`                 | Fork a previous session                          |
+| `sandbox`             | `Subcommand::Sandbox`           | `SandboxArgs`           | `codex-cli`                 | Test sandbox execution directly                  |
+| `completion`          | `Subcommand::Completion`        | `CompletionCommand`     | `codex-cli`                 | Generate shell completion scripts                |
+| `features`            | `Subcommand::Features`          | `FeaturesCli`           | `codex-cli`                 | Inspect feature flags                            |
+| `cloud`               | `Subcommand::Cloud`             | `CloudTasksCli`         | `codex-cloud-tasks`         | Browse and apply Codex Cloud tasks               |
+| `debug`               | `Subcommand::Debug`             | `DebugCommand`          | `codex-cli`                 | Debugging utilities (app-server, clear-memories) |
+| `execpolicy`          | `Subcommand::Execpolicy`        | `ExecpolicyCommand`     | `codex-execpolicy`          | Execpolicy validation tools (hidden)             |
+| `responses-api-proxy` | `Subcommand::ResponsesApiProxy` | `ResponsesApiProxyArgs` | `codex-responses-api-proxy` | Internal responses API proxy (hidden)            |
+| `stdio-to-uds`        | `Subcommand::StdioToUds`        | `StdioToUdsCommand`     | `codex-stdio-to-uds`        | Relay stdio to Unix domain socket (hidden)       |
 
 **Sources**: [codex-rs/cli/src/main.rs:84-149]()
 
@@ -114,17 +112,17 @@ The `tokio_main` function (which wraps the actual async `main` logic) orchestrat
 graph TB
     Start["async fn main()"]
     Arg0Check["arg0_dispatch_or_else(|| { ... })"]
-    
+
     Start --> Arg0Check
-    
+
     Arg0Check -->|"name ends with<br/>-apply-patch"| ApplyPatchBin["codex_apply_patch::main()"]
     Arg0Check -->|"name ends with<br/>-linux-sandbox"| SandboxBin["codex_linux_sandbox::main()"]
     Arg0Check -->|"else callback"| ParseCli["MultitoolCli::parse()"]
-    
+
     ParseCli --> ExpandToggles["feature_toggles.to_overrides()<br/>merge into config_overrides"]
     ExpandToggles --> ResolvePaths["resolve codex_linux_sandbox_exe"]
     ResolvePaths --> MatchSubcommand{"match cli.subcommand"}
-    
+
     MatchSubcommand -->|"None"| TuiMode["codex_tui::run_main(cli.interactive,<br/>codex_linux_sandbox_exe)"]
     MatchSubcommand -->|"Some(Subcommand::Exec(args))"| ExecMode["codex_exec::run_main(args,<br/>codex_linux_sandbox_exe)"]
     MatchSubcommand -->|"Some(Subcommand::Review(args))"| ReviewMode["ExecCli { command: Some(<br/>ExecCommand::Review(args)) }"]
@@ -137,10 +135,10 @@ graph TB
     MatchSubcommand -->|"Some(Subcommand::Fork(cmd))"| ForkFlow["TuiCli with fork flags"]
     MatchSubcommand -->|"Some(Subcommand::Apply(cmd))"| ApplyFlow["run_apply_command(cmd)"]
     MatchSubcommand -->|"Some(Subcommand::Features(cli))"| FeaturesFlow["run_features_command(cli)"]
-    
+
     TuiMode --> Exit["handle_app_exit(exit_info)"]
     ExecMode --> ExitDirect["Ok(())"]
-    
+
     Exit --> CheckUpdate{"exit_info.update_action?"}
     CheckUpdate -->|"Some(action)"| RunUpdate["run_update_action(action)"]
     CheckUpdate -->|"None"| Done["Return"]
@@ -159,7 +157,6 @@ graph TB
 
 4. **Subcommand match**: A large `match` statement on `cli.subcommand` routes execution to the appropriate handler function or crate entry point. Each variant invokes its respective module's entry point.
 
-
 ---
 
 ## Arg0 Dispatch for Specialized Binaries
@@ -170,10 +167,10 @@ The **arg0 dispatch** mechanism allows the same binary to be invoked under diffe
 
 The following table lists recognized arg0 names and their handlers:
 
-| Binary Name Pattern | Handler Function | Crate | Purpose |
-|---------------------|-----------------|-------|---------|
-| `*-apply-patch` | `codex_apply_patch::main()` | `codex-apply-patch` | Apply patches from stdin to filesystem |
-| `*-linux-sandbox` | `codex_linux_sandbox::main()` | `codex-linux-sandbox` | Run commands under Landlock+seccomp on Linux |
+| Binary Name Pattern | Handler Function              | Crate                 | Purpose                                      |
+| ------------------- | ----------------------------- | --------------------- | -------------------------------------------- |
+| `*-apply-patch`     | `codex_apply_patch::main()`   | `codex-apply-patch`   | Apply patches from stdin to filesystem       |
+| `*-linux-sandbox`   | `codex_linux_sandbox::main()` | `codex-linux-sandbox` | Run commands under Landlock+seccomp on Linux |
 
 The pattern matching is **suffix-based**: any binary name ending with `-apply-patch` or `-linux-sandbox` triggers the respective handler. This allows platform-specific binaries like `codex-x86_64-unknown-linux-musl-linux-sandbox` to work correctly. The matching logic uses `arg0.ends_with()` checks (see [codex-rs/arg0/src/lib.rs:28-73]()).
 
@@ -183,19 +180,19 @@ The pattern matching is **suffix-based**: any binary name ending with `-apply-pa
 graph TB
     EntryPoint["CLI entry point<br/>main()"]
     GetArg0["std::env::args()<br/>.next()"]
-    
+
     EntryPoint --> GetArg0
-    
+
     GetArg0 --> CheckName{"Binary name check"}
-    
+
     CheckName -->|"Ends with<br/>-apply-patch"| ApplyPatch["codex_apply_patch::main()"]
     CheckName -->|"Ends with<br/>-linux-sandbox"| LinuxSandbox["codex_linux_sandbox::main()"]
     CheckName -->|"Other name"| ElseCallback["Callback:<br/>parse MultitoolCli"]
-    
+
     ApplyPatch --> Exit1["std::process::exit()"]
     LinuxSandbox --> Exit2["std::process::exit()"]
     ElseCallback --> NormalDispatch["Normal subcommand<br/>dispatch"]
-    
+
     style ApplyPatch fill:#e1ffe1
     style LinuxSandbox fill:#e1ffe1
 ```
@@ -225,15 +222,15 @@ The `resume` and `fork` subcommands are **specialized TUI invocations** rather t
 graph LR
     ResumeCmd["codex resume"]
     ForkCmd["codex fork"]
-    
+
     ResumeCmd --> MapToTui1["TuiCli with<br/>resume_picker=true"]
     ForkCmd --> MapToTui2["TuiCli with<br/>fork_picker=true"]
-    
+
     MapToTui1 --> TuiMain["codex_tui::run_main()"]
     MapToTui2 --> TuiMain
-    
+
     TuiMain --> SessionPicker["Resume/Fork picker UI"]
-    
+
     style TuiMain fill:#e1f5ff
 ```
 
@@ -250,6 +247,7 @@ This design keeps the TUI as the single source of truth for interactive session 
 All modes share the `CliConfigOverrides` struct from `codex-utils-cli`, which provides the `-c key=value` syntax for overriding config.toml values at runtime. This struct is flattened into `MultitoolCli` at [codex-rs/cli/src/main.rs:71-72]() and forwarded to both TUI and Exec modes. The struct provides a `parse_overrides()` method that converts string pairs into `Vec<(String, toml::Value)>`.
 
 **Example**:
+
 ```bash
 codex -c model=gpt-4o -c sandbox_mode=workspace-write exec "Add tests"
 ```
@@ -270,7 +268,7 @@ graph LR
     ToOverrides["to_overrides():<br/>Vec&lt;String&gt;"]
     Expanded["[\"features.shell_exec=true\",<br/>\"features.web_search=false\"]"]
     Merge["append to<br/>config_overrides.raw_overrides"]
-    
+
     CLI --> Toggles
     Toggles --> Validate
     Validate --> ToOverrides
@@ -285,6 +283,7 @@ The validation step ensures users don't accidentally enable non-existent feature
 ### Arg0DispatchPaths Resolution
 
 The CLI uses the `arg0_dispatch_or_else()` function to not only handle arg0-based dispatch but also to build an `Arg0DispatchPaths` struct that contains paths to specialized binaries. This struct includes:
+
 - `codex_linux_sandbox_exe`: Path to the Linux sandbox wrapper binary
 - `main_execve_wrapper_exe`: Path to the main execve wrapper for shell escalation
 
@@ -308,26 +307,26 @@ After TUI or Exec mode completes, control returns to the main function, which ca
 graph TB
     ModeExit["codex_tui::run_main()<br/>returns Result&lt;AppExitInfo&gt;"]
     HandleExit["handle_app_exit(exit_info)"]
-    
+
     ModeExit --> HandleExit
-    
+
     HandleExit --> MatchReason{"match exit_info.exit_reason"}
-    
+
     MatchReason -->|"ExitReason::Fatal(message)"| PrintError["eprintln!(\"ERROR: {}\", message)<br/>std::process::exit(1)"]
     MatchReason -->|"ExitReason::UserRequested"| CheckTokens{"token_usage.is_zero()?"}
-    
+
     CheckTokens -->|"false"| FormatMessages["format_exit_messages(exit_info,<br/>color_enabled)"]
     CheckTokens -->|"true"| SkipFormat["empty Vec"]
-    
+
     FormatMessages --> PrintMessages["for line in messages {<br/>println!(\"{}\", line)<br/>}"]
     SkipFormat --> CheckUpdate
     PrintMessages --> CheckUpdate
-    
+
     CheckUpdate{"exit_info.update_action?"}
-    
+
     CheckUpdate -->|"Some(action)"| RunUpdate["run_update_action(action)"]
     CheckUpdate -->|"None"| Exit["Ok(())"]
-    
+
     RunUpdate --> UpdateCmd["action.command_args():<br/>(cmd, args)"]
     UpdateCmd --> SpawnProcess["std::process::Command<br/>::new(cmd).args(args)<br/>.status()"]
     SpawnProcess --> CheckStatus{"status.success()?"}

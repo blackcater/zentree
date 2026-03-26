@@ -14,8 +14,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes the two-phase build architecture used to create distributable AionUi applications. Phase 1 uses `electron-vite` to bundle TypeScript source files into JavaScript bundles in `out/`. Phase 2 uses `electron-builder` to package those bundles into platform-specific installers and archives. Both phases are coordinated by `scripts/build-with-builder.js`.
@@ -72,9 +70,9 @@ Phase 1 runs `bunx electron-vite build`, which compiles the main process, preloa
 
 After Phase 1 completes, the script verifies that exactly these two files exist before proceeding to Phase 2:
 
-| File | Purpose |
-|------|---------|
-| `out/main/index.js` | Main Electron process bundle |
+| File                      | Purpose                      |
+| ------------------------- | ---------------------------- |
+| `out/main/index.js`       | Main Electron process bundle |
 | `out/renderer/index.html` | Renderer (React) entry point |
 
 The preload bundle is also placed in `out/preload/` but not separately verified.
@@ -116,12 +114,12 @@ The function `computeSourceHash()` hashes the contents of key config files (`pac
 
 On subsequent runs, `shouldSkipViteBuild()` compares the current hash against the cached hash. If they match and `out/main/index.js` and `out/renderer/index.html` exist, Phase 1 is skipped entirely.
 
-| Condition | Phase 1 Behavior |
-|-----------|-----------------|
-| `--force` flag | Always runs |
-| `--skip-vite` flag | Always skips |
-| Hash match + output exists | Skips (incremental) |
-| Hash mismatch or output missing | Runs full build |
+| Condition                       | Phase 1 Behavior    |
+| ------------------------------- | ------------------- |
+| `--force` flag                  | Always runs         |
+| `--skip-vite` flag              | Always skips        |
+| Hash match + output exists      | Skips (incremental) |
+| Hash mismatch or output missing | Runs full build     |
 
 Sources: [scripts/build-with-builder.js:30-106]()
 
@@ -190,11 +188,11 @@ graph TB
     afterPack -. "runs before signing" .-> afterSign
 ```
 
-| Platform | Targets | Architectures |
-|----------|---------|--------------|
-| `mac` | `dmg`, `zip` | `arm64`, `x64` (separate CI jobs) |
-| `win` | `nsis`, `zip` | `x64`, `arm64` |
-| `linux` | `deb`, `AppImage` | `x64`, `arm64` |
+| Platform | Targets           | Architectures                     |
+| -------- | ----------------- | --------------------------------- |
+| `mac`    | `dmg`, `zip`      | `arm64`, `x64` (separate CI jobs) |
+| `win`    | `nsis`, `zip`     | `x64`, `arm64`                    |
+| `linux`  | `deb`, `AppImage` | `x64`, `arm64`                    |
 
 Sources: [electron-builder.yml:99-170](), [electron-builder.yml:148-149]()
 
@@ -202,15 +200,15 @@ Sources: [electron-builder.yml:99-170](), [electron-builder.yml:148-149]()
 
 `electron-builder.yml` enables asar packaging with `smartUnpack: true`. Native modules and resource directories that require filesystem access are listed under `asarUnpack` so they are placed in `app.asar.unpacked/` at runtime:
 
-| Unpacked Pattern | Reason |
-|-----------------|--------|
-| `better-sqlite3/**` | `.node` binary, can't load from asar |
-| `bcrypt/**` | `.node` binary |
-| `node-pty/**` | `.node` binary |
-| `web-tree-sitter/**` | WASM files loaded via `fs.readFile` |
-| `tree-sitter-bash/**` | WASM grammar file |
-| `rules/**`, `skills/**` | `fs.readdir` with `withFileTypes` |
-| `open/**`, `default-browser/**`, etc. | Windows asar compatibility |
+| Unpacked Pattern                      | Reason                               |
+| ------------------------------------- | ------------------------------------ |
+| `better-sqlite3/**`                   | `.node` binary, can't load from asar |
+| `bcrypt/**`                           | `.node` binary                       |
+| `node-pty/**`                         | `.node` binary                       |
+| `web-tree-sitter/**`                  | WASM files loaded via `fs.readFile`  |
+| `tree-sitter-bash/**`                 | WASM grammar file                    |
+| `rules/**`, `skills/**`               | `fs.readdir` with `withFileTypes`    |
+| `open/**`, `default-browser/**`, etc. | Windows asar compatibility           |
 
 Sources: [electron-builder.yml:175-197]()
 
@@ -278,12 +276,12 @@ Sources: [scripts/build-with-builder.js:285-377]()
 
 The script supports four architecture specification methods, resolved in this order:
 
-| Method | Example | Behavior |
-|--------|---------|----------|
-| Multiple explicit arch flags | `arm64 --mac --arm64 --x64` | `multiArch = true`; passes all to electron-builder |
-| `auto` + platform flag | `auto --mac` | Reads first `arch:` entry from `electron-builder.yml` via `getTargetArchFromConfig()` |
-| Single explicit arch | `arm64 --mac --arm64` | `targetArch = arm64` |
-| No arch flag | `--mac` | `targetArch = process.arch` (host) |
+| Method                       | Example                     | Behavior                                                                              |
+| ---------------------------- | --------------------------- | ------------------------------------------------------------------------------------- |
+| Multiple explicit arch flags | `arm64 --mac --arm64 --x64` | `multiArch = true`; passes all to electron-builder                                    |
+| `auto` + platform flag       | `auto --mac`                | Reads first `arch:` entry from `electron-builder.yml` via `getTargetArchFromConfig()` |
+| Single explicit arch         | `arm64 --mac --arm64`       | `targetArch = arm64`                                                                  |
+| No arch flag                 | `--mac`                     | `targetArch = process.arch` (host)                                                    |
 
 Both bare (`arm64`) and prefixed (`--arm64`) forms are accepted and deduplicated. The determined `targetArch` is passed as `ELECTRON_BUILDER_ARCH` to `electron-vite build` and as `--${arch}` to `electron-builder`.
 
@@ -308,6 +306,7 @@ macOS CI runners can experience transient `hdiutil` "Device not configured" erro
 The function first attempts the full `electron-builder` command. If it fails and the platform is macOS, it checks whether a `.app` bundle already exists in `out/mac*/` but no `.dmg` is present. If so, it concludes the failure was DMG-specific and retries up to `DMG_RETRY_MAX` (3) times with a `DMG_RETRY_DELAY_SEC` (30 second) wait between attempts.
 
 On each retry:
+
 1. `cleanupDiskImages()` runs `hdiutil detach -force` on all mounted disk images.
 2. `createDmgWithPrepackaged()` calls `electron-builder --mac dmg --${arch} --prepackaged <path/to/App.app>`, which re-uses the existing `.app` and re-creates only the DMG step.
 
@@ -350,10 +349,10 @@ In multi-arch mode, `archFlag` is the joined set of all arch flags (e.g., `--arm
 
 The compression level is controlled by the `ELECTRON_BUILDER_COMPRESSION_LEVEL` environment variable:
 
-| Environment | Compression level | Effect |
-|-------------|------------------|--------|
-| CI (`CI=true`) | `9` (maximum) | Smallest output size |
-| Local | `7` (normal) | ~30–50% faster ASAR packing |
+| Environment    | Compression level | Effect                      |
+| -------------- | ----------------- | --------------------------- |
+| CI (`CI=true`) | `9` (maximum)     | Smallest output size        |
+| Local          | `7` (normal)      | ~30–50% faster ASAR packing |
 
 Sources: [scripts/build-with-builder.js:341-374]()
 
@@ -363,18 +362,18 @@ Sources: [scripts/build-with-builder.js:341-374]()
 
 All production build scripts in `package.json` delegate to `scripts/build-with-builder.js`:
 
-| Script | Invocation | Purpose |
-|--------|-----------|---------|
-| `dist` | `node scripts/build-with-builder.js` | Current platform, host arch |
-| `dist:mac` | `node scripts/build-with-builder.js auto --mac` | macOS, arch from `electron-builder.yml` |
-| `dist:win` | `node scripts/build-with-builder.js auto --win` | Windows, arch from config |
-| `dist:linux` | `node scripts/build-with-builder.js auto --linux` | Linux, arch from config |
-| `build-mac` | `node scripts/build-with-builder.js auto --mac --arm64 --x64` | macOS multi-arch (arm64 + x64) |
-| `build-win` | `node scripts/build-with-builder.js auto --win` | Windows |
-| `build-deb` | `node scripts/build-with-builder.js auto --linux` | Linux deb/AppImage |
-| `build-mac:arm64` | `node scripts/build-with-builder.js arm64 --mac --arm64` | macOS ARM64 only |
-| `build-mac:x64` | `node scripts/build-with-builder.js x64 --mac --x64` | macOS Intel only |
-| `package` / `make` | `electron-vite build` | Phase 1 only (no packaging) |
+| Script             | Invocation                                                    | Purpose                                 |
+| ------------------ | ------------------------------------------------------------- | --------------------------------------- |
+| `dist`             | `node scripts/build-with-builder.js`                          | Current platform, host arch             |
+| `dist:mac`         | `node scripts/build-with-builder.js auto --mac`               | macOS, arch from `electron-builder.yml` |
+| `dist:win`         | `node scripts/build-with-builder.js auto --win`               | Windows, arch from config               |
+| `dist:linux`       | `node scripts/build-with-builder.js auto --linux`             | Linux, arch from config                 |
+| `build-mac`        | `node scripts/build-with-builder.js auto --mac --arm64 --x64` | macOS multi-arch (arm64 + x64)          |
+| `build-win`        | `node scripts/build-with-builder.js auto --win`               | Windows                                 |
+| `build-deb`        | `node scripts/build-with-builder.js auto --linux`             | Linux deb/AppImage                      |
+| `build-mac:arm64`  | `node scripts/build-with-builder.js arm64 --mac --arm64`      | macOS ARM64 only                        |
+| `build-mac:x64`    | `node scripts/build-with-builder.js x64 --mac --x64`          | macOS Intel only                        |
+| `package` / `make` | `electron-vite build`                                         | Phase 1 only (no packaging)             |
 
 Sources: [package.json:18-29]()
 
@@ -384,13 +383,13 @@ Sources: [package.json:18-29]()
 
 The GitHub Actions `build-and-release.yml` workflow delegates to a reusable workflow (`_build-reusable.yml`) with a matrix of platform/arch combinations. Each matrix entry specifies exactly which `build-with-builder.js` invocation to run:
 
-| Platform | Runner OS | Command |
-|----------|----------|---------|
-| `macos-arm64` | `macos-14` | `node scripts/build-with-builder.js arm64 --mac --arm64` |
-| `macos-x64` | `macos-14` | `node scripts/build-with-builder.js x64 --mac --x64` |
-| `windows-x64` | `windows-2022` | `node scripts/build-with-builder.js x64 --win --x64` |
-| `windows-arm64` | `windows-2022` | `node scripts/build-with-builder.js arm64 --win --arm64` |
-| `linux` | `ubuntu-latest` | `bun run dist:linux` (multi-arch via config) |
+| Platform        | Runner OS       | Command                                                  |
+| --------------- | --------------- | -------------------------------------------------------- |
+| `macos-arm64`   | `macos-14`      | `node scripts/build-with-builder.js arm64 --mac --arm64` |
+| `macos-x64`     | `macos-14`      | `node scripts/build-with-builder.js x64 --mac --x64`     |
+| `windows-x64`   | `windows-2022`  | `node scripts/build-with-builder.js x64 --win --x64`     |
+| `windows-arm64` | `windows-2022`  | `node scripts/build-with-builder.js arm64 --win --arm64` |
+| `linux`         | `ubuntu-latest` | `bun run dist:linux` (multi-arch via config)             |
 
 Each job runs both phases sequentially on its assigned runner OS. Native module rebuilding is handled by `scripts/afterPack.js` and `scripts/rebuildNativeModules.js` — see page 11.3 for details.
 
@@ -448,15 +447,15 @@ Sources: [electron-builder.yml:13-17](), [scripts/build-with-builder.js:316-330]
 
 The orchestration script caches Phase 1 results using a content hash stored in `out/.build-hash`. The hash covers these files and directories:
 
-| Hashed Input | Method |
-|-------------|--------|
-| `package.json` | File content |
-| `package-lock.json` | File content |
-| `tsconfig.json` | File content |
-| `electron.vite.config.ts` | File content |
-| `electron-builder.yml` | File content |
-| `src/` directory | `mtime` (modification timestamp) |
-| `public/` directory | `mtime` |
+| Hashed Input              | Method                           |
+| ------------------------- | -------------------------------- |
+| `package.json`            | File content                     |
+| `package-lock.json`       | File content                     |
+| `tsconfig.json`           | File content                     |
+| `electron.vite.config.ts` | File content                     |
+| `electron-builder.yml`    | File content                     |
+| `src/` directory          | `mtime` (modification timestamp) |
+| `public/` directory       | `mtime`                          |
 
 If the hash matches and `out/main/index.js` + `out/renderer/index.html` both exist, the Vite build step is skipped. Pass `--force` to bypass this check, or `--skip-vite` to unconditionally skip Phase 1.
 

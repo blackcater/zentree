@@ -25,8 +25,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the Skills and Prompt Templates systems in pi-coding-agent. Skills are on-demand capability packages following the Agent Skills standard, enabling the agent to perform specialized tasks. Prompt Templates are reusable Markdown prompts with variable substitution.
 
 For information about Extensions (code-based customization), see [4.4](#4.4). For package management, see [4.12](#4.12).
@@ -53,16 +51,19 @@ automatic: true
 Use this skill when the user asks about X or Y.
 
 ## Steps
+
 1. First, do this
 2. Then, do that
 3. Finally, verify the result
 
 ## Notes
+
 - Important consideration A
 - Important consideration B
 ```
 
 **Frontmatter fields:**
+
 - `name` (required): Unique identifier for the skill
 - `description` (required): Short description shown in skill listings
 - `automatic` (optional): If `true`, skill content is automatically included in system prompt. If `false` or omitted, skill is only loaded on-demand via `/skill:name` command.
@@ -78,31 +79,32 @@ graph TB
     Project["Project Scope<br/>.pi/skills/"]
     Ancestors["Ancestor Auto-Discovery<br/>.agents/skills/<br/>(walk up to git root)"]
     Packages["Package Resources<br/>npm/git packages"]
-    
+
     CLI["CLI Flag<br/>--skill <path>"]
     Settings["settings.json<br/>skills: []"]
-    
+
     Loader["DefaultResourceLoader"]
     PackageMgr["DefaultPackageManager"]
-    
+
     User --> Loader
     UserAgents --> Loader
     Project --> Loader
     Ancestors --> Loader
-    
+
     Packages --> PackageMgr
     PackageMgr --> Loader
-    
+
     CLI --> Loader
     Settings --> PackageMgr
-    
+
     Loader --> SkillsList["Loaded Skills"]
-    
+
     SkillsList --> SystemPrompt["System Prompt<br/>(automatic: true)"]
     SkillsList --> Commands["Skill Commands<br/>/skill:name"]
 ```
 
 **Discovery order** (later sources win name collisions):
+
 1. User skills: `~/.pi/agent/skills/`
 2. User auto-discovery: `~/.agents/skills/` (in home directory)
 3. Ancestor auto-discovery: `.agents/skills/` (from cwd up to git root)
@@ -111,6 +113,7 @@ graph TB
 6. CLI flags: `--skill <path>`
 
 **Auto-discovery rules:**
+
 - In `~/.pi/agent/skills/` and `.pi/skills/`: All `.md` files in the root are skills, plus recursive `SKILL.md` files
 - In `.agents/skills/`: Only `SKILL.md` files (recursive), no root `.md` files
 - Git repo boundary: Stops at `.git` directory when walking up ancestors
@@ -129,6 +132,7 @@ When `enableSkillCommands` is enabled (default: `true`), each skill is registere
 This includes the skill's content in the next message to the agent. For automatic skills (`automatic: true`), the content is already in the system prompt, so the command is redundant but harmless.
 
 **Disabling skill commands:**
+
 ```json
 {
   "enableSkillCommands": false
@@ -140,6 +144,7 @@ This includes the skill's content in the next message to the agent. For automati
 ### File Structure Examples
 
 **Root-level skill** (in `~/.pi/agent/skills/` or `.pi/skills/`):
+
 ```
 skills/
   transcribe.md          # Loaded as "transcribe" skill
@@ -147,6 +152,7 @@ skills/
 ```
 
 **Directory-based skill** (anywhere):
+
 ```
 skills/
   browser-tools/
@@ -156,6 +162,7 @@ skills/
 ```
 
 **Auto-discovery in `.agents/skills/`** (only `SKILL.md` files):
+
 ```
 .agents/
   skills/
@@ -176,6 +183,7 @@ Prompt Templates are reusable Markdown files with optional variable substitution
 ### File Format
 
 **Basic template:**
+
 ```markdown
 ---
 description: Review code for common issues
@@ -186,6 +194,7 @@ Focus on error handling and edge cases.
 ```
 
 **Template with variables:**
+
 ```markdown
 ---
 description: Review code with custom focus
@@ -196,6 +205,7 @@ Focus on: {{focus}}
 ```
 
 **Frontmatter fields:**
+
 - `description` (optional): Shown in prompt template listings
 
 When you type `/review`, the content is expanded into the editor. If variables are present (e.g., `{{focus}}`), pi prompts for values before expansion.
@@ -205,6 +215,7 @@ When you type `/review`, the content is expanded into the editor. If variables a
 ### Discovery Locations
 
 Prompt templates are discovered from:
+
 1. User prompts: `~/.pi/agent/prompts/`
 2. Project prompts: `.pi/prompts/`
 3. Package prompts
@@ -221,6 +232,7 @@ All `.md` files in these directories are loaded as templates. The filename (with
 Variables use `{{variable}}` syntax. When expanding a template with variables, pi collects values interactively before inserting the content.
 
 **Example interaction:**
+
 ```
 You: /review
 Pi: Value for {{focus}}: memory management
@@ -238,43 +250,44 @@ Focus on: memory management
 graph TB
     subgraph "Discovery Phase"
         PM["PackageManager.resolve()"]
-        
+
         PM --> ResolvePackages["Resolve package sources<br/>(npm, git, local)"]
         PM --> ResolveLocal["Resolve local paths<br/>(from settings)"]
         PM --> AutoDiscover["Auto-discover resources<br/>(.agents/skills, etc.)"]
-        
+
         ResolvePackages --> CollectPkg["collectResourceFiles()<br/>per package"]
         ResolveLocal --> CollectLocal["collectResourceFiles()<br/>per directory"]
         AutoDiscover --> CollectAuto["collectAutoSkillEntries()<br/>collectAutoPromptEntries()"]
-        
+
         CollectPkg --> ApplyFilters["applyPatterns()<br/>!exclude, +include, -exclude"]
         CollectLocal --> ApplyFilters
         CollectAuto --> Accumulator
-        
+
         ApplyFilters --> Accumulator["ResourceAccumulator<br/>Map<path, metadata>"]
-        
+
         Accumulator --> ResolvedPaths["ResolvedPaths<br/>{extensions, skills, prompts, themes}"]
     end
-    
+
     subgraph "Loading Phase"
         RL["ResourceLoader.reload()"]
-        
+
         RL --> GetPaths["packageManager.resolve()"]
         GetPaths --> LoadSkills["loadSkills(paths)"]
         GetPaths --> LoadPrompts["loadPromptTemplates(paths)"]
-        
+
         LoadSkills --> ParseMD["Parse Markdown<br/>Extract frontmatter"]
         LoadPrompts --> ParseMD
-        
+
         ParseMD --> ValidateFM["Validate frontmatter<br/>name, description, automatic"]
         ValidateFM --> SkillList["Skill[]"]
         ValidateFM --> PromptList["PromptTemplate[]"]
     end
-    
+
     ResolvedPaths --> GetPaths
 ```
 
 **Discovery phase** ([packages/coding-agent/src/core/package-manager.ts:744-796]()):
+
 1. `PackageManager.resolve()` collects paths from:
    - Package sources (after installation)
    - Local settings paths
@@ -283,6 +296,7 @@ graph TB
 3. Results are accumulated with metadata (source, scope, enabled status)
 
 **Loading phase** ([packages/coding-agent/src/core/resource-loader.ts:240-340]()):
+
 1. `ResourceLoader.reload()` calls `packageManager.resolve()`
 2. `loadSkills()` and `loadPromptTemplates()` parse Markdown files
 3. Frontmatter is validated
@@ -299,20 +313,20 @@ graph TB
 ```mermaid
 graph LR
     Paths["ResolvedResource[]<br/>(skill paths)"] --> LoadSkills["loadSkills(paths)"]
-    
+
     LoadSkills --> ReadFile["readFileSync(path)"]
     ReadFile --> ParseGrayMatter["gray-matter.parse(content)"]
-    
+
     ParseGrayMatter --> ExtractMatter["{ data: frontmatter,<br/>content: body }"]
-    
+
     ExtractMatter --> ValidateName["Validate name<br/>(required)"]
     ValidateName --> ValidateDesc["Validate description<br/>(required)"]
     ValidateDesc --> CheckAutomatic["Check automatic flag<br/>(optional, default: false)"]
-    
+
     CheckAutomatic --> CreateSkill["Create Skill object<br/>{name, description, content,<br/>automatic, filePath, metadata}"]
-    
+
     CreateSkill --> DedupeByName["Deduplicate by name<br/>(project scope wins)"]
-    
+
     DedupeByName --> SkillArray["Skill[]"]
 ```
 
@@ -320,16 +334,17 @@ graph LR
 
 ```typescript
 interface Skill {
-  name: string;
-  description: string;
-  content: string;
-  automatic: boolean;
-  filePath: string;
-  metadata: PathMetadata;
+  name: string
+  description: string
+  content: string
+  automatic: boolean
+  filePath: string
+  metadata: PathMetadata
 }
 ```
 
 **Validation errors:**
+
 - Missing `name` or `description` in frontmatter
 - Duplicate names (handled by deduplication, project scope wins)
 - Invalid YAML frontmatter
@@ -341,17 +356,17 @@ interface Skill {
 ```mermaid
 graph LR
     Paths["ResolvedResource[]<br/>(prompt paths)"] --> LoadPrompts["loadPromptTemplates(paths)"]
-    
+
     LoadPrompts --> DeriveNames["Derive name from filename<br/>basename(path, '.md')"]
     DeriveNames --> ReadFile["readFileSync(path)"]
-    
+
     ReadFile --> ParseGrayMatter["gray-matter.parse(content)"]
     ParseGrayMatter --> ExtractMatter["{ data: frontmatter,<br/>content: template }"]
-    
+
     ExtractMatter --> CreateTemplate["Create PromptTemplate<br/>{name, description,<br/>template, filePath, metadata}"]
-    
+
     CreateTemplate --> DedupeByName["Deduplicate by name<br/>(project scope wins)"]
-    
+
     DedupeByName --> PromptArray["PromptTemplate[]"]
 ```
 
@@ -359,15 +374,16 @@ graph LR
 
 ```typescript
 interface PromptTemplate {
-  name: string;
-  description?: string;
-  template: string;
-  filePath: string;
-  metadata: PathMetadata;
+  name: string
+  description?: string
+  template: string
+  filePath: string
+  metadata: PathMetadata
 }
 ```
 
 **Template expansion:**
+
 - Variables in template: `{{variableName}}`
 - No runtime validation of variable names
 - Expansion happens at command invocation time
@@ -394,6 +410,7 @@ Packages declare resources in `package.json`:
 ```
 
 **Auto-discovery fallback:** If no `pi` manifest exists, conventional directories are scanned:
+
 - `skills/` for skills
 - `prompts/` for prompts
 
@@ -416,6 +433,7 @@ Settings can filter which resources from a package are loaded:
 ```
 
 **Pattern types:**
+
 - `pattern`: Include matching paths (glob-style)
 - `!pattern`: Exclude matching paths
 - `+path`: Force-include exact path (overrides exclusions)
@@ -434,6 +452,7 @@ pi config
 ```
 
 This shows all discovered resources with checkboxes. Changes are written to `settings.json` as filter patterns:
+
 - Disabling adds `!pattern` to the resource type array
 - Re-enabling removes the exclusion pattern
 
@@ -448,16 +467,17 @@ This shows all discovered resources with checkboxes. Changes are written to `set
 ```json
 {
   "skills": [
-    "skills",                    // Directory (relative to settings file)
-    "/abs/path/to/skill.md",     // Absolute path
-    "~/custom/skills",            // Home-relative path
-    "!skills/deprecated-*"       // Exclude pattern
+    "skills", // Directory (relative to settings file)
+    "/abs/path/to/skill.md", // Absolute path
+    "~/custom/skills", // Home-relative path
+    "!skills/deprecated-*" // Exclude pattern
   ],
-  "enableSkillCommands": true    // Register /skill:name commands
+  "enableSkillCommands": true // Register /skill:name commands
 }
 ```
 
 **Scope:**
+
 - Global: `~/.pi/agent/settings.json` (paths relative to `~/.pi/agent/`)
 - Project: `.pi/settings.json` (paths relative to `.pi/`)
 
@@ -468,9 +488,9 @@ This shows all discovered resources with checkboxes. Changes are written to `set
 ```json
 {
   "prompts": [
-    "prompts",                   // Directory
-    "prompts/review.md",         // Single file
-    "!prompts/experimental/*"    // Exclude pattern
+    "prompts", // Directory
+    "prompts/review.md", // Single file
+    "!prompts/experimental/*" // Exclude pattern
   ]
 }
 ```
@@ -480,18 +500,21 @@ This shows all discovered resources with checkboxes. Changes are written to `set
 ### CLI Overrides
 
 **Load additional resources:**
+
 ```bash
 pi --skill ./custom-skill.md
 pi --prompt-template ./custom-prompt.md
 ```
 
 **Disable auto-discovery:**
+
 ```bash
 pi --no-skills              # Disable skill discovery
 pi --no-prompt-templates    # Disable prompt template discovery
 ```
 
 **Combine with explicit loads:**
+
 ```bash
 # Only load specific skill, ignore all others
 pi --no-skills --skill ./deploy.md
@@ -528,10 +551,10 @@ graph LR
     LoadSkills["loadSkills()"] --> CheckSetting["enableSkillCommands === true?"]
     CheckSetting -->|Yes| RegisterCommands["Register /skill:name commands"]
     CheckSetting -->|No| Skip["Skip command registration"]
-    
+
     RegisterCommands --> ExtRunner["ExtensionRunner.registerCommand()"]
     ExtRunner --> CommandMap["commandHandlers Map"]
-    
+
     UserTypes["/skill:deploy"] --> LookupCmd["commandHandlers.get('skill:deploy')"]
     LookupCmd --> AppendToMsg["Append skill content to message"]
     AppendToMsg --> SendToAgent["session.prompt(message)"]
@@ -547,13 +570,13 @@ All prompt templates are registered as commands:
 graph LR
     LoadPrompts["loadPromptTemplates()"] --> RegisterCmds["Register /name commands"]
     RegisterCmds --> ExtRunner["ExtensionRunner.registerCommand()"]
-    
+
     UserTypes["/review"] --> LookupCmd["commandHandlers.get('review')"]
     LookupCmd --> CheckVars["Check for {{variables}}"]
-    
+
     CheckVars -->|Has variables| PromptUser["Prompt for variable values"]
     CheckVars -->|No variables| DirectExpand["Expand template directly"]
-    
+
     PromptUser --> Substitute["Replace {{var}} with values"]
     Substitute --> InsertEditor["Insert into editor"]
     DirectExpand --> InsertEditor
@@ -572,23 +595,24 @@ When multiple resources have the same name, project scope wins:
 ```mermaid
 graph TB
     Discover["Discover resources"] --> CheckName["Check for duplicate names"]
-    
+
     CheckName --> HasDupe{"Duplicate<br/>found?"}
-    
+
     HasDupe -->|No| AddToList["Add to list"]
     HasDupe -->|Yes| CompareScope["Compare scopes"]
-    
+
     CompareScope --> CheckProjWins{"Is new resource<br/>project scope?"}
     CheckProjWins -->|Yes| ReplaceOld["Replace old with new"]
     CheckProjWins -->|No| KeepOld["Keep old, discard new"]
-    
+
     ReplaceOld --> RecordCollision["Record collision diagnostic"]
     KeepOld --> RecordCollision
-    
+
     RecordCollision --> AddToList
 ```
 
 **Diagnostic types:**
+
 - `ResourceCollision`: When multiple resources have the same name
 - `ResourceError`: When loading fails (invalid frontmatter, file read error)
 

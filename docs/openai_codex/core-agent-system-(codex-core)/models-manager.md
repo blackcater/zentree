@@ -27,8 +27,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Models Manager is the subsystem within `codex-core` responsible for discovering, caching, and resolving model metadata. It bridges the remote `/models` endpoint with the rest of the agent system, making model capabilities available to prompt construction, tool configuration, and UI pickers.
 
 This page covers the `ModelsManager` struct, `ModelInfo`, `ModelPreset`, `ModelProviderInfo`, `ModelsCacheManager`, refresh strategies, slug resolution logic, and personality support. For how model parameters (effort, summary, service tier) are applied when making an API request, see [3.2](#3.2). For how tools are configured based on `ModelInfo`, see [5.1](#5.1).
@@ -39,33 +37,33 @@ This page covers the `ModelsManager` struct, `ModelInfo`, `ModelPreset`, `ModelP
 
 **Model Metadata Types** — defined in [codex-rs/protocol/src/openai_models.rs:1-500]()
 
-| Type | Purpose |
-|------|---------|
-| `ModelInfo` | Full metadata returned by the `/models` endpoint |
-| `ModelPreset` | Picker-ready summary derived from `ModelInfo` |
-| `ModelsResponse` | Wire format wrapping `Vec<ModelInfo>` |
-| `ReasoningEffort` | Enum: `None`, `Minimal`, `Low`, `Medium`, `High`, `XHigh` |
-| `ReasoningEffortPreset` | Effort level + description pair shown in UIs |
-| `ConfigShellToolType` | Shell execution mode: `Default`, `Local`, `UnifiedExec`, `Disabled`, `ShellCommand` |
-| `ModelVisibility` | `List` (shown in picker), `Hide`, `None` |
-| `TruncationPolicyConfig` | Truncation mode (`Bytes` or `Tokens`) and numeric limit |
-| `ModelMessages` | Optional instructions template with personality variable slots |
-| `ModelInstructionsVariables` | Per-personality text for `default`, `friendly`, `pragmatic` |
-| `ModelUpgrade` | Recommended upgrade model and effort mapping |
+| Type                         | Purpose                                                                             |
+| ---------------------------- | ----------------------------------------------------------------------------------- |
+| `ModelInfo`                  | Full metadata returned by the `/models` endpoint                                    |
+| `ModelPreset`                | Picker-ready summary derived from `ModelInfo`                                       |
+| `ModelsResponse`             | Wire format wrapping `Vec<ModelInfo>`                                               |
+| `ReasoningEffort`            | Enum: `None`, `Minimal`, `Low`, `Medium`, `High`, `XHigh`                           |
+| `ReasoningEffortPreset`      | Effort level + description pair shown in UIs                                        |
+| `ConfigShellToolType`        | Shell execution mode: `Default`, `Local`, `UnifiedExec`, `Disabled`, `ShellCommand` |
+| `ModelVisibility`            | `List` (shown in picker), `Hide`, `None`                                            |
+| `TruncationPolicyConfig`     | Truncation mode (`Bytes` or `Tokens`) and numeric limit                             |
+| `ModelMessages`              | Optional instructions template with personality variable slots                      |
+| `ModelInstructionsVariables` | Per-personality text for `default`, `friendly`, `pragmatic`                         |
+| `ModelUpgrade`               | Recommended upgrade model and effort mapping                                        |
 
 **Key `ModelInfo` fields:**
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `slug` | `String` | Stable model identifier sent to the API |
-| `shell_type` | `ConfigShellToolType` | Determines which shell tool handler is activated |
-| `truncation_policy` | `TruncationPolicyConfig` | Tool output truncation limits |
-| `base_instructions` | `String` | System prompt content for this model |
-| `model_messages` | `Option<ModelMessages>` | Template-based instructions enabling personality |
-| `context_window` | `Option<i64>` | Maximum token context accepted |
-| `supports_reasoning_summaries` | `bool` | Whether summary reasoning is available |
-| `prefer_websockets` | `bool` | Forces WS transport even when global WS feature is off |
-| `used_fallback_model_metadata` | `bool` | Internal marker; set when slug had no catalog match |
+| Field                          | Type                     | Notes                                                  |
+| ------------------------------ | ------------------------ | ------------------------------------------------------ |
+| `slug`                         | `String`                 | Stable model identifier sent to the API                |
+| `shell_type`                   | `ConfigShellToolType`    | Determines which shell tool handler is activated       |
+| `truncation_policy`            | `TruncationPolicyConfig` | Tool output truncation limits                          |
+| `base_instructions`            | `String`                 | System prompt content for this model                   |
+| `model_messages`               | `Option<ModelMessages>`  | Template-based instructions enabling personality       |
+| `context_window`               | `Option<i64>`            | Maximum token context accepted                         |
+| `supports_reasoning_summaries` | `bool`                   | Whether summary reasoning is available                 |
+| `prefer_websockets`            | `bool`                   | Forces WS transport even when global WS feature is off |
+| `used_fallback_model_metadata` | `bool`                   | Internal marker; set when slug had no catalog match    |
 
 Sources: [codex-rs/protocol/src/openai_models.rs:107-287]()
 
@@ -97,17 +95,17 @@ Sources: [codex-rs/core/src/models_manager/manager.rs:102-399](), [codex-rs/core
 
 Represents a configured API endpoint (base URL, auth mechanism, retry limits, etc.).
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `name` | `String` | Friendly display name (e.g., `"OpenAI"`) |
-| `base_url` | `Option<String>` | Overrides default OpenAI/ChatGPT endpoint |
-| `env_key` | `Option<String>` | Env var holding the API key |
-| `wire_api` | `WireApi` | Must be `responses`; `chat` is rejected with an error |
-| `requires_openai_auth` | `bool` | If true, triggers the login/onboarding flow |
-| `supports_websockets` | `bool` | Whether WS transport is available on this provider |
-| `request_max_retries` | `Option<u64>` | Max HTTP retry attempts (default: 4, hard cap: 100) |
-| `stream_max_retries` | `Option<u64>` | Max stream reconnections (default: 5, hard cap: 100) |
-| `stream_idle_timeout_ms` | `Option<u64>` | Idle stream timeout (default: 300 000 ms) |
+| Field                    | Type             | Notes                                                 |
+| ------------------------ | ---------------- | ----------------------------------------------------- |
+| `name`                   | `String`         | Friendly display name (e.g., `"OpenAI"`)              |
+| `base_url`               | `Option<String>` | Overrides default OpenAI/ChatGPT endpoint             |
+| `env_key`                | `Option<String>` | Env var holding the API key                           |
+| `wire_api`               | `WireApi`        | Must be `responses`; `chat` is rejected with an error |
+| `requires_openai_auth`   | `bool`           | If true, triggers the login/onboarding flow           |
+| `supports_websockets`    | `bool`           | Whether WS transport is available on this provider    |
+| `request_max_retries`    | `Option<u64>`    | Max HTTP retry attempts (default: 4, hard cap: 100)   |
+| `stream_max_retries`     | `Option<u64>`    | Max stream reconnections (default: 5, hard cap: 100)  |
+| `stream_idle_timeout_ms` | `Option<u64>`    | Idle stream timeout (default: 300 000 ms)             |
 
 Built-in providers are returned by `built_in_model_providers()` and include `"openai"`, `"ollama"`, and `"lmstudio"`. Custom providers are defined in `config.toml` under `[model_providers]`. The `OPENAI_BASE_URL` environment variable overrides the default OpenAI base URL without a TOML change.
 
@@ -144,15 +142,15 @@ Sources: [codex-rs/core/src/models_manager/manager.rs:54-100](), [codex-rs/core/
 
 **`ModelsManager` struct fields:**
 
-| Field | Type | Role |
-|-------|------|------|
-| `remote_models` | `RwLock<Vec<ModelInfo>>` | Active in-memory model catalog |
-| `catalog_mode` | `CatalogMode` | `Default` (refreshable) or `Custom` (locked) |
+| Field                        | Type                       | Role                                         |
+| ---------------------------- | -------------------------- | -------------------------------------------- |
+| `remote_models`              | `RwLock<Vec<ModelInfo>>`   | Active in-memory model catalog               |
+| `catalog_mode`               | `CatalogMode`              | `Default` (refreshable) or `Custom` (locked) |
 | `collaboration_modes_config` | `CollaborationModesConfig` | Seeded configuration for multi-agent presets |
-| `auth_manager` | `Arc<AuthManager>` | Supplies auth tokens and mode detection |
-| `etag` | `RwLock<Option<String>>` | HTTP ETag from last `/models` response |
-| `cache_manager` | `ModelsCacheManager` | Reads/writes `models_cache.json` |
-| `provider` | `ModelProviderInfo` | Which API endpoint to call |
+| `auth_manager`               | `Arc<AuthManager>`         | Supplies auth tokens and mode detection      |
+| `etag`                       | `RwLock<Option<String>>`   | HTTP ETag from last `/models` response       |
+| `cache_manager`              | `ModelsCacheManager`       | Reads/writes `models_cache.json`             |
+| `provider`                   | `ModelProviderInfo`        | Which API endpoint to call                   |
 
 Sources: [codex-rs/core/src/models_manager/manager.rs:55-64]()
 
@@ -164,7 +162,7 @@ sequenceDiagram
     participant MM as ModelsManager
     participant File as models.json
     participant Cache as ModelsCacheManager
-    
+
     Caller->>MM: new(codex_home, auth_manager, catalog?, config)
     alt catalog provided
         MM->>MM: catalog_mode = Custom
@@ -200,10 +198,10 @@ Sources: [codex-rs/core/src/models_manager/manager.rs:72-100](), [codex-rs/core/
 
 `RefreshStrategy` controls when the network is consulted:
 
-| Variant | Behavior |
-|---------|----------|
-| `Online` | Always fetches from the network, ignoring cache |
-| `Offline` | Only reads from disk cache; never calls the network |
+| Variant            | Behavior                                             |
+| ------------------ | ---------------------------------------------------- |
+| `Online`           | Always fetches from the network, ignoring cache      |
+| `Offline`          | Only reads from disk cache; never calls the network  |
 | `OnlineIfUncached` | Uses fresh cache if available; falls back to network |
 
 Network refreshes only occur when `auth_mode == AuthMode::Chatgpt`. API-key users use only the bundled catalog and disk cache.
@@ -300,14 +298,14 @@ Sources: [codex-rs/core/src/models_manager/manager.rs:168-223](), [codex-rs/core
 
 After slug resolution, `with_config_overrides(model, config)` applies user configuration on top of the resolved `ModelInfo`:
 
-| Config field | Effect |
-|--------------|--------|
-| `model_supports_reasoning_summaries = true` | Forces `supports_reasoning_summaries = true` |
-| `model_context_window` | Overrides `context_window` |
-| `model_auto_compact_token_limit` | Overrides `auto_compact_token_limit` |
-| `tool_output_token_limit` | Recalculates `truncation_policy` (bytes or tokens) |
-| `base_instructions` | Replaces `base_instructions`; clears `model_messages` (disabling personality) |
-| Personality feature disabled | Clears `model_messages` |
+| Config field                                | Effect                                                                        |
+| ------------------------------------------- | ----------------------------------------------------------------------------- |
+| `model_supports_reasoning_summaries = true` | Forces `supports_reasoning_summaries = true`                                  |
+| `model_context_window`                      | Overrides `context_window`                                                    |
+| `model_auto_compact_token_limit`            | Overrides `auto_compact_token_limit`                                          |
+| `tool_output_token_limit`                   | Recalculates `truncation_policy` (bytes or tokens)                            |
+| `base_instructions`                         | Replaces `base_instructions`; clears `model_messages` (disabling personality) |
+| Personality feature disabled                | Clears `model_messages`                                                       |
 
 Sources: [codex-rs/core/src/models_manager/model_info.rs:23-57]()
 
@@ -329,6 +327,7 @@ Sources: [codex-rs/core/src/models_manager/model_info.rs:23-57]()
 ```
 
 **Cache validity rules:**
+
 - `client_version` must match the running binary's `CARGO_PKG_VERSION` (major.minor.patch). A mismatch forces a network refresh.
 - The cache is considered fresh if `(now - fetched_at) ≤ TTL`. Default TTL is **300 seconds** (5 minutes).
 - A zero TTL always treats the cache as stale.
@@ -337,13 +336,13 @@ Sources: [codex-rs/core/src/models_manager/model_info.rs:23-57]()
 
 **Cache components:**
 
-| Component | Type | Role |
-|-----------|------|------|
-| `ModelsCacheManager` | struct | Async load/save of `models_cache.json` |
-| `ModelsCache` | struct | Serialized cache envelope (timestamp, etag, version, models) |
-| `load_fresh()` | fn | Returns cache only when version matches and TTL is valid |
-| `persist_cache()` | fn | Writes current models + metadata to disk |
-| `renew_cache_ttl()` | fn | Updates `fetched_at` to now without changing models |
+| Component            | Type   | Role                                                         |
+| -------------------- | ------ | ------------------------------------------------------------ |
+| `ModelsCacheManager` | struct | Async load/save of `models_cache.json`                       |
+| `ModelsCache`        | struct | Serialized cache envelope (timestamp, etag, version, models) |
+| `load_fresh()`       | fn     | Returns cache only when version matches and TTL is valid     |
+| `persist_cache()`    | fn     | Writes current models + metadata to disk                     |
+| `renew_cache_ttl()`  | fn     | Updates `fetched_at` to now without changing models          |
 
 Sources: [codex-rs/core/src/models_manager/cache.rs:1-183]()
 
@@ -371,9 +370,9 @@ Personality is a model-level feature enabled by the `Feature::Personality` flag 
 
 **`ModelMessages` structure:**
 
-| Field | Role |
-|-------|------|
-| `instructions_template` | Full instructions string with `{{ personality }}` placeholder |
+| Field                    | Role                                                                                         |
+| ------------------------ | -------------------------------------------------------------------------------------------- |
+| `instructions_template`  | Full instructions string with `{{ personality }}` placeholder                                |
 | `instructions_variables` | Per-personality text: `personality_default`, `personality_friendly`, `personality_pragmatic` |
 
 `ModelInfo::get_model_instructions(personality)` resolves the final instruction string:
@@ -399,15 +398,15 @@ Sources: [codex-rs/core/src/models_manager/model_info.rs:49-56]()
 
 **Key methods on `ModelsManager`:**
 
-| Method | Signature (simplified) | Description |
-|--------|----------------------|-------------|
-| `new` | `(codex_home, auth_manager, model_catalog?, collab_config) → Self` | Constructs manager; custom catalog locks refresh |
-| `list_models` | `(RefreshStrategy) → Vec<ModelPreset>` | Full sorted, filtered preset list |
-| `try_list_models` | `() → Result<Vec<ModelPreset>, TryLockError>` | Non-blocking version; fails if lock contended |
-| `get_default_model` | `(&Option<String>, RefreshStrategy) → String` | Returns provided model or resolves default |
-| `get_model_info` | `(&str, &Config) → ModelInfo` | Resolves slug to full metadata with config overrides |
-| `list_collaboration_modes` | `() → Vec<CollaborationModeMask>` | Returns static collaboration presets |
-| `refresh_if_new_etag` | `(String)` | Renews TTL on ETag match or triggers full refresh |
+| Method                     | Signature (simplified)                                             | Description                                          |
+| -------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------- |
+| `new`                      | `(codex_home, auth_manager, model_catalog?, collab_config) → Self` | Constructs manager; custom catalog locks refresh     |
+| `list_models`              | `(RefreshStrategy) → Vec<ModelPreset>`                             | Full sorted, filtered preset list                    |
+| `try_list_models`          | `() → Result<Vec<ModelPreset>, TryLockError>`                      | Non-blocking version; fails if lock contended        |
+| `get_default_model`        | `(&Option<String>, RefreshStrategy) → String`                      | Returns provided model or resolves default           |
+| `get_model_info`           | `(&str, &Config) → ModelInfo`                                      | Resolves slug to full metadata with config overrides |
+| `list_collaboration_modes` | `() → Vec<CollaborationModeMask>`                                  | Returns static collaboration presets                 |
+| `refresh_if_new_etag`      | `(String)`                                                         | Renews TTL on ETag match or triggers full refresh    |
 
 Sources: [codex-rs/core/src/models_manager/manager.rs:102-239]()
 
@@ -452,11 +451,11 @@ Sources: [codex-rs/core/src/models_manager/mod.rs:1-15](), [codex-rs/core/src/mo
 
 `built_in_model_providers()` returns a `HashMap<String, ModelProviderInfo>` with three entries:
 
-| Key | Name | Default Port/URL | Auth Required |
-|-----|------|-----------------|---------------|
-| `"openai"` | `"OpenAI"` | `api.openai.com/v1` (or `chatgpt.com/backend-api/codex` in ChatGPT mode) | Yes (`requires_openai_auth = true`) |
-| `"ollama"` | `"gpt-oss"` | `localhost:11434/v1` | No |
-| `"lmstudio"` | `"gpt-oss"` | `localhost:1234/v1` | No |
+| Key          | Name        | Default Port/URL                                                         | Auth Required                       |
+| ------------ | ----------- | ------------------------------------------------------------------------ | ----------------------------------- |
+| `"openai"`   | `"OpenAI"`  | `api.openai.com/v1` (or `chatgpt.com/backend-api/codex` in ChatGPT mode) | Yes (`requires_openai_auth = true`) |
+| `"ollama"`   | `"gpt-oss"` | `localhost:11434/v1`                                                     | No                                  |
+| `"lmstudio"` | `"gpt-oss"` | `localhost:1234/v1`                                                      | No                                  |
 
 The OpenAI provider also reads `OPENAI_ORGANIZATION` and `OPENAI_PROJECT` from the environment and forwards them as HTTP headers. The base URL can be overridden via the `OPENAI_BASE_URL` environment variable.
 

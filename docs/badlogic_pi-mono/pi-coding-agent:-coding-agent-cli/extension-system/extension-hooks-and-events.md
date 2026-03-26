@@ -15,8 +15,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the event system that allows extensions to intercept, modify, and react to lifecycle events throughout the coding agent. Extensions subscribe to events via `pi.on(eventName, handler)` and receive callbacks at key points during session initialization, agent execution, tool calls, and user interactions.
 
 For information about registering custom tools, see [Custom Tools](#4.4.2). For custom commands and shortcuts, see [Custom Commands & Shortcuts](#4.4.3). For the extension UI context available to handlers, see [Extension UI Context](#4.4.4).
@@ -28,19 +26,20 @@ Extensions subscribe to events during initialization by calling `pi.on(eventName
 **Event Handler Signature**
 
 All event handlers receive two parameters:
+
 - `event` - The event object containing event-specific data
 - `ctx` - The `ExtensionContext` providing access to session state, UI methods, and runtime actions
 
 ```typescript
-pi.on("tool_call", async (event, ctx) => {
+pi.on('tool_call', async (event, ctx) => {
   // event: ToolCallEvent with toolName, toolCallId, input
   // ctx: ExtensionContext with ui, sessionManager, model, etc.
-  
-  if (event.toolName === "bash" && event.input.command.includes("rm -rf")) {
-    const confirmed = await ctx.ui.confirm("Dangerous!", "Allow rm -rf?");
-    if (!confirmed) return { block: true, reason: "Blocked by user" };
+
+  if (event.toolName === 'bash' && event.input.command.includes('rm -rf')) {
+    const confirmed = await ctx.ui.confirm('Dangerous!', 'Allow rm -rf?')
+    if (!confirmed) return { block: true, reason: 'Blocked by user' }
   }
-});
+})
 ```
 
 **Multiple Handlers**
@@ -58,30 +57,32 @@ graph TB
     Extension["Extension Object<br/>{path, handlers, tools, ...}"]
     ExtensionRunner["ExtensionRunner<br/>(manages all extensions)"]
     AgentSession["AgentSession<br/>(_emitExtensionEvent)"]
-    
+
     ExtensionFactory -->|"receives"| ExtensionAPI
     ExtensionAPI -->|"pi.on('event', handler)"| Extension
     Extension -->|"handlers Map"| ExtensionRunner
-    
+
     AgentSession -->|"emit(event)"| ExtensionRunner
     ExtensionRunner -->|"1. Look up handlers"| Extension
     ExtensionRunner -->|"2. Create ExtensionContext"| HandlerExecution["Handler Execution"]
     HandlerExecution -->|"await handler(event, ctx)"| Extension
     HandlerExecution -->|"3. Process return value"| ExtensionRunner
     ExtensionRunner -->|"4. Chain or block"| AgentSession
-    
+
     style ExtensionAPI fill:#e1f5ff
     style ExtensionRunner fill:#fff4e1
     style AgentSession fill:#ffe1f5
 ```
 
 **Extension Loading Phase** (startup, before events fire):
+
 1. Extension factory function receives `ExtensionAPI` instance
 2. Extension calls `pi.on(eventName, handler)` to register handlers
 3. Handlers are stored in the `Extension.handlers` Map
 4. `ExtensionRunner` collects handlers from all loaded extensions
 
 **Event Dispatch Phase** (runtime):
+
 1. `AgentSession` or other components call `runner.emit(event)`
 2. `ExtensionRunner` looks up handlers registered for that event type
 3. For each handler, creates fresh `ExtensionContext` with current state
@@ -100,45 +101,45 @@ sequenceDiagram
     participant ExtensionRunner
     participant Agent
     participant LLM
-    
+
     Note over AgentSession,ExtensionRunner: Session Initialization
     AgentSession->>ExtensionRunner: emit(session_start)
     ExtensionRunner->>ExtensionRunner: Execute all session_start handlers
-    
+
     Note over User,LLM: User Prompt Flow
     User->>InteractiveMode: Type message
     InteractiveMode->>AgentSession: prompt(text)
-    
+
     AgentSession->>ExtensionRunner: emitInput(text, images, source)
     ExtensionRunner-->>AgentSession: InputEventResult (continue/transform/handled)
-    
+
     alt Input handled by extension
         AgentSession-->>User: Extension provided response
     else Input continues
         AgentSession->>AgentSession: Expand skill/template if not handled
         AgentSession->>ExtensionRunner: emitBeforeAgentStart(prompt, images, systemPrompt)
         ExtensionRunner-->>AgentSession: BeforeAgentStartResult (message, systemPrompt)
-        
+
         AgentSession->>ExtensionRunner: emit(agent_start)
         AgentSession->>Agent: prompt() with modified context
-        
+
         loop Each Turn (LLM response + tool calls)
             Agent->>ExtensionRunner: emit(turn_start)
             Agent->>ExtensionRunner: emitContext(messages)
             ExtensionRunner-->>Agent: Modified messages
             Agent->>ExtensionRunner: emitBeforeProviderRequest(payload)
             ExtensionRunner-->>Agent: Modified payload
-            
+
             Agent->>LLM: API request with payload
-            
+
             loop Message streaming
                 Agent->>ExtensionRunner: emit(message_start/update/end)
             end
-            
+
             loop Tool calls in parallel
                 Agent->>ExtensionRunner: emitToolCall(toolName, input)
                 ExtensionRunner-->>Agent: ToolCallEventResult (block or continue)
-                
+
                 alt Not blocked
                     Agent->>Agent: Execute tool
                     Agent->>ExtensionRunner: emit(tool_execution_start/update/end)
@@ -146,21 +147,21 @@ sequenceDiagram
                     ExtensionRunner-->>Agent: Modified result
                 end
             end
-            
+
             Agent->>ExtensionRunner: emit(turn_end)
         end
-        
+
         Agent->>ExtensionRunner: emit(agent_end)
         AgentSession->>AgentSession: Auto-compaction check
     end
-    
+
     Note over AgentSession,ExtensionRunner: Session Operations
     User->>AgentSession: /compact command
     AgentSession->>ExtensionRunner: emit(session_before_compact)
     ExtensionRunner-->>AgentSession: SessionBeforeCompactResult (cancel or custom)
     AgentSession->>AgentSession: Run compaction
     AgentSession->>ExtensionRunner: emit(session_compact)
-    
+
     User->>AgentSession: Exit (Ctrl+C)
     AgentSession->>ExtensionRunner: emit(session_shutdown)
 ```
@@ -182,30 +183,30 @@ Sources: [packages/coding-agent/docs/extensions.md:224-283](), [packages/coding-
 
 Session events fire during session lifecycle operations: initialization, switching, forking, compaction, tree navigation.
 
-| Event | When | Can Cancel | Return Type |
-|-------|------|------------|-------------|
-| `session_start` | On initial session load | No | `undefined` |
-| `session_before_switch` | Before `/new` or `/resume` | Yes | `SessionBeforeSwitchResult` |
-| `session_switch` | After session switch | No | `undefined` |
-| `session_before_fork` | Before `/fork` | Yes | `SessionBeforeForkResult` |
-| `session_fork` | After fork | No | `undefined` |
-| `session_before_compact` | Before compaction starts | Yes | `SessionBeforeCompactResult` |
-| `session_compact` | After compaction completes | No | `undefined` |
-| `session_before_tree` | Before `/tree` navigation | Yes | `SessionBeforeTreeResult` |
-| `session_tree` | After tree navigation | No | `undefined` |
-| `session_shutdown` | On exit (Ctrl+C, Ctrl+D, SIGTERM) | No | `undefined` |
+| Event                    | When                              | Can Cancel | Return Type                  |
+| ------------------------ | --------------------------------- | ---------- | ---------------------------- |
+| `session_start`          | On initial session load           | No         | `undefined`                  |
+| `session_before_switch`  | Before `/new` or `/resume`        | Yes        | `SessionBeforeSwitchResult`  |
+| `session_switch`         | After session switch              | No         | `undefined`                  |
+| `session_before_fork`    | Before `/fork`                    | Yes        | `SessionBeforeForkResult`    |
+| `session_fork`           | After fork                        | No         | `undefined`                  |
+| `session_before_compact` | Before compaction starts          | Yes        | `SessionBeforeCompactResult` |
+| `session_compact`        | After compaction completes        | No         | `undefined`                  |
+| `session_before_tree`    | Before `/tree` navigation         | Yes        | `SessionBeforeTreeResult`    |
+| `session_tree`           | After tree navigation             | No         | `undefined`                  |
+| `session_shutdown`       | On exit (Ctrl+C, Ctrl+D, SIGTERM) | No         | `undefined`                  |
 
 **Before Events Blocking Pattern**
 
 All `session_before_*` events can be cancelled by returning `{ cancel: true }`:
 
 ```typescript
-pi.on("session_before_switch", async (event, ctx) => {
-  if (event.reason === "new") {
-    const ok = await ctx.ui.confirm("Clear?", "Delete all messages?");
-    if (!ok) return { cancel: true };
+pi.on('session_before_switch', async (event, ctx) => {
+  if (event.reason === 'new') {
+    const ok = await ctx.ui.confirm('Clear?', 'Delete all messages?')
+    if (!ok) return { cancel: true }
   }
-});
+})
 ```
 
 **Compaction Customization**
@@ -213,20 +214,20 @@ pi.on("session_before_switch", async (event, ctx) => {
 `session_before_compact` can provide a custom summary instead of using the LLM:
 
 ```typescript
-pi.on("session_before_compact", async (event, ctx) => {
-  const { preparation } = event;
-  
+pi.on('session_before_compact', async (event, ctx) => {
+  const { preparation } = event
+
   // Custom logic to summarize conversation
-  const summary = buildCustomSummary(preparation.messagesToSummarize);
-  
+  const summary = buildCustomSummary(preparation.messagesToSummarize)
+
   return {
     compaction: {
       summary,
       firstKeptEntryId: preparation.firstKeptEntryId,
       tokensBefore: preparation.tokensBefore,
-    }
-  };
-});
+    },
+  }
+})
 ```
 
 Sources: [packages/coding-agent/src/core/extensions/types.ts:391-446](), [packages/coding-agent/docs/extensions.md:284-388](), [packages/coding-agent/src/core/extensions/runner.ts:431-471]()
@@ -235,43 +236,45 @@ Sources: [packages/coding-agent/src/core/extensions/types.ts:391-446](), [packag
 
 Agent events track the LLM interaction lifecycle: prompt submission, turn execution, message streaming.
 
-| Event | When | Purpose |
-|-------|------|---------|
-| `before_agent_start` | After user prompt, before LLM call | Inject messages, modify system prompt |
-| `agent_start` | Agent begins processing user prompt | Track prompt start |
-| `turn_start` | Each LLM request begins | Track turn boundaries |
-| `turn_end` | Each LLM response completes | Track turn completion |
-| `message_start` | Message begins (user, assistant, toolResult) | Track message creation |
-| `message_update` | Assistant message streams | Track streaming progress |
-| `message_end` | Message completes | Track message finalization |
-| `agent_end` | Agent finishes processing | Track prompt completion |
+| Event                | When                                         | Purpose                               |
+| -------------------- | -------------------------------------------- | ------------------------------------- |
+| `before_agent_start` | After user prompt, before LLM call           | Inject messages, modify system prompt |
+| `agent_start`        | Agent begins processing user prompt          | Track prompt start                    |
+| `turn_start`         | Each LLM request begins                      | Track turn boundaries                 |
+| `turn_end`           | Each LLM response completes                  | Track turn completion                 |
+| `message_start`      | Message begins (user, assistant, toolResult) | Track message creation                |
+| `message_update`     | Assistant message streams                    | Track streaming progress              |
+| `message_end`        | Message completes                            | Track message finalization            |
+| `agent_end`          | Agent finishes processing                    | Track prompt completion               |
 
 **Message Injection with before_agent_start**
 
 ```typescript
-pi.on("before_agent_start", async (event, ctx) => {
+pi.on('before_agent_start', async (event, ctx) => {
   // Inject a persistent message stored in session
   return {
     message: {
-      customType: "my-context",
-      content: "Additional context for this turn",
-      display: true,  // Show in UI
-    }
-  };
-});
+      customType: 'my-context',
+      content: 'Additional context for this turn',
+      display: true, // Show in UI
+    },
+  }
+})
 ```
 
 **System Prompt Modification**
 
 ```typescript
-pi.on("before_agent_start", async (event, ctx) => {
+pi.on('before_agent_start', async (event, ctx) => {
   // Append to system prompt for this turn only
   return {
-    systemPrompt: event.systemPrompt + "\
+    systemPrompt:
+      event.systemPrompt +
+      '\
 \
-Extra instructions..."
-  };
-});
+Extra instructions...',
+  }
+})
 ```
 
 Multiple handlers can chain system prompt modifications - each sees the result from previous handlers.
@@ -282,13 +285,13 @@ Sources: [packages/coding-agent/src/core/extensions/types.ts:448-483](), [packag
 
 Tool events fire during tool call validation and execution, allowing extensions to block dangerous operations or modify results.
 
-| Event | When | Can Block/Modify | Return Type |
-|-------|------|------------------|-------------|
-| `tool_call` | Before tool executes | Yes (block) | `ToolCallEventResult` |
-| `tool_execution_start` | Tool execution begins | No | `undefined` |
-| `tool_execution_update` | Tool streams partial result | No | `undefined` |
-| `tool_execution_end` | Tool execution completes | No | `undefined` |
-| `tool_result` | After tool execution | Yes (modify) | `ToolResultEventResult` |
+| Event                   | When                        | Can Block/Modify | Return Type             |
+| ----------------------- | --------------------------- | ---------------- | ----------------------- |
+| `tool_call`             | Before tool executes        | Yes (block)      | `ToolCallEventResult`   |
+| `tool_execution_start`  | Tool execution begins       | No               | `undefined`             |
+| `tool_execution_update` | Tool streams partial result | No               | `undefined`             |
+| `tool_execution_end`    | Tool execution completes    | No               | `undefined`             |
+| `tool_result`           | After tool execution        | Yes (modify)     | `ToolResultEventResult` |
 
 **Tool Call Blocking Flow**
 
@@ -302,18 +305,18 @@ graph TB
     Execute["Execute tool"]
     SkipExecution["Skip execution<br/>(return error to LLM)"]
     ToolResult["ExtensionRunner.emitToolResult()"]
-    
+
     LLM --> ToolCallEvent
     ToolCallEvent --> Extension1
     Extension1 -->|"return { block: true }"| CheckBlocked
     Extension1 -->|"return undefined"| Extension2
     Extension2 -->|"return { block: true }"| CheckBlocked
     Extension2 -->|"return undefined"| CheckBlocked
-    
+
     CheckBlocked -->|"Yes"| SkipExecution
     CheckBlocked -->|"No"| Execute
     Execute --> ToolResult
-    
+
     style CheckBlocked fill:#fff4e1
     style SkipExecution fill:#ffe1e1
 ```
@@ -321,17 +324,17 @@ graph TB
 **Blocking Example**
 
 ```typescript
-pi.on("tool_call", async (event, ctx) => {
-  if (event.toolName === "write") {
-    const filePath = event.input.path;
-    if (filePath.includes("node_modules/")) {
+pi.on('tool_call', async (event, ctx) => {
+  if (event.toolName === 'write') {
+    const filePath = event.input.path
+    if (filePath.includes('node_modules/')) {
       return {
         block: true,
-        reason: "Cannot write to node_modules"
-      };
+        reason: 'Cannot write to node_modules',
+      }
     }
   }
-});
+})
 ```
 
 **Result Modification with Chaining**
@@ -343,40 +346,42 @@ sequenceDiagram
     participant Ext1 as Extension 1
     participant Ext2 as Extension 2
     participant Ext3 as Extension 3
-    
+
     Agent->>Runner: emitToolResult(initial result)
     Note over Runner: currentResult = initial result
-    
+
     Runner->>Ext1: handler(event with currentResult, ctx)
     Ext1-->>Runner: { content: modified1 }
     Note over Runner: Merge: currentResult.content = modified1
-    
+
     Runner->>Ext2: handler(event with currentResult, ctx)
     Ext2-->>Runner: { details: modified2 }
     Note over Runner: Merge: currentResult.details = modified2
-    
+
     Runner->>Ext3: handler(event with currentResult, ctx)
     Ext3-->>Runner: undefined (no changes)
     Note over Runner: currentResult unchanged
-    
+
     Runner-->>Agent: Final modified result
 ```
 
 Handlers chain like middleware - each sees the latest result after previous handlers. Return partial patches to modify specific fields:
 
 ```typescript
-pi.on("tool_result", async (event, ctx) => {
-  if (event.toolName === "bash") {
+pi.on('tool_result', async (event, ctx) => {
+  if (event.toolName === 'bash') {
     // Only modify content, keep details/isError unchanged
     return {
-      content: [{
-        type: "text",
-        text: `Filtered output:\
-${event.content[0].text}`
-      }]
-    };
+      content: [
+        {
+          type: 'text',
+          text: `Filtered output:\
+${event.content[0].text}`,
+        },
+      ],
+    }
   }
-});
+})
 ```
 
 Sources: [packages/coding-agent/src/core/extensions/types.ts:524-619](), [packages/coding-agent/docs/extensions.md:532-606](), [packages/coding-agent/src/core/extensions/runner.ts:568-646]()
@@ -385,24 +390,24 @@ Sources: [packages/coding-agent/src/core/extensions/types.ts:524-619](), [packag
 
 Context events allow non-destructive modification of messages sent to the LLM and inspection of provider-specific payloads.
 
-| Event | When | Purpose |
-|-------|------|---------|
-| `context` | Before each LLM request | Filter/modify messages |
+| Event                     | When                             | Purpose                         |
+| ------------------------- | -------------------------------- | ------------------------------- |
+| `context`                 | Before each LLM request          | Filter/modify messages          |
 | `before_provider_request` | After payload built, before send | Inspect/modify provider payload |
 
 **Context Event Message Filtering**
 
 ```typescript
-pi.on("context", async (event, ctx) => {
+pi.on('context', async (event, ctx) => {
   // event.messages is a deep copy - safe to modify
-  const filtered = event.messages.filter(msg => {
+  const filtered = event.messages.filter((msg) => {
     // Remove old tool results to save tokens
-    if (msg.role === "toolResult" && isOld(msg)) return false;
-    return true;
-  });
-  
-  return { messages: filtered };
-});
+    if (msg.role === 'toolResult' && isOld(msg)) return false
+    return true
+  })
+
+  return { messages: filtered }
+})
 ```
 
 Context handlers chain - each receives messages modified by previous handlers.
@@ -410,13 +415,13 @@ Context handlers chain - each receives messages modified by previous handlers.
 **Provider Payload Inspection**
 
 ```typescript
-pi.on("before_provider_request", (event, ctx) => {
+pi.on('before_provider_request', (event, ctx) => {
   // event.payload is provider-specific structure
-  console.log(JSON.stringify(event.payload, null, 2));
-  
+  console.log(JSON.stringify(event.payload, null, 2))
+
   // Optional: modify payload
   // return { ...event.payload, temperature: 0 };
-});
+})
 ```
 
 Handlers run in extension load order. Returning `undefined` keeps the payload unchanged. Returning a modified payload replaces it for subsequent handlers and the actual request.
@@ -441,59 +446,59 @@ graph LR
     TemplateExpand["Template<br/>Expansion"]
     BeforeAgent["before_agent_start"]
     Agent["Agent Processing"]
-    
+
     UserInput --> ExtCmd
     ExtCmd --> ExtCmdFound
     ExtCmdFound -->|Yes| ExtCmdHandler
     ExtCmdHandler --> Done1[Done]
-    
+
     ExtCmdFound -->|No| InputEvent
     InputEvent --> InputResult
     InputResult -->|handled| Done2[Done]
     InputResult -->|transform| SkillExpand
     InputResult -->|continue| SkillExpand
-    
+
     SkillExpand --> TemplateExpand
     TemplateExpand --> BeforeAgent
     BeforeAgent --> Agent
-    
+
     style ExtCmdFound fill:#fff4e1
     style InputResult fill:#fff4e1
 ```
 
 **Input Event Results**
 
-| Action | Effect |
-|--------|--------|
-| `continue` | Pass through unchanged (default if handler returns nothing) |
-| `transform` | Modify text/images, then continue to expansion |
-| `handled` | Skip agent entirely (extension provides feedback) |
+| Action      | Effect                                                      |
+| ----------- | ----------------------------------------------------------- |
+| `continue`  | Pass through unchanged (default if handler returns nothing) |
+| `transform` | Modify text/images, then continue to expansion              |
+| `handled`   | Skip agent entirely (extension provides feedback)           |
 
 **Transform Example**
 
 ```typescript
-pi.on("input", async (event, ctx) => {
+pi.on('input', async (event, ctx) => {
   // Rewrite shorthand commands
-  if (event.text.startsWith("?quick ")) {
+  if (event.text.startsWith('?quick ')) {
     return {
-      action: "transform",
-      text: `Respond briefly: ${event.text.slice(7)}`
-    };
+      action: 'transform',
+      text: `Respond briefly: ${event.text.slice(7)}`,
+    }
   }
-  
-  return { action: "continue" };
-});
+
+  return { action: 'continue' }
+})
 ```
 
 **Handle Example**
 
 ```typescript
-pi.on("input", async (event, ctx) => {
-  if (event.text === "ping") {
-    ctx.ui.notify("pong", "info");
-    return { action: "handled" };
+pi.on('input', async (event, ctx) => {
+  if (event.text === 'ping') {
+    ctx.ui.notify('pong', 'info')
+    return { action: 'handled' }
   }
-});
+})
 ```
 
 Transforms chain across handlers. The first handler to return `handled` wins - subsequent handlers don't run.
@@ -505,24 +510,24 @@ Sources: [packages/coding-agent/src/core/extensions/types.ts:621-670](), [packag
 `user_bash` fires when the user executes `!` or `!!` commands in interactive mode.
 
 ```typescript
-pi.on("user_bash", (event, ctx) => {
+pi.on('user_bash', (event, ctx) => {
   // event.command - the bash command
   // event.excludeFromContext - true if !! prefix (no context)
   // event.cwd - working directory
-  
+
   // Option 1: Provide custom operations (e.g., remote execution)
-  return { operations: sshBashOperations };
-  
+  return { operations: sshBashOperations }
+
   // Option 2: Full replacement - return result directly
   return {
     result: {
-      output: "...",
+      output: '...',
       exitCode: 0,
       cancelled: false,
-      truncated: false
-    }
-  };
-});
+      truncated: false,
+    },
+  }
+})
 ```
 
 Sources: [packages/coding-agent/src/core/extensions/types.ts:672-701](), [packages/coding-agent/docs/extensions.md:608-626](), [packages/coding-agent/src/core/extensions/runner.ts:735-771]()
@@ -532,18 +537,18 @@ Sources: [packages/coding-agent/src/core/extensions/types.ts:672-701](), [packag
 `model_select` fires when the active model changes via `/model` command, model cycling, or session restore.
 
 ```typescript
-pi.on("model_select", async (event, ctx) => {
+pi.on('model_select', async (event, ctx) => {
   // event.model - newly selected model
   // event.previousModel - previous model (undefined if first selection)
   // event.source - "set" | "cycle" | "restore"
-  
+
   const prev = event.previousModel
     ? `${event.previousModel.provider}/${event.previousModel.id}`
-    : "none";
-  const next = `${event.model.provider}/${event.model.id}`;
-  
-  ctx.ui.notify(`Model changed (${event.source}): ${prev} -> ${next}`, "info");
-});
+    : 'none'
+  const next = `${event.model.provider}/${event.model.id}`
+
+  ctx.ui.notify(`Model changed (${event.source}): ${prev} -> ${next}`, 'info')
+})
 ```
 
 Sources: [packages/coding-agent/src/core/extensions/types.ts:738-754](), [packages/coding-agent/docs/extensions.md:509-530]()
@@ -554,15 +559,15 @@ Sources: [packages/coding-agent/src/core/extensions/types.ts:738-754](), [packag
 
 Different events support different chaining patterns:
 
-| Event Type | Chaining Behavior |
-|------------|-------------------|
-| `tool_result` | Middleware - each handler sees latest result, returns partial patches |
-| `context` | Middleware - each handler sees latest messages array |
-| `before_agent_start.systemPrompt` | Middleware - each handler sees latest prompt |
-| `input` (transform) | Middleware - each handler sees latest text/images |
-| `before_provider_request` | Middleware - each handler sees latest payload |
-| `tool_call` | First-wins blocking - first `{ block: true }` stops execution |
-| `session_before_*` | First-wins cancellation - first `{ cancel: true }` aborts |
+| Event Type                        | Chaining Behavior                                                     |
+| --------------------------------- | --------------------------------------------------------------------- |
+| `tool_result`                     | Middleware - each handler sees latest result, returns partial patches |
+| `context`                         | Middleware - each handler sees latest messages array                  |
+| `before_agent_start.systemPrompt` | Middleware - each handler sees latest prompt                          |
+| `input` (transform)               | Middleware - each handler sees latest text/images                     |
+| `before_provider_request`         | Middleware - each handler sees latest payload                         |
+| `tool_call`                       | First-wins blocking - first `{ block: true }` stops execution         |
+| `session_before_*`                | First-wins cancellation - first `{ cancel: true }` aborts             |
 
 **Tool Result Chaining Implementation**
 
@@ -573,14 +578,14 @@ graph TB
     Handler2["Extension 2 handler"]
     Handler3["Extension 3 handler"]
     FinalResult["Final Result"]
-    
+
     InitialResult -->|"currentResult"| Handler1
     Handler1 -->|"return { content: X }"| Merge1["Merge:<br/>currentResult.content = X"]
     Merge1 --> Handler2
     Handler2 -->|"return { details: Y }"| Merge2["Merge:<br/>currentResult.details = Y"]
     Merge2 --> Handler3
     Handler3 -->|"return undefined"| FinalResult
-    
+
     style Merge1 fill:#e1f5ff
     style Merge2 fill:#e1f5ff
 ```
@@ -590,11 +595,11 @@ Code implementation in [packages/coding-agent/src/core/extensions/runner.ts:598-
 ```typescript
 // Simplified from actual code
 for (const handler of handlers) {
-  const result = await handler(event, ctx);
+  const result = await handler(event, ctx)
   if (result) {
-    if (result.content !== undefined) currentResult.content = result.content;
-    if (result.details !== undefined) currentResult.details = result.details;
-    if (result.isError !== undefined) currentResult.isError = result.isError;
+    if (result.content !== undefined) currentResult.content = result.content
+    if (result.details !== undefined) currentResult.details = result.details
+    if (result.isError !== undefined) currentResult.isError = result.isError
   }
 }
 ```
@@ -605,19 +610,19 @@ for (const handler of handlers) {
 
 ```typescript
 // Cancel operation
-return { cancel: true };
+return { cancel: true }
 
 // Allow operation
-return undefined;
+return undefined
 
 // Custom compaction (session_before_compact only)
 return {
   compaction: {
     summary: string,
     firstKeptEntryId: string,
-    tokensBefore: number
-  }
-};
+    tokensBefore: number,
+  },
+}
 ```
 
 **Tool Call Event**
@@ -717,7 +722,7 @@ graph LR
     E2["Extension 2<br/>handler"]
     E3["Extension 3<br/>handler"]
     Done["All complete"]
-    
+
     Event --> E1
     E1 --> E2
     E2 --> E3
@@ -739,7 +744,7 @@ graph LR
     E3Check{"Blocked?"}
     Execute["Execute tool"]
     Skip["Skip tool"]
-    
+
     Event --> E1
     E1 --> E1Check
     E1Check -->|No| E2
@@ -759,13 +764,13 @@ For `input` events, the first handler to return `{ action: "handled" }` stops ex
 ```typescript
 // In ExtensionRunner.emitInput()
 for (const handler of handlers) {
-  const result = await handler(event, ctx);
-  if (result.action === "handled") {
-    return result; // Stop processing
+  const result = await handler(event, ctx)
+  if (result.action === 'handled') {
+    return result // Stop processing
   }
-  if (result.action === "transform") {
-    currentText = result.text;
-    currentImages = result.images;
+  if (result.action === 'transform') {
+    currentText = result.text
+    currentImages = result.images
     // Continue to next handler
   }
 }
@@ -790,19 +795,19 @@ When a handler throws an error:
 
 ```typescript
 interface ExtensionError {
-  extensionPath: string;  // Which extension threw
-  event: string;          // Which event was being handled
-  error: string;          // Error message
+  extensionPath: string // Which extension threw
+  event: string // Which event was being handled
+  error: string // Error message
 }
 ```
 
 **Error Reporting by Mode**
 
-| Mode | Error Handling |
-|------|----------------|
+| Mode        | Error Handling                                         |
+| ----------- | ------------------------------------------------------ |
 | Interactive | Error displayed via `showError()`, logged to debug log |
-| RPC | `extension_error` JSON event emitted to stdout |
-| Print | Error written to stderr |
+| RPC         | `extension_error` JSON event emitted to stdout         |
+| Print       | Error written to stderr                                |
 
 **Critical Event Failures**
 
@@ -819,12 +824,12 @@ If a handler throws during a blocking check (`tool_call`, `session_before_*`), t
 ```typescript
 // In ExtensionRunner.emitToolCall()
 try {
-  const result = await handler(event, ctx);
+  const result = await handler(event, ctx)
   if (result?.block) {
-    return { block: true, reason: result.reason };
+    return { block: true, reason: result.reason }
   }
 } catch (error) {
-  this.notifyError(ext.path, "tool_call", error);
+  this.notifyError(ext.path, 'tool_call', error)
   // Continue - don't treat error as block
 }
 ```
@@ -840,6 +845,7 @@ Sources: [packages/coding-agent/src/core/extensions/runner.ts:773-800](), [packa
 All event type definitions: [packages/coding-agent/src/core/extensions/types.ts:375-754]()
 
 **Session Events**
+
 - `SessionStartEvent` - [types.ts:391-393]()
 - `SessionBeforeSwitchEvent` - [types.ts:395-399]()
 - `SessionSwitchEvent` - [types.ts:401-405]()
@@ -852,6 +858,7 @@ All event type definitions: [packages/coding-agent/src/core/extensions/types.ts:
 - `SessionShutdownEvent` - [types.ts:445-447]()
 
 **Agent Events**
+
 - `BeforeAgentStartEvent` - [types.ts:449-454]()
 - `AgentStartEvent` - [types.ts:456-458]()
 - `AgentEndEvent` - [types.ts:460-463]()
@@ -865,21 +872,26 @@ All event type definitions: [packages/coding-agent/src/core/extensions/types.ts:
 - `ToolExecutionEndEvent` - [types.ts:509-515]()
 
 **Context Events**
+
 - `ContextEvent` - [types.ts:517-520]()
 - `BeforeProviderRequestEvent` - [types.ts:522-525]()
 
 **Tool Events**
+
 - `ToolCallEvent` - [types.ts:527-612]()
 - `ToolResultEvent` - [types.ts:614-619]()
 
 **User Events**
+
 - `UserBashEvent` - [types.ts:672-682]()
 - `InputEvent` - [types.ts:621-630]()
 
 **Model Events**
+
 - `ModelSelectEvent` - [types.ts:738-743]()
 
 **Resource Events**
+
 - `ResourcesDiscoverEvent` - [types.ts:371-374]()
 
 Sources: [packages/coding-agent/src/core/extensions/types.ts:375-754]()

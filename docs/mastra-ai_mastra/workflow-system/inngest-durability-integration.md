@@ -26,13 +26,12 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Overview
 
 The Inngest Durability Integration provides durable, resilient workflow execution by leveraging the Inngest platform's built-in primitives for automatic memoization, retries, and state persistence. This integration extends the standard Mastra workflow system (see [4.1](#4.1) for workflow definition and [4.2](#4.2) for execution engines) with Inngest-specific capabilities that ensure workflows can survive failures and resume from the last successful step.
 
 **Key capabilities:**
+
 - **Automatic memoization**: Steps executed via `step.run()` are cached and never re-executed on retry
 - **Durable sleep**: `step.sleep()` and `step.sleepUntil()` primitives for time-based orchestration
 - **Nested workflows**: Invoke child workflows with `step.invoke()` for composition
@@ -54,42 +53,42 @@ graph TB
         BaseEngine["ExecutionEngine<br/>(Abstract)"]
         DefaultEngine["DefaultExecutionEngine"]
     end
-    
+
     subgraph "Inngest Integration (@mastra/inngest)"
         InngestWF["InngestWorkflow<br/>extends Workflow"]
         InngestEngine["InngestExecutionEngine<br/>extends ExecutionEngine"]
         CreateInngestStep["createInngestStep()<br/>Step factory"]
         InngestRun["InngestWorkflowRun"]
     end
-    
+
     subgraph "Inngest SDK"
         InngestClient["Inngest Client"]
         StepTools["Step Tools<br/>step.run, step.sleep,<br/>step.invoke"]
         Functions["Inngest Functions"]
     end
-    
+
     subgraph "Mastra Core Components"
         Agent["Agent"]
         Tool["Tool"]
         Processor["Processor"]
     end
-    
+
     BaseWorkflow --> InngestWF
     BaseEngine --> InngestEngine
-    
+
     InngestWF --> CreateInngestStep
     InngestWF --> InngestEngine
     InngestEngine --> InngestRun
-    
+
     CreateInngestStep --> Agent
     CreateInngestStep --> Tool
     CreateInngestStep --> Processor
-    
+
     InngestEngine --> StepTools
     InngestRun --> StepTools
     InngestWF --> Functions
     Functions --> InngestClient
-    
+
     style InngestWF fill:#e1f5ff,stroke:#333,stroke-width:3px
     style InngestEngine fill:#ffe1e1,stroke:#333,stroke-width:3px
     style StepTools fill:#e1ffe1,stroke:#333,stroke-width:3px
@@ -105,15 +104,16 @@ graph TB
 
 `InngestWorkflow` extends the base `Workflow` class to integrate with Inngest's execution model. It wraps the standard workflow graph in an Inngest function that can be registered with the Inngest SDK.
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `id` | `string` | Unique workflow identifier |
-| `inputSchema` | `z.ZodTypeAny` | Zod schema for workflow input validation |
-| `outputSchema` | `z.ZodTypeAny` | Zod schema for workflow output validation |
-| `steps` | `Step[]` | Array of workflow steps |
-| `config` | `InngestWorkflowConfig` | Inngest-specific configuration |
+| Property       | Type                    | Description                               |
+| -------------- | ----------------------- | ----------------------------------------- |
+| `id`           | `string`                | Unique workflow identifier                |
+| `inputSchema`  | `z.ZodTypeAny`          | Zod schema for workflow input validation  |
+| `outputSchema` | `z.ZodTypeAny`          | Zod schema for workflow output validation |
+| `steps`        | `Step[]`                | Array of workflow steps                   |
+| `config`       | `InngestWorkflowConfig` | Inngest-specific configuration            |
 
 **Key methods:**
+
 - `createRun()` - Creates an `InngestWorkflowRun` instance for execution
 - `commit()` - Finalizes workflow graph construction
 - `toInngestFunction()` - Converts workflow to Inngest function definition
@@ -126,13 +126,13 @@ graph TB
 
 **Key differences from `DefaultExecutionEngine`:**
 
-| Aspect | DefaultExecutionEngine | InngestExecutionEngine |
-|--------|------------------------|------------------------|
-| Execution model | In-memory, synchronous | Durable, asynchronous via Inngest |
-| State persistence | Manual via storage | Automatic via Inngest SDK |
-| Step caching | None | Automatic via `step.run()` memoization |
-| Retry handling | Custom retry logic | Built-in Inngest retries |
-| Sleep/wait | Uses setTimeout | Uses `step.sleep()` / `step.sleepUntil()` |
+| Aspect            | DefaultExecutionEngine | InngestExecutionEngine                    |
+| ----------------- | ---------------------- | ----------------------------------------- |
+| Execution model   | In-memory, synchronous | Durable, asynchronous via Inngest         |
+| State persistence | Manual via storage     | Automatic via Inngest SDK                 |
+| Step caching      | None                   | Automatic via `step.run()` memoization    |
+| Retry handling    | Custom retry logic     | Built-in Inngest retries                  |
+| Sleep/wait        | Uses setTimeout        | Uses `step.sleep()` / `step.sleepUntil()` |
 
 **Sources:** [workflows/inngest/src/execution-engine.ts](), [packages/core/src/workflows/default.ts:1-100]()
 
@@ -158,23 +158,23 @@ const workflow = createInngestWorkflow({
   config: {
     client: inngestClient,
     name: 'Example Workflow',
-    retries: 3
-  }
-});
+    retries: 3,
+  },
+})
 ```
 
 **Configuration fields:**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | `string` | Yes | Unique workflow identifier |
-| `inputSchema` | `z.ZodTypeAny` | Yes | Input validation schema |
-| `outputSchema` | `z.ZodTypeAny` | Yes | Output validation schema |
-| `steps` | `Step[]` | Yes | Workflow steps to execute |
-| `config.client` | `Inngest` | Yes | Inngest client instance |
-| `config.name` | `string` | No | Display name for Inngest UI |
-| `config.retries` | `number` | No | Number of automatic retries (default: 3) |
-| `config.concurrency` | `object` | No | Concurrency limits |
+| Field                | Type           | Required | Description                              |
+| -------------------- | -------------- | -------- | ---------------------------------------- |
+| `id`                 | `string`       | Yes      | Unique workflow identifier               |
+| `inputSchema`        | `z.ZodTypeAny` | Yes      | Input validation schema                  |
+| `outputSchema`       | `z.ZodTypeAny` | Yes      | Output validation schema                 |
+| `steps`              | `Step[]`       | Yes      | Workflow steps to execute                |
+| `config.client`      | `Inngest`      | Yes      | Inngest client instance                  |
+| `config.name`        | `string`       | No       | Display name for Inngest UI              |
+| `config.retries`     | `number`       | No       | Number of automatic retries (default: 3) |
+| `config.concurrency` | `object`       | No       | Concurrency limits                       |
 
 **Sources:** [workflows/inngest/src/index.ts:200-250](), [workflows/inngest/src/types.ts]()
 
@@ -190,23 +190,23 @@ const step1 = createInngestStep({
   inputSchema: z.object({ data: z.string() }),
   outputSchema: z.object({ result: z.string() }),
   execute: async ({ inputData }) => {
-    return { result: inputData.data.toUpperCase() };
-  }
-});
+    return { result: inputData.data.toUpperCase() }
+  },
+})
 ```
 
 **Creating steps from Agents:**
 
 ```typescript
 // Default text output
-const agentStep = createInngestStep(myAgent);
+const agentStep = createInngestStep(myAgent)
 
 // Structured output
 const structuredAgentStep = createInngestStep(myAgent, {
   structuredOutput: {
-    schema: z.object({ answer: z.string(), confidence: z.number() })
-  }
-});
+    schema: z.object({ answer: z.string(), confidence: z.number() }),
+  },
+})
 ```
 
 **Creating steps from Tools:**
@@ -214,14 +214,14 @@ const structuredAgentStep = createInngestStep(myAgent, {
 ```typescript
 const toolStep = createInngestStep(myTool, {
   retries: 5,
-  metadata: { priority: 'high' }
-});
+  metadata: { priority: 'high' },
+})
 ```
 
 **Creating steps from Processors:**
 
 ```typescript
-const processorStep = createInngestStep(myProcessor);
+const processorStep = createInngestStep(myProcessor)
 ```
 
 **Sources:** [workflows/inngest/src/index.ts:50-300](), [packages/core/src/workflows/workflow.ts:146-309]()
@@ -242,11 +242,11 @@ sequenceDiagram
     participant Engine as InngestExecutionEngine
     participant Inngest as Inngest SDK
     participant Cache as Inngest Cache
-    
+
     WF->>Engine: Execute step "fetchData"
     Engine->>Inngest: step.run("fetchData", fn)
     Inngest->>Cache: Check cache for "fetchData"
-    
+
     alt First execution
         Cache-->>Inngest: Cache miss
         Inngest->>Inngest: Execute function
@@ -256,7 +256,7 @@ sequenceDiagram
         Cache-->>Inngest: Cache hit
         Inngest-->>Engine: Return cached result
     end
-    
+
     Engine-->>WF: Step complete
 ```
 
@@ -278,30 +278,31 @@ Durable sleep primitives allow workflows to pause execution for a specified dura
 
 ```typescript
 // Sleep for 5 minutes
-await step.sleep('wait-5-min', '5m');
+await step.sleep('wait-5-min', '5m')
 
 // Sleep for 1 hour
-await step.sleep('wait-1-hour', '1h');
+await step.sleep('wait-1-hour', '1h')
 
 // Sleep for 30 seconds
-await step.sleep('wait-30-sec', '30s');
+await step.sleep('wait-30-sec', '30s')
 ```
 
 **step.sleepUntil() - Timestamp-based wait:**
 
 ```typescript
 // Sleep until specific date/time
-const targetTime = new Date('2024-12-31T23:59:59Z');
-await step.sleepUntil('wait-until-new-year', targetTime);
+const targetTime = new Date('2024-12-31T23:59:59Z')
+await step.sleepUntil('wait-until-new-year', targetTime)
 
 // Sleep until relative time
-const inOneHour = new Date(Date.now() + 60 * 60 * 1000);
-await step.sleepUntil('wait-one-hour', inOneHour);
+const inOneHour = new Date(Date.now() + 60 * 60 * 1000)
+await step.sleepUntil('wait-one-hour', inOneHour)
 ```
 
 **Duration format:** Inngest accepts durations as strings with units: `s` (seconds), `m` (minutes), `h` (hours), `d` (days).
 
 **Use cases:**
+
 - Rate limiting between API calls
 - Scheduled task execution
 - Waiting for external event windows
@@ -320,28 +321,28 @@ graph TB
         P2["Step 2:<br/>step.invoke(childWorkflow)"]
         P3["Step 3:<br/>Process Results"]
     end
-    
+
     subgraph "Child Workflow (Invoked)"
         C1["Child Step 1"]
         C2["Child Step 2"]
         C3["Child Step 3"]
     end
-    
+
     subgraph "Inngest State Management"
         State["Workflow State<br/>- Parent context<br/>- Child results<br/>- Error stack"]
     end
-    
+
     P1 --> P2
     P2 --> C1
     C1 --> C2
     C2 --> C3
     C3 --> P2
     P2 --> P3
-    
+
     P2 -.stores context.-> State
     C3 -.returns to.-> State
     State -.restores.-> P2
-    
+
     style P2 fill:#e1f5ff,stroke:#333,stroke-width:3px
     style State fill:#ffe1e1,stroke:#333,stroke-width:3px
 ```
@@ -353,14 +354,15 @@ graph TB
 execute: async ({ step }) => {
   const childResult = await step.invoke('run-child-workflow', {
     function: childWorkflowFunction,
-    data: { input: 'from parent' }
-  });
-  
-  return { parentResult: childResult };
+    data: { input: 'from parent' },
+  })
+
+  return { parentResult: childResult }
 }
 ```
 
 **Context propagation:**
+
 - `requestContext` is automatically passed to child workflows
 - `tracingContext` maintains parent-child span relationships
 - Errors in child workflows bubble up to parent with full stack trace
@@ -383,14 +385,14 @@ sequenceDiagram
     participant Inngest as step.run()
     participant Execute as Step.execute()
     participant Result as StepResult
-    
+
     WF->>Engine: execute(inputData)
     Engine->>Graph: Resolve next step
-    
+
     loop For each step in execution path
         Graph->>Engine: Get step entry
         Engine->>Inngest: step.run(stepId, fn)
-        
+
         alt Memoized (retry/resume)
             Inngest-->>Engine: Return cached result
         else First execution
@@ -402,10 +404,10 @@ sequenceDiagram
             Inngest->>Inngest: Cache result
             Inngest-->>Engine: Return output
         end
-        
+
         Engine->>Result: Store StepResult
         Result-->>Engine: Success/Failure/Suspended
-        
+
         alt Step suspended
             Engine-->>WF: Return suspended state
         else Step failed
@@ -419,7 +421,7 @@ sequenceDiagram
             Engine->>Graph: Get next step
         end
     end
-    
+
     Engine-->>WF: Return final WorkflowState
 ```
 
@@ -429,13 +431,13 @@ sequenceDiagram
 
 The `InngestExecutionEngine` delegates state persistence to Inngest, but maintains a compatible state model for interoperability with Mastra's storage system.
 
-| State Component | Storage Location | Purpose |
-|----------------|------------------|---------|
-| Step results | Inngest cache (via `step.run()`) | Memoization and idempotency |
-| Workflow metadata | Inngest workflow state | Run ID, timestamps, status |
-| Execution graph | Passed as workflow input | Step dependencies and flow control |
-| Request context | Propagated through execution | Multi-tenancy and auth |
-| Suspend/resume data | Inngest event payload | Human-in-the-loop workflows |
+| State Component     | Storage Location                 | Purpose                            |
+| ------------------- | -------------------------------- | ---------------------------------- |
+| Step results        | Inngest cache (via `step.run()`) | Memoization and idempotency        |
+| Workflow metadata   | Inngest workflow state           | Run ID, timestamps, status         |
+| Execution graph     | Passed as workflow input         | Step dependencies and flow control |
+| Request context     | Propagated through execution     | Multi-tenancy and auth             |
+| Suspend/resume data | Inngest event payload            | Human-in-the-loop workflows        |
 
 **Sources:** [workflows/inngest/src/execution-engine.ts](), [workflows/inngest/src/run.ts]()
 
@@ -451,29 +453,31 @@ Inngest workflows must be registered with the Inngest platform before they can b
 // 1. Create Inngest client
 const inngest = new Inngest({
   id: 'my-app',
-  eventKey: process.env.INNGEST_EVENT_KEY
-});
+  eventKey: process.env.INNGEST_EVENT_KEY,
+})
 
 // 2. Create workflows
-const workflow1 = createInngestWorkflow({ /*...*/ });
-const workflow2 = createInngestWorkflow({ /*...*/ });
+const workflow1 = createInngestWorkflow({
+  /*...*/
+})
+const workflow2 = createInngestWorkflow({
+  /*...*/
+})
 
 // 3. Convert to Inngest functions
-const functions = [
-  workflow1.toInngestFunction(),
-  workflow2.toInngestFunction()
-];
+const functions = [workflow1.toInngestFunction(), workflow2.toInngestFunction()]
 
 // 4. Serve via HTTP endpoint
-import { serve } from 'inngest/next';
+import { serve } from 'inngest/next'
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions
-});
+  functions,
+})
 ```
 
 **Deployment targets:**
+
 - **Next.js**: API routes or App Router route handlers
 - **Express**: Middleware integration
 - **Hono**: Handler integration (via Mastra server adapters)
@@ -532,15 +536,15 @@ sequenceDiagram
     participant Inngest as Inngest Platform
     participant Event as Event Store
     participant Resume as Resume Handler
-    
+
     Step->>Engine: suspend(payload, options)
     Engine->>Inngest: Emit suspension event
     Inngest->>Event: Store suspension state
     Inngest-->>Engine: Workflow paused
     Engine-->>Step: Return suspended state
-    
+
     Note over Event,Resume: Wait for external action
-    
+
     Resume->>Inngest: Send resume event
     Inngest->>Event: Retrieve suspension state
     Event-->>Inngest: State + resumeData
@@ -559,25 +563,29 @@ const step = createInngestStep({
   execute: async ({ suspend, resumeData }) => {
     if (!resumeData) {
       // First execution - suspend and wait
-      await suspend({ reason: 'awaiting approval' }, {
-        resumeLabel: 'approval-received'
-      });
+      await suspend(
+        { reason: 'awaiting approval' },
+        {
+          resumeLabel: 'approval-received',
+        }
+      )
     }
-    
+
     // Resumed execution - process approval
-    return { approved: resumeData.approved };
-  }
-});
+    return { approved: resumeData.approved }
+  },
+})
 
 // Resume the workflow
 await workflow.resume({
   runId: 'run-123',
   resumeData: { approved: true },
-  label: 'approval-received'
-});
+  label: 'approval-received',
+})
 ```
 
 **Key differences from default engine:**
+
 - Suspension is event-driven, not in-memory
 - Resume events trigger new Inngest function invocations
 - State is automatically persisted by Inngest
@@ -603,23 +611,24 @@ const workflow = createInngestWorkflow({
     client: inngest,
     retries: 5, // Retry failed steps up to 5 times
     concurrency: {
-      limit: 10 // Max parallel executions
-    }
-  }
-});
+      limit: 10, // Max parallel executions
+    },
+  },
+})
 ```
 
 **Retry behavior:**
 
 | Attempt | Backoff | Total Delay |
-|---------|---------|-------------|
-| 1 | 1s | 1s |
-| 2 | 2s | 3s |
-| 3 | 4s | 7s |
-| 4 | 8s | 15s |
-| 5 | 16s | 31s |
+| ------- | ------- | ----------- |
+| 1       | 1s      | 1s          |
+| 2       | 2s      | 3s          |
+| 3       | 4s      | 7s          |
+| 4       | 8s      | 15s         |
+| 5       | 16s     | 31s         |
 
 **Retry strategy:**
+
 - Exponential backoff with jitter
 - Idempotent execution via memoization
 - Per-step retry limits
@@ -637,37 +646,37 @@ graph TB
     TripWire["TripWire Exception"]
     MastraError["MastraError"]
     SerializedError["SerializedError"]
-    
+
     StepError --> IsCritical{Critical Error?}
     IsCritical -->|Yes| Fail["Mark step as failed"]
     IsCritical -->|No| Retry["Increment retry count"]
-    
+
     Retry --> CheckRetries{Retries<br/>exhausted?}
     CheckRetries -->|Yes| Fail
     CheckRetries -->|No| Schedule["Schedule retry<br/>with backoff"]
-    
+
     TripWire --> Abort["Abort workflow<br/>status = 'tripwire'"]
     MastraError --> Serialize["Serialize error<br/>with metadata"]
-    
+
     Fail --> SerializedError
     Abort --> SerializedError
     Serialize --> SerializedError
-    
+
     SerializedError --> Storage["Store in<br/>WorkflowState"]
     Storage --> Return["Return to caller"]
-    
+
     style TripWire fill:#ffe1e1,stroke:#333,stroke-width:3px
     style SerializedError fill:#e1f5ff,stroke:#333,stroke-width:3px
 ```
 
 **Error types:**
 
-| Error Type | Retry Behavior | Status Code |
-|------------|----------------|-------------|
-| `MastraError` | Retries based on category | `status === 'failed'` |
-| `TripWire` | No retry, abort workflow | `status === 'tripwire'` |
-| Network errors | Auto-retry with backoff | `status === 'failed'` |
-| Validation errors | No retry (invalid input) | `status === 'failed'` |
+| Error Type        | Retry Behavior            | Status Code             |
+| ----------------- | ------------------------- | ----------------------- |
+| `MastraError`     | Retries based on category | `status === 'failed'`   |
+| `TripWire`        | No retry, abort workflow  | `status === 'tripwire'` |
+| Network errors    | Auto-retry with backoff   | `status === 'failed'`   |
+| Validation errors | No retry (invalid input)  | `status === 'failed'`   |
 
 **Sources:** [workflows/inngest/src/execution-engine.ts](), [packages/core/src/error/index.ts]()
 
@@ -675,21 +684,22 @@ graph TB
 
 ## Comparison with Default Execution Engine
 
-| Feature | DefaultExecutionEngine | InngestExecutionEngine |
-|---------|------------------------|------------------------|
-| **Execution Model** | In-memory, synchronous | Distributed, durable |
-| **State Persistence** | Manual (WorkflowsStorage) | Automatic (Inngest SDK) |
-| **Step Memoization** | None | Automatic via `step.run()` |
-| **Retry Logic** | Custom per-step retries | Built-in exponential backoff |
-| **Sleep/Wait** | `setTimeout()` (in-process) | `step.sleep()` (durable) |
-| **Nested Workflows** | Direct function call | `step.invoke()` with isolation |
-| **Suspend/Resume** | In-memory PubSub | Event-driven via Inngest |
-| **Concurrency Control** | None | Built-in limits and queuing |
-| **Observability** | Manual tracing | Inngest dashboard + Mastra tracing |
-| **Deployment** | Any Node.js runtime | HTTP endpoint required |
-| **Scalability** | Limited by instance | Horizontal via Inngest cloud |
+| Feature                 | DefaultExecutionEngine      | InngestExecutionEngine             |
+| ----------------------- | --------------------------- | ---------------------------------- |
+| **Execution Model**     | In-memory, synchronous      | Distributed, durable               |
+| **State Persistence**   | Manual (WorkflowsStorage)   | Automatic (Inngest SDK)            |
+| **Step Memoization**    | None                        | Automatic via `step.run()`         |
+| **Retry Logic**         | Custom per-step retries     | Built-in exponential backoff       |
+| **Sleep/Wait**          | `setTimeout()` (in-process) | `step.sleep()` (durable)           |
+| **Nested Workflows**    | Direct function call        | `step.invoke()` with isolation     |
+| **Suspend/Resume**      | In-memory PubSub            | Event-driven via Inngest           |
+| **Concurrency Control** | None                        | Built-in limits and queuing        |
+| **Observability**       | Manual tracing              | Inngest dashboard + Mastra tracing |
+| **Deployment**          | Any Node.js runtime         | HTTP endpoint required             |
+| **Scalability**         | Limited by instance         | Horizontal via Inngest cloud       |
 
 **When to use InngestExecutionEngine:**
+
 - Long-running workflows (hours to days)
 - Workflows with external dependencies that may fail
 - Need for automatic retries and error recovery
@@ -697,6 +707,7 @@ graph TB
 - Multi-step workflows that must be resilient to infrastructure failures
 
 **When to use DefaultExecutionEngine:**
+
 - Short-lived workflows (seconds to minutes)
 - Local development and testing
 - Simple sequential flows without failure scenarios
@@ -714,16 +725,16 @@ The `@mastra/inngest` package includes testing utilities for local development w
 ### Test Setup
 
 ```typescript
-import { createInngestWorkflow, createInngestStep } from '@mastra/inngest';
-import { Inngest } from 'inngest';
-import { describe, it, expect } from 'vitest';
+import { createInngestWorkflow, createInngestStep } from '@mastra/inngest'
+import { Inngest } from 'inngest'
+import { describe, it, expect } from 'vitest'
 
 describe('Inngest Workflow Tests', () => {
   const inngest = new Inngest({
     id: 'test-app',
     eventKey: 'test-key',
-    isDev: true // Enable dev mode for testing
-  });
+    isDev: true, // Enable dev mode for testing
+  })
 
   it('should execute workflow with memoization', async () => {
     const step1 = createInngestStep({
@@ -731,31 +742,32 @@ describe('Inngest Workflow Tests', () => {
       inputSchema: z.object({ value: z.number() }),
       outputSchema: z.object({ result: z.number() }),
       execute: async ({ inputData }) => {
-        return { result: inputData.value * 2 };
-      }
-    });
+        return { result: inputData.value * 2 }
+      },
+    })
 
     const workflow = createInngestWorkflow({
       id: 'test-workflow',
       inputSchema: z.object({ value: z.number() }),
       outputSchema: z.object({ result: z.number() }),
       steps: [step1],
-      config: { client: inngest }
-    });
+      config: { client: inngest },
+    })
 
-    workflow.then(step1).commit();
+    workflow.then(step1).commit()
 
-    const run = await workflow.createRun();
+    const run = await workflow.createRun()
     const result = await run.execute({
-      inputData: { value: 5 }
-    });
+      inputData: { value: 5 },
+    })
 
-    expect(result.result).toBe(10);
-  });
-});
+    expect(result.result).toBe(10)
+  })
+})
 ```
 
 **Testing patterns:**
+
 1. Use `isDev: true` in Inngest client for local execution
 2. Mock external dependencies in step implementations
 3. Test suspend/resume by invoking `run.resume()` manually
@@ -773,40 +785,42 @@ Inngest workflows can be served alongside standard Mastra endpoints using the se
 ### Hono Integration Example
 
 ```typescript
-import { Mastra } from '@mastra/core';
-import { createMastraServer } from '@mastra/server';
-import { serve } from 'inngest/hono';
-import { Hono } from 'hono';
+import { Mastra } from '@mastra/core'
+import { createMastraServer } from '@mastra/server'
+import { serve } from 'inngest/hono'
+import { Hono } from 'hono'
 
 // Create Mastra instance
 const mastra = new Mastra({
   workflows: {
     standard: standardWorkflow,
-    inngest: inngestWorkflow
-  }
-});
+    inngest: inngestWorkflow,
+  },
+})
 
 // Create Hono app
-const app = new Hono();
+const app = new Hono()
 
 // Mount Mastra server routes
-const mastraServer = createMastraServer({ mastra });
-app.route('/api/mastra', mastraServer);
+const mastraServer = createMastraServer({ mastra })
+app.route('/api/mastra', mastraServer)
 
 // Mount Inngest routes
-const inngestFunctions = [
-  inngestWorkflow.toInngestFunction()
-];
+const inngestFunctions = [inngestWorkflow.toInngestFunction()]
 
-app.route('/api/inngest', serve({
-  client: inngest,
-  functions: inngestFunctions
-}));
+app.route(
+  '/api/inngest',
+  serve({
+    client: inngest,
+    functions: inngestFunctions,
+  })
+)
 
-export default app;
+export default app
 ```
 
 **Route structure:**
+
 - `/api/mastra/*` - Standard Mastra APIs (agents, workflows, memory)
 - `/api/inngest` - Inngest webhook endpoint for function execution
 - `/api/inngest/inspect` - Inngest dev server inspector (dev mode only)
@@ -824,8 +838,8 @@ The Inngest integration maintains full TypeScript type safety through the engine
 The `InngestEngineType` constant identifies workflows using the Inngest execution engine.
 
 ```typescript
-export const InngestEngineType = 'inngest' as const;
-export type InngestEngineType = typeof InngestEngineType;
+export const InngestEngineType = 'inngest' as const
+export type InngestEngineType = typeof InngestEngineType
 
 // InngestWorkflow extends Workflow with engine type
 class InngestWorkflow<
@@ -835,7 +849,7 @@ class InngestWorkflow<
   TOutput,
   TResume,
   TSuspend,
-  TRequestContext
+  TRequestContext,
 > extends Workflow<
   TId,
   TState,
@@ -851,6 +865,7 @@ class InngestWorkflow<
 ```
 
 **Type inference:**
+
 - Step input/output types are inferred from schemas
 - Workflow result type matches output schema
 - Engine-specific methods are type-checked
@@ -899,20 +914,20 @@ graph LR
         S2 --> S3["Continue or Suspend"]
         S3 --> S4["Manual State Save"]
     end
-    
+
     subgraph "Inngest Workflow (InngestEngine)"
         I1["step.run(id, fn)"] --> I2["Check Cache"]
         I2 --> I3["Execute if Miss"]
         I3 --> I4["Auto-persist State"]
         I4 --> I5["Continue or Event"]
     end
-    
+
     Fail1["Step Fails"] --> Retry1["Custom Retry"]
     Fail2["Step Fails"] --> Retry2["Inngest Auto-retry"]
-    
+
     S1 -.in standard.-> Fail1
     I1 -.in inngest.-> Fail2
-    
+
     style I2 fill:#e1ffe1,stroke:#333,stroke-width:3px
     style I4 fill:#e1f5ff,stroke:#333,stroke-width:3px
     style Retry2 fill:#ffe1e1,stroke:#333,stroke-width:3px

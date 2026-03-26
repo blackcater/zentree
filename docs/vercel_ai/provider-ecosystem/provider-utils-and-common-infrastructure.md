@@ -16,8 +16,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 The `@ai-sdk/provider-utils` package provides shared infrastructure and utilities used across all AI provider implementations in the SDK. This package sits between the `@ai-sdk/provider` specification interface (see [Provider Architecture and V3 Specification](#3.1)) and concrete provider implementations (see [OpenAI Provider](#3.2), [Anthropic Provider](#3.4), etc.). It contains HTTP utilities, schema validation, stream processing, security features, and testing infrastructure that enable consistent, secure, and maintainable provider development.
@@ -37,7 +35,7 @@ graph TB
         GOOGLE["@ai-sdk/google<br/>GoogleGenerativeAILanguageModel"]
         AZURE["@ai-sdk/azure<br/>extends OpenAI"]
     end
-    
+
     subgraph "Provider-Utils Package"
         HTTP["HTTP Utilities<br/>postJsonToApi()<br/>createJsonResponseHandler()<br/>createEventSourceResponseHandler()"]
         SCHEMA["Schema Validation<br/>convertToJsonSchema()<br/>asSchema()<br/>Zod/Standard Schema/ArkType/Valibot/Effect"]
@@ -47,30 +45,30 @@ graph TB
         TEST["Test Infrastructure<br/>TestServerCall<br/>TestStreamController<br/>mockId()"]
         HELPERS["Helper Utilities<br/>createIdGenerator()<br/>combineHeaders()<br/>removeUndefinedEntries()"]
     end
-    
+
     subgraph "Provider Interface"
         SPEC["@ai-sdk/provider<br/>LanguageModelV3<br/>EmbeddingModelV3<br/>ImageModelV3"]
     end
-    
+
     OPENAI --> HTTP
     OPENAI --> SCHEMA
     OPENAI --> JSON
     OPENAI --> DOWNLOAD
-    
+
     ANTHROPIC --> HTTP
     ANTHROPIC --> SCHEMA
     ANTHROPIC --> STREAM
-    
+
     MISTRAL --> HTTP
     MISTRAL --> SCHEMA
     MISTRAL --> JSON
-    
+
     GOOGLE --> HTTP
     GOOGLE --> SCHEMA
     GOOGLE --> DOWNLOAD
-    
+
     AZURE --> OPENAI
-    
+
     HTTP --> SPEC
     SCHEMA --> SPEC
     JSON --> SPEC
@@ -84,10 +82,10 @@ graph TB
 
 The package provides two main export paths:
 
-| Export Path | Purpose | Types/Module |
-|-------------|---------|--------------|
-| `.` (main) | Core utilities for provider implementations | `./dist/index.d.ts` / `./dist/index.mjs` |
-| `./test` | Testing infrastructure for provider development | `./dist/test/index.d.ts` / `./dist/test/index.mjs` |
+| Export Path | Purpose                                         | Types/Module                                       |
+| ----------- | ----------------------------------------------- | -------------------------------------------------- |
+| `.` (main)  | Core utilities for provider implementations     | `./dist/index.d.ts` / `./dist/index.mjs`           |
+| `./test`    | Testing infrastructure for provider development | `./dist/test/index.d.ts` / `./dist/test/index.mjs` |
 
 **Dependencies**
 
@@ -109,16 +107,17 @@ graph LR
     PROVIDER["Provider Implementation<br/>doGenerate()/doStream()"]
     POST["postJsonToApi()<br/>- Method: POST<br/>- Headers<br/>- Body<br/>- AbortSignal"]
     FETCH["fetch() API<br/>with retry logic"]
-    
+
     PROVIDER -->|"constructs request"| POST
     POST -->|"executes"| FETCH
-    
+
     style POST fill:#f9f9f9
 ```
 
 The `postJsonToApi()` function standardizes HTTP POST requests across all providers:
 
 **Key Features:**
+
 - Automatic JSON serialization of request bodies
 - Header normalization and combination
 - Custom `fetch` implementation support
@@ -138,14 +137,14 @@ graph TD
     JSON_HANDLER["createJsonResponseHandler()<br/>parseJSON()<br/>validateTypes()"]
     SSE_HANDLER["createEventSourceResponseHandler()<br/>EventSource stream parsing"]
     BINARY_HANDLER["createBinaryResponseHandler()<br/>Blob/ArrayBuffer"]
-    
+
     RESPONSE -->|"Content-Type: application/json"| JSON_HANDLER
     RESPONSE -->|"Content-Type: text/event-stream"| SSE_HANDLER
     RESPONSE -->|"binary data"| BINARY_HANDLER
-    
+
     JSON_HANDLER --> VALIDATE["Type Validation<br/>validateTypes()"]
     SSE_HANDLER --> PARSE["SSE Parsing<br/>eventsource-parser"]
-    
+
     style JSON_HANDLER fill:#f9f9f9
     style SSE_HANDLER fill:#f9f9f9
     style BINARY_HANDLER fill:#f9f9f9
@@ -154,18 +153,21 @@ graph TD
 Three specialized response handlers process different content types:
 
 **`createJsonResponseHandler()`**
+
 - Parses JSON responses with `secureJsonParse()`
 - Validates response structure with `validateTypes()`
 - Extracts provider metadata
 - Handles error responses with status codes
 
 **`createEventSourceResponseHandler()`**
+
 - Parses Server-Sent Events (SSE) streams
 - Uses `eventsource-parser` library (v3.0.6+)
 - Supports incremental chunk processing
 - Handles CRLF line endings correctly
 
 **`createBinaryResponseHandler()`**
+
 - Processes binary responses (images, audio)
 - Returns `Blob` or `ArrayBuffer`
 - Used by image generation and transcription models
@@ -184,30 +186,30 @@ The provider-utils package supports five schema validation libraries through a u
 graph TB
     TOOL["Tool Definition<br/>parameters schema"]
     OUTPUT["Output Schema<br/>generateObject/streamObject"]
-    
+
     SCHEMA["asSchema()<br/>Universal Schema Converter"]
-    
+
     ZOD["Zod v3/v4<br/>z.object()"]
     STANDARD["Standard Schema<br/>@standard-schema/spec"]
     ARKTYPE["ArkType<br/>type()"]
     VALIBOT["Valibot<br/>object()"]
     EFFECT["Effect Schema<br/>Schema.struct()"]
-    
+
     TOOL --> SCHEMA
     OUTPUT --> SCHEMA
-    
+
     SCHEMA --> ZOD
     SCHEMA --> STANDARD
     SCHEMA --> ARKTYPE
     SCHEMA --> VALIBOT
     SCHEMA --> EFFECT
-    
+
     ZOD --> JSON["convertToJsonSchema()<br/>JSON Schema generation"]
     STANDARD --> JSON
     ARKTYPE --> JSON
     VALIBOT --> JSON
     EFFECT --> JSON
-    
+
     JSON --> PROVIDER["Provider API<br/>OpenAI/Anthropic/etc."]
 ```
 
@@ -244,11 +246,11 @@ graph LR
     CONVERT["convertToJsonSchema()"]
     ADDITIONAL["addAdditionalPropertiesToJsonSchema()<br/>handles anyOf/allOf/oneOf"]
     JSON["JSON Schema<br/>with additionalProperties"]
-    
+
     INPUT --> CONVERT
     CONVERT --> ADDITIONAL
     ADDITIONAL --> JSON
-    
+
     JSON --> API["Provider API<br/>tools/responseFormat"]
 ```
 
@@ -274,23 +276,23 @@ The JSON Schema generator includes `additionalProperties: false` by default for 
 graph TD
     INPUT["JSON String<br/>from provider API"]
     PARSE["secureJsonParse()"]
-    
+
     UNICODE["Unicode Escape<br/>Validation"]
     PROTO["Prototype Pollution<br/>Prevention"]
     CONSTRUCTOR["Constructor<br/>Sanitization"]
-    
+
     PARSE --> UNICODE
     PARSE --> PROTO
     PARSE --> CONSTRUCTOR
-    
+
     UNICODE --> CHECK1{Valid?}
     PROTO --> CHECK2{Valid?}
     CONSTRUCTOR --> CHECK3{Valid?}
-    
+
     CHECK1 -->|No| ERROR["Throw Error"]
     CHECK2 -->|No| ERROR
     CHECK3 -->|No| ERROR
-    
+
     CHECK1 -->|Yes| OUTPUT["Parsed JSON<br/>with rawValue"]
     CHECK2 -->|Yes| OUTPUT
     CHECK3 -->|Yes| OUTPUT
@@ -316,12 +318,12 @@ The function incorporates code from the `secure-json-parse` library, customized 
 graph LR
     RESPONSE["API Response JSON"]
     VALIDATE["validateTypes()<br/>schema validation"]
-    
+
     RESPONSE --> VALIDATE
-    
+
     VALIDATE --> SUCCESS["Validated Data"]
     VALIDATE --> ERROR["TypeValidationError<br/>with field paths"]
-    
+
     ERROR --> MESSAGE["Error Message:<br/>'Invalid type at path.to.field'"]
 ```
 
@@ -349,24 +351,24 @@ Enhanced error messages provide precise validation failure locations, making deb
 graph TD
     URL["User-Provided URL"]
     VALIDATE["URL Validation<br/>- Private IP check<br/>- Protocol check<br/>- Non-HTTP rejection"]
-    
+
     FETCH["fetch() with AbortSignal"]
-    
+
     SIZE["Size Limit Check<br/>default: 2 GiB<br/>configurable"]
-    
+
     REDIRECT["Redirect Validation<br/>validate final URL"]
-    
+
     BLOB["downloadBlob()<br/>returns Blob"]
     BUFFER["download()<br/>returns Buffer"]
-    
+
     URL --> VALIDATE
     VALIDATE -->|Valid| FETCH
     VALIDATE -->|Invalid| SSRF_ERROR["Throw DownloadError<br/>SSRF prevention"]
-    
+
     FETCH --> SIZE
     SIZE -->|Exceeds limit| SIZE_ERROR["Abort download<br/>DownloadError"]
     SIZE -->|Within limit| REDIRECT
-    
+
     REDIRECT -->|Valid| BLOB
     REDIRECT -->|Valid| BUFFER
     REDIRECT -->|Invalid| SSRF_ERROR
@@ -392,11 +394,11 @@ Both `download()` and `downloadBlob()` implement comprehensive security protecti
 
 ```typescript
 // Default 2 GiB limit
-const data = await download({ url, abortSignal });
+const data = await download({ url, abortSignal })
 
 // Custom size limit
-const customDownload = createDownload({ maxBytes: 100 * 1024 * 1024 }); // 100 MB
-const data = await customDownload({ url, abortSignal });
+const customDownload = createDownload({ maxBytes: 100 * 1024 * 1024 }) // 100 MB
+const data = await customDownload({ url, abortSignal })
 ```
 
 **Integration Points:**
@@ -412,6 +414,7 @@ const data = await customDownload({ url, abortSignal });
 The download utilities strip file extensions from filenames to ensure compatibility across providers:
 
 **Implementation (v4.0.17):**
+
 - Removes `.pdf`, `.png`, `.jpg`, etc. extensions from downloaded filenames
 - Prevents filename-based security issues
 - Ensures consistent behavior across Bedrock, OpenAI, and other providers
@@ -429,10 +432,10 @@ graph LR
     ASYNC["AsyncGenerator<T><br/>provider stream"]
     CONVERT["convertAsyncGeneratorToReadableStream()"]
     READABLE["ReadableStream<T><br/>Web Streams API"]
-    
+
     ASYNC --> CONVERT
     CONVERT --> READABLE
-    
+
     READABLE --> CONSUMER["Stream Consumer<br/>UI/Core SDK"]
 ```
 
@@ -457,9 +460,9 @@ The `DelayedPromise` class enables controlled promise resolution:
 
 ```typescript
 class DelayedPromise<T> {
-  resolve(value: T): void;
-  reject(error: Error): void;
-  readonly promise: Promise<T>;
+  resolve(value: T): void
+  reject(error: Error): void
+  readonly promise: Promise<T>
 }
 ```
 
@@ -480,25 +483,25 @@ class DelayedPromise<T> {
 ```mermaid
 graph TB
     TEST["Provider Tests<br/>vitest/jest"]
-    
+
     SERVER["TestServerCall<br/>unified test server"]
-    
+
     REQUEST["requestBodyJson<br/>parsed request body"]
     HEADERS["getRequestHeaders()<br/>normalized headers"]
     CREDS["requestCredentials<br/>fetch credentials"]
-    
+
     STREAM["TestStreamController<br/>stream simulation"]
-    
+
     READABLE["readable-stream<br/>streaming responses"]
-    
+
     TEST --> SERVER
     SERVER --> REQUEST
     SERVER --> HEADERS
     SERVER --> CREDS
     SERVER --> STREAM
-    
+
     STREAM --> READABLE
-    
+
     style SERVER fill:#f9f9f9
     style STREAM fill:#f9f9f9
 ```
@@ -509,11 +512,11 @@ The `TestServerCall` class provides a complete test server implementation for pr
 
 **Key Properties and Methods:**
 
-| Member | Type | Purpose |
-|--------|------|---------|
-| `requestBodyJson` | `object` | Parsed JSON request body (renamed from `requestBody` in v3.0.0) |
-| `getRequestHeaders()` | `Record<string, string>` | Normalized HTTP headers as key-value pairs |
-| `requestCredentials` | `RequestCredentials` | Fetch API credentials mode (`'include'`, `'same-origin'`, `'omit'`) |
+| Member                | Type                     | Purpose                                                             |
+| --------------------- | ------------------------ | ------------------------------------------------------------------- |
+| `requestBodyJson`     | `object`                 | Parsed JSON request body (renamed from `requestBody` in v3.0.0)     |
+| `getRequestHeaders()` | `Record<string, string>` | Normalized HTTP headers as key-value pairs                          |
+| `requestCredentials`  | `RequestCredentials`     | Fetch API credentials mode (`'include'`, `'same-origin'`, `'omit'`) |
 
 **TestStreamController**
 
@@ -531,13 +534,13 @@ Simulates streaming responses for testing provider stream implementations:
 ```mermaid
 graph LR
     HELPERS["Test Helper Functions"]
-    
+
     MOCKID["mockId()<br/>deterministic ID generation"]
     CONVERT["convertArrayToAsyncIterable()<br/>test data conversion"]
-    
+
     HELPERS --> MOCKID
     HELPERS --> CONVERT
-    
+
     MOCKID --> TESTS["Provider Tests<br/>snapshot testing"]
     CONVERT --> TESTS
 ```
@@ -555,7 +558,7 @@ The `mockId()` function provides deterministic ID generation for testing:
 `convertArrayToAsyncIterable()` converts arrays to async iterables for testing stream processing:
 
 ```typescript
-const stream = convertArrayToAsyncIterable([chunk1, chunk2, chunk3]);
+const stream = convertArrayToAsyncIterable([chunk1, chunk2, chunk3])
 // Use in tests to simulate streaming responses
 ```
 
@@ -570,13 +573,13 @@ const stream = convertArrayToAsyncIterable([chunk1, chunk2, chunk3]);
 ```mermaid
 graph LR
     GENERATOR["createIdGenerator()"]
-    
+
     ALPHABET["Custom Alphabet<br/>alphanumeric chars"]
     SIZE["Size Configuration<br/>default: 16 chars"]
-    
+
     GENERATOR --> ALPHABET
     GENERATOR --> SIZE
-    
+
     ALPHABET --> IDS["Generated IDs<br/>conversation IDs<br/>message IDs<br/>tool call IDs"]
     SIZE --> IDS
 ```
@@ -607,9 +610,9 @@ Merges multiple header objects into a single normalized object:
 ```typescript
 const headers = combineHeaders(
   { 'Content-Type': 'application/json' },
-  { 'Authorization': 'Bearer token' },
+  { Authorization: 'Bearer token' },
   customHeaders
-);
+)
 ```
 
 **`removeUndefinedEntries()`**
@@ -619,8 +622,8 @@ Removes undefined values from objects (useful for header construction):
 ```typescript
 const cleanHeaders = removeUndefinedEntries({
   'X-Custom-Header': customValue, // included if defined
-  'X-Optional': undefined,        // removed
-});
+  'X-Optional': undefined, // removed
+})
 ```
 
 **Header Normalization**
@@ -639,7 +642,7 @@ The `parseProviderOptions()` function extracts provider-specific options from th
 const openaiOptions = parseProviderOptions({
   providerOptions,
   provider: 'openai',
-});
+})
 ```
 
 This utility enables consistent handling of provider-specific settings across all provider implementations.
@@ -667,19 +670,19 @@ Provider-utils includes compatibility fixes for V8 readonly execution environmen
 ```mermaid
 graph TD
     ERROR["API Error"]
-    
+
     CHECK["isRetryableError()"]
-    
+
     NETWORK["Network Errors<br/>DomException<br/>fetch failures"]
     STATUS["HTTP Status Codes<br/>408, 429, 500-599"]
     BUN["Bun Fetch Errors<br/>environment-specific"]
-    
+
     ERROR --> CHECK
-    
+
     CHECK --> NETWORK
     CHECK --> STATUS
     CHECK --> BUN
-    
+
     NETWORK --> RETRY["Retry Request"]
     STATUS --> RETRY
     BUN --> RETRY
@@ -704,6 +707,7 @@ The retry logic properly handles abort signals during wait periods, allowing imm
 Provider-utils automatically injects User-Agent headers with version information:
 
 **Format:**
+
 ```
 User-Agent: ai/{version} @ai-sdk/provider-utils/{version} {runtime}
 ```
@@ -711,7 +715,7 @@ User-Agent: ai/{version} @ai-sdk/provider-utils/{version} {runtime}
 **Components:**
 
 - AI SDK version
-- Provider-utils version  
+- Provider-utils version
 - Runtime environment (Node.js/browser/edge)
 
 This enables providers to track SDK usage and diagnose version-specific issues.
@@ -739,8 +743,8 @@ Tools can define custom output transformation via the `toModelOutput()` method:
 
 ```typescript
 interface ToolExecutionOptions {
-  input: unknown;           // Tool input parameters
-  toolCallId: string;       // Unique tool call identifier
+  input: unknown // Tool input parameters
+  toolCallId: string // Unique tool call identifier
 }
 ```
 
@@ -762,14 +766,18 @@ Tools can declare approval requirements:
 // Static approval requirement
 const tool = {
   needsApproval: true,
-  execute: async (input) => { /* ... */ }
-};
+  execute: async (input) => {
+    /* ... */
+  },
+}
 
 // Dynamic approval based on input
 const tool = {
   needsApproval: (input) => input.amount > 1000,
-  execute: async (input) => { /* ... */ }
-};
+  execute: async (input) => {
+    /* ... */
+  },
+}
 ```
 
 **Provider-Defined Tool Approval:**
@@ -789,9 +797,9 @@ const tool = {
   parameters: zodSchema,
   inputExamples: [
     { example: 'value1', field: 'value2' },
-    { example: 'value3', field: 'value4' }
-  ]
-};
+    { example: 'value3', field: 'value4' },
+  ],
+}
 ```
 
 **Type Inference Improvements:**

@@ -21,8 +21,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page documents the **BespokeEventHandler** system that translates core codex events into JSON-RPC notifications for IDE clients connected to the app server. When a thread executes (running model inference, executing tools, applying patches), the core emits a stream of `EventMsg` variants. The app server must translate these into client-facing `ServerNotification` messages that conform to the protocol schema.
@@ -46,14 +44,14 @@ graph TB
     ThreadState["ThreadState<br/>Item tracking"]
     Outgoing["ThreadScopedOutgoingMessageSender"]
     Client["IDE Client<br/>(VS Code, etc)"]
-    
+
     Core -->|"next_event()"| EventStream
     EventStream -->|"Event { id, msg }"| Listener
     Listener -->|"dispatch"| BespokeHandler
     BespokeHandler -->|"update"| ThreadState
     BespokeHandler -->|"send_server_notification()"| Outgoing
     Outgoing -->|"ServerNotification"| Client
-    
+
     BespokeHandler -.->|"approval requests"| ApprovalFlow["Approval Request Flow<br/>send_request()"]
     ApprovalFlow -.->|"user decision"| Core
 ```
@@ -110,21 +108,21 @@ graph LR
 
 **Key `EventMsg` → `ServerNotification` mappings**
 
-| `EventMsg` Variant | Output Notification(s) | API | Notes |
-|---|---|---|---|
-| `TurnStarted` | `TurnStarted` | V2 | Emits active turn snapshot |
-| `TurnComplete` | `TurnCompleted` | V1+V2 | Calls `handle_turn_complete()` |
-| `Warning` | *(dropped)* | — | No client notification |
-| `ModelReroute` | `ModelRerouted` | V2 | |
-| `ApplyPatchApprovalRequest` | `ItemStarted` + `ServerRequest::FileChangeRequestApproval` | V1/V2 | Bidirectional: awaits client decision |
-| `ExecApprovalRequest` | `ItemStarted` + `ServerRequest::CommandExecutionRequestApproval` | V1/V2 | Bidirectional: awaits client decision |
-| `McpToolCallBegin` | `ItemStarted` (McpToolCall) | V2 | `construct_mcp_tool_call_notification()` |
-| `McpToolCallEnd` | `ItemCompleted` (McpToolCall) | V2 | `construct_mcp_tool_call_end_notification()` |
-| `DynamicToolCallRequest` | `ServerRequest::DynamicToolCall` | V2 | Client executes tool, returns result |
-| `RequestUserInput` | `ServerRequest::ToolRequestUserInput` | V2 | Experimental |
-| `RealtimeConversationStarted` | `ThreadRealtimeStarted` | V2 | Experimental |
-| `RealtimeConversationRealtime` | `ThreadRealtimeOutputAudioDelta` / `ThreadRealtimeItemAdded` / `ThreadRealtimeError` | V2 | Per sub-event type |
-| `RealtimeConversationClosed` | `ThreadRealtimeClosed` | V2 | |
+| `EventMsg` Variant             | Output Notification(s)                                                               | API   | Notes                                        |
+| ------------------------------ | ------------------------------------------------------------------------------------ | ----- | -------------------------------------------- |
+| `TurnStarted`                  | `TurnStarted`                                                                        | V2    | Emits active turn snapshot                   |
+| `TurnComplete`                 | `TurnCompleted`                                                                      | V1+V2 | Calls `handle_turn_complete()`               |
+| `Warning`                      | _(dropped)_                                                                          | —     | No client notification                       |
+| `ModelReroute`                 | `ModelRerouted`                                                                      | V2    |                                              |
+| `ApplyPatchApprovalRequest`    | `ItemStarted` + `ServerRequest::FileChangeRequestApproval`                           | V1/V2 | Bidirectional: awaits client decision        |
+| `ExecApprovalRequest`          | `ItemStarted` + `ServerRequest::CommandExecutionRequestApproval`                     | V1/V2 | Bidirectional: awaits client decision        |
+| `McpToolCallBegin`             | `ItemStarted` (McpToolCall)                                                          | V2    | `construct_mcp_tool_call_notification()`     |
+| `McpToolCallEnd`               | `ItemCompleted` (McpToolCall)                                                        | V2    | `construct_mcp_tool_call_end_notification()` |
+| `DynamicToolCallRequest`       | `ServerRequest::DynamicToolCall`                                                     | V2    | Client executes tool, returns result         |
+| `RequestUserInput`             | `ServerRequest::ToolRequestUserInput`                                                | V2    | Experimental                                 |
+| `RealtimeConversationStarted`  | `ThreadRealtimeStarted`                                                              | V2    | Experimental                                 |
+| `RealtimeConversationRealtime` | `ThreadRealtimeOutputAudioDelta` / `ThreadRealtimeItemAdded` / `ThreadRealtimeError` | V2    | Per sub-event type                           |
+| `RealtimeConversationClosed`   | `ThreadRealtimeClosed`                                                               | V2    |                                              |
 
 **Sources:** [codex-rs/app-server/src/bespoke_event_handling.rs:172-480]()
 
@@ -134,10 +132,10 @@ graph LR
 
 The translation layer supports both V1 (legacy) and V2 APIs simultaneously. The `ApiVersion` enum defined in [codex-rs/app-server/src/codex_message_processor.rs:388-393]() controls which protocol structures are used. `V2` is the default.
 
-| `ApiVersion` | Item Lifecycle | Approval Pattern | Example Types |
-|-------------|----------------|------------------|----------------------|
-| `V1` | Implicit (legacy) | Direct approval params to client | `ApplyPatchApprovalParams`, `ExecCommandApprovalParams` |
-| `V2` | Explicit (`ItemStarted` / delta / `ItemCompleted`) | `item_id`-scoped request/response | `ItemStartedNotification`, `FileChangeRequestApprovalParams` |
+| `ApiVersion` | Item Lifecycle                                     | Approval Pattern                  | Example Types                                                |
+| ------------ | -------------------------------------------------- | --------------------------------- | ------------------------------------------------------------ |
+| `V1`         | Implicit (legacy)                                  | Direct approval params to client  | `ApplyPatchApprovalParams`, `ExecCommandApprovalParams`      |
+| `V2`         | Explicit (`ItemStarted` / delta / `ItemCompleted`) | `item_id`-scoped request/response | `ItemStartedNotification`, `FileChangeRequestApprovalParams` |
 
 **V1 vs V2 Translation Example - File Changes**
 
@@ -146,18 +144,18 @@ graph TB
     subgraph "Core Event"
         CoreEvent["ApplyPatchApprovalRequestEvent<br/>{call_id, changes, reason}"]
     end
-    
+
     subgraph "V1 Translation"
         V1Approval["ApplyPatchApprovalParams<br/>{conversation_id, call_id, file_changes}"]
         V1Flow["Direct approval request<br/>No item lifecycle"]
     end
-    
+
     subgraph "V2 Translation"
         V2Started["ItemStartedNotification<br/>{item: FileChange, status: InProgress}"]
         V2Approval["FileChangeRequestApprovalParams<br/>{thread_id, item_id, reason}"]
         V2Completed["ItemCompletedNotification<br/>{item: FileChange, status: Applied/Failed}"]
     end
-    
+
     CoreEvent -->|"api_version = V1"| V1Approval
     CoreEvent -->|"api_version = V2"| V2Started
     V2Started --> V2Approval
@@ -182,20 +180,20 @@ stateDiagram-v2
     Delta --> Completed: ItemCompletedNotification
     Started --> Completed: (no deltas)
     Completed --> [*]
-    
+
     note right of Delta: Streaming output<br/>Real-time progress
     note right of Completed: Final status<br/>exit code/error
 ```
 
 **ThreadItem Types with Lifecycle**
 
-| Item Type | Started Event | Delta Events | Completed Event | Status Field |
-|-----------|--------------|--------------|-----------------|--------------|
-| `AgentMessage` | `item/started` | `item/agentMessage/delta` | `item/completed` | N/A (text content) |
-| `CommandExecution` | `item/started` | `item/commandExecution/outputDelta` | `item/completed` | `CommandExecutionStatus` |
-| `FileChange` | `item/started` | `item/fileChange/outputDelta` | `item/completed` | `PatchApplyStatus` |
-| `McpToolCall` | `item/started` | N/A | `item/completed` | `McpToolCallStatus` |
-| `CollabAgentToolCall` | `item/started` | N/A | `item/completed` | `CollabAgentToolCallStatus` |
+| Item Type             | Started Event  | Delta Events                        | Completed Event  | Status Field                |
+| --------------------- | -------------- | ----------------------------------- | ---------------- | --------------------------- |
+| `AgentMessage`        | `item/started` | `item/agentMessage/delta`           | `item/completed` | N/A (text content)          |
+| `CommandExecution`    | `item/started` | `item/commandExecution/outputDelta` | `item/completed` | `CommandExecutionStatus`    |
+| `FileChange`          | `item/started` | `item/fileChange/outputDelta`       | `item/completed` | `PatchApplyStatus`          |
+| `McpToolCall`         | `item/started` | N/A                                 | `item/completed` | `McpToolCallStatus`         |
+| `CollabAgentToolCall` | `item/started` | N/A                                 | `item/completed` | `CollabAgentToolCallStatus` |
 
 **Sources:** [codex-rs/app-server/src/bespoke_event_handling.rs:160-174](), [codex-rs/app-server-protocol/src/protocol/v2.rs:823-1165]()
 
@@ -215,26 +213,26 @@ graph TB
         ExecOutput["ExecOutputDeltaEvent<br/>{call_id, stdout/stderr}"]
         ExecEnd["ExecCommandEndEvent<br/>{call_id, exit_code, status}"]
     end
-    
+
     subgraph "V2 Protocol Notifications"
         Started["ItemStartedNotification<br/>{item: CommandExecution, id: call_id}"]
         ApprovalReq["CommandExecutionRequestApprovalParams<br/>{item_id: call_id, command, cwd}"]
         OutputDelta["CommandExecutionOutputDeltaNotification<br/>{item_id, delta: stdout/stderr}"]
         Completed["ItemCompletedNotification<br/>{item: CommandExecution, status}"]
     end
-    
+
     subgraph "State Tracking"
         ThreadState["ThreadState::TurnSummary<br/>command_started: HashSet<String>"]
         FirstCheck{"first_start?"}
     end
-    
+
     ExecApproval --> FirstCheck
     FirstCheck -->|"true"| Started
     FirstCheck -->|"false"| ApprovalReq
     Started --> ApprovalReq
     ExecOutput --> OutputDelta
     ExecEnd --> Completed
-    
+
     Started -.->|"insert(item_id)"| ThreadState
     FirstCheck -.->|"check"| ThreadState
 ```
@@ -255,15 +253,15 @@ sequenceDiagram
     participant Handler as apply_bespoke_event_handling
     participant Outgoing as OutgoingMessageSender
     participant Client as IDE Client
-    
+
     Core->>Handler: EventMsg::ExecApprovalRequest<br/>{call_id, command, reason}
     Handler->>Handler: Construct approval params
     Handler->>Outgoing: send_request(CommandExecutionRequestApprovalParams)
     Outgoing-->>Handler: oneshot::Receiver
     Handler->>Client: ServerRequest (JSON-RPC)
-    
+
     Note over Handler,Client: Spawned task awaits response
-    
+
     Client->>Outgoing: Response {decision: Accept/Decline/Cancel}
     Outgoing->>Handler: Receiver resolves
     Handler->>Handler: Map decision to ReviewDecision
@@ -274,14 +272,14 @@ sequenceDiagram
 
 The conversion is defined in [codex-rs/app-server-protocol/src/protocol/v2.rs:768-787]().
 
-| `CommandExecutionApprovalDecision` | Core `ReviewDecision` | Behavior |
-|---|---|---|
-| `Accept` | `ReviewDecision::Approved` | Run command once |
-| `AcceptForSession` | `ReviewDecision::ApprovedForSession` | Trust for session |
-| `AcceptWithExecpolicyAmendment` | `ReviewDecision::ApprovedExecpolicyAmendment` | Update exec policy file |
-| `ApplyNetworkPolicyAmendment` | `ReviewDecision::NetworkPolicyAmendment` | Apply persistent network rule |
-| `Decline` | `ReviewDecision::Denied` | Skip command, continue turn |
-| `Cancel` | `ReviewDecision::Abort` | Skip command, interrupt turn |
+| `CommandExecutionApprovalDecision` | Core `ReviewDecision`                         | Behavior                      |
+| ---------------------------------- | --------------------------------------------- | ----------------------------- |
+| `Accept`                           | `ReviewDecision::Approved`                    | Run command once              |
+| `AcceptForSession`                 | `ReviewDecision::ApprovedForSession`          | Trust for session             |
+| `AcceptWithExecpolicyAmendment`    | `ReviewDecision::ApprovedExecpolicyAmendment` | Update exec policy file       |
+| `ApplyNetworkPolicyAmendment`      | `ReviewDecision::NetworkPolicyAmendment`      | Apply persistent network rule |
+| `Decline`                          | `ReviewDecision::Denied`                      | Skip command, continue turn   |
+| `Cancel`                           | `ReviewDecision::Abort`                       | Skip command, interrupt turn  |
 
 **Sources:** [codex-rs/app-server/src/bespoke_event_handling.rs:406-453](), [codex-rs/app-server-protocol/src/protocol/v2.rs:768-787]()
 
@@ -299,20 +297,20 @@ graph TB
         PatchApproval["ApplyPatchApprovalRequestEvent<br/>{call_id, changes: HashMap, reason}"]
         Changes["changes: HashMap<PathBuf, FileChange>"]
     end
-    
+
     subgraph "V2 Translation"
         ConvertChanges["convert_patch_changes()<br/>Map to FileUpdateChange"]
         CheckFirst{"first_start?<br/>thread_state.file_change_started"}
         SendStarted["ItemStartedNotification<br/>{item: FileChange, changes, status: InProgress}"]
         SendApproval["FileChangeRequestApprovalParams<br/>{thread_id, item_id, reason, grant_root}"]
     end
-    
+
     subgraph "Response Handling"
         AwaitDecision["Spawned task awaits<br/>oneshot::Receiver"]
         MapDecision["Map FileChangeApprovalDecision<br/>to ReviewDecision"]
         SubmitCore["submit(Op::ApplyPatchApproval)"]
     end
-    
+
     PatchApproval --> ConvertChanges
     ConvertChanges --> CheckFirst
     CheckFirst -->|"true"| SendStarted
@@ -348,23 +346,23 @@ graph TB
         Begin["McpToolCallBeginEvent<br/>{call_id, server_name, tool_name, arguments}"]
         End["McpToolCallEndEvent<br/>{call_id, result/error, is_error}"]
     end
-    
+
     subgraph "Protocol Translation"
         ConstructStart["construct_mcp_tool_call_notification()"]
         StartedItem["ItemStartedNotification<br/>{item: McpToolCall, status: InProgress}"]
-        
+
         ConstructEnd["construct_mcp_tool_call_end_notification()"]
         CompletedItem["ItemCompletedNotification<br/>{item: McpToolCall, status: Success/Failed}"]
     end
-    
+
     subgraph "McpToolCall Item Fields"
         Fields["- id: call_id<br/>- server_name<br/>- tool_name<br/>- arguments<br/>- result/error<br/>- status: McpToolCallStatus"]
     end
-    
+
     Begin --> ConstructStart
     ConstructStart --> StartedItem
     StartedItem -.->|"includes"| Fields
-    
+
     End --> ConstructEnd
     ConstructEnd --> CompletedItem
     CompletedItem -.->|"includes"| Fields
@@ -391,15 +389,15 @@ sequenceDiagram
     participant Core as CodexThread
     participant Handler as apply_bespoke_event_handling
     participant Client as IDE Client
-    
+
     Core->>Handler: EventMsg::DynamicToolCallRequest<br/>{call_id, tool, arguments}
     Handler->>Client: ServerRequest<br/>DynamicToolCallParams
-    
+
     Note over Client: Client executes tool<br/>in host environment
-    
+
     Client->>Handler: DynamicToolCallResponse<br/>{content_items, success}
     Handler->>Core: Op::DynamicToolResponse<br/>{call_id, response}
-    
+
     Note over Core: Model receives tool output<br/>continues turn
 ```
 
@@ -427,17 +425,17 @@ graph LR
         Request["RequestUserInputEvent<br/>{call_id, turn_id, questions}"]
         Questions["Vec<Question><br/>{id, header, question, options}"]
     end
-    
+
     subgraph "Protocol Translation"
         Params["ToolRequestUserInputParams<br/>{thread_id, turn_id, item_id, questions}"]
         QuestionFormat["ToolRequestUserInputQuestion<br/>{id, question, options, is_secret}"]
     end
-    
+
     subgraph "Client Response"
         Response["ToolRequestUserInputResponse<br/>{answers: HashMap<String, Answer>}"]
         Answer["Answer: Option<index> | Other<text>"]
     end
-    
+
     Request --> Questions
     Questions --> Params
     Params --> QuestionFormat
@@ -466,14 +464,14 @@ graph TB
     TurnComplete["EventMsg::TurnComplete"]
     Handler["handle_turn_complete()"]
     ThreadState["ThreadState access"]
-    
+
     BuildTurn["Build final Turn object<br/>from rollout items"]
     ComputeStatus["Compute TurnStatus<br/>(completed/interrupted/failed)"]
     ComputeError["Extract error if present<br/>TurnError with CodexErrorInfo"]
-    
+
     Notification["TurnCompletedNotification<br/>{thread_id, turn_id, turn}"]
     ResetState["Reset ThreadState::TurnSummary<br/>for next turn"]
-    
+
     TurnComplete --> Handler
     Handler --> ThreadState
     ThreadState --> BuildTurn
@@ -506,7 +504,7 @@ classDiagram
         +get_turn_summary() TurnSummary
         +reset_turn_summary()
     }
-    
+
     class TurnSummary {
         +command_started HashSet~String~
         +file_change_started HashSet~String~
@@ -514,7 +512,7 @@ classDiagram
         +plan_started HashSet~String~
         +insert_and_check() bool
     }
-    
+
     ThreadState --> TurnSummary
 ```
 
@@ -542,28 +540,28 @@ graph TB
         Thread["CodexThread::next_event()"]
         EventQueue["Internal event queue"]
     end
-    
+
     subgraph "Per-Thread Listener"
         Listener["spawn_event_listener()<br/>Dedicated tokio task"]
         TranslationLoop["Loop: next_event() -> translate"]
     end
-    
+
     subgraph "Connection Layer"
         ThreadScoped["ThreadScopedOutgoingMessageSender<br/>Per-thread, multi-connection"]
         ConnectionIds["Arc<Vec<ConnectionId>>"]
     end
-    
+
     subgraph "Outbound Router"
         Router["Outbound router task<br/>Routes to connections"]
         OutboundState["OutboundConnectionState<br/>Per-connection writer"]
         Writers["mpsc::Sender per connection"]
     end
-    
+
     subgraph "Transport"
         StdioWriter["Stdio writer<br/>JSONL to stdout"]
         WsWriter["WebSocket writer<br/>Text frames"]
     end
-    
+
     Thread --> EventQueue
     EventQueue --> Listener
     Listener --> TranslationLoop
@@ -608,7 +606,7 @@ Filter by method name"]
 if method in opted_out set"]
     Send["Write to connection\
 if not opted out"]
-    
+
     Init --> Storage
     Storage --> Check
     Check --> Drop
@@ -633,12 +631,12 @@ The translation layer includes error handling to ensure that failures in event p
 
 **Error Recovery Patterns**
 
-| Error Scenario | Recovery Strategy | Impact |
-|----------------|------------------|--------|
-| Client disconnects mid-approval | `oneshot::Receiver` drops, core times out | Turn continues or fails cleanly |
-| Serialization failure | Log error, skip notification | Event lost but thread continues |
-| Translation logic panic | Task isolation via `tokio::spawn` | Single event lost, others proceed |
-| Approval response timeout | Core receives no response, applies default | Turn proceeds with rejection |
+| Error Scenario                  | Recovery Strategy                          | Impact                            |
+| ------------------------------- | ------------------------------------------ | --------------------------------- |
+| Client disconnects mid-approval | `oneshot::Receiver` drops, core times out  | Turn continues or fails cleanly   |
+| Serialization failure           | Log error, skip notification               | Event lost but thread continues   |
+| Translation logic panic         | Task isolation via `tokio::spawn`          | Single event lost, others proceed |
+| Approval response timeout       | Core receives no response, applies default | Turn proceeds with rejection      |
 
 **Approval Response Handling**
 
@@ -647,20 +645,20 @@ graph TB
     SendRequest["send_request()<br/>returns oneshot::Receiver"]
     SpawnTask["tokio::spawn(async move { ... })"]
     AwaitResponse["rx.await"]
-    
+
     Success["Result::Ok<br/>Map to ReviewDecision"]
     Error["Result::Err<br/>Log error"]
     ChannelClosed["oneshot::Receiver dropped"]
-    
+
     SubmitOp["conversation.submit(Op)"]
     NoSubmit["No submit<br/>(core will timeout)"]
-    
+
     SendRequest --> SpawnTask
     SpawnTask --> AwaitResponse
     AwaitResponse --> Success
     AwaitResponse --> Error
     AwaitResponse --> ChannelClosed
-    
+
     Success --> SubmitOp
     Error --> NoSubmit
     ChannelClosed --> NoSubmit
@@ -674,7 +672,7 @@ graph TB
 
 1. **Translation Layer**: `apply_bespoke_event_handling` is the central function that maps core `EventMsg` to protocol `ServerNotification`
 2. **API Versioning**: V1 and V2 APIs coexist, with V2 providing explicit item lifecycle and structured approvals
-3. **Item Lifecycle**: V2 items follow a started → delta* → completed pattern for real-time progress
+3. **Item Lifecycle**: V2 items follow a started → delta\* → completed pattern for real-time progress
 4. **Approval Pattern**: Bidirectional request/response flow using `send_request()` and `oneshot` channels
 5. **State Tracking**: `ThreadState` ensures items start only once and coordinates multi-connection delivery
 6. **Streaming**: Events flow through dedicated listener tasks with bounded channels for backpressure

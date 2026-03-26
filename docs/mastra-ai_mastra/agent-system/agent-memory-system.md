@@ -13,7 +13,7 @@ The following files were used as context for generating this wiki page:
 - [packages/agent-builder/integration-tests/src/fixtures/minimal-mastra-project/.gitignore](packages/agent-builder/integration-tests/src/fixtures/minimal-mastra-project/.gitignore)
 - [packages/agent-builder/integration-tests/src/fixtures/minimal-mastra-project/env.example](packages/agent-builder/integration-tests/src/fixtures/minimal-mastra-project/env.example)
 - [packages/core/src/action/index.ts](packages/core/src/action/index.ts)
-- [packages/core/src/agent/__tests__/utils.test.ts](packages/core/src/agent/__tests__/utils.test.ts)
+- [packages/core/src/agent/**tests**/utils.test.ts](packages/core/src/agent/__tests__/utils.test.ts)
 - [packages/core/src/agent/agent-legacy.ts](packages/core/src/agent/agent-legacy.ts)
 - [packages/core/src/agent/agent.test.ts](packages/core/src/agent/agent.test.ts)
 - [packages/core/src/agent/agent.ts](packages/core/src/agent/agent.ts)
@@ -56,13 +56,12 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document covers how memory integrates with agents in Mastra, including memory configuration, message management via `MessageList`, thread/resource scoping, and the automatic injection of memory processors into the agent execution pipeline.
 
 For information about:
+
 - Memory storage backends and adapters, see [Memory System Architecture](#7.1)
 - Storage interfaces and message persistence, see [Thread Management and Message Storage](#7.2)
 - Three-tier observational memory implementation, see [Observational Memory System](#7.9)
@@ -77,11 +76,13 @@ For information about:
 Agents accept a `memory` parameter that can be provided statically or resolved dynamically via a function:
 
 [packages/core/src/agent/agent.ts:162]()
+
 ```typescript
 #memory?: DynamicArgument<MastraMemory>;
 ```
 
 The memory can be:
+
 - A `MastraMemory` instance (from `@mastra/memory`)
 - A function that returns a `MastraMemory` instance (for dynamic configuration based on `RequestContext`)
 
@@ -94,6 +95,7 @@ When an agent's memory doesn't have its own storage configured, the agent automa
 [packages/core/src/agent/agent.ts:800-862]()
 
 The injection logic:
+
 1. Resolves the memory (if it's a function)
 2. Checks if memory has `hasOwnStorage === false`
 3. Injects `mastra.getStorage()` into the memory
@@ -119,7 +121,7 @@ graph TB
     CreateMessageList["Create MessageList"]
     CheckThread["Check Thread Exists"]
     CreateThread["Create Thread if Missing"]
-    
+
     PrepareMemoryStep --> CheckThread
     CheckThread -->|exists| RecallMessages
     CheckThread -->|missing and options.createThread=true| CreateThread
@@ -127,7 +129,7 @@ graph TB
     RecallMessages --> LoadWorkingMemory
     LoadWorkingMemory --> CreateMessageList
     CreateMessageList --> Output["PrepareMemoryStepOutput"]
-    
+
     style PrepareMemoryStep fill:#e1f5ff
     style RecallMessages fill:#fff3cd
     style CreateMessageList fill:#e8f5e9
@@ -136,6 +138,7 @@ graph TB
 **Prepare Memory Step Workflow**
 
 The step returns a `PrepareMemoryStepOutput` containing:
+
 - `thread`: Thread metadata
 - `messageList`: `MessageList` instance with conversation history
 - `workingMemory`: Current working memory state (string or object)
@@ -150,6 +153,7 @@ The `memory.recall()` method fetches messages with optional semantic search:
 [packages/memory/src/index.ts:151-312]()
 
 Key features:
+
 - **Pagination**: Controlled by `perPage` (defaults to `threadConfig.lastMessages`)
 - **Semantic Search**: When `vectorSearchString` is provided and `semanticRecall` is enabled
 - **Message Range**: Fetches surrounding messages for semantic recall results
@@ -172,7 +176,7 @@ graph LR
         V3["V3 (UI Messages)<br/>AI SDK format"]
         LLM["LLM Messages<br/>CoreMessage format"]
     end
-    
+
     subgraph "MessageList API"
         Add["add(messages, source)"]
         Get["get.all.db()/.v3()/.llm()"]
@@ -180,19 +184,19 @@ graph LR
         Filter["filterByRole()"]
         TagOps["Tag Operations<br/>addTags/removeTags"]
     end
-    
+
     V2 --> Add
     V3 --> Add
     LLM --> Add
-    
+
     Add --> Get
     Get --> V2
     Get --> V3
     Get --> LLM
-    
+
     Add --> TagOps
     TagOps --> Get
-    
+
     style MessageList fill:#e1f5ff
     style V2 fill:#fff3cd
     style V3 fill:#e8f5e9
@@ -205,16 +209,19 @@ graph LR
 ### Format Details
 
 **V2 (Database Format - `MastraDBMessage`):**
+
 - Used for storage persistence
 - Includes metadata fields: `threadId`, `resourceId`, `createdAt`
 - Content structure: `{ format: 2, parts: [...] }`
 
 **V3 (UI Format - `UIMessage`):**
+
 - Used for client-server communication
 - AI SDK compatible format
 - Supports attachments, tool calls, streaming metadata
 
 **LLM Format (`CoreMessage`):**
+
 - Used for LLM API calls
 - Role-based: `system`, `user`, `assistant`, `tool`
 - Optimized for model consumption
@@ -226,6 +233,7 @@ graph LR
 [packages/core/src/agent/message-list/index.ts:1-500]()
 
 Tags like `<working_memory_start>` and `<working_memory_end>` are:
+
 - Added during message preparation
 - Stripped before saving to storage
 - Used to inject working memory content without persisting it
@@ -247,33 +255,33 @@ graph TB
         ResourceWM["Resource Working Memory<br/>(shared across threads)"]
         OMRecord["Observational Memory Record<br/>(shared patterns/reflections)"]
     end
-    
+
     subgraph "Thread Level"
         Thread1["Thread 1 (conversation-a)"]
         Thread2["Thread 2 (conversation-b)"]
         Thread3["Thread 3 (conversation-c)"]
-        
+
         T1Messages["Messages"]
         T1WM["Thread Working Memory<br/>(optional)"]
         T1OM["Thread OM Metadata<br/>(currentTask, suggestedResponse)"]
-        
+
         T2Messages["Messages"]
         T3Messages["Messages"]
     end
-    
+
     Resource --> ResourceWM
     Resource --> OMRecord
     Resource --> Thread1
     Resource --> Thread2
     Resource --> Thread3
-    
+
     Thread1 --> T1Messages
     Thread1 --> T1WM
     Thread1 --> T1OM
-    
+
     Thread2 --> T2Messages
     Thread3 --> T3Messages
-    
+
     style Resource fill:#e1f5ff
     style Thread1 fill:#fff3cd
     style ResourceWM fill:#e8f5e9
@@ -314,9 +322,9 @@ memory: new Memory({
   options: {
     workingMemory: {
       enabled: true,
-      scope: 'resource'  // default
-    }
-  }
+      scope: 'resource', // default
+    },
+  },
 })
 
 // Thread scope - isolated per conversation
@@ -324,9 +332,9 @@ memory: new Memory({
   options: {
     workingMemory: {
       enabled: true,
-      scope: 'thread'
-    }
-  }
+      scope: 'thread',
+    },
+  },
 })
 ```
 
@@ -349,38 +357,38 @@ graph LR
         OutputProc["Output Processors"]
         Output["Response"]
     end
-    
+
     subgraph "Memory Input Processors"
         MsgHistory["MessageHistory<br/>(fetch history)"]
         SemanticRecall["SemanticRecall<br/>(vector search)"]
         WorkingMemIn["WorkingMemory<br/>(inject state)"]
         OMIn["ObservationalMemory<br/>(inject observations)"]
     end
-    
+
     subgraph "Memory Output Processors"
         SaveMessages["SaveMessages<br/>(persist to storage)"]
         VectorEmbed["VectorEmbed<br/>(generate embeddings)"]
         WorkingMemOut["WorkingMemory<br/>(update via tool)"]
         OMOut["ObservationalMemory<br/>(buffer/activate)"]
     end
-    
+
     Input --> InputProc
-    
+
     MsgHistory --> InputProc
     SemanticRecall --> InputProc
     WorkingMemIn --> InputProc
     OMIn --> InputProc
-    
+
     InputProc --> LLM
     LLM --> OutputProc
-    
+
     OutputProc --> SaveMessages
     OutputProc --> VectorEmbed
     OutputProc --> WorkingMemOut
     OutputProc --> OMOut
-    
+
     OutputProc --> Output
-    
+
     style InputProc fill:#e1f5ff
     style OutputProc fill:#fff3cd
     style LLM fill:#ffe1e1
@@ -395,6 +403,7 @@ Memory provides input processors via `memory.getInputProcessors()`:
 [packages/core/src/memory/memory.ts:579-642]()
 
 Default input processors (order matters):
+
 1. **MessageHistory**: Fetches recent conversation history
 2. **SemanticRecall**: Performs vector search for relevant past messages
 3. **WorkingMemory**: Injects working memory state into system message
@@ -407,6 +416,7 @@ Memory provides output processors via `memory.getOutputProcessors()`:
 [packages/core/src/memory/memory.ts:644-706]()
 
 Default output processors (order matters):
+
 1. **SaveMessages**: Persists messages to storage
 2. **VectorEmbed**: Generates embeddings for semantic recall
 3. **WorkingMemory**: Monitors `updateWorkingMemory` tool calls
@@ -420,6 +430,7 @@ Agents automatically combine memory processors with user-configured processors:
 [packages/core/src/agent/agent.ts:567-592]() (Output processors)
 
 The order is:
+
 - **Input**: Memory processors → User processors
 - **Output**: User processors → Memory processors
 
@@ -434,6 +445,7 @@ This ensures memory operations happen first (input) and last (output).
 ### MemoryConfigInternal
 
 All memory behavior is controlled via `MemoryConfigInternal`, which can be provided:
+
 - At memory construction time (default config)
 - At agent execution time (per-request override)
 - At thread level (stored in thread metadata)
@@ -447,7 +459,7 @@ graph TB
     subgraph "Message History"
         LastMessages["lastMessages: number | false<br/>(how many recent messages)"]
     end
-    
+
     subgraph "Working Memory"
         WMEnabled["enabled: boolean"]
         WMScope["scope: 'resource' | 'thread'"]
@@ -455,7 +467,7 @@ graph TB
         WMTemplate["template: string<br/>(template mode)"]
         WMVersion["version: 'stable' | 'vnext'<br/>(additive vs replace)"]
     end
-    
+
     subgraph "Semantic Recall"
         SREnabled["enabled: boolean"]
         SRTopK["topK: number"]
@@ -463,7 +475,7 @@ graph TB
         SRRange["messageRange: before/after"]
         SRIndex["indexConfig: metric, type, etc"]
     end
-    
+
     subgraph "Observational Memory"
         OMEnabled["enabled: boolean"]
         OMModel["model: ModelConfig"]
@@ -471,19 +483,19 @@ graph TB
         OMReflector["reflectorModel: ModelConfig"]
         OMThresholds["thresholds: buffer/activate"]
     end
-    
+
     subgraph "Title Generation"
         TitleEnabled["enabled: boolean"]
         TitleModel["model: ModelConfig"]
         TitlePrompt["prompt: string"]
     end
-    
+
     MemoryConfig["MemoryConfigInternal"] --> LastMessages
     MemoryConfig --> WMEnabled
     MemoryConfig --> SREnabled
     MemoryConfig --> OMEnabled
     MemoryConfig --> TitleEnabled
-    
+
     style MemoryConfig fill:#e1f5ff
 ```
 
@@ -496,6 +508,7 @@ The `getMergedThreadConfig()` method deep-merges configurations:
 [packages/core/src/memory/memory.ts:350-372]()
 
 Priority (highest to lowest):
+
 1. Per-request config (passed to `agent.generate()` or `agent.stream()`)
 2. Thread-level config (stored in thread metadata)
 3. Memory instance config (from constructor)
@@ -507,43 +520,43 @@ Priority (highest to lowest):
 const memory = new Memory({
   options: {
     // Message history
-    lastMessages: 20,  // or false to disable
-    
+    lastMessages: 20, // or false to disable
+
     // Working memory
     workingMemory: {
       enabled: true,
-      scope: 'resource',  // shared across threads
+      scope: 'resource', // shared across threads
       schema: z.object({
         name: z.string(),
-        preferences: z.array(z.string())
-      })
+        preferences: z.array(z.string()),
+      }),
     },
-    
+
     // Semantic recall
     semanticRecall: {
       enabled: true,
       topK: 5,
-      scope: 'thread',  // search within thread only
-      messageRange: { before: 2, after: 2 }
+      scope: 'thread', // search within thread only
+      messageRange: { before: 2, after: 2 },
     },
-    
+
     // Observational memory
     observationalMemory: {
       enabled: true,
       model: 'openai/gpt-4o-mini',
       thresholds: {
-        bufferPercentage: 20,  // start buffering at 20%
-        activationPercentage: 100  // activate at 100%
-      }
+        bufferPercentage: 20, // start buffering at 20%
+        activationPercentage: 100, // activate at 100%
+      },
     },
-    
+
     // Title generation
     generateTitle: {
       enabled: true,
-      model: 'openai/gpt-4o-mini'
-    }
-  }
-});
+      model: 'openai/gpt-4o-mini',
+    },
+  },
+})
 ```
 
 **Sources:** [packages/core/src/memory/types.ts:193-346](), [packages/core/src/memory/memory.ts:350-372]()
@@ -564,47 +577,47 @@ sequenceDiagram
     participant S as Storage
     participant L as LLM
     participant OP as OutputProcessors
-    
+
     C->>A: stream(prompt, { memory: {...} })
     A->>A: getMemory() - resolve & inject storage
     A->>A: listResolvedInputProcessors() - get memory processors
     A->>A: listResolvedOutputProcessors() - get memory processors
-    
+
     A->>PS: execute PrepareStream workflow
     PS->>PM: prepare-memory-step
-    
+
     PM->>M: getThreadById(threadId)
     M->>S: getThreadById(threadId)
     S-->>M: thread or null
     M-->>PM: thread or null
-    
+
     alt thread missing and createThread=true
         PM->>M: saveThread({ thread })
         M->>S: saveThread({ thread })
     end
-    
+
     PM->>M: recall({ threadId, vectorSearchString })
     M->>S: listMessages({ threadId, include: vectorResults })
     S-->>M: messages
     M-->>PM: { messages, usage }
-    
+
     PM->>M: getWorkingMemory({ threadId, resourceId })
     M->>S: getThreadById or getResource
     S-->>M: workingMemory
     M-->>PM: workingMemory
-    
+
     PM->>PM: Create MessageList
     PM-->>PS: PrepareMemoryStepOutput
-    
+
     PS->>L: LLM call with messages + working memory
     L-->>PS: Response chunks
-    
+
     PS->>OP: Run output processors
     OP->>M: saveMessages(messages)
     M->>S: saveMessages(messages)
     OP->>M: embedMessages(messages)
     M->>S: upsert vectors
-    
+
     PS-->>A: Stream chunks
     A-->>C: Stream response
 ```
@@ -632,47 +645,55 @@ sequenceDiagram
 
 ```typescript
 // Create from database messages
-const list = new MessageList({ 
-  threadId: 'thread-123', 
-  resourceId: 'user-456' 
-});
+const list = new MessageList({
+  threadId: 'thread-123',
+  resourceId: 'user-456',
+})
 
 // Add messages from storage
-list.add(dbMessages, 'memory');
+list.add(dbMessages, 'memory')
 
 // Add new user message
-list.add([{
-  id: 'msg-1',
-  role: 'user',
-  content: { format: 2, parts: [{ type: 'text', text: 'Hello' }] },
-  createdAt: new Date()
-}], 'user');
+list.add(
+  [
+    {
+      id: 'msg-1',
+      role: 'user',
+      content: { format: 2, parts: [{ type: 'text', text: 'Hello' }] },
+      createdAt: new Date(),
+    },
+  ],
+  'user'
+)
 ```
 
 ### Format Conversion
 
 ```typescript
 // Get messages in different formats
-const dbMessages = list.get.all.db();         // MastraDBMessage[]
-const v3Messages = list.get.all.v3();         // UIMessage[]
-const llmMessages = list.get.all.llm();       // CoreMessage[]
+const dbMessages = list.get.all.db() // MastraDBMessage[]
+const v3Messages = list.get.all.v3() // UIMessage[]
+const llmMessages = list.get.all.llm() // CoreMessage[]
 
 // Convert between formats
 const converted = MessageList.convertMessages(messages, {
   from: 'v2',
-  to: 'llm'
-});
+  to: 'llm',
+})
 ```
 
 ### Tag Management
 
 ```typescript
 // Add working memory tags
-list.addTags(['<working_memory_start>'], 0);
-list.addTags(['<working_memory_end>'], 5);
+list.addTags(['<working_memory_start>'], 0)
+list.addTags(['<working_memory_end>'], 5)
 
 // Remove tags before saving
-const cleaned = list.removeTags(['<working_memory_start>', '<working_memory_end>']);
+const cleaned = list.removeTags([
+  '<working_memory_start>',
+  '<working_memory_end>',
+])
 ```
 
 [packages/core/src/agent/message-list/index.ts:1-500]()
@@ -690,15 +711,17 @@ Memory-specific execution context is passed via `RequestContext` under the `'Mas
 [packages/core/src/memory/types.ts:118-165]()
 
 Structure:
+
 ```typescript
 type MemoryRequestContext = {
-  thread?: Partial<StorageThreadType> & { id: string };
-  resourceId?: string;
-  memoryConfig?: MemoryConfigInternal;
+  thread?: Partial<StorageThreadType> & { id: string }
+  resourceId?: string
+  memoryConfig?: MemoryConfigInternal
 }
 ```
 
 This allows processors and tools to access:
+
 - Current thread being processed
 - Resource ID for scoping
 - Memory configuration for the current request
@@ -723,17 +746,17 @@ Threads store Mastra-specific metadata under `thread.metadata.mastra`:
 
 ```typescript
 type ThreadMastraMetadata = {
-  om?: ThreadOMMetadata;  // Observational memory state
+  om?: ThreadOMMetadata // Observational memory state
 }
 
 type ThreadOMMetadata = {
-  currentTask?: string;
-  suggestedResponse?: string;
-  lastObservedAt?: string;  // ISO timestamp
-  lastObservedMessageCursor?: { 
-    createdAt: string; 
-    id: string 
-  };
+  currentTask?: string
+  suggestedResponse?: string
+  lastObservedAt?: string // ISO timestamp
+  lastObservedMessageCursor?: {
+    createdAt: string
+    id: string
+  }
 }
 ```
 
@@ -745,13 +768,13 @@ Safe getter/setter functions prevent mutation:
 
 ```typescript
 // Get OM metadata
-const omData = getThreadOMMetadata(thread.metadata);
+const omData = getThreadOMMetadata(thread.metadata)
 
 // Set OM metadata (returns new object)
 const newMetadata = setThreadOMMetadata(thread.metadata, {
   currentTask: 'Research project',
-  suggestedResponse: 'Continue with analysis...'
-});
+  suggestedResponse: 'Continue with analysis...',
+})
 ```
 
 **Sources:** [packages/core/src/memory/types.ts:51-70](), [packages/core/src/memory/types.ts:80-113]()
@@ -765,6 +788,7 @@ const newMetadata = setThreadOMMetadata(thread.metadata, {
 [packages/core/src/memory/memory.ts:109-440]()
 
 Key methods:
+
 - `recall()`: Fetch messages with optional semantic search
 - `getThreadById()`: Retrieve thread metadata
 - `listThreads()`: List threads with filtering
@@ -779,6 +803,7 @@ Key methods:
 [packages/core/src/agent/workflows/prepare-stream/schema.ts:1-100]()
 
 Output from `prepare-memory-step`:
+
 - `thread`: Thread metadata
 - `messageList`: `MessageList` with conversation history
 - `workingMemory`: Current working memory (string or object)
@@ -789,6 +814,7 @@ Output from `prepare-memory-step`:
 [packages/core/src/memory/types.ts:193-346]()
 
 Complete configuration for all memory features:
+
 - `lastMessages`: Message history limit
 - `workingMemory`: Working memory config (scope, schema, template)
 - `semanticRecall`: Semantic search config (topK, scope, messageRange)

@@ -13,8 +13,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose & Scope
 
 This document describes the architecture and export system of the `@opencode-ai/ui` package, which serves as the foundational UI component library for OpenCode. It covers the package structure, export patterns, dependency architecture, and how components are organized for consumption by other workspace packages.
@@ -28,6 +26,7 @@ For details on specific UI components like `SessionTurn` and message rendering, 
 The `@opencode-ai/ui` package (`@opencode-ai/ui`) provides a comprehensive UI component library built on SolidJS and Kobalte. It serves as the base layer for all OpenCode user interfaces, including the web application, desktop applications, and the console management system.
 
 Key characteristics:
+
 - **Version**: 1.2.21
 - **Framework**: SolidJS with TypeScript
 - **UI Primitives**: Built on `@kobalte/core` for accessible components
@@ -48,33 +47,33 @@ graph TB
     subgraph "Package Exports"
         PKG["@opencode-ai/ui"]
     end
-    
+
     subgraph "Component Exports"
         COMP["Components<br/>./*"]
         ICONS_PROVIDER["Provider Icons<br/>./icons/provider"]
         ICONS_FILE["File Icons<br/>./icons/file-type"]
         ICONS_APP["App Icons<br/>./icons/app"]
     end
-    
+
     subgraph "Functionality Exports"
         I18N["Internationalization<br/>./i18n/*"]
         PIERRE["Pierre Diffs<br/>./pierre, ./pierre/*"]
         HOOKS["React Hooks<br/>./hooks"]
         CONTEXT["Context Providers<br/>./context, ./context/*"]
     end
-    
+
     subgraph "Styling Exports"
         STYLES["Base Styles<br/>./styles"]
         TAILWIND["Tailwind Styles<br/>./styles/tailwind"]
         THEME["Theme System<br/>./theme, ./theme/*"]
         THEME_CTX["Theme Context<br/>./theme/context"]
     end
-    
+
     subgraph "Asset Exports"
         FONTS["Fonts<br/>./fonts/*"]
         AUDIO["Audio Files<br/>./audio/*"]
     end
-    
+
     PKG --> COMP
     PKG --> ICONS_PROVIDER
     PKG --> ICONS_FILE
@@ -97,25 +96,25 @@ graph TB
 
 The package exports are defined in `package.json` and map to the following file system locations:
 
-| Export Path | File System Path | Purpose |
-|-------------|------------------|---------|
-| `./*` | `./src/components/*.tsx` | Direct component imports |
-| `./i18n/*` | `./src/i18n/*.ts` | Internationalization utilities |
-| `./pierre` | `./src/pierre/index.ts` | Pierre diff library main export |
-| `./pierre/*` | `./src/pierre/*.ts` | Individual Pierre modules |
-| `./hooks` | `./src/hooks/index.ts` | Custom SolidJS hooks |
-| `./context` | `./src/context/index.ts` | Context provider index |
-| `./context/*` | `./src/context/*.tsx` | Individual context providers |
-| `./styles` | `./src/styles/index.css` | Base CSS styles |
-| `./styles/tailwind` | `./src/styles/tailwind/index.css` | Tailwind configuration |
-| `./theme` | `./src/theme/index.ts` | Theme utilities |
-| `./theme/*` | `./src/theme/*.ts` | Theme modules |
-| `./theme/context` | `./src/theme/context.tsx` | Theme context provider |
-| `./icons/provider` | `./src/components/provider-icons/types.ts` | Provider icon types |
-| `./icons/file-type` | `./src/components/file-icons/types.ts` | File icon types |
-| `./icons/app` | `./src/components/app-icons/types.ts` | App icon types |
-| `./fonts/*` | `./src/assets/fonts/*` | Font files |
-| `./audio/*` | `./src/assets/audio/*` | Audio assets |
+| Export Path         | File System Path                           | Purpose                         |
+| ------------------- | ------------------------------------------ | ------------------------------- |
+| `./*`               | `./src/components/*.tsx`                   | Direct component imports        |
+| `./i18n/*`          | `./src/i18n/*.ts`                          | Internationalization utilities  |
+| `./pierre`          | `./src/pierre/index.ts`                    | Pierre diff library main export |
+| `./pierre/*`        | `./src/pierre/*.ts`                        | Individual Pierre modules       |
+| `./hooks`           | `./src/hooks/index.ts`                     | Custom SolidJS hooks            |
+| `./context`         | `./src/context/index.ts`                   | Context provider index          |
+| `./context/*`       | `./src/context/*.tsx`                      | Individual context providers    |
+| `./styles`          | `./src/styles/index.css`                   | Base CSS styles                 |
+| `./styles/tailwind` | `./src/styles/tailwind/index.css`          | Tailwind configuration          |
+| `./theme`           | `./src/theme/index.ts`                     | Theme utilities                 |
+| `./theme/*`         | `./src/theme/*.ts`                         | Theme modules                   |
+| `./theme/context`   | `./src/theme/context.tsx`                  | Theme context provider          |
+| `./icons/provider`  | `./src/components/provider-icons/types.ts` | Provider icon types             |
+| `./icons/file-type` | `./src/components/file-icons/types.ts`     | File icon types                 |
+| `./icons/app`       | `./src/components/app-icons/types.ts`      | App icon types                  |
+| `./fonts/*`         | `./src/assets/fonts/*`                     | Font files                      |
+| `./audio/*`         | `./src/assets/audio/*`                     | Audio assets                    |
 
 **Sources:** [packages/ui/package.json:6-25]()
 
@@ -125,9 +124,9 @@ Components use a wildcard export pattern where each `.tsx` file in `src/componen
 
 ```typescript
 // Consumer usage example:
-import { Button } from "@opencode-ai/ui/button"
-import { Dialog } from "@opencode-ai/ui/dialog"
-import { SessionTurn } from "@opencode-ai/ui/session-turn"
+import { Button } from '@opencode-ai/ui/button'
+import { Dialog } from '@opencode-ai/ui/dialog'
+import { SessionTurn } from '@opencode-ai/ui/session-turn'
 ```
 
 This pattern defined at [packages/ui/package.json:8]() maps `@opencode-ai/ui/*` to `./src/components/*.tsx`, allowing direct imports without an index file.
@@ -149,12 +148,12 @@ graph TB
         SOLID_META["@solidjs/meta<br/>Document Head"]
         SOLID_ROUTER["@solidjs/router<br/>Routing"]
     end
-    
+
     subgraph "Workspace Dependencies"
         SDK["@opencode-ai/sdk<br/>Core SDK Types"]
         UTIL["@opencode-ai/util<br/>Shared Utilities"]
     end
-    
+
     subgraph "Rendering & Display"
         SHIKI["shiki<br/>Syntax Highlighting"]
         MARKED["marked<br/>Markdown Parser"]
@@ -163,7 +162,7 @@ graph TB
         KATEX["katex<br/>LaTeX Math"]
         PIERRE["@pierre/diffs<br/>Diff Visualization"]
     end
-    
+
     subgraph "UI Utilities"
         MOTION["motion<br/>Animation Library"]
         MORPHDOM["morphdom<br/>DOM Morphing"]
@@ -171,23 +170,23 @@ graph TB
         VIRTUA["virtua<br/>Virtual Scrolling"]
         SOLID_LIST["solid-list<br/>List Optimization"]
     end
-    
+
     subgraph "Data & Formatting"
         LUXON["luxon<br/>Date/Time Handling"]
         FUZZYSORT["fuzzysort<br/>Fuzzy Search"]
         REMEDA["remeda<br/>Utility Functions"]
         STRIP_ANSI["strip-ansi<br/>ANSI Code Removal"]
     end
-    
+
     SOLID --> KOBALTE
     SOLID --> SOLID_PRIMITIVES
     SOLID --> SOLID_META
     SOLID --> SOLID_ROUTER
     SOLID --> SOLID_LIST
-    
+
     SDK --> SOLID
     UTIL --> SOLID
-    
+
     MARKED --> MARKED_SHIKI
     MARKED --> MARKED_KATEX
     MARKED_SHIKI --> SHIKI
@@ -199,6 +198,7 @@ graph TB
 ### Key Dependencies by Function
 
 #### UI Framework & Primitives
+
 - **solid-js**: Core reactive framework for building user interfaces
 - **@kobalte/core**: Unstyled, accessible UI primitives (dialogs, dropdowns, tooltips, etc.)
 - **@solid-primitives/bounds**: Element size and position tracking
@@ -213,6 +213,7 @@ graph TB
 **Sources:** [packages/ui/package.json:45](), [packages/ui/package.json:50-57](), [packages/ui/package.json:71]()
 
 #### Code Display & Syntax Highlighting
+
 - **shiki**: Syntax highlighting engine using TextMate grammars
 - **@shikijs/transformers**: Code transformers for enhanced display
 - **marked**: Markdown parsing to HTML
@@ -223,11 +224,13 @@ graph TB
 **Sources:** [packages/ui/package.json:49](), [packages/ui/package.json:60-64](), [packages/ui/package.json:70]()
 
 #### Diff Visualization
+
 - **@pierre/diffs**: Advanced diff visualization library for showing file changes
 
 **Sources:** [packages/ui/package.json:48]()
 
 #### Animation & DOM Manipulation
+
 - **motion**: Animation library for smooth transitions
 - **motion-dom**: DOM-specific motion utilities
 - **motion-utils**: Motion utility functions
@@ -236,12 +239,14 @@ graph TB
 **Sources:** [packages/ui/package.json:65-68]()
 
 #### Performance Optimization
+
 - **virtua**: Virtual scrolling for large lists
 - **solid-list**: Optimized list rendering for SolidJS
 
 **Sources:** [packages/ui/package.json:72](), [packages/ui/package.json:74]()
 
 #### Utilities
+
 - **luxon**: Modern date and time library
 - **fuzzysort**: Fast fuzzy search algorithm
 - **remeda**: Functional utility library
@@ -251,6 +256,7 @@ graph TB
 **Sources:** [packages/ui/package.json:58-59](), [packages/ui/package.json:61](), [packages/ui/package.json:69](), [packages/ui/package.json:73]()
 
 #### Workspace Dependencies
+
 - **@opencode-ai/sdk**: Provides TypeScript types and interfaces for the OpenCode API
 - **@opencode-ai/util**: Shared utility functions used across the workspace
 
@@ -263,10 +269,10 @@ Based on the export mappings, the package follows this directory structure:
 ```mermaid
 graph TB
     ROOT["packages/ui/"]
-    
+
     subgraph "Source Directory"
         SRC["src/"]
-        
+
         COMPONENTS["components/<br/>UI Components"]
         I18N["i18n/<br/>Translations"]
         PIERRE_DIR["pierre/<br/>Diff System"]
@@ -275,15 +281,15 @@ graph TB
         STYLES_DIR["styles/<br/>CSS Files"]
         THEME_DIR["theme/<br/>Theme System"]
         ASSETS["assets/<br/>Static Assets"]
-        
+
         COMP_PROVIDER["provider-icons/types.ts"]
         COMP_FILE["file-icons/types.ts"]
         COMP_APP["app-icons/types.ts"]
-        
+
         FONTS["fonts/*"]
         AUDIO["audio/*"]
     end
-    
+
     ROOT --> SRC
     SRC --> COMPONENTS
     SRC --> I18N
@@ -293,11 +299,11 @@ graph TB
     SRC --> STYLES_DIR
     SRC --> THEME_DIR
     SRC --> ASSETS
-    
+
     COMPONENTS --> COMP_PROVIDER
     COMPONENTS --> COMP_FILE
     COMPONENTS --> COMP_APP
-    
+
     ASSETS --> FONTS
     ASSETS --> AUDIO
 ```
@@ -307,6 +313,7 @@ graph TB
 ## Build & Development Configuration
 
 ### TypeScript Configuration
+
 The package uses TypeScript for type checking with the `tsgo` tool, configured with Node.js 22 types:
 
 ```json
@@ -318,7 +325,9 @@ The package uses TypeScript for type checking with the `tsgo` tool, configured w
 **Sources:** [packages/ui/package.json:27]()
 
 ### Styling System
+
 The package includes both base CSS and Tailwind CSS:
+
 - **Base Styles**: Available via `@opencode-ai/ui/styles`
 - **Tailwind Styles**: Available via `@opencode-ai/ui/styles/tailwind`
 - **Tailwind Generation**: Custom script at `script/tailwind.ts` for generating Tailwind configuration
@@ -326,7 +335,9 @@ The package includes both base CSS and Tailwind CSS:
 **Sources:** [packages/ui/package.json:15-16](), [packages/ui/package.json:29]()
 
 ### Development Tools
+
 The package uses Vite for development with several plugins:
+
 - **@tailwindcss/vite**: Tailwind CSS integration
 - **vite-plugin-solid**: SolidJS support
 - **vite-plugin-icons-spritesheet**: Icon spritesheet generation
@@ -341,28 +352,28 @@ Other workspace packages consume `@opencode-ai/ui` components through the define
 
 ```typescript
 // Import individual components
-import { Button } from "@opencode-ai/ui/button"
-import { SessionTurn } from "@opencode-ai/ui/session-turn"
+import { Button } from '@opencode-ai/ui/button'
+import { SessionTurn } from '@opencode-ai/ui/session-turn'
 
 // Import hooks
-import { useTheme } from "@opencode-ai/ui/hooks"
+import { useTheme } from '@opencode-ai/ui/hooks'
 
 // Import context providers
-import { ThemeProvider } from "@opencode-ai/ui/theme/context"
+import { ThemeProvider } from '@opencode-ai/ui/theme/context'
 
 // Import styles
-import "@opencode-ai/ui/styles"
-import "@opencode-ai/ui/styles/tailwind"
+import '@opencode-ai/ui/styles'
+import '@opencode-ai/ui/styles/tailwind'
 
 // Import theme utilities
-import { colors } from "@opencode-ai/ui/theme"
+import { colors } from '@opencode-ai/ui/theme'
 
 // Import Pierre diff utilities
-import { DiffView } from "@opencode-ai/ui/pierre"
+import { DiffView } from '@opencode-ai/ui/pierre'
 
 // Import icon types
-import type { ProviderIcon } from "@opencode-ai/ui/icons/provider"
-import type { FileIcon } from "@opencode-ai/ui/icons/file-type"
+import type { ProviderIcon } from '@opencode-ai/ui/icons/provider'
+import type { FileIcon } from '@opencode-ai/ui/icons/file-type'
 ```
 
 **Sources:** [packages/ui/package.json:8-23]()
@@ -370,6 +381,7 @@ import type { FileIcon } from "@opencode-ai/ui/icons/file-type"
 ### Integration with Other Packages
 
 The UI package is consumed by:
+
 - **@opencode-ai/app**: Application-level components that build on UI primitives
 - **@opencode-ai/console-app**: Console frontend application
 - **@opencode-ai/web**: Public website

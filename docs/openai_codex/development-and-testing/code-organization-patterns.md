@@ -24,8 +24,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page documents the code organization patterns, conventions, and architectural guidelines used throughout the Codex Rust codebase. It covers workspace structure, crate categorization, module organization, platform-specific code handling, and code quality enforcement mechanisms.
@@ -49,27 +47,27 @@ graph TB
         AppServer["codex-app-server<br/>JSON-RPC server for IDEs"]
         McpServer["codex-mcp-server<br/>MCP server mode"]
     end
-    
+
     subgraph "Core Logic"
         Core["codex-core<br/>Business logic library"]
         Protocol["codex-protocol<br/>Protocol types"]
         Config["codex-config<br/>Configuration system"]
         State["codex-state<br/>Persistence layer"]
     end
-    
+
     subgraph "Platform Integration"
         LinuxSandbox["codex-linux-sandbox<br/>Landlock/seccomp"]
         WindowsSandbox["codex-windows-sandbox<br/>Token restrictions"]
         Seatbelt["Seatbelt profiles<br/>(in core)"]
     end
-    
+
     subgraph "External Integrations"
         RmcpClient["codex-rmcp-client<br/>MCP client"]
         Api["codex-api<br/>HTTP API layer"]
         BackendClient["codex-backend-client<br/>Cloud backend"]
         Chatgpt["codex-chatgpt<br/>ChatGPT auth"]
     end
-    
+
     subgraph "Utilities"
         AbsPath["codex-utils-absolute-path"]
         Pty["codex-utils-pty"]
@@ -77,13 +75,13 @@ graph TB
         Cache["codex-utils-cache"]
         Cli["codex-utils-cli<br/>CLI parsing helpers"]
     end
-    
+
     CLI --> Core
     TUI --> Core
     Exec --> Core
     AppServer --> Core
     McpServer --> Core
-    
+
     Core --> Protocol
     Core --> Config
     Core --> State
@@ -92,15 +90,15 @@ graph TB
     Core --> RmcpClient
     Core --> Api
     Core --> BackendClient
-    
+
     TUI --> AppServer
     Exec --> AppServer
-    
+
     Core --> AbsPath
     Core --> Pty
     Core --> Image
     Core --> Cache
-    
+
     CLI --> Cli
     TUI --> Cli
     Exec --> Cli
@@ -112,12 +110,12 @@ graph TB
 
 The workspace enforces consistency through centralized configuration:
 
-| Configuration Type | Location | Purpose |
-|-------------------|----------|---------|
-| **Edition** | `workspace.edition = "2024"` | Rust 2024 edition for all crates |
-| **Version** | `workspace.version = "0.0.0"` | Unified version across workspace |
-| **Dependencies** | `[workspace.dependencies]` | Single source of truth for versions |
-| **Lints** | `[workspace.lints.clippy]` | Strict clippy rules enforced |
+| Configuration Type | Location                                 | Purpose                                  |
+| ------------------ | ---------------------------------------- | ---------------------------------------- |
+| **Edition**        | `workspace.edition = "2024"`             | Rust 2024 edition for all crates         |
+| **Version**        | `workspace.version = "0.0.0"`            | Unified version across workspace         |
+| **Dependencies**   | `[workspace.dependencies]`               | Single source of truth for versions      |
+| **Lints**          | `[workspace.lints.clippy]`               | Strict clippy rules enforced             |
 | **Build Profiles** | `[profile.release]`, `[profile.ci-test]` | Optimized release builds, fast CI builds |
 
 **Key Build Profile Settings:**
@@ -150,7 +148,7 @@ graph LR
     User["User invokes:<br/>'codex [args]'"]
     Parse["MultitoolCli::parse()"]
     Dispatch{"Subcommand?"}
-    
+
     Interactive["TUI mode<br/>codex_tui::run_main()"]
     Exec["Exec mode<br/>codex_exec::run_main()"]
     Review["Review mode<br/>codex_exec + ReviewArgs"]
@@ -160,10 +158,10 @@ graph LR
     Fork["Fork picker<br/>TUI with fork_picker=true"]
     Login["Login flow<br/>codex_login"]
     Mcp["MCP management<br/>codex_rmcp_client"]
-    
+
     User --> Parse
     Parse --> Dispatch
-    
+
     Dispatch -->|"None"| Interactive
     Dispatch -->|"Exec"| Exec
     Dispatch -->|"Review"| Review
@@ -187,7 +185,7 @@ Feature flags are processed before subcommand dispatch and transformed into conf
 struct FeatureToggles {
     #[arg(long = "enable", value_name = "FEATURE", ...)]
     enable: Vec<String>,
-    
+
     #[arg(long = "disable", value_name = "FEATURE", ...)]
     disable: Vec<String>,
 }
@@ -236,12 +234,12 @@ pub use thread_manager::ThreadManager;
 
 **Module Visibility Rules:**
 
-| Pattern | Example | Purpose |
-|---------|---------|---------|
-| `mod name;` | `mod analytics_client;` | Private module, implementation detail |
-| `pub mod name;` | `pub mod config;` | Public module API surface |
-| `pub use module::Type;` | `pub use codex::SteerInputError;` | Re-export specific types |
-| `pub(crate) use ...;` | `pub(crate) use codex_protocol::protocol;` | Crate-internal sharing |
+| Pattern                 | Example                                    | Purpose                               |
+| ----------------------- | ------------------------------------------ | ------------------------------------- |
+| `mod name;`             | `mod analytics_client;`                    | Private module, implementation detail |
+| `pub mod name;`         | `pub mod config;`                          | Public module API surface             |
+| `pub use module::Type;` | `pub use codex::SteerInputError;`          | Re-export specific types              |
+| `pub(crate) use ...;`   | `pub(crate) use codex_protocol::protocol;` | Crate-internal sharing                |
 
 **Sources:** [codex-rs/core/src/lib.rs:1-178]()
 
@@ -252,36 +250,36 @@ The TUI crate uses a more **domain-organized** structure with modules grouped by
 ```mermaid
 graph TB
     LibRoot["codex-tui/src/lib.rs"]
-    
+
     subgraph "Core App"
         App["app.rs<br/>Main App struct"]
         AppEvent["app_event.rs<br/>Event types"]
         AppSender["app_event_sender.rs<br/>Event dispatch"]
     end
-    
+
     subgraph "UI Components"
         ChatWidget["chatwidget.rs<br/>Conversation display"]
         BottomPane["bottom_pane.rs<br/>Input area"]
         Status["status.rs<br/>Status line"]
         Overlays["*_overlay.rs<br/>Popups and modals"]
     end
-    
+
     subgraph "Rendering"
         Markdown["markdown_render.rs<br/>MD to TUI"]
         Diff["diff_render.rs<br/>Patch rendering"]
         Syntax["syntect integration"]
     end
-    
+
     subgraph "Session Management"
         Resume["resume_picker.rs"]
         SessionLog["session_log.rs"]
     end
-    
+
     subgraph "Public API"
         PublicWidgets["public_widgets/*<br/>Reusable components"]
         ComposerInput["ComposerInput"]
     end
-    
+
     LibRoot --> App
     App --> AppEvent
     App --> ChatWidget
@@ -376,7 +374,7 @@ graph TB
         MacOS["[target.'cfg(target_os=macos)'.dependencies]<br/>macOS-specific"]
         Windows["[target.'cfg(target_os=windows)'.dependencies]<br/>Windows-specific"]
     end
-    
+
     subgraph "Code Organization"
         SharedCode["Shared implementation"]
         UnixCode["#[cfg(unix)]<br/>Unix implementation"]
@@ -384,7 +382,7 @@ graph TB
         MacOSCode["#[cfg(target_os=macos)]<br/>macOS implementation"]
         WindowsCode["#[cfg(target_os=windows)]<br/>Windows implementation"]
     end
-    
+
     General --> SharedCode
     Unix --> UnixCode
     Linux --> LinuxCode
@@ -418,11 +416,11 @@ windows-sys = { version = "0.52", features = ["Win32_Foundation", ...] }
 
 Each platform has its own sandbox implementation with a unified interface:
 
-| Platform | Crate | Implementation |
-|----------|-------|----------------|
-| **Linux** | `codex-linux-sandbox` | Landlock LSM + seccomp-bpf |
-| **macOS** | Core with Seatbelt | Sandbox profiles via `sandbox-exec` |
-| **Windows** | `codex-windows-sandbox` | Restricted tokens + job objects |
+| Platform    | Crate                   | Implementation                      |
+| ----------- | ----------------------- | ----------------------------------- |
+| **Linux**   | `codex-linux-sandbox`   | Landlock LSM + seccomp-bpf          |
+| **macOS**   | Core with Seatbelt      | Sandbox profiles via `sandbox-exec` |
+| **Windows** | `codex-windows-sandbox` | Restricted tokens + job objects     |
 
 **Sources:** [codex-rs/Cargo.toml:30-33](), [codex-rs/core/src/lib.rs:69]()
 
@@ -440,21 +438,21 @@ graph LR
         TuiLib["lib.rs<br/>Library API"]
         TuiBin["main.rs<br/>Standalone binary"]
     end
-    
+
     subgraph "codex-exec"
         ExecLib["lib.rs<br/>Library API"]
         ExecBin["main.rs<br/>Standalone binary"]
     end
-    
+
     subgraph "codex-cli"
         CliLib["lib.rs<br/>Helper functions"]
         CliBin["main.rs<br/>Multitool dispatch"]
     end
-    
+
     CliBin --> TuiLib
     CliBin --> ExecLib
     CliBin --> CliLib
-    
+
     TuiBin --> TuiLib
     ExecBin --> ExecLib
 ```
@@ -472,6 +470,7 @@ path = "src/main.rs"
 ```
 
 This allows:
+
 - **Direct execution:** `codex-tui` as standalone binary
 - **Library reuse:** `codex` CLI imports `codex_tui::run_main()`
 
@@ -522,21 +521,21 @@ graph TB
         McpTestSupport["mcp_test_support<br/>(mcp-server/tests/common)"]
         TestMacros["codex-test-macros<br/>(procedural macros)"]
     end
-    
+
     subgraph "Test Utilities"
         CargoBin["codex-utils-cargo-bin<br/>Binary path helpers"]
         Wiremock["wiremock<br/>HTTP mocking"]
         Insta["insta<br/>Snapshot testing"]
     end
-    
+
     CoreTests["core/tests/*.rs"] --> CoreTestSupport
     AppTests["app-server/tests/*.rs"] --> AppTestSupport
     McpTests["mcp-server/tests/*.rs"] --> McpTestSupport
-    
+
     CoreTestSupport --> CargoBin
     CoreTestSupport --> Wiremock
     AppTestSupport --> CoreTestSupport
-    
+
     CoreTests --> TestMacros
 ```
 
@@ -573,22 +572,22 @@ graph TB
         Protocol["codex-protocol<br/>Core protocol types"]
         AppServerProtocol["codex-app-server-protocol<br/>JSON-RPC types"]
     end
-    
+
     subgraph "Implementation Layer"
         Core["codex-core<br/>Uses protocol types"]
         AppServer["codex-app-server<br/>Implements protocol"]
         Api["codex-api<br/>HTTP client"]
     end
-    
+
     subgraph "Generated Code"
         TsBindings["TypeScript bindings<br/>via ts-rs"]
         JsonSchema["JSON Schema<br/>via schemars"]
     end
-    
+
     Core --> Protocol
     AppServer --> AppServerProtocol
     Api --> Protocol
-    
+
     AppServerProtocol --> TsBindings
     AppServerProtocol --> JsonSchema
 ```
@@ -625,6 +624,7 @@ anyhow = { workspace = true }
 ```
 
 **Benefits:**
+
 - **Version consistency:** All crates use same dependency versions
 - **Easier updates:** Update version in one place
 - **Feature additivity:** Crates can add features to workspace deps
@@ -663,13 +663,13 @@ config_overrides.raw_overrides.extend(feature_overrides);
 
 **Stage-Based Visibility:**
 
-| Stage | CLI Visibility | Default |
-|-------|---------------|---------|
-| `UnderDevelopment` | Hidden | Off |
-| `Experimental` | Visible with `--enable` | Off |
-| `Stable` | Visible with `--disable` | On |
-| `Deprecated` | Warns when enabled | Off |
-| `Removed` | Error if referenced | N/A |
+| Stage              | CLI Visibility           | Default |
+| ------------------ | ------------------------ | ------- |
+| `UnderDevelopment` | Hidden                   | Off     |
+| `Experimental`     | Visible with `--enable`  | Off     |
+| `Stable`           | Visible with `--disable` | On      |
+| `Deprecated`       | Warns when enabled       | Off     |
+| `Removed`          | Error if referenced      | N/A     |
 
 **Sources:** [codex-rs/cli/src/main.rs:486-558]()
 
@@ -689,6 +689,7 @@ The Codex Rust codebase follows these organizational principles:
 8. **Unified dependencies:** Single source of truth for all versions
 
 **Key Files to Reference:**
+
 - [codex-rs/Cargo.toml:1-395]() - Workspace configuration
 - [codex-rs/core/src/lib.rs:1-178]() - Core library organization
 - [codex-rs/cli/src/main.rs:58-149]() - Multitool dispatch pattern

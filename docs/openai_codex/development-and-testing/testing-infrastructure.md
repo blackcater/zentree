@@ -27,8 +27,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the testing infrastructure for the Codex Rust codebase, including test organization, key testing tools, support utilities, and patterns for writing tests. For development environment setup, see [8.1](#8.1). For code organization patterns and conventions, see [8.3](#8.3).
 
 ## Overview
@@ -36,6 +34,7 @@ This document describes the testing infrastructure for the Codex Rust codebase, 
 The Codex test infrastructure is built around **cargo nextest** as the primary test runner, with **snapshot testing** (via `insta`) for output validation and **HTTP mocking** (via `wiremock`) for integration tests. Tests are organized into unit tests (inline with source files), integration tests (in `tests/` directories), and test support crates that provide reusable fixtures, mocks, and utilities.
 
 The testing approach emphasizes:
+
 - **Isolation**: Tests use temporary directories and mock servers to avoid external dependencies
 - **Reproducibility**: Snapshot testing captures expected outputs for regression detection
 - **Maintainability**: Shared test utilities reduce boilerplate across test suites
@@ -52,27 +51,27 @@ graph TB
         IntegrationTests["Integration Tests<br/>(tests/ directories)"]
         BinTests["Binary Tests<br/>(CLI validation)"]
     end
-    
+
     subgraph "Test Support Crates"
         CoreSupport["core_test_support<br/>codex-rs/core/tests/common"]
         AppSupport["app_test_support<br/>codex-rs/app-server/tests/common"]
         McpSupport["mcp_test_support<br/>codex-rs/mcp-server/tests/common"]
     end
-    
+
     subgraph "Test Utilities"
         TestCodex["TestCodex Builder<br/>test_codex()"]
         Responses["responses module<br/>SSE/HTTP mocks"]
         Fixtures["Fixtures<br/>Config/Auth/Rollout"]
     end
-    
+
     IntegrationTests --> CoreSupport
     IntegrationTests --> AppSupport
     IntegrationTests --> McpSupport
-    
+
     CoreSupport --> TestCodex
     CoreSupport --> Responses
     CoreSupport --> Fixtures
-    
+
     UnitTests -.-> CoreSupport
     BinTests -.-> CoreSupport
 
@@ -94,6 +93,7 @@ Unit tests are defined inline within source files using the `#[cfg(test)]` attri
 Integration tests are organized in `tests/` directories within each crate. They test interactions between components and external dependencies.
 
 **Key integration test suites**:
+
 - [codex-rs/core/tests/suite/client.rs:1-1458]() - Model client and session management
 - [codex-rs/core/tests/suite/prompt_caching.rs:1-658]() - Prompt caching and consistency
 - [codex-rs/core/tests/responses_headers.rs:1-265]() - HTTP header handling
@@ -102,11 +102,11 @@ Integration tests are organized in `tests/` directories within each crate. They 
 
 Three workspace-private crates provide shared test infrastructure:
 
-| Crate | Path | Purpose |
-|-------|------|---------|
-| `core_test_support` | `codex-rs/core/tests/common` | Core testing utilities, mocks, fixtures |
-| `app_test_support` | `codex-rs/app-server/tests/common` | App server protocol test helpers |
-| `mcp_test_support` | `codex-rs/mcp-server/tests/common` | MCP server test utilities |
+| Crate               | Path                               | Purpose                                 |
+| ------------------- | ---------------------------------- | --------------------------------------- |
+| `core_test_support` | `codex-rs/core/tests/common`       | Core testing utilities, mocks, fixtures |
+| `app_test_support`  | `codex-rs/app-server/tests/common` | App server protocol test helpers        |
+| `mcp_test_support`  | `codex-rs/mcp-server/tests/common` | MCP server test utilities               |
 
 **Sources**: [codex-rs/Cargo.toml:85-86](), [codex-rs/Cargo.toml:151-152](), [codex-rs/core/Cargo.toml:160]()
 
@@ -118,27 +118,27 @@ graph LR
         Nextest["cargo nextest<br/>Parallel test execution"]
         CargoCi["ci-test profile<br/>Optimized for CI"]
     end
-    
+
     subgraph "Assertion & Validation"
         Insta["insta<br/>Snapshot testing"]
         PrettyAssertions["pretty_assertions<br/>Better diff output"]
         AssertMatches["assert_matches<br/>Pattern matching"]
         Predicates["predicates<br/>Composable assertions"]
     end
-    
+
     subgraph "Mocking & Fixtures"
         Wiremock["wiremock<br/>HTTP server mocking"]
         TempFile["tempfile<br/>Temporary directories"]
         AssertCmd["assert_cmd<br/>CLI process testing"]
     end
-    
+
     subgraph "Async & Concurrency"
         TokioTest["tokio-test<br/>Async test utilities"]
         SerialTest["serial_test<br/>Sequential execution"]
     end
-    
+
     Nextest --> CargoCi
-    
+
     style Nextest fill:#f9f9f9
     style Insta fill:#f9f9f9
     style Wiremock fill:#f9f9f9
@@ -164,6 +164,7 @@ opt-level = 0
 The `insta` crate provides snapshot testing for complex outputs. Snapshots are stored alongside tests and reviewed using `cargo insta review`.
 
 **Usage pattern** (from test files):
+
 ```rust
 insta::assert_snapshot!(output);
 ```
@@ -175,6 +176,7 @@ insta::assert_snapshot!(output);
 The `wiremock` crate mocks HTTP servers for testing API interactions without external dependencies. Test support provides utilities for mounting SSE (Server-Sent Events) responses.
 
 **Example usage** (from test files):
+
 ```rust
 let server = MockServer::start().await;
 let mock = mount_sse_once(&server, sse(vec![
@@ -200,25 +202,26 @@ The `core_test_support` crate provides a `TestCodex` builder for setting up test
 ```mermaid
 graph TB
     TestCodexBuilder["test_codex()"]
-    
+
     TestCodexBuilder --> WithHome["with_home(TempDir)"]
     TestCodexBuilder --> WithConfig["with_config(closure)"]
-    
+
     WithHome --> Build["build(server)"]
     WithConfig --> Build
-    
+
     Build --> TestCodex["TestCodex struct"]
-    
+
     TestCodex --> Codex["codex: Arc&lt;Codex&gt;"]
     TestCodex --> Config["config: Arc&lt;Config&gt;"]
     TestCodex --> ThreadManager["thread_manager: ThreadManager"]
     TestCodex --> SessionConfigured["session_configured: Event"]
-    
+
     style TestCodexBuilder fill:#f9f9f9
     style TestCodex fill:#f9f9f9
 ```
 
 **Example usage**:
+
 ```rust
 let TestCodex { codex, config, .. } = test_codex()
     .with_config(|config| {
@@ -236,6 +239,7 @@ let TestCodex { codex, config, .. } = test_codex()
 The `responses` module in `core_test_support` provides utilities for creating mock HTTP responses, especially for Server-Sent Events (SSE) streams.
 
 **Key functions**:
+
 - `start_mock_server()` - Creates a `wiremock::MockServer`
 - `mount_sse_once()` - Mounts a single-use SSE endpoint
 - `mount_sse_sequence()` - Mounts multiple sequential SSE responses
@@ -245,6 +249,7 @@ The `responses` module in `core_test_support` provides utilities for creating mo
 - `ev_output_text_delta()` - Creates a text delta event
 
 **Example**:
+
 ```rust
 let server = start_mock_server().await;
 let mock = mount_sse_once(&server, sse(vec![
@@ -261,10 +266,12 @@ let mock = mount_sse_once(&server, sse(vec![
 The test support crates provide utilities for creating test configurations, temporary directories, and mock authentication:
 
 **Configuration helpers**:
+
 - `load_default_config_for_test()` - Loads a minimal test configuration
 - `write_auth_json()` - Creates mock authentication files
 
 **Example** (from test files):
+
 ```rust
 let codex_home = TempDir::new()?;
 let config = load_default_config_for_test(&codex_home).await;
@@ -344,3 +351,4 @@ let body0 = req1.single_request().body_json();
 let body1 = req2.single_request().body_json();
 
 assert_eq!(body0["instructions"], body1["instructions\
+```

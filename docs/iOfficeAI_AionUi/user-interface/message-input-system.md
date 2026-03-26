@@ -15,8 +15,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 The Message Input System provides the user interface for composing and sending messages to AI agents in AionUi. It implements a composition pattern where a shared `SendBox` component provides core input functionality, while agent-specific wrappers (`GeminiSendBox`, `AcpSendBox`, `CodexSendBox`, `OpenClawSendBox`, `NanobotSendBox`) handle agent-specific state management, message streaming, and draft persistence.
@@ -40,7 +38,7 @@ graph TB
         OPENCLAW["OpenClawSendBox"]
         NANOBOT["NanobotSendBox"]
     end
-    
+
     subgraph "Shared Components"
         SENDBOX["SendBox<br/>(Core Input Component)"]
         THOUGHT["ThoughtDisplay"]
@@ -48,51 +46,51 @@ graph TB
         HFILELIST["HorizontalFileList"]
         SLASHMENU["SlashCommandMenu"]
     end
-    
+
     subgraph "State Management"
         DRAFT["getSendBoxDraftHook<br/>(Draft Persistence)"]
         FILESTATE["useSendBoxFiles<br/>(File State)"]
         SLASHCTRL["useSlashCommandController"]
     end
-    
+
     subgraph "Backend Communication"
         IPC["ipcBridge"]
         STREAM["responseStream Events"]
     end
-    
+
     GEMINI -->|renders| SENDBOX
     ACP -->|renders| SENDBOX
     CODEX -->|renders| SENDBOX
     OPENCLAW -->|renders| SENDBOX
     NANOBOT -->|renders| SENDBOX
-    
+
     GEMINI -->|renders| THOUGHT
     ACP -->|renders| THOUGHT
     CODEX -->|renders| THOUGHT
     OPENCLAW -->|renders| THOUGHT
     NANOBOT -->|renders| THOUGHT
-    
+
     GEMINI -->|uses| DRAFT
     ACP -->|uses| DRAFT
     CODEX -->|uses| DRAFT
     OPENCLAW -->|uses| DRAFT
     NANOBOT -->|uses| DRAFT
-    
+
     SENDBOX -->|integrates| SLASHMENU
     SENDBOX -->|uses| SLASHCTRL
-    
+
     GEMINI -->|invokes| IPC
     ACP -->|invokes| IPC
     CODEX -->|invokes| IPC
     OPENCLAW -->|invokes| IPC
     NANOBOT -->|invokes| IPC
-    
+
     STREAM -->|updates| GEMINI
     STREAM -->|updates| ACP
     STREAM -->|updates| CODEX
     STREAM -->|updates| OPENCLAW
     STREAM -->|updates| NANOBOT
-    
+
     style SENDBOX fill:#e1f5ff
     style DRAFT fill:#f3e5f5
     style IPC fill:#fff4e6
@@ -108,22 +106,22 @@ The `SendBox` component at [src/renderer/components/sendbox.tsx]() provides the 
 
 ### Component Interface
 
-| Prop | Type | Purpose |
-|------|------|---------|
-| `value` | `string` | Controlled input value |
-| `onChange` | `(value: string) => void` | Input change handler |
-| `onSend` | `(message: string) => Promise<void>` | Message send callback |
-| `onStop` | `() => Promise<void>` | Stop streaming callback |
-| `loading` | `boolean` | Display loading state |
-| `disabled` | `boolean` | Disable input |
-| `tools` | `React.ReactNode` | Custom tool buttons (e.g., file picker) |
-| `prefix` | `React.ReactNode` | Content above input (file previews, tags) |
-| `sendButtonPrefix` | `React.ReactNode` | Content before send button |
-| `slashCommands` | `SlashCommandItem[]` | Available slash commands |
-| `onSlashBuiltinCommand` | `(name: string) => void` | Builtin command handler |
-| `onFilesAdded` | `(files: FileMetadata[]) => void` | File paste/drag handler |
-| `defaultMultiLine` | `boolean` | Start in multi-line mode |
-| `lockMultiLine` | `boolean` | Prevent switching to single-line |
+| Prop                    | Type                                 | Purpose                                   |
+| ----------------------- | ------------------------------------ | ----------------------------------------- |
+| `value`                 | `string`                             | Controlled input value                    |
+| `onChange`              | `(value: string) => void`            | Input change handler                      |
+| `onSend`                | `(message: string) => Promise<void>` | Message send callback                     |
+| `onStop`                | `() => Promise<void>`                | Stop streaming callback                   |
+| `loading`               | `boolean`                            | Display loading state                     |
+| `disabled`              | `boolean`                            | Disable input                             |
+| `tools`                 | `React.ReactNode`                    | Custom tool buttons (e.g., file picker)   |
+| `prefix`                | `React.ReactNode`                    | Content above input (file previews, tags) |
+| `sendButtonPrefix`      | `React.ReactNode`                    | Content before send button                |
+| `slashCommands`         | `SlashCommandItem[]`                 | Available slash commands                  |
+| `onSlashBuiltinCommand` | `(name: string) => void`             | Builtin command handler                   |
+| `onFilesAdded`          | `(files: FileMetadata[]) => void`    | File paste/drag handler                   |
+| `defaultMultiLine`      | `boolean`                            | Start in multi-line mode                  |
+| `lockMultiLine`         | `boolean`                            | Prevent switching to single-line          |
 
 **Sources:** [src/renderer/components/sendbox.tsx:30-48]()
 
@@ -132,11 +130,13 @@ The `SendBox` component at [src/renderer/components/sendbox.tsx]() provides the 
 The `SendBox` dynamically switches between single-line and multi-line modes based on content. It uses an offscreen canvas to measure text width and compares against the input's available width.
 
 **Key thresholds:**
+
 - **Character threshold**: Content exceeding 800 characters immediately switches to multi-line [src/renderer/components/sendbox.tsx:28]()
 - **Width measurement**: Uses `canvas.measureText()` with the textarea's computed font [src/renderer/components/sendbox.tsx:130-152]()
 - **Hysteresis**: 30px buffer prevents flickering at threshold boundaries [src/renderer/components/sendbox.tsx:162]()
 
 **Layout logic:**
+
 ```
 if (input.includes('\
 ')) → multi-line
@@ -162,11 +162,11 @@ The `useDragUpload` hook at [src/renderer/hooks/useDragUpload.ts]() provides dra
 
 The send button's appearance and behavior changes based on input state:
 
-| State | Behavior |
-|-------|----------|
-| Empty input + no DOM snippets | Disabled, default styling |
-| Has content or DOM snippets | Enabled, black background/border [src/renderer/components/sendbox.tsx:323-326]() |
-| Loading state | Shows stop button with animated icon [src/renderer/components/sendbox.tsx:437]() |
+| State                         | Behavior                                                                         |
+| ----------------------------- | -------------------------------------------------------------------------------- |
+| Empty input + no DOM snippets | Disabled, default styling                                                        |
+| Has content or DOM snippets   | Enabled, black background/border [src/renderer/components/sendbox.tsx:323-326]() |
+| Loading state                 | Shows stop button with animated icon [src/renderer/components/sendbox.tsx:437]() |
 
 **Sources:** [src/renderer/components/sendbox.tsx:322-341]()
 
@@ -186,7 +186,7 @@ graph LR
         STREAM["Stream Event Handling<br/>(thought, content, finish)"]
         INITIAL["Initial Message Processing<br/>(from sessionStorage)"]
     end
-    
+
     subgraph "Agent-Specific Logic"
         GEMINI_SPECIFIC["GeminiSendBox:<br/>- Model selection state<br/>- Token usage tracking<br/>- Quota error handling<br/>- Agent readiness check"]
         ACP_SPECIFIC["AcpSendBox:<br/>- ACP status tracking<br/>- Session mode parameter<br/>- Auth error handling"]
@@ -194,27 +194,27 @@ graph LR
         OPENCLAW_SPECIFIC["OpenClawSendBox:<br/>- Runtime validation<br/>- Session key management"]
         NANOBOT_SPECIFIC["NanobotSendBox:<br/>- Stateless operation<br/>- Simplified state"]
     end
-    
+
     DRAFT --> GEMINI_SPECIFIC
     FILES --> GEMINI_SPECIFIC
     STREAM --> GEMINI_SPECIFIC
     INITIAL --> GEMINI_SPECIFIC
-    
+
     DRAFT --> ACP_SPECIFIC
     FILES --> ACP_SPECIFIC
     STREAM --> ACP_SPECIFIC
     INITIAL --> ACP_SPECIFIC
-    
+
     DRAFT --> CODEX_SPECIFIC
     FILES --> CODEX_SPECIFIC
     STREAM --> CODEX_SPECIFIC
     INITIAL --> CODEX_SPECIFIC
-    
+
     DRAFT --> OPENCLAW_SPECIFIC
     FILES --> OPENCLAW_SPECIFIC
     STREAM --> OPENCLAW_SPECIFIC
     INITIAL --> OPENCLAW_SPECIFIC
-    
+
     DRAFT --> NANOBOT_SPECIFIC
     FILES --> NANOBOT_SPECIFIC
     STREAM --> NANOBOT_SPECIFIC
@@ -228,6 +228,7 @@ graph LR
 `GeminiSendBox` at [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx]() manages Gemini-specific features including model selection, token usage tracking, and quota error handling with automatic model fallback.
 
 **Key features:**
+
 - **Active message ID tracking**: Filters out events from aborted requests using `activeMsgIdRef` [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:53-137]()
 - **Triple loading state**: `streamRunning`, `hasActiveTools`, `waitingResponse` provide granular status tracking [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:43-59]()
 - **Quota error detection**: Automatically switches to fallback model on quota exhaustion [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:506-512]()
@@ -243,6 +244,7 @@ The component auto-recovers `streamRunning` state if messages arrive after a `fi
 `AcpSendBox` at [src/renderer/pages/conversation/acp/AcpSendBox.tsx]() handles ACP (Claude, OpenAI) agent communication with session management and authentication error handling.
 
 **Key features:**
+
 - **Dual loading states**: `running` (stream active) and `aiProcessing` (waiting for AI response) [src/renderer/pages/conversation/acp/AcpSendBox.tsx:37-43]()
 - **ACP status tracking**: Monitors connection state (`connecting`, `connected`, `authenticated`, `session_active`) [src/renderer/pages/conversation/acp/AcpSendBox.tsx:42]()
 - **Request trace logging**: Logs request lifecycle with timestamps for debugging [src/renderer/pages/conversation/acp/AcpSendBox.tsx:218-228]()
@@ -258,6 +260,7 @@ Uses a 1-second timeout after `finish` events to detect the true end of multi-tu
 `CodexSendBox` at [src/renderer/pages/conversation/codex/CodexSendBox.tsx]() manages Codex agent interactions with simplified state management.
 
 **Key features:**
+
 - **Content-based state reset**: Only resets `aiProcessing` when `finish` arrives after actual content output, not tool-only turns [src/renderer/pages/conversation/codex/CodexSendBox.tsx:64-66]()
 - **Codex status tracking**: Monitors connection status for session management [src/renderer/pages/conversation/codex/CodexSendBox.tsx:54]()
 - **No display message modification**: Unlike other agents, doesn't use `buildDisplayMessage` to avoid confusion [src/renderer/pages/conversation/codex/CodexSendBox.tsx:284-286]()
@@ -269,6 +272,7 @@ Uses a 1-second timeout after `finish` events to detect the true end of multi-tu
 `OpenClawSendBox` at [src/renderer/pages/conversation/openclaw/OpenClawSendBox.tsx]() handles OpenClaw gateway connections with runtime validation.
 
 **Key features:**
+
 - **Runtime mismatch validation**: Validates workspace, backend, model, and identity hash before sending messages [src/renderer/pages/conversation/openclaw/OpenClawSendBox.tsx:51-89]()
 - **Session recovery**: Eagerly initializes agent and recovers connection status on mount [src/renderer/pages/conversation/openclaw/OpenClawSendBox.tsx:217-230]()
 - **Delayed finish timeout**: Uses ref-based timeout management to detect true task completion [src/renderer/pages/conversation/openclaw/OpenClawSendBox.tsx:118]()
@@ -280,6 +284,7 @@ Uses a 1-second timeout after `finish` events to detect the true end of multi-tu
 `NanobotSendBox` at [src/renderer/pages/conversation/nanobot/NanobotSendBox.tsx]() provides a simplified interface for the built-in Nanobot agent.
 
 **Key features:**
+
 - **Stateless operation**: No session management or complex state tracking [src/renderer/pages/conversation/nanobot/NanobotSendBox.tsx:135-138]()
 - **Simplified event handling**: Basic `thought`, `finish`, `content`, `error` handling [src/renderer/pages/conversation/nanobot/NanobotSendBox.tsx:156-185]()
 - **Immediate message sending**: No status checks, sends immediately like normal conversation [src/renderer/pages/conversation/nanobot/NanobotSendBox.tsx:262-303]()
@@ -301,28 +306,28 @@ graph TB
         PROCESSING["aiProcessing<br/>(useState)"]
         THOUGHT["thought<br/>(useState)"]
     end
-    
+
     subgraph "Ref Synchronization"
         RUNNING_REF["runningRef<br/>(useRef)"]
         PROCESSING_REF["aiProcessingRef<br/>(useRef)"]
     end
-    
+
     subgraph "Event Handlers"
         STREAM_HANDLER["responseStream.on()"]
         EVENT_LOGIC["Event Processing Logic"]
     end
-    
+
     RUNNING -->|"useEffect sync"| RUNNING_REF
     PROCESSING -->|"useEffect sync"| PROCESSING_REF
-    
+
     STREAM_HANDLER -->|reads| RUNNING_REF
     STREAM_HANDLER -->|reads| PROCESSING_REF
     STREAM_HANDLER -->|executes| EVENT_LOGIC
-    
+
     EVENT_LOGIC -->|updates| RUNNING
     EVENT_LOGIC -->|updates| PROCESSING
     EVENT_LOGIC -->|updates| THOUGHT
-    
+
     style RUNNING_REF fill:#fff4e6
     style PROCESSING_REF fill:#fff4e6
 ```
@@ -334,24 +339,26 @@ graph TB
 Without refs, updating state values would trigger `useEffect` re-execution, causing the event listener to be removed and re-registered. This creates a race condition where events can be lost during the brief window between unsubscribe and resubscribe.
 
 **Pattern implementation:**
+
 1. Create state with `useState` for rendering [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:43-44]()
 2. Create ref with `useRef` for immediate access [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:57-59]()
 3. Sync ref in `useEffect` whenever state changes [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:71-76]()
 4. Read ref in event handlers, update both ref and state [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:168-170]()
 
 **Example from GeminiSendBox:**
+
 ```typescript
-const [streamRunning, setStreamRunning] = useState(false);
-const streamRunningRef = useRef(streamRunning);
+const [streamRunning, setStreamRunning] = useState(false)
+const streamRunningRef = useRef(streamRunning)
 
 useEffect(() => {
-  streamRunningRef.current = streamRunning;
-}, [streamRunning]);
+  streamRunningRef.current = streamRunning
+}, [streamRunning])
 
 // In event handler:
 if (!streamRunningRef.current) {
-  setStreamRunning(true);
-  streamRunningRef.current = true;  // Sync immediately
+  setStreamRunning(true)
+  streamRunningRef.current = true // Sync immediately
 }
 ```
 
@@ -362,6 +369,7 @@ if (!streamRunningRef.current) {
 The `hasContentInTurnRef` pattern prevents premature state resets during tool-only interactions. Agents only reset `aiProcessing` when a `finish` event arrives after actual content output.
 
 **Logic:**
+
 - Reset `hasContentInTurnRef` to `false` at start of each turn [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:195]()
 - Set to `true` when content, tool_group, or other visible messages arrive [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:207]()
 - Only reset loading state in `finish` handler if flag is `true` [src/renderer/pages/conversation/codex/CodexSendBox.tsx:196-203]()
@@ -373,6 +381,7 @@ The `hasContentInTurnRef` pattern prevents premature state resets during tool-on
 To reduce render frequency, all agent SendBoxes throttle thought updates using a 50ms throttle interval:
 
 **Implementation:**
+
 - Store `lastUpdate` timestamp, `pending` thought data, and active `timer` in ref [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:80-84]()
 - If 50ms has elapsed since last update, update immediately [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:91-100]()
 - Otherwise, store in `pending` and schedule update for remaining time [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:102-117]()
@@ -392,31 +401,31 @@ graph LR
     subgraph "Draft Hook Factory"
         FACTORY["getSendBoxDraftHook(type, defaultValue)"]
     end
-    
+
     subgraph "Agent Draft Hooks"
         GEMINI_HOOK["useGeminiSendBoxDraft<br/>(type: 'gemini')"]
         ACP_HOOK["useAcpSendBoxDraft<br/>(type: 'acp')"]
         CODEX_HOOK["useCodexSendBoxDraft<br/>(type: 'codex')"]
     end
-    
+
     subgraph "Draft Data Structure"
         DRAFT_DATA["DraftData {<br/>  _type: agent type<br/>  content: string<br/>  uploadFile: string[]<br/>  atPath: (string | FileOrFolderItem)[]<br/>}"]
     end
-    
+
     subgraph "Storage Layer"
         LOCALSTORAGE["localStorage<br/>(key: draft__{type}__{conversation_id})"]
     end
-    
+
     FACTORY -->|creates| GEMINI_HOOK
     FACTORY -->|creates| ACP_HOOK
     FACTORY -->|creates| CODEX_HOOK
-    
+
     GEMINI_HOOK -->|reads/writes| DRAFT_DATA
     ACP_HOOK -->|reads/writes| DRAFT_DATA
     CODEX_HOOK -->|reads/writes| DRAFT_DATA
-    
+
     DRAFT_DATA -->|persists to| LOCALSTORAGE
-    
+
     style FACTORY fill:#f3e5f5
     style LOCALSTORAGE fill:#e8f5e9
 ```
@@ -427,21 +436,22 @@ graph LR
 
 Each agent type defines its draft structure with a type discriminator:
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `_type` | `'gemini' \| 'acp' \| 'codex' \| 'openclaw-gateway' \| 'nanobot'` | Agent type discriminator |
-| `content` | `string` | User input text |
-| `uploadFile` | `string[]` | Paths to uploaded files |
-| `atPath` | `Array<string \| FileOrFolderItem>` | Workspace-selected files/folders |
+| Field        | Type                                                              | Purpose                          |
+| ------------ | ----------------------------------------------------------------- | -------------------------------- |
+| `_type`      | `'gemini' \| 'acp' \| 'codex' \| 'openclaw-gateway' \| 'nanobot'` | Agent type discriminator         |
+| `content`    | `string`                                                          | User input text                  |
+| `uploadFile` | `string[]`                                                        | Paths to uploaded files          |
+| `atPath`     | `Array<string \| FileOrFolderItem>`                               | Workspace-selected files/folders |
 
 **Example draft creation:**
+
 ```typescript
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
   atPath: [],
   content: '',
   uploadFile: [],
-});
+})
 ```
 
 **Sources:** [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:34-39](), [src/renderer/pages/conversation/acp/AcpSendBox.tsx:28-33]()
@@ -453,18 +463,18 @@ Agent SendBoxes use a wrapper hook to provide typed access to draft state:
 ```typescript
 const useSendBoxDraft = (conversation_id: string) => {
   const { data, mutate } = useGeminiSendBoxDraft(conversation_id);
-  
+
   const atPath = data?.atPath ?? EMPTY_AT_PATH;
   const uploadFile = data?.uploadFile ?? EMPTY_UPLOAD_FILES;
   const content = data?.content ?? '';
-  
+
   const setContent = useCallback(
     (content: string) => {
       mutate((prev) => ({ ...prev, content }));
     },
     [mutate]
   );
-  
+
   return { atPath, uploadFile, content, setContent, ... };
 };
 ```
@@ -487,37 +497,37 @@ graph TB
         PICKER["File Picker<br/>(Plus button)"]
         WORKSPACE["Workspace Panel<br/>(Selected files/folders)"]
     end
-    
+
     subgraph "State Storage"
         UPLOAD_FILE["uploadFile: string[]<br/>(Uploaded file paths)"]
         AT_PATH["atPath: (string | FileOrFolderItem)[]<br/>(Workspace selections)"]
     end
-    
+
     subgraph "UI Display"
         FILE_PREVIEW["FilePreview<br/>(Individual files)"]
         FOLDER_TAG["Tag<br/>(Folder selections)"]
         HORIZONTAL_LIST["HorizontalFileList<br/>(Container)"]
     end
-    
+
     subgraph "Message Building"
         BUILD_DISPLAY["buildDisplayMessage()<br/>(Adds file references)"]
     end
-    
+
     DRAG -->|onFilesAdded| UPLOAD_FILE
     PASTE -->|onFilesAdded| UPLOAD_FILE
     PICKER -->|appendSelectedFiles| UPLOAD_FILE
-    
+
     WORKSPACE -->|emitter.emit| AT_PATH
-    
+
     UPLOAD_FILE -->|map to| FILE_PREVIEW
     AT_PATH -->|filter isFile| FILE_PREVIEW
     AT_PATH -->|filter !isFile| FOLDER_TAG
-    
+
     FILE_PREVIEW -->|wrapped in| HORIZONTAL_LIST
-    
+
     UPLOAD_FILE -->|merge paths| BUILD_DISPLAY
     AT_PATH -->|merge paths| BUILD_DISPLAY
-    
+
     style UPLOAD_FILE fill:#fff4e6
     style AT_PATH fill:#fff4e6
 ```
@@ -529,6 +539,7 @@ graph TB
 Files are displayed as `FilePreview` components in a horizontal list, while folders are shown as closable `Tag` components:
 
 **File display logic:**
+
 ```typescript
 {atPath.map((item) => {
   const isFile = typeof item === 'string' ? true : item.isFile;
@@ -541,6 +552,7 @@ Files are displayed as `FilePreview` components in a horizontal list, while fold
 ```
 
 **Folder display logic:**
+
 ```typescript
 {atPath.map((item) => {
   if (typeof item === 'string') return null;
@@ -557,12 +569,12 @@ Files are displayed as `FilePreview` components in a horizontal list, while fold
 
 Workspace file selections are communicated via the event emitter system:
 
-| Event | Payload | Purpose |
-|-------|---------|---------|
-| `{agent}.selected.file` | `Array<string \| FileOrFolderItem>` | Replace entire selection |
+| Event                          | Payload                             | Purpose                       |
+| ------------------------------ | ----------------------------------- | ----------------------------- |
+| `{agent}.selected.file`        | `Array<string \| FileOrFolderItem>` | Replace entire selection      |
 | `{agent}.selected.file.append` | `Array<string \| FileOrFolderItem>` | Merge with existing selection |
-| `{agent}.selected.file.clear` | - | Clear all selections |
-| `{agent}.workspace.refresh` | - | Refresh workspace panel |
+| `{agent}.selected.file.clear`  | -                                   | Clear all selections          |
+| `{agent}.workspace.refresh`    | -                                   | Refresh workspace panel       |
 
 **Sources:** [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:814-820](), [src/renderer/pages/conversation/acp/AcpSendBox.tsx:542-548]()
 
@@ -571,6 +583,7 @@ Workspace file selections are communicated via the event emitter system:
 The `buildDisplayMessage` utility formats the user's message with file references for display:
 
 **Function signature:**
+
 ```typescript
 buildDisplayMessage(
   message: string,
@@ -580,11 +593,12 @@ buildDisplayMessage(
 ```
 
 **Behavior:**
+
 - If no files: returns message unchanged
 - If files exist: appends file list with relative paths (when possible)
 - Format: `{message}\
-\
-Attached files:\
+  \
+  Attached files:\
 - {file1}\
 - {file2}`
 
@@ -605,37 +619,37 @@ graph TB
         SLASH_HOOK["useSlashCommands()<br/>(Agent/conversation context)"]
         SKILLS["Skills/*.md<br/>(Template commands)"]
     end
-    
+
     subgraph "Controller Logic"
         CONTROLLER["useSlashCommandController"]
         FILTER["Command Filtering<br/>(by input prefix)"]
         KEYBOARD["Keyboard Navigation<br/>(Arrow keys, Enter, Esc)"]
     end
-    
+
     subgraph "UI Components"
         MENU["SlashCommandMenu"]
         ITEMS["SlashCommandMenuItem[]"]
     end
-    
+
     subgraph "Execution"
         BUILTIN_EXEC["onSlashBuiltinCommand<br/>(e.g., openFileSelector)"]
         TEMPLATE_EXEC["setInput(template)"]
     end
-    
+
     BUILTIN -->|merge| CONTROLLER
     SLASH_HOOK -->|merge| CONTROLLER
     SKILLS -->|loaded by| SLASH_HOOK
-    
+
     CONTROLLER -->|input change| FILTER
     FILTER -->|filtered list| ITEMS
     ITEMS -->|rendered by| MENU
-    
+
     MENU -->|arrow keys| KEYBOARD
     KEYBOARD -->|updates| CONTROLLER
-    
+
     MENU -->|select builtin| BUILTIN_EXEC
     MENU -->|select template| TEMPLATE_EXEC
-    
+
     style CONTROLLER fill:#e1f5ff
     style MENU fill:#fff4e6
 ```
@@ -646,11 +660,11 @@ graph TB
 
 Slash commands have three kinds:
 
-| Kind | Source | Behavior |
-|------|--------|----------|
+| Kind      | Source                                                               | Behavior                            |
+| --------- | -------------------------------------------------------------------- | ----------------------------------- |
 | `builtin` | Hardcoded in SendBox [src/renderer/components/sendbox.tsx:184-196]() | Triggers action (e.g., file picker) |
-| `skill` | Loaded from `skills/*.md` | Inserts template text |
-| `agent` | Agent-specific context | Inserts template or triggers action |
+| `skill`   | Loaded from `skills/*.md`                                            | Inserts template text               |
+| `agent`   | Agent-specific context                                               | Inserts template or triggers action |
 
 **Sources:** [src/renderer/components/sendbox.tsx:184-196](), [src/renderer/hooks/useSlashCommands.ts]()
 
@@ -660,7 +674,7 @@ The `/open` command is a special built-in that opens the file picker:
 
 ```typescript
 const builtinSlashCommands = useMemo<SlashCommandItem[]>(() => {
-  if (!onSlashBuiltinCommand) return [];
+  if (!onSlashBuiltinCommand) return []
   return [
     {
       name: 'open',
@@ -668,8 +682,8 @@ const builtinSlashCommands = useMemo<SlashCommandItem[]>(() => {
       kind: 'builtin',
       source: 'builtin',
     },
-  ];
-}, [onSlashBuiltinCommand, t]);
+  ]
+}, [onSlashBuiltinCommand, t])
 ```
 
 When executed, it calls `onSlashBuiltinCommand('open')` which triggers `openFileSelector()`.
@@ -680,12 +694,12 @@ When executed, it calls `onSlashBuiltinCommand('open')` which triggers `openFile
 
 The `SlashCommandMenu` supports keyboard navigation:
 
-| Key | Action |
-|-----|--------|
-| `ArrowDown` | Move to next command |
-| `ArrowUp` | Move to previous command |
-| `Enter` | Execute selected command |
-| `Escape` | Close menu |
+| Key         | Action                   |
+| ----------- | ------------------------ |
+| `ArrowDown` | Move to next command     |
+| `ArrowUp`   | Move to previous command |
+| `Enter`     | Execute selected command |
+| `Escape`    | Close menu               |
 
 **Sources:** [src/renderer/hooks/useSlashCommandController.ts](), [src/renderer/components/SlashCommandMenu.tsx]()
 
@@ -705,42 +719,42 @@ sequenceDiagram
     participant IPC as ipcBridge
     participant Backend as Agent Manager<br/>(Main Process)
     participant Stream as responseStream
-    
+
     User->>SendBox: Press Enter or Click Send
     SendBox->>AgentSendBox: onSend(message)
-    
+
     AgentSendBox->>AgentSendBox: Generate msg_id = uuid()
     AgentSendBox->>AgentSendBox: setActiveMsgId(msg_id)
     AgentSendBox->>AgentSendBox: setWaitingResponse(true)
-    
+
     AgentSendBox->>AgentSendBox: Collect files (uploadFile + atPath)
     AgentSendBox->>AgentSendBox: buildDisplayMessage(message, files)
     AgentSendBox->>AgentSendBox: addOrUpdateMessage(userMessage, true)
-    
+
     AgentSendBox->>SendBox: setInput('')
     AgentSendBox->>AgentSendBox: clearFiles()
-    
+
     AgentSendBox->>IPC: {agent}Conversation.sendMessage.invoke({<br/>  input, msg_id, conversation_id, files<br/>})
-    
+
     IPC->>Backend: Route to agent manager
     Backend->>Backend: Persist user message to DB
     Backend->>Backend: Process message, call AI API
-    
+
     Backend->>Stream: emit({ type: 'start' })
     Stream->>AgentSendBox: Update streamRunning = true
-    
+
     Backend->>Stream: emit({ type: 'thought', data })
     Stream->>AgentSendBox: Update thought display
-    
+
     Backend->>Stream: emit({ type: 'content', data })
     Stream->>AgentSendBox: addOrUpdateMessage(content)
     Stream->>AgentSendBox: setWaitingResponse(false)
-    
+
     Backend->>Stream: emit({ type: 'finish' })
     Stream->>AgentSendBox: setTimeout 1000ms
     AgentSendBox->>AgentSendBox: Reset all loading states
     AgentSendBox->>AgentSendBox: Clear thought display
-    
+
     AgentSendBox-->>User: UI shows complete response
 ```
 
@@ -783,11 +797,11 @@ All agent SendBoxes implement a stop handler to abort streaming responses:
 ```typescript
 const handleStop = async (): Promise<void> => {
   try {
-    await ipcBridge.conversation.stop.invoke({ conversation_id });
+    await ipcBridge.conversation.stop.invoke({ conversation_id })
   } finally {
-    resetState();  // Always reset UI state
+    resetState() // Always reset UI state
   }
-};
+}
 ```
 
 The `finally` block ensures UI state is reset even if the backend stop operation fails, preventing stuck loading states.
@@ -809,11 +823,11 @@ graph TB
         CREATE["createConversation()"]
         STORAGE["sessionStorage.setItem<br/>(key: {agent}_initial_message_{id})"]
     end
-    
+
     subgraph "Navigation"
         NAVIGATE["navigate(/conversation/{id})"]
     end
-    
+
     subgraph "Agent SendBox"
         MOUNT["Component Mount"]
         CHECK["Check sessionStorage"]
@@ -821,27 +835,27 @@ graph TB
         SEND["sendMessage.invoke()"]
         CLEAR["sessionStorage.removeItem()"]
     end
-    
+
     subgraph "Special Cases"
         GEMINI_NO_AUTH["GeminiSendBox<br/>(No auth: trigger agent check)"]
         ACP_WAIT["AcpSendBox<br/>(Send immediately, no wait)"]
         CODEX_WAIT["CodexSendBox<br/>(Send immediately)"]
     end
-    
+
     GUID -->|creates| CREATE
     CREATE -->|stores| STORAGE
     CREATE -->|triggers| NAVIGATE
-    
+
     NAVIGATE -->|loads| MOUNT
     MOUNT -->|useEffect| CHECK
     CHECK -->|if exists| PROCESS
     PROCESS -->|invoke IPC| SEND
     SEND -->|success| CLEAR
-    
+
     CHECK -->|if no auth| GEMINI_NO_AUTH
     CHECK -->|always send| ACP_WAIT
     CHECK -->|always send| CODEX_WAIT
-    
+
     style STORAGE fill:#e8f5e9
     style PROCESS fill:#fff4e6
 ```
@@ -851,6 +865,7 @@ graph TB
 ### Storage Key Format
 
 Each agent type uses a unique sessionStorage key:
+
 - Gemini: `gemini_initial_message_{conversation_id}`
 - ACP: `acp_initial_message_{conversation_id}`
 - Codex: `codex_initial_message_{conversation_id}`
@@ -866,19 +881,19 @@ For Gemini, if the user has no authentication (no Google login and no API keys),
 ```typescript
 if (hasNoAuth) {
   try {
-    const { input } = JSON.parse(storedMessage);
-    setContent(input);  // Put message in input box
-    sessionStorage.removeItem(storageKey);
+    const { input } = JSON.parse(storedMessage)
+    setContent(input) // Put message in input box
+    sessionStorage.removeItem(storageKey)
   } catch {
     // Ignore parse errors
   }
   // Trigger agent detection only when there's an initial message
   if (!autoSwitchTriggeredRef.current) {
-    autoSwitchTriggeredRef.current = true;
-    setShowSetupCard(true);
-    void performFullCheckRef.current();
+    autoSwitchTriggeredRef.current = true
+    setShowSetupCard(true)
+    void performFullCheckRef.current()
   }
-  return;
+  return
 }
 ```
 
@@ -889,19 +904,19 @@ if (hasNoAuth) {
 To prevent duplicate message sends (e.g., if component remounts during send), some agents use a processed flag:
 
 ```typescript
-const storageKey = `codex_initial_message_${conversation_id}`;
-const processedKey = `codex_initial_processed_${conversation_id}`;
+const storageKey = `codex_initial_message_${conversation_id}`
+const processedKey = `codex_initial_processed_${conversation_id}`
 
-const stored = sessionStorage.getItem(storageKey);
-if (!stored) return;
+const stored = sessionStorage.getItem(storageKey)
+if (!stored) return
 
 // Double-check locking pattern
 if (sessionStorage.getItem(processedKey)) {
-  return;
+  return
 }
 
 // Immediately mark as processed
-sessionStorage.setItem(processedKey, 'true');
+sessionStorage.setItem(processedKey, 'true')
 ```
 
 **Sources:** [src/renderer/pages/conversation/codex/CodexSendBox.tsx:335-349](), [src/renderer/pages/conversation/openclaw/OpenClawSendBox.tsx:423-434]()
@@ -915,14 +930,15 @@ sessionStorage.setItem(processedKey, 'true');
 All agent SendBoxes render the `ThoughtDisplay` component above the input to show AI thinking status:
 
 ```typescript
-<ThoughtDisplay 
-  thought={thought} 
-  running={running} 
-  onStop={handleStop} 
+<ThoughtDisplay
+  thought={thought}
+  running={running}
+  onStop={handleStop}
 />
 ```
 
 The component displays:
+
 - Current thinking subject (e.g., "Searching the web")
 - Thinking description (e.g., query being executed)
 - Stop button when `running` is `true`
@@ -937,10 +953,10 @@ The `AgentModeSelector` component is rendered in the SendBox tools section to al
 tools={
   <div className='flex items-center gap-4px'>
     <Button ... onClick={openFileSelector} />
-    <AgentModeSelector 
-      backend='gemini' 
-      conversationId={conversation_id} 
-      compact 
+    <AgentModeSelector
+      backend='gemini'
+      conversationId={conversation_id}
+      compact
     />
   </div>
 }
@@ -955,12 +971,14 @@ All agent SendBoxes register a handler with the preview context to receive text 
 ```typescript
 useEffect(() => {
   const handler = (text: string) => {
-    const newContent = content ? `${content}\
-${text}` : text;
-    setContentRef.current(newContent);
-  };
-  setSendBoxHandler(handler);
-}, [setSendBoxHandler, content]);
+    const newContent = content
+      ? `${content}\
+${text}`
+      : text
+    setContentRef.current(newContent)
+  }
+  setSendBoxHandler(handler)
+}, [setSendBoxHandler, content])
 ```
 
 **Sources:** [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:728-736](), [src/renderer/pages/conversation/preview/PreviewContext.tsx]()
@@ -969,13 +987,13 @@ ${text}` : text;
 
 SendBoxes listen to and emit various events:
 
-| Event | Direction | Purpose |
-|-------|-----------|---------|
-| `sendbox.fill` | Listen | Fill input from external source |
-| `{agent}.selected.file` | Listen | Update file selection from workspace |
-| `{agent}.selected.file.append` | Listen | Append to file selection |
-| `{agent}.selected.file.clear` | Emit | Clear workspace selection after send |
-| `{agent}.workspace.refresh` | Emit | Trigger workspace panel refresh |
-| `chat.history.refresh` | Emit | Refresh conversation list |
+| Event                          | Direction | Purpose                              |
+| ------------------------------ | --------- | ------------------------------------ |
+| `sendbox.fill`                 | Listen    | Fill input from external source      |
+| `{agent}.selected.file`        | Listen    | Update file selection from workspace |
+| `{agent}.selected.file.append` | Listen    | Append to file selection             |
+| `{agent}.selected.file.clear`  | Emit      | Clear workspace selection after send |
+| `{agent}.workspace.refresh`    | Emit      | Trigger workspace panel refresh      |
+| `chat.history.refresh`         | Emit      | Refresh conversation list            |
 
 **Sources:** [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:739-820](), [src/renderer/utils/emitter.ts]()

@@ -33,13 +33,12 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 The Observational Memory System is a three-tier compression mechanism that maintains conversation continuity when message history exceeds model context windows. It uses an Observer LLM to extract key observations from conversation chunks, a Reflector LLM to compress observations when token thresholds are crossed, and automatic activation triggers to prevent context overflow.
 
 This system is distinct from other memory capabilities:
+
 - For recent message history retrieval, see [Thread Management and Message Storage](#7.2)
 - For working memory (persistent user profiles), see [Working Memory and Version Management](#7.10)
 - For semantic search across conversations, see [Vector Storage and Semantic Search](#7.6)
@@ -55,54 +54,54 @@ graph TB
         NORMALIZE["normalizeObservationalMemoryConfig()<br/>(memory/src/index.ts:54-61)"]
         ENABLED_CHECK["isObservationalMemoryEnabled()<br/>(memory/types.ts)"]
     end
-    
+
     subgraph "Observation Pipeline"
         OBSERVER["Observer Agent<br/>observation.model<br/>observation.modelSettings"]
         REFLECTOR["Reflector Agent<br/>reflection.model<br/>reflection.modelSettings"]
         BUFFER["BufferedObservationChunk[]<br/>(storage/types.ts)"]
     end
-    
+
     subgraph "Activation System"
         TOKEN_COUNT["estimateTokens()<br/>Count context size"]
         THRESHOLD["observation.messageTokens<br/>default: 30000"]
         BUFFER_TOKENS["observation.bufferTokens<br/>default: 0.2"]
         ACTIVATE["Trigger reflection"]
     end
-    
+
     subgraph "Storage Layer"
         THREAD_META["ThreadOMMetadata<br/>thread.metadata.mastra.om"]
         OM_RECORD["ObservationalMemoryRecord<br/>patterns, generation"]
         SAVE_OBS["MemoryStorage.saveObservation()"]
         INSERT_OM["insertObservationalMemoryRecord()"]
     end
-    
+
     subgraph "Continuation System"
         HINTS["currentTask, suggestedResponse<br/>(ThreadOMMetadata)"]
         GET_META["getThreadOMMetadata()"]
         SET_META["setThreadOMMetadata()"]
         INJECT["Input processor injection"]
     end
-    
+
     OM_CONFIG --> NORMALIZE
     NORMALIZE --> ENABLED_CHECK
-    
+
     ENABLED_CHECK -->|"enabled=true"| OBSERVER
     OBSERVER --> BUFFER
     BUFFER --> TOKEN_COUNT
-    
+
     TOKEN_COUNT --> THRESHOLD
     TOKEN_COUNT --> BUFFER_TOKENS
     THRESHOLD -->|"exceeded"| ACTIVATE
-    
+
     ACTIVATE --> REFLECTOR
     REFLECTOR --> HINTS
     REFLECTOR --> OM_RECORD
-    
+
     HINTS --> SET_META
     SET_META --> THREAD_META
     OM_RECORD --> SAVE_OBS
     OM_RECORD --> INSERT_OM
-    
+
     THREAD_META --> GET_META
     GET_META --> INJECT
 ```
@@ -128,7 +127,7 @@ graph TB
     subgraph "ObservationalMemoryOptions"
         ENABLED["enabled: boolean<br/>(default: false)"]
         MODEL["model: AgentConfig['model']<br/>(shared observer/reflector)"]
-        
+
         subgraph "ObservationalMemoryObservationConfig"
             OBS_MODEL["observation.model<br/>(default: google/gemini-2.5-flash)"]
             OBS_TOKENS["observation.messageTokens<br/>(default: 30000)"]
@@ -139,7 +138,7 @@ graph TB
             OBS_PREV["observation.previousObserverTokens<br/>(default: 2000)"]
             OBS_INSTR["observation.instruction<br/>(custom observer prompt)"]
         end
-        
+
         subgraph "ObservationalMemoryReflectionConfig"
             REF_MODEL["reflection.model<br/>(default: google/gemini-2.5-flash)"]
             REF_TOKENS["reflection.observationTokens<br/>(default: 40000)"]
@@ -147,7 +146,7 @@ graph TB
             REF_INSTR["reflection.instruction<br/>(custom reflector prompt)"]
         end
     end
-    
+
     ENABLED --> MODEL
     MODEL --> OBS_MODEL
     MODEL --> REF_MODEL
@@ -155,22 +154,22 @@ graph TB
 
 **Configuration Structure**
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `enabled` | `boolean` | `false` | Enable/disable observational memory |
-| `model` | `AgentConfig['model']` | `undefined` | Shared model for observer and reflector (overridden by observation/reflection.model) |
-| `observation.model` | `AgentConfig['model']` | `'google/gemini-2.5-flash'` | LLM for extracting observations |
-| `observation.messageTokens` | `number` | `30000` | Token count of unobserved messages triggering observation |
-| `observation.modelSettings` | `ObservationalMemoryModelSettings` | `{temperature: 0.3, maxOutputTokens: 100000}` | Model settings (only for default model) |
-| `observation.bufferTokens` | `number \| false` | `0.2` | Token interval for async buffering (fraction or absolute count) |
-| `observation.bufferActivation` | `number` | `0.8` | Ratio of buffered observations to activate (0-1) |
-| `observation.blockAfter` | `number` | `1.2` | Threshold for synchronous observation (multiplier or absolute) |
-| `observation.previousObserverTokens` | `number \| false` | `2000` | Token budget for observer context truncation |
-| `observation.instruction` | `string` | Built-in prompt | Custom observer prompt appended to system message |
-| `reflection.model` | `AgentConfig['model']` | `'google/gemini-2.5-flash'` | LLM for compressing observations |
-| `reflection.observationTokens` | `number` | `40000` | Token count of observations triggering reflection |
-| `reflection.modelSettings` | `ObservationalMemoryModelSettings` | `{temperature: 0, maxOutputTokens: 100000}` | Model settings (only for default model) |
-| `reflection.instruction` | `string` | Built-in prompt | Custom reflector prompt appended to system message |
+| Field                                | Type                               | Default                                       | Description                                                                          |
+| ------------------------------------ | ---------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `enabled`                            | `boolean`                          | `false`                                       | Enable/disable observational memory                                                  |
+| `model`                              | `AgentConfig['model']`             | `undefined`                                   | Shared model for observer and reflector (overridden by observation/reflection.model) |
+| `observation.model`                  | `AgentConfig['model']`             | `'google/gemini-2.5-flash'`                   | LLM for extracting observations                                                      |
+| `observation.messageTokens`          | `number`                           | `30000`                                       | Token count of unobserved messages triggering observation                            |
+| `observation.modelSettings`          | `ObservationalMemoryModelSettings` | `{temperature: 0.3, maxOutputTokens: 100000}` | Model settings (only for default model)                                              |
+| `observation.bufferTokens`           | `number \| false`                  | `0.2`                                         | Token interval for async buffering (fraction or absolute count)                      |
+| `observation.bufferActivation`       | `number`                           | `0.8`                                         | Ratio of buffered observations to activate (0-1)                                     |
+| `observation.blockAfter`             | `number`                           | `1.2`                                         | Threshold for synchronous observation (multiplier or absolute)                       |
+| `observation.previousObserverTokens` | `number \| false`                  | `2000`                                        | Token budget for observer context truncation                                         |
+| `observation.instruction`            | `string`                           | Built-in prompt                               | Custom observer prompt appended to system message                                    |
+| `reflection.model`                   | `AgentConfig['model']`             | `'google/gemini-2.5-flash'`                   | LLM for compressing observations                                                     |
+| `reflection.observationTokens`       | `number`                           | `40000`                                       | Token count of observations triggering reflection                                    |
+| `reflection.modelSettings`           | `ObservationalMemoryModelSettings` | `{temperature: 0, maxOutputTokens: 100000}`   | Model settings (only for default model)                                              |
+| `reflection.instruction`             | `string`                           | Built-in prompt                               | Custom reflector prompt appended to system message                                   |
 
 **Configuration Normalization**
 
@@ -179,12 +178,16 @@ The `normalizeObservationalMemoryConfig()` function converts boolean shorthand t
 ```typescript
 // packages/memory/src/index.ts:24-31
 function normalizeObservationalMemoryConfig(
-  config: boolean | ObservationalMemoryOptions | undefined,
+  config: boolean | ObservationalMemoryOptions | undefined
 ): ObservationalMemoryOptions | undefined {
-  if (config === true) return { model: 'google/gemini-2.5-flash' };
-  if (config === false || config === undefined) return undefined;
-  if (typeof config === 'object' && (config as ObservationalMemoryOptions).enabled === false) return undefined;
-  return config as ObservationalMemoryOptions;
+  if (config === true) return { model: 'google/gemini-2.5-flash' }
+  if (config === false || config === undefined) return undefined
+  if (
+    typeof config === 'object' &&
+    (config as ObservationalMemoryOptions).enabled === false
+  )
+    return undefined
+  return config as ObservationalMemoryOptions
 }
 ```
 
@@ -203,23 +206,23 @@ sequenceDiagram
     participant Observer as "Observer Agent<br/>(observation.model)"
     participant Buffer as "BufferedObservationChunk[]"
     participant Storage as "MemoryStorage"
-    
+
     Agent->>OutputProc: processOutputResult(messages)
     OutputProc->>OutputProc: estimateTokens(messages)
-    
+
     alt Buffer interval reached (bufferTokens)
         OutputProc->>Observer: generate({ messages, system })
         Observer-->>OutputProc: observations text
         OutputProc->>Buffer: push({ observations, tokens, threadId })
     end
-    
+
     OutputProc->>OutputProc: countBufferedTokens()
-    
+
     alt Threshold exceeded (messageTokens)
         OutputProc->>Storage: activateBufferedObservations()
         Storage-->>OutputProc: Activation complete
     end
-    
+
     OutputProc->>Agent: Continue (non-blocking)
 ```
 
@@ -269,37 +272,37 @@ graph TB
         THRESHOLD_MET["observationTokens threshold<br/>(default: 40000)"]
         EXISTING["ObservationalMemoryRecord<br/>patterns, generation"]
     end
-    
+
     subgraph "Reflection Process"
         REFLECTOR["Reflector Agent<br/>reflection.model<br/>reflection.modelSettings"]
         COMPRESS["Generate compressed patterns<br/>+ continuation hints"]
         ESTIMATE["estimateTokens(result)"]
     end
-    
+
     subgraph "Continuation Generation"
         CURRENT_TASK["Extract currentTask"]
         SUGGESTED["Extract suggestedResponse"]
         THREAD_META["setThreadOMMetadata()"]
     end
-    
+
     subgraph "Post-Reflection"
         NEW_PATTERNS["Updated patterns<br/>generation + 1"]
         SAVE_OBS["MemoryStorage.saveObservation()"]
         UPDATE_THREAD["Update thread metadata"]
     end
-    
+
     BUFFERED --> THRESHOLD_MET
     THRESHOLD_MET --> EXISTING
     EXISTING --> REFLECTOR
-    
+
     REFLECTOR --> COMPRESS
     COMPRESS --> ESTIMATE
-    
+
     ESTIMATE --> CURRENT_TASK
     ESTIMATE --> SUGGESTED
     CURRENT_TASK --> THREAD_META
     SUGGESTED --> THREAD_META
-    
+
     COMPRESS --> NEW_PATTERNS
     NEW_PATTERNS --> SAVE_OBS
     THREAD_META --> UPDATE_THREAD
@@ -337,43 +340,43 @@ Compressed patterns are stored in the `ObservationalMemoryRecord` at either reso
 ```mermaid
 stateDiagram-v2
     [*] --> Idle: Start conversation
-    
+
     Idle --> CheckBuffer: New messages
     CheckBuffer --> BufferCheck: estimateTokens(unobserved)
-    
+
     BufferCheck --> AsyncBuffer: tokens ≥ bufferTokens
     BufferCheck --> Idle: tokens < bufferTokens
-    
+
     AsyncBuffer --> RunObserver: observation.model
     RunObserver --> StoreBuffer: BufferedObservationChunk
     StoreBuffer --> CheckActivation: Check messageTokens
-    
+
     CheckActivation --> Idle: tokens < messageTokens
     CheckActivation --> CheckBlock: tokens ≥ messageTokens
-    
+
     CheckBlock --> Activate: tokens < blockAfter
     CheckBlock --> ForceSync: tokens ≥ blockAfter
-    
+
     Activate --> SelectBuffered: Select bufferActivation ratio
     SelectBuffered --> RunReflector: reflection.model
     RunReflector --> SaveOM: ObservationalMemoryRecord
     SaveOM --> Idle: Continue
-    
+
     ForceSync --> FullObservation: Synchronous observation
     FullObservation --> RunReflector
-    
+
     Idle --> [*]: End conversation
 ```
 
 **Activation Parameters**
 
-| Parameter | Type | Behavior | Example |
-|-----------|------|----------|---------|
-| `observation.messageTokens` | `number` | Unobserved message tokens triggering observation | `30000` (default) |
-| `observation.bufferTokens` | `number \| false` | Token interval for async buffering (fraction or absolute) | `0.2` = 20% of messageTokens (6000 tokens) |
-| `observation.bufferActivation` | `number` | Ratio of buffered observations to activate (0-1) | `0.8` = activate 80%, keep 20% in reserve |
-| `observation.blockAfter` | `number` | Synchronous observation threshold | `1.2` = 1.2× messageTokens (36000 tokens) |
-| `reflection.observationTokens` | `number` | Observation tokens triggering reflection | `40000` (default) |
+| Parameter                      | Type              | Behavior                                                  | Example                                    |
+| ------------------------------ | ----------------- | --------------------------------------------------------- | ------------------------------------------ |
+| `observation.messageTokens`    | `number`          | Unobserved message tokens triggering observation          | `30000` (default)                          |
+| `observation.bufferTokens`     | `number \| false` | Token interval for async buffering (fraction or absolute) | `0.2` = 20% of messageTokens (6000 tokens) |
+| `observation.bufferActivation` | `number`          | Ratio of buffered observations to activate (0-1)          | `0.8` = activate 80%, keep 20% in reserve  |
+| `observation.blockAfter`       | `number`          | Synchronous observation threshold                         | `1.2` = 1.2× messageTokens (36000 tokens)  |
+| `reflection.observationTokens` | `number`          | Observation tokens triggering reflection                  | `40000` (default)                          |
 
 **Activation Timing**
 
@@ -422,40 +425,40 @@ graph TB
         SUGGESTED["suggestedResponse: string"]
         LAST_OBS["lastObservedAt: ISO timestamp"]
     end
-    
+
     subgraph "Storage (Thread Metadata)"
         SET_META["setThreadOMMetadata(<br/>threadMetadata,<br/>omMetadata)"]
         THREAD_META["thread.metadata.mastra.om<br/>{currentTask, suggestedResponse, lastObservedAt}"]
         STORAGE_UPDATE["MemoryStorage.updateThread()"]
     end
-    
+
     subgraph "Retrieval (Next Turn)"
         GET_META["getThreadOMMetadata(<br/>thread.metadata)"]
         CHECK_STALE["Check lastObservedAt<br/>vs message timestamps"]
         RETURN_HINTS["Return valid hints<br/>or undefined"]
     end
-    
+
     subgraph "Injection (Input Processor)"
         INPUT_PROC["ObservationalMemory<br/>Input Processor"]
         LOAD_HINTS["Load continuation hints"]
         INJECT["Inject into system message"]
     end
-    
+
     REFLECTOR_OUT --> CURRENT
     REFLECTOR_OUT --> SUGGESTED
     REFLECTOR_OUT --> LAST_OBS
-    
+
     CURRENT --> SET_META
     SUGGESTED --> SET_META
     LAST_OBS --> SET_META
-    
+
     SET_META --> THREAD_META
     THREAD_META --> STORAGE_UPDATE
-    
+
     STORAGE_UPDATE --> GET_META
     GET_META --> CHECK_STALE
     CHECK_STALE --> RETURN_HINTS
-    
+
     RETURN_HINTS --> INPUT_PROC
     INPUT_PROC --> LOAD_HINTS
     LOAD_HINTS --> INJECT
@@ -469,12 +472,12 @@ The `ThreadOMMetadata` type defines thread-level observational memory metadata:
 // packages/core/src/memory/types.ts:48-61
 export type ThreadOMMetadata = {
   /** The current task being worked on in this thread */
-  currentTask?: string;
+  currentTask?: string
   /** Suggested response for continuing this thread's conversation */
-  suggestedResponse?: string;
+  suggestedResponse?: string
   /** Timestamp of the last observed message in this thread (ISO string) */
-  lastObservedAt?: string;
-};
+  lastObservedAt?: string
+}
 ```
 
 This metadata is stored at `thread.metadata.mastra.om` and accessed via helper functions:
@@ -514,7 +517,7 @@ erDiagram
         timestamp created_at
         timestamp updated_at
     }
-    
+
     THREAD {
         string id PK
         string resource_id FK
@@ -523,21 +526,21 @@ erDiagram
         timestamp created_at
         timestamp updated_at
     }
-    
+
     THREAD_OM_METADATA {
         string currentTask "Active task in thread"
         string suggestedResponse "Next response hint"
         string lastObservedAt "ISO timestamp"
         object lastObservedMessageCursor "Message cursor for replay pruning"
     }
-    
+
     BUFFERED_OBSERVATION_CHUNK {
         string observations "Observer output text"
         int tokens "Estimated token count"
         string threadId "Source thread"
         timestamp createdAt "Observation timestamp"
     }
-    
+
     OBSERVATIONAL_MEMORY_RECORD ||--o{ THREAD : "resource_id OR thread_id"
     THREAD ||--|| THREAD_OM_METADATA : "metadata.mastra.om"
     OBSERVATIONAL_MEMORY_RECORD ||--o{ BUFFERED_OBSERVATION_CHUNK : "active_observations array"
@@ -591,45 +594,45 @@ flowchart TB
         SRC_OM_META["thread.metadata.mastra.om<br/>{currentTask, suggestedResponse}"]
         SRC_RECORD["ObservationalMemoryRecord<br/>{patterns, generation, activeObservations}"]
     end
-    
+
     subgraph "Clone Decision"
         SCOPE_CHECK{"observationalMemory.scope?"}
         RESOURCE_CHECK{"clone.resourceId ==<br/>source.resourceId?"}
     end
-    
+
     subgraph "Thread-Scoped Clone"
         CLONE_RECORD_T["insertObservationalMemoryRecord()<br/>New id, threadId = cloneThreadId"]
         FRESH_META_T["Fresh ThreadOMMetadata<br/>Clear continuation hints"]
     end
-    
+
     subgraph "Resource-Scoped Clone"
         SHARE_RECORD["Reference existing record<br/>Same resource_id, thread_id = null"]
         CLONE_RECORD_R["insertObservationalMemoryRecord()<br/>New resourceId"]
         FRESH_META_R["Fresh ThreadOMMetadata<br/>Clear continuation hints"]
     end
-    
+
     subgraph "Rollback on Failure"
         CLONE_FAIL{"OM clone failed?"}
         DELETE_THREAD["Delete cloned thread"]
         THROW_ERROR["Throw error"]
     end
-    
+
     SRC_THREAD --> SCOPE_CHECK
     SRC_OM_META --> SCOPE_CHECK
     SRC_RECORD --> SCOPE_CHECK
-    
+
     SCOPE_CHECK -->|"thread"| CLONE_RECORD_T
     CLONE_RECORD_T --> FRESH_META_T
-    
+
     SCOPE_CHECK -->|"resource"| RESOURCE_CHECK
     RESOURCE_CHECK -->|"Yes"| SHARE_RECORD
     RESOURCE_CHECK -->|"No"| CLONE_RECORD_R
     SHARE_RECORD --> FRESH_META_R
     CLONE_RECORD_R --> FRESH_META_R
-    
+
     FRESH_META_T --> CLONE_FAIL
     FRESH_META_R --> CLONE_FAIL
-    
+
     CLONE_FAIL -->|"Yes"| DELETE_THREAD
     DELETE_THREAD --> THROW_ERROR
     CLONE_FAIL -->|"No"| SUCCESS["Clone successful"]
@@ -675,27 +678,27 @@ graph TB
         GET_MERGED["getMergedThreadConfig()"]
         NORM["normalizeObservationalMemoryConfig()"]
     end
-    
+
     subgraph "Processor Auto-Registration"
         GET_INPUT["Memory.getInputProcessors(<br/>configuredProcessors, context)"]
         GET_OUTPUT["Memory.getOutputProcessors(<br/>configuredProcessors, context)"]
         OM_ENABLED["isObservationalMemoryEnabled(<br/>effectiveConfig.observationalMemory)"]
         DEDUP_CHECK["Check if ObservationalMemory<br/>manually added"]
     end
-    
+
     subgraph "Processor Instances"
         OM_INPUT["ObservationalMemory Input Processor<br/>id: 'observational-memory'"]
         OM_OUTPUT["ObservationalMemory Output Processor<br/>id: 'observational-memory'"]
         SKIP_MSG_HIST["Skip MessageHistory processor<br/>OM handles message loading/saving"]
     end
-    
+
     subgraph "Input Processor Execution"
         LOAD_RECORD["Load ObservationalMemoryRecord"]
         LOAD_META["getThreadOMMetadata(thread.metadata)"]
         INJECT_PATTERNS["Inject patterns into system message"]
         INJECT_HINTS["Inject currentTask, suggestedResponse"]
     end
-    
+
     subgraph "Output Processor Execution"
         ESTIMATE_TOKENS["estimateTokens(newMessages)"]
         CHECK_BUFFER["Check bufferTokens threshold"]
@@ -705,25 +708,25 @@ graph TB
         ACTIVATE_REFLECT["Trigger Reflector agent"]
         SAVE_MESSAGES["MemoryStorage.saveMessages()"]
     end
-    
+
     MEM_CONFIG --> GET_MERGED
     GET_MERGED --> NORM
     NORM --> GET_INPUT
     NORM --> GET_OUTPUT
-    
+
     GET_INPUT --> OM_ENABLED
     GET_OUTPUT --> OM_ENABLED
-    
+
     OM_ENABLED -->|"true"| DEDUP_CHECK
     DEDUP_CHECK -->|"not found"| OM_INPUT
     DEDUP_CHECK -->|"not found"| OM_OUTPUT
     DEDUP_CHECK --> SKIP_MSG_HIST
-    
+
     OM_INPUT --> LOAD_RECORD
     OM_INPUT --> LOAD_META
     LOAD_RECORD --> INJECT_PATTERNS
     LOAD_META --> INJECT_HINTS
-    
+
     OM_OUTPUT --> ESTIMATE_TOKENS
     ESTIMATE_TOKENS --> CHECK_BUFFER
     CHECK_BUFFER -->|"exceeded"| RUN_OBSERVER
@@ -759,8 +762,9 @@ The processor system checks for manual ObservationalMemory processor registratio
 ```typescript
 // packages/core/src/memory/memory.ts:666-669
 const hasObservationalMemory =
-  configuredProcessors.some(p => !isProcessorWorkflow(p) && p.id === 'observational-memory') ||
-  isObservationalMemoryEnabled(effectiveConfig.observationalMemory);
+  configuredProcessors.some(
+    (p) => !isProcessorWorkflow(p) && p.id === 'observational-memory'
+  ) || isObservationalMemoryEnabled(effectiveConfig.observationalMemory)
 ```
 
 If a user manually adds an ObservationalMemory processor, the auto-registration is skipped to prevent duplicate processing.
@@ -779,28 +783,28 @@ sequenceDiagram
     participant OutputProc as "ObservationalMemory<br/>Output Processor"
     participant OMRecord as "ObservationalMemoryRecord"
     participant Storage as "MemoryStorage"
-    
+
     Note over Agent,Storage: Turn 1 (User sends message)
     Agent->>OutputProc: processOutputResult(messages)
     OutputProc->>OutputProc: Check message seal status
-    
+
     alt Messages not sealed
         OutputProc->>Storage: saveMessages(messages)
         OutputProc->>OMRecord: Mark messages sealed in buffer
     else Messages sealed (already saved)
         OutputProc->>OutputProc: Skip save (prevent duplicates)
     end
-    
+
     OutputProc->>OutputProc: estimateTokens(messages)
-    
+
     alt Buffer threshold exceeded
         OutputProc->>OutputProc: Run Observer (async)
         OutputProc->>OMRecord: Add BufferedObservationChunk
     end
-    
+
     Note over Agent,Storage: Turn 2 (Activation occurs)
     Agent->>OutputProc: processOutputResult(messages)
-    
+
     alt Activation threshold exceeded
         OutputProc->>OMRecord: Get buffered observations
         OutputProc->>OutputProc: Run Reflector
@@ -821,6 +825,7 @@ Messages are "sealed for buffering" with special markers to track their save sta
 **Detection Logic**
 
 The processor checks for both:
+
 - Whether message is sealed for buffering
 - Whether message lacks observation markers (indicating it was already saved)
 
@@ -833,16 +838,18 @@ Only messages that are both sealed AND lack observation markers are skipped.
 ### Configuration Patterns
 
 **Pattern: Basic Enablement**
+
 ```typescript
 // Minimal configuration with defaults
 memory: new Memory({
   options: {
-    observationalMemory: true // Uses google/gemini-2.5-flash
-  }
+    observationalMemory: true, // Uses google/gemini-2.5-flash
+  },
 })
 ```
 
 **Pattern: Custom Models**
+
 ```typescript
 // Custom models without automatic maxOutputTokens
 memory: new Memory({
@@ -851,30 +858,31 @@ memory: new Memory({
       observation: {
         model: 'anthropic/claude-3.5-sonnet',
         modelSettings: {
-          maxOutputTokens: 50000 // Must specify explicitly
-        }
+          maxOutputTokens: 50000, // Must specify explicitly
+        },
       },
       reflection: {
         model: 'openai/gpt-4',
         modelSettings: {
-          maxOutputTokens: 30000 // Must specify explicitly
-        }
-      }
-    }
-  }
+          maxOutputTokens: 30000, // Must specify explicitly
+        },
+      },
+    },
+  },
 })
 ```
 
 **Pattern: Thread-Scoped OM**
+
 ```typescript
 // Isolate observations per conversation
 memory: new Memory({
   options: {
     observationalMemory: {
       enabled: true,
-      scope: 'thread' // Not shared across threads
-    }
-  }
+      scope: 'thread', // Not shared across threads
+    },
+  },
 })
 ```
 

@@ -13,8 +13,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document covers installation, basic usage, and the complete command-line interface reference for the `pi` coding agent CLI. For information about interactive mode features, see [Interactive Mode & TUI Integration](#4.10). For session management, see [Session Management & History Tree](#4.3). For customization through extensions, skills, and themes, see [Extension System](#4.4), [Skills & Prompt Templates](#4.8), and [Theme System](#4.9).
 
 ---
@@ -30,11 +28,13 @@ npm install -g @mariozechner/pi-coding-agent
 The `pi` command becomes available system-wide. Configuration and session data are stored in `~/.pi/agent/` by default (customizable via `PI_CODING_AGENT_DIR` environment variable).
 
 **Platform Requirements:**
-- Node.js 18+ 
+
+- Node.js 18+
 - Terminal with ANSI support for interactive mode
 - Optional: Kitty keyboard protocol support for enhanced keyboard shortcuts
 
 **Platform-specific setup:**
+
 - [Windows](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/windows.md)
 - [Termux (Android)](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/termux.md)
 - [tmux configuration](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/tmux.md)
@@ -67,6 +67,7 @@ OAuth tokens are stored in `~/.pi/agent/auth.json`. For details on authenticatio
 ### Invocation Modes
 
 **Interactive mode** (default):
+
 ```bash
 pi                                    # Start new session
 pi "List all .ts files in src/"      # Start with initial prompt
@@ -75,17 +76,20 @@ pi --resume                           # Browse and select session
 ```
 
 **Print mode** (single-shot, no TUI):
+
 ```bash
 pi -p "Summarize this codebase"
-pi --print "List files" 
+pi --print "List files"
 ```
 
 **JSON mode** (events as JSON lines):
+
 ```bash
 pi --mode json "Review code"
 ```
 
 **RPC mode** (headless process integration):
+
 ```bash
 pi --mode rpc
 ```
@@ -126,7 +130,7 @@ graph TB
     Interactive["InteractiveMode.run()"]
     Print["runPrintMode()"]
     RPC["runRpcMode()"]
-    
+
     Entry --> ParseFirst
     ParseFirst --> LoadExt
     LoadExt --> ParseSecond
@@ -136,12 +140,13 @@ graph TB
     Dispatch --> Interactive
     Dispatch --> Print
     Dispatch --> RPC
-    
+
     LoadExt --> RegisterFlags["extensionFlags Map<br/>name -> {type: 'boolean' | 'string'}"]
     RegisterFlags --> ParseSecond
 ```
 
 **Key implementation details:**
+
 - Two-pass argument parsing: first pass extracts `--extension` paths, second pass includes extension-registered flags
 - Extensions can register CLI flags via `ExtensionAPI.registerFlag()`, which are collected in [packages/coding-agent/src/main.ts:646-651]()
 - Session resolution logic in `resolveSessionPath` [packages/coding-agent/src/main.ts:349-374]() handles partial UUID matching and cross-project session lookup
@@ -158,13 +163,13 @@ graph LR
     Main["main()<br/>main.ts"]
     SessionOpts["buildSessionOptions()"]
     CreateAgent["createAgentSession()"]
-    
+
     Args --> ParseArgs
     ParseArgs --> ArgsStruct
     ArgsStruct --> Main
     Main --> SessionOpts
     SessionOpts --> CreateAgent
-    
+
     ParseArgs -.validates.-> ThinkingLevel["VALID_THINKING_LEVELS"]
     ParseArgs -.validates.-> ToolName["allTools map"]
     ParseArgs -.separates.-> FileArgs["@file arguments"]
@@ -188,13 +193,13 @@ graph TB
     Invoke["pi <command> <args>"]
     Parse["parsePackageCommand()"]
     Dispatch["handlePackageCommand()"]
-    
+
     Install["install<br/>PackageManager.install()<br/>Add to settings.json"]
     Remove["remove<br/>PackageManager.remove()<br/>Remove from settings"]
     Update["update<br/>PackageManager.update()"]
     List["list<br/>Display packages from settings"]
     Config["config<br/>selectConfig() TUI"]
-    
+
     Invoke --> Parse
     Parse --> Dispatch
     Dispatch --> Install
@@ -202,24 +207,24 @@ graph TB
     Dispatch --> Update
     Dispatch --> List
     Dispatch --> Config
-    
+
     Install -.global.-> GlobalDir["~/.pi/agent/git/<br/>or global npm"]
     Install -.project -l.-> ProjectDir[".pi/git/<br/>or .pi/npm/"]
-    
+
     Remove -.updates.-> Settings["SettingsManager<br/>packages array"]
     Update -.skips.-> Pinned["Pinned sources<br/>(with @version)"]
 ```
 
 ### Package Command Reference
 
-| Command | Usage | Description |
-|---------|-------|-------------|
-| `pi install <source> [-l]` | Install package | Installs package and adds source to settings |
-| `pi remove <source> [-l]` | Remove package | Removes package and source from settings |
-| `pi uninstall <source> [-l]` | Alias for remove | Same as `remove` |
-| `pi update [source]` | Update packages | Updates all packages or specific source (skips pinned) |
-| `pi list` | List packages | Shows installed packages from user and project settings |
-| `pi config` | Configure packages | TUI to enable/disable individual resources |
+| Command                      | Usage              | Description                                             |
+| ---------------------------- | ------------------ | ------------------------------------------------------- |
+| `pi install <source> [-l]`   | Install package    | Installs package and adds source to settings            |
+| `pi remove <source> [-l]`    | Remove package     | Removes package and source from settings                |
+| `pi uninstall <source> [-l]` | Alias for remove   | Same as `remove`                                        |
+| `pi update [source]`         | Update packages    | Updates all packages or specific source (skips pinned)  |
+| `pi list`                    | List packages      | Shows installed packages from user and project settings |
+| `pi config`                  | Configure packages | TUI to enable/disable individual resources              |
 
 **Package source formats:**
 
@@ -242,6 +247,7 @@ pi install /absolute/path
 ```
 
 **Scope flags:**
+
 - Default: Global install (`~/.pi/agent/`)
 - `-l`, `--local`: Project-local install (`.pi/`)
 
@@ -255,16 +261,17 @@ Sources: [packages/coding-agent/src/main.ts:72-309](), [packages/coding-agent/RE
 
 ### Model and Provider Options
 
-| Option | Argument | Description |
-|--------|----------|-------------|
-| `--provider <name>` | Provider name | Select provider (anthropic, openai, google, etc.) |
-| `--model <pattern>` | Model pattern or ID | Supports `provider/id` and optional `:<thinking>` suffix |
-| `--api-key <key>` | API key string | Runtime API key override (not persisted) |
-| `--thinking <level>` | Thinking level | `off`, `minimal`, `low`, `medium`, `high`, `xhigh` |
-| `--models <patterns>` | Comma-separated | Model patterns for Ctrl+P cycling |
-| `--list-models [search]` | Optional search | List available models with fuzzy search |
+| Option                   | Argument            | Description                                              |
+| ------------------------ | ------------------- | -------------------------------------------------------- |
+| `--provider <name>`      | Provider name       | Select provider (anthropic, openai, google, etc.)        |
+| `--model <pattern>`      | Model pattern or ID | Supports `provider/id` and optional `:<thinking>` suffix |
+| `--api-key <key>`        | API key string      | Runtime API key override (not persisted)                 |
+| `--thinking <level>`     | Thinking level      | `off`, `minimal`, `low`, `medium`, `high`, `xhigh`       |
+| `--models <patterns>`    | Comma-separated     | Model patterns for Ctrl+P cycling                        |
+| `--list-models [search]` | Optional search     | List available models with fuzzy search                  |
 
 **Model pattern syntax:**
+
 - Simple: `sonnet`, `gpt-4o`, `claude-3-5-sonnet-20241022`
 - With provider: `anthropic/sonnet`, `openai/gpt-4o`
 - With thinking level: `sonnet:high`, `openai/gpt-4o:medium`
@@ -276,15 +283,16 @@ Sources: [packages/coding-agent/src/cli/args.ts:78-82](), [packages/coding-agent
 
 ### Session Options
 
-| Option | Argument | Description |
-|--------|----------|-------------|
-| `-c`, `--continue` | None | Continue most recent session in current directory |
-| `-r`, `--resume` | None | Browse and select from past sessions (TUI picker) |
-| `--session <path>` | File path or UUID prefix | Use specific session file or match by ID |
-| `--session-dir <dir>` | Directory path | Custom session storage directory |
-| `--no-session` | None | Ephemeral mode (don't persist session) |
+| Option                | Argument                 | Description                                       |
+| --------------------- | ------------------------ | ------------------------------------------------- |
+| `-c`, `--continue`    | None                     | Continue most recent session in current directory |
+| `-r`, `--resume`      | None                     | Browse and select from past sessions (TUI picker) |
+| `--session <path>`    | File path or UUID prefix | Use specific session file or match by ID          |
+| `--session-dir <dir>` | Directory path           | Custom session storage directory                  |
+| `--no-session`        | None                     | Ephemeral mode (don't persist session)            |
 
 **Session resolution logic:**
+
 1. If `--session` contains `/` or ends with `.jsonl`: treat as file path
 2. Otherwise: match as session ID prefix, first in current project, then globally
 3. If found in different project: prompt to fork into current directory
@@ -295,10 +303,10 @@ Sources: [packages/coding-agent/src/cli/args.ts:74-93](), [packages/coding-agent
 
 ### Tool Options
 
-| Option | Argument | Description |
-|--------|----------|-------------|
-| `--tools <list>` | Comma-separated | Enable specific built-in tools |
-| `--no-tools` | None | Disable all built-in tools (extension tools still work) |
+| Option           | Argument        | Description                                             |
+| ---------------- | --------------- | ------------------------------------------------------- |
+| `--tools <list>` | Comma-separated | Enable specific built-in tools                          |
+| `--no-tools`     | None            | Disable all built-in tools (extension tools still work) |
 
 **Available built-in tools:** `read`, `bash`, `edit`, `write`, `grep`, `find`, `ls`
 
@@ -310,18 +318,19 @@ Sources: [packages/coding-agent/src/cli/args.ts:96-110](), [packages/coding-agen
 
 ### Resource Options
 
-| Option | Argument | Description |
-|--------|----------|-------------|
-| `-e`, `--extension <source>` | Path, npm, or git | Load extension (repeatable) |
-| `--no-extensions` | None | Disable extension discovery |
-| `--skill <path>` | Path | Load skill (repeatable) |
-| `--no-skills` | None | Disable skill discovery |
-| `--prompt-template <path>` | Path | Load prompt template (repeatable) |
-| `--no-prompt-templates` | None | Disable prompt template discovery |
-| `--theme <path>` | Path | Load theme (repeatable) |
-| `--no-themes` | None | Disable theme discovery |
+| Option                       | Argument          | Description                       |
+| ---------------------------- | ----------------- | --------------------------------- |
+| `-e`, `--extension <source>` | Path, npm, or git | Load extension (repeatable)       |
+| `--no-extensions`            | None              | Disable extension discovery       |
+| `--skill <path>`             | Path              | Load skill (repeatable)           |
+| `--no-skills`                | None              | Disable skill discovery           |
+| `--prompt-template <path>`   | Path              | Load prompt template (repeatable) |
+| `--no-prompt-templates`      | None              | Disable prompt template discovery |
+| `--theme <path>`             | Path              | Load theme (repeatable)           |
+| `--no-themes`                | None              | Disable theme discovery           |
 
 **Discovery behavior:**
+
 - Without `--no-*` flags: Auto-discover from standard directories
 - With `--no-*`: Discovery disabled, only explicitly loaded resources available
 - Combination: `--no-extensions -e ./my-ext.ts` loads only specified extension
@@ -332,22 +341,24 @@ Sources: [packages/coding-agent/src/cli/args.ts:126-146](), [packages/coding-age
 
 ### Mode Options
 
-| Option | Argument | Description |
-|--------|----------|-------------|
-| (default) | None | Interactive mode with full TUI |
-| `-p`, `--print` | None | Print mode: single-shot execution, no TUI |
-| `--mode json` | None | JSON mode: output all events as JSON lines |
-| `--mode rpc` | None | RPC mode: JSON-RPC protocol over stdin/stdout |
-| `--export <file>` | Input file path | Export session to HTML and exit |
+| Option            | Argument        | Description                                   |
+| ----------------- | --------------- | --------------------------------------------- |
+| (default)         | None            | Interactive mode with full TUI                |
+| `-p`, `--print`   | None            | Print mode: single-shot execution, no TUI     |
+| `--mode json`     | None            | JSON mode: output all events as JSON lines    |
+| `--mode rpc`      | None            | RPC mode: JSON-RPC protocol over stdin/stdout |
+| `--export <file>` | Input file path | Export session to HTML and exit               |
 
 **Mode determination logic in [packages/coding-agent/src/main.ts:708-710]():**
+
 ```typescript
-const isInteractive = !parsed.print && parsed.mode === undefined;
-const mode = parsed.mode || "text";
+const isInteractive = !parsed.print && parsed.mode === undefined
+const mode = parsed.mode || 'text'
 ```
 
 Mode dispatch in [packages/coding-agent/src/main.ts:793-828]():
-- RPC mode: `runRpcMode(session)` 
+
+- RPC mode: `runRpcMode(session)`
 - Interactive: `InteractiveMode.run()`
 - Print/JSON: `runPrintMode(session, { mode, ... })`
 
@@ -355,14 +366,14 @@ Sources: [packages/coding-agent/src/cli/args.ts:69-73](), [packages/coding-agent
 
 ### Other Options
 
-| Option | Argument | Description |
-|--------|----------|-------------|
-| `--system-prompt <text>` | Text or file path | Replace default system prompt |
-| `--append-system-prompt <text>` | Text or file path | Append to system prompt |
-| `--verbose` | None | Force verbose startup (overrides `quietStartup` setting) |
-| `--offline` | None | Disable network operations (same as `PI_OFFLINE=1`) |
-| `-h`, `--help` | None | Show help message |
-| `-v`, `--version` | None | Show version number |
+| Option                          | Argument          | Description                                              |
+| ------------------------------- | ----------------- | -------------------------------------------------------- |
+| `--system-prompt <text>`        | Text or file path | Replace default system prompt                            |
+| `--append-system-prompt <text>` | Text or file path | Append to system prompt                                  |
+| `--verbose`                     | None              | Force verbose startup (overrides `quietStartup` setting) |
+| `--offline`                     | None              | Disable network operations (same as `PI_OFFLINE=1`)      |
+| `-h`, `--help`                  | None              | Show help message                                        |
+| `-v`, `--version`               | None              | Show version number                                      |
 
 Sources: [packages/coding-agent/src/cli/args.ts:84-87](), [packages/coding-agent/src/cli/args.ts:153-157]()
 
@@ -374,32 +385,32 @@ Pi recognizes environment variables for API authentication, behavior customizati
 
 ### Provider API Keys
 
-| Variable | Provider | Notes |
-|----------|----------|-------|
-| `ANTHROPIC_API_KEY` | Anthropic | API key authentication |
-| `ANTHROPIC_OAUTH_TOKEN` | Anthropic | OAuth token (alternative to API key) |
-| `OPENAI_API_KEY` | OpenAI | GPT models |
-| `AZURE_OPENAI_API_KEY` | Azure OpenAI | Requires `AZURE_OPENAI_BASE_URL` or `AZURE_OPENAI_RESOURCE_NAME` |
-| `AZURE_OPENAI_BASE_URL` | Azure OpenAI | Format: `https://{resource}.openai.azure.com/openai/v1` |
-| `AZURE_OPENAI_RESOURCE_NAME` | Azure OpenAI | Alternative to base URL |
-| `AZURE_OPENAI_API_VERSION` | Azure OpenAI | Default: `v1` |
-| `AZURE_OPENAI_DEPLOYMENT_NAME_MAP` | Azure OpenAI | Comma-separated `model=deployment` pairs |
-| `GEMINI_API_KEY` | Google Gemini | Gemini models via API |
-| `GROQ_API_KEY` | Groq | Groq models |
-| `CEREBRAS_API_KEY` | Cerebras | Cerebras models |
-| `XAI_API_KEY` | xAI | Grok models |
-| `OPENROUTER_API_KEY` | OpenRouter | OpenRouter proxy |
-| `AI_GATEWAY_API_KEY` | Vercel AI Gateway | Vercel gateway |
-| `ZAI_API_KEY` | ZAI | ZAI models |
-| `MISTRAL_API_KEY` | Mistral | Mistral models |
-| `MINIMAX_API_KEY` | MiniMax | MiniMax models |
-| `OPENCODE_API_KEY` | OpenCode | Zen and Go models |
-| `KIMI_API_KEY` | Kimi | Kimi For Coding |
-| `AWS_PROFILE` | Amazon Bedrock | AWS profile |
-| `AWS_ACCESS_KEY_ID` | Amazon Bedrock | AWS credentials |
-| `AWS_SECRET_ACCESS_KEY` | Amazon Bedrock | AWS credentials |
-| `AWS_BEARER_TOKEN_BEDROCK` | Amazon Bedrock | Bearer token alternative |
-| `AWS_REGION` | Amazon Bedrock | AWS region (e.g., `us-east-1`) |
+| Variable                           | Provider          | Notes                                                            |
+| ---------------------------------- | ----------------- | ---------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY`                | Anthropic         | API key authentication                                           |
+| `ANTHROPIC_OAUTH_TOKEN`            | Anthropic         | OAuth token (alternative to API key)                             |
+| `OPENAI_API_KEY`                   | OpenAI            | GPT models                                                       |
+| `AZURE_OPENAI_API_KEY`             | Azure OpenAI      | Requires `AZURE_OPENAI_BASE_URL` or `AZURE_OPENAI_RESOURCE_NAME` |
+| `AZURE_OPENAI_BASE_URL`            | Azure OpenAI      | Format: `https://{resource}.openai.azure.com/openai/v1`          |
+| `AZURE_OPENAI_RESOURCE_NAME`       | Azure OpenAI      | Alternative to base URL                                          |
+| `AZURE_OPENAI_API_VERSION`         | Azure OpenAI      | Default: `v1`                                                    |
+| `AZURE_OPENAI_DEPLOYMENT_NAME_MAP` | Azure OpenAI      | Comma-separated `model=deployment` pairs                         |
+| `GEMINI_API_KEY`                   | Google Gemini     | Gemini models via API                                            |
+| `GROQ_API_KEY`                     | Groq              | Groq models                                                      |
+| `CEREBRAS_API_KEY`                 | Cerebras          | Cerebras models                                                  |
+| `XAI_API_KEY`                      | xAI               | Grok models                                                      |
+| `OPENROUTER_API_KEY`               | OpenRouter        | OpenRouter proxy                                                 |
+| `AI_GATEWAY_API_KEY`               | Vercel AI Gateway | Vercel gateway                                                   |
+| `ZAI_API_KEY`                      | ZAI               | ZAI models                                                       |
+| `MISTRAL_API_KEY`                  | Mistral           | Mistral models                                                   |
+| `MINIMAX_API_KEY`                  | MiniMax           | MiniMax models                                                   |
+| `OPENCODE_API_KEY`                 | OpenCode          | Zen and Go models                                                |
+| `KIMI_API_KEY`                     | Kimi              | Kimi For Coding                                                  |
+| `AWS_PROFILE`                      | Amazon Bedrock    | AWS profile                                                      |
+| `AWS_ACCESS_KEY_ID`                | Amazon Bedrock    | AWS credentials                                                  |
+| `AWS_SECRET_ACCESS_KEY`            | Amazon Bedrock    | AWS credentials                                                  |
+| `AWS_BEARER_TOKEN_BEDROCK`         | Amazon Bedrock    | Bearer token alternative                                         |
+| `AWS_REGION`                       | Amazon Bedrock    | AWS region (e.g., `us-east-1`)                                   |
 
 API key resolution is implemented in `getEnvApiKey` in [packages/ai/src/stream.ts](). For authentication details, see [Authentication & Cost Tracking](#2.4).
 
@@ -407,24 +418,26 @@ Sources: [packages/coding-agent/src/cli/args.ts:277-306]()
 
 ### Pi-Specific Variables
 
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `PI_CODING_AGENT_DIR` | Configuration and session directory | `~/.pi/agent` |
-| `PI_PACKAGE_DIR` | Package installation directory override | (for Nix/Guix store paths) |
-| `PI_SKIP_VERSION_CHECK` | Disable startup version check | `false` |
-| `PI_CACHE_RETENTION` | Prompt cache retention mode | `long` = extended (Anthropic: 1h, OpenAI: 24h) |
-| `PI_OFFLINE` | Disable startup network operations | `false` |
-| `PI_SHARE_VIEWER_URL` | Base URL for `/share` command | `https://pi.dev/session/` |
-| `PI_AI_ANTIGRAVITY_VERSION` | Override Antigravity User-Agent version | (auto-detected) |
-| `VISUAL` | External editor for Ctrl+G | (fallback to `EDITOR`) |
-| `EDITOR` | External editor for Ctrl+G | (fallback to `nano`) |
+| Variable                    | Purpose                                 | Default                                        |
+| --------------------------- | --------------------------------------- | ---------------------------------------------- |
+| `PI_CODING_AGENT_DIR`       | Configuration and session directory     | `~/.pi/agent`                                  |
+| `PI_PACKAGE_DIR`            | Package installation directory override | (for Nix/Guix store paths)                     |
+| `PI_SKIP_VERSION_CHECK`     | Disable startup version check           | `false`                                        |
+| `PI_CACHE_RETENTION`        | Prompt cache retention mode             | `long` = extended (Anthropic: 1h, OpenAI: 24h) |
+| `PI_OFFLINE`                | Disable startup network operations      | `false`                                        |
+| `PI_SHARE_VIEWER_URL`       | Base URL for `/share` command           | `https://pi.dev/session/`                      |
+| `PI_AI_ANTIGRAVITY_VERSION` | Override Antigravity User-Agent version | (auto-detected)                                |
+| `VISUAL`                    | External editor for Ctrl+G              | (fallback to `EDITOR`)                         |
+| `EDITOR`                    | External editor for Ctrl+G              | (fallback to `nano`)                           |
 
 Offline mode is checked in [packages/coding-agent/src/main.ts:588-592]():
+
 ```typescript
-const offlineMode = args.includes("--offline") || isTruthyEnvFlag(process.env.PI_OFFLINE);
+const offlineMode =
+  args.includes('--offline') || isTruthyEnvFlag(process.env.PI_OFFLINE)
 if (offlineMode) {
-  process.env.PI_OFFLINE = "1";
-  process.env.PI_SKIP_VERSION_CHECK = "1";
+  process.env.PI_OFFLINE = '1'
+  process.env.PI_SKIP_VERSION_CHECK = '1'
 }
 ```
 
@@ -570,17 +583,18 @@ graph LR
     ParseArgs["parseArgs()<br/>(second pass)"]
     UnknownFlags["Args.unknownFlags<br/>Map<name, value>"]
     Transfer["Transfer to runtime.flagValues"]
-    
+
     Ext --> API
     API --> Runtime
     Runtime --> ParseArgs
     ParseArgs --> UnknownFlags
     UnknownFlags --> Transfer
-    
+
     API -.example.-> FlagDef["registerFlag('plan', {<br/>  type: 'boolean',<br/>  description: '...'<br/>})"]
 ```
 
 **Flag types:**
+
 - `boolean`: Flag without argument (e.g., `--plan`)
 - `string`: Flag with string argument (e.g., `--output-dir /tmp`)
 

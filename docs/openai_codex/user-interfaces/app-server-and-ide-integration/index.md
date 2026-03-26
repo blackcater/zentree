@@ -21,11 +21,10 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The `codex-app-server` crate (`codex-rs/app-server/`) is the interface Codex exposes for rich external clients such as the VS Code extension. It runs as a subprocess that communicates over a JSON-RPC 2.0 channel, providing access to all Codex agent capabilities without requiring consumers to embed Rust directly. This page covers the server binary, its transport layer, the JSON-RPC message protocol, and the runtime pipeline that translates client requests into `codex-core` operations and streams events back.
 
 For information about the core Op/Event system that the app server delegates to, see page 2.1 (Protocol Layer). For the `ThreadManager` and session lifecycle that back these APIs, see page 3.1 (Codex Interface and Session Lifecycle). Detailed sub-pages cover specific subsystems:
+
 - Page 4.5.1: CodexMessageProcessor and Request Handling
 - Page 4.5.2: Thread and Turn Management API
 - Page 4.5.3: Event Translation and Streaming
@@ -79,10 +78,10 @@ Sources: [codex-rs/app-server/src/lib.rs](), [codex-rs/app-server/src/message_pr
 
 The server supports two transports, configured with `--listen <url>`:
 
-| Transport | Listen URL | Format | Status |
-|---|---|---|---|
-| stdio | `stdio://` (default) | Newline-delimited JSON (JSONL) | Stable |
-| WebSocket | `ws://IP:PORT` | One JSON-RPC message per text frame | Experimental |
+| Transport | Listen URL           | Format                              | Status       |
+| --------- | -------------------- | ----------------------------------- | ------------ |
+| stdio     | `stdio://` (default) | Newline-delimited JSON (JSONL)      | Stable       |
+| WebSocket | `ws://IP:PORT`       | One JSON-RPC message per text frame | Experimental |
 
 The `AppServerTransport` enum in [codex-rs/app-server/src/transport.rs:72-76]() captures this. The `run_main` function in [codex-rs/app-server/src/lib.rs:299-313]() defaults to `AppServerTransport::Stdio`; `run_main_with_transport` accepts the transport explicitly.
 
@@ -120,13 +119,13 @@ The outbound path uses a dedicated router task. Messages are placed in an `Outgo
 
 The protocol follows JSON-RPC 2.0 with the `"jsonrpc":"2.0"` header omitted on the wire. There are four message kinds:
 
-| Direction | Kind | Description |
-|---|---|---|
-| Client → Server | `ClientRequest` | Method call with `id`, `method`, `params` |
-| Client → Server | `ClientNotification` | Client notification with `method` (e.g., `initialized`) |
-| Server → Client | `JSONRPCResponse` / `JSONRPCError` | Reply to a `ClientRequest` |
-| Server → Client | `ServerNotification` | Push event, no `id` |
-| Server → Client | `ServerRequest` | Server-initiated call requiring client response |
+| Direction       | Kind                               | Description                                             |
+| --------------- | ---------------------------------- | ------------------------------------------------------- |
+| Client → Server | `ClientRequest`                    | Method call with `id`, `method`, `params`               |
+| Client → Server | `ClientNotification`               | Client notification with `method` (e.g., `initialized`) |
+| Server → Client | `JSONRPCResponse` / `JSONRPCError` | Reply to a `ClientRequest`                              |
+| Server → Client | `ServerNotification`               | Push event, no `id`                                     |
+| Server → Client | `ServerRequest`                    | Server-initiated call requiring client response         |
 
 `ClientRequest` is a discriminated union tagged on `method` defined in [codex-rs/app-server-protocol/src/protocol/common.rs:205-510](). The macro `client_request_definitions!` generates the enum and type export helpers. `ServerNotification` is analogously defined in the same file.
 
@@ -140,27 +139,27 @@ flowchart TD
     ThreadStart["ThreadStart => 'thread/start'"]
     TurnStart["TurnStart => 'turn/start'"]
     ConfigRead["ConfigRead => 'config/read'"]
-    
+
     ServerNotification["ServerNotification"]
     TurnStartedNotif["TurnStarted"]
     ItemStartedNotif["ItemStarted"]
     ItemCompletedNotif["ItemCompleted"]
     TurnCompletedNotif["TurnCompleted"]
-    
+
     ServerRequest["ServerRequest"]
     CmdApproval["CommandExecutionRequestApproval"]
     FileChangeApproval["FileChangeRequestApproval"]
-    
+
     ClientRequest --> Initialize
     ClientRequest --> ThreadStart
     ClientRequest --> TurnStart
     ClientRequest --> ConfigRead
-    
+
     ServerNotification --> TurnStartedNotif
     ServerNotification --> ItemStartedNotif
     ServerNotification --> ItemCompletedNotif
     ServerNotification --> TurnCompletedNotif
-    
+
     ServerRequest --> CmdApproval
     ServerRequest --> FileChangeApproval
 ```
@@ -192,6 +191,7 @@ sequenceDiagram
 Sources: [codex-rs/app-server/src/message_processor.rs:270-380]()
 
 Key fields in `InitializeParams`:
+
 - `clientInfo.name` — used as the client identifier for OpenAI Compliance Logs
 - `capabilities.experimentalApi` — unlocks experimental methods
 - `capabilities.optOutNotificationMethods` — exact-match list of notification methods to suppress
@@ -253,11 +253,11 @@ Experimental API gating is checked in `MessageProcessor::process_request`: if `s
 
 The API is organized around three first-class entities:
 
-| Entity | Description | Key fields |
-|---|---|---|
-| `Thread` | A conversation between user and agent | `id`, `status`, `path`, `ephemeral`, `turns` |
-| `Turn` | One round-trip within a thread | `id`, `status` (`InProgress`/`Completed`/`Interrupted`), `items`, `error` |
-| `ThreadItem` | Atomic unit within a turn | Tagged union: `AgentMessage`, `ShellCommand`, `FileChange`, `ContextCompaction`, etc. |
+| Entity       | Description                           | Key fields                                                                            |
+| ------------ | ------------------------------------- | ------------------------------------------------------------------------------------- |
+| `Thread`     | A conversation between user and agent | `id`, `status`, `path`, `ephemeral`, `turns`                                          |
+| `Turn`       | One round-trip within a thread        | `id`, `status` (`InProgress`/`Completed`/`Interrupted`), `items`, `error`             |
+| `ThreadItem` | Atomic unit within a turn             | Tagged union: `AgentMessage`, `ShellCommand`, `FileChange`, `ContextCompaction`, etc. |
 
 These types are defined in [codex-rs/app-server-protocol/src/protocol/v2.rs]() and correspond to the `Thread`, `Turn`, and `ThreadItem` types exported from `codex_app_server_protocol`.
 
@@ -296,28 +296,28 @@ Sources: [codex-rs/app-server/src/bespoke_event_handling.rs:204-227](), [codex-r
 
 ### Thread operations summary
 
-| Method | Wire name | What it does |
-|---|---|---|
-| `ThreadStart` | `thread/start` | Create new thread; auto-subscribe caller |
-| `ThreadResume` | `thread/resume` | Reopen persisted thread |
-| `ThreadFork` | `thread/fork` | Copy history into new thread |
-| `ThreadArchive` | `thread/archive` | Move rollout to archived directory |
-| `ThreadUnarchive` | `thread/unarchive` | Restore archived rollout |
-| `ThreadList` | `thread/list` | Paginated list with filters |
-| `ThreadRead` | `thread/read` | Read thread without resuming |
-| `ThreadUnsubscribe` | `thread/unsubscribe` | Remove subscription; unloads if last subscriber |
-| `ThreadCompactStart` | `thread/compact/start` | Trigger history compaction |
-| `ThreadRollback` | `thread/rollback` | Drop last N turns from context |
-| `ThreadSetName` | `thread/name/set` | Set user-facing name |
+| Method               | Wire name              | What it does                                    |
+| -------------------- | ---------------------- | ----------------------------------------------- |
+| `ThreadStart`        | `thread/start`         | Create new thread; auto-subscribe caller        |
+| `ThreadResume`       | `thread/resume`        | Reopen persisted thread                         |
+| `ThreadFork`         | `thread/fork`          | Copy history into new thread                    |
+| `ThreadArchive`      | `thread/archive`       | Move rollout to archived directory              |
+| `ThreadUnarchive`    | `thread/unarchive`     | Restore archived rollout                        |
+| `ThreadList`         | `thread/list`          | Paginated list with filters                     |
+| `ThreadRead`         | `thread/read`          | Read thread without resuming                    |
+| `ThreadUnsubscribe`  | `thread/unsubscribe`   | Remove subscription; unloads if last subscriber |
+| `ThreadCompactStart` | `thread/compact/start` | Trigger history compaction                      |
+| `ThreadRollback`     | `thread/rollback`      | Drop last N turns from context                  |
+| `ThreadSetName`      | `thread/name/set`      | Set user-facing name                            |
 
 ### Turn operations summary
 
-| Method | Wire name | What it does |
-|---|---|---|
-| `TurnStart` | `turn/start` | Submit user input, begin generation |
-| `TurnSteer` | `turn/steer` | Inject input into active turn |
-| `TurnInterrupt` | `turn/interrupt` | Cancel in-flight turn |
-| `ReviewStart` | `review/start` | Run automated code reviewer |
+| Method          | Wire name        | What it does                        |
+| --------------- | ---------------- | ----------------------------------- |
+| `TurnStart`     | `turn/start`     | Submit user input, begin generation |
+| `TurnSteer`     | `turn/steer`     | Inject input into active turn       |
+| `TurnInterrupt` | `turn/interrupt` | Cancel in-flight turn               |
+| `ReviewStart`   | `review/start`   | Run automated code reviewer         |
 
 Sources: [codex-rs/app-server-protocol/src/protocol/common.rs:205-400](), [codex-rs/app-server/README.md:126-150]()
 
@@ -361,16 +361,16 @@ flowchart LR
 
 The `CodexMessageProcessor::process_request` method in [codex-rs/app-server/src/codex_message_processor.rs:632-861]() routes requests by matching on the `ClientRequest` enum variants. Key methods include:
 
-| ClientRequest variant | Handler method | Core operation |
-|---|---|---|
-| `ThreadStart` | `thread_start()` | `ThreadManager::new_thread()` |
-| `ThreadResume` | `thread_resume()` | `ThreadManager::get_thread()` |
-| `TurnStart` | `turn_start()` | `thread.submit(Op::UserInput)` |
-| `TurnInterrupt` | `turn_interrupt()` | `thread.submit(Op::InterruptTurn)` |
-| `ThreadList` | `thread_list()` | Query rollout filesystem + StateDB |
-| `ThreadRead` | `thread_read()` | Read rollout file, parse items |
-| `ModelList` | `list_models()` | `ModelsManager::list_models()` |
-| `McpServerOauthLogin` | `mcp_server_oauth_login()` | OAuth flow delegation |
+| ClientRequest variant | Handler method             | Core operation                     |
+| --------------------- | -------------------------- | ---------------------------------- |
+| `ThreadStart`         | `thread_start()`           | `ThreadManager::new_thread()`      |
+| `ThreadResume`        | `thread_resume()`          | `ThreadManager::get_thread()`      |
+| `TurnStart`           | `turn_start()`             | `thread.submit(Op::UserInput)`     |
+| `TurnInterrupt`       | `turn_interrupt()`         | `thread.submit(Op::InterruptTurn)` |
+| `ThreadList`          | `thread_list()`            | Query rollout filesystem + StateDB |
+| `ThreadRead`          | `thread_read()`            | Read rollout file, parse items     |
+| `ModelList`           | `list_models()`            | `ModelsManager::list_models()`     |
+| `McpServerOauthLogin` | `mcp_server_oauth_login()` | OAuth flow delegation              |
 
 Sources: [codex-rs/app-server/src/codex_message_processor.rs:632-861](), [codex-rs/app-server/src/codex_message_processor.rs:1177-1269]()
 
@@ -386,26 +386,26 @@ Notifications can be suppressed per-connection via `optOutNotificationMethods` a
 
 The `ConfigApi` struct [codex-rs/app-server/src/config_api.rs]() handles:
 
-| Method | Wire name | Params type | Description |
-|---|---|---|---|
-| `ConfigRead` | `config/read` | `ConfigReadParams` | Fetch effective layered config; optionally return raw layers |
-| `ConfigValueWrite` | `config/value/write` | `ConfigValueWriteParams` | Write a single key/value to user config |
-| `ConfigBatchWrite` | `config/batchWrite` | `ConfigBatchWriteParams` | Apply multiple edits atomically |
-| `ConfigRequirementsRead` | `configRequirements/read` | _(none)_ | Fetch `requirements.toml` / MDM constraints |
+| Method                   | Wire name                 | Params type              | Description                                                  |
+| ------------------------ | ------------------------- | ------------------------ | ------------------------------------------------------------ |
+| `ConfigRead`             | `config/read`             | `ConfigReadParams`       | Fetch effective layered config; optionally return raw layers |
+| `ConfigValueWrite`       | `config/value/write`      | `ConfigValueWriteParams` | Write a single key/value to user config                      |
+| `ConfigBatchWrite`       | `config/batchWrite`       | `ConfigBatchWriteParams` | Apply multiple edits atomically                              |
+| `ConfigRequirementsRead` | `configRequirements/read` | _(none)_                 | Fetch `requirements.toml` / MDM constraints                  |
 
 `ConfigReadParams` includes `include_layers: bool` and `cwd: Option<String>` for project-scoped layer resolution [codex-rs/app-server-protocol/src/protocol/v2.rs:585-595]().
 
 The config layer precedence ordering is:
 
-| Layer | Precedence |
-|---|---|
-| `Mdm` | 0 (lowest) |
-| `System` | 10 |
-| `User` | 20 |
-| `Project` | 25 |
-| `SessionFlags` | 30 |
-| `LegacyManagedConfigTomlFromFile` | 40 |
-| `LegacyManagedConfigTomlFromMdm` | 50 (highest) |
+| Layer                             | Precedence   |
+| --------------------------------- | ------------ |
+| `Mdm`                             | 0 (lowest)   |
+| `System`                          | 10           |
+| `User`                            | 20           |
+| `Project`                         | 25           |
+| `SessionFlags`                    | 30           |
+| `LegacyManagedConfigTomlFromFile` | 40           |
+| `LegacyManagedConfigTomlFromMdm`  | 50 (highest) |
 
 Sources: [codex-rs/app-server-protocol/src/protocol/v2.rs:405-473](), [codex-rs/app-server/src/config_api.rs]()
 
@@ -415,14 +415,15 @@ Sources: [codex-rs/app-server-protocol/src/protocol/v2.rs:405-473](), [codex-rs/
 
 The server supports multiple auth modes, coordinated by `AuthManager` from `codex-core`. Two flows are available:
 
-| Method | Wire name | Flow |
-|---|---|---|
-| `LoginAccount` | `account/login/start` | Device-code OAuth for ChatGPT |
-| `LoginApiKey` (deprecated) | `LoginApiKey` | Store API key |
-| `LogoutAccount` | `account/logout` | Remove stored credentials |
-| `GetAccount` | `account/read` | Fetch account info and plan type |
+| Method                     | Wire name             | Flow                             |
+| -------------------------- | --------------------- | -------------------------------- |
+| `LoginAccount`             | `account/login/start` | Device-code OAuth for ChatGPT    |
+| `LoginApiKey` (deprecated) | `LoginApiKey`         | Store API key                    |
+| `LogoutAccount`            | `account/logout`      | Remove stored credentials        |
+| `GetAccount`               | `account/read`        | Fetch account info and plan type |
 
 The `AuthMode` enum [codex-rs/app-server-protocol/src/protocol/common.rs:28-43]() has three values:
+
 - `apiKey` — direct OpenAI API key
 - `chatgpt` — ChatGPT OAuth managed by Codex
 - `chatgptAuthTokens` — tokens supplied by an external host app (token refresh is handled by the host via a `chatgptAuthTokens/refresh` server request)
@@ -456,12 +457,12 @@ mpsc::channel"]
 (one per connection)"]
     Transport["Transport\
 (stdio or WebSocket)"]
-    
+
     ServerReq["send_request()\
 oneshot callback"]
     SendResp["send_response()"]
     SendNotif["send_server_notification()"]
-    
+
     ServerReq --> OMS
     SendResp --> OMS
     SendNotif --> OMS

@@ -18,8 +18,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the OpenClaw gateway-based agent and the Nanobot simplified agent, two of the five agent architectures in AionUi. OpenClaw provides a gateway connection model with runtime validation and session management, while Nanobot offers a minimal stateless implementation.
 
 For information about other agent systems, see [Gemini Agent System](#4.1), [Codex Agent System](#4.2), and [ACP Agent Integration](#4.3). For the unified tool system shared by all agents, see [Tool System Architecture](#4.5).
@@ -30,16 +28,16 @@ For information about other agent systems, see [Gemini Agent System](#4.1), [Cod
 
 OpenClaw and Nanobot represent opposite ends of the complexity spectrum in AionUi's agent architecture:
 
-| Feature | OpenClaw | Nanobot |
-|---------|----------|---------|
-| Architecture | Gateway-based, external connection | Simplified, minimal implementation |
-| Session Management | Full session resumption via `sessionKey` | Stateless, no session management |
-| Runtime Validation | Strong runtime validation checks | None required |
-| Gateway Mode | Internal (spawned) or external gateway | No gateway concept |
-| Backend Selection | Supports multiple ACP backends | Single implementation |
-| Conversation Type | `'openclaw-gateway'` | `'nanobot'` |
-| Agent Manager | `OpenClawAgentManager` | `NanobotAgentManager` (minimal) |
-| Configuration Complexity | High (gateway, backend, validation) | Low (workspace, skills only) |
+| Feature                  | OpenClaw                                 | Nanobot                            |
+| ------------------------ | ---------------------------------------- | ---------------------------------- |
+| Architecture             | Gateway-based, external connection       | Simplified, minimal implementation |
+| Session Management       | Full session resumption via `sessionKey` | Stateless, no session management   |
+| Runtime Validation       | Strong runtime validation checks         | None required                      |
+| Gateway Mode             | Internal (spawned) or external gateway   | No gateway concept                 |
+| Backend Selection        | Supports multiple ACP backends           | Single implementation              |
+| Conversation Type        | `'openclaw-gateway'`                     | `'nanobot'`                        |
+| Agent Manager            | `OpenClawAgentManager`                   | `NanobotAgentManager` (minimal)    |
+| Configuration Complexity | High (gateway, backend, validation)      | Low (workspace, skills only)       |
 
 **Sources:** [src/common/storage.ts:240-302](), [src/process/task/OpenClawAgentManager.ts:19-38]()
 
@@ -57,30 +55,30 @@ graph TB
         SENDBOX["OpenClawSendBox<br/>(React Component)"]
         DRAFT["useOpenClawSendBoxDraft<br/>(Draft State)"]
     end
-    
+
     subgraph "IPC Bridge"
         SEND["conversation.sendMessage<br/>(Unified API)"]
         STREAM["openclawConversation.responseStream<br/>(Event Emitter)"]
         RUNTIME["openclawConversation.getRuntime<br/>(Provider)"]
     end
-    
+
     subgraph "Main Process"
         MANAGER["OpenClawAgentManager<br/>(extends BaseAgentManager)"]
         AGENT["OpenClawAgent<br/>(from @/agent/openclaw)"]
         VALIDATE["validateRuntimeMismatch()<br/>(Frontend Helper)"]
     end
-    
+
     subgraph "Gateway Layer"
         GATEWAY["OpenClaw Gateway<br/>(External Process)"]
         INTERNAL["Internal Gateway<br/>(Spawned by AionUi)"]
         EXTERNAL["External Gateway<br/>(User-provided)"]
     end
-    
+
     subgraph "Storage"
         CONV["TChatConversation<br/>type='openclaw-gateway'"]
         EXTRA["extra.gateway<br/>extra.sessionKey<br/>extra.runtimeValidation"]
     end
-    
+
     SENDBOX -->|"validate before send"| VALIDATE
     VALIDATE -->|"invoke"| RUNTIME
     SENDBOX -->|"invoke"| SEND
@@ -112,13 +110,13 @@ graph LR
         E["Send Message"]
         F["Show Error & Block"]
     end
-    
+
     A --> B
     B --> C
     C --> D
     D -->|"match"| E
     D -->|"mismatch"| F
-    
+
     subgraph "Validation Fields"
         V1["workspace"]
         V2["backend"]
@@ -127,7 +125,7 @@ graph LR
         V5["model"]
         V6["identityHash"]
     end
-    
+
     D -.->|"compares"| V1
     D -.->|"compares"| V2
     D -.->|"compares"| V3
@@ -140,12 +138,17 @@ The validation logic normalizes paths and compares six critical fields:
 
 ```typescript
 // Validation implementation
-const norm = (v?: string | null) => (v || '').trim();
-const eqPath = (a?: string | null, b?: string | null) => 
-  norm(a).replace(/[\\/]+$/, '') === norm(b).replace(/[\\/]+$/, '');
+const norm = (v?: string | null) => (v || '').trim()
+const eqPath = (a?: string | null, b?: string | null) =>
+  norm(a).replace(/[\\/]+$/, '') === norm(b).replace(/[\\/]+$/, '')
 
-if (expected.expectedWorkspace && !eqPath(expected.expectedWorkspace, runtime.workspace)) {
-  mismatches.push(`workspace: expected=${expected.expectedWorkspace || '-'} actual=${runtime.workspace || '-'}`);
+if (
+  expected.expectedWorkspace &&
+  !eqPath(expected.expectedWorkspace, runtime.workspace)
+) {
+  mismatches.push(
+    `workspace: expected=${expected.expectedWorkspace || '-'} actual=${runtime.workspace || '-'}`
+  )
 }
 ```
 
@@ -155,14 +158,14 @@ if (expected.expectedWorkspace && !eqPath(expected.expectedWorkspace, runtime.wo
 
 The gateway configuration in conversation extra data determines how OpenClaw connects:
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `gateway.host` | `string` | Gateway server hostname |
-| `gateway.port` | `number` | Gateway server port (default: 18789) |
-| `gateway.token` | `string` | Authentication token |
-| `gateway.password` | `string` | Authentication password |
-| `gateway.useExternalGateway` | `boolean` | Use external gateway vs spawned |
-| `gateway.cliPath` | `string` | Path to CLI binary for spawning |
+| Field                        | Type      | Purpose                              |
+| ---------------------------- | --------- | ------------------------------------ |
+| `gateway.host`               | `string`  | Gateway server hostname              |
+| `gateway.port`               | `number`  | Gateway server port (default: 18789) |
+| `gateway.token`              | `string`  | Authentication token                 |
+| `gateway.password`           | `string`  | Authentication password              |
+| `gateway.useExternalGateway` | `boolean` | Use external gateway vs spawned      |
+| `gateway.cliPath`            | `string`  | Path to CLI binary for spawning      |
 
 **Sources:** [src/common/storage.ts:249-256](), [src/process/task/OpenClawAgentManager.ts:24-32]()
 
@@ -177,7 +180,7 @@ sequenceDiagram
     participant Agent as OpenClawAgent
     participant Gateway as OpenClaw Gateway
     participant DB as Database (extra.sessionKey)
-    
+
     UI->>Manager: sendMessage()
     Manager->>Agent: bootstrap (await)
     Agent->>Gateway: connect(sessionKey)
@@ -203,20 +206,20 @@ graph TD
         STREAM["agent.onStreamEvent<br/>(content, agent_status)"]
         SIGNAL["agent.onSignalEvent<br/>(finish, acp_permission)"]
     end
-    
+
     subgraph "Manager Processing"
         HANDLE_STREAM["handleStreamEvent()"]
         HANDLE_SIGNAL["handleSignalEvent()"]
         TRANSFORM["transformMessage()"]
         PERSIST["addMessage() / addOrUpdateMessage()"]
     end
-    
+
     subgraph "Emission Targets"
         IPC_OC["openclawConversation.responseStream"]
         IPC_CONV["conversation.responseStream"]
         CHANNEL["channelEventBus.emitAgentMessage()"]
     end
-    
+
     STREAM --> HANDLE_STREAM
     SIGNAL --> HANDLE_SIGNAL
     HANDLE_STREAM --> TRANSFORM
@@ -246,7 +249,7 @@ graph LR
     G["User approves/rejects"]
     H["confirm(id, callId, data)"]
     I["agent.confirmMessage()"]
-    
+
     A --> B
     B --> C
     C --> D
@@ -258,6 +261,7 @@ graph LR
 ```
 
 Permission data structure:
+
 ```typescript
 {
   sessionId: string;
@@ -291,22 +295,22 @@ graph TB
         SENDBOX["NanobotSendBox<br/>(React Component)"]
         DRAFT["useNanobotSendBoxDraft<br/>(Draft State)"]
     end
-    
+
     subgraph "IPC Bridge"
         SEND["conversation.sendMessage<br/>(Unified API)"]
         STREAM["conversation.responseStream<br/>(Unified Stream)"]
     end
-    
+
     subgraph "Main Process"
         MANAGER["NanobotAgentManager<br/>(Minimal)"]
         AGENT["NanobotAgent<br/>(Simple Implementation)"]
     end
-    
+
     subgraph "Storage"
         CONV["TChatConversation<br/>type='nanobot'"]
         EXTRA["extra.workspace<br/>extra.enabledSkills"]
     end
-    
+
     SENDBOX -->|"invoke"| SEND
     SEND --> MANAGER
     MANAGER -->|"delegates to"| AGENT
@@ -331,15 +335,15 @@ graph TD
     E["NanobotAgentManager"]
     F["NanobotAgent processes"]
     G["conversation.responseStream.on()"]
-    
+
     H["type === 'thought'"]
     I["type === 'finish'"]
     J["type === 'content' | 'error'"]
-    
+
     K["throttledSetThought()"]
     L["setAiProcessing(false)"]
     M["transformMessage()<br/>addOrUpdateMessage()"]
-    
+
     A --> B
     B --> C
     C --> D
@@ -355,28 +359,29 @@ graph TD
 ```
 
 Event handling implementation:
+
 ```typescript
 switch (message.type) {
   case 'thought':
-    throttledSetThought(message.data as ThoughtData);
-    break;
+    throttledSetThought(message.data as ThoughtData)
+    break
   case 'finish':
-    setThought({ subject: '', description: '' });
-    setAiProcessing(false);
-    break;
+    setThought({ subject: '', description: '' })
+    setAiProcessing(false)
+    break
   case 'content':
   case 'error':
   case 'user_content':
   default: {
-    setThought({ subject: '', description: '' });
-    const transformedMessage = transformMessage(message);
+    setThought({ subject: '', description: '' })
+    const transformedMessage = transformMessage(message)
     if (transformedMessage) {
-      addOrUpdateMessage(transformedMessage);
+      addOrUpdateMessage(transformedMessage)
     }
     if (message.type === 'error') {
-      setAiProcessing(false);
+      setAiProcessing(false)
     }
-    break;
+    break
   }
 }
 ```
@@ -387,15 +392,15 @@ switch (message.type) {
 
 Nanobot requires minimal configuration in conversation extra:
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `workspace` | `string` | Working directory path |
-| `customWorkspace` | `boolean` | User-specified vs system default |
-| `enabledSkills` | `string[]` | Skill filter list |
-| `presetAssistantId` | `string` | Assistant preset identifier |
-| `pinned` | `boolean` | Conversation pin status |
-| `pinnedAt` | `number` | Pin timestamp |
-| `isHealthCheck` | `boolean` | Temporary health-check marker |
+| Field               | Type       | Purpose                          |
+| ------------------- | ---------- | -------------------------------- |
+| `workspace`         | `string`   | Working directory path           |
+| `customWorkspace`   | `boolean`  | User-specified vs system default |
+| `enabledSkills`     | `string[]` | Skill filter list                |
+| `presetAssistantId` | `string`   | Assistant preset identifier      |
+| `pinned`            | `boolean`  | Conversation pin status          |
+| `pinnedAt`          | `number`   | Pin timestamp                    |
+| `isHealthCheck`     | `boolean`  | Temporary health-check marker    |
 
 **Sources:** [src/common/storage.ts:284-300]()
 
@@ -416,19 +421,19 @@ graph TB
         OC_STATUS["openclawStatus state<br/>('session_active')"]
         OC_INITIAL["Handle initial message<br/>(await session_active)"]
     end
-    
+
     subgraph "NanobotSendBox"
         NB_DRAFT["useNanobotSendBoxDraft<br/>(Draft persistence)"]
         NB_STATELESS["No validation required<br/>(Stateless design)"]
         NB_INITIAL["Handle initial message<br/>(Send immediately)"]
     end
-    
+
     subgraph "Shared SendBox Component"
         SENDBOX["SendBox<br/>(Common UI)"]
         THOUGHT["ThoughtDisplay<br/>(Loading state)"]
         FILES["HorizontalFileList<br/>FilePreview"]
     end
-    
+
     OC_DRAFT --> SENDBOX
     OC_VALIDATE --> OC_RUNTIME
     NB_DRAFT --> SENDBOX
@@ -449,7 +454,7 @@ const useOpenClawSendBoxDraft = getSendBoxDraftHook('openclaw-gateway', {
   atPath: [],
   content: '',
   uploadFile: [],
-});
+})
 
 // Nanobot draft hook
 const useNanobotSendBoxDraft = getSendBoxDraftHook('nanobot', {
@@ -457,7 +462,7 @@ const useNanobotSendBoxDraft = getSendBoxDraftHook('nanobot', {
   atPath: [],
   content: '',
   uploadFile: [],
-});
+})
 ```
 
 Draft data structure:
@@ -485,7 +490,7 @@ graph LR
     G["User removes file"]
     H["Filter atPath/uploadFile"]
     I["emitter.emit('*.selected.file.clear')"]
-    
+
     A --> B
     B --> C
     C --> D
@@ -508,24 +513,25 @@ sequenceDiagram
     participant SS as sessionStorage
     participant SendBox as SendBox (OpenClaw/Nanobot)
     participant IPC as IPC Bridge
-    
+
     Guid->>SS: Store initial_message_{conversation_id}
     Guid->>SendBox: Navigate to conversation
     SendBox->>SS: Check for stored message
-    
+
     alt OpenClaw
         SendBox->>SendBox: Wait for openclawStatus === 'session_active'
         SendBox->>SendBox: validateRuntimeMismatch()
     else Nanobot
         SendBox->>SendBox: Send immediately (stateless)
     end
-    
+
     SendBox->>SendBox: Mark as processed
     SendBox->>IPC: conversation.sendMessage.invoke()
     SendBox->>SS: Remove storage key
 ```
 
 Storage keys:
+
 - OpenClaw: `openclaw_initial_message_{conversation_id}` + `openclaw_initial_processed_{conversation_id}`
 - Nanobot: `nanobot_initial_message_{conversation_id}` + `nanobot_initial_processed_{conversation_id}`
 
@@ -539,35 +545,37 @@ Storage keys:
 
 ```typescript
 export const openclawConversation = {
-  sendMessage: conversation.sendMessage,  // Unified API
-  responseStream: bridge.buildEmitter<IResponseMessage>('openclaw.response.stream'),
+  sendMessage: conversation.sendMessage, // Unified API
+  responseStream: bridge.buildEmitter<IResponseMessage>(
+    'openclaw.response.stream'
+  ),
   getRuntime: bridge.buildProvider<
     IBridgeResponse<{
-      conversationId: string;
+      conversationId: string
       runtime: {
-        workspace?: string;
-        backend?: string;
-        agentName?: string;
-        cliPath?: string;
-        model?: string;
-        sessionKey?: string | null;
-        isConnected?: boolean;
-        hasActiveSession?: boolean;
-        identityHash?: string | null;
-      };
+        workspace?: string
+        backend?: string
+        agentName?: string
+        cliPath?: string
+        model?: string
+        sessionKey?: string | null
+        isConnected?: boolean
+        hasActiveSession?: boolean
+        identityHash?: string | null
+      }
       expected?: {
-        expectedWorkspace?: string;
-        expectedBackend?: string;
-        expectedAgentName?: string;
-        expectedCliPath?: string;
-        expectedModel?: string;
-        expectedIdentityHash?: string | null;
-        switchedAt?: number;
-      };
+        expectedWorkspace?: string
+        expectedBackend?: string
+        expectedAgentName?: string
+        expectedCliPath?: string
+        expectedModel?: string
+        expectedIdentityHash?: string | null
+        switchedAt?: number
+      }
     }>,
     { conversation_id: string }
   >('openclaw.get-runtime'),
-};
+}
 ```
 
 The `getRuntime` provider is used for runtime validation before sending messages.
@@ -577,6 +585,7 @@ The `getRuntime` provider is used for runtime validation before sending messages
 ### Nanobot Integration
 
 Nanobot uses **only the unified conversation APIs**:
+
 - `conversation.sendMessage` for sending messages
 - `conversation.responseStream` for receiving responses
 
@@ -696,13 +705,13 @@ This data is exposed via the `getRuntime` IPC provider for frontend validation.
 
 OpenClaw tracks multiple state variables:
 
-| State | Type | Purpose |
-|-------|------|---------|
-| `aiProcessing` | `boolean` | UI loading indicator |
-| `openclawStatus` | `string` | Connection status (`'session_active'`) |
-| `thought` | `ThoughtData` | Current processing thought |
-| `hasContentInTurnRef` | `Ref<boolean>` | Content output tracking |
-| `finishTimeoutRef` | `Ref<Timeout>` | Delayed finish detection |
+| State                 | Type           | Purpose                                |
+| --------------------- | -------------- | -------------------------------------- |
+| `aiProcessing`        | `boolean`      | UI loading indicator                   |
+| `openclawStatus`      | `string`       | Connection status (`'session_active'`) |
+| `thought`             | `ThoughtData`  | Current processing thought             |
+| `hasContentInTurnRef` | `Ref<boolean>` | Content output tracking                |
+| `finishTimeoutRef`    | `Ref<Timeout>` | Delayed finish detection               |
 
 Finish handling uses delayed reset (1000ms) to detect true task completion:
 
@@ -726,10 +735,10 @@ case 'finish':
 
 Nanobot uses minimal state:
 
-| State | Type | Purpose |
-|-------|------|---------|
-| `aiProcessing` | `boolean` | UI loading indicator |
-| `thought` | `ThoughtData` | Current processing thought |
+| State          | Type          | Purpose                    |
+| -------------- | ------------- | -------------------------- |
+| `aiProcessing` | `boolean`     | UI loading indicator       |
+| `thought`      | `ThoughtData` | Current processing thought |
 
 Finish handling is immediate:
 
@@ -746,18 +755,18 @@ case 'finish':
 
 ## Summary Table
 
-| Aspect | OpenClaw | Nanobot |
-|--------|----------|---------|
-| **Architecture** | Gateway-based with external server | Direct minimal implementation |
-| **Complexity** | High - validation, sessions, gateway | Low - stateless and simple |
-| **Runtime Validation** | Required before each message | None |
-| **Session Management** | Full resumption via `sessionKey` | No sessions |
-| **Gateway Configuration** | Internal/external with host/port/auth | Not applicable |
-| **Initial Message Handling** | Wait for `session_active` status | Send immediately |
-| **IPC APIs** | Dedicated `openclawConversation.*` | Unified `conversation.*` only |
-| **State Tracking** | Multiple states + refs + timeouts | Minimal state |
-| **Agent Manager** | `OpenClawAgentManager` with bootstrap | `NanobotAgentManager` (simple) |
-| **Permission System** | ACP-style `acp_permission` messages | None documented |
-| **Use Cases** | Complex workflows requiring gateway | Simple conversational interactions |
+| Aspect                       | OpenClaw                              | Nanobot                            |
+| ---------------------------- | ------------------------------------- | ---------------------------------- |
+| **Architecture**             | Gateway-based with external server    | Direct minimal implementation      |
+| **Complexity**               | High - validation, sessions, gateway  | Low - stateless and simple         |
+| **Runtime Validation**       | Required before each message          | None                               |
+| **Session Management**       | Full resumption via `sessionKey`      | No sessions                        |
+| **Gateway Configuration**    | Internal/external with host/port/auth | Not applicable                     |
+| **Initial Message Handling** | Wait for `session_active` status      | Send immediately                   |
+| **IPC APIs**                 | Dedicated `openclawConversation.*`    | Unified `conversation.*` only      |
+| **State Tracking**           | Multiple states + refs + timeouts     | Minimal state                      |
+| **Agent Manager**            | `OpenClawAgentManager` with bootstrap | `NanobotAgentManager` (simple)     |
+| **Permission System**        | ACP-style `acp_permission` messages   | None documented                    |
+| **Use Cases**                | Complex workflows requiring gateway   | Simple conversational interactions |
 
 **Sources:** [src/renderer/pages/conversation/openclaw/OpenClawSendBox.tsx:1-580](), [src/renderer/pages/conversation/nanobot/NanobotSendBox.tsx:1-399](), [src/process/task/OpenClawAgentManager.ts:1-269]()

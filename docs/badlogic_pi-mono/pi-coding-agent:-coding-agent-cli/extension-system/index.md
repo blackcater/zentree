@@ -15,8 +15,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the extension system in the `pi-coding-agent` package (`@mariozechner/pi-coding-agent`). It covers the full `ExtensionAPI` surface, all `pi.on` event types, registration methods, the `ExtensionContext` / `ExtensionCommandContext` distinction, the `ExtensionRunner` lifecycle, and how extensions are loaded via jiti.
 
 For the package and resource management that discovers and installs extension files, see [4.5](#4.5). For how the agent session (`AgentSession`) wires extensions into the agent loop, see [4.2](#4.2). For model provider registration, see [4.7](#4.7).
@@ -89,23 +87,23 @@ The `discoverAndLoadExtensions()` function in `loader.ts` resolves extension fil
 
 **Auto-discovered locations:**
 
-| Location | Scope |
-|---|---|
-| `~/.pi/agent/extensions/*.ts` | Global |
-| `~/.pi/agent/extensions/*/index.ts` | Global (subdirectory) |
-| `.pi/extensions/*.ts` | Project-local |
-| `.pi/extensions/*/index.ts` | Project-local (subdirectory) |
-| Paths in `settings.json` → `extensions` | Explicit |
-| Paths in `package.json` → `pi.extensions` | Package manifest |
+| Location                                  | Scope                        |
+| ----------------------------------------- | ---------------------------- |
+| `~/.pi/agent/extensions/*.ts`             | Global                       |
+| `~/.pi/agent/extensions/*/index.ts`       | Global (subdirectory)        |
+| `.pi/extensions/*.ts`                     | Project-local                |
+| `.pi/extensions/*/index.ts`               | Project-local (subdirectory) |
+| Paths in `settings.json` → `extensions`   | Explicit                     |
+| Paths in `package.json` → `pi.extensions` | Package manifest             |
 
 The loader creates a `jiti` instance with a set of **virtual modules** — packages pre-bundled into the binary that extensions can import without installing them:
 
-| Import | Source |
-|---|---|
-| `@sinclair/typebox` | `_bundledTypebox` |
-| `@mariozechner/pi-ai` | `_bundledPiAi` |
-| `@mariozechner/pi-tui` | `_bundledPiTui` |
-| `@mariozechner/pi-agent-core` | `_bundledPiAgentCore` |
+| Import                          | Source                  |
+| ------------------------------- | ----------------------- |
+| `@sinclair/typebox`             | `_bundledTypebox`       |
+| `@mariozechner/pi-ai`           | `_bundledPiAi`          |
+| `@mariozechner/pi-tui`          | `_bundledPiTui`         |
+| `@mariozechner/pi-agent-core`   | `_bundledPiAgentCore`   |
 | `@mariozechner/pi-coding-agent` | `_bundledPiCodingAgent` |
 
 Extensions with external npm dependencies place a `package.json` in their directory and run `npm install`; `node_modules` is then resolved via normal Node.js resolution.
@@ -203,20 +201,21 @@ Sources: [packages/coding-agent/docs/extensions.md:224-282]()
 
 ### Session Events
 
-| Event type | When fired | Can return |
-|---|---|---|
-| `session_start` | On initial session load | — |
-| `session_before_switch` | Before `/new` or `/resume` | `{ cancel: true }` |
-| `session_switch` | After session switch completes | — |
-| `session_before_fork` | Before `/fork` | `{ cancel: true }`, `{ skipConversationRestore: true }` |
-| `session_fork` | After fork completes | — |
-| `session_before_compact` | Before compaction | `{ cancel: true }`, `{ compaction: {...} }` |
-| `session_compact` | After compaction saved | — |
-| `session_before_tree` | Before `/tree` navigation | `{ cancel: true }`, `{ summary: {...} }` |
-| `session_tree` | After tree navigation | — |
-| `session_shutdown` | On exit (Ctrl+C, Ctrl+D, SIGTERM) | — |
+| Event type               | When fired                        | Can return                                              |
+| ------------------------ | --------------------------------- | ------------------------------------------------------- |
+| `session_start`          | On initial session load           | —                                                       |
+| `session_before_switch`  | Before `/new` or `/resume`        | `{ cancel: true }`                                      |
+| `session_switch`         | After session switch completes    | —                                                       |
+| `session_before_fork`    | Before `/fork`                    | `{ cancel: true }`, `{ skipConversationRestore: true }` |
+| `session_fork`           | After fork completes              | —                                                       |
+| `session_before_compact` | Before compaction                 | `{ cancel: true }`, `{ compaction: {...} }`             |
+| `session_compact`        | After compaction saved            | —                                                       |
+| `session_before_tree`    | Before `/tree` navigation         | `{ cancel: true }`, `{ summary: {...} }`                |
+| `session_tree`           | After tree navigation             | —                                                       |
+| `session_shutdown`       | On exit (Ctrl+C, Ctrl+D, SIGTERM) | —                                                       |
 
 Event payloads:
+
 - `session_before_compact` includes `preparation: CompactionPreparation`, `branchEntries`, `signal`.
 - `session_compact` includes `compactionEntry: CompactionEntry`, `fromExtension: boolean`.
 - `session_before_fork` includes `entryId`.
@@ -226,19 +225,20 @@ Sources: [packages/coding-agent/docs/extensions.md:284-387](), [packages/coding-
 
 ### Agent Events
 
-| Event type | When fired | Payload |
-|---|---|---|
-| `before_agent_start` | After prompt submitted, before agent loop | `prompt`, `images`, `systemPrompt` |
-| `agent_start` | Once per user prompt, start | — |
-| `agent_end` | Once per user prompt, end | `messages` |
-| `turn_start` | Start of each LLM turn | `turnIndex`, `timestamp` |
-| `turn_end` | End of each LLM turn | `turnIndex`, `message`, `toolResults` |
-| `message_start` | New message begins streaming | message type info |
-| `message_update` | Streaming update (assistant only) | partial content |
-| `message_end` | Message stream completed | final message |
-| `context` | Before LLM call, can modify messages | `messages` |
+| Event type           | When fired                                | Payload                               |
+| -------------------- | ----------------------------------------- | ------------------------------------- |
+| `before_agent_start` | After prompt submitted, before agent loop | `prompt`, `images`, `systemPrompt`    |
+| `agent_start`        | Once per user prompt, start               | —                                     |
+| `agent_end`          | Once per user prompt, end                 | `messages`                            |
+| `turn_start`         | Start of each LLM turn                    | `turnIndex`, `timestamp`              |
+| `turn_end`           | End of each LLM turn                      | `turnIndex`, `message`, `toolResults` |
+| `message_start`      | New message begins streaming              | message type info                     |
+| `message_update`     | Streaming update (assistant only)         | partial content                       |
+| `message_end`        | Message stream completed                  | final message                         |
+| `context`            | Before LLM call, can modify messages      | `messages`                            |
 
 `before_agent_start` handlers can return:
+
 ```typescript
 {
   message?: { customType, content, display },
@@ -250,25 +250,25 @@ Sources: [packages/coding-agent/docs/extensions.md:390-440](), [packages/coding-
 
 ### Tool Events
 
-| Event type | When fired | Can return |
-|---|---|---|
-| `tool_call` | Before tool execution | `{ block: true, reason: string }` |
-| `tool_execution_start` | Tool execution begins | — |
-| `tool_execution_update` | Tool sends partial update | — |
-| `tool_execution_end` | Tool execution completes | — |
-| `tool_result` | After tool returns result | `{ result: AgentToolResult }` (patches chained) |
+| Event type              | When fired                | Can return                                      |
+| ----------------------- | ------------------------- | ----------------------------------------------- |
+| `tool_call`             | Before tool execution     | `{ block: true, reason: string }`               |
+| `tool_execution_start`  | Tool execution begins     | —                                               |
+| `tool_execution_update` | Tool sends partial update | —                                               |
+| `tool_execution_end`    | Tool execution completes  | —                                               |
+| `tool_result`           | After tool returns result | `{ result: AgentToolResult }` (patches chained) |
 
 **Tool call event types** are discriminated by `toolName`:
 
-| Type | `toolName` |
-|---|---|
-| `BashToolCallEvent` | `"bash"` |
-| `ReadToolCallEvent` | `"read"` |
-| `WriteToolCallEvent` | `"write"` |
-| `EditToolCallEvent` | `"edit"` |
-| `FindToolCallEvent` | `"find"` |
-| `GrepToolCallEvent` | `"grep"` |
-| `LsToolCallEvent` | `"ls"` |
+| Type                  | `toolName`                      |
+| --------------------- | ------------------------------- |
+| `BashToolCallEvent`   | `"bash"`                        |
+| `ReadToolCallEvent`   | `"read"`                        |
+| `WriteToolCallEvent`  | `"write"`                       |
+| `EditToolCallEvent`   | `"edit"`                        |
+| `FindToolCallEvent`   | `"find"`                        |
+| `GrepToolCallEvent`   | `"grep"`                        |
+| `LsToolCallEvent`     | `"ls"`                          |
 | `CustomToolCallEvent` | any registered custom tool name |
 
 Use `isToolCallEventType(event, "bash")` from the package for type-safe narrowing.
@@ -277,12 +277,12 @@ Sources: [packages/coding-agent/src/core/extensions/types.ts:600-750](), [packag
 
 ### Other Events
 
-| Event type | When fired | Notes |
-|---|---|---|
-| `input` | User submits a prompt | Can intercept, transform text, mark as handled |
-| `terminal_input` | Raw terminal keypress | Can consume or transform input before TUI handling |
-| `user_bash` | Extension requests interactive bash | Used by `interactive-shell` example |
-| `model_select` | Model or thinking level changes | `source: "command" \| "cycling" \| "flag" \| "api"` |
+| Event type           | When fired                          | Notes                                                     |
+| -------------------- | ----------------------------------- | --------------------------------------------------------- |
+| `input`              | User submits a prompt               | Can intercept, transform text, mark as handled            |
+| `terminal_input`     | Raw terminal keypress               | Can consume or transform input before TUI handling        |
+| `user_bash`          | Extension requests interactive bash | Used by `interactive-shell` example                       |
+| `model_select`       | Model or thinking level changes     | `source: "command" \| "cycling" \| "flag" \| "api"`       |
 | `resources_discover` | Resource loader discovers resources | Can return additional extensions, skills, prompts, themes |
 
 Sources: [packages/coding-agent/docs/extensions.md:600-750](), [packages/coding-agent/src/core/extensions/types.ts:750-900]()
@@ -324,12 +324,12 @@ Tools registered here appear alongside built-in tools (`bash`, `read`, `write`, 
 Registers a `/name` slash command. Handler receives `(args: string, ctx: ExtensionCommandContext)`.
 
 ```typescript
-pi.registerCommand("hello", {
-  description: "Say hello",
+pi.registerCommand('hello', {
+  description: 'Say hello',
   handler: async (args, ctx) => {
-    ctx.ui.notify(`Hello ${args}!`, "info");
+    ctx.ui.notify(`Hello ${args}!`, 'info')
   },
-});
+})
 ```
 
 Commands registered by extensions that conflict with built-in commands are skipped. Conflicts between extensions are resolved first-registration-wins.
@@ -349,11 +349,11 @@ Sources: [packages/coding-agent/src/core/extensions/runner.ts:53-90]()
 Registers a CLI flag available as `--name` or `--no-name`. Flags are readable via `ctx.flags.get(name)` or `runtime.flagValues`.
 
 ```typescript
-pi.registerFlag("my-flag", {
-  description: "Enable my feature",
-  type: "boolean",
+pi.registerFlag('my-flag', {
+  description: 'Enable my feature',
+  type: 'boolean',
   default: false,
-});
+})
 ```
 
 ### `pi.registerMessageRenderer(type, renderer: MessageRenderer)`
@@ -362,8 +362,8 @@ Registers a custom renderer for a message `customType`. Controls how that messag
 
 ```typescript
 interface MessageRenderer {
-  render(message: CustomMessage, options: MessageRenderOptions): string[];
-  getExpandState?(message: CustomMessage): boolean;
+  render(message: CustomMessage, options: MessageRenderOptions): string[]
+  getExpandState?(message: CustomMessage): boolean
 }
 ```
 
@@ -372,19 +372,19 @@ interface MessageRenderer {
 Registers a custom LLM provider and its models. During the initial load phase, calls are queued in `runtime.pendingProviderRegistrations` and flushed when `runner.bindCore()` is called. After binding, calls take effect immediately against `ModelRegistry`.
 
 ```typescript
-pi.registerProvider("my-provider", {
-  baseUrl: "https://api.example.com/v1",
-  apiKey: "MY_API_KEY",
-  api: "openai-completions",
+pi.registerProvider('my-provider', {
+  baseUrl: 'https://api.example.com/v1',
+  apiKey: 'MY_API_KEY',
+  api: 'openai-completions',
   models: [
     {
-      id: "my-model",
-      name: "My Model",
+      id: 'my-model',
+      name: 'My Model',
       contextWindow: 128000,
       maxTokens: 4096,
     },
   ],
-});
+})
 ```
 
 ### `pi.unregisterProvider(name)`
@@ -442,30 +442,30 @@ Sources: [packages/coding-agent/src/core/extensions/types.ts:230-370](), [packag
 
 The `ui` field on `ExtensionContext` provides mode-aware user interaction. Each mode (interactive, RPC, print) supplies its own implementation. The `noOpUIContext` in `runner.ts` is the fallback used until a real UI is bound.
 
-| Method | Purpose |
-|---|---|
-| `select(title, options, opts?)` | Show a selector; returns chosen string or `undefined` |
-| `confirm(title, message, opts?)` | Show yes/no dialog; returns boolean |
-| `input(title, placeholder?, opts?)` | Show text input; returns string or `undefined` |
-| `notify(message, type?)` | Show notification (`"info"`, `"warning"`, `"error"`) |
-| `onTerminalInput(handler)` | Listen to raw terminal keystrokes; returns unsubscribe fn |
-| `setStatus(key, text)` | Set footer status text for a named key |
-| `setWorkingMessage(message?)` | Override the "working" spinner message |
-| `setWidget(key, content, options?)` | Set widget above/below editor |
-| `setFooter(factory)` | Replace the entire footer component |
-| `setHeader(factory)` | Replace the header component |
-| `setTitle(title)` | Set terminal window/tab title |
-| `custom(factory, options?)` | Show a full custom TUI component with keyboard focus |
-| `pasteToEditor(text)` | Programmatically paste text into the editor |
-| `setEditorText(text)` | Set editor content |
-| `getEditorText()` | Get editor content |
-| `editor(title, prefill?)` | Show multi-line editor overlay; returns text or `undefined` |
-| `setEditorComponent(factory)` | Replace the core editor with a custom implementation |
-| `getAllThemes()` | List available themes |
-| `getTheme(name)` | Load a theme by name |
-| `setTheme(name \| Theme)` | Switch the active theme |
-| `getToolsExpanded()` | Get whether tool output is expanded |
-| `setToolsExpanded(expanded)` | Set tool output expansion state |
+| Method                              | Purpose                                                     |
+| ----------------------------------- | ----------------------------------------------------------- |
+| `select(title, options, opts?)`     | Show a selector; returns chosen string or `undefined`       |
+| `confirm(title, message, opts?)`    | Show yes/no dialog; returns boolean                         |
+| `input(title, placeholder?, opts?)` | Show text input; returns string or `undefined`              |
+| `notify(message, type?)`            | Show notification (`"info"`, `"warning"`, `"error"`)        |
+| `onTerminalInput(handler)`          | Listen to raw terminal keystrokes; returns unsubscribe fn   |
+| `setStatus(key, text)`              | Set footer status text for a named key                      |
+| `setWorkingMessage(message?)`       | Override the "working" spinner message                      |
+| `setWidget(key, content, options?)` | Set widget above/below editor                               |
+| `setFooter(factory)`                | Replace the entire footer component                         |
+| `setHeader(factory)`                | Replace the header component                                |
+| `setTitle(title)`                   | Set terminal window/tab title                               |
+| `custom(factory, options?)`         | Show a full custom TUI component with keyboard focus        |
+| `pasteToEditor(text)`               | Programmatically paste text into the editor                 |
+| `setEditorText(text)`               | Set editor content                                          |
+| `getEditorText()`                   | Get editor content                                          |
+| `editor(title, prefill?)`           | Show multi-line editor overlay; returns text or `undefined` |
+| `setEditorComponent(factory)`       | Replace the core editor with a custom implementation        |
+| `getAllThemes()`                    | List available themes                                       |
+| `getTheme(name)`                    | Load a theme by name                                        |
+| `setTheme(name \| Theme)`           | Switch the active theme                                     |
+| `getToolsExpanded()`                | Get whether tool output is expanded                         |
+| `setToolsExpanded(expanded)`        | Set tool output expansion state                             |
 
 All dialog methods (`select`, `confirm`, `input`, `custom`) accept an `ExtensionUIDialogOptions` with an optional `signal: AbortSignal` and `timeout: number`.
 
@@ -477,23 +477,23 @@ Sources: [packages/coding-agent/src/core/extensions/types.ts:83-230](), [package
 
 These are also available on `ExtensionContext` (via the `pi.` namespace in some cases). They route through `ExtensionRuntime` to the underlying session:
 
-| Method | Purpose |
-|---|---|
-| `pi.sendMessage(text)` | Send a steering message to the agent |
-| `pi.sendUserMessage(text, images?)` | Send a visible user message |
-| `pi.appendEntry(entry)` | Append a custom entry to the session JSONL |
-| `pi.setSessionName(name)` | Name the current session |
-| `pi.getSessionName()` | Get the current session name |
-| `pi.setLabel(entryId, label)` | Add a label to an entry for `/tree` navigation |
-| `pi.getActiveTools()` | Get list of active tool names |
-| `pi.getAllTools()` | Get all registered tools with parameters |
-| `pi.setActiveTools(names)` | Set the active tool list |
-| `pi.getCommands()` | List all available slash commands |
-| `pi.setModel(model)` | Switch the active LLM model |
-| `pi.getThinkingLevel()` | Get current thinking level |
-| `pi.setThinkingLevel(level)` | Set thinking level |
-| `pi.events` | `EventBus` for inter-extension communication |
-| `pi.setBashSpawnHook(hook)` | Intercept bash commands before execution |
+| Method                              | Purpose                                        |
+| ----------------------------------- | ---------------------------------------------- |
+| `pi.sendMessage(text)`              | Send a steering message to the agent           |
+| `pi.sendUserMessage(text, images?)` | Send a visible user message                    |
+| `pi.appendEntry(entry)`             | Append a custom entry to the session JSONL     |
+| `pi.setSessionName(name)`           | Name the current session                       |
+| `pi.getSessionName()`               | Get the current session name                   |
+| `pi.setLabel(entryId, label)`       | Add a label to an entry for `/tree` navigation |
+| `pi.getActiveTools()`               | Get list of active tool names                  |
+| `pi.getAllTools()`                  | Get all registered tools with parameters       |
+| `pi.setActiveTools(names)`          | Set the active tool list                       |
+| `pi.getCommands()`                  | List all available slash commands              |
+| `pi.setModel(model)`                | Switch the active LLM model                    |
+| `pi.getThinkingLevel()`             | Get current thinking level                     |
+| `pi.setThinkingLevel(level)`        | Set thinking level                             |
+| `pi.events`                         | `EventBus` for inter-extension communication   |
+| `pi.setBashSpawnHook(hook)`         | Intercept bash commands before execution       |
 
 Sources: [packages/coding-agent/src/core/extensions/types.ts:1000-1100](), [packages/coding-agent/src/core/extensions/runner.ts:236-272]()
 
@@ -518,11 +518,13 @@ Sources: [packages/coding-agent/src/core/extensions/runner.ts:53-90](), [package
 Three supported layouts:
 
 **Single file:**
+
 ```
 ~/.pi/agent/extensions/my-extension.ts
 ```
 
 **Directory:**
+
 ```
 ~/.pi/agent/extensions/my-extension/
     index.ts       ← entry point
@@ -530,6 +532,7 @@ Three supported layouts:
 ```
 
 **Package with dependencies:**
+
 ```
 ~/.pi/agent/extensions/my-extension/
     package.json   ← declares { "pi": { "extensions": ["./index.ts"] } }

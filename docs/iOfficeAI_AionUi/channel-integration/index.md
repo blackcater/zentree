@@ -20,8 +20,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes AionUi's channel plugin system for integrating external chat platforms (Telegram, Lark/Feishu, DingTalk) with the application's AI agents. Channel integration enables users to interact with AionUi agents directly from their preferred messaging platforms without opening the desktop application.
@@ -43,46 +41,46 @@ graph TB
         LARK[Lark/Feishu]
         DT[DingTalk]
     end
-    
+
     subgraph "WebUI Server Layer"
         WEBUI["WebUI Express Server<br/>(webui.start)"]
         WEBHOOK["Channel Webhooks<br/>/telegram, /lark, /dingtalk"]
     end
-    
+
     subgraph "Channel Management"
         PLUGIN["Channel Plugin Manager"]
         STATUS["Plugin Status<br/>(getPluginStatus)"]
         ENABLE["Plugin Enable/Disable<br/>(enablePlugin)"]
         TEST["Connection Test<br/>(testPlugin)"]
     end
-    
+
     subgraph "Conversation Isolation"
         CONV["Conversation Management"]
         CHATID["channelChatId<br/>(user:xxx, group:xxx)"]
         SOURCE["ConversationSource<br/>(telegram|lark|dingtalk)"]
     end
-    
+
     subgraph "Agent Execution Layer"
         AGENTS["Agent Managers<br/>(Gemini, ACP, Codex, etc)"]
         ASSISTANT["Assistant Config<br/>(assistant.telegram.agent)"]
     end
-    
+
     TG -->|Bot API Webhook| WEBHOOK
     LARK -->|Event Subscription| WEBHOOK
     DT -->|Card Callback| WEBHOOK
-    
+
     WEBHOOK -->|validate & route| PLUGIN
     PLUGIN -->|check status| STATUS
     PLUGIN -->|manage state| ENABLE
     PLUGIN -->|verify connection| TEST
-    
+
     PLUGIN -->|create/lookup conversation| CONV
     CONV -->|identify by| CHATID
     CONV -->|tag with| SOURCE
-    
+
     CONV -->|delegate to| AGENTS
     AGENTS -->|use preset model| ASSISTANT
-    
+
     AGENTS -->|response stream| PLUGIN
     PLUGIN -->|format & send| WEBHOOK
     WEBHOOK -->|platform API| TG
@@ -100,10 +98,10 @@ graph TB
 
 Each conversation in AionUi maintains metadata about its origin through two key fields:
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `source` | `'aionui' \| 'telegram' \| 'lark' \| 'dingtalk'` | Identifies the platform that created the conversation |
-| `channelChatId` | `string` (optional) | Isolates conversations by user or group (format: `user:xxx`, `group:xxx`) |
+| Field           | Type                                             | Purpose                                                                   |
+| --------------- | ------------------------------------------------ | ------------------------------------------------------------------------- |
+| `source`        | `'aionui' \| 'telegram' \| 'lark' \| 'dingtalk'` | Identifies the platform that created the conversation                     |
+| `channelChatId` | `string` (optional)                              | Isolates conversations by user or group (format: `user:xxx`, `group:xxx`) |
 
 The `ConversationSource` type system ensures type-safe handling of channel-originated conversations:
 
@@ -115,24 +113,24 @@ graph LR
         LARK["lark<br/>(Feishu Bot)"]
         DT["dingtalk<br/>(DingTalk Bot)"]
     end
-    
+
     subgraph "TChatConversation Fields"
         SOURCE["source?: ConversationSource"]
         CHATID["channelChatId?: string"]
     end
-    
+
     AIONUI --> SOURCE
     TG --> SOURCE
     LARK --> SOURCE
     DT --> SOURCE
-    
+
     SOURCE --> CHATID
-    
+
     subgraph "channelChatId Format"
         USER["user:telegram_user_id<br/>user:lark_user_id<br/>user:dingtalk_user_id"]
         GROUP["group:telegram_group_id<br/>group:lark_group_id<br/>group:dingtalk_group_id"]
     end
-    
+
     CHATID --> USER
     CHATID --> GROUP
 ```
@@ -168,27 +166,27 @@ graph TB
     subgraph "ConfigStorage Schema"
         TG_MODEL["assistant.telegram.defaultModel<br/>{id: string, useModel: string}"]
         TG_AGENT["assistant.telegram.agent<br/>{backend, customAgentId?, name?}"]
-        
+
         LARK_MODEL["assistant.lark.defaultModel<br/>{id: string, useModel: string}"]
         LARK_AGENT["assistant.lark.agent<br/>{backend, customAgentId?, name?}"]
-        
+
         DT_MODEL["assistant.dingtalk.defaultModel<br/>{id: string, useModel: string}"]
         DT_AGENT["assistant.dingtalk.agent<br/>{backend, customAgentId?, name?}"]
     end
-    
+
     subgraph "Agent Backend Types"
         BACKEND["AcpBackendAll<br/>(gemini|acp|codex|openclaw-gateway|nanobot)"]
     end
-    
+
     TG_AGENT --> BACKEND
     LARK_AGENT --> BACKEND
     DT_AGENT --> BACKEND
-    
+
     subgraph "Model Selection"
         PROVIDER["IProvider (platform config)"]
         MODEL["useModel (specific model ID)"]
     end
-    
+
     TG_MODEL --> PROVIDER
     TG_MODEL --> MODEL
     LARK_MODEL --> PROVIDER
@@ -197,10 +195,10 @@ graph TB
     DT_MODEL --> MODEL
 ```
 
-| Configuration Key | Type | Purpose |
-|-------------------|------|---------|
-| `assistant.{platform}.defaultModel` | `{id: string, useModel: string}` | Specifies provider and model for channel conversations |
-| `assistant.{platform}.agent` | `{backend: AcpBackendAll, customAgentId?: string, name?: string}` | Selects which agent implementation to use |
+| Configuration Key                   | Type                                                              | Purpose                                                |
+| ----------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------ |
+| `assistant.{platform}.defaultModel` | `{id: string, useModel: string}`                                  | Specifies provider and model for channel conversations |
+| `assistant.{platform}.agent`        | `{backend: AcpBackendAll, customAgentId?: string, name?: string}` | Selects which agent implementation to use              |
 
 **Sources:** [src/common/storage.ts:85-117]()
 
@@ -218,14 +216,14 @@ sequenceDiagram
     participant Plugin as "Channel Plugin"
     participant Conv as "Conversation Manager"
     participant Agent as "Agent Manager"
-    
+
     User->>Platform: Send message
     Platform->>WebUI: POST /webhook/[platform]
     WebUI->>Plugin: Route to channel handler
-    
+
     Plugin->>Plugin: Extract channelChatId<br/>(user:xxx or group:xxx)
     Plugin->>Conv: Find or create conversation<br/>(source + channelChatId)
-    
+
     alt Conversation exists
         Conv->>Plugin: Return existing conversation
     else New conversation
@@ -234,7 +232,7 @@ sequenceDiagram
         Conv->>Agent: Load assistant.{platform}.defaultModel
         Conv->>Plugin: Return new conversation
     end
-    
+
     Plugin->>Agent: conversation.sendMessage(input, conversation_id)
     Agent->>Agent: Process message<br/>(tool execution, file operations)
     Agent->>Plugin: responseStream events
@@ -248,11 +246,11 @@ sequenceDiagram
 
 Channel plugins handle streaming responses differently based on platform capabilities:
 
-| Platform | Streaming Strategy | Fallback Behavior |
-|----------|-------------------|-------------------|
-| **Telegram** | Incremental message updates via `editMessageText` API | Full message replacement if edit fails |
-| **Lark/Feishu** | Message card updates with progressive content | Send new message if card update times out |
-| **DingTalk** | AI Card Stream protocol with chunk delivery | Automatic fallback to standard message format |
+| Platform        | Streaming Strategy                                    | Fallback Behavior                             |
+| --------------- | ----------------------------------------------------- | --------------------------------------------- |
+| **Telegram**    | Incremental message updates via `editMessageText` API | Full message replacement if edit fails        |
+| **Lark/Feishu** | Message card updates with progressive content         | Send new message if card update times out     |
+| **DingTalk**    | AI Card Stream protocol with chunk delivery           | Automatic fallback to standard message format |
 
 **Sources:** [readme.md:186-194]()
 
@@ -276,26 +274,26 @@ graph TB
         USER["adminUsername: string"]
         PASS["initialPassword?: string"]
     end
-    
+
     subgraph "WebUI Management APIs"
         STATUS["webui.getStatus()<br/>→ IWebUIStatus"]
         START["webui.start({port?, allowRemote?})<br/>→ {port, urls, password}"]
         STOP["webui.stop()<br/>→ IBridgeResponse"]
         PWD["webui.changePassword({newPassword})<br/>→ IBridgeResponse"]
     end
-    
+
     STATUS --> RUNNING
     STATUS --> PORT
     STATUS --> REMOTE
-    
+
     START --> PORT
     START --> LOCAL
     START --> NET
-    
+
     subgraph "Channel Access"
         WEBHOOK["Webhook Endpoints<br/>/api/channel/telegram<br/>/api/channel/lark<br/>/api/channel/dingtalk"]
     end
-    
+
     START --> WEBHOOK
     RUNNING --> WEBHOOK
 ```
@@ -324,30 +322,30 @@ export const channel = {
   // Query plugin status for a specific platform
   getPluginStatus: bridge.buildProvider<
     IBridgeResponse<{
-      enabled: boolean;
-      configured: boolean;
-      lastActivity?: number;
-      error?: string;
+      enabled: boolean
+      configured: boolean
+      lastActivity?: number
+      error?: string
     }>,
     { platform: 'telegram' | 'lark' | 'dingtalk' }
   >('channel.get-plugin-status'),
-  
+
   // Enable or disable a channel plugin
   enablePlugin: bridge.buildProvider<
     IBridgeResponse,
-    { 
-      platform: 'telegram' | 'lark' | 'dingtalk';
-      enabled: boolean;
-      config?: Record<string, unknown>;
+    {
+      platform: 'telegram' | 'lark' | 'dingtalk'
+      enabled: boolean
+      config?: Record<string, unknown>
     }
   >('channel.enable-plugin'),
-  
+
   // Test channel connection and webhook
   testPlugin: bridge.buildProvider<
     IBridgeResponse<{ success: boolean; message?: string }>,
     { platform: 'telegram' | 'lark' | 'dingtalk' }
   >('channel.test-plugin'),
-};
+}
 ```
 
 **Sources:** Based on TOC description [#6.1]()
@@ -359,6 +357,7 @@ export const channel = {
 ### Telegram Bot Integration
 
 **Features:**
+
 - Direct message support with `user:telegram_id` isolation
 - Group chat support with `group:telegram_group_id` isolation
 - Incremental message editing for streaming responses
@@ -367,6 +366,7 @@ export const channel = {
 **Webhook Endpoint:** `/api/channel/telegram`
 
 **Configuration Requirements:**
+
 - Bot Token (from BotFather)
 - Webhook URL (WebUI network URL + endpoint)
 
@@ -375,6 +375,7 @@ export const channel = {
 ### Lark/Feishu Bot Integration
 
 **Features:**
+
 - Enterprise user authentication
 - Group conversation support
 - Message card format for rich responses
@@ -383,6 +384,7 @@ export const channel = {
 **Webhook Endpoint:** `/api/channel/lark`
 
 **Configuration Requirements:**
+
 - App ID and App Secret (from Lark Developer Console)
 - Verification Token
 - Event subscription URL (WebUI endpoint)
@@ -392,6 +394,7 @@ export const channel = {
 ### DingTalk Integration
 
 **Features:**
+
 - AI Card Stream protocol for progressive message delivery
 - Automatic fallback to standard message format
 - Enterprise workspace integration
@@ -400,6 +403,7 @@ export const channel = {
 **Webhook Endpoint:** `/api/channel/dingtalk`
 
 **Configuration Requirements:**
+
 - Robot AppKey and AppSecret
 - Webhook URL for card callbacks
 - Stream mode enabled in DingTalk console
@@ -419,33 +423,34 @@ graph TB
         LOOKUP["conversation.create()<br/>with source + channelChatId"]
         PERSIST["Store in ChatStorage<br/>(SQLite + config)"]
     end
-    
+
     subgraph "Context Continuity"
         MSG1["User sends message 1"]
         RESP1["Agent responds"]
         MSG2["User sends message 2<br/>(same channelChatId)"]
         CONTEXT["Agent has full context<br/>from message 1"]
     end
-    
+
     CREATE --> LOOKUP
     LOOKUP --> PERSIST
     PERSIST --> MSG1
     MSG1 --> RESP1
     RESP1 --> MSG2
     MSG2 --> CONTEXT
-    
+
     subgraph "Storage Schema"
         CONV_TABLE["conversations table<br/>(id, type, source, extra)"]
         MSG_TABLE["messages table<br/>(conversation_id, content, role)"]
         EXTRA["extra.channelChatId<br/>(isolation key)"]
     end
-    
+
     PERSIST --> CONV_TABLE
     CONV_TABLE --> EXTRA
     CONTEXT --> MSG_TABLE
 ```
 
 **Key Behaviors:**
+
 1. **Conversation Lookup**: On each incoming message, the system queries for existing conversations matching `(source, channelChatId)`
 2. **Context Loading**: All previous messages are loaded from the database and provided to the agent
 3. **History Persistence**: Agent responses are saved to maintain conversation continuity across sessions
@@ -461,12 +466,12 @@ The channel system implements user authorization at the platform level:
 
 ### Authorization Levels
 
-| Level | Description | Implementation |
-|-------|-------------|----------------|
+| Level                       | Description                                               | Implementation                                       |
+| --------------------------- | --------------------------------------------------------- | ---------------------------------------------------- |
 | **Platform Authentication** | User verified by chat platform (Telegram, Lark, DingTalk) | Platform handles OAuth/login before webhook delivery |
-| **Bot Access Control** | Bot token/credentials validate the webhook source | WebUI verifies token on each request |
-| **Conversation Isolation** | `channelChatId` prevents cross-user data access | Enforced by conversation lookup logic |
-| **WebUI Authentication** | Admin password protects WebUI settings interface | Required to configure channel plugins |
+| **Bot Access Control**      | Bot token/credentials validate the webhook source         | WebUI verifies token on each request                 |
+| **Conversation Isolation**  | `channelChatId` prevents cross-user data access           | Enforced by conversation lookup logic                |
+| **WebUI Authentication**    | Admin password protects WebUI settings interface          | Required to configure channel plugins                |
 
 ### Pairing Management
 
@@ -477,31 +482,32 @@ graph LR
         SETTINGS["WebUI Settings UI"]
         TOKEN["Bot Token/Credentials"]
     end
-    
+
     subgraph "Platform Configuration"
         PLATFORM["Chat Platform<br/>(Telegram/Lark/DingTalk)"]
         BOT["Create Bot"]
         WEBHOOK_URL["Configure Webhook"]
     end
-    
+
     subgraph "First User Interaction"
         END_USER["End User"]
         SEND["Send message to bot"]
         PAIR["Auto-pair via channelChatId"]
     end
-    
+
     ADMIN --> SETTINGS
     SETTINGS --> TOKEN
     BOT --> TOKEN
     TOKEN --> WEBHOOK_URL
     WEBHOOK_URL --> PLATFORM
-    
+
     END_USER --> SEND
     SEND --> PAIR
     PAIR --> SETTINGS
 ```
 
 **Pairing Flow:**
+
 1. Admin configures bot token in WebUI settings
 2. Platform delivers first message from user
 3. System creates conversation with `channelChatId = user:{platform_user_id}`
@@ -524,51 +530,52 @@ graph TB
         WEBHOOK["Webhook Handler"]
         PLUGIN["Channel Plugin"]
     end
-    
+
     subgraph "IPC Bridge"
         SEND["conversation.sendMessage<br/>(invoke)"]
         STREAM["conversation.responseStream<br/>(emitter)"]
         STATUS["webui.statusChanged<br/>(emitter)"]
     end
-    
+
     subgraph "Main Process"
         AGENT["Agent Manager"]
         CONV_MGR["Conversation Manager"]
         DB["ConversationManageWithDB<br/>(SQLite batching)"]
     end
-    
+
     subgraph "Renderer Process"
         UI["WebUI Interface"]
         ADMIN["Admin Panel"]
     end
-    
+
     WEBHOOK --> PLUGIN
     PLUGIN --> SEND
     SEND --> CONV_MGR
     CONV_MGR --> AGENT
-    
+
     AGENT --> STREAM
     STREAM --> PLUGIN
     PLUGIN --> WEBHOOK
-    
+
     AGENT --> DB
     DB --> STREAM
-    
+
     STATUS --> UI
     STATUS --> ADMIN
 ```
 
 ### Synchronized Events
 
-| Event Type | IPC Channel | Purpose |
-|------------|-------------|---------|
-| **Message Send** | `conversation.sendMessage` | Forward user message from channel to agent |
-| **Response Stream** | `conversation.responseStream` | Deliver agent response chunks to channel |
-| **Status Change** | `webui.statusChanged` | Notify UI when WebUI/channels start/stop |
-| **Confirmation** | `conversation.confirmation.add` | Request user approval for tool execution |
-| **File Operation** | `fileStream.contentUpdate` | Stream file changes from agent to channel |
+| Event Type          | IPC Channel                     | Purpose                                    |
+| ------------------- | ------------------------------- | ------------------------------------------ |
+| **Message Send**    | `conversation.sendMessage`      | Forward user message from channel to agent |
+| **Response Stream** | `conversation.responseStream`   | Deliver agent response chunks to channel   |
+| **Status Change**   | `webui.statusChanged`           | Notify UI when WebUI/channels start/stop   |
+| **Confirmation**    | `conversation.confirmation.add` | Request user approval for tool execution   |
+| **File Operation**  | `fileStream.contentUpdate`      | Stream file changes from agent to channel  |
 
 **Synchronization Guarantees:**
+
 - **At-least-once delivery**: Messages are persisted to SQLite before acknowledgment
 - **Order preservation**: Events processed sequentially per `channelChatId`
 - **Batching strategy**: `ConversationManageWithDB` uses 2-second debounce to batch streaming updates
@@ -588,25 +595,25 @@ graph TB
         LARK["assistant.lark.defaultModel<br/>assistant.lark.agent"]
         DT["assistant.dingtalk.defaultModel<br/>assistant.dingtalk.agent"]
     end
-    
+
     subgraph "Agent Configuration"
         BACKEND["backend: AcpBackendAll<br/>(gemini|acp|codex|...)"]
         CUSTOM["customAgentId?: string<br/>(UUID for custom agents)"]
         NAME["name?: string<br/>(display name)"]
     end
-    
+
     subgraph "Model Configuration"
         PROVIDER_ID["id: string<br/>(IProvider.id)"]
         MODEL_ID["useModel: string<br/>(specific model name)"]
     end
-    
+
     TG --> BACKEND
     TG --> PROVIDER_ID
     LARK --> BACKEND
     LARK --> PROVIDER_ID
     DT --> BACKEND
     DT --> PROVIDER_ID
-    
+
     BACKEND --> CUSTOM
     BACKEND --> NAME
     PROVIDER_ID --> MODEL_ID
@@ -616,14 +623,14 @@ graph TB
 
 **Configuration Keys:**
 
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `assistant.telegram.defaultModel` | `{id: string, useModel: string}` | None | Provider and model for Telegram conversations |
-| `assistant.telegram.agent` | `{backend: AcpBackendAll, customAgentId?: string, name?: string}` | None | Agent backend selection for Telegram |
-| `assistant.lark.defaultModel` | `{id: string, useModel: string}` | None | Provider and model for Lark conversations |
-| `assistant.lark.agent` | `{backend: AcpBackendAll, customAgentId?: string, name?: string}` | None | Agent backend selection for Lark |
-| `assistant.dingtalk.defaultModel` | `{id: string, useModel: string}` | None | Provider and model for DingTalk conversations |
-| `assistant.dingtalk.agent` | `{backend: AcpBackendAll, customAgentId?: string, name?: string}` | None | Agent backend selection for DingTalk |
+| Key                               | Type                                                              | Default | Description                                   |
+| --------------------------------- | ----------------------------------------------------------------- | ------- | --------------------------------------------- |
+| `assistant.telegram.defaultModel` | `{id: string, useModel: string}`                                  | None    | Provider and model for Telegram conversations |
+| `assistant.telegram.agent`        | `{backend: AcpBackendAll, customAgentId?: string, name?: string}` | None    | Agent backend selection for Telegram          |
+| `assistant.lark.defaultModel`     | `{id: string, useModel: string}`                                  | None    | Provider and model for Lark conversations     |
+| `assistant.lark.agent`            | `{backend: AcpBackendAll, customAgentId?: string, name?: string}` | None    | Agent backend selection for Lark              |
+| `assistant.dingtalk.defaultModel` | `{id: string, useModel: string}`                                  | None    | Provider and model for DingTalk conversations |
+| `assistant.dingtalk.agent`        | `{backend: AcpBackendAll, customAgentId?: string, name?: string}` | None    | Agent backend selection for DingTalk          |
 
 **Sources:** [src/common/storage.ts:85-117]()
 
@@ -633,11 +640,11 @@ graph TB
 
 ### Platform-Specific Limitations
 
-| Platform | Message Length Limit | Supported Media Types | Streaming Support | Group Chat |
-|----------|---------------------|----------------------|-------------------|------------|
-| **Telegram** | 4096 characters | Text, images, documents, audio | Via edit message | ✓ |
-| **Lark/Feishu** | 10000 characters (card) | Text, images, files via card | Via card update | ✓ |
-| **DingTalk** | 5000 characters (card) | Text, markdown, images | AI Card Stream | ✓ |
+| Platform        | Message Length Limit    | Supported Media Types          | Streaming Support | Group Chat |
+| --------------- | ----------------------- | ------------------------------ | ----------------- | ---------- |
+| **Telegram**    | 4096 characters         | Text, images, documents, audio | Via edit message  | ✓          |
+| **Lark/Feishu** | 10000 characters (card) | Text, images, files via card   | Via card update   | ✓          |
+| **DingTalk**    | 5000 characters (card)  | Text, markdown, images         | AI Card Stream    | ✓          |
 
 ### Rate Limiting
 
@@ -685,6 +692,7 @@ The channel architecture is designed to be extensible for additional platforms:
 - **WhatsApp Business API**
 
 To add a new platform, implement:
+
 1. Webhook handler for platform events
 2. Message formatter for platform-specific response format
 3. Configuration schema in `IConfigStorageRefer`

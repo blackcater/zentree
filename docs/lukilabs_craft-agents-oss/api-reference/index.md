@@ -10,8 +10,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document provides detailed API documentation for the IPC communication layer, SessionManager public methods, configuration file formats, deep link protocols, session-scoped tools, and MCP server binaries. This is the technical reference for developers integrating with or extending the Craft Agents OSS system.
 
 For architectural context on how these APIs fit into the overall system, see [Architecture](#2). For development setup and build processes, see [Development Guide](#5).
@@ -29,12 +27,12 @@ graph LR
     Renderer["Renderer Process<br/>(React)"]
     Preload["Preload Bridge<br/>electronAPI"]
     Main["Main Process<br/>IPC Handlers"]
-    
+
     Renderer -->|"invoke(channel, args)"| Preload
     Preload -->|"ipcRenderer.invoke"| Main
     Main -->|"Promise<Result>"| Preload
     Preload -->|"return result"| Renderer
-    
+
     Main -.->|"webContents.send(event)"| Preload
     Preload -.->|"onSessionEvent(callback)"| Renderer
 ```
@@ -43,17 +41,17 @@ graph LR
 
 ### Session Management Channels
 
-| Channel | Request | Response | Description |
-|---------|---------|----------|-------------|
-| `GET_SESSIONS` | none | `Session[]` | Get all sessions for active workspace |
-| `GET_SESSION_MESSAGES` | `sessionId: string` | `Session` with messages | Load messages for lazy loading |
-| `CREATE_SESSION` | `workspaceId: string, options?: CreateSessionOptions` | `Session` | Create new session |
-| `CREATE_SUB_SESSION` | `workspaceId: string, parentSessionId: string, options?` | `Session` | Create child session |
-| `DELETE_SESSION` | `sessionId: string` | `void` | Delete session and files |
-| `SEND_MESSAGE` | `sessionId, message, attachments?, storedAttachments?, options?` | `{ started: true }` | Send message (streams via events) |
-| `CANCEL_PROCESSING` | `sessionId: string, silent?: boolean` | `void` | Interrupt agent processing |
-| `SESSION_COMMAND` | `sessionId: string, command: SessionCommand` | varies | Unified session operations |
-| `GET_PENDING_PLAN_EXECUTION` | `sessionId: string` | `{ planPath: string } \| null` | Get pending plan state |
+| Channel                      | Request                                                          | Response                       | Description                           |
+| ---------------------------- | ---------------------------------------------------------------- | ------------------------------ | ------------------------------------- |
+| `GET_SESSIONS`               | none                                                             | `Session[]`                    | Get all sessions for active workspace |
+| `GET_SESSION_MESSAGES`       | `sessionId: string`                                              | `Session` with messages        | Load messages for lazy loading        |
+| `CREATE_SESSION`             | `workspaceId: string, options?: CreateSessionOptions`            | `Session`                      | Create new session                    |
+| `CREATE_SUB_SESSION`         | `workspaceId: string, parentSessionId: string, options?`         | `Session`                      | Create child session                  |
+| `DELETE_SESSION`             | `sessionId: string`                                              | `void`                         | Delete session and files              |
+| `SEND_MESSAGE`               | `sessionId, message, attachments?, storedAttachments?, options?` | `{ started: true }`            | Send message (streams via events)     |
+| `CANCEL_PROCESSING`          | `sessionId: string, silent?: boolean`                            | `void`                         | Interrupt agent processing            |
+| `SESSION_COMMAND`            | `sessionId: string, command: SessionCommand`                     | varies                         | Unified session operations            |
+| `GET_PENDING_PLAN_EXECUTION` | `sessionId: string`                                              | `{ planPath: string } \| null` | Get pending plan state                |
 
 **Sources:** [apps/electron/src/main/ipc.ts:459-781]()
 
@@ -67,29 +65,29 @@ type SessionCommand =
   | { type: 'unflag' }
   | { type: 'archive' }
   | { type: 'unarchive' }
-  | { type: 'rename', name: string }
-  | { type: 'setSessionStatus', state: string }
+  | { type: 'rename'; name: string }
+  | { type: 'setSessionStatus'; state: string }
   | { type: 'markRead' }
   | { type: 'markUnread' }
-  | { type: 'setActiveViewing', workspaceId: string }
-  | { type: 'setPermissionMode', mode: PermissionMode }
-  | { type: 'setThinkingLevel', level: ThinkingLevel }
-  | { type: 'updateWorkingDirectory', dir: string }
-  | { type: 'setSources', sourceSlugs: string[] }
-  | { type: 'setLabels', labels: string[] }
+  | { type: 'setActiveViewing'; workspaceId: string }
+  | { type: 'setPermissionMode'; mode: PermissionMode }
+  | { type: 'setThinkingLevel'; level: ThinkingLevel }
+  | { type: 'updateWorkingDirectory'; dir: string }
+  | { type: 'setSources'; sourceSlugs: string[] }
+  | { type: 'setLabels'; labels: string[] }
   | { type: 'showInFinder' }
   | { type: 'copyPath' }
   | { type: 'shareToViewer' }
   | { type: 'updateShare' }
   | { type: 'revokeShare' }
-  | { type: 'startOAuth', requestId: string }
+  | { type: 'startOAuth'; requestId: string }
   | { type: 'refreshTitle' }
-  | { type: 'setConnection', connectionSlug: string }
-  | { type: 'setPendingPlanExecution', planPath: string }
+  | { type: 'setConnection'; connectionSlug: string }
+  | { type: 'setPendingPlanExecution'; planPath: string }
   | { type: 'markCompactionComplete' }
   | { type: 'clearPendingPlanExecution' }
   | { type: 'getSessionFamily' }
-  | { type: 'updateSiblingOrder', orderedSessionIds: string[] }
+  | { type: 'updateSiblingOrder'; orderedSessionIds: string[] }
   | { type: 'archiveCascade' }
   | { type: 'deleteCascade' }
 ```
@@ -98,30 +96,30 @@ type SessionCommand =
 
 ### Workspace Management Channels
 
-| Channel | Request | Response | Description |
-|---------|---------|----------|-------------|
-| `GET_WORKSPACES` | none | `Workspace[]` | List all workspaces |
-| `CREATE_WORKSPACE` | `folderPath: string, name: string` | `Workspace` | Create workspace at folder |
-| `CHECK_WORKSPACE_SLUG` | `slug: string` | `{ exists: boolean, path: string }` | Validate workspace slug |
-| `GET_WINDOW_WORKSPACE` | none | `string \| null` | Get workspace ID for window |
-| `OPEN_WORKSPACE` | `workspaceId: string` | `void` | Focus or create window |
-| `SWITCH_WORKSPACE` | `workspaceId: string` | `void` | Switch workspace in-window |
+| Channel                | Request                            | Response                            | Description                 |
+| ---------------------- | ---------------------------------- | ----------------------------------- | --------------------------- |
+| `GET_WORKSPACES`       | none                               | `Workspace[]`                       | List all workspaces         |
+| `CREATE_WORKSPACE`     | `folderPath: string, name: string` | `Workspace`                         | Create workspace at folder  |
+| `CHECK_WORKSPACE_SLUG` | `slug: string`                     | `{ exists: boolean, path: string }` | Validate workspace slug     |
+| `GET_WINDOW_WORKSPACE` | none                               | `string \| null`                    | Get workspace ID for window |
+| `OPEN_WORKSPACE`       | `workspaceId: string`              | `void`                              | Focus or create window      |
+| `SWITCH_WORKSPACE`     | `workspaceId: string`              | `void`                              | Switch workspace in-window  |
 
 **Sources:** [apps/electron/src/main/ipc.ts:481-592]()
 
 ### File Operations Channels
 
-| Channel | Request | Response | Description |
-|---------|---------|----------|-------------|
-| `READ_FILE` | `path: string` | `string` | Read file as UTF-8 (validated) |
-| `READ_FILE_DATA_URL` | `path: string` | `string` | Read as data: URL for preview |
-| `READ_FILE_BINARY` | `path: string` | `Uint8Array` | Read as binary (for PDFs) |
-| `OPEN_FILE_DIALOG` | none | `string[]` | Native file picker |
-| `READ_FILE_ATTACHMENT` | `path: string` | `FileAttachment` | Read with thumbnail |
-| `GENERATE_THUMBNAIL` | `base64: string, mimeType: string` | `string \| null` | Generate Quick Look thumb |
-| `STORE_ATTACHMENT` | `sessionId, attachment: FileAttachment` | `StoredAttachment` | Persist attachment to disk |
-| `OPEN_FILE` | `path: string` | `void` | Open in default app |
-| `SHOW_IN_FOLDER` | `path: string` | `void` | Reveal in Finder/Explorer |
+| Channel                | Request                                 | Response           | Description                    |
+| ---------------------- | --------------------------------------- | ------------------ | ------------------------------ |
+| `READ_FILE`            | `path: string`                          | `string`           | Read file as UTF-8 (validated) |
+| `READ_FILE_DATA_URL`   | `path: string`                          | `string`           | Read as data: URL for preview  |
+| `READ_FILE_BINARY`     | `path: string`                          | `Uint8Array`       | Read as binary (for PDFs)      |
+| `OPEN_FILE_DIALOG`     | none                                    | `string[]`         | Native file picker             |
+| `READ_FILE_ATTACHMENT` | `path: string`                          | `FileAttachment`   | Read with thumbnail            |
+| `GENERATE_THUMBNAIL`   | `base64: string, mimeType: string`      | `string \| null`   | Generate Quick Look thumb      |
+| `STORE_ATTACHMENT`     | `sessionId, attachment: FileAttachment` | `StoredAttachment` | Persist attachment to disk     |
+| `OPEN_FILE`            | `path: string`                          | `void`             | Open in default app            |
+| `SHOW_IN_FOLDER`       | `path: string`                          | `void`             | Reveal in Finder/Explorer      |
 
 All file paths are validated via `validateFilePath()` to prevent path traversal attacks. Only paths within `homedir()` or `tmpdir()` are allowed, and sensitive patterns (`.ssh/`, `.aws/credentials`, etc.) are blocked.
 
@@ -129,24 +127,24 @@ All file paths are validated via `validateFilePath()` to prevent path traversal 
 
 ### LLM Connection Channels
 
-| Channel | Request | Response | Description |
-|---------|---------|----------|-------------|
-| `SETUP_LLM_CONNECTION` | `LlmConnectionSetup` | `{ success: boolean, error?: string }` | Unified connection setup |
-| `GET_LLM_CONNECTIONS` | none | `LlmConnection[]` | List all connections |
-| `GET_LLM_CONNECTION` | `slug: string` | `LlmConnection \| null` | Get single connection |
-| `ADD_LLM_CONNECTION` | `connection: LlmConnection` | `void` | Add custom connection |
-| `UPDATE_LLM_CONNECTION` | `slug: string, updates: Partial<LlmConnection>` | `void` | Update connection |
-| `DELETE_LLM_CONNECTION` | `slug: string` | `void` | Delete connection |
-| `GET_DEFAULT_LLM_CONNECTION` | none | `string \| null` | Get default slug |
-| `SET_DEFAULT_LLM_CONNECTION` | `slug: string` | `void` | Set default |
-| `TOUCH_LLM_CONNECTION` | `slug: string` | `void` | Update lastUsedAt |
+| Channel                      | Request                                         | Response                               | Description              |
+| ---------------------------- | ----------------------------------------------- | -------------------------------------- | ------------------------ |
+| `SETUP_LLM_CONNECTION`       | `LlmConnectionSetup`                            | `{ success: boolean, error?: string }` | Unified connection setup |
+| `GET_LLM_CONNECTIONS`        | none                                            | `LlmConnection[]`                      | List all connections     |
+| `GET_LLM_CONNECTION`         | `slug: string`                                  | `LlmConnection \| null`                | Get single connection    |
+| `ADD_LLM_CONNECTION`         | `connection: LlmConnection`                     | `void`                                 | Add custom connection    |
+| `UPDATE_LLM_CONNECTION`      | `slug: string, updates: Partial<LlmConnection>` | `void`                                 | Update connection        |
+| `DELETE_LLM_CONNECTION`      | `slug: string`                                  | `void`                                 | Delete connection        |
+| `GET_DEFAULT_LLM_CONNECTION` | none                                            | `string \| null`                       | Get default slug         |
+| `SET_DEFAULT_LLM_CONNECTION` | `slug: string`                                  | `void`                                 | Set default              |
+| `TOUCH_LLM_CONNECTION`       | `slug: string`                                  | `void`                                 | Update lastUsedAt        |
 
 The `LlmConnectionSetup` type consolidates all connection configuration:
 
 ```typescript
 interface LlmConnectionSetup {
   slug: string
-  credential?: string  // API key or OAuth token
+  credential?: string // API key or OAuth token
   baseUrl?: string | null
   defaultModel?: string | null
   models?: ModelDefinition[] | null
@@ -157,12 +155,12 @@ interface LlmConnectionSetup {
 
 ### OAuth Flow Channels
 
-| Channel | Request | Response | Description |
-|---------|---------|----------|-------------|
-| `GET_OAUTH_URL` | `slug: string` | `string` | Get authorization URL |
-| `START_OAUTH_FLOW` | `slug: string` | `void` | Open browser for OAuth |
-| `GET_OAUTH_STATUS` | `slug: string` | `OAuthStatus` | Poll for completion |
-| `CANCEL_OAUTH_FLOW` | `slug: string` | `void` | Abort flow |
+| Channel               | Request                                     | Response               | Description             |
+| --------------------- | ------------------------------------------- | ---------------------- | ----------------------- |
+| `GET_OAUTH_URL`       | `slug: string`                              | `string`               | Get authorization URL   |
+| `START_OAUTH_FLOW`    | `slug: string`                              | `void`                 | Open browser for OAuth  |
+| `GET_OAUTH_STATUS`    | `slug: string`                              | `OAuthStatus`          | Poll for completion     |
+| `CANCEL_OAUTH_FLOW`   | `slug: string`                              | `void`                 | Abort flow              |
 | `COMPLETE_OAUTH_FLOW` | `slug: string, code: string, state: string` | `{ success: boolean }` | Exchange code for token |
 
 **Sources:** [apps/electron/src/main/onboarding.ts]()
@@ -209,17 +207,17 @@ graph TB
     ConfigWatchers["configWatchers: Map<string, ConfigWatcher>"]
     HookSystems["hookSystems: Map<string, HookSystem>"]
     WindowMgr["windowManager: WindowManager"]
-    
+
     SM --> Sessions
     SM --> ConfigWatchers
     SM --> HookSystems
     SM --> WindowMgr
-    
+
     ManagedSession["ManagedSession"]
     Agent["agent: CraftAgent | CodexBackend | CopilotAgent"]
     Messages["messages: Message[]"]
     TokenRefreshMgr["tokenRefreshManager: TokenRefreshManager"]
-    
+
     Sessions --> ManagedSession
     ManagedSession --> Agent
     ManagedSession --> Messages
@@ -238,6 +236,7 @@ class SessionManager {
 ```
 
 `initialize()` is called once at app startup. It:
+
 1. Sets paths to Claude SDK CLI, Copilot binary, and network interceptors
 2. Sets bundled Bun path for packaged apps
 3. Runs credential migrations (legacy formats)
@@ -251,14 +250,14 @@ class SessionManager {
 
 ### Session Lifecycle Methods
 
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `createSession` | `(workspaceId: string, options?: CreateSessionOptions) => Session` | Create new session |
-| `createSubSession` | `(workspaceId: string, parentSessionId: string, options?) => Promise<Session>` | Create child session |
-| `getSession` | `(sessionId: string) => Promise<Session \| null>` | Load session with messages |
-| `getSessions` | `(workspaceId?: string) => Session[]` | List sessions (metadata only) |
-| `deleteSession` | `(sessionId: string) => Promise<void>` | Delete session and files |
-| `deleteSessionCascade` | `(sessionId: string) => Promise<void>` | Delete session + children |
+| Method                 | Signature                                                                      | Description                   |
+| ---------------------- | ------------------------------------------------------------------------------ | ----------------------------- |
+| `createSession`        | `(workspaceId: string, options?: CreateSessionOptions) => Session`             | Create new session            |
+| `createSubSession`     | `(workspaceId: string, parentSessionId: string, options?) => Promise<Session>` | Create child session          |
+| `getSession`           | `(sessionId: string) => Promise<Session \| null>`                              | Load session with messages    |
+| `getSessions`          | `(workspaceId?: string) => Session[]`                                          | List sessions (metadata only) |
+| `deleteSession`        | `(sessionId: string) => Promise<void>`                                         | Delete session and files      |
+| `deleteSessionCascade` | `(sessionId: string) => Promise<void>`                                         | Delete session + children     |
 
 Sessions are lazy-loaded: `getSessions()` returns metadata only (no messages). Call `getSession(id)` to load full message history.
 
@@ -266,16 +265,17 @@ Sessions are lazy-loaded: `getSessions()` returns metadata only (no messages). C
 
 ### Message Processing
 
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `sendMessage` | `(sessionId, message, attachments?, storedAttachments?, options?) => Promise<void>` | Send message to agent |
-| `cancelProcessing` | `(sessionId: string, silent?: boolean) => Promise<void>` | Interrupt agent |
-| `killShell` | `(sessionId, shellId: string) => Promise<void>` | Kill background shell |
-| `getTaskOutput` | `(taskId: string) => Promise<string>` | Read task output file |
-| `respondToPermission` | `(sessionId, requestId, allowed, alwaysAllow) => boolean` | Approve/deny tool use |
-| `respondToCredential` | `(sessionId, requestId, response) => boolean` | Provide auth input |
+| Method                | Signature                                                                           | Description           |
+| --------------------- | ----------------------------------------------------------------------------------- | --------------------- |
+| `sendMessage`         | `(sessionId, message, attachments?, storedAttachments?, options?) => Promise<void>` | Send message to agent |
+| `cancelProcessing`    | `(sessionId: string, silent?: boolean) => Promise<void>`                            | Interrupt agent       |
+| `killShell`           | `(sessionId, shellId: string) => Promise<void>`                                     | Kill background shell |
+| `getTaskOutput`       | `(taskId: string) => Promise<string>`                                               | Read task output file |
+| `respondToPermission` | `(sessionId, requestId, allowed, alwaysAllow) => boolean`                           | Approve/deny tool use |
+| `respondToCredential` | `(sessionId, requestId, response) => boolean`                                       | Provide auth input    |
 
 `sendMessage()` is non-blocking. It returns immediately, and results stream via `SESSION_EVENT` channel. The method:
+
 1. Loads or creates the agent instance (lazy)
 2. Refreshes OAuth tokens if needed
 3. Builds source servers (MCP + API)
@@ -286,17 +286,17 @@ Sessions are lazy-loaded: `getSessions()` returns metadata only (no messages). C
 
 ### Metadata Operations
 
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `flagSession` | `(sessionId: string) => Promise<void>` | Mark as flagged |
-| `unflagSession` | `(sessionId: string) => Promise<void>` | Unmark flagged |
-| `archiveSession` | `(sessionId: string) => Promise<void>` | Archive session |
-| `unarchiveSession` | `(sessionId: string) => Promise<void>` | Unarchive session |
-| `renameSession` | `(sessionId, name: string) => Promise<void>` | Set user title |
-| `setSessionStatus` | `(sessionId, status: string) => Promise<void>` | Set workflow status |
-| `setSessionLabels` | `(sessionId, labels: string[]) => Promise<void>` | Set labels |
-| `markSessionRead` | `(sessionId: string) => Promise<void>` | Clear unread badge |
-| `markSessionUnread` | `(sessionId: string) => Promise<void>` | Set unread badge |
+| Method              | Signature                                        | Description         |
+| ------------------- | ------------------------------------------------ | ------------------- |
+| `flagSession`       | `(sessionId: string) => Promise<void>`           | Mark as flagged     |
+| `unflagSession`     | `(sessionId: string) => Promise<void>`           | Unmark flagged      |
+| `archiveSession`    | `(sessionId: string) => Promise<void>`           | Archive session     |
+| `unarchiveSession`  | `(sessionId: string) => Promise<void>`           | Unarchive session   |
+| `renameSession`     | `(sessionId, name: string) => Promise<void>`     | Set user title      |
+| `setSessionStatus`  | `(sessionId, status: string) => Promise<void>`   | Set workflow status |
+| `setSessionLabels`  | `(sessionId, labels: string[]) => Promise<void>` | Set labels          |
+| `markSessionRead`   | `(sessionId: string) => Promise<void>`           | Clear unread badge  |
+| `markSessionUnread` | `(sessionId: string) => Promise<void>`           | Set unread badge    |
 
 All metadata updates emit events to the renderer and persist to disk via `updateSessionMetadata()`.
 
@@ -304,16 +304,17 @@ All metadata updates emit events to the renderer and persist to disk via `update
 
 ### Configuration & Sources
 
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `setSessionSources` | `(sessionId, sourceSlugs: string[]) => Promise<void>` | Enable sources for session |
-| `setSessionPermissionMode` | `(sessionId, mode: PermissionMode) => Promise<void>` | Set safe/ask/allow-all |
-| `setSessionThinkingLevel` | `(sessionId, level: ThinkingLevel) => Promise<void>` | Set thinking level |
-| `setSessionConnection` | `(sessionId, connectionSlug: string) => Promise<void>` | Set LLM connection |
-| `updateWorkingDirectory` | `(sessionId, dir: string) => Promise<void>` | Set bash cwd |
-| `setupConfigWatcher` | `(workspaceRootPath, workspaceId: string) => void` | Start watching configs |
+| Method                     | Signature                                              | Description                |
+| -------------------------- | ------------------------------------------------------ | -------------------------- |
+| `setSessionSources`        | `(sessionId, sourceSlugs: string[]) => Promise<void>`  | Enable sources for session |
+| `setSessionPermissionMode` | `(sessionId, mode: PermissionMode) => Promise<void>`   | Set safe/ask/allow-all     |
+| `setSessionThinkingLevel`  | `(sessionId, level: ThinkingLevel) => Promise<void>`   | Set thinking level         |
+| `setSessionConnection`     | `(sessionId, connectionSlug: string) => Promise<void>` | Set LLM connection         |
+| `updateWorkingDirectory`   | `(sessionId, dir: string) => Promise<void>`            | Set bash cwd               |
+| `setupConfigWatcher`       | `(workspaceRootPath, workspaceId: string) => void`     | Start watching configs     |
 
 `setupConfigWatcher()` creates a `ConfigWatcher` that monitors workspace files and broadcasts changes via IPC. It handles:
+
 - Source config changes → rebuild servers for active sessions
 - Skill changes → broadcast to UI
 - Label/status changes → broadcast to UI
@@ -324,11 +325,11 @@ All metadata updates emit events to the renderer and persist to disk via `update
 
 ### Viewer Sharing
 
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `shareToViewer` | `(sessionId: string) => Promise<{ url: string, id: string }>` | Share to viewer |
-| `updateShare` | `(sessionId: string) => Promise<{ url: string }>` | Refresh shared content |
-| `revokeShare` | `(sessionId: string) => Promise<void>` | Revoke share |
+| Method          | Signature                                                     | Description            |
+| --------------- | ------------------------------------------------------------- | ---------------------- |
+| `shareToViewer` | `(sessionId: string) => Promise<{ url: string, id: string }>` | Share to viewer        |
+| `updateShare`   | `(sessionId: string) => Promise<{ url: string }>`             | Refresh shared content |
+| `revokeShare`   | `(sessionId: string) => Promise<void>`                        | Revoke share           |
 
 Sharing uploads session transcript to `viewer.craft-agents.com` and returns a public URL.
 
@@ -347,6 +348,7 @@ interface ManagedSession {
 ```
 
 Agent creation:
+
 1. Resolves session's LLM connection
 2. Loads all sources (workspace-level)
 3. Builds MCP/API servers for enabled sources
@@ -373,11 +375,11 @@ graph TB
     Perms["~/.craft-agent/permissions/default.json"]
     Theme["~/.craft-agent/theme.json"]
     ToolIcons["~/.craft-agent/tool-icons/"]
-    
+
     GlobalConfig -->|"defines"| Workspaces["workspaces: Workspace[]"]
     GlobalConfig -->|"defines"| LlmConns["llmConnections: LlmConnection[]"]
     GlobalConfig -->|"defines"| DefaultConn["defaultLlmConnection: string"]
-    
+
     Creds -->|"stores"| ApiKeys["LLM API keys"]
     Creds -->|"stores"| OAuth["OAuth tokens"]
     Creds -->|"stores"| SourceCreds["Source credentials"]
@@ -539,6 +541,7 @@ Sessions are stored in `sessions/<id>/session.jsonl`:
 ```
 
 The first line is the header (metadata). Subsequent lines are messages. This format:
+
 - Enables fast metadata loading without reading all messages
 - Supports streaming writes (append-only)
 - Is human-readable for debugging
@@ -635,7 +638,7 @@ graph LR
     Navigator["allSessions | settings | ..."]
     Route["/session/:id | /label/:id | ..."]
     Query["?window=new"]
-    
+
     Protocol --> Navigator
     Navigator --> Route
     Route --> Query
@@ -645,13 +648,13 @@ graph LR
 
 ### Supported Routes
 
-| URL Pattern | Description | Example |
-|-------------|-------------|---------|
-| `craftagents://allSessions` | Navigate to all sessions | `craftagents://allSessions` |
-| `craftagents://allSessions/session/:id` | Open specific session | `craftagents://allSessions/session/abc123` |
-| `craftagents://allSessions/label/:labelId` | Filter by label | `craftagents://allSessions/label/urgent` |
-| `craftagents://settings` | Open settings | `craftagents://settings` |
-| `craftagents://settings/:page` | Open settings page | `craftagents://settings/sources` |
+| URL Pattern                                | Description              | Example                                    |
+| ------------------------------------------ | ------------------------ | ------------------------------------------ |
+| `craftagents://allSessions`                | Navigate to all sessions | `craftagents://allSessions`                |
+| `craftagents://allSessions/session/:id`    | Open specific session    | `craftagents://allSessions/session/abc123` |
+| `craftagents://allSessions/label/:labelId` | Filter by label          | `craftagents://allSessions/label/urgent`   |
+| `craftagents://settings`                   | Open settings            | `craftagents://settings`                   |
+| `craftagents://settings/:page`             | Open settings page       | `craftagents://settings/sources`           |
 
 ### Query Parameters
 
@@ -670,6 +673,7 @@ protocols:
 ```
 
 Deep links are handled by `handleDeepLink()` which:
+
 1. Parses the URL
 2. Determines target workspace from session ID
 3. Focuses or creates window
@@ -688,7 +692,7 @@ Session-scoped tools are available to all agents via the `session-mcp-server` bi
 ```mermaid
 graph TB
     SessionMCP["session-mcp-server"]
-    
+
     SessionMCP --> SubmitPlan["SubmitPlan<br/>Write execution plan"]
     SessionMCP --> ConfigValidate["config_validate<br/>Validate workspace config"]
     SessionMCP --> SkillValidate["skill_validate<br/>Validate skill config"]
@@ -708,16 +712,18 @@ graph TB
 Writes a structured execution plan to `sessions/<id>/plans/<timestamp>.md`.
 
 **Input Schema:**
+
 ```typescript
 {
-  plan: string      // Markdown-formatted plan
-  summary: string   // One-line summary
+  plan: string // Markdown-formatted plan
+  summary: string // One-line summary
 }
 ```
 
 **Output:** `{ planPath: string }`
 
 Plans are displayed in the UI as collapsible sections with an "Accept & Compact" button. Accepting a plan triggers:
+
 1. Plan is marked as pending via `setPendingPlanExecution()`
 2. UI sends special message: "Accepted. Please execute the plan."
 3. Agent reads plan file and executes steps
@@ -731,10 +737,11 @@ Plans are displayed in the UI as collapsible sections with an "Accept & Compact"
 Validates workspace configuration files against their schemas.
 
 **Input Schema:**
+
 ```typescript
 {
   configType: 'source' | 'skill' | 'status' | 'label' | 'hook'
-  configContent: string  // JSON content to validate
+  configContent: string // JSON content to validate
 }
 ```
 
@@ -749,16 +756,18 @@ Uses Zod schemas from `@craft-agent/shared` to validate structure. Commonly used
 Validates skill configuration and instruction.
 
 **Input Schema:**
+
 ```typescript
 {
-  config: object        // skill config.json
-  instruction: string   // instruction.md content
+  config: object // skill config.json
+  instruction: string // instruction.md content
 }
 ```
 
 **Output:** `{ valid: boolean, errors?: string[], warnings?: string[] }`
 
 Checks:
+
 - Config schema validity (slug, name, description, icon)
 - Instruction length (warns if >10k chars)
 - Required fields
@@ -776,6 +785,7 @@ Initiate OAuth flows for API sources:
 - `source_oauth_trigger` - Generic OAuth (Linear, Notion, etc.)
 
 **Input Schema:**
+
 ```typescript
 {
   sourceSlug: string
@@ -785,6 +795,7 @@ Initiate OAuth flows for API sources:
 **Output:** `{ status: 'pending', requestId: string }`
 
 The tool returns immediately with a `requestId`. The agent should pause and wait for completion. OAuth flow:
+
 1. Main process opens browser to provider's auth URL
 2. User grants permissions
 3. Provider redirects to callback URL with code
@@ -800,6 +811,7 @@ The tool returns immediately with a `requestId`. The agent should pause and wait
 Queries an LLM for meta-tasks (research, summarization, template generation).
 
 **Input Schema:**
+
 ```typescript
 {
   prompt: string
@@ -812,6 +824,7 @@ Queries an LLM for meta-tasks (research, summarization, template generation).
 **Output:** `{ response: string, model: string, tokensUsed: number }`
 
 Uses the workspace's default LLM connection. Commonly used for:
+
 - Researching API documentation
 - Generating configuration templates
 - Summarizing large datasets
@@ -825,7 +838,7 @@ All session tools include display metadata for UI rendering:
 ```typescript
 interface ToolDisplayMeta {
   displayName: string
-  iconDataUrl?: string     // Base64-encoded icon
+  iconDataUrl?: string // Base64-encoded icon
   description?: string
   category: 'native' | 'source' | 'skill'
 }
@@ -850,7 +863,7 @@ graph LR
     Codex["Codex Backend"]
     Bridge["bridge-mcp-server<br/>(stdio)"]
     API["REST APIs<br/>(Gmail, Slack, etc.)"]
-    
+
     Codex -->|"MCP tool call"| Bridge
     Bridge -->|"HTTP request"| API
     API -->|"JSON response"| Bridge
@@ -858,6 +871,7 @@ graph LR
 ```
 
 **Command Line:**
+
 ```bash
 bun packages/bridge-mcp-server/dist/index.js \
   --config /path/to/bridge-config.json \
@@ -865,6 +879,7 @@ bun packages/bridge-mcp-server/dist/index.js \
 ```
 
 **Configuration (bridge-config.json):**
+
 ```json
 {
   "sources": [
@@ -878,6 +893,7 @@ bun packages/bridge-mcp-server/dist/index.js \
 ```
 
 The bridge:
+
 1. Reads credentials from `~/.craft-agent/credentials.enc` using workspace ID
 2. Loads OpenAPI schemas from `@craft-agent/shared/sources/api-sources/<provider>/`
 3. Registers MCP tools with names like `api_gmail__search_emails`
@@ -892,6 +908,7 @@ The bridge:
 Provides session-scoped tools (SubmitPlan, config_validate, etc.) to agents.
 
 **Command Line:**
+
 ```bash
 bun packages/session-mcp-server/dist/index.js \
   --session-id abc123 \
@@ -902,6 +919,7 @@ bun packages/session-mcp-server/dist/index.js \
 **Tool Registration:**
 
 The server registers tools with the MCP protocol:
+
 - `SubmitPlan` - Write execution plans
 - `config_validate` - Validate configs
 - `skill_validate` - Validate skills
@@ -922,6 +940,7 @@ Each tool implementation is in `@craft-agent/session-tools-core`.
 #### Codex Integration
 
 For Codex sessions, the main process:
+
 1. Generates `config.toml` with MCP server configurations
 2. Writes credential cache files to `workspace/sources/<slug>/.credential-cache.json`
 3. Starts Codex app-server subprocess with `CODEX_HOME` set
@@ -932,6 +951,7 @@ For Codex sessions, the main process:
 #### Claude Integration
 
 For Claude sessions, the main process:
+
 1. Builds MCP server configs using `buildServersFromSources()`
 2. Passes configs to `CraftAgent` via SDK's `createSdkMcpServer()`
 3. Claude SDK spawns MCP servers as stdio subprocesses
@@ -942,6 +962,7 @@ For Claude sessions, the main process:
 #### Copilot Integration
 
 For Copilot sessions, the main process:
+
 1. Writes `bridge-config.json` to `.copilot-config/`
 2. Writes credential cache files (same as Codex)
 3. Passes MCP configs to `CopilotAgent` via `buildMcpConfig()`
@@ -957,14 +978,14 @@ All IPC channels, session types, and message schemas are defined in TypeScript f
 
 ### Core Type Locations
 
-| Module | Location | Exports |
-|--------|----------|---------|
-| IPC Channels | `apps/electron/src/shared/types.ts` | `IPC_CHANNELS`, `SessionEvent`, `Session`, `Message` |
-| Configuration | `packages/shared/src/config/schema.ts` | `Workspace`, `LlmConnection`, `ModelDefinition` |
-| Sessions | `packages/shared/src/sessions/types.ts` | `StoredSession`, `StoredMessage`, `SessionMetadata` |
-| Sources | `packages/shared/src/sources/schema.ts` | `SourceConfig`, `McpServerConfig`, `ApiServerConfig` |
-| Skills | `packages/shared/src/skills/schema.ts` | `SkillConfig`, `LoadedSkill` |
-| Agent | `packages/shared/src/agent/types.ts` | `AgentEvent`, `PermissionMode`, `ThinkingLevel` |
+| Module        | Location                                | Exports                                              |
+| ------------- | --------------------------------------- | ---------------------------------------------------- |
+| IPC Channels  | `apps/electron/src/shared/types.ts`     | `IPC_CHANNELS`, `SessionEvent`, `Session`, `Message` |
+| Configuration | `packages/shared/src/config/schema.ts`  | `Workspace`, `LlmConnection`, `ModelDefinition`      |
+| Sessions      | `packages/shared/src/sessions/types.ts` | `StoredSession`, `StoredMessage`, `SessionMetadata`  |
+| Sources       | `packages/shared/src/sources/schema.ts` | `SourceConfig`, `McpServerConfig`, `ApiServerConfig` |
+| Skills        | `packages/shared/src/skills/schema.ts`  | `SkillConfig`, `LoadedSkill`                         |
+| Agent         | `packages/shared/src/agent/types.ts`    | `AgentEvent`, `PermissionMode`, `ThinkingLevel`      |
 
 **Sources:** [apps/electron/src/shared/types.ts](), [packages/shared/src/config/schema.ts](), [packages/shared/src/sessions/types.ts]()
 
@@ -976,7 +997,7 @@ interface Message {
   role: 'user' | 'assistant' | 'tool' | 'error' | 'plan'
   content: string
   timestamp: number
-  
+
   // Tool fields (when role='tool')
   toolName?: string
   toolUseId?: string
@@ -985,26 +1006,26 @@ interface Message {
   toolStatus?: 'pending' | 'success' | 'error'
   toolDisplayMeta?: ToolDisplayMeta
   parentToolUseId?: string
-  
+
   // Turn grouping
-  isIntermediate?: boolean  // Hide in compact view
-  turnId?: string           // Group messages in same turn
-  
+  isIntermediate?: boolean // Hide in compact view
+  turnId?: string // Group messages in same turn
+
   // Attachments
   attachments?: Array<FileAttachment | StoredAttachment>
-  
+
   // Content badges (@mentions, #labels)
   badges?: ContentBadge[]
-  
+
   // Auth request
   authRequestId?: string
   authRequestType?: 'oauth' | 'credential'
   authSourceSlug?: string
   authStatus?: 'pending' | 'approved' | 'denied'
-  
+
   // Plan fields
   planPath?: string
-  
+
   // Error fields
   errorCode?: string
   errorTitle?: string

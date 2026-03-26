@@ -22,8 +22,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 AI provider adapters implement a standardized interface that allows TanStack AI to work with different LLM providers (OpenAI, Anthropic, Gemini, Ollama) through a consistent API. Each adapter handles the bidirectional transformation between TanStack AI's generic types and provider-specific formats.
 
 For information about the core `chat()` function that uses these adapters, see [chat() Function](#3.1). For details about streaming protocols, see [Streaming Response Utilities](#3.5).
@@ -37,24 +35,24 @@ All text adapters extend the `BaseTextAdapter` abstract class, which defines the
 ```mermaid
 graph TB
     BaseTextAdapter["BaseTextAdapter&lt;TModel, TProviderOptions&gt;<br/>Abstract Class"]
-    
+
     Interface["Required Methods:<br/>• chatStream(options: TextOptions)<br/>• structuredOutput(options)<br/>• mapCommonOptionsToProvider(options)<br/>• processProviderStreamChunks(stream)"]
-    
+
     Properties["Properties:<br/>• kind: 'text'<br/>• name: provider string<br/>• model: TModel"]
-    
+
     OpenAITextAdapter["OpenAITextAdapter&lt;TModel&gt;<br/>implements BaseTextAdapter"]
     AnthropicTextAdapter["AnthropicTextAdapter&lt;TModel&gt;<br/>implements BaseTextAdapter"]
     GeminiTextAdapter["GeminiTextAdapter&lt;TModel&gt;<br/>implements BaseTextAdapter"]
     OllamaTextAdapter["OllamaTextAdapter&lt;TModel&gt;<br/>implements BaseTextAdapter"]
-    
+
     BaseTextAdapter --> Interface
     BaseTextAdapter --> Properties
-    
+
     BaseTextAdapter --> OpenAITextAdapter
     BaseTextAdapter --> AnthropicTextAdapter
     BaseTextAdapter --> GeminiTextAdapter
     BaseTextAdapter --> OllamaTextAdapter
-    
+
     OpenAITextAdapter --> OpenAISDK["OpenAI SDK<br/>openai package"]
     AnthropicTextAdapter --> AnthropicSDK["@anthropic-ai/sdk"]
     GeminiTextAdapter --> GeminiSDK["@google/generative-ai"]
@@ -71,20 +69,20 @@ Adapters perform two critical transformations: mapping generic `TextOptions` to 
 graph LR
     subgraph "Input Transformation"
         TextOptions["TextOptions<br/>• model: string<br/>• messages: ModelMessage[]<br/>• tools?: Tool[]<br/>• temperature?: number<br/>• maxTokens?: number<br/>• modelOptions?: TProviderOptions"]
-        
+
         MapOptions["mapCommonOptionsToProvider()<br/>Transform generic → provider"]
-        
+
         ProviderFormat["Provider Request Format<br/>OpenAI: ChatCompletionCreateParams<br/>Anthropic: MessageCreateParams<br/>Gemini: GenerateContentRequest<br/>Ollama: ChatRequest"]
     end
-    
+
     subgraph "Output Transformation"
         ProviderResponse["Provider Response Stream<br/>OpenAI: ChatCompletionChunk<br/>Anthropic: MessageStreamEvent<br/>Gemini: EnhancedGenerateContentResponse<br/>Ollama: ChatResponse"]
-        
+
         ProcessChunks["processProviderStreamChunks()<br/>Transform provider → generic"]
-        
+
         StreamChunks["StreamChunk Union<br/>• ContentStreamChunk<br/>• ThinkingStreamChunk<br/>• ToolCallStreamChunk<br/>• ToolResultStreamChunk<br/>• DoneStreamChunk<br/>• ErrorStreamChunk"]
     end
-    
+
     TextOptions --> MapOptions
     MapOptions --> ProviderFormat
     ProviderFormat --> ProviderSDK["Provider SDK API Call"]
@@ -99,12 +97,12 @@ Sources: [packages/typescript/ai/src/types.ts:565-650](), [packages/typescript/a
 
 TanStack AI provides four built-in adapter packages, each supporting multiple adapter kinds (text, image, TTS, transcription, summarization).
 
-| Package | Provider | Text Models | Image Generation | TTS | Transcription |
-|---------|----------|-------------|------------------|-----|---------------|
-| `@tanstack/ai-openai` | OpenAI | GPT-4o, GPT-5, GPT-4.1-mini, etc. | DALL-E (gpt-image-1) | ✓ (tts-1, tts-1-hd) | ✓ (whisper-1) |
-| `@tanstack/ai-anthropic` | Anthropic | Claude Sonnet 4.5, Claude Opus 4.5 | ✗ | ✗ | ✗ |
-| `@tanstack/ai-gemini` | Google | Gemini 2.5 Pro, Gemini Flash | Imagen (imagen-3.0) | ✓ (experimental) | ✗ |
-| `@tanstack/ai-ollama` | Ollama | Llama 3, Mistral, Qwen, etc. | ✗ | ✗ | ✗ |
+| Package                  | Provider  | Text Models                        | Image Generation     | TTS                 | Transcription |
+| ------------------------ | --------- | ---------------------------------- | -------------------- | ------------------- | ------------- |
+| `@tanstack/ai-openai`    | OpenAI    | GPT-4o, GPT-5, GPT-4.1-mini, etc.  | DALL-E (gpt-image-1) | ✓ (tts-1, tts-1-hd) | ✓ (whisper-1) |
+| `@tanstack/ai-anthropic` | Anthropic | Claude Sonnet 4.5, Claude Opus 4.5 | ✗                    | ✗                   | ✗             |
+| `@tanstack/ai-gemini`    | Google    | Gemini 2.5 Pro, Gemini Flash       | Imagen (imagen-3.0)  | ✓ (experimental)    | ✗             |
+| `@tanstack/ai-ollama`    | Ollama    | Llama 3, Mistral, Qwen, etc.       | ✗                    | ✗                   | ✗             |
 
 Sources: [docs/adapters/openai.md:1-334](), [docs/adapters/anthropic.md:1-231](), [docs/adapters/gemini.md:1-284](), [docs/adapters/ollama.md:1-293]()
 
@@ -118,25 +116,25 @@ The OpenAI adapter provides access to OpenAI's models through the `openai` npm p
 graph TB
     EnvBased["Environment-based Functions<br/>Read OPENAI_API_KEY from env"]
     Explicit["Explicit API Key Functions<br/>Accept apiKey parameter"]
-    
+
     openaiText["openaiText(model)<br/>Returns: OpenAITextAdapter"]
     openaiImage["openaiImage(model)<br/>Returns: OpenAIImageAdapter"]
     openaiTTS["openaiTTS(model)<br/>Returns: OpenAITTSAdapter"]
     openaiTranscription["openaiTranscription(model)<br/>Returns: OpenAITranscriptionAdapter"]
     openaiSummarize["openaiSummarize(model)<br/>Returns: OpenAISummarizeAdapter"]
-    
+
     createOpenaiChat["createOpenaiChat(apiKey, config?)<br/>Returns: (model) => OpenAITextAdapter"]
     createOpenaiImage["createOpenaiImage(apiKey, config?)<br/>Returns: (model) => OpenAIImageAdapter"]
     createOpenaiTTS["createOpenaiTTS(apiKey, config?)<br/>Returns: (model) => OpenAITTSAdapter"]
     createOpenaiTranscription["createOpenaiTranscription(apiKey, config?)<br/>Returns: (model) => OpenAITranscriptionAdapter"]
     createOpenaiSummarize["createOpenaiSummarize(apiKey, config?)<br/>Returns: (model) => OpenAISummarizeAdapter"]
-    
+
     EnvBased --> openaiText
     EnvBased --> openaiImage
     EnvBased --> openaiTTS
     EnvBased --> openaiTranscription
     EnvBased --> openaiSummarize
-    
+
     Explicit --> createOpenaiChat
     Explicit --> createOpenaiImage
     Explicit --> createOpenaiTTS
@@ -153,17 +151,17 @@ OpenAI adapters support provider-specific options through `modelOptions`:
 ```mermaid
 graph TB
     OpenAIBaseOptions["OpenAIBaseOptions<br/>• background?: boolean<br/>• conversation?: string | {id}<br/>• include?: ResponseIncludable[]<br/>• previous_response_id?: string<br/>• store?: boolean<br/>• verbosity?: 'low' | 'medium' | 'high'<br/>• truncation?: 'auto' | 'disabled'"]
-    
+
     OpenAIReasoningOptions["OpenAIReasoningOptions<br/>reasoning: {<br/>  effort?: 'none' | 'minimal' | 'low' | 'medium' | 'high'<br/>  summary?: 'auto' | 'detailed'<br/>}"]
-    
+
     OpenAIToolsOptions["OpenAIToolsOptions<br/>• max_tool_calls?: number<br/>• parallel_tool_calls?: boolean<br/>• tool_choice?: ToolChoice"]
-    
+
     OpenAIStructuredOutputOptions["OpenAIStructuredOutputOptions<br/>text?: ResponseTextConfig"]
-    
+
     OpenAIMetadataOptions["OpenAIMetadataOptions<br/>metadata?: Record&lt;string, string&gt;<br/>Max 16 key-value pairs"]
-    
+
     ExternalTextProviderOptions["ExternalTextProviderOptions<br/>Union of all option types"]
-    
+
     OpenAIBaseOptions --> ExternalTextProviderOptions
     OpenAIReasoningOptions --> ExternalTextProviderOptions
     OpenAIToolsOptions --> ExternalTextProviderOptions
@@ -201,16 +199,16 @@ The Anthropic adapter provides access to Claude models through the `@anthropic-a
 graph TB
     EnvBased["Environment-based Functions<br/>Read ANTHROPIC_API_KEY from env"]
     Explicit["Explicit API Key Functions<br/>Accept apiKey parameter"]
-    
+
     anthropicText["anthropicText(model)<br/>Returns: AnthropicTextAdapter"]
     anthropicSummarize["anthropicSummarize(model)<br/>Returns: AnthropicSummarizeAdapter"]
-    
+
     createAnthropicChat["createAnthropicChat(apiKey, config?)<br/>Returns: (model) => AnthropicTextAdapter"]
     createAnthropicSummarize["createAnthropicSummarize(apiKey, config?)<br/>Returns: (model) => AnthropicSummarizeAdapter"]
-    
+
     EnvBased --> anthropicText
     EnvBased --> anthropicSummarize
-    
+
     Explicit --> createAnthropicChat
     Explicit --> createAnthropicSummarize
 ```
@@ -224,17 +222,17 @@ Anthropic adapters support unique provider features through `modelOptions`:
 ```mermaid
 graph TB
     AnthropicThinkingOptions["AnthropicThinkingOptions<br/>thinking: {<br/>  type: 'enabled' | 'disabled'<br/>  budget_tokens?: number<br/>}<br/>Min 1024, less than max_tokens"]
-    
+
     AnthropicContainerOptions["AnthropicContainerOptions<br/>container: {<br/>  id: string | null<br/>  skills: Skill[] | null<br/>}"]
-    
+
     AnthropicMCPOptions["AnthropicMCPOptions<br/>mcp_servers?: MCPServer[]<br/>Max 20 servers"]
-    
+
     AnthropicContextManagementOptions["AnthropicContextManagementOptions<br/>context_management?:<br/>BetaContextManagementConfig"]
-    
+
     AnthropicToolChoiceOptions["AnthropicToolChoiceOptions<br/>tool_choice?:<br/>BetaToolChoiceAny |<br/>BetaToolChoiceTool |<br/>BetaToolChoiceAuto"]
-    
+
     ExternalTextProviderOptions["ExternalTextProviderOptions<br/>Union of all Anthropic options"]
-    
+
     AnthropicThinkingOptions --> ExternalTextProviderOptions
     AnthropicContainerOptions --> ExternalTextProviderOptions
     AnthropicMCPOptions --> ExternalTextProviderOptions
@@ -268,14 +266,14 @@ Anthropic supports prompt caching through message metadata:
 ```typescript
 messages: [
   {
-    role: "user",
+    role: 'user',
     content: [
       {
-        type: "text",
-        content: "What is the capital of France?",
+        type: 'text',
+        content: 'What is the capital of France?',
         metadata: {
           cache_control: {
-            type: "ephemeral",
+            type: 'ephemeral',
           },
         },
       },
@@ -296,22 +294,22 @@ The Gemini adapter provides access to Google's Gemini models and Imagen image ge
 graph TB
     EnvBased["Environment-based Functions<br/>Read GEMINI_API_KEY or GOOGLE_API_KEY from env"]
     Explicit["Explicit API Key Functions<br/>Accept apiKey parameter"]
-    
+
     geminiText["geminiText(model)<br/>Returns: GeminiTextAdapter"]
     geminiImage["geminiImage(model)<br/>Returns: GeminiImageAdapter"]
     geminiSpeech["geminiSpeech(model)<br/>Returns: GeminiTTSAdapter"]
     geminiSummarize["geminiSummarize(model)<br/>Returns: GeminiSummarizeAdapter"]
-    
+
     createGeminiChat["createGeminiChat(apiKey, config?)<br/>Returns: (model) => GeminiTextAdapter"]
     createGeminiImage["createGeminiImage(apiKey, config?)<br/>Returns: (model) => GeminiImageAdapter"]
     createGeminiTTS["createGeminiTTS(apiKey, config?)<br/>Returns: (model) => GeminiTTSAdapter"]
     createGeminiSummarize["createGeminiSummarize(apiKey, config?)<br/>Returns: (model) => GeminiSummarizeAdapter"]
-    
+
     EnvBased --> geminiText
     EnvBased --> geminiImage
     EnvBased --> geminiSpeech
     EnvBased --> geminiSummarize
-    
+
     Explicit --> createGeminiChat
     Explicit --> createGeminiImage
     Explicit --> createGeminiTTS
@@ -331,12 +329,12 @@ modelOptions: {
   topP: 0.9,
   topK: 40,
   stopSequences: ["END"],
-  
+
   // Enable thinking for supported models
   thinking: {
     includeThoughts: true,
   },
-  
+
   // Structured output
   responseMimeType: "application/json",
 }
@@ -354,16 +352,16 @@ The Ollama adapter provides access to locally-hosted models through the `ollama`
 graph TB
     EnvBased["Environment-based Functions<br/>Read OLLAMA_HOST from env<br/>Default: http://localhost:11434"]
     Explicit["Explicit Host Functions<br/>Accept host parameter"]
-    
+
     ollamaText["ollamaText(model)<br/>Returns: OllamaTextAdapter"]
     ollamaSummarize["ollamaSummarize(model)<br/>Returns: OllamaSummarizeAdapter"]
-    
+
     createOllamaChat["createOllamaChat(model, host?)<br/>Returns: OllamaTextAdapter"]
     createOllamaSummarize["createOllamaSummarize(host?, options?)<br/>Returns: OllamaSummarizeAdapter"]
-    
+
     EnvBased --> ollamaText
     EnvBased --> ollamaSummarize
-    
+
     Explicit --> createOllamaChat
     Explicit --> createOllamaSummarize
 ```
@@ -377,15 +375,15 @@ Ollama supports extensive model configuration options:
 ```mermaid
 graph TB
     SamplingOptions["Sampling Options<br/>• temperature?: number<br/>• top_p?: number<br/>• top_k?: number<br/>• min_p?: number<br/>• typical_p?: number"]
-    
+
     GenerationOptions["Generation Options<br/>• num_predict?: number (max tokens)<br/>• repeat_penalty?: number<br/>• repeat_last_n?: number<br/>• penalize_newline?: boolean"]
-    
+
     PerformanceOptions["Performance Options<br/>• num_ctx?: number (context size)<br/>• num_batch?: number<br/>• num_gpu?: number<br/>• num_thread?: number<br/>• use_mmap?: boolean<br/>• use_mlock?: boolean"]
-    
+
     MirostatOptions["Mirostat Sampling<br/>• mirostat?: 0 | 1 | 2<br/>• mirostat_tau?: number<br/>• mirostat_eta?: number"]
-    
+
     OllamaTextProviderOptions["OllamaTextProviderOptions<br/>Union of all option types"]
-    
+
     SamplingOptions --> OllamaTextProviderOptions
     GenerationOptions --> OllamaTextProviderOptions
     PerformanceOptions --> OllamaTextProviderOptions
@@ -399,13 +397,21 @@ Sources: [packages/typescript/ai-ollama/src/adapters/text.ts:52-93](), [docs/ada
 Ollama supports any dynamically-loaded model. Common models include:
 
 ```typescript
-type OllamaTextModel = 
-  | "llama2" | "llama3" | "llama3.1" | "llama3.2"
-  | "mistral" | "mixtral"
-  | "phi" | "phi3"
-  | "qwen2" | "qwen2.5"
-  | "gemma" | "gemma2"
-  | "codellama" | "deepseek-coder"
+type OllamaTextModel =
+  | 'llama2'
+  | 'llama3'
+  | 'llama3.1'
+  | 'llama3.2'
+  | 'mistral'
+  | 'mixtral'
+  | 'phi'
+  | 'phi3'
+  | 'qwen2'
+  | 'qwen2.5'
+  | 'gemma'
+  | 'gemma2'
+  | 'codellama'
+  | 'deepseek-coder'
   | (string & {}) // Any string accepted
 ```
 
@@ -418,13 +424,13 @@ Adapters are passed to the `chat()` function through the `adapter` parameter:
 ```mermaid
 graph TB
     AdapterFactory["Adapter Factory Function<br/>openaiText('gpt-4o')<br/>anthropicText('claude-sonnet-4-5')<br/>geminiText('gemini-2.5-pro')<br/>ollamaText('llama3')"]
-    
+
     AdapterInstance["Adapter Instance<br/>OpenAITextAdapter<br/>AnthropicTextAdapter<br/>GeminiTextAdapter<br/>OllamaTextAdapter"]
-    
+
     ChatFunction["chat({<br/>  adapter: adapterInstance,<br/>  messages: [...],<br/>  tools?: [...],<br/>  modelOptions?: {...}<br/>})"]
-    
+
     StreamChunks["AsyncIterable&lt;StreamChunk&gt;"]
-    
+
     AdapterFactory --> AdapterInstance
     AdapterInstance --> ChatFunction
     ChatFunction --> StreamChunks
@@ -441,15 +447,15 @@ Each adapter must convert TanStack AI's generic `Tool` type to the provider's to
 ```mermaid
 graph TB
     GenericTool["Generic Tool<br/>• name: string<br/>• description: string<br/>• inputSchema: JSONSchema<br/>• outputSchema?: JSONSchema<br/>• execute?: Function<br/>• needsApproval?: boolean"]
-    
+
     ConvertFunction["convertToolsToProviderFormat(tools)<br/>Adapter-specific conversion"]
-    
+
     OpenAIFormat["OpenAI Format<br/>{<br/>  type: 'function',<br/>  function: {<br/>    name, description,<br/>    parameters: JSONSchema<br/>  }<br/>}"]
-    
+
     AnthropicFormat["Anthropic Format<br/>{<br/>  name,<br/>  type: 'custom',<br/>  description,<br/>  input_schema: JSONSchema<br/>}"]
-    
+
     OllamaFormat["Ollama Format<br/>{<br/>  type: 'function',<br/>  function: {<br/>    name, description,<br/>    parameters: JSONSchema<br/>  }<br/>}"]
-    
+
     GenericTool --> ConvertFunction
     ConvertFunction --> OpenAIFormat
     ConvertFunction --> AnthropicFormat
@@ -488,15 +494,15 @@ All text adapters implement the `structuredOutput()` method for generating struc
 ```mermaid
 graph TB
     StructuredOutputOptions["StructuredOutputOptions<br/>• chatOptions: TextOptions<br/>• outputSchema: JSONSchema"]
-    
+
     AdapterMethod["adapter.structuredOutput(options)"]
-    
+
     ProviderAPI["Provider-specific API Call<br/>OpenAI: response_format with json_schema<br/>Anthropic: text config with json_schema<br/>Gemini: responseMimeType application/json<br/>Ollama: format with schema"]
-    
+
     ParseJSON["Parse JSON Response<br/>Validate against schema"]
-    
+
     Result["StructuredOutputResult<br/>{<br/>  data: ParsedObject,<br/>  rawText: string<br/>}"]
-    
+
     StructuredOutputOptions --> AdapterMethod
     AdapterMethod --> ProviderAPI
     ProviderAPI --> ParseJSON
@@ -509,12 +515,12 @@ Sources: [packages/typescript/ai-ollama/src/adapters/text.ts:152-194]()
 
 Each adapter reads its API key or configuration from environment variables:
 
-| Adapter | Environment Variables | Default Value |
-|---------|----------------------|---------------|
-| OpenAI | `OPENAI_API_KEY` | Required |
-| Anthropic | `ANTHROPIC_API_KEY` | Required |
-| Gemini | `GEMINI_API_KEY`, `GOOGLE_API_KEY` | Required |
-| Ollama | `OLLAMA_HOST` | `http://localhost:11434` |
+| Adapter   | Environment Variables              | Default Value            |
+| --------- | ---------------------------------- | ------------------------ |
+| OpenAI    | `OPENAI_API_KEY`                   | Required                 |
+| Anthropic | `ANTHROPIC_API_KEY`                | Required                 |
+| Gemini    | `GEMINI_API_KEY`, `GOOGLE_API_KEY` | Required                 |
+| Ollama    | `OLLAMA_HOST`                      | `http://localhost:11434` |
 
 Sources: [docs/adapters/openai.md:253-259](), [docs/adapters/anthropic.md:178-184](), [docs/adapters/gemini.md:208-216](), [docs/adapters/ollama.md:233-238]()
 
@@ -525,15 +531,15 @@ Adapters must transform TanStack AI's `ModelMessage` format (which supports mult
 ```mermaid
 graph TB
     ModelMessage["ModelMessage<br/>• role: 'user' | 'assistant' | 'tool'<br/>• content: string | null | ContentPart[]<br/>• toolCalls?: ToolCall[]<br/>• toolCallId?: string"]
-    
+
     FormatMessages["formatMessages(messages)<br/>Adapter-specific transformation"]
-    
+
     OpenAIFormat["OpenAI Format<br/>ChatCompletionMessageParam<br/>• role, content<br/>• tool_calls, tool_call_id"]
-    
+
     AnthropicFormat["Anthropic Format<br/>MessageParam<br/>• role, content: ContentBlock[]<br/>• Converts tool messages"]
-    
+
     OllamaFormat["Ollama Format<br/>Message<br/>• role, content<br/>• images: string[]<br/>• tool_calls"]
-    
+
     ModelMessage --> FormatMessages
     FormatMessages --> OpenAIFormat
     FormatMessages --> AnthropicFormat
@@ -643,19 +649,20 @@ To create a custom adapter, extend `BaseTextAdapter` and implement the required 
 ```mermaid
 graph TB
     CustomAdapter["CustomTextAdapter<br/>extends BaseTextAdapter"]
-    
+
     RequiredMethods["Required Implementations:<br/>1. constructor(config, model)<br/>2. chatStream(options)<br/>3. structuredOutput(options)<br/>4. mapCommonOptionsToProvider(options)<br/>5. processProviderStreamChunks(stream)"]
-    
+
     Properties["Set Properties:<br/>• kind = 'text'<br/>• name = 'custom-provider'<br/>• model = modelName"]
-    
+
     SDKClient["Initialize Provider SDK Client"]
-    
+
     CustomAdapter --> RequiredMethods
     CustomAdapter --> Properties
     CustomAdapter --> SDKClient
 ```
 
 The adapter must:
+
 1. Transform `TextOptions` to provider request format
 2. Call the provider's SDK
 3. Transform provider responses to `StreamChunk` union types

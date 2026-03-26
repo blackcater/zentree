@@ -25,7 +25,7 @@ The following files were used as context for generating this wiki page:
 - [packages/core/CHANGELOG.md](packages/core/CHANGELOG.md)
 - [packages/core/package.json](packages/core/package.json)
 - [packages/core/src/action/index.ts](packages/core/src/action/index.ts)
-- [packages/core/src/agent/__tests__/utils.test.ts](packages/core/src/agent/__tests__/utils.test.ts)
+- [packages/core/src/agent/**tests**/utils.test.ts](packages/core/src/agent/__tests__/utils.test.ts)
 - [packages/core/src/agent/agent-legacy.ts](packages/core/src/agent/agent-legacy.ts)
 - [packages/core/src/agent/agent.test.ts](packages/core/src/agent/agent.test.ts)
 - [packages/core/src/agent/agent.ts](packages/core/src/agent/agent.ts)
@@ -67,13 +67,12 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document provides a high-level overview of Mastra's system architecture, describing how the major components—Agent, Workflow, Memory, Tools, Storage, Server, and CLI—fit together to form a cohesive AI application framework. This page focuses on architectural patterns and component relationships rather than implementation details.
 
 For detailed information on specific subsystems:
+
 - For monorepo structure and package dependencies, see [Monorepo Structure and Package Organization](#1.1)
 - For Mastra class configuration and initialization, see [Mastra Core and Configuration](#2)
 - For agent execution internals, see [Agent System](#3)
@@ -88,7 +87,7 @@ graph TB
     subgraph "Application Layer"
         UserCode["User Application<br/>(mastra.config.ts)"]
     end
-    
+
     subgraph "Mastra Instance"
         MastraClass["Mastra<br/>(class from @mastra/core)"]
         AgentRegistry["#agents: Record<string, Agent>"]
@@ -98,7 +97,7 @@ graph TB
         MemoryRef["#memory: Record<string, MastraMemory>"]
         ServerConfig["#server: ServerConfig"]
     end
-    
+
     subgraph "Registered Components"
         AgentInstances["Agent Instances"]
         WorkflowInstances["Workflow Instances"]
@@ -106,7 +105,7 @@ graph TB
         StorageAdapter["Storage Adapter<br/>(LibSQL, Postgres, etc)"]
         MemoryInstances["Memory Instances"]
     end
-    
+
     UserCode -->|"new Mastra(config)"| MastraClass
     MastraClass --> AgentRegistry
     MastraClass --> WorkflowRegistry
@@ -114,7 +113,7 @@ graph TB
     MastraClass --> StorageRef
     MastraClass --> MemoryRef
     MastraClass --> ServerConfig
-    
+
     AgentRegistry -.->|references| AgentInstances
     WorkflowRegistry -.->|references| WorkflowInstances
     ToolRegistry -.->|references| ToolInstances
@@ -134,15 +133,16 @@ The `Mastra` constructor accepts a `Config` object that specifies all components
 
 The `Agent` class encapsulates autonomous AI execution with LLM integration, tool calling, and memory. Each agent instance is identified by an `id` and registered with the Mastra instance.
 
-| Property | Type | Purpose |
-|----------|------|---------|
-| `id` | `string` | Unique identifier for the agent |
-| `name` | `string` | Human-readable name |
-| `model` | `MastraModelConfig` | LLM configuration (provider/model) |
-| `tools` | `ToolsInput` | Tools the agent can use |
-| `memory` | `MastraMemory` | Memory instance for conversation history |
+| Property | Type                | Purpose                                  |
+| -------- | ------------------- | ---------------------------------------- |
+| `id`     | `string`            | Unique identifier for the agent          |
+| `name`   | `string`            | Human-readable name                      |
+| `model`  | `MastraModelConfig` | LLM configuration (provider/model)       |
+| `tools`  | `ToolsInput`        | Tools the agent can use                  |
+| `memory` | `MastraMemory`      | Memory instance for conversation history |
 
 Agents expose two primary execution methods:
+
 - `agent.generate()` - Single-turn completion (returns `MastraModelOutput`)
 - `agent.stream()` - Streaming responses with tool execution loop
 
@@ -158,13 +158,16 @@ const workflow = createWorkflow({
   steps: [
     createStep({
       id: 'step1',
-      execute: async (context) => { /* ... */ }
-    })
-  ]
-});
+      execute: async (context) => {
+        /* ... */
+      },
+    }),
+  ],
+})
 ```
 
 Workflows support:
+
 - Sequential and parallel execution
 - Agent integration via `createAgentStep()`
 - Suspend/resume for human-in-the-loop
@@ -188,12 +191,12 @@ Memory provides conversation history, semantic recall, working memory, and obser
 
 The `MastraCompositeStore` interface provides unified access to persistence across multiple concerns:
 
-| Storage Domain | Interface | Purpose |
-|----------------|-----------|---------|
-| Memory | `MemoryStorage` | Threads, messages, vectors |
-| Workflows | `WorkflowRuns` | Run metadata, state snapshots |
-| Agents | Agent config storage | Stored agent definitions |
-| Syncs | Sync record storage | Integration sync state |
+| Storage Domain | Interface            | Purpose                       |
+| -------------- | -------------------- | ----------------------------- |
+| Memory         | `MemoryStorage`      | Threads, messages, vectors    |
+| Workflows      | `WorkflowRuns`       | Run metadata, state snapshots |
+| Agents         | Agent config storage | Stored agent definitions      |
+| Syncs          | Sync record storage  | Integration sync state        |
 
 Storage adapters implement this interface for different backends (LibSQL, Postgres, Upstash, etc.).
 
@@ -207,11 +210,14 @@ Tools are callable functions that agents and workflows can execute. The `createT
 const tool = createTool({
   id: 'get-weather',
   inputSchema: z.object({ city: z.string() }),
-  execute: async (input, context) => { /* ... */ }
-});
+  execute: async (input, context) => {
+    /* ... */
+  },
+})
 ```
 
 Tools receive different execution contexts based on where they run:
+
 - `context.agent` - When called by agent (includes `toolCallId`, `messages`, `suspend`)
 - `context.workflow` - When called by workflow (includes `runId`, `state`, `setState`)
 - `context.mcp` - When called via MCP server
@@ -242,7 +248,7 @@ sequenceDiagram
     participant LLM as MastraLLMVNext<br/>(doStream)
     participant Tools as Tool Execution
     participant Memory as Memory<br/>(saveMessages)
-    
+
     Client->>Server: POST /agents/:agentId/stream<br/>{messages, threadId}
     Server->>Mastra: mastra.getAgent(agentId)
     Mastra-->>Server: agent instance
@@ -253,13 +259,13 @@ sequenceDiagram
     Workflow->>Agent: return prepared context
     Agent->>LLM: doStream(messages, tools)
     LLM-->>Agent: stream chunks
-    
+
     alt Tool Call Required
         Agent->>Tools: execute tool(args, context)
         Tools-->>Agent: tool result
         Agent->>LLM: continue with tool results
     end
-    
+
     Agent->>Memory: saveMessages(thread, messages)
     Agent-->>Server: MastraModelOutput<br/>(textStream, fullStream)
     Server-->>Client: SSE stream
@@ -279,23 +285,23 @@ graph LR
         DevBundler["DevBundler<br/>(Rollup watch)"]
         LocalServer["createNodeServer<br/>(Hono + routes)"]
     end
-    
+
     subgraph "Build Phase"
         BuildCmd["mastra build command"]
         Analyzer["analyzeBundle<br/>(static analysis)"]
         Bundler["Bundler<br/>(platform-specific)"]
         Output["dist/ directory<br/>(bundled code)"]
     end
-    
+
     subgraph "Deployment"
         Deployer["Deployer<br/>(Cloudflare, Vercel, etc)"]
         Runtime["Runtime Environment"]
     end
-    
+
     Config --> DevCmd
     DevCmd --> DevBundler
     DevBundler --> LocalServer
-    
+
     Config --> BuildCmd
     BuildCmd --> Analyzer
     Analyzer --> Bundler
@@ -307,6 +313,7 @@ graph LR
 **Sources:** [packages/cli/package.json:9-10](), [packages/deployer/package.json:42-82]()
 
 Key phases:
+
 1. **Development** - `mastra dev` watches files, bundles on change, serves with hot reload
 2. **Build** - `mastra build` analyzes dependencies, bundles for production
 3. **Deploy** - Platform deployers package and publish to target environments
@@ -324,41 +331,41 @@ graph TB
         HonoApp["Hono App Instance"]
         Routes["Route Registration"]
     end
-    
+
     subgraph "Handler Layer"
         AgentHandlers["Agent Handlers<br/>(/agents/*)"]
         WorkflowHandlers["Workflow Handlers<br/>(/workflows/*)"]
         MemoryHandlers["Memory Handlers<br/>(/memory/*)"]
         ToolHandlers["Tool Handlers<br/>(/tools/*)"]
     end
-    
+
     subgraph "Middleware Stack"
         AuthMiddleware["Auth Middleware<br/>(sets RequestContext)"]
         CORSMiddleware["CORS Middleware"]
         LoggingMiddleware["Logging Middleware"]
     end
-    
+
     subgraph "Mastra Core"
         MastraInstance["Mastra Instance"]
         Components["Agents, Workflows,<br/>Memory, Tools"]
     end
-    
+
     CreateServer --> HonoApp
     HonoApp --> AuthMiddleware
     AuthMiddleware --> CORSMiddleware
     CORSMiddleware --> LoggingMiddleware
     LoggingMiddleware --> Routes
-    
+
     Routes --> AgentHandlers
     Routes --> WorkflowHandlers
     Routes --> MemoryHandlers
     Routes --> ToolHandlers
-    
+
     AgentHandlers --> MastraInstance
     WorkflowHandlers --> MastraInstance
     MemoryHandlers --> MastraInstance
     ToolHandlers --> MastraInstance
-    
+
     MastraInstance --> Components
 ```
 
@@ -368,15 +375,15 @@ graph TB
 
 The server exposes RESTful and SSE endpoints organized by domain:
 
-| Domain | Route Pattern | Purpose |
-|--------|--------------|---------|
-| Agents | `/agents/:agentId/generate` | Single-turn completion |
-| Agents | `/agents/:agentId/stream` | Streaming execution (SSE) |
-| Workflows | `/workflows/:workflowId/run` | Execute workflow |
-| Workflows | `/workflows/:workflowId/status/:runId` | Get run status |
-| Memory | `/memory/threads` | List/create threads |
-| Memory | `/memory/threads/:threadId/messages` | Get/save messages |
-| Tools | `/tools/:toolId/execute` | Execute tool |
+| Domain    | Route Pattern                          | Purpose                   |
+| --------- | -------------------------------------- | ------------------------- |
+| Agents    | `/agents/:agentId/generate`            | Single-turn completion    |
+| Agents    | `/agents/:agentId/stream`              | Streaming execution (SSE) |
+| Workflows | `/workflows/:workflowId/run`           | Execute workflow          |
+| Workflows | `/workflows/:workflowId/status/:runId` | Get run status            |
+| Memory    | `/memory/threads`                      | List/create threads       |
+| Memory    | `/memory/threads/:threadId/messages`   | Get/save messages         |
+| Tools     | `/tools/:toolId/execute`               | Execute tool              |
 
 **Sources:** [packages/server/package.json:24-43]()
 
@@ -390,7 +397,7 @@ graph TB
         BrowserApp["Browser Apps<br/>(React, Next.js)"]
         NodeApp["Node.js Apps"]
     end
-    
+
     subgraph "@mastra/client-js"
         MastraClient["MastraClient class"]
         AgentResource["Agent resource<br/>(generate, stream)"]
@@ -398,37 +405,38 @@ graph TB
         WorkflowResource["Workflow resource<br/>(run, status)"]
         BaseResource["BaseResource<br/>(HTTP + retry)"]
     end
-    
+
     subgraph "@mastra/react"
         Provider["MastraReactProvider"]
         Hooks["Hooks<br/>(useAgent, useMemory)"]
     end
-    
+
     subgraph "Server API"
         HonoRoutes["Hono Routes"]
     end
-    
+
     BrowserApp --> MastraClient
     BrowserApp --> Provider
     NodeApp --> MastraClient
-    
+
     Provider --> Hooks
     Hooks --> MastraClient
-    
+
     MastraClient --> AgentResource
     MastraClient --> MemoryResource
     MastraClient --> WorkflowResource
-    
+
     AgentResource --> BaseResource
     MemoryResource --> BaseResource
     WorkflowResource --> BaseResource
-    
+
     BaseResource -->|HTTP/SSE| HonoRoutes
 ```
 
 **Sources:** [client-sdks/client-js/package.json:1-72](), [client-sdks/react/package.json:1-89]()
 
 The `MastraClient` provides resource-based access:
+
 - `client.agents.stream()` - Stream agent responses
 - `client.memory.threads().getMessages()` - Retrieve messages
 - `client.workflows.run()` - Execute workflow
@@ -459,7 +467,7 @@ graph TB
     subgraph "Source"
         MastraConfig["mastra.config.ts"]
     end
-    
+
     subgraph "Build System"
         BaseBundler["Bundler<br/>(abstract base)"]
         CloudflareBundler["CloudflareBundler<br/>(Workers)"]
@@ -467,32 +475,32 @@ graph TB
         NetlifyBundler["NetlifyBundler<br/>(Functions)"]
         NodeBundler["NodeBundler<br/>(direct exec)"]
     end
-    
+
     subgraph "Output Formats"
         WorkersOutput[".wrangler/<br/>worker.js"]
         VercelOutput[".vercel/output/<br/>functions"]
         NetlifyOutput[".netlify/v1/<br/>functions"]
         NodeOutput["dist/<br/>index.js"]
     end
-    
+
     subgraph "Runtimes"
         CloudflareRuntime["Cloudflare Workers"]
         VercelRuntime["Vercel Edge/Node"]
         NetlifyRuntime["Netlify Functions"]
         NodeRuntime["Node.js Server"]
     end
-    
+
     MastraConfig --> BaseBundler
     BaseBundler --> CloudflareBundler
     BaseBundler --> VercelBundler
     BaseBundler --> NetlifyBundler
     BaseBundler --> NodeBundler
-    
+
     CloudflareBundler --> WorkersOutput
     VercelBundler --> VercelOutput
     NetlifyBundler --> NetlifyOutput
     NodeBundler --> NodeOutput
-    
+
     WorkersOutput --> CloudflareRuntime
     VercelOutput --> VercelRuntime
     NetlifyOutput --> NetlifyRuntime

@@ -30,8 +30,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the isomorphic tool system in TanStack AI, which enables AI models to execute functions on the server or client with full type safety. The tool system provides a unified API for defining tools once and implementing them for different execution contexts (server-side, client-side, or both).
 
 For information about the server-side chat engine that orchestrates tool execution, see [chat() Function and ChatEngine](#3.1). For details on streaming protocols that transmit tool-related chunks, see [StreamChunk Types](#5.3).
@@ -70,6 +68,7 @@ toolDefinition({
 ```
 
 The function returns a `ToolDefinition` object with two methods:
+
 - `.server(execute)` - Create server implementation
 - `.client(execute)` - Create client implementation
 
@@ -87,3 +86,4 @@ const getWeatherDef = toolDefinition({
   inputSchema: z.object({
     location: z.string().describe("The city and state, e.g. San Francisco, CA"),
     unit: z.enum(["celsius", "fahrenheit\
+```

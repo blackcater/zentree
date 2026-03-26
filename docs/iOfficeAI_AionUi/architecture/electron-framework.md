@@ -5,7 +5,7 @@
 
 The following files were used as context for generating this wiki page:
 
-- [.github/workflows/_build-reusable.yml](.github/workflows/_build-reusable.yml)
+- [.github/workflows/\_build-reusable.yml](.github/workflows/_build-reusable.yml)
 - [.github/workflows/build-manual.yml](.github/workflows/build-manual.yml)
 - [bun.lock](bun.lock)
 - [src/index.ts](src/index.ts)
@@ -16,8 +16,6 @@ The following files were used as context for generating this wiki page:
 - [vitest.config.ts](vitest.config.ts)
 
 </details>
-
-
 
 This page covers how AionUi uses Electron: the main process entry point, window creation, `BrowserWindow` configuration, app lifecycle events, and the split between the main and renderer processes. For information about inter-process communication between the main and renderer, see [3.3](#3.3). For the WebUI server that replaces the window in headless mode, see [3.5](#3.5). For build packaging configuration, see [11](#11).
 
@@ -48,11 +46,11 @@ main: ./out/main/index.js"]
   preload -->|"ipcMain channels"| main
 ```
 
-| Layer | Source | Output | Role |
-|---|---|---|---|
-| Main process | `src/index.ts` | `out/main/index.js` | App lifecycle, native APIs, IPC providers |
-| Preload script | `src/preload/` | `out/preload/index.js` | Secure bridge between renderer and main |
-| Renderer | `src/renderer/` | `out/renderer/index.html` | React UI, runs in Chromium |
+| Layer          | Source          | Output                    | Role                                      |
+| -------------- | --------------- | ------------------------- | ----------------------------------------- |
+| Main process   | `src/index.ts`  | `out/main/index.js`       | App lifecycle, native APIs, IPC providers |
+| Preload script | `src/preload/`  | `out/preload/index.js`    | Secure bridge between renderer and main   |
+| Renderer       | `src/renderer/` | `out/renderer/index.html` | React UI, runs in Chromium                |
 
 Sources: [src/index.ts:1-20](), [package.json:6-6](), [electron-builder.yml:13-17]()
 
@@ -110,11 +108,11 @@ Two helpers parse flags from both `process.argv` and `app.commandLine`:
 
 The three mode flags derived from these helpers:
 
-| Variable | Flag | Effect |
-|---|---|---|
-| `isWebUIMode` | `--webui` | Starts Express+WS server instead of a window |
-| `isRemoteMode` | `--remote` | Binds server to `0.0.0.0` |
-| `isResetPasswordMode` | `--resetpass` | Runs `resetPasswordCLI` then quits |
+| Variable              | Flag          | Effect                                       |
+| --------------------- | ------------- | -------------------------------------------- |
+| `isWebUIMode`         | `--webui`     | Starts Express+WS server instead of a window |
+| `isRemoteMode`        | `--remote`    | Binds server to `0.0.0.0`                    |
+| `isResetPasswordMode` | `--resetpass` | Runs `resetPasswordCLI` then quits           |
 
 Sources: [src/index.ts:164-166]()
 
@@ -176,14 +174,14 @@ frame: false"]
   wp --> wv
 ```
 
-| Property | Value | Reason |
-|---|---|---|
-| `width` / `height` | 80% of `screen.getPrimaryDisplay().workAreaSize` | Comfortable default on high-DPI displays |
-| `autoHideMenuBar` | `true` | Cleaner look; menu accessible via Alt key |
-| `titleBarStyle` (macOS) | `'hidden'` | Custom title bar with traffic lights at `{x:10, y:10}` |
-| `frame` (Windows/Linux) | `false` | Custom frameless window |
-| `webviewTag` | `true` | Required for the HTML preview panel |
-| `preload` | `path.join(__dirname, '../preload/index.js')` | Exposes `ipcBridge` safely to renderer |
+| Property                | Value                                            | Reason                                                 |
+| ----------------------- | ------------------------------------------------ | ------------------------------------------------------ |
+| `width` / `height`      | 80% of `screen.getPrimaryDisplay().workAreaSize` | Comfortable default on high-DPI displays               |
+| `autoHideMenuBar`       | `true`                                           | Cleaner look; menu accessible via Alt key              |
+| `titleBarStyle` (macOS) | `'hidden'`                                       | Custom title bar with traffic lights at `{x:10, y:10}` |
+| `frame` (Windows/Linux) | `false`                                          | Custom frameless window                                |
+| `webviewTag`            | `true`                                           | Required for the HTML preview panel                    |
+| `preload`               | `path.join(__dirname, '../preload/index.js')`    | Exposes `ipcBridge` safely to renderer                 |
 
 Sources: [src/index.ts:197-214]()
 
@@ -222,11 +220,11 @@ Sources: [src/index.ts:241-256]()
 
 Three global `app` events are registered in `src/index.ts`:
 
-| Event | Handler behavior |
-|---|---|
+| Event               | Handler behavior                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------------ |
 | `window-all-closed` | Calls `app.quit()` on non-macOS, unless `isWebUIMode` is active (server must keep running) |
-| `activate` | Re-creates the window on macOS if no windows are open and not in WebUI mode |
-| `before-quit` | Calls `WorkerManage.clear()` to stop AI workers; calls `getChannelManager().shutdown()` |
+| `activate`          | Re-creates the window on macOS if no windows are open and not in WebUI mode                |
+| `before-quit`       | Calls `WorkerManage.clear()` to stop AI workers; calls `getChannelManager().shutdown()`    |
 
 [src/index.ts:354-380]()
 
@@ -261,8 +259,10 @@ This ensures that AI agent subprocesses spawned from the main process (e.g., `ge
 ## Windows Installer Startup Handling
 
 ```ts
-import electronSquirrelStartup from 'electron-squirrel-startup';
-if (electronSquirrelStartup) { app.quit(); }
+import electronSquirrelStartup from 'electron-squirrel-startup'
+if (electronSquirrelStartup) {
+  app.quit()
+}
 ```
 
 `electron-squirrel-startup` handles Squirrel events during Windows installation and uninstallation (creating/removing shortcuts). When these events are active, the app quits immediately without initializing anything.
@@ -309,18 +309,18 @@ This is done here rather than in a bridge module because it needs direct access 
 
 `electron-builder.yml` controls how the compiled output is packaged into distributable installers.
 
-| Setting | Value |
-|---|---|
-| `appId` | `com.aionui.app` |
-| `productName` | `AionUi` |
-| `directories.output` | `out/` |
-| `asar.smartUnpack` | `true` |
-| macOS targets | `dmg`, `zip` |
-| Windows targets | `nsis`, `zip` |
-| Linux targets | `deb`, `AppImage` (x64 + arm64) |
-| `afterPack` hook | `scripts/afterPack.js` (native module rebuild) |
-| `afterSign` hook | `scripts/afterSign.js` (macOS notarization) |
-| `publish.provider` | `github` (iOfficeAI/AionUi) |
+| Setting              | Value                                          |
+| -------------------- | ---------------------------------------------- |
+| `appId`              | `com.aionui.app`                               |
+| `productName`        | `AionUi`                                       |
+| `directories.output` | `out/`                                         |
+| `asar.smartUnpack`   | `true`                                         |
+| macOS targets        | `dmg`, `zip`                                   |
+| Windows targets      | `nsis`, `zip`                                  |
+| Linux targets        | `deb`, `AppImage` (x64 + arm64)                |
+| `afterPack` hook     | `scripts/afterPack.js` (native module rebuild) |
+| `afterSign` hook     | `scripts/afterSign.js` (macOS notarization)    |
+| `publish.provider`   | `github` (iOfficeAI/AionUi)                    |
 
 Native modules (`better-sqlite3`, `bcrypt`, `node-pty`) are listed under `asarUnpack` so they remain on disk as real files instead of being embedded in the asar archive — required because they are `.node` binaries that must be loaded by path.
 

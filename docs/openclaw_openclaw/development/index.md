@@ -67,8 +67,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers the contributor and maintainer workflow for the OpenClaw monorepo: repository structure, toolchain setup, coding conventions, testing, commit and PR conventions, and local development commands. For CI/CD pipeline details see page [8.1](#8.1). For release steps see page [8.2](#8.2).
 
 ---
@@ -77,28 +75,28 @@ This page covers the contributor and maintainer workflow for the OpenClaw monore
 
 OpenClaw uses **pnpm workspaces** to organize a TypeScript-first monorepo. The table below maps the top-level directories to their roles.
 
-| Directory | Role |
-|---|---|
-| `src/` | Core Gateway, CLI, agents, channels, infra |
-| `src/cli/` | CLI command wiring |
-| `src/commands/` | Individual CLI commands |
-| `src/gateway/` | GatewayServer, protocol, server methods |
-| `src/agents/` | Agent runtime, tools, sandbox |
-| `src/telegram/`, `src/discord/`, `src/slack/`, etc. | Built-in channel integrations |
-| `src/infra/` | Shared infrastructure utilities |
-| `src/media/` | Media pipeline |
-| `extensions/` | Extension/plugin workspace packages |
-| `apps/ios/` | iOS Clawdis app (Swift) |
-| `apps/macos/` | macOS Clawdis app (Swift) |
-| `apps/android/` | Android Clawdis app (Kotlin/Gradle) |
-| `apps/shared/` | Shared native code (Swift packages) |
-| `ui/` | Control UI (LitElement SPA) |
-| `packages/` | Shared TypeScript packages |
-| `skills/` | Python skill scripts |
-| `scripts/` | Build, release, and utility scripts |
-| `docs/` | Mintlify documentation source |
-| `dist/` | Built output (generated, not committed) |
-| `.github/` | CI workflows, actions, issue/PR templates |
+| Directory                                           | Role                                       |
+| --------------------------------------------------- | ------------------------------------------ |
+| `src/`                                              | Core Gateway, CLI, agents, channels, infra |
+| `src/cli/`                                          | CLI command wiring                         |
+| `src/commands/`                                     | Individual CLI commands                    |
+| `src/gateway/`                                      | GatewayServer, protocol, server methods    |
+| `src/agents/`                                       | Agent runtime, tools, sandbox              |
+| `src/telegram/`, `src/discord/`, `src/slack/`, etc. | Built-in channel integrations              |
+| `src/infra/`                                        | Shared infrastructure utilities            |
+| `src/media/`                                        | Media pipeline                             |
+| `extensions/`                                       | Extension/plugin workspace packages        |
+| `apps/ios/`                                         | iOS Clawdis app (Swift)                    |
+| `apps/macos/`                                       | macOS Clawdis app (Swift)                  |
+| `apps/android/`                                     | Android Clawdis app (Kotlin/Gradle)        |
+| `apps/shared/`                                      | Shared native code (Swift packages)        |
+| `ui/`                                               | Control UI (LitElement SPA)                |
+| `packages/`                                         | Shared TypeScript packages                 |
+| `skills/`                                           | Python skill scripts                       |
+| `scripts/`                                          | Build, release, and utility scripts        |
+| `docs/`                                             | Mintlify documentation source              |
+| `dist/`                                             | Built output (generated, not committed)    |
+| `.github/`                                          | CI workflows, actions, issue/PR templates  |
 
 The repository structure, as described in `AGENTS.md`, keeps plugin-only dependencies in the extension's own `package.json`. Core `package.json` dependencies should only include things the core uses directly.
 
@@ -155,12 +153,12 @@ Sources: [AGENTS.md:10-22]()
 
 ## Toolchain & Prerequisites
 
-| Tool | Minimum Version | Notes |
-|---|---|---|
-| Node.js | 22+ | Required runtime baseline |
-| pnpm | 10.23.0 | Primary package manager; use lockfile |
-| Bun | 1.3.9+ | Preferred for TypeScript execution and tests |
-| Python | 3.12 | Used for skill scripts (`skills/`) and CI tooling |
+| Tool    | Minimum Version | Notes                                             |
+| ------- | --------------- | ------------------------------------------------- |
+| Node.js | 22+             | Required runtime baseline                         |
+| pnpm    | 10.23.0         | Primary package manager; use lockfile             |
+| Bun     | 1.3.9+          | Preferred for TypeScript execution and tests      |
+| Python  | 3.12            | Used for skill scripts (`skills/`) and CI tooling |
 
 Both Node and Bun paths must stay functional. `pnpm-lock.yaml` and Bun patching must be kept in sync when touching deps.
 
@@ -172,20 +170,20 @@ Sources: [AGENTS.md:57-64]()
 
 These are the primary commands used during development. All commands run from the repo root.
 
-| Command | Purpose |
-|---|---|
-| `pnpm install` | Install all dependencies (uses lockfile) |
-| `pnpm openclaw ...` | Run CLI in dev mode (via Bun) |
-| `pnpm dev` | Alias for dev CLI run |
-| `pnpm build` | Type-check and build `dist/` |
-| `pnpm tsgo` | TypeScript checks only |
-| `pnpm check` | Types + lint + format (Oxlint + Oxfmt) |
-| `pnpm format` | Check formatting only (oxfmt --check) |
-| `pnpm format:fix` | Fix formatting in place (oxfmt --write) |
-| `pnpm test` | Run all tests (Vitest) |
-| `pnpm test:coverage` | Tests with V8 coverage report |
-| `pnpm release:check` | Validate npm pack contents |
-| `prek install` | Install pre-commit hooks (same checks as CI) |
+| Command              | Purpose                                      |
+| -------------------- | -------------------------------------------- |
+| `pnpm install`       | Install all dependencies (uses lockfile)     |
+| `pnpm openclaw ...`  | Run CLI in dev mode (via Bun)                |
+| `pnpm dev`           | Alias for dev CLI run                        |
+| `pnpm build`         | Type-check and build `dist/`                 |
+| `pnpm tsgo`          | TypeScript checks only                       |
+| `pnpm check`         | Types + lint + format (Oxlint + Oxfmt)       |
+| `pnpm format`        | Check formatting only (oxfmt --check)        |
+| `pnpm format:fix`    | Fix formatting in place (oxfmt --write)      |
+| `pnpm test`          | Run all tests (Vitest)                       |
+| `pnpm test:coverage` | Tests with V8 coverage report                |
+| `pnpm release:check` | Validate npm pack contents                   |
+| `prek install`       | Install pre-commit hooks (same checks as CI) |
 
 The `pnpm check` command must pass before commits. It runs the same type/lint/format checks as the CI `check` job.
 
@@ -225,7 +223,7 @@ Sources: [AGENTS.md:55-71](), [docs/reference/RELEASING.md:44-56]()
 
 ### Comments
 
-Add brief comments for tricky or non-obvious logic. Keep comments focused on the *why*, not the *what*.
+Add brief comments for tricky or non-obvious logic. Keep comments focused on the _why_, not the _what_.
 
 ### UI and Progress Output
 
@@ -310,13 +308,13 @@ For PR submission, follow the `review-pr` → `prepare-pr` → `merge-pr` pipeli
 
 **PR size labels** are applied automatically based on changed line count (excluding lockfiles and docs):
 
-| Lines changed | Label |
-|---|---|
-| < 50 | `size: XS` |
-| 50–199 | `size: S` |
-| 200–499 | `size: M` |
-| 500–999 | `size: L` |
-| 1000+ | `size: XL` |
+| Lines changed | Label      |
+| ------------- | ---------- |
+| < 50          | `size: XS` |
+| 50–199        | `size: S`  |
+| 200–499       | `size: M`  |
+| 500–999       | `size: L`  |
+| 1000+         | `size: XL` |
 
 Contributor labels are also applied automatically: `trusted-contributor` (≥4 merged PRs), `experienced-contributor` (≥10 merged PRs), `maintainer` (team member).
 
@@ -351,15 +349,15 @@ When adding a new channel, extension, or app:
 
 **Channel label color assignments** (from `scripts/sync-labels.ts`):
 
-| Prefix | Color |
-|---|---|
-| `channel:` | `1d76db` |
-| `app:` | `6f42c1` |
+| Prefix        | Color    |
+| ------------- | -------- |
+| `channel:`    | `1d76db` |
+| `app:`        | `6f42c1` |
 | `extensions:` | `0e8a16` |
-| `docs:` | `0075ca` |
-| `cli:` | `f9d0c4` |
-| `gateway:` | `d4c5f9` |
-| `size:` | `fbca04` |
+| `docs:`       | `0075ca` |
+| `cli:`        | `f9d0c4` |
+| `gateway:`    | `d4c5f9` |
+| `size:`       | `fbca04` |
 
 Sources: [AGENTS.md:22](), [.github/labeler.yml:1-20](), [scripts/sync-labels.ts:10-18]()
 
@@ -369,14 +367,14 @@ Sources: [AGENTS.md:22](), [.github/labeler.yml:1-20](), [scripts/sync-labels.ts
 
 When bumping a version, update **all** of the following locations (never update `appcast.xml` unless cutting a new macOS Sparkle release):
 
-| File | Field |
-|---|---|
-| `package.json` | `version` |
-| `apps/android/app/build.gradle.kts` | `versionName`, `versionCode` |
-| `apps/ios/Sources/Info.plist` | `CFBundleShortVersionString`, `CFBundleVersion` |
-| `apps/ios/Tests/Info.plist` | `CFBundleShortVersionString`, `CFBundleVersion` |
+| File                                               | Field                                           |
+| -------------------------------------------------- | ----------------------------------------------- |
+| `package.json`                                     | `version`                                       |
+| `apps/android/app/build.gradle.kts`                | `versionName`, `versionCode`                    |
+| `apps/ios/Sources/Info.plist`                      | `CFBundleShortVersionString`, `CFBundleVersion` |
+| `apps/ios/Tests/Info.plist`                        | `CFBundleShortVersionString`, `CFBundleVersion` |
 | `apps/macos/Sources/OpenClaw/Resources/Info.plist` | `CFBundleShortVersionString`, `CFBundleVersion` |
-| `docs/install/updating.md` | Pinned npm version |
+| `docs/install/updating.md`                         | Pinned npm version                              |
 
 Sources: [AGENTS.md:179-180]()
 
@@ -384,11 +382,11 @@ Sources: [AGENTS.md:179-180]()
 
 ## Release Channels
 
-| Channel | Tag Format | npm dist-tag | Notes |
-|---|---|---|---|
-| `stable` | `vYYYY.M.D` | `latest` | Tagged releases only |
-| `beta` | `vYYYY.M.D-beta.N` | `beta` | May ship without macOS app |
-| `dev` | (none) | — | Moving HEAD on `main` |
+| Channel  | Tag Format         | npm dist-tag | Notes                      |
+| -------- | ------------------ | ------------ | -------------------------- |
+| `stable` | `vYYYY.M.D`        | `latest`     | Tagged releases only       |
+| `beta`   | `vYYYY.M.D-beta.N` | `beta`       | May ship without macOS app |
+| `dev`    | (none)             | —            | Moving HEAD on `main`      |
 
 For beta releases: publish npm with a matching beta version suffix (e.g., `YYYY.M.D-beta.N`), not just `--tag beta` with a plain version number.
 
@@ -507,9 +505,9 @@ Sources: [AGENTS.md:55-84](), [AGENTS.md:172-173](), [.github/workflows/ci.yml:1
 
 ## Shorthand Commands
 
-| Shorthand | Behavior |
-|---|---|
-| `sync` | If working tree dirty, commit all changes with a Conventional Commit message, then `git pull --rebase`. If rebase conflicts cannot be resolved, stop. Otherwise `git push`. |
+| Shorthand | Behavior                                                                                                                                                                    |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sync`    | If working tree dirty, commit all changes with a Conventional Commit message, then `git pull --rebase`. If rebase conflicts cannot be resolved, stop. Otherwise `git push`. |
 
 ### Git Notes
 

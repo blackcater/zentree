@@ -36,8 +36,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The `@tanstack/ai-solid` package provides SolidJS primitives for TanStack AI, wrapping the headless `ChatClient` from `@tanstack/ai-client` with reactive Solid signals. This integration enables developers to build AI chat interfaces using Solid's fine-grained reactivity system.
 
 For React bindings, see [React Integration](#6.1). For Vue bindings, see [Vue Integration](#6.3). For framework-agnostic usage, see [ChatClient](#4.1).
@@ -54,17 +52,17 @@ graph TB
         USECHAT["useChat()<br/>───────<br/>Main primitive<br/>Returns Accessors"]
         EXPORTS["Re-exports<br/>───────<br/>fetchServerSentEvents<br/>fetchHttpStream<br/>stream<br/>ConnectionAdapter"]
     end
-    
+
     subgraph "Dependency: @tanstack/ai-client"
         CHATCLIENT["ChatClient<br/>───────<br/>Headless state<br/>management"]
         ADAPTERS["Connection Adapters<br/>───────<br/>SSE, HTTP, Custom"]
     end
-    
+
     subgraph "Peer: solid-js >=1.9.10"
         SIGNALS["createSignal()<br/>───────<br/>Reactive primitives"]
         ACCESSOR["Accessor<T><br/>───────<br/>Read-only signal"]
     end
-    
+
     USECHAT --> CHATCLIENT
     USECHAT --> SIGNALS
     USECHAT --> ACCESSOR
@@ -82,11 +80,13 @@ npm install @tanstack/ai-solid
 ```
 
 **Peer Dependencies:**
+
 - `@tanstack/ai` (workspace:^)
 - `solid-js` (>=1.9.10)
 
 **Direct Dependency:**
-- `@tanstack/ai-client` (workspace:*)
+
+- `@tanstack/ai-client` (workspace:\*)
 
 **Sources:** [packages/typescript/ai-solid/package.json:41-47]()
 
@@ -130,18 +130,18 @@ graph TB
         ACCESSOR_L["isLoading: Accessor<boolean><br/>───────<br/>() => boolean"]
         ACCESSOR_E["error: Accessor<Error | undefined><br/>───────<br/>() => Error | undefined"]
     end
-    
+
     subgraph "useChat Primitive"
         HOOK["useChat implementation"]
         SIGNALS["createSignal calls<br/>───────<br/>messages, isLoading, error"]
         CALLBACKS["ChatClient callbacks<br/>───────<br/>onMessagesChange<br/>onLoadingChange<br/>onErrorChange"]
     end
-    
+
     subgraph "ChatClient Instance"
         CLIENT["ChatClient<br/>───────<br/>messages: UIMessage[]<br/>isLoading: boolean<br/>error: Error | undefined"]
         METHODS["Methods<br/>───────<br/>sendMessage()<br/>append()<br/>stop()"]
     end
-    
+
     COMP --> HOOK
     HOOK --> SIGNALS
     HOOK --> CLIENT
@@ -162,18 +162,18 @@ graph TB
 
 The `useChat` primitive accepts `ChatClientOptions` from `@tanstack/ai-client`:
 
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `connection` | `ConnectionAdapter` | Yes | Adapter for server communication (SSE, HTTP, custom) |
-| `tools` | `ClientTool[]` | No | Array of client tool implementations (created with `.client()`) |
-| `initialMessages` | `UIMessage[]` | No | Initial conversation messages |
-| `id` | `string` | No | Unique identifier for chat instance |
-| `body` | `Record<string, any>` | No | Additional data sent with requests |
-| `onResponse` | `(response: Response) => void` | No | Callback when server response received |
-| `onChunk` | `(chunk: StreamChunk) => void` | No | Callback for each stream chunk |
-| `onFinish` | `(message: UIMessage) => void` | No | Callback when stream completes |
-| `onError` | `(error: Error) => void` | No | Callback when error occurs |
-| `streamProcessor` | `StreamProcessorConfig` | No | Custom stream processing configuration |
+| Option            | Type                           | Required | Description                                                     |
+| ----------------- | ------------------------------ | -------- | --------------------------------------------------------------- |
+| `connection`      | `ConnectionAdapter`            | Yes      | Adapter for server communication (SSE, HTTP, custom)            |
+| `tools`           | `ClientTool[]`                 | No       | Array of client tool implementations (created with `.client()`) |
+| `initialMessages` | `UIMessage[]`                  | No       | Initial conversation messages                                   |
+| `id`              | `string`                       | No       | Unique identifier for chat instance                             |
+| `body`            | `Record<string, any>`          | No       | Additional data sent with requests                              |
+| `onResponse`      | `(response: Response) => void` | No       | Callback when server response received                          |
+| `onChunk`         | `(chunk: StreamChunk) => void` | No       | Callback for each stream chunk                                  |
+| `onFinish`        | `(message: UIMessage) => void` | No       | Callback when stream completes                                  |
+| `onError`         | `(error: Error) => void`       | No       | Callback when error occurs                                      |
+| `streamProcessor` | `StreamProcessorConfig`        | No       | Custom stream processing configuration                          |
 
 **Note:** The `onToolCall` callback is not needed—client tools execute automatically when the server emits `tool-input-available` chunks.
 
@@ -189,7 +189,7 @@ import {
   fetchHttpStream,
   stream,
   type ConnectionAdapter,
-} from "@tanstack/ai-solid"
+} from '@tanstack/ai-solid'
 ```
 
 ### fetchServerSentEvents
@@ -198,9 +198,9 @@ The recommended adapter for most use cases, providing Server-Sent Events streami
 
 ```typescript
 const { messages } = useChat({
-  connection: fetchServerSentEvents("/api/chat", {
+  connection: fetchServerSentEvents('/api/chat', {
     headers: {
-      Authorization: "Bearer token",
+      Authorization: 'Bearer token',
     },
   }),
 })
@@ -222,7 +222,7 @@ For environments without SSE support:
 
 ```typescript
 const { messages } = useChat({
-  connection: fetchHttpStream("/api/chat"),
+  connection: fetchHttpStream('/api/chat'),
 })
 ```
 
@@ -231,10 +231,10 @@ const { messages } = useChat({
 For custom protocols (WebSocket, gRPC, etc.):
 
 ```typescript
-import { stream } from "@tanstack/ai-solid"
+import { stream } from '@tanstack/ai-solid'
 
 const customAdapter = stream(async (messages, data, signal) => {
-  const ws = new WebSocket("ws://localhost:8080/chat")
+  const ws = new WebSocket('ws://localhost:8080/chat')
   // Return AsyncIterable<StreamChunk>
 })
 ```
@@ -252,18 +252,18 @@ graph LR
         GETTER["Accessor function<br/>───────<br/>() => value"]
         EFFECT["createEffect()<br/>───────<br/>Auto-tracks dependencies"]
     end
-    
+
     subgraph "useChat Returns"
         MSGS["messages: Accessor<UIMessage[]>"]
         LOAD["isLoading: Accessor<boolean>"]
         ERR["error: Accessor<Error | undefined>"]
     end
-    
+
     subgraph "Component Usage"
         CALL["messages()<br/>───────<br/>Call to read value"]
         TRACK["Dependency tracked<br/>───────<br/>Auto-reruns on change"]
     end
-    
+
     SIGNAL --> GETTER
     GETTER --> MSGS
     GETTER --> LOAD
@@ -290,11 +290,11 @@ export function Chat() {
       <Show when={error()}>
         <div class="error">{error()!.message}</div>
       </Show>
-      
+
       <Show when={isLoading()}>
         <div>Loading...</div>
       </Show>
-      
+
       <For each={messages()}>
         {(message) => <MessageItem message={message} />}
       </For>
@@ -314,22 +314,22 @@ graph TB
     subgraph "Tool Definition (Shared)"
         DEF["toolDefinition()<br/>───────<br/>inputSchema: Zod<br/>outputSchema: Zod"]
     end
-    
+
     subgraph "Client Implementation"
         CLIENT_IMPL[".client(fn)<br/>───────<br/>Typed input/output"]
         CLIENT_TOOLS["clientTools(...tools)<br/>───────<br/>Creates typed array"]
     end
-    
+
     subgraph "Chat Options"
         CREATE_OPTS["createChatClientOptions()<br/>───────<br/>tools: ClientTool[]"]
         INFER["InferChatMessages<typeof opts><br/>───────<br/>Extract message types"]
     end
-    
+
     subgraph "Component Usage"
         TYPED_MSGS["messages: Accessor<UIMessage<TTools>[]>"]
         NARROW["if (part.name === 'toolName')<br/>───────<br/>Discriminated union<br/>input/output typed"]
     end
-    
+
     DEF --> CLIENT_IMPL
     CLIENT_IMPL --> CLIENT_TOOLS
     CLIENT_TOOLS --> CREATE_OPTS
@@ -342,10 +342,10 @@ graph TB
 
 ```typescript
 import { useChat, fetchServerSentEvents } from "@tanstack/ai-solid"
-import { 
-  clientTools, 
-  createChatClientOptions, 
-  type InferChatMessages 
+import {
+  clientTools,
+  createChatClientOptions,
+  type InferChatMessages
 } from "@tanstack/ai-client"
 import { updateUIDef, saveToStorageDef } from "./tool-definitions"
 import { createSignal, For } from "solid-js"
@@ -455,7 +455,7 @@ export function Chat() {
           )}
         </For>
       </div>
-      
+
       <form onSubmit={handleSubmit}>
         <input
           value={input()}
@@ -573,7 +573,7 @@ export function ChatWithClientTools() {
           {notification()!.message}
         </div>
       )}
-      
+
       <For each={messages()}>
         {(message) => (
           <For each={message.parts}>
@@ -638,15 +638,15 @@ graph LR
         REHYPE["rehype plugins<br/>───────<br/>highlight, raw, sanitize"]
         REMARK["remark-gfm<br/>───────<br/>GitHub-flavored markdown"]
     end
-    
+
     subgraph "@tanstack/ai-solid"
         USECHAT["useChat<br/>───────<br/>Returns UIMessage[]"]
     end
-    
+
     subgraph "Component"
         RENDER["Markdown rendering<br/>───────<br/>TextPart.content"]
     end
-    
+
     USECHAT --> RENDER
     RENDER --> MARKDOWN
     MARKDOWN --> REHYPE
@@ -654,6 +654,7 @@ graph LR
 ```
 
 **UI Package Dependencies:**
+
 - `solid-markdown` (^2.1.0) - Markdown rendering for Solid
 - `rehype-highlight` (^7.0.2) - Syntax highlighting
 - `rehype-raw` (^7.0.0) - Raw HTML support
@@ -677,6 +678,7 @@ The package uses `tsdown` for building, configured in [packages/typescript/ai-so
 ```
 
 **Build Output:**
+
 - Module: `./dist/index.js`
 - Types: `./dist/index.d.ts`
 
@@ -687,11 +689,13 @@ The package uses `tsdown` for building, configured in [packages/typescript/ai-so
 The package includes unit tests using Vitest and `@solidjs/testing-library`:
 
 **Dev Dependencies:**
+
 - `@solidjs/testing-library` (^0.8.10)
 - `vitest` (^4.0.14)
 - `jsdom` (^27.2.0)
 
 **Test Commands:**
+
 - `pnpm test:lib` - Run unit tests
 - `pnpm test:lib:dev` - Watch mode
 - `pnpm test:types` - TypeScript type checking
@@ -700,14 +704,14 @@ The package includes unit tests using Vitest and `@solidjs/testing-library`:
 
 ## Comparison with React Integration
 
-| Aspect | @tanstack/ai-solid | @tanstack/ai-react |
-|--------|-------------------|-------------------|
-| State primitives | `Accessor<T>` functions | Plain values |
-| Reading state | `messages()` | `messages` |
-| Control flow | `<For>`, `<Show>` | `map()`, `&&` |
-| State creation | `createSignal()` | `useState()` |
-| Minimum version | solid-js >=1.9.10 | react >=18.0.0 |
-| Build tool | `tsdown` | `vite build` |
+| Aspect           | @tanstack/ai-solid      | @tanstack/ai-react |
+| ---------------- | ----------------------- | ------------------ |
+| State primitives | `Accessor<T>` functions | Plain values       |
+| Reading state    | `messages()`            | `messages`         |
+| Control flow     | `<For>`, `<Show>`       | `map()`, `&&`      |
+| State creation   | `createSignal()`        | `useState()`       |
+| Minimum version  | solid-js >=1.9.10       | react >=18.0.0     |
+| Build tool       | `tsdown`                | `vite build`       |
 
 **Sources:** [docs/api/ai-solid.md:1-333](), [docs/api/ai-react.md:1-318]()
 

@@ -12,7 +12,7 @@ The following files were used as context for generating this wiki page:
 - [client-sdks/client-js/src/resources/index.ts](client-sdks/client-js/src/resources/index.ts)
 - [client-sdks/client-js/src/types.ts](client-sdks/client-js/src/types.ts)
 - [e2e-tests/create-mastra/create-mastra.test.ts](e2e-tests/create-mastra/create-mastra.test.ts)
-- [packages/core/src/agent/__tests__/dynamic-model-fallback.test.ts](packages/core/src/agent/__tests__/dynamic-model-fallback.test.ts)
+- [packages/core/src/agent/**tests**/dynamic-model-fallback.test.ts](packages/core/src/agent/__tests__/dynamic-model-fallback.test.ts)
 - [packages/core/src/memory/mock.ts](packages/core/src/memory/mock.ts)
 - [packages/core/src/storage/mock.test.ts](packages/core/src/storage/mock.test.ts)
 - [packages/core/src/stream/aisdk/v5/transform.test.ts](packages/core/src/stream/aisdk/v5/transform.test.ts)
@@ -29,8 +29,6 @@ The following files were used as context for generating this wiki page:
 - [packages/server/src/server/schemas/memory.ts](packages/server/src/server/schemas/memory.ts)
 
 </details>
-
-
 
 ## Purpose and Scope
 
@@ -49,19 +47,19 @@ graph TB
     subgraph "Client SDK Layer"
         MastraClient["MastraClient<br/>(client.ts)"]
         MemoryThread["MemoryThread<br/>(memory-thread.ts)"]
-        
+
         MastraClient -->|getMemoryThread| MemoryThread
         MastraClient -->|listMemoryThreads| API
         MastraClient -->|createMemoryThread| API
         MastraClient -->|getMemoryConfig| API
     end
-    
+
     subgraph "Request Layer"
         BaseResource["BaseResource.request()"]
         MastraClient --> BaseResource
         MemoryThread --> BaseResource
     end
-    
+
     subgraph "Server Endpoints"
         API["/api/memory/*"]
         ThreadsAPI["/api/memory/threads"]
@@ -70,19 +68,19 @@ graph TB
         DeleteAPI["/api/memory/messages/delete"]
         CloneAPI["/api/memory/threads/:threadId/clone"]
     end
-    
+
     BaseResource --> API
     API --> ThreadsAPI
     API --> ThreadAPI
     API --> MessagesAPI
     API --> DeleteAPI
     API --> CloneAPI
-    
+
     subgraph "Agent Context"
         AgentParam["agentId query parameter"]
         StorageFallback["Storage-based access<br/>(when agentId omitted)"]
     end
-    
+
     ThreadsAPI --> AgentParam
     ThreadsAPI --> StorageFallback
 ```
@@ -90,6 +88,7 @@ graph TB
 **Diagram: Memory Client Architecture**
 
 The client provides two access modes:
+
 1. **Agent-based**: Operations scoped to an agent's memory configuration (requires `agentId`)
 2. **Storage-based**: Direct storage access when `agentId` is omitted
 
@@ -107,18 +106,19 @@ The `MastraClient` class provides top-level methods for memory operations that s
 
 Lists memory threads with optional filtering by `resourceId` and/or `metadata`. Returns paginated results.
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `resourceId` | `string?` | Filter threads by resource ID |
-| `metadata` | `Record<string, unknown>?` | Filter threads by metadata (AND logic) |
-| `agentId` | `string?` | Agent ID for agent-scoped access |
-| `page` | `number?` | Page number (0-indexed) |
-| `perPage` | `number?` | Items per page |
-| `orderBy` | `'createdAt' \| 'updatedAt'?` | Sort field |
-| `sortDirection` | `'ASC' \| 'DESC'?` | Sort direction |
-| `requestContext` | `RequestContext?` | Request context for dynamic configuration |
+| Parameter        | Type                          | Description                               |
+| ---------------- | ----------------------------- | ----------------------------------------- |
+| `resourceId`     | `string?`                     | Filter threads by resource ID             |
+| `metadata`       | `Record<string, unknown>?`    | Filter threads by metadata (AND logic)    |
+| `agentId`        | `string?`                     | Agent ID for agent-scoped access          |
+| `page`           | `number?`                     | Page number (0-indexed)                   |
+| `perPage`        | `number?`                     | Items per page                            |
+| `orderBy`        | `'createdAt' \| 'updatedAt'?` | Sort field                                |
+| `sortDirection`  | `'ASC' \| 'DESC'?`            | Sort direction                            |
+| `requestContext` | `RequestContext?`             | Request context for dynamic configuration |
 
 **Returns:** `Promise<ListMemoryThreadsResponse>`
+
 - `threads`: Array of `StorageThreadType` objects
 - `total`: Total thread count
 - `page`: Current page number
@@ -133,8 +133,8 @@ const response = await client.listMemoryThreads({
   page: 0,
   perPage: 20,
   orderBy: 'updatedAt',
-  sortDirection: 'DESC'
-});
+  sortDirection: 'DESC',
+})
 ```
 
 **Endpoint:** `GET /api/memory/threads?resourceId=...&agentId=...`
@@ -147,14 +147,14 @@ const response = await client.listMemoryThreads({
 
 Creates a new memory thread with optional title, metadata, and custom thread ID.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `agentId` | `string` | Yes | Agent ID for memory configuration |
-| `resourceId` | `string` | Yes | Resource identifier (e.g., user ID) |
-| `threadId` | `string?` | No | Custom thread ID (auto-generated if omitted) |
-| `title` | `string?` | No | Thread title |
-| `metadata` | `Record<string, any>?` | No | Custom metadata |
-| `requestContext` | `RequestContext?` | No | Request context |
+| Parameter        | Type                   | Required | Description                                  |
+| ---------------- | ---------------------- | -------- | -------------------------------------------- |
+| `agentId`        | `string`               | Yes      | Agent ID for memory configuration            |
+| `resourceId`     | `string`               | Yes      | Resource identifier (e.g., user ID)          |
+| `threadId`       | `string?`              | No       | Custom thread ID (auto-generated if omitted) |
+| `title`          | `string?`              | No       | Thread title                                 |
+| `metadata`       | `Record<string, any>?` | No       | Custom metadata                              |
+| `requestContext` | `RequestContext?`      | No       | Request context                              |
 
 **Returns:** `Promise<CreateMemoryThreadResponse>` (returns `StorageThreadType`)
 
@@ -166,9 +166,9 @@ const thread = await client.createMemoryThread({
   title: 'Support Request #456',
   metadata: {
     category: 'billing',
-    priority: 'high'
-  }
-});
+    priority: 'high',
+  },
+})
 ```
 
 **Endpoint:** `POST /api/memory/threads?agentId=...`
@@ -186,8 +186,8 @@ Retrieves memory configuration for an agent, including recall strategies and sto
 ```typescript
 const config = await client.getMemoryConfig({
   agentId: 'support-agent',
-  requestContext
-});
+  requestContext,
+})
 // Returns: { config: MemoryConfig }
 ```
 
@@ -202,7 +202,7 @@ const config = await client.getMemoryConfig({
 Checks if memory is enabled for an agent.
 
 ```typescript
-const status = await client.getMemoryStatus('support-agent');
+const status = await client.getMemoryStatus('support-agent')
 // Returns: { result: boolean }
 ```
 
@@ -218,11 +218,11 @@ const status = await client.getMemoryStatus('support-agent');
 
 Saves messages directly to memory storage (typically used internally by agents).
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `messages` | `(MastraMessageV1 \| MastraDBMessage)[]` | Messages to save |
-| `agentId` | `string` | Agent ID |
-| `requestContext` | `RequestContext?` | Request context |
+| Parameter        | Type                                     | Description      |
+| ---------------- | ---------------------------------------- | ---------------- |
+| `messages`       | `(MastraMessageV1 \| MastraDBMessage)[]` | Messages to save |
+| `agentId`        | `string`                                 | Agent ID         |
+| `requestContext` | `RequestContext?`                        | Request context  |
 
 **Endpoint:** `POST /api/memory/save-messages?agentId=...`
 
@@ -233,6 +233,7 @@ Saves messages directly to memory storage (typically used internally by agents).
 #### `listThreadMessages(threadId, opts?)`
 
 Lists messages for a thread. Supports three access modes:
+
 1. **Network mode**: When `networkId` is provided
 2. **Agent mode**: When `agentId` is provided
 3. **Storage mode**: When neither is provided (direct storage access)
@@ -240,14 +241,15 @@ Lists messages for a thread. Supports three access modes:
 ```typescript
 // Agent-based access
 const msgs = await client.listThreadMessages('thread-123', {
-  agentId: 'support-agent'
-});
+  agentId: 'support-agent',
+})
 
 // Storage-based access
-const msgs = await client.listThreadMessages('thread-123');
+const msgs = await client.listThreadMessages('thread-123')
 ```
 
-**Endpoint:** 
+**Endpoint:**
+
 - Network: `GET /api/memory/network/threads/:threadId/messages?networkId=...`
 - Agent: `GET /api/memory/threads/:threadId/messages?agentId=...`
 - Storage: `GET /api/memory/threads/:threadId/messages`
@@ -263,8 +265,8 @@ Deletes a thread. Supports agent and network modes.
 ```typescript
 await client.deleteThread('thread-123', {
   agentId: 'support-agent',
-  requestContext
-});
+  requestContext,
+})
 // Returns: { success: boolean, message: string }
 ```
 
@@ -283,7 +285,7 @@ graph LR
         Instance["MemoryThread instance"]
         Client -->|threadId + agentId?| Instance
     end
-    
+
     subgraph "Instance Methods"
         Get["get()"]
         Update["update()"]
@@ -292,14 +294,14 @@ graph LR
         DeleteMsgs["deleteMessages()"]
         Clone["clone()"]
     end
-    
+
     Instance --> Get
     Instance --> Update
     Instance --> Delete
     Instance --> ListMsgs
     Instance --> DeleteMsgs
     Instance --> Clone
-    
+
     subgraph "API Endpoints"
         GetAPI["/api/memory/threads/:threadId"]
         UpdateAPI["PATCH /api/memory/threads/:threadId"]
@@ -308,7 +310,7 @@ graph LR
         DelMsgsAPI["POST /api/memory/messages/delete"]
         CloneAPI["POST /api/memory/threads/:threadId/clone"]
     end
-    
+
     Get --> GetAPI
     Update --> UpdateAPI
     Delete --> DeleteAPI
@@ -330,8 +332,11 @@ graph LR
 Retrieves thread details including title, metadata, and timestamps.
 
 ```typescript
-const thread = client.getMemoryThread({ threadId: 'thread-123', agentId: 'agent-1' });
-const details = await thread.get();
+const thread = client.getMemoryThread({
+  threadId: 'thread-123',
+  agentId: 'agent-1',
+})
+const details = await thread.get()
 // Returns: StorageThreadType with id, title, metadata, resourceId, createdAt, updatedAt
 ```
 
@@ -343,22 +348,22 @@ const details = await thread.get();
 
 Updates thread properties. All fields except `requestContext` are included in the update payload.
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `title` | `string` | New thread title |
-| `metadata` | `Record<string, any>` | New metadata (replaces existing) |
-| `resourceId` | `string` | New resource ID |
-| `requestContext` | `RequestContext?` | Request context |
+| Parameter        | Type                  | Description                      |
+| ---------------- | --------------------- | -------------------------------- |
+| `title`          | `string`              | New thread title                 |
+| `metadata`       | `Record<string, any>` | New metadata (replaces existing) |
+| `resourceId`     | `string`              | New resource ID                  |
+| `requestContext` | `RequestContext?`     | Request context                  |
 
 ```typescript
 await thread.update({
   title: 'Updated Support Request',
   metadata: {
     status: 'resolved',
-    resolved_at: new Date().toISOString()
+    resolved_at: new Date().toISOString(),
   },
-  resourceId: 'user-123'
-});
+  resourceId: 'user-123',
+})
 ```
 
 **Endpoint:** `PATCH /api/memory/threads/:threadId?agentId=...`
@@ -372,7 +377,7 @@ await thread.update({
 Deletes the thread and all associated messages.
 
 ```typescript
-await thread.delete();
+await thread.delete()
 // Returns: { result: string }
 ```
 
@@ -388,15 +393,15 @@ await thread.delete();
 
 Retrieves paginated messages with advanced filtering and ordering options.
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `page` | `number?` | Page number (0-indexed) |
-| `perPage` | `number?` | Messages per page |
-| `orderBy` | `{ field: string, direction: 'ASC' \| 'DESC' }?` | Sort configuration |
-| `filter` | `object?` | Filter conditions (e.g., `{ role: 'user' }`) |
-| `include` | `object?` | Include options for related data |
-| `resourceId` | `string?` | Filter by resource ID |
-| `requestContext` | `RequestContext?` | Request context |
+| Parameter        | Type                                             | Description                                  |
+| ---------------- | ------------------------------------------------ | -------------------------------------------- |
+| `page`           | `number?`                                        | Page number (0-indexed)                      |
+| `perPage`        | `number?`                                        | Messages per page                            |
+| `orderBy`        | `{ field: string, direction: 'ASC' \| 'DESC' }?` | Sort configuration                           |
+| `filter`         | `object?`                                        | Filter conditions (e.g., `{ role: 'user' }`) |
+| `include`        | `object?`                                        | Include options for related data             |
+| `resourceId`     | `string?`                                        | Filter by resource ID                        |
+| `requestContext` | `RequestContext?`                                | Request context                              |
 
 ```typescript
 // Get recent user messages
@@ -404,8 +409,8 @@ const messages = await thread.listMessages({
   page: 0,
   perPage: 50,
   orderBy: { field: 'createdAt', direction: 'DESC' },
-  filter: { role: 'user' }
-});
+  filter: { role: 'user' },
+})
 
 // Returns: { messages: MastraDBMessage[] }
 ```
@@ -423,6 +428,7 @@ const messages = await thread.listMessages({
 Deletes one or more messages from the thread. Accepts multiple input formats for flexibility.
 
 **Supported input formats:**
+
 1. Single message ID: `string`
 2. Array of message IDs: `string[]`
 3. Message object: `{ id: string }`
@@ -430,16 +436,13 @@ Deletes one or more messages from the thread. Accepts multiple input formats for
 
 ```typescript
 // Delete single message
-await thread.deleteMessages('msg-123');
+await thread.deleteMessages('msg-123')
 
 // Delete multiple messages
-await thread.deleteMessages(['msg-1', 'msg-2', 'msg-3']);
+await thread.deleteMessages(['msg-1', 'msg-2', 'msg-3'])
 
 // Delete from message objects (e.g., from UI selection)
-await thread.deleteMessages([
-  { id: 'msg-1' },
-  { id: 'msg-2' }
-]);
+await thread.deleteMessages([{ id: 'msg-1' }, { id: 'msg-2' }])
 
 // Returns: { success: boolean, message: string }
 ```
@@ -458,17 +461,17 @@ await thread.deleteMessages([
 
 Creates a copy of the thread with all or filtered messages. Supports selective message copying and metadata customization.
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `newThreadId` | `string?` | Custom ID for cloned thread (auto-generated if omitted) |
-| `resourceId` | `string?` | New resource ID (defaults to original) |
-| `title` | `string?` | Title for cloned thread |
-| `metadata` | `Record<string, any>?` | Metadata for cloned thread |
-| `options.messageLimit` | `number?` | Maximum messages to copy |
-| `options.messageFilter.startDate` | `Date?` | Copy messages after this date |
-| `options.messageFilter.endDate` | `Date?` | Copy messages before this date |
-| `options.messageFilter.messageIds` | `string[]?` | Copy only these specific messages |
-| `requestContext` | `RequestContext?` | Request context |
+| Parameter                          | Type                   | Description                                             |
+| ---------------------------------- | ---------------------- | ------------------------------------------------------- |
+| `newThreadId`                      | `string?`              | Custom ID for cloned thread (auto-generated if omitted) |
+| `resourceId`                       | `string?`              | New resource ID (defaults to original)                  |
+| `title`                            | `string?`              | Title for cloned thread                                 |
+| `metadata`                         | `Record<string, any>?` | Metadata for cloned thread                              |
+| `options.messageLimit`             | `number?`              | Maximum messages to copy                                |
+| `options.messageFilter.startDate`  | `Date?`                | Copy messages after this date                           |
+| `options.messageFilter.endDate`    | `Date?`                | Copy messages before this date                          |
+| `options.messageFilter.messageIds` | `string[]?`            | Copy only these specific messages                       |
+| `requestContext`                   | `RequestContext?`      | Request context                                         |
 
 ```typescript
 // Clone with recent messages only
@@ -477,10 +480,10 @@ const cloned = await thread.clone({
   options: {
     messageLimit: 100,
     messageFilter: {
-      startDate: new Date('2024-01-01')
-    }
-  }
-});
+      startDate: new Date('2024-01-01'),
+    },
+  },
+})
 
 // Returns: { thread: StorageThreadType, clonedMessages: MastraDBMessage[] }
 ```
@@ -500,32 +503,32 @@ graph TB
     subgraph "Client Call"
         ClientMethod["client.listMemoryThreads() or<br/>thread.listMessages()"]
     end
-    
+
     subgraph "Agent-Based Pattern"
         AgentProvided["agentId parameter provided"]
         AgentMemory["Agent's Memory Configuration"]
         AgentValidation["Memory processors applied<br/>Authorization via agent context"]
         AgentStorage["Storage filtered by<br/>agent's memory config"]
     end
-    
+
     subgraph "Storage-Based Pattern"
         NoAgent["agentId parameter omitted"]
         DirectStorage["Direct Storage Access"]
         NoProcessing["No memory processors<br/>Raw storage operations"]
         RawAccess["Storage.listThreads()<br/>Storage.getMessages()"]
     end
-    
+
     ClientMethod --> AgentProvided
     ClientMethod --> NoAgent
-    
+
     AgentProvided --> AgentMemory
     AgentMemory --> AgentValidation
     AgentValidation --> AgentStorage
-    
+
     NoAgent --> DirectStorage
     DirectStorage --> NoProcessing
     NoProcessing --> RawAccess
-    
+
     style AgentProvided fill:#f9f9f9
     style NoAgent fill:#f9f9f9
 ```
@@ -542,10 +545,10 @@ When `agentId` is provided, operations are scoped through the agent's memory con
 
 ```typescript
 // Agent-based: Uses agent's memory configuration
-const thread = client.getMemoryThread({ 
-  threadId: 'thread-123', 
-  agentId: 'support-agent' // <-- Enables agent-based access
-});
+const thread = client.getMemoryThread({
+  threadId: 'thread-123',
+  agentId: 'support-agent', // <-- Enables agent-based access
+})
 ```
 
 ### Storage-Based Access
@@ -558,10 +561,10 @@ When `agentId` is omitted, operations bypass agent configuration:
 
 ```typescript
 // Storage-based: Direct storage access
-const thread = client.getMemoryThread({ 
-  threadId: 'thread-123' 
+const thread = client.getMemoryThread({
+  threadId: 'thread-123',
   // No agentId = storage-based access
-});
+})
 ```
 
 ### Implementation Details
@@ -588,19 +591,19 @@ All memory operations support optional `requestContext` parameters for dynamic c
 ### Request Context in Memory Operations
 
 ```typescript
-import { RequestContext } from '@mastra/core/request-context';
+import { RequestContext } from '@mastra/core/request-context'
 
 // Create request context with tenant/user info
-const requestContext = new RequestContext();
-requestContext.set('tenantId', 'tenant-123');
-requestContext.set('userId', 'user-456');
+const requestContext = new RequestContext()
+requestContext.set('tenantId', 'tenant-123')
+requestContext.set('userId', 'user-456')
 
 // Pass to any memory operation
 const threads = await client.listMemoryThreads({
   resourceId: 'user-456',
   agentId: 'support-agent',
-  requestContext // <-- Dynamic configuration
-});
+  requestContext, // <-- Dynamic configuration
+})
 ```
 
 ### Context Serialization
@@ -611,11 +614,12 @@ The client automatically serializes request context for API transmission:
 // From utils.ts - converts RequestContext to base64 query param
 const requestContextParam = base64RequestContext(
   parseClientRequestContext(requestContext)
-);
+)
 // Appended as: ?requestContext=eyJ0ZW5hbnRJZCI6InRlbmFudC0xMjMifQ==
 ```
 
 **Server-side handling:** The server deserializes the context and passes it to agents, processors, and storage operations. This enables:
+
 - Multi-tenant data isolation
 - User-specific memory configuration
 - Dynamic agent behavior based on context
@@ -636,30 +640,30 @@ const thread = await client.createMemoryThread({
   agentId: 'support-agent',
   resourceId: 'user-123',
   title: 'Support Session',
-  metadata: { type: 'support' }
-});
+  metadata: { type: 'support' },
+})
 
 // 2. Get thread instance for operations
 const threadInstance = client.getMemoryThread({
   threadId: thread.id,
-  agentId: 'support-agent'
-});
+  agentId: 'support-agent',
+})
 
 // 3. List messages
-const messages = await threadInstance.listMessages();
+const messages = await threadInstance.listMessages()
 
 // 4. Update metadata
 await threadInstance.update({
   title: 'Support Session - Resolved',
-  metadata: { 
+  metadata: {
     type: 'support',
-    status: 'resolved' 
+    status: 'resolved',
   },
-  resourceId: 'user-123'
-});
+  resourceId: 'user-123',
+})
 
 // 5. Delete when done
-await threadInstance.delete();
+await threadInstance.delete()
 ```
 
 **Sources:** [client-sdks/client-js/src/client.ts:168-183](), [client-sdks/client-js/src/resources/memory-thread.ts:42-73]()
@@ -672,20 +676,20 @@ Efficiently retrieve large message histories:
 
 ```typescript
 async function getAllMessages(thread: MemoryThread) {
-  let page = 0;
-  const perPage = 100;
-  const allMessages = [];
-  
+  let page = 0
+  const perPage = 100
+  const allMessages = []
+
   while (true) {
-    const response = await thread.listMessages({ page, perPage });
-    allMessages.push(...response.messages);
-    
+    const response = await thread.listMessages({ page, perPage })
+    allMessages.push(...response.messages)
+
     // Check if more pages exist (would need to implement hasMore in response)
-    if (response.messages.length < perPage) break;
-    page++;
+    if (response.messages.length < perPage) break
+    page++
   }
-  
-  return allMessages;
+
+  return allMessages
 }
 ```
 
@@ -705,15 +709,15 @@ const supportThreads = await client.listMemoryThreads({
   metadata: {
     type: 'support',
     priority: 'high',
-    status: 'open' // AND logic: all must match
+    status: 'open', // AND logic: all must match
   },
   orderBy: 'updatedAt',
-  sortDirection: 'DESC'
-});
+  sortDirection: 'DESC',
+})
 
 // Process matching threads
 for (const thread of supportThreads.threads) {
-  console.log(`Thread: ${thread.title}, Updated: ${thread.updatedAt}`);
+  console.log(`Thread: ${thread.title}, Updated: ${thread.updatedAt}`)
 }
 ```
 
@@ -735,17 +739,17 @@ async function archiveThread(
     title: `Archive - ${new Date().toISOString()}`,
     metadata: {
       archived: true,
-      originalThreadId: thread.threadId
+      originalThreadId: thread.threadId,
     },
     options: {
-      messageLimit: recentMessageCount
-    }
-  });
-  
+      messageLimit: recentMessageCount,
+    },
+  })
+
   // Delete original thread
-  await thread.delete();
-  
-  return archivedThread.thread.id;
+  await thread.delete()
+
+  return archivedThread.thread.id
 }
 ```
 
@@ -765,18 +769,18 @@ async function deleteMessagesByRole(
   // Get all messages with filter
   const messages = await thread.listMessages({
     filter: { role },
-    perPage: 1000 // Adjust based on expected count
-  });
-  
+    perPage: 1000, // Adjust based on expected count
+  })
+
   // Extract IDs
-  const messageIds = messages.messages.map(msg => msg.id);
-  
+  const messageIds = messages.messages.map((msg) => msg.id)
+
   if (messageIds.length > 0) {
     // Delete in bulk
-    await thread.deleteMessages(messageIds);
+    await thread.deleteMessages(messageIds)
   }
-  
-  return messageIds.length;
+
+  return messageIds.length
 }
 ```
 
@@ -788,31 +792,31 @@ async function deleteMessagesByRole(
 
 ### Core Types
 
-| Type | Description | Location |
-|------|-------------|----------|
+| Type                | Description                                                                | Location        |
+| ------------------- | -------------------------------------------------------------------------- | --------------- |
 | `StorageThreadType` | Thread metadata structure with id, title, metadata, resourceId, timestamps | [types.ts:21]() |
-| `MastraDBMessage` | Stored message with role, content, metadata, timestamps | [types.ts:19]() |
-| `MastraMessageV1` | Message format for storage operations | [types.ts:18]() |
-| `RequestContext` | Dynamic configuration context | [types.ts:24]() |
+| `MastraDBMessage`   | Stored message with role, content, metadata, timestamps                    | [types.ts:19]() |
+| `MastraMessageV1`   | Message format for storage operations                                      | [types.ts:18]() |
+| `RequestContext`    | Dynamic configuration context                                              | [types.ts:24]() |
 
 ### Parameter Types
 
-| Type | Description | Location |
-|------|-------------|----------|
-| `CreateMemoryThreadParams` | Parameters for creating threads | [types.ts:283-292]() |
-| `ListMemoryThreadsParams` | Filtering/pagination for thread listing | [types.ts:294-317]() |
-| `UpdateMemoryThreadParams` | Thread update payload | [types.ts:326-331]() |
-| `CloneMemoryThreadParams` | Thread cloning configuration | [types.ts:339-358]() |
-| `ListMemoryThreadMessagesParams` | Message listing/filtering options | [types.ts:333]() |
+| Type                             | Description                             | Location             |
+| -------------------------------- | --------------------------------------- | -------------------- |
+| `CreateMemoryThreadParams`       | Parameters for creating threads         | [types.ts:283-292]() |
+| `ListMemoryThreadsParams`        | Filtering/pagination for thread listing | [types.ts:294-317]() |
+| `UpdateMemoryThreadParams`       | Thread update payload                   | [types.ts:326-331]() |
+| `CloneMemoryThreadParams`        | Thread cloning configuration            | [types.ts:339-358]() |
+| `ListMemoryThreadMessagesParams` | Message listing/filtering options       | [types.ts:333]()     |
 
 ### Response Types
 
-| Type | Description | Location |
-|------|-------------|----------|
-| `ListMemoryThreadsResponse` | Paginated thread list with metadata | [types.ts:315-317]() |
-| `CreateMemoryThreadResponse` | Created thread (StorageThreadType) | [types.ts:292]() |
-| `ListMemoryThreadMessagesResponse` | Message list response | [types.ts:335-337]() |
-| `CloneMemoryThreadResponse` | Cloned thread and copied messages | [types.ts:355-358]() |
+| Type                               | Description                         | Location             |
+| ---------------------------------- | ----------------------------------- | -------------------- |
+| `ListMemoryThreadsResponse`        | Paginated thread list with metadata | [types.ts:315-317]() |
+| `CreateMemoryThreadResponse`       | Created thread (StorageThreadType)  | [types.ts:292]()     |
+| `ListMemoryThreadMessagesResponse` | Message list response               | [types.ts:335-337]() |
+| `CloneMemoryThreadResponse`        | Cloned thread and copied messages   | [types.ts:355-358]() |
 
 **Sources:** [client-sdks/client-js/src/types.ts:1-1200]()
 
@@ -823,24 +827,25 @@ async function deleteMessagesByRole(
 The memory client methods throw `MastraClientError` for HTTP errors:
 
 ```typescript
-import { MastraClientError } from '@mastra/client-js';
+import { MastraClientError } from '@mastra/client-js'
 
 try {
-  const thread = await client.getMemoryThread({ 
+  const thread = await client.getMemoryThread({
     threadId: 'invalid-id',
-    agentId: 'agent-1' 
-  });
-  await thread.get();
+    agentId: 'agent-1',
+  })
+  await thread.get()
 } catch (error) {
   if (error instanceof MastraClientError) {
-    console.error('HTTP Error:', error.status);
-    console.error('Status Text:', error.statusText);
-    console.error('Response Body:', error.body);
+    console.error('HTTP Error:', error.status)
+    console.error('Status Text:', error.statusText)
+    console.error('Response Body:', error.body)
   }
 }
 ```
 
 **Common error scenarios:**
+
 - `404`: Thread not found or unauthorized access
 - `400`: Invalid parameters (empty messageIds array, invalid filter)
 - `401`: Authentication required

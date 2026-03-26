@@ -32,10 +32,10 @@ If you mark a project as untrusted, Codex skips project-scoped `.codex/` layers 
 For one-off overrides via `-c`/`--config` (including TOML quoting rules), see [Advanced Config](https://developers.openai.com/codex/config-advanced#one-off-overrides-from-the-cli).
 
 On managed machines, your organization may also enforce constraints via
-  `requirements.toml` (for example, disallowing `approval_policy = "never"` or
-  `sandbox_mode = "danger-full-access"`). See [Managed
-  configuration](https://developers.openai.com/codex/enterprise/managed-configuration) and [Admin-enforced
-  requirements](https://developers.openai.com/codex/enterprise/managed-configuration#admin-enforced-requirements-requirementstoml).
+`requirements.toml` (for example, disallowing `approval_policy = "never"` or
+`sandbox_mode = "danger-full-access"`). See [Managed
+configuration](https://developers.openai.com/codex/enterprise/managed-configuration) and [Admin-enforced
+requirements](https://developers.openai.com/codex/enterprise/managed-configuration#admin-enforced-requirements-requirementstoml).
 
 ## Common configuration options
 
@@ -165,8 +165,8 @@ shell_snapshot = true           # Speed up repeated commands
 | `web_search_request`      |  true   | Deprecated   | Legacy toggle that maps to `web_search = "live"` when unset                                        |
 
 The Maturity column uses feature maturity labels such as Experimental, Beta,
-  and Stable. See [Feature Maturity](https://developers.openai.com/codex/feature-maturity) for how to
-  interpret these labels.
+and Stable. See [Feature Maturity](https://developers.openai.com/codex/feature-maturity) for how to
+interpret these labels.
 
 Omit feature keys to keep their defaults.
 

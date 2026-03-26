@@ -38,8 +38,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the Discord channel integration in OpenClaw: the runtime lifecycle of the Discord bot, how inbound messages are authorized and dispatched, how guild/channel allowlists are resolved, thread binding behavior, exec approval interactive components, and native slash command deployment. For general channel architecture and the plugin SDK pattern, see [4.1](#4.1). For configuration field-by-field reference, see [2.3.1](#2.3.1).
 
 ---
@@ -85,13 +83,14 @@ Sources: [src/discord/monitor/provider.ts:1-687]()
 
 The Discord bot requires a bot token from the Discord Developer Portal and specific **privileged gateway intents** enabled on the application:
 
-| Intent | Required | Purpose |
-|---|---|---|
-| Message Content Intent | Yes | Receive message text in guilds |
-| Server Members Intent | Recommended | Role allowlists, name-to-ID resolution |
-| Presence Intent | Optional | Presence tracking (`channels.discord.intents.presence`) |
+| Intent                 | Required    | Purpose                                                 |
+| ---------------------- | ----------- | ------------------------------------------------------- |
+| Message Content Intent | Yes         | Receive message text in guilds                          |
+| Server Members Intent  | Recommended | Role allowlists, name-to-ID resolution                  |
+| Presence Intent        | Optional    | Presence tracking (`channels.discord.intents.presence`) |
 
 Token resolution order:
+
 1. `opts.token` (programmatic)
 2. `channels.discord.token` (config)
 3. `DISCORD_BOT_TOKEN` environment variable (default account only)
@@ -180,6 +179,7 @@ Sources: [src/discord/monitor/message-handler.preflight.ts:108-400](), [src/disc
 ### Guild entry resolution
 
 `resolveDiscordGuildEntry` looks up a guild in `channels.discord.guilds` by:
+
 1. Exact numeric ID match
 2. Slug key match (e.g., `"friends-of-openclaw"`)
 3. Wildcard `"*"` fallback
@@ -189,6 +189,7 @@ Slugs are normalized via `normalizeDiscordSlug` which lowercases, strips `#`, an
 ### Channel config resolution
 
 `resolveDiscordChannelConfigWithFallback` is used for both regular channels and threads:
+
 - For regular channels: matches by channel ID, then by slug, then by wildcard `"*"`.
 - For threads: matches using the **parent** channel's ID/slug (thread name/slug is intentionally not matched against the channel config).
 
@@ -246,12 +247,12 @@ Sources: [src/discord/monitor/message-handler.preflight.ts:132-158](), [src/disc
 
 ## Session keys
 
-| Scenario | Session key pattern |
-|---|---|
-| DM (default `dmScope=main`) | `agent:<agentId>:main` |
-| Guild channel | `agent:<agentId>:discord:channel:<channelId>` |
-| Thread | `agent:<agentId>:discord:channel:<threadId>` |
-| Slash command | `agent:<agentId>:discord:slash:<userId>` |
+| Scenario                    | Session key pattern                           |
+| --------------------------- | --------------------------------------------- |
+| DM (default `dmScope=main`) | `agent:<agentId>:main`                        |
+| Guild channel               | `agent:<agentId>:discord:channel:<channelId>` |
+| Thread                      | `agent:<agentId>:discord:channel:<threadId>`  |
+| Slash command               | `agent:<agentId>:discord:slash:<userId>`      |
 
 Guild channel sessions are isolated per channel ID. Thread sessions use the thread's own ID as the channel ID component.
 
@@ -267,13 +268,13 @@ Thread bindings associate a Discord thread with an agent session, enabling auton
 
 Configuration fields under `channels.discord.threadBindings`:
 
-| Field | Default | Description |
-|---|---|---|
-| `enabled` | `true` | Enable/disable thread binding subsystem |
-| `idleHours` | `24` | Expire thread binding after idle time |
-| `maxAgeHours` | `0` (disabled) | Absolute max age before expiry |
-| `spawnSubagentSessions` | — | Control subagent thread spawn behavior |
-| `spawnAcpSessions` | — | Control ACP-routed thread spawns |
+| Field                   | Default        | Description                             |
+| ----------------------- | -------------- | --------------------------------------- |
+| `enabled`               | `true`         | Enable/disable thread binding subsystem |
+| `idleHours`             | `24`           | Expire thread binding after idle time   |
+| `maxAgeHours`           | `0` (disabled) | Absolute max age before expiry          |
+| `spawnSubagentSessions` | —              | Control subagent thread spawn behavior  |
+| `spawnAcpSessions`      | —              | Control ACP-routed thread spawns        |
 
 At startup, `reconcileAcpThreadBindingsOnStartup` removes stale ACP thread bindings from previous sessions.
 
@@ -291,14 +292,14 @@ When `channels.discord.execApprovals.enabled=true`, OpenClaw routes exec approva
 
 Configuration under `channels.discord.execApprovals`:
 
-| Field | Description |
-|---|---|
-| `enabled` | Enable Discord exec approval flow |
-| `approvers` | Discord user IDs that may approve |
-| `agentFilter` | Limit which agent IDs trigger approvals |
-| `sessionFilter` | Limit which session keys trigger approvals |
-| `cleanupAfterResolve` | Delete button message after approval/denial |
-| `target` | Where to send approval: `dm`, `channel`, or `both` |
+| Field                 | Description                                        |
+| --------------------- | -------------------------------------------------- |
+| `enabled`             | Enable Discord exec approval flow                  |
+| `approvers`           | Discord user IDs that may approve                  |
+| `agentFilter`         | Limit which agent IDs trigger approvals            |
+| `sessionFilter`       | Limit which session keys trigger approvals         |
+| `cleanupAfterResolve` | Delete button message after approval/denial        |
+| `target`              | Where to send approval: `dm`, `channel`, or `both` |
 
 Sources: [src/discord/monitor/provider.ts:430-471](), [src/config/zod-schema.providers-core.ts:466-476]()
 
@@ -385,14 +386,14 @@ Sources: [src/discord/monitor/agent-components.ts]()
 
 Listeners extend Carbon base classes and are registered via `registerDiscordListener`, which deduplicates by constructor to prevent double-registration.
 
-| Class | Base class | Purpose |
-|---|---|---|
-| `DiscordMessageListener` | `MessageCreateListener` | Dispatches to `createDiscordMessageHandler` |
-| `DiscordReactionListener` | `MessageReactionAddListener` | Routes reaction-add events to system events |
-| `DiscordReactionRemoveListener` | `MessageReactionRemoveListener` | Routes reaction-remove events |
-| `DiscordPresenceListener` | `PresenceUpdateListener` | Tracks presence updates (optional) |
-| `DiscordVoiceReadyListener` | — | Initializes `DiscordVoiceManager` on ready |
-| `DiscordStatusReadyListener` | `ReadyListener` | Sets bot presence on gateway ready |
+| Class                           | Base class                      | Purpose                                     |
+| ------------------------------- | ------------------------------- | ------------------------------------------- |
+| `DiscordMessageListener`        | `MessageCreateListener`         | Dispatches to `createDiscordMessageHandler` |
+| `DiscordReactionListener`       | `MessageReactionAddListener`    | Routes reaction-add events to system events |
+| `DiscordReactionRemoveListener` | `MessageReactionRemoveListener` | Routes reaction-remove events               |
+| `DiscordPresenceListener`       | `PresenceUpdateListener`        | Tracks presence updates (optional)          |
+| `DiscordVoiceReadyListener`     | —                               | Initializes `DiscordVoiceManager` on ready  |
+| `DiscordStatusReadyListener`    | `ReadyListener`                 | Sets bot presence on gateway ready          |
 
 `DiscordMessageListener` wraps the handler in `runDiscordListenerWithSlowLog`, which logs a warning if the listener takes longer than 30 seconds to process an event.
 
@@ -404,12 +405,12 @@ Sources: [src/discord/monitor/listeners.ts:112-280]()
 
 Discord output streaming is controlled by `channels.discord.streaming`:
 
-| Mode | Behavior |
-|---|---|
-| `off` (default) | Send final reply only |
-| `partial` | Edit a temporary message as tokens arrive |
-| `block` | Emit draft-sized chunks, tuned by `draftChunk` |
-| `progress` | Alias for `partial` |
+| Mode            | Behavior                                       |
+| --------------- | ---------------------------------------------- |
+| `off` (default) | Send final reply only                          |
+| `partial`       | Edit a temporary message as tokens arrive      |
+| `block`         | Emit draft-sized chunks, tuned by `draftChunk` |
+| `progress`      | Alias for `partial`                            |
 
 Legacy `channels.discord.streamMode` values are auto-migrated via `normalizeDiscordStreamingConfig` at config parse time.
 
@@ -423,25 +424,25 @@ Sources: [src/config/zod-schema.providers-core.ts:115-118](), [src/config/zod-sc
 
 Key `channels.discord` fields:
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `token` | `string` | — | Bot token (or `DISCORD_BOT_TOKEN`) |
-| `dmPolicy` | `pairing\|allowlist\|open\|disabled` | `pairing` | DM access policy |
-| `allowFrom` | `string[]` | — | DM allowlist (user IDs) |
-| `groupPolicy` | `open\|allowlist\|disabled` | `allowlist` | Guild message policy |
-| `guilds` | `Record<string, DiscordGuildEntry>` | — | Per-guild allowlist + config |
-| `guilds.<id>.users` | `string[]` | — | Sender allowlist (IDs preferred) |
-| `guilds.<id>.roles` | `string[]` | — | Role ID allowlist |
-| `guilds.<id>.channels` | `Record<string, DiscordGuildChannelConfig>` | — | Per-channel overrides |
-| `guilds.<id>.requireMention` | `boolean` | `true` | Require `@mention` in guild |
-| `streaming` | `off\|partial\|block\|progress` | `off` | Reply streaming mode |
-| `threadBindings.enabled` | `boolean` | `true` | Thread binding subsystem |
-| `execApprovals.enabled` | `boolean` | `false` | Discord exec approval UI |
-| `commands.native` | `boolean\|"auto"` | `"auto"` | Slash command deployment |
-| `slashCommand.ephemeral` | `boolean` | `true` | Slash reply visibility |
-| `intents.presence` | `boolean` | `false` | Enable Presence intent |
-| `voice.enabled` | `boolean` | `true` | Voice channel support |
-| `dangerouslyAllowNameMatching` | `boolean` | `false` | Allow name/tag allowlist matching |
+| Field                          | Type                                        | Default     | Description                        |
+| ------------------------------ | ------------------------------------------- | ----------- | ---------------------------------- |
+| `token`                        | `string`                                    | —           | Bot token (or `DISCORD_BOT_TOKEN`) |
+| `dmPolicy`                     | `pairing\|allowlist\|open\|disabled`        | `pairing`   | DM access policy                   |
+| `allowFrom`                    | `string[]`                                  | —           | DM allowlist (user IDs)            |
+| `groupPolicy`                  | `open\|allowlist\|disabled`                 | `allowlist` | Guild message policy               |
+| `guilds`                       | `Record<string, DiscordGuildEntry>`         | —           | Per-guild allowlist + config       |
+| `guilds.<id>.users`            | `string[]`                                  | —           | Sender allowlist (IDs preferred)   |
+| `guilds.<id>.roles`            | `string[]`                                  | —           | Role ID allowlist                  |
+| `guilds.<id>.channels`         | `Record<string, DiscordGuildChannelConfig>` | —           | Per-channel overrides              |
+| `guilds.<id>.requireMention`   | `boolean`                                   | `true`      | Require `@mention` in guild        |
+| `streaming`                    | `off\|partial\|block\|progress`             | `off`       | Reply streaming mode               |
+| `threadBindings.enabled`       | `boolean`                                   | `true`      | Thread binding subsystem           |
+| `execApprovals.enabled`        | `boolean`                                   | `false`     | Discord exec approval UI           |
+| `commands.native`              | `boolean\|"auto"`                           | `"auto"`    | Slash command deployment           |
+| `slashCommand.ephemeral`       | `boolean`                                   | `true`      | Slash reply visibility             |
+| `intents.presence`             | `boolean`                                   | `false`     | Enable Presence intent             |
+| `voice.enabled`                | `boolean`                                   | `true`      | Voice channel support              |
+| `dangerouslyAllowNameMatching` | `boolean`                                   | `false`     | Allow name/tag allowlist matching  |
 
 Discord IDs in config must be strings (wrap numeric IDs in quotes). The config validator enforces this via `DiscordIdSchema`.
 

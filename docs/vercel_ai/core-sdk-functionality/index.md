@@ -21,8 +21,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The core SDK, published as the `ai` package (`packages/ai`), provides the foundational APIs for building AI-powered applications. It implements provider-agnostic text generation, structured output validation, tool execution workflows, streaming, embedding, image generation, transcription, and observability primitives. This package is the primary entry point for developers, abstracting provider differences through a unified API.
 
 For provider-specific implementations, see [Provider Ecosystem](#3). For UI framework integrations (React, Vue, Svelte), see [UI Framework Integrations](#4). For detailed coverage of individual subsystems, refer to child pages: [Text Generation](#2.1), [Structured Output](#2.2), [Tool Calling](#2.3), [Message Processing](#2.4), [Observability](#2.5), and [Middleware](#2.6).
@@ -33,20 +31,20 @@ For provider-specific implementations, see [Provider Ecosystem](#3). For UI fram
 
 The `ai` package is the monorepo's central package, located at `packages/ai`, with exports defined in [packages/ai/package.json:42-61](). It depends on four workspace packages:
 
-| Dependency | Purpose |
-|------------|---------|
-| `@ai-sdk/provider` | `LanguageModelV3`, `ImageModelV3`, `EmbeddingModelV3`, `VideoModelV3` interfaces |
-| `@ai-sdk/provider-utils` | Schema validation, streaming utilities, error handling, retry logic |
-| `@ai-sdk/gateway` | Default gateway for model routing via the Vercel AI Gateway |
-| `@opentelemetry/api` | OpenTelemetry integration for tracing and observability |
+| Dependency               | Purpose                                                                          |
+| ------------------------ | -------------------------------------------------------------------------------- |
+| `@ai-sdk/provider`       | `LanguageModelV3`, `ImageModelV3`, `EmbeddingModelV3`, `VideoModelV3` interfaces |
+| `@ai-sdk/provider-utils` | Schema validation, streaming utilities, error handling, retry logic              |
+| `@ai-sdk/gateway`        | Default gateway for model routing via the Vercel AI Gateway                      |
+| `@opentelemetry/api`     | OpenTelemetry integration for tracing and observability                          |
 
 The package exports three entrypoints ([packages/ai/package.json:42-61]()):
 
-| Entrypoint | Purpose |
-|------------|---------|
-| `.` | Main API surface: `generateText`, `streamText`, `embed`, `generateImage`, `transcribe`, tools, Output API, `ToolLoopAgent` |
-| `./internal` | Internal utilities consumed by framework integration packages |
-| `./test` | Test helpers for SDK consumers |
+| Entrypoint   | Purpose                                                                                                                    |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `.`          | Main API surface: `generateText`, `streamText`, `embed`, `generateImage`, `transcribe`, tools, Output API, `ToolLoopAgent` |
+| `./internal` | Internal utilities consumed by framework integration packages                                                              |
+| `./test`     | Test helpers for SDK consumers                                                                                             |
 
 **Sources:** [packages/ai/package.json:1-117]()
 
@@ -113,6 +111,7 @@ toolCallStream, output}"]
 `generateText()` executes text generation and returns when complete. It accepts a `LanguageModelV3` model, a prompt (string or messages array), optional tools, and configuration options including `stopWhen`, `experimental_telemetry`, `timeout`, `output`, and `system`/`instructions`.
 
 `GenerateTextResult` fields:
+
 - `text` — Concatenated text from all steps
 - `toolCalls` — Tool invocations with arguments
 - `toolResults` — Execution results from tools
@@ -135,12 +134,12 @@ Both functions support multi-step tool calling loops via `stopWhen` conditions (
 
 ### Other Generation Functions
 
-| Function | Purpose |
-|----------|---------|
-| `embed()` / `embedMany()` | Generate text embeddings using an `EmbeddingModelV3` |
-| `generateImage()` | Generate images using an `ImageModelV3` |
-| `transcribe()` | Audio transcription |
-| `experimental_generateVideo()` | Video generation using a `VideoModelV3` |
+| Function                       | Purpose                                              |
+| ------------------------------ | ---------------------------------------------------- |
+| `embed()` / `embedMany()`      | Generate text embeddings using an `EmbeddingModelV3` |
+| `generateImage()`              | Generate images using an `ImageModelV3`              |
+| `transcribe()`                 | Audio transcription                                  |
+| `experimental_generateVideo()` | Video generation using a `VideoModelV3`              |
 
 ### ToolLoopAgent
 
@@ -197,13 +196,13 @@ graph LR
     OJ --> streamText
 ```
 
-| Output Mode | Purpose | Schema Support |
-|-------------|---------|----------------|
-| `Output.text()` | Default unstructured text (default) | N/A |
-| `Output.object(schema)` | Single validated object | Zod, Valibot, Effect, ArkType |
-| `Output.array(schema)` | Array of validated objects | Zod, Valibot, Effect, ArkType |
-| `Output.choice(options)` | Discriminated union validation | Zod, Valibot, Effect, ArkType |
-| `Output.json()` | Raw JSON with standard JSON Schema | JSON Schema |
+| Output Mode              | Purpose                             | Schema Support                |
+| ------------------------ | ----------------------------------- | ----------------------------- |
+| `Output.text()`          | Default unstructured text (default) | N/A                           |
+| `Output.object(schema)`  | Single validated object             | Zod, Valibot, Effect, ArkType |
+| `Output.array(schema)`   | Array of validated objects          | Zod, Valibot, Effect, ArkType |
+| `Output.choice(options)` | Discriminated union validation      | Zod, Valibot, Effect, ArkType |
+| `Output.json()`          | Raw JSON with standard JSON Schema  | JSON Schema                   |
 
 When used with `streamText`, the `output` property resolves once the stream is complete. `elementStream` on `StreamTextResult` provides incremental access to individual array elements when `Output.array()` is used. Type inference is fully supported — TypeScript infers the output type from the schema.
 
@@ -250,14 +249,14 @@ sequenceDiagram
 
 Tool definitions consist of:
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `description` | `string` (optional) | Human-readable description for the model |
-| `parameters` | Zod / Valibot / Effect / ArkType schema | Validates tool call arguments |
-| `execute` | `async (args, options) => result` | Runs client-side; receives `ToolExecutionOptions` |
-| `needsApproval` | `boolean` or `(toolCall) => Promise<boolean>` | Triggers approval flow before execution |
-| `inputExamples` | array | Example inputs to improve model tool usage |
-| `strict` | `boolean` | Tool-specific strict mode for schema enforcement |
+| Field           | Type                                          | Purpose                                           |
+| --------------- | --------------------------------------------- | ------------------------------------------------- |
+| `description`   | `string` (optional)                           | Human-readable description for the model          |
+| `parameters`    | Zod / Valibot / Effect / ArkType schema       | Validates tool call arguments                     |
+| `execute`       | `async (args, options) => result`             | Runs client-side; receives `ToolExecutionOptions` |
+| `needsApproval` | `boolean` or `(toolCall) => Promise<boolean>` | Triggers approval flow before execution           |
+| `inputExamples` | array                                         | Example inputs to improve model tool usage        |
+| `strict`        | `boolean`                                     | Tool-specific strict mode for schema enforcement  |
 
 ### Tool Categories
 
@@ -325,20 +324,20 @@ graph TB
 
 `wrapLanguageModel(model, middleware)` composes one or more middleware layers onto a `LanguageModelV3`. Middleware implements the `LanguageModelV3Middleware` interface:
 
-| Hook | Purpose |
-|------|---------|
+| Hook              | Purpose                                                                    |
+| ----------------- | -------------------------------------------------------------------------- |
 | `transformParams` | Modify call parameters (prompt, tools, settings) before provider execution |
-| `wrapGenerate` | Intercept `doGenerate` — pre/post processing or response substitution |
-| `wrapStream` | Intercept `doStream` — stream transformation or mock responses |
+| `wrapGenerate`    | Intercept `doGenerate` — pre/post processing or response substitution      |
+| `wrapStream`      | Intercept `doStream` — stream transformation or mock responses             |
 
 Common patterns:
 
-| Pattern | Approach |
-|---------|----------|
-| Logging | Wrap `doGenerate`/`doStream` to capture inputs and outputs |
-| Cost tracking | Extract `usage` from results in `wrapGenerate` |
-| Caching | Return cached response from `wrapGenerate` before calling `doGenerate` |
-| Testing | Return mock responses via `experimental_simulate` |
+| Pattern       | Approach                                                               |
+| ------------- | ---------------------------------------------------------------------- |
+| Logging       | Wrap `doGenerate`/`doStream` to capture inputs and outputs             |
+| Cost tracking | Extract `usage` from results in `wrapGenerate`                         |
+| Caching       | Return cached response from `wrapGenerate` before calling `doGenerate` |
+| Testing       | Return mock responses via `experimental_simulate`                      |
 
 ### Image and Embedding Middleware
 
@@ -404,23 +403,25 @@ recordOutputs, tracer }"]
 
 The `experimental_telemetry` object accepts:
 
-| Field | Type | Default | Purpose |
-|-------|------|---------|---------|
-| `isEnabled` | `boolean` | `false` | Activate tracing |
-| `functionId` | `string` | — | Identifies the trace in observability platforms |
-| `metadata` | `Record<string, string \| number>` | — | Arbitrary metadata attached to spans |
-| `recordInputs` | `boolean` | `true` | Whether to record prompt and parameters |
-| `recordOutputs` | `boolean` | `true` | Whether to record generated text and tool calls |
-| `tracer` | `Tracer` | global OTel tracer | Custom `TracerProvider`-sourced tracer |
+| Field           | Type                               | Default            | Purpose                                         |
+| --------------- | ---------------------------------- | ------------------ | ----------------------------------------------- |
+| `isEnabled`     | `boolean`                          | `false`            | Activate tracing                                |
+| `functionId`    | `string`                           | —                  | Identifies the trace in observability platforms |
+| `metadata`      | `Record<string, string \| number>` | —                  | Arbitrary metadata attached to spans            |
+| `recordInputs`  | `boolean`                          | `true`             | Whether to record prompt and parameters         |
+| `recordOutputs` | `boolean`                          | `true`             | Whether to record generated text and tool calls |
+| `tracer`        | `Tracer`                           | global OTel tracer | Custom `TracerProvider`-sourced tracer          |
 
 ### Span Hierarchy
 
 For `generateText`:
+
 - `ai.generateText` — root span, full execution including all steps
   - `ai.generateText.doGenerate` — individual provider call
     - `ai.toolCall` — each tool execution
 
 For `streamText`:
+
 - `ai.streamText` — root span, full streaming session
   - `ai.streamText.doStream` — provider streaming call
     - `ai.stream.firstChunk` event — time to first token
@@ -438,32 +439,32 @@ The core SDK implements standardized message types used by generation functions 
 
 ### Model Message Types
 
-| Type | Role | Allowed Content Parts |
-|------|------|-----------------------|
-| `UserModelMessage` | `user` | `text`, `file`, `tool-result` |
+| Type                    | Role        | Allowed Content Parts            |
+| ----------------------- | ----------- | -------------------------------- |
+| `UserModelMessage`      | `user`      | `text`, `file`, `tool-result`    |
 | `AssistantModelMessage` | `assistant` | `text`, `tool-call`, `reasoning` |
-| `SystemModelMessage` | `system` | `text` |
-| `ToolModelMessage` | `tool` | `tool-result` |
+| `SystemModelMessage`    | `system`    | `text`                           |
+| `ToolModelMessage`      | `tool`      | `tool-result`                    |
 
 ### Content Part Types
 
-| Part Type | Description |
-|-----------|-------------|
-| `text` | Plain text |
-| `file` | File with MIME type; URL or base64 data URI |
-| `tool-call` | Tool invocation with name, args, and ID |
+| Part Type     | Description                                              |
+| ------------- | -------------------------------------------------------- |
+| `text`        | Plain text                                               |
+| `file`        | File with MIME type; URL or base64 data URI              |
+| `tool-call`   | Tool invocation with name, args, and ID                  |
 | `tool-result` | Result or error from a tool call, linked by tool call ID |
-| `reasoning` | Reasoning traces (o1/o3-style models) |
-| `source` | Source attribution for grounding (e.g., Google Gemini) |
+| `reasoning`   | Reasoning traces (o1/o3-style models)                    |
+| `source`      | Source attribution for grounding (e.g., Google Gemini)   |
 
 ### Key Conversion and Validation Functions
 
-| Function | Purpose |
-|----------|---------|
+| Function                   | Purpose                                                                                                                                                 |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `convertToModelMessages()` | Converts `UIMessage[]` to `ModelMessage[]` for provider calls; handles file downloads, tool result mapping, and `convertDataPart` for custom data parts |
-| `toResponseMessages()` | Converts generation results back to messages for appending to conversation history |
-| `safeValidateUIMessages()` | Validates `UIMessage[]` without throwing; returns a success/failure result object (similar to Zod's `safeParse`) |
-| `pruneMessages()` | Removes old messages to stay within context limits, with configurable `toolCalls` preservation strategy (`'before-last-message'`, `'all'`, `'none'`) |
+| `toResponseMessages()`     | Converts generation results back to messages for appending to conversation history                                                                      |
+| `safeValidateUIMessages()` | Validates `UIMessage[]` without throwing; returns a success/failure result object (similar to Zod's `safeParse`)                                        |
+| `pruneMessages()`          | Removes old messages to stay within context limits, with configurable `toolCalls` preservation strategy (`'before-last-message'`, `'all'`, `'none'`)    |
 
 **Sources:** [packages/ai/CHANGELOG.md:718-720](), [packages/ai/CHANGELOG.md:858-859]()
 

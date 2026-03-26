@@ -41,8 +41,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Provider Ecosystem encompasses the 25+ AI provider integration packages that implement the unified provider interface specification, enabling seamless switching between different AI services. This page covers the provider abstraction layer, package organization, major commercial providers, cloud platform adapters, open-source alternatives, and specialized model providers.
 
 For detailed information about the provider interface specification and how providers implement it, see [Provider Architecture and V3 Specification](#3.1). For specific provider implementations and features, see sections [3.2](#3.2) through [3.9](#3.9).
@@ -59,7 +57,7 @@ graph TB
         PROVIDER["@ai-sdk/provider<br/>v3.0.0-beta.26<br/>LanguageModelV3<br/>EmbeddingModelV3<br/>ImageModelV3<br/>ProviderV3"]
         PROVIDER_UTILS["@ai-sdk/provider-utils<br/>v4.0.0-beta.50<br/>createEventSourceResponseHandler()<br/>postJsonToApi()<br/>convertZodToJSONSchema()"]
     end
-    
+
     subgraph "Major Commercial Providers"
         OPENAI["@ai-sdk/openai<br/>v3.0.0-beta.99<br/>OpenAIChatLanguageModel<br/>OpenAIResponsesLanguageModel<br/>OpenAIEmbeddingModel"]
         ANTHROPIC["@ai-sdk/anthropic<br/>v3.0.0-beta.86<br/>AnthropicMessagesLanguageModel"]
@@ -67,13 +65,13 @@ graph TB
         MISTRAL["@ai-sdk/mistral<br/>v3.0.0-beta.52<br/>MistralChatLanguageModel"]
         COHERE["@ai-sdk/cohere<br/>v3.0.0-beta.51<br/>CohereChatLanguageModel"]
     end
-    
+
     subgraph "Cloud Platform Providers (Delegation)"
         AZURE["@ai-sdk/azure<br/>v3.0.0-beta.101<br/>Wraps OpenAI"]
         BEDROCK["@ai-sdk/amazon-bedrock<br/>v4.0.0-beta.96<br/>Wraps Anthropic"]
         VERTEX["@ai-sdk/google-vertex<br/>v4.0.0-beta.117<br/>Composes Google + Anthropic"]
     end
-    
+
     subgraph "OpenAI-Compatible Providers"
         COMPAT["@ai-sdk/openai-compatible<br/>Base implementation"]
         XAI["@ai-sdk/xai<br/>v3.0.0-beta.58"]
@@ -83,7 +81,7 @@ graph TB
         TOGETHER["@ai-sdk/togetherai"]
         CEREBRAS["@ai-sdk/cerebras"]
     end
-    
+
     subgraph "Specialized Model Providers"
         ELEVENLABS["@ai-sdk/elevenlabs<br/>SpeechModelV3"]
         DEEPGRAM["@ai-sdk/deepgram<br/>TranscriptionModelV3"]
@@ -92,24 +90,24 @@ graph TB
         LUMA["@ai-sdk/luma<br/>ImageModelV3"]
         REPLICATE["@ai-sdk/replicate<br/>ImageModelV3"]
     end
-    
+
     PROVIDER --> OPENAI
     PROVIDER --> ANTHROPIC
     PROVIDER --> GOOGLE
     PROVIDER --> MISTRAL
     PROVIDER --> COHERE
-    
+
     PROVIDER_UTILS --> OPENAI
     PROVIDER_UTILS --> ANTHROPIC
     PROVIDER_UTILS --> GOOGLE
     PROVIDER_UTILS --> MISTRAL
     PROVIDER_UTILS --> COHERE
-    
+
     OPENAI --> AZURE
     ANTHROPIC --> BEDROCK
     GOOGLE --> VERTEX
     ANTHROPIC --> VERTEX
-    
+
     PROVIDER --> COMPAT
     COMPAT --> XAI
     COMPAT --> DEEPSEEK
@@ -117,7 +115,7 @@ graph TB
     COMPAT --> FIREWORKS
     COMPAT --> TOGETHER
     COMPAT --> CEREBRAS
-    
+
     PROVIDER --> ELEVENLABS
     PROVIDER --> DEEPGRAM
     PROVIDER --> BFL
@@ -134,16 +132,16 @@ Sources: [packages/openai/package.json:1-74](), [packages/anthropic/package.json
 
 All provider packages depend on `@ai-sdk/provider` for interface definitions and `@ai-sdk/provider-utils` for shared functionality:
 
-| Package | Version | Dependencies | Purpose |
-|---------|---------|--------------|---------|
-| `@ai-sdk/provider` | 3.0.0-beta.26 | None | Interface specification |
-| `@ai-sdk/provider-utils` | 4.0.0-beta.50 | `@ai-sdk/provider`, `eventsource-parser` | Streaming, schema conversion |
-| `@ai-sdk/openai` | 3.0.0-beta.99 | `@ai-sdk/provider`, `@ai-sdk/provider-utils` | OpenAI implementation |
-| `@ai-sdk/anthropic` | 3.0.0-beta.86 | `@ai-sdk/provider`, `@ai-sdk/provider-utils` | Anthropic implementation |
-| `@ai-sdk/google` | 3.0.0-beta.75 | `@ai-sdk/provider`, `@ai-sdk/provider-utils` | Google implementation |
-| `@ai-sdk/azure` | 3.0.0-beta.101 | `@ai-sdk/openai`, `@ai-sdk/provider`, `@ai-sdk/provider-utils` | Azure wrapper |
-| `@ai-sdk/amazon-bedrock` | 4.0.0-beta.96 | `@ai-sdk/anthropic`, `@ai-sdk/provider`, `@ai-sdk/provider-utils`, `aws4fetch`, `@smithy/eventstream-codec` | Bedrock wrapper |
-| `@ai-sdk/google-vertex` | 4.0.0-beta.117 | `@ai-sdk/google`, `@ai-sdk/anthropic`, `@ai-sdk/provider`, `@ai-sdk/provider-utils`, `google-auth-library` | Vertex multi-model |
+| Package                  | Version        | Dependencies                                                                                                | Purpose                      |
+| ------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `@ai-sdk/provider`       | 3.0.0-beta.26  | None                                                                                                        | Interface specification      |
+| `@ai-sdk/provider-utils` | 4.0.0-beta.50  | `@ai-sdk/provider`, `eventsource-parser`                                                                    | Streaming, schema conversion |
+| `@ai-sdk/openai`         | 3.0.0-beta.99  | `@ai-sdk/provider`, `@ai-sdk/provider-utils`                                                                | OpenAI implementation        |
+| `@ai-sdk/anthropic`      | 3.0.0-beta.86  | `@ai-sdk/provider`, `@ai-sdk/provider-utils`                                                                | Anthropic implementation     |
+| `@ai-sdk/google`         | 3.0.0-beta.75  | `@ai-sdk/provider`, `@ai-sdk/provider-utils`                                                                | Google implementation        |
+| `@ai-sdk/azure`          | 3.0.0-beta.101 | `@ai-sdk/openai`, `@ai-sdk/provider`, `@ai-sdk/provider-utils`                                              | Azure wrapper                |
+| `@ai-sdk/amazon-bedrock` | 4.0.0-beta.96  | `@ai-sdk/anthropic`, `@ai-sdk/provider`, `@ai-sdk/provider-utils`, `aws4fetch`, `@smithy/eventstream-codec` | Bedrock wrapper              |
+| `@ai-sdk/google-vertex`  | 4.0.0-beta.117 | `@ai-sdk/google`, `@ai-sdk/anthropic`, `@ai-sdk/provider`, `@ai-sdk/provider-utils`, `google-auth-library`  | Vertex multi-model           |
 
 Sources: [packages/provider-utils/package.json:1-93](), [packages/openai/package.json:42-45](), [packages/anthropic/package.json:42-44](), [packages/azure/package.json:35-38](), [packages/amazon-bedrock/package.json:35-41](), [packages/google-vertex/package.json:53-58]()
 
@@ -157,35 +155,35 @@ The provider abstraction layer is defined by three primary interfaces in `@ai-sd
 graph TB
     subgraph "Model Interface Specifications"
         LMV3["LanguageModelV3<br/>specificationVersion: 'v3'<br/>provider: string<br/>modelId: string<br/>doGenerate()<br/>doStream()"]
-        
+
         EMV3["EmbeddingModelV3<br/>specificationVersion: 'v3'<br/>provider: string<br/>modelId: string<br/>doEmbed()"]
-        
+
         IMV3["ImageModelV3<br/>specificationVersion: 'v3'<br/>provider: string<br/>modelId: string<br/>doGenerate()"]
     end
-    
+
     subgraph "OpenAI Implementation"
         OPENAI_CHAT["OpenAIChatLanguageModel<br/>implements LanguageModelV3"]
         OPENAI_RESP["OpenAIResponsesLanguageModel<br/>implements LanguageModelV3"]
         OPENAI_EMB["OpenAIEmbeddingModel<br/>implements EmbeddingModelV3"]
         OPENAI_IMG["OpenAIImageModel<br/>implements ImageModelV3"]
     end
-    
+
     subgraph "Anthropic Implementation"
         ANTH_MSG["AnthropicMessagesLanguageModel<br/>implements LanguageModelV3"]
     end
-    
+
     subgraph "Google Implementation"
         GOOGLE_CHAT["GoogleGenerativeAILanguageModel<br/>implements LanguageModelV3"]
         GOOGLE_EMB["GoogleGenerativeAIEmbeddingModel<br/>implements EmbeddingModelV3"]
     end
-    
+
     LMV3 --> OPENAI_CHAT
     LMV3 --> OPENAI_RESP
     EMV3 --> OPENAI_EMB
     IMV3 --> OPENAI_IMG
-    
+
     LMV3 --> ANTH_MSG
-    
+
     LMV3 --> GOOGLE_CHAT
     EMV3 --> GOOGLE_EMB
 ```
@@ -198,16 +196,16 @@ Sources: [packages/openai/package.json:1-74](), [packages/anthropic/package.json
 
 The `@ai-sdk/provider-utils` package provides common functionality used across all providers:
 
-| Utility | Purpose | Used By |
-|---------|---------|---------|
-| `createEventSourceResponseHandler()` | Parse SSE streams | All streaming providers |
-| `parseJSON()` | JSON parsing with error handling | All providers |
-| `postJsonToApi()` | HTTP POST with JSON | All providers |
-| `combineHeaders()` | Header normalization | All providers |
-| `convertJSONSchemaToOpenAPISchema()` | Schema conversion | OpenAI, Mistral, Azure |
-| `convertZodToJSONSchema()` | Zod to JSON Schema | All providers with tools |
-| `InvalidResponseDataError` | Error handling | All providers |
-| `AsyncIterableStream` | Stream utilities | All streaming providers |
+| Utility                              | Purpose                          | Used By                  |
+| ------------------------------------ | -------------------------------- | ------------------------ |
+| `createEventSourceResponseHandler()` | Parse SSE streams                | All streaming providers  |
+| `parseJSON()`                        | JSON parsing with error handling | All providers            |
+| `postJsonToApi()`                    | HTTP POST with JSON              | All providers            |
+| `combineHeaders()`                   | Header normalization             | All providers            |
+| `convertJSONSchemaToOpenAPISchema()` | Schema conversion                | OpenAI, Mistral, Azure   |
+| `convertZodToJSONSchema()`           | Zod to JSON Schema               | All providers with tools |
+| `InvalidResponseDataError`           | Error handling                   | All providers            |
+| `AsyncIterableStream`                | Stream utilities                 | All streaming providers  |
 
 Sources: [packages/provider-utils/package.json:28-40](), [packages/openai/CHANGELOG.md:310-312](), [packages/anthropic/CHANGELOG.md:244-245]()
 
@@ -221,7 +219,7 @@ The OpenAI provider family includes direct OpenAI integration and Azure OpenAI w
 graph LR
     subgraph "OpenAI Package Structure"
         OPENAI_PKG["@ai-sdk/openai<br/>v3.0.0-beta.99"]
-        
+
         subgraph "Implementation Classes"
             OPENAI_FUNC["openai()<br/>Factory function"]
             CHAT_MODEL["OpenAIChatLanguageModel<br/>Chat Completions API"]
@@ -229,7 +227,7 @@ graph LR
             EMB_MODEL["OpenAIEmbeddingModel<br/>text-embedding-3-small/large"]
             IMG_MODEL["OpenAIImageModel<br/>DALL-E 3"]
         end
-        
+
         subgraph "Model IDs"
             GPT52["gpt-5.2-pro<br/>gpt-5.2-chat-latest<br/>gpt-5.2"]
             GPT51["gpt-5.1-codex<br/>gpt-5.1"]
@@ -238,7 +236,7 @@ graph LR
             O4["o4-mini"]
             O3["o3-mini<br/>o3-deep-research"]
         end
-        
+
         subgraph "Provider Tools (Responses API)"
             WEB_SEARCH["web_search<br/>Search web"]
             CODE_INTERP["code_interpreter<br/>Python execution"]
@@ -249,19 +247,19 @@ graph LR
             MCP["mcp<br/>Model Context Protocol"]
         end
     end
-    
+
     OPENAI_FUNC --> CHAT_MODEL
     OPENAI_FUNC --> RESP_MODEL
     OPENAI_FUNC --> EMB_MODEL
     OPENAI_FUNC --> IMG_MODEL
-    
+
     CHAT_MODEL --> GPT4O
     RESP_MODEL --> GPT52
     RESP_MODEL --> GPT51
     RESP_MODEL --> GPT5
     RESP_MODEL --> O4
     RESP_MODEL --> O3
-    
+
     RESP_MODEL --> WEB_SEARCH
     RESP_MODEL --> CODE_INTERP
     RESP_MODEL --> FILE_SEARCH
@@ -274,6 +272,7 @@ graph LR
 **Diagram: OpenAI Provider Structure and Model Support**
 
 **Key Features:**
+
 - **Responses API (Default since v3.0)**: Provider-executed tools via `OpenAIResponsesLanguageModel`
 - **Chat Completions API**: Legacy API via `OpenAIChatLanguageModel`
 - **Reasoning Models**: Support for `o3-mini`, `o4-mini`, `o3-deep-research` with extended thinking and `reasoning_effort` setting
@@ -291,18 +290,18 @@ Azure OpenAI wraps the OpenAI provider with deployment-based URLs:
 ```mermaid
 graph TB
     AZURE_PKG["@ai-sdk/azure<br/>v3.0.0-beta.101"]
-    
+
     AZURE_FUNC["azure()<br/>Factory function"]
-    
+
     OPENAI_CHAT["OpenAIChatLanguageModel<br/>Delegated from @ai-sdk/openai"]
     OPENAI_RESP["OpenAIResponsesLanguageModel<br/>Delegated from @ai-sdk/openai"]
     OPENAI_EMB["OpenAIEmbeddingModel<br/>Delegated from @ai-sdk/openai"]
     OPENAI_IMG["OpenAIImageModel<br/>Delegated from @ai-sdk/openai"]
-    
+
     CONFIG["Azure Configuration<br/>resourceName: string<br/>apiVersion: string<br/>deployment: string"]
-    
+
     URL_TRANSFORM["URL Transformation<br/>{resourceName}.openai.azure.com/<br/>openai/deployments/{deployment}"]
-    
+
     AZURE_PKG --> AZURE_FUNC
     AZURE_FUNC --> CONFIG
     AZURE_FUNC --> URL_TRANSFORM
@@ -315,6 +314,7 @@ graph TB
 **Diagram: Azure OpenAI Provider Delegation Pattern**
 
 **Key Characteristics:**
+
 - **Delegation Pattern**: Wraps all OpenAI model classes with Azure-specific URL transformation
 - **Deployment-Based URLs**: Transforms to `{resourceName}.openai.azure.com/openai/deployments/{deployment}`
 - **API Versioning**: Requires `api-version` parameter (e.g., `2024-08-01-preview`, `2024-10-21`)
@@ -331,11 +331,11 @@ The Anthropic provider implements Claude models via the Messages API:
 graph TB
     subgraph "Anthropic Package"
         ANTH_PKG["@ai-sdk/anthropic<br/>v3.0.0-beta.86"]
-        
+
         ANTH_FUNC["anthropic()<br/>Factory function"]
-        
+
         MSG_MODEL["AnthropicMessagesLanguageModel<br/>Messages API v1"]
-        
+
         subgraph "Model IDs"
             OPUS45["claude-opus-4-5@20251101"]
             SONNET45["claude-sonnet-4-5-20250929"]
@@ -343,7 +343,7 @@ graph TB
             OPUS35["claude-opus-3-5-20240229"]
             SONNET35["claude-sonnet-3-5-20241022<br/>claude-3-5-sonnet-20240620"]
         end
-        
+
         subgraph "Provider Tools"
             WEB_SEARCH_A["webSearch<br/>Search with citations"]
             WEB_FETCH["webFetch<br/>Fetch URL content"]
@@ -354,7 +354,7 @@ graph TB
             MEMORY["memory<br/>Long-term memory"]
             CONTEXT_MGT["contextManagement<br/>Context window mgmt"]
         end
-        
+
         subgraph "Provider Options"
             THINKING["thinking: boolean<br/>Extended reasoning mode"]
             THINKING_BUDGET["thinkingBudget: number<br/>Reasoning token limit"]
@@ -364,12 +364,12 @@ graph TB
             CONTAINER["container<br/>Sandboxed execution"]
         end
     end
-    
+
     ANTH_FUNC --> MSG_MODEL
     MSG_MODEL --> OPUS45
     MSG_MODEL --> SONNET45
     MSG_MODEL --> HAIKU45
-    
+
     MSG_MODEL --> WEB_SEARCH_A
     MSG_MODEL --> WEB_FETCH
     MSG_MODEL --> CODE_EXEC
@@ -378,7 +378,7 @@ graph TB
     MSG_MODEL --> BASH
     MSG_MODEL --> MEMORY
     MSG_MODEL --> CONTEXT_MGT
-    
+
     MSG_MODEL --> THINKING
     MSG_MODEL --> EFFORT
     MSG_MODEL --> CACHE
@@ -388,6 +388,7 @@ graph TB
 **Diagram: Anthropic Provider Structure**
 
 **Key Features:**
+
 - **Extended Thinking Mode**: Support for reasoning tokens via `thinking` option with configurable `thinkingBudget`
 - **Opus 4.5 Reasoning**: New `effort` option ('low', 'medium', 'high', 'xhigh') for Opus 4.5 with up to 64K output tokens
 - **Prompt Caching**: Cache control for reducing latency and costs via `cacheControl`
@@ -411,7 +412,7 @@ graph TB
         GOOGLE_LANG["GoogleGenerativeAILanguageModel<br/>Gemini API"]
         GOOGLE_EMB["GoogleGenerativeAIEmbeddingModel<br/>text-embedding-004"]
         GOOGLE_IMG["GoogleGenerativeAIImageModel<br/>imagen-3.0-generate-001"]
-        
+
         subgraph "Gemini Models"
             GEMINI_3["gemini-3-pro-preview<br/>gemini-3-pro-image-preview"]
             GEMINI_25["gemini-2.5-flash-latest-lite"]
@@ -419,33 +420,33 @@ graph TB
             GEMINI_15["gemini-1.5-pro<br/>gemini-1.5-flash"]
             GEMMA["gemma-2-9b-it<br/>gemma-2-27b-it"]
         end
-        
+
         subgraph "Provider Tools"
             GOOGLE_SEARCH["googleSearch<br/>Search with Grounding"]
             URL_CONTEXT["urlContext<br/>URL content"]
             CODE_EXEC_G["codeExecution<br/>Python sandbox"]
             FILE_SEARCH_G["fileSearch<br/>File Search stores"]
         end
-        
+
         THINKING_LEVEL["thinking_level: number<br/>Gemini 3 reasoning"]
         IMAGE_SIZE["imageSize: string<br/>Image generation"]
     end
-    
+
     subgraph "Google Vertex AI"
         VERTEX_PKG["@ai-sdk/google-vertex<br/>v4.0.0-beta.117"]
         VERTEX_FUNC["vertex()<br/>vertex.anthropic()"]
-        
+
         USES_GOOGLE["Delegates to GoogleGenerativeAILanguageModel<br/>for Gemini models"]
         USES_ANTH["Delegates to AnthropicMessagesLanguageModel<br/>for Claude models"]
-        
+
         subgraph "Additional Tools"
             VERTEX_RAG["vertexRagStore<br/>RAG Engine grounding"]
         end
-        
+
         AUTH["google-auth-library@^10.5.0<br/>Google Cloud authentication"]
         EXPRESS_MODE["expressMode: boolean<br/>Low-latency mode"]
     end
-    
+
     GOOGLE_FUNC --> GOOGLE_LANG
     GOOGLE_FUNC --> GOOGLE_EMB
     GOOGLE_FUNC --> GOOGLE_IMG
@@ -458,7 +459,7 @@ graph TB
     GOOGLE_LANG --> CODE_EXEC_G
     GOOGLE_LANG --> FILE_SEARCH_G
     GOOGLE_IMG --> IMAGE_SIZE
-    
+
     VERTEX_FUNC --> USES_GOOGLE
     VERTEX_FUNC --> USES_ANTH
     VERTEX_PKG --> AUTH
@@ -469,6 +470,7 @@ graph TB
 **Diagram: Google Provider Family Structure**
 
 **Key Differences:**
+
 - **Google Generative AI**: Direct API access via `google()`, simpler API key authentication
 - **Google Vertex AI**: Multi-cloud platform via `vertex()` and `vertex.anthropic()`, requires Google Cloud authentication
 - **Model Coverage**: Vertex supports both Gemini (via Google) and Claude (via Anthropic) models
@@ -490,7 +492,7 @@ graph LR
         SAFE_PROMPT["safePrompt<br/>Provider option"]
         STRUCTURED["structuredOutputs<br/>Provider option"]
     end
-    
+
     subgraph "Cohere"
         COHERE_PKG["@ai-sdk/cohere<br/>v3.0.0-beta.41"]
         COHERE_FUNC["cohere()"]
@@ -498,11 +500,11 @@ graph LR
         COHERE_EMB["embed-english-v3.0<br/>embed-multilingual-v3.0"]
         THINKING_C["thinking<br/>Provider option"]
     end
-    
+
     MISTRAL_FUNC --> MISTRAL_MODELS
     MISTRAL_FUNC --> SAFE_PROMPT
     MISTRAL_FUNC --> STRUCTURED
-    
+
     COHERE_FUNC --> COHERE_MODELS
     COHERE_FUNC --> COHERE_EMB
     COHERE_FUNC --> THINKING_C
@@ -523,32 +525,32 @@ graph TB
     subgraph "Amazon Bedrock"
         BEDROCK_PKG["@ai-sdk/amazon-bedrock<br/>v4.0.0-beta.78"]
         BEDROCK_FUNC["bedrock()"]
-        
+
         BEDROCK_USES_ANTH["Uses AnthropicMessagesLanguageModel<br/>from @ai-sdk/anthropic"]
-        
+
         BEDROCK_MODELS["claude-sonnet-4-5-20250929-v1:0<br/>claude-opus-3-5-20240229-v1:0<br/>claude-haiku-4-5@20250110"]
-        
+
         BEDROCK_AUTH["aws4fetch<br/>AWS Signature v4"]
-        
+
         BEDROCK_STREAMING["@smithy/eventstream-codec<br/>AWS event stream parsing"]
     end
-    
+
     subgraph "Google Vertex AI"
         VERTEX_PKG_2["@ai-sdk/google-vertex<br/>v4.0.0-beta.95"]
         VERTEX_FUNC_2["vertex()<br/>vertex.anthropic()"]
-        
+
         VERTEX_GOOGLE["GoogleGenerativeAILanguageModel<br/>for Gemini models"]
-        
+
         VERTEX_ANTH["AnthropicMessagesLanguageModel<br/>for Claude models"]
-        
+
         VERTEX_MODELS["gemini-2.0-flash-exp<br/>claude-opus-4-5@20251101"]
     end
-    
+
     BEDROCK_FUNC --> BEDROCK_USES_ANTH
     BEDROCK_FUNC --> BEDROCK_AUTH
     BEDROCK_FUNC --> BEDROCK_STREAMING
     BEDROCK_USES_ANTH --> BEDROCK_MODELS
-    
+
     VERTEX_FUNC_2 --> VERTEX_GOOGLE
     VERTEX_FUNC_2 --> VERTEX_ANTH
     VERTEX_GOOGLE --> VERTEX_MODELS
@@ -558,12 +560,14 @@ graph TB
 **Diagram: Composite Provider Architecture**
 
 **Composite Provider Pattern:**
+
 1. **Dependency Reuse**: Platform providers depend on direct provider packages (`@ai-sdk/anthropic`, `@ai-sdk/google`)
 2. **Protocol Adaptation**: Transform platform-specific authentication and request formats
 3. **Feature Preservation**: Maintain provider-specific features (thinking, cache control, MCP, structured outputs)
 4. **Model Support**: Enable access to models through platform gateways with platform-specific model IDs
 
 **Amazon Bedrock Specifics:**
+
 - **Dependencies**: `@ai-sdk/anthropic@workspace:*`, `aws4fetch@^1.0.20`, `@smithy/eventstream-codec@^4.0.1`, `@smithy/util-utf8@^4.0.0`
 - **Authentication**: AWS Signature v4 via `aws4fetch` library
 - **Streaming**: AWS event stream format parsed via `@smithy/eventstream-codec`
@@ -573,6 +577,7 @@ graph TB
 - **Reasoning Support**: Nova 2 models support `maxReasoningEffort` field
 
 **Google Vertex AI Specifics:**
+
 - **Dependencies**: `@ai-sdk/google@workspace:*`, `@ai-sdk/anthropic@workspace:*`, `google-auth-library@^10.5.0`
 - **Multi-Provider**: Supports both Gemini (via `GoogleGenerativeAILanguageModel`) and Claude (via `AnthropicMessagesLanguageModel`) models
 - **Authentication**: Google Cloud authentication via `google-auth-library` v10.5.0
@@ -589,19 +594,19 @@ The ecosystem includes numerous providers for open-source models and specialized
 
 ### Alternative LLM Providers
 
-| Provider | Package Version | Key Features |
-|----------|----------------|--------------|
-| **xAI** | `@ai-sdk/xai@3.0.0-beta.48` | Grok models |
-| **DeepSeek** | `@ai-sdk/deepseek@2.0.0-beta.43` | DeepSeek V3 models |
-| **Groq** | `@ai-sdk/groq@3.0.0-beta.42` | Fast inference hardware |
-| **Cerebras** | `@ai-sdk/cerebras` | Ultra-fast inference |
-| **Fireworks AI** | `@ai-sdk/fireworks@2.0.0-beta.41` | Function calling optimized |
-| **Together AI** | `@ai-sdk/togetherai` | Open source model hosting |
-| **Hugging Face** | `@ai-sdk/huggingface` | Inference API access |
-| **Replicate** | `@ai-sdk/replicate` | Model deployment platform |
-| **Perplexity** | `@ai-sdk/perplexity@3.0.0-beta.42` | Search-augmented generation |
-| **Baseten** | `@ai-sdk/baseten` | Model deployment |
-| **DeepInfra** | `@ai-sdk/deepinfra` | Model hosting |
+| Provider         | Package Version                    | Key Features                |
+| ---------------- | ---------------------------------- | --------------------------- |
+| **xAI**          | `@ai-sdk/xai@3.0.0-beta.48`        | Grok models                 |
+| **DeepSeek**     | `@ai-sdk/deepseek@2.0.0-beta.43`   | DeepSeek V3 models          |
+| **Groq**         | `@ai-sdk/groq@3.0.0-beta.42`       | Fast inference hardware     |
+| **Cerebras**     | `@ai-sdk/cerebras`                 | Ultra-fast inference        |
+| **Fireworks AI** | `@ai-sdk/fireworks@2.0.0-beta.41`  | Function calling optimized  |
+| **Together AI**  | `@ai-sdk/togetherai`               | Open source model hosting   |
+| **Hugging Face** | `@ai-sdk/huggingface`              | Inference API access        |
+| **Replicate**    | `@ai-sdk/replicate`                | Model deployment platform   |
+| **Perplexity**   | `@ai-sdk/perplexity@3.0.0-beta.42` | Search-augmented generation |
+| **Baseten**      | `@ai-sdk/baseten`                  | Model deployment            |
+| **DeepInfra**    | `@ai-sdk/deepinfra`                | Model hosting               |
 
 Sources: [examples/ai-core/package.json:5-40](), [examples/next-openai/package.json:12-28]()
 
@@ -612,11 +617,11 @@ The `@ai-sdk/openai-compatible` package provides a generic connector for any Ope
 ```mermaid
 graph LR
     COMPAT_PKG["@ai-sdk/openai-compatible"]
-    
+
     CUSTOM["Custom Endpoints<br/>Self-hosted models<br/>OpenAI-compatible APIs"]
-    
+
     OPENAI_IMPL["Uses OpenAIChatLanguageModel<br/>from @ai-sdk/openai"]
-    
+
     COMPAT_PKG --> CUSTOM
     COMPAT_PKG --> OPENAI_IMPL
 ```
@@ -636,23 +641,23 @@ graph TB
         LMNT["@ai-sdk/lmnt<br/>Speech synthesis"]
         HUME["@ai-sdk/hume<br/>Expressive voice"]
     end
-    
+
     subgraph "Transcription"
         DEEPGRAM["@ai-sdk/deepgram<br/>Speech-to-text"]
         ASSEMBLYAI["@ai-sdk/assemblyai<br/>Transcription"]
         REVAI["@ai-sdk/revai<br/>Transcription"]
         GLADIA["@ai-sdk/gladia<br/>Transcription"]
     end
-    
+
     subgraph "Provider Specs"
         SPEECH_V3["SpeechModelV3<br/>doSpeak()"]
         TRANS_V3["TranscriptionModelV3<br/>doTranscribe()"]
     end
-    
+
     SPEECH_V3 --> ELEVENLABS
     SPEECH_V3 --> LMNT
     SPEECH_V3 --> HUME
-    
+
     TRANS_V3 --> DEEPGRAM
     TRANS_V3 --> ASSEMBLYAI
     TRANS_V3 --> REVAI
@@ -672,11 +677,11 @@ graph TB
         FAL["@ai-sdk/fal<br/>Image generation"]
         LUMA["@ai-sdk/luma<br/>Video generation"]
     end
-    
+
     subgraph "Provider Spec"
         IMAGE_V3["ImageModelV3<br/>doGenerate()"]
     end
-    
+
     IMAGE_V3 --> BFL
     IMAGE_V3 --> FAL
     IMAGE_V3 --> LUMA
@@ -695,14 +700,14 @@ The `@ai-sdk/gateway` package provides infrastructure-level capabilities:
 ```mermaid
 graph TB
     GATEWAY_PKG["@ai-sdk/gateway"]
-    
+
     subgraph "Capabilities"
         RATE_LIMIT["Rate Limiting<br/>Token buckets"]
         CACHE["Response Caching<br/>Reduce costs"]
         ROUTING["Model Routing<br/>Fallback strategies"]
         MONITORING["Request Monitoring<br/>Usage tracking"]
     end
-    
+
     GATEWAY_PKG --> RATE_LIMIT
     GATEWAY_PKG --> CACHE
     GATEWAY_PKG --> ROUTING
@@ -723,19 +728,19 @@ graph LR
         LANGCHAIN_SDK["@langchain/core<br/>@langchain/openai<br/>langchain"]
         LLAMAINDEX_SDK["LlamaIndex"]
     end
-    
+
     subgraph "Bridge Packages"
         LANGCHAIN_BRIDGE["@ai-sdk/langchain<br/>v2.0.0-beta.129"]
         LLAMAINDEX_BRIDGE["@ai-sdk/llamaindex<br/>v2.0.0-beta.129"]
     end
-    
+
     subgraph "AI SDK Core"
         AI_CORE["ai package<br/>generateText, streamText"]
     end
-    
+
     LANGCHAIN_SDK --> LANGCHAIN_BRIDGE
     LLAMAINDEX_SDK --> LLAMAINDEX_BRIDGE
-    
+
     LANGCHAIN_BRIDGE --> AI_CORE
     LLAMAINDEX_BRIDGE --> AI_CORE
 ```
@@ -743,6 +748,7 @@ graph LR
 **Diagram: Framework Integration Bridge Architecture**
 
 **Bridge Purposes:**
+
 - **LangChain Bridge**: Enable using AI SDK providers with LangChain chains and agents
 - **LlamaIndex Bridge**: Enable using AI SDK providers with LlamaIndex query engines
 - **Synchronized Versioning**: Both bridges maintain version parity with core `ai` package (v2.0.0-beta.129)
@@ -758,17 +764,17 @@ The `ai-core` example demonstrates integration with all providers:
 ```mermaid
 graph TB
     AI_CORE_EX["examples/ai-core"]
-    
+
     subgraph "Provider Dependencies"
         COMMERCIAL["Commercial Providers<br/>OpenAI, Anthropic, Google<br/>Mistral, Cohere, Azure"]
-        
+
         CLOUD["Cloud Platforms<br/>Amazon Bedrock<br/>Google Vertex"]
-        
+
         ALTERNATIVE["Alternative Providers<br/>xAI, DeepSeek, Groq<br/>Fireworks, Together, HF"]
-        
+
         SPECIALIZED["Specialized<br/>ElevenLabs, Deepgram<br/>Black Forest Labs, Fal"]
     end
-    
+
     AI_CORE_EX --> COMMERCIAL
     AI_CORE_EX --> CLOUD
     AI_CORE_EX --> ALTERNATIVE
@@ -825,6 +831,7 @@ All provider packages follow synchronized beta versioning:
 - **Changesets**: 390+ changesets tracking feature development
 
 The version numbers indicate:
+
 - **Major version (3 or 4)**: Breaking changes to provider specification
 - **Beta tag**: Pre-release status for AI SDK 6
 - **Patch version**: Incremental updates within beta
@@ -837,16 +844,16 @@ Sources: [.changeset/pre.json:1-10](), [.changeset/pre.json:78-462](), [packages
 
 ### Feature Matrix
 
-| Feature | OpenAI | Anthropic | Google | Mistral | Cohere |
-|---------|--------|-----------|--------|---------|--------|
-| **Streaming** | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Tool Calling** | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Provider Tools** | ✓ (web_search, code_interpreter, etc.) | ✓ (webSearch, codeExecution, etc.) | ✓ (googleSearch, urlContext, etc.) | ✗ | ✗ |
-| **Multi-modal** | ✓ (images, audio) | ✓ (images, PDFs) | ✓ (images, audio, video) | ✓ (images, PDFs) | ✗ |
-| **Reasoning Models** | ✓ (o1, o3) | ✓ (thinking) | ✓ (thinking_level) | ✗ | ✗ |
-| **Embeddings** | ✓ | ✗ | ✓ | ✓ | ✓ |
-| **Image Generation** | ✓ (DALL-E) | ✗ | ✗ | ✗ | ✗ |
-| **Prompt Caching** | ✗ | ✓ (cache control) | ✗ | ✗ | ✗ |
-| **MCP Servers** | ✗ | ✓ | ✗ | ✗ | ✗ |
+| Feature              | OpenAI                                 | Anthropic                          | Google                             | Mistral          | Cohere |
+| -------------------- | -------------------------------------- | ---------------------------------- | ---------------------------------- | ---------------- | ------ |
+| **Streaming**        | ✓                                      | ✓                                  | ✓                                  | ✓                | ✓      |
+| **Tool Calling**     | ✓                                      | ✓                                  | ✓                                  | ✓                | ✓      |
+| **Provider Tools**   | ✓ (web_search, code_interpreter, etc.) | ✓ (webSearch, codeExecution, etc.) | ✓ (googleSearch, urlContext, etc.) | ✗                | ✗      |
+| **Multi-modal**      | ✓ (images, audio)                      | ✓ (images, PDFs)                   | ✓ (images, audio, video)           | ✓ (images, PDFs) | ✗      |
+| **Reasoning Models** | ✓ (o1, o3)                             | ✓ (thinking)                       | ✓ (thinking_level)                 | ✗                | ✗      |
+| **Embeddings**       | ✓                                      | ✗                                  | ✓                                  | ✓                | ✓      |
+| **Image Generation** | ✓ (DALL-E)                             | ✗                                  | ✗                                  | ✗                | ✗      |
+| **Prompt Caching**   | ✗                                      | ✓ (cache control)                  | ✗                                  | ✗                | ✗      |
+| **MCP Servers**      | ✗                                      | ✓                                  | ✗                                  | ✗                | ✗      |
 
 Sources: [packages/openai/CHANGELOG.md:114-115](), [packages/anthropic/CHANGELOG.md:114-115](), [packages/google/CHANGELOG.md:115-117]()

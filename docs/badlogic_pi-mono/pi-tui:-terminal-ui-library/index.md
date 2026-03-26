@@ -16,11 +16,10 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page introduces the `@mariozechner/pi-tui` package (`packages/tui`): its purpose, core architecture, the `Component` interface, and how it fits into the pi-mono ecosystem. It provides enough context to understand the framework's design philosophy and guides you to the detailed subsystem pages.
 
 **Child pages:**
+
 - [5.1 Core TUI Architecture & Rendering](#5.1) - `TUI` class lifecycle, rendering pipeline, focus management, input routing
 - [5.2 Component Interface & Overlays](#5.2) - `Component` contract, `Container`, overlay system, positioning
 - [5.3 Editor & Input Components](#5.3) - `Editor`, `Input`, autocomplete, kill ring, undo/redo
@@ -28,6 +27,7 @@ This page introduces the `@mariozechner/pi-tui` package (`packages/tui`): its pu
 - [5.5 Built-in Components](#5.5) - `Text`, `Markdown`, `Box`, `SelectList`, `Image`, etc.
 
 **Related pages:**
+
 - [4.10 Interactive Mode & TUI Integration](#4.10) - How coding-agent uses pi-tui
 
 ---
@@ -75,14 +75,14 @@ graph TB
 (utils.ts)"]
     Components["Built-in components\
 (components/)"]
-    
+
     TUI --> Component
     TUI --> Terminal
     TUI --> Keys
     Components --> Component
     Components --> Utils
     Components --> Keys
-    
+
     style TUI fill:#e1f5ff
     style Component fill:#fff4e1
     style Terminal fill:#f0e1ff
@@ -90,14 +90,14 @@ graph TB
 
 **Key source files:**
 
-| Module | Path | Exports |
-|--------|------|---------|
-| Core | `tui.ts` | `TUI`, `Container`, `Component`, `Focusable`, `OverlayOptions`, `OverlayHandle` |
-| Input | `keys.ts` | `matchesKey`, `parseKey`, `Key`, `KeyId`, `isKeyRelease` |
-| Terminal | `terminal.ts` | `Terminal`, `ProcessTerminal` |
-| Text | `utils.ts` | `visibleWidth`, `wrapTextWithAnsi`, `truncateToWidth`, `sliceByColumn` |
-| Images | `terminal-image.ts` | `detectCapabilities`, `renderImage`, `encodeKitty`, `encodeITerm2` |
-| Components | `components/` | `Editor`, `Input`, `Markdown`, `Text`, `Box`, `SelectList`, `Image`, etc. |
+| Module     | Path                | Exports                                                                         |
+| ---------- | ------------------- | ------------------------------------------------------------------------------- |
+| Core       | `tui.ts`            | `TUI`, `Container`, `Component`, `Focusable`, `OverlayOptions`, `OverlayHandle` |
+| Input      | `keys.ts`           | `matchesKey`, `parseKey`, `Key`, `KeyId`, `isKeyRelease`                        |
+| Terminal   | `terminal.ts`       | `Terminal`, `ProcessTerminal`                                                   |
+| Text       | `utils.ts`          | `visibleWidth`, `wrapTextWithAnsi`, `truncateToWidth`, `sliceByColumn`          |
+| Images     | `terminal-image.ts` | `detectCapabilities`, `renderImage`, `encodeKitty`, `encodeITerm2`              |
+| Components | `components/`       | `Editor`, `Input`, `Markdown`, `Text`, `Box`, `SelectList`, `Image`, etc.       |
 
 Sources: [packages/tui/src/index.ts:1-93](), [packages/tui/src/tui.ts:1-50]()
 
@@ -118,11 +118,11 @@ The render loop uses differential updates to minimize terminal writes:
 
 Three strategies (evaluated in order):
 
-| Trigger | Action |
-|---------|--------|
-| Width/height change | Full redraw (clear screen, repaint all) |
-| Content shrunk + `clearOnShrink` enabled | Full redraw (prevents ghost lines) |
-| Individual line differences | Differential (only repaint changed lines) |
+| Trigger                                  | Action                                    |
+| ---------------------------------------- | ----------------------------------------- |
+| Width/height change                      | Full redraw (clear screen, repaint all)   |
+| Content shrunk + `clearOnShrink` enabled | Full redraw (prevents ghost lines)        |
+| Individual line differences              | Differential (only repaint changed lines) |
 
 Renders are deferred to `process.nextTick` via `requestRender()`, coalescing multiple state changes into one paint cycle.
 
@@ -135,7 +135,7 @@ sequenceDiagram
     participant Loop as "process.nextTick"
     participant Render as "doRender()"
     participant Term as "Terminal.write()"
-    
+
     App->>TUI: requestRender()
     TUI->>Loop: schedule
     Loop->>Render: execute
@@ -162,13 +162,13 @@ graph LR
     Listeners["InputListener chain"]
     Debug["onDebug handler"]
     Focused["focusedComponent.handleInput()"]
-    
+
     Stdin --> Term
     Term --> TUI
     TUI --> Listeners
     Listeners -- "not consumed" --> Debug
     Debug -- "not Shift+Ctrl+D" --> Focused
-    
+
     style TUI fill:#e1f5ff
     style Focused fill:#fff4e1
 ```
@@ -185,19 +185,19 @@ Every renderable element implements the `Component` interface defined in [packag
 
 ```typescript
 interface Component {
-  render(width: number): string[];
-  handleInput?(data: string): void;
-  wantsKeyRelease?: boolean;
-  invalidate(): void;
+  render(width: number): string[]
+  handleInput?(data: string): void
+  wantsKeyRelease?: boolean
+  invalidate(): void
 }
 ```
 
-| Method | Contract |
-|--------|----------|
-| `render(width)` | Returns one string per line. **Each line must not exceed `width` visible columns.** Uses `truncateToWidth` or `sliceByColumn` to enforce. |
-| `handleInput?(data)` | Receives raw terminal input bytes when component has focus. Optional. |
-| `wantsKeyRelease?` | Opt-in flag for Kitty key-release events. Default `false`. |
-| `invalidate()` | Clear cached render state. Called on theme changes or `requestRender(force=true)`. |
+| Method               | Contract                                                                                                                                  |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `render(width)`      | Returns one string per line. **Each line must not exceed `width` visible columns.** Uses `truncateToWidth` or `sliceByColumn` to enforce. |
+| `handleInput?(data)` | Receives raw terminal input bytes when component has focus. Optional.                                                                     |
+| `wantsKeyRelease?`   | Opt-in flag for Kitty key-release events. Default `false`.                                                                                |
+| `invalidate()`       | Clear cached render state. Called on theme changes or `requestRender(force=true)`.                                                        |
 
 The `TUI` appends `\x1b[0m\x1b]8;;\x07` (SGR reset + OSC 8 reset) after each line, preventing ANSI style bleed across line boundaries.
 
@@ -207,7 +207,7 @@ Components that display a text cursor implement `Focusable` for correct IME posi
 
 ```typescript
 interface Focusable {
-  focused: boolean;
+  focused: boolean
 }
 ```
 
@@ -227,15 +227,15 @@ Sources: [packages/tui/src/tui.ts:16-68](), [packages/tui/src/tui.ts:777-788](),
 
 ```typescript
 class Container implements Component {
-  children: Component[] = [];
+  children: Component[] = []
   addChild(component: Component): void
   removeChild(component: Component): void
   render(width: number): string[] {
-    const lines: string[] = [];
+    const lines: string[] = []
     for (const child of this.children) {
-      lines.push(...child.render(width));
+      lines.push(...child.render(width))
     }
-    return lines;
+    return lines
   }
 }
 ```
@@ -252,19 +252,19 @@ classDiagram
         +handleInput(data)
         +invalidate()
     }
-    
+
     class Focusable {
         <<interface>>
         +focused bool
     }
-    
+
     class Container {
         +children Component[]
         +addChild(c)
         +removeChild(c)
         +render(width) string[]
     }
-    
+
     class TUI {
         +terminal Terminal
         +start()
@@ -273,25 +273,25 @@ classDiagram
         +setFocus(c)
         +showOverlay(c, opts)
     }
-    
+
     class Editor {
         +getText() string
         +setText(s)
         +onSubmit callback
     }
-    
+
     class Input {
         +getValue() string
         +setValue(s)
         +onSubmit callback
     }
-    
+
     class Box {
         +paddingX number
         +paddingY number
         +setBgFn(fn)
     }
-    
+
     Container ..|> Component
     TUI --|> Container
     Editor ..|> Component
@@ -311,17 +311,17 @@ Sources: [packages/tui/src/tui.ts:173-204](), [packages/tui/src/tui.ts:209-240](
 
 The `components/` directory provides ready-to-use UI elements. All are exported from `@mariozechner/pi-tui` and documented in [5.5 Built-in Components](#5.5).
 
-| Component | Purpose | Key Features |
-|-----------|---------|--------------|
-| `Text` | Multi-line display | Word wrapping, padding, background color |
-| `Markdown` | Formatted text | CommonMark parser, syntax highlighting, theme support |
-| `Editor` | Multi-line input | Autocomplete, undo/redo, kill ring, Focusable |
-| `Input` | Single-line input | Word navigation, history, Focusable |
-| `SelectList` | Item picker | Keyboard navigation, scrolling, filtering |
-| `SettingsList` | Settings UI | Value cycling, submenus, fuzzy search |
-| `Box` | Layout container | Padding, background color |
-| `Image` | Inline graphics | Kitty/iTerm2 protocol, auto-sizing |
-| `Loader` | Progress indicator | Animated spinner, customizable colors |
+| Component      | Purpose            | Key Features                                          |
+| -------------- | ------------------ | ----------------------------------------------------- |
+| `Text`         | Multi-line display | Word wrapping, padding, background color              |
+| `Markdown`     | Formatted text     | CommonMark parser, syntax highlighting, theme support |
+| `Editor`       | Multi-line input   | Autocomplete, undo/redo, kill ring, Focusable         |
+| `Input`        | Single-line input  | Word navigation, history, Focusable                   |
+| `SelectList`   | Item picker        | Keyboard navigation, scrolling, filtering             |
+| `SettingsList` | Settings UI        | Value cycling, submenus, fuzzy search                 |
+| `Box`          | Layout container   | Padding, background color                             |
+| `Image`        | Inline graphics    | Kitty/iTerm2 protocol, auto-sizing                    |
+| `Loader`       | Progress indicator | Animated spinner, customizable colors                 |
 
 See [5.5 Built-in Components](#5.5) for API documentation and usage examples.
 
@@ -339,25 +339,25 @@ const handle = tui.showOverlay(component, options?);
 
 **Key options:**
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `width` | `number \| "50%"` | Absolute or percentage of terminal width |
-| `anchor` | `OverlayAnchor` | One of 9 positions: `"center"`, `"top-left"`, etc. |
-| `row` / `col` | `number \| "25%"` | Absolute or percentage position (overrides anchor) |
-| `margin` | `number \| object` | Spacing from terminal edges |
-| `maxHeight` | `number \| "50%"` | Maximum overlay height with truncation |
-| `visible` | `(w, h) => bool` | Responsive visibility callback |
-| `nonCapturing` | `boolean` | Don't auto-focus when shown |
+| Option         | Type               | Description                                        |
+| -------------- | ------------------ | -------------------------------------------------- |
+| `width`        | `number \| "50%"`  | Absolute or percentage of terminal width           |
+| `anchor`       | `OverlayAnchor`    | One of 9 positions: `"center"`, `"top-left"`, etc. |
+| `row` / `col`  | `number \| "25%"`  | Absolute or percentage position (overrides anchor) |
+| `margin`       | `number \| object` | Spacing from terminal edges                        |
+| `maxHeight`    | `number \| "50%"`  | Maximum overlay height with truncation             |
+| `visible`      | `(w, h) => bool`   | Responsive visibility callback                     |
+| `nonCapturing` | `boolean`          | Don't auto-focus when shown                        |
 
 **Handle API:**
 
 ```typescript
 interface OverlayHandle {
-  hide(): void              // Permanently remove
-  setHidden(bool): void     // Toggle visibility
+  hide(): void // Permanently remove
+  setHidden(bool): void // Toggle visibility
   isHidden(): boolean
-  focus(): void             // Bring to front, take focus
-  unfocus(): void           // Release focus
+  focus(): void // Bring to front, take focus
+  unfocus(): void // Release focus
   isFocused(): boolean
 }
 ```
@@ -373,26 +373,26 @@ Sources: [packages/tui/src/tui.ts:74-169](), [packages/tui/src/tui.ts:297-364]()
 The `keys.ts` module provides a unified API for matching keyboard input across legacy terminal sequences and the Kitty keyboard protocol:
 
 ```typescript
-import { matchesKey, Key } from "@mariozechner/pi-tui";
+import { matchesKey, Key } from '@mariozechner/pi-tui'
 
 // In handleInput():
-if (matchesKey(data, Key.ctrl("c"))) {
-  process.exit(0);
+if (matchesKey(data, Key.ctrl('c'))) {
+  process.exit(0)
 } else if (matchesKey(data, Key.enter)) {
-  this.submit();
-} else if (matchesKey(data, Key.ctrlShift("p"))) {
-  this.showCommandPalette();
+  this.submit()
+} else if (matchesKey(data, Key.ctrlShift('p'))) {
+  this.showCommandPalette()
 }
 ```
 
 **Core API:**
 
-| Function | Description |
-|----------|-------------|
+| Function                  | Description                                               |
+| ------------------------- | --------------------------------------------------------- |
 | `matchesKey(data, keyId)` | Returns `true` if input `data` matches the `KeyId` string |
-| `parseKey(data)` | Returns the `KeyId` for the input, or `undefined` |
-| `Key.ctrl(key)` | Helper for constructing `KeyId` like `"ctrl+c"` |
-| `isKeyRelease(data)` | Detects Kitty key-release events |
+| `parseKey(data)`          | Returns the `KeyId` for the input, or `undefined`         |
+| `Key.ctrl(key)`           | Helper for constructing `KeyId` like `"ctrl+c"`           |
+| `isKeyRelease(data)`      | Detects Kitty key-release events                          |
 
 `KeyId` format: `"ctrl+c"`, `"shift+enter"`, `"alt+left"`, `"ctrl+shift+p"`. Symbol keys use literals: `"ctrl+/"`, `"alt+["`.
 
@@ -406,14 +406,15 @@ Sources: [packages/tui/src/keys.ts:1-19](), [packages/tui/src/keys.ts:136-156]()
 
 The `utils.ts` module exports functions for measuring, wrapping, and truncating strings that contain ANSI escape codes, wide characters (CJK), emoji with ZWJ sequences, and OSC 8 hyperlinks:
 
-| Function | Description |
-|----------|-------------|
-| `visibleWidth(s)` | Returns printable column width, stripping ANSI codes, measuring Unicode grapheme clusters |
-| `wrapTextWithAnsi(s, width)` | Wraps text to `width` columns, re-applying ANSI codes at line breaks |
-| `truncateToWidth(s, maxWidth, ellipsis?)` | Truncates to `maxWidth` columns, optionally pads or adds ellipsis |
-| `sliceByColumn(s, start, end, strict?)` | Extracts column range, handling wide chars at boundaries |
+| Function                                  | Description                                                                               |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `visibleWidth(s)`                         | Returns printable column width, stripping ANSI codes, measuring Unicode grapheme clusters |
+| `wrapTextWithAnsi(s, width)`              | Wraps text to `width` columns, re-applying ANSI codes at line breaks                      |
+| `truncateToWidth(s, maxWidth, ellipsis?)` | Truncates to `maxWidth` columns, optionally pads or adds ellipsis                         |
+| `sliceByColumn(s, start, end, strict?)`   | Extracts column range, handling wide chars at boundaries                                  |
 
 These utilities are required for correct rendering because:
+
 - CJK characters occupy 2 columns each
 - Emoji with ZWJ sequences (e.g., 👨‍👩‍👧‍👦) must be treated as single graphemes
 - ANSI escape codes occupy 0 columns but must be preserved
@@ -433,18 +434,19 @@ Sources: [packages/tui/src/utils.ts:1-20](), [packages/tui/README.md:603-617]()
 
 ```typescript
 interface Terminal {
-  start(onInput: (data: string) => void, onResize: () => void): void;
-  stop(): void;
-  write(data: string): void;
-  get columns(): number;
-  get rows(): number;
-  hideCursor(): void;
-  showCursor(): void;
+  start(onInput: (data: string) => void, onResize: () => void): void
+  stop(): void
+  write(data: string): void
+  get columns(): number
+  get rows(): number
+  hideCursor(): void
+  showCursor(): void
   // ... (clearLine, clearFromCursor, clearScreen, moveBy)
 }
 ```
 
 `ProcessTerminal` additionally:
+
 - Enables raw mode on stdin
 - Negotiates Kitty keyboard protocol via query string
 - Emits resize events on SIGWINCH
@@ -458,13 +460,13 @@ Sources: [packages/tui/src/terminal.ts:1-20](), [packages/tui/src/terminal.ts:12
 
 The `terminal-image.ts` module renders inline images using Kitty graphics protocol (Kitty, WezTerm, Ghostty) or iTerm2 inline images:
 
-| Function | Description |
-|----------|-------------|
-| `detectCapabilities()` | Probes `TERM_PROGRAM`, `TERM`, and responses to determine protocol |
-| `renderImage(base64, mime, opts)` | Auto-detects protocol and emits image escape sequence |
-| `encodeKitty(data, opts)` | Encodes for Kitty graphics protocol (chunked base64 with control codes) |
-| `encodeITerm2(data)` | Encodes for iTerm2 (OSC 1337 with base64 data) |
-| `setCellDimensions(dims)` | Sets cell pixel size for width/height calculations |
+| Function                          | Description                                                             |
+| --------------------------------- | ----------------------------------------------------------------------- |
+| `detectCapabilities()`            | Probes `TERM_PROGRAM`, `TERM`, and responses to determine protocol      |
+| `renderImage(base64, mime, opts)` | Auto-detects protocol and emits image escape sequence                   |
+| `encodeKitty(data, opts)`         | Encodes for Kitty graphics protocol (chunked base64 with control codes) |
+| `encodeITerm2(data)`              | Encodes for iTerm2 (OSC 1337 with base64 data)                          |
+| `setCellDimensions(dims)`         | Sets cell pixel size for width/height calculations                      |
 
 The `Image` component (see [5.5 Built-in Components](#5.5)) wraps this API and parses image dimensions from PNG/JPEG/GIF headers.
 
@@ -497,7 +499,7 @@ sequenceDiagram
     participant TUIrequestRender as "TUI.requestRender()"
     participant doRender as "TUI.doRender()"
     participant stdout
-    
+
     User->>stdin: keypress
     stdin->>ProcessTerminal: raw bytes
     ProcessTerminal->>TUIhandleInput: data string
@@ -518,11 +520,11 @@ Sources: [packages/tui/src/tui.ts:409-418](), [packages/tui/src/tui.ts:478-534](
 
 ## Environment Variables
 
-| Variable | Effect |
-|---|---|
-| `PI_HARDWARE_CURSOR=1` | Enables hardware cursor positioning (default: off) |
-| `PI_CLEAR_ON_SHRINK=1` | Full redraw when content shrinks (default: off) |
-| `PI_TUI_WRITE_LOG` | Path to capture raw ANSI output for debugging |
-| `PI_DEBUG_REDRAW=1` | Logs full-redraw triggers to `~/.pi/agent/pi-debug.log` |
+| Variable               | Effect                                                  |
+| ---------------------- | ------------------------------------------------------- |
+| `PI_HARDWARE_CURSOR=1` | Enables hardware cursor positioning (default: off)      |
+| `PI_CLEAR_ON_SHRINK=1` | Full redraw when content shrinks (default: off)         |
+| `PI_TUI_WRITE_LOG`     | Path to capture raw ANSI output for debugging           |
+| `PI_DEBUG_REDRAW=1`    | Logs full-redraw triggers to `~/.pi/agent/pi-debug.log` |
 
 Sources: [packages/tui/src/tui.ts:215-216](), [packages/tui/CHANGELOG.md:107-113]()

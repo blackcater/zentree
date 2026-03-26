@@ -31,8 +31,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the analytics and telemetry system used by the Mastra CLI to collect anonymous usage data. The system tracks CLI command usage, model provider selections, and template usage to help improve the developer experience. For information about observability within Mastra applications themselves, see the observability system documentation.
 
 ## Overview
@@ -62,26 +60,26 @@ graph TB
         CREATE_ANALYTICS["analytics = new PosthogAnalytics({<br/>apiKey: 'phc_SBL...',<br/>host: 'https://us.posthog.com',<br/>version: pkgJson.version})"]
         SET_GLOBAL["setAnalytics(analytics)"]
     end
-    
+
     subgraph "packages/create-mastra/src/index.ts"
         CREATE_ENTRY["create-mastra Entry Point"]
         CREATE_ANALYTICS_INST["analytics = new PosthogAnalytics({<br/>apiKey: 'phc_SBL...',<br/>host: 'https://us.posthog.com',<br/>version})"]
     end
-    
+
     subgraph "Environment"
         ENV_ORIGIN["process.env.MASTRA_ANALYTICS_ORIGIN"]
         ENV_DISABLED["process.env.MASTRA_TELEMETRY_DISABLED"]
     end
-    
+
     CLI_ENTRY --> ANALYTICS_IMPORT
     ANALYTICS_IMPORT --> CREATE_ANALYTICS
     CREATE_ANALYTICS --> SET_GLOBAL
-    
+
     CREATE_ENTRY --> CREATE_ANALYTICS_INST
-    
+
     ENV_ORIGIN -.->|"CLI_ORIGIN type"| CLI_ENTRY
     ENV_DISABLED -.->|"opt-out check"| CREATE_ANALYTICS
-    
+
     SET_GLOBAL -->|"makes analytics<br/>globally available"| GLOBAL_ACCESS["getAnalytics()"]
 ```
 
@@ -103,7 +101,7 @@ The `MASTRA_ANALYTICS_ORIGIN` environment variable tracks where CLI commands ori
 
 ```typescript
 // Example origin detection
-const origin = process.env.MASTRA_ANALYTICS_ORIGIN as CLI_ORIGIN;
+const origin = process.env.MASTRA_ANALYTICS_ORIGIN as CLI_ORIGIN
 ```
 
 This allows distinguishing between different invocation contexts (e.g., direct CLI usage vs. programmatic usage vs. IDE integrations).
@@ -116,11 +114,11 @@ This allows distinguishing between different invocation contexts (e.g., direct C
 
 The telemetry system tracks three primary event types:
 
-| Event Type | Description | Data Captured | Trigger Points |
-|------------|-------------|---------------|----------------|
-| `cli_command` | Command execution tracking | Command name, args, origin | All CLI commands via `trackCommandExecution()` |
-| `cli_model_provider_selected` | Model provider selection | Provider name, selection method | Interactive prompt or CLI args in create/init |
-| `cli_template_used` | Template usage | Template slug, template title | Template creation in create command |
+| Event Type                    | Description                | Data Captured                   | Trigger Points                                 |
+| ----------------------------- | -------------------------- | ------------------------------- | ---------------------------------------------- |
+| `cli_command`                 | Command execution tracking | Command name, args, origin      | All CLI commands via `trackCommandExecution()` |
+| `cli_model_provider_selected` | Model provider selection   | Provider name, selection method | Interactive prompt or CLI args in create/init  |
+| `cli_template_used`           | Template usage             | Template slug, template title   | Template creation in create command            |
 
 ### Event Tracking Methods
 
@@ -137,12 +135,12 @@ sequenceDiagram
     participant CreateCommand as "create command"
     participant Analytics as "analytics"
     participant PostHog as "PostHog API"
-    
+
     User->>CreateCommand: select provider interactively
     CreateCommand->>Analytics: getAnalytics()
     CreateCommand->>Analytics: trackEvent('cli_model_provider_selected', {<br/>provider: 'openai',<br/>selection_method: 'interactive'})
     Analytics->>PostHog: send event data
-    
+
     User->>CreateCommand: --template flag
     CreateCommand->>Analytics: trackEvent('cli_template_used', {<br/>template_slug: 'template-test',<br/>template_title: 'Test Template'})
     Analytics->>PostHog: send event data
@@ -155,26 +153,28 @@ sequenceDiagram
 Model provider selection is tracked in both interactive and CLI argument flows:
 
 **Interactive Selection**
+
 ```typescript
 // After interactive prompt
-const analytics = getAnalytics();
+const analytics = getAnalytics()
 if (analytics && result?.llmProvider) {
   analytics.trackEvent('cli_model_provider_selected', {
     provider: result.llmProvider,
     selection_method: 'interactive',
-  });
+  })
 }
 ```
 
 **CLI Argument Selection**
+
 ```typescript
 // When provider passed as CLI arg
-const analytics = getAnalytics();
+const analytics = getAnalytics()
 if (analytics) {
   analytics.trackEvent('cli_model_provider_selected', {
     provider: llmProvider,
     selection_method: 'cli_args',
-  });
+  })
 }
 ```
 
@@ -196,7 +196,7 @@ graph LR
         EXECUTE["Execute Command Logic"]
         SEND_ANALYTICS["Send 'cli_command' event<br/>with command, args, origin"]
     end
-    
+
     HANDLER --> TRACK_CMD
     TRACK_CMD --> EXECUTE
     TRACK_CMD --> SEND_ANALYTICS
@@ -219,6 +219,7 @@ export const createProject = async (projectNameArg: string | undefined, args: Cr
 ```
 
 This pattern ensures:
+
 - Consistent command tracking across all CLI commands
 - Command arguments are captured (excluding sensitive data)
 - Execution context (origin) is recorded
@@ -230,10 +231,10 @@ This pattern ensures:
 
 The following table shows what arguments are captured for each command:
 
-| Command | Captured Arguments | Excluded |
-|---------|-------------------|----------|
+| Command  | Captured Arguments                                                                  | Excluded  |
+| -------- | ----------------------------------------------------------------------------------- | --------- |
 | `create` | default, components, llm, example, timeout, dir, projectName, mcp, skills, template | llmApiKey |
-| `init` | default, dir, components, llm, example, mcp | llmApiKey |
+| `init`   | default, dir, components, llm, example, mcp                                         | llmApiKey |
 
 API keys and other sensitive data are explicitly excluded from telemetry.
 
@@ -245,24 +246,25 @@ When users create projects from templates, the system tracks which templates are
 
 ```typescript
 // Track template usage
-const analytics = args.injectedAnalytics || getAnalytics();
+const analytics = args.injectedAnalytics || getAnalytics()
 if (analytics) {
   analytics.trackEvent('cli_template_used', {
     template_slug: selectedTemplate.slug,
     template_title: selectedTemplate.title,
-  });
+  })
 
   // Track model provider selection
   if (llmProvider) {
     analytics.trackEvent('cli_model_provider_selected', {
       provider: llmProvider,
       selection_method: args.llmProvider ? 'cli_args' : 'interactive',
-    });
+    })
   }
 }
 ```
 
 This tracking occurs for:
+
 - Named templates (e.g., `--template browsing-agent`)
 - GitHub URL templates (e.g., `--template https://github.com/user/repo`)
 - Interactive template selection
@@ -284,6 +286,7 @@ MASTRA_TELEMETRY_DISABLED=1 npx create-mastra@latest
 ```
 
 The environment variable accepts two values:
+
 - `"true"`
 - `"1"`
 
@@ -294,6 +297,7 @@ When set, the analytics system should skip all event tracking (implementation ha
 ### What Data is Collected
 
 According to the documentation, the system collects:
+
 - Operating system information
 - Mastra version
 - Node.js version
@@ -302,6 +306,7 @@ According to the documentation, the system collects:
 - Model provider selections
 
 **Not collected:**
+
 - API keys or credentials
 - Project code or file contents
 - Personally identifiable information
@@ -321,33 +326,33 @@ graph TB
         MASTRA_CLI["packages/cli/src/index.ts<br/>mastra CLI commands"]
         CREATE_MASTRA["packages/create-mastra/src/index.ts<br/>create-mastra standalone"]
     end
-    
+
     subgraph "Command Actions"
         CREATE_ACTION["createProject<br/>packages/cli/src/commands/actions/create-project.ts"]
         INIT_ACTION["initProject<br/>packages/cli/src/commands/actions/init-project.ts"]
     end
-    
+
     subgraph "Command Implementation"
         CREATE_CMD["create()<br/>packages/cli/src/commands/create/create.ts"]
         INIT_CMD["init()<br/>packages/cli/src/commands/init/init.ts"]
     end
-    
+
     subgraph "Analytics Events"
         CMD_EVENT["cli_command"]
         PROVIDER_EVENT["cli_model_provider_selected"]
         TEMPLATE_EVENT["cli_template_used"]
     end
-    
+
     MASTRA_CLI -->|"creates analytics instance<br/>setAnalytics()"| CREATE_ACTION
     MASTRA_CLI -->|"creates analytics instance<br/>setAnalytics()"| INIT_ACTION
     CREATE_MASTRA -->|"creates analytics instance<br/>passed as arg"| CREATE_CMD
-    
+
     CREATE_ACTION -->|"trackCommandExecution()"| CMD_EVENT
     CREATE_ACTION -->|"executes"| CREATE_CMD
-    
+
     INIT_ACTION -->|"trackCommandExecution()"| CMD_EVENT
     INIT_ACTION -->|"executes"| INIT_CMD
-    
+
     CREATE_CMD -->|"trackEvent()"| PROVIDER_EVENT
     CREATE_CMD -->|"trackEvent()"| TEMPLATE_EVENT
 ```
@@ -362,20 +367,20 @@ sequenceDiagram
     participant Impl as "Command Implementation<br/>(create.ts)"
     participant Analytics as "PosthogAnalytics"
     participant PostHog as "PostHog API<br/>(us.posthog.com)"
-    
+
     User->>CLI: npx create-mastra my-app --llm anthropic
     CLI->>CLI: new PosthogAnalytics({...})
     CLI->>CLI: setAnalytics(analytics)
     CLI->>Action: createProject(args)
-    
+
     Action->>Analytics: trackCommandExecution({<br/>command: 'create',<br/>args: {...},<br/>execution: async () => {...}})
     Analytics->>PostHog: cli_command event
-    
+
     Action->>Impl: create({llmProvider: 'anthropic'})
     Impl->>Impl: getAnalytics()
     Impl->>Analytics: trackEvent('cli_model_provider_selected', {<br/>provider: 'anthropic',<br/>selection_method: 'cli_args'})
     Analytics->>PostHog: cli_model_provider_selected event
-    
+
     Note over User,PostHog: If user sets MASTRA_TELEMETRY_DISABLED=1,<br/>no events are sent
 ```
 
@@ -383,13 +388,13 @@ sequenceDiagram
 
 ## Key Files and Components
 
-| Component | File Path | Purpose |
-|-----------|-----------|---------|
-| CLI Analytics Setup | `packages/cli/src/index.ts` | Creates global analytics instance |
-| create-mastra Analytics | `packages/create-mastra/src/index.ts` | Standalone analytics instance |
-| Create Command Action | `packages/cli/src/commands/actions/create-project.ts` | Wraps create with trackCommandExecution |
-| Init Command Action | `packages/cli/src/commands/actions/init-project.ts` | Wraps init with trackCommandExecution |
-| Create Implementation | `packages/cli/src/commands/create/create.ts` | Tracks provider and template selection |
-| Analytics Documentation | `docs/src/content/en/reference/cli/create-mastra.mdx` | Public telemetry documentation |
+| Component               | File Path                                             | Purpose                                 |
+| ----------------------- | ----------------------------------------------------- | --------------------------------------- |
+| CLI Analytics Setup     | `packages/cli/src/index.ts`                           | Creates global analytics instance       |
+| create-mastra Analytics | `packages/create-mastra/src/index.ts`                 | Standalone analytics instance           |
+| Create Command Action   | `packages/cli/src/commands/actions/create-project.ts` | Wraps create with trackCommandExecution |
+| Init Command Action     | `packages/cli/src/commands/actions/init-project.ts`   | Wraps init with trackCommandExecution   |
+| Create Implementation   | `packages/cli/src/commands/create/create.ts`          | Tracks provider and template selection  |
+| Analytics Documentation | `docs/src/content/en/reference/cli/create-mastra.mdx` | Public telemetry documentation          |
 
 **Sources:** All files listed in table above

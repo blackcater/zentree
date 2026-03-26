@@ -25,8 +25,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document covers the safety mechanisms, error handling, and defensive programming patterns used throughout Git operations in the Desktop application. It focuses on preventing data loss, handling edge cases gracefully, and providing clear error messages to users.
 
 For worktree creation mechanics, see [2.6.2 Git Worktree Management](#2.6.2). For GitHub PR operations and status fetching, see [2.6.5 GitHub Integration](#2.6.5). For project-level Git repository management, see [2.6.1 Projects and Git Repositories](#2.6.1).
@@ -37,13 +35,13 @@ All Git operations in Superset adhere to strict safety principles to prevent dat
 
 **Key Safety Mechanisms:**
 
-| Mechanism | Purpose | Implementation |
-|-----------|---------|----------------|
-| Lock-free status | Prevent blocking other operations | `--no-optional-locks` flag in status checks |
-| Hook tolerance | Continue despite hook failures | Verify operation success independently of exit code |
-| Error categorization | Provide actionable error messages | Pattern matching on stderr/exit codes |
-| Upstream validation | Prevent divergence and conflicts | Check ahead/behind status before operations |
-| Path validation | Prevent arbitrary file access | `assertRegisteredWorktree()` security check |
+| Mechanism            | Purpose                           | Implementation                                      |
+| -------------------- | --------------------------------- | --------------------------------------------------- |
+| Lock-free status     | Prevent blocking other operations | `--no-optional-locks` flag in status checks         |
+| Hook tolerance       | Continue despite hook failures    | Verify operation success independently of exit code |
+| Error categorization | Provide actionable error messages | Pattern matching on stderr/exit codes               |
+| Upstream validation  | Prevent divergence and conflicts  | Check ahead/behind status before operations         |
+| Path validation      | Prevent arbitrary file access     | `assertRegisteredWorktree()` security check         |
 
 ```mermaid
 graph TB
@@ -55,7 +53,7 @@ graph TB
     ErrorCategorization["Error Categorization<br/>network, auth, lock, conflict"]
     CacheClear["clearStatusCacheForWorktree()"]
     UserFeedback["User-Friendly Error<br/>or Success Result"]
-    
+
     UserAction --> PathValidation
     PathValidation -->|Valid| PreFlightChecks
     PathValidation -->|Invalid| UserFeedback
@@ -84,10 +82,10 @@ sequenceDiagram
     participant getStatusNoLock
     participant Git as git --no-optional-locks
     participant Parser as parsePortelainStatus
-    
+
     Caller->>getStatusNoLock: getStatusNoLock(repoPath)
     getStatusNoLock->>Git: status --porcelain=v1 -b -z -uall
-    
+
     alt Success
         Git-->>getStatusNoLock: stdout (NUL-separated entries)
         getStatusNoLock->>Parser: parse(stdout)
@@ -124,32 +122,32 @@ Before performing operations on remote branches, the system verifies their exist
 graph TB
     Call["branchExistsOnRemote(worktreePath, branchName, remoteName)"]
     Execute["git ls-remote --exit-code --heads"]
-    
+
     CheckExitCode{"Exit Code?"}
-    
+
     ExitCode0["Exit Code 0"]
     ExitCode2["Exit Code 2"]
     ExitCode128["Exit Code 128"]
     ExitCodeOther["Other Exit Code"]
     SystemError["System Error<br/>ENOENT, ETIMEDOUT"]
-    
+
     CategoryNetwork["categorize: network<br/>'could not resolve host'<br/>'connection refused'"]
     CategoryAuth["categorize: auth<br/>'authentication'<br/>'permission denied'"]
     CategoryRemote["categorize: remote not configured<br/>'repository not found'"]
-    
+
     ResultExists["{status: 'exists'}"]
     ResultNotFound["{status: 'not_found'}"]
     ResultError["{status: 'error', message: ...}"]
-    
+
     Call --> Execute
     Execute --> CheckExitCode
-    
+
     CheckExitCode -->|0| ExitCode0
     CheckExitCode -->|2| ExitCode2
     CheckExitCode -->|128| ExitCode128
     CheckExitCode -->|other| ExitCodeOther
     CheckExitCode -->|ENOENT/timeout| SystemError
-    
+
     ExitCode0 --> ResultExists
     ExitCode2 --> ResultNotFound
     ExitCode128 --> CategoryNetwork
@@ -157,7 +155,7 @@ graph TB
     ExitCode128 --> CategoryRemote
     ExitCodeOther --> ResultError
     SystemError --> ResultError
-    
+
     CategoryNetwork --> ResultError
     CategoryAuth --> ResultError
     CategoryRemote --> ResultError
@@ -165,12 +163,12 @@ graph TB
 
 **Error Categories:**
 
-| Category | Patterns | User Message |
-|----------|----------|--------------|
-| Network | `could not resolve host`, `connection refused`, `timed out` | "Cannot connect to remote. Check your network connection." |
-| Authentication | `authentication`, `permission denied`, `403`, `401` | "Authentication failed. Check your Git credentials." |
-| Remote not configured | `repository not found`, `no such remote` | "Remote 'origin' is not configured or the repository was not found." |
-| Git not installed | `ENOENT` error code | "Git is not installed or not found in PATH." |
+| Category              | Patterns                                                    | User Message                                                         |
+| --------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------- |
+| Network               | `could not resolve host`, `connection refused`, `timed out` | "Cannot connect to remote. Check your network connection."           |
+| Authentication        | `authentication`, `permission denied`, `403`, `401`         | "Authentication failed. Check your Git credentials."                 |
+| Remote not configured | `repository not found`, `no such remote`                    | "Remote 'origin' is not configured or the repository was not found." |
+| Git not installed     | `ENOENT` error code                                         | "Git is not installed or not found in PATH."                         |
 
 **Sources:** [apps/desktop/src/lib/trpc/routers/workspaces/utils/git.ts:1035-1180](), [apps/desktop/src/lib/trpc/routers/workspaces/utils/git.ts:1045-1106]()
 
@@ -186,17 +184,17 @@ sequenceDiagram
     participant Tolerance as runWithPostCheckoutHookTolerance
     participant GitOp as Git Operation
     participant Verify as didSucceed callback
-    
+
     Caller->>Tolerance: run createWorktree
     Tolerance->>GitOp: execute git worktree add
-    
+
     alt Git exits 0
         GitOp-->>Tolerance: success
         Tolerance-->>Caller: return
     else Git exits non-zero
         GitOp-->>Tolerance: error
         Tolerance->>Verify: didSucceed() - check worktree registered
-        
+
         alt Worktree exists
             Verify-->>Tolerance: true
             Note over Tolerance: Warn: hook failed but worktree created
@@ -220,7 +218,7 @@ graph LR
     RunWithTolerance["runWithPostCheckoutHookTolerance"]
     VerifyRegistered["isWorktreeRegistered()<br/>check git worktree list"]
     SetAutoSetupRemote["git config push.autoSetupRemote true"]
-    
+
     CreateWorktree --> MkdirParent
     MkdirParent --> ExecWorktreeAdd
     ExecWorktreeAdd --> RunWithTolerance
@@ -249,13 +247,13 @@ Before push/pull operations, the system checks the relationship between the loca
 graph TB
     GetStatus["getTrackingBranchStatus(git)"]
     CheckUpstream{"Has upstream?"}
-    
+
     RevList["git rev-list --left-right --count @{upstream}...HEAD"]
     ParseCounts["Parse behind/ahead counts"]
-    
+
     NoUpstream["{pushCount: 0, pullCount: 0, hasUpstream: false}"]
     WithUpstream["{pushCount: N, pullCount: M, hasUpstream: true}"]
-    
+
     GetStatus --> CheckUpstream
     CheckUpstream -->|no upstream ref| NoUpstream
     CheckUpstream -->|upstream exists| RevList
@@ -275,18 +273,18 @@ sequenceDiagram
     participant PushProc as push procedure
     participant Git
     participant Fetch as fetchCurrentBranch
-    
+
     User->>PushProc: push(worktreePath, setUpstream?)
     PushProc->>PushProc: assertRegisteredWorktree()
     PushProc->>Git: hasUpstreamBranch()
-    
+
     alt No upstream && setUpstream=true
         PushProc->>Git: revparse --abbrev-ref HEAD
         PushProc->>Git: pushWithSetUpstream()
         Note over Git: git push --set-upstream origin HEAD:refs/heads/branch
     else Has upstream
         PushProc->>Git: git push
-        
+
         alt Push fails with upstream error
             Git-->>PushProc: error: no upstream branch
             PushProc->>Git: pushWithSetUpstream() (retry)
@@ -295,7 +293,7 @@ sequenceDiagram
             PushProc-->>User: throw error
         end
     end
-    
+
     PushProc->>Fetch: fetchCurrentBranch()
     PushProc->>PushProc: clearStatusCacheForWorktree()
     PushProc-->>User: {success: true}
@@ -303,12 +301,12 @@ sequenceDiagram
 
 **Push Error Patterns:**
 
-| Pattern | Action |
-|---------|--------|
-| `no upstream branch` | Retry with `--set-upstream` |
-| `no tracking information` | Retry with `--set-upstream` |
-| `couldn't find remote ref` | Retry with `--set-upstream` |
-| `non-fast-forward` | Throw error (requires pull first) |
+| Pattern                    | Action                            |
+| -------------------------- | --------------------------------- |
+| `no upstream branch`       | Retry with `--set-upstream`       |
+| `no tracking information`  | Retry with `--set-upstream`       |
+| `couldn't find remote ref` | Retry with `--set-upstream`       |
+| `non-fast-forward`         | Throw error (requires pull first) |
 
 **Sources:** [apps/desktop/src/lib/trpc/routers/changes/git-operations.ts:380-413](), [apps/desktop/src/lib/trpc/routers/changes/git-operations.ts:75-102](), [apps/desktop/src/lib/trpc/routers/changes/git-operations.ts:104-127]()
 
@@ -320,23 +318,23 @@ graph TB
     Validate["assertRegisteredWorktree()"]
     GitPull["git pull --rebase"]
     CheckError{"Error type?"}
-    
+
     UpstreamMissing["isUpstreamMissingError()"]
     OtherError["Other error"]
-    
+
     UserError["throw: 'No upstream branch to pull from.<br/>The remote branch may have been deleted.'"]
     ThrowOther["throw original error"]
     ClearCache["clearStatusCacheForWorktree()"]
     Success["{success: true}"]
-    
+
     PullProc --> Validate
     Validate --> GitPull
     GitPull --> CheckError
-    
+
     CheckError -->|upstream missing| UpstreamMissing
     CheckError -->|other| OtherError
     CheckError -->|success| ClearCache
-    
+
     UpstreamMissing --> UserError
     OtherError --> ThrowOther
     ClearCache --> Success
@@ -349,6 +347,7 @@ graph TB
 The `sync` procedure combines pull and push with automatic upstream setup when needed:
 
 **Flow:**
+
 1. Attempt `git pull --rebase`
 2. If upstream missing error → `pushWithSetUpstream()` (first push to remote)
 3. If pull succeeds → `git push`
@@ -370,46 +369,46 @@ graph TB
     CreatePR["createPR(worktreePath, allowOutOfDate)"]
     Validate["assertRegisteredWorktree()"]
     GetStatus["getTrackingBranchStatus()"]
-    
+
     CheckBehind{"Behind upstream?"}
     CheckUpstream{"Has upstream?"}
-    
+
     BehindNotAllowed["allowOutOfDate=false"]
     ThrowBehind["throw PRECONDITION_FAILED:<br/>'Branch is behind upstream by N commits.<br/>Pull/rebase first, or continue anyway.'"]
-    
+
     PushUpstream["pushWithSetUpstream()"]
     Push["git push"]
-    
+
     CheckPushError{"Push error?"}
     RetryPush["shouldRetryPushWithUpstream()?"]
     NonFastForward["isNonFastForwardPushError()?"]
-    
+
     ThrowNonFastForward["throw: 'Branch has local commits but is behind.<br/>Pull/rebase first.'"]
-    
+
     FindExisting["findExistingOpenPRUrl()"]
     BuildNew["buildNewPullRequestUrl()"]
-    
+
     CreatePR --> Validate
     Validate --> GetStatus
     GetStatus --> CheckBehind
-    
+
     CheckBehind -->|yes| BehindNotAllowed
     BehindNotAllowed -->|false| ThrowBehind
     BehindNotAllowed -->|true| CheckUpstream
     CheckBehind -->|no| CheckUpstream
-    
+
     CheckUpstream -->|no| PushUpstream
     CheckUpstream -->|yes| Push
-    
+
     Push --> CheckPushError
     CheckPushError -->|retry error| RetryPush
     CheckPushError -->|non-fast-forward| NonFastForward
     RetryPush --> PushUpstream
     NonFastForward --> ThrowNonFastForward
-    
+
     PushUpstream --> FindExisting
     CheckPushError -->|success| FindExisting
-    
+
     FindExisting -->|PR exists| ReturnExisting["return {url: existingPRUrl}"]
     FindExisting -->|no PR| BuildNew
     BuildNew --> ReturnNew["return {url: compareUrl}"]
@@ -429,11 +428,13 @@ graph TB
 To prevent duplicate PRs, the system checks for existing open PRs using two methods:
 
 **Method 1: Tracking-based lookup** (`gh pr view`)
+
 - Uses the branch's tracking ref to find PR
 - Essential for fork PRs that track `refs/pull/XXX/head`
 - Validates PR head branch matches local branch to avoid stale tracking refs
 
 **Method 2: Commit-based search** (`gh pr list --search`)
+
 - Searches for PRs with HEAD commit as `headRefOid`
 - Fallback when tracking-based lookup fails or returns mismatched PR
 - Handles cases where tracking ref is stale or missing
@@ -450,25 +451,25 @@ Git lock errors occur when another process holds a lock file or a previous opera
 graph TB
     GitOp["Git Operation Fails"]
     CheckMsg["Check error.message"]
-    
+
     LockPatterns{"Matches lock pattern?"}
-    
+
     Pattern1["'could not lock'"]
     Pattern2["'unable to lock'"]
     Pattern3["'.lock' && 'file exists'"]
-    
+
     BuildError["Build detailed error message:<br/>'Failed to create worktree: The git repository<br/>is locked by another process. This usually happens<br/>when another git operation is in progress, or a<br/>previous operation crashed. Please wait for the<br/>other operation to complete, or manually remove<br/>the lock file (e.g., .git/config.lock or .git/index.lock)<br/>if you're sure no git operations are running.'"]
-    
+
     OtherError["throw generic error"]
-    
+
     GitOp --> CheckMsg
     CheckMsg --> LockPatterns
-    
+
     LockPatterns -->|yes| Pattern1
     LockPatterns -->|yes| Pattern2
     LockPatterns -->|yes| Pattern3
     LockPatterns -->|no| OtherError
-    
+
     Pattern1 --> BuildError
     Pattern2 --> BuildError
     Pattern3 --> BuildError
@@ -478,6 +479,7 @@ graph TB
 **Lock Error Handling in createWorktree:**
 
 The function detects lock errors and provides actionable guidance:
+
 - Explains the likely cause (concurrent operation or crash)
 - Suggests waiting for other operations
 - Provides manual recovery path (delete lock file)
@@ -496,11 +498,11 @@ graph LR
     Push["pushWithSetUpstream()"]
     GetBranch["git revparse --abbrev-ref HEAD"]
     CheckBranch{"branch === 'HEAD'?"}
-    
+
     ThrowError["throw BAD_REQUEST:<br/>'Cannot push from detached HEAD.<br/>Please checkout a branch and try again.'"]
-    
+
     DoPush["git push --set-upstream origin HEAD:refs/heads/branch"]
-    
+
     Push --> GetBranch
     GetBranch --> CheckBranch
     CheckBranch -->|yes| ThrowError
@@ -525,25 +527,26 @@ graph LR
     Input["input.worktreePath"]
     Validate["assertRegisteredWorktree(worktreePath)"]
     CheckDB["Query localDb for workspace<br/>with matching worktree_path"]
-    
+
     Found["Workspace exists"]
     NotFound["Workspace not found"]
-    
+
     Proceed["Proceed with operation"]
     Throw["throw TRPCError:<br/>FORBIDDEN or NOT_FOUND"]
-    
+
     TRPCProc --> Input
     Input --> Validate
     Validate --> CheckDB
-    
+
     CheckDB --> Found
     CheckDB --> NotFound
-    
+
     Found --> Proceed
     NotFound --> Throw
 ```
 
 This prevents:
+
 - Arbitrary file system access via crafted paths
 - Operations on deleted/unregistered workspaces
 - Race conditions between workspace deletion and ongoing operations
@@ -555,20 +558,24 @@ This prevents:
 The test suite validates safety mechanisms across various edge cases:
 
 **Hook Tolerance Tests:**
+
 - Post-checkout hook exits non-zero but worktree is created → operation succeeds with warning
 - Worktree directory exists but Git operation fails → throws error (not silent failure)
 
 **Branch Verification Tests:**
+
 - Remote branch exists → returns `{status: 'exists'}`
 - Remote branch doesn't exist (exit code 2) → returns `{status: 'not_found'}`
 - Network error → returns `{status: 'error', message: 'Cannot connect to remote...'}`
 - Auth error → returns `{status: 'error', message: 'Authentication failed...'}`
 
 **getCurrentBranch Tests:**
+
 - Empty repo with unborn HEAD → returns branch name (not null)
 - Detached HEAD state → returns null
 
 **Shell Environment Tests:**
+
 - Validates that Git commands use enriched PATH from shell environment
 - Ensures tools installed via Homebrew/nvm/volta are accessible
 - Verifies delimiter markers don't leak into environment variables

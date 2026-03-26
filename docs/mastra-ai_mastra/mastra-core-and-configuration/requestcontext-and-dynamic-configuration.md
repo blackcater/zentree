@@ -15,8 +15,8 @@ The following files were used as context for generating this wiki page:
 - [examples/bird-checker-with-express/src/index.ts](examples/bird-checker-with-express/src/index.ts)
 - [examples/bird-checker-with-nextjs-and-eval/src/lib/mastra/actions.ts](examples/bird-checker-with-nextjs-and-eval/src/lib/mastra/actions.ts)
 - [packages/core/src/action/index.ts](packages/core/src/action/index.ts)
-- [packages/core/src/agent/__tests__/dynamic-model-fallback.test.ts](packages/core/src/agent/__tests__/dynamic-model-fallback.test.ts)
-- [packages/core/src/agent/__tests__/utils.test.ts](packages/core/src/agent/__tests__/utils.test.ts)
+- [packages/core/src/agent/**tests**/dynamic-model-fallback.test.ts](packages/core/src/agent/__tests__/dynamic-model-fallback.test.ts)
+- [packages/core/src/agent/**tests**/utils.test.ts](packages/core/src/agent/__tests__/utils.test.ts)
 - [packages/core/src/agent/agent-legacy.ts](packages/core/src/agent/agent-legacy.ts)
 - [packages/core/src/agent/agent.test.ts](packages/core/src/agent/agent.test.ts)
 - [packages/core/src/agent/agent.ts](packages/core/src/agent/agent.ts)
@@ -57,8 +57,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the `RequestContext` system for managing request-scoped state and the dynamic configuration pattern that enables runtime adaptation of agents, tools, workflows, and other Mastra components based on contextual data. For information about agent-specific memory configuration, see [Agent Memory System](#3.4). For workflow-specific state management, see [Workflow State Management and Persistence](#4.3).
 
 ## Purpose and Scope
@@ -89,42 +87,42 @@ graph TB
         All["context.all"]
         Merge["context.merge(other)"]
     end
-    
+
     subgraph "Reserved Keys (Security)"
         ResID["MASTRA_RESOURCE_ID_KEY<br/>(Tenant ID)"]
         ThrID["MASTRA_THREAD_ID_KEY<br/>(Thread Ownership)"]
     end
-    
+
     subgraph "User Keys (Application)"
         UserTier["'userTier': 'premium'"]
         Region["'region': 'eu'"]
         Custom["Custom metadata"]
     end
-    
+
     Create --> Set
     Set --> Get
     Get --> All
     All --> Merge
-    
+
     Set -.->|"Cannot override"| ResID
     Set -.->|"Cannot override"| ThrID
     Set --> UserTier
     Set --> Region
     Set --> Custom
-    
+
     style ResID fill:#ffe1e1
     style ThrID fill:#ffe1e1
 ```
 
 **RequestContext Operations**
 
-| Method | Description | Example |
-|--------|-------------|---------|
-| `set(key, value)` | Set a context value (cannot override reserved keys) | `context.set('tier', 'premium')` |
-| `get(key)` | Retrieve a context value | `const tier = context.get('tier')` |
-| `all` | Get all context values as object | `const data = context.all` |
-| `merge(other)` | Merge another RequestContext into this one | `context.merge(otherContext)` |
-| `has(key)` | Check if key exists | `if (context.has('tier'))` |
+| Method            | Description                                         | Example                            |
+| ----------------- | --------------------------------------------------- | ---------------------------------- |
+| `set(key, value)` | Set a context value (cannot override reserved keys) | `context.set('tier', 'premium')`   |
+| `get(key)`        | Retrieve a context value                            | `const tier = context.get('tier')` |
+| `all`             | Get all context values as object                    | `const data = context.all`         |
+| `merge(other)`    | Merge another RequestContext into this one          | `context.merge(otherContext)`      |
+| `has(key)`        | Check if key exists                                 | `if (context.has('tier'))`         |
 
 **Sources:** [packages/core/src/request-context/index.ts:1-100]()
 
@@ -137,24 +135,24 @@ graph LR
     subgraph "Client Request"
         ClientReq["HTTP Request<br/>Headers: Authorization"]
     end
-    
+
     subgraph "Server Middleware"
         AuthMW["Auth Middleware<br/>Validates identity"]
         SetResID["context.set(MASTRA_RESOURCE_ID_KEY, userId)"]
         SetThrID["context.set(MASTRA_THREAD_ID_KEY, threadId)"]
     end
-    
+
     subgraph "Handler Layer"
         GetEffRes["getEffectiveResourceId(context, clientValue)"]
         GetEffThr["getEffectiveThreadId(context, clientValue)"]
         ValidateOwn["validateThreadOwnership(context)"]
     end
-    
+
     subgraph "Prevention"
         ClientOverride["Client cannot override<br/>reserved keys"]
         ContextWins["Context value always preferred<br/>over client-provided"]
     end
-    
+
     ClientReq --> AuthMW
     AuthMW --> SetResID
     AuthMW --> SetThrID
@@ -162,10 +160,10 @@ graph LR
     SetThrID --> GetEffThr
     GetEffRes --> ValidateOwn
     GetEffThr --> ValidateOwn
-    
+
     GetEffRes -.->|"Blocks"| ClientOverride
     GetEffThr -.->|"Enforces"| ContextWins
-    
+
     style SetResID fill:#e1f5ff
     style SetThrID fill:#e1f5ff
     style ClientOverride fill:#ffe1e1
@@ -175,11 +173,12 @@ graph LR
 
 ```typescript
 // From packages/core/src/request-context/index.ts
-export const MASTRA_RESOURCE_ID_KEY = '__MASTRA_RESOURCE_ID__';
-export const MASTRA_THREAD_ID_KEY = '__MASTRA_THREAD_ID__';
+export const MASTRA_RESOURCE_ID_KEY = '__MASTRA_RESOURCE_ID__'
+export const MASTRA_THREAD_ID_KEY = '__MASTRA_THREAD_ID__'
 ```
 
 These keys enforce:
+
 - **Tenant Isolation**: `MASTRA_RESOURCE_ID_KEY` identifies the authenticated user/tenant
 - **Thread Ownership**: `MASTRA_THREAD_ID_KEY` associates threads with specific resources
 - **Authorization**: Prevents clients from spoofing identity by setting these keys
@@ -196,13 +195,13 @@ graph TB
         ClientBody["Request Body<br/>{resourceId: 'user-123', ...}"]
         ReqContext["RequestContext<br/>with reserved keys"]
     end
-    
+
     subgraph "Utility Functions"
         GetEffResFunc["getEffectiveResourceId(context, clientValue)"]
         GetEffThrFunc["getEffectiveThreadId(context, clientValue)"]
         ValidateFunc["validateThreadOwnership(thread, context)"]
     end
-    
+
     subgraph "Logic"
         CheckContext["Has context key?"]
         UseContext["Return context value"]
@@ -211,22 +210,22 @@ graph TB
         Allow["Allow access"]
         Throw["Throw 403 HTTPException"]
     end
-    
+
     ClientBody --> GetEffResFunc
     ReqContext --> GetEffResFunc
     GetEffResFunc --> CheckContext
-    
+
     CheckContext -->|"Yes"| UseContext
     CheckContext -->|"No"| UseClient
-    
+
     UseContext --> ValidateFunc
     UseClient --> ValidateFunc
     ReqContext --> ValidateFunc
-    
+
     ValidateFunc --> CheckOwner
     CheckOwner -->|"Match"| Allow
     CheckOwner -->|"Mismatch"| Throw
-    
+
     style UseContext fill:#e8f5e9
     style Throw fill:#ffe1e1
 ```
@@ -249,7 +248,7 @@ const agent = new Agent({
     region: z.string(),
     userId: z.string(),
   }),
-});
+})
 ```
 
 Validation occurs before execution and throws a `MastraError` if the context doesn't match the schema.
@@ -267,12 +266,15 @@ Dynamic configuration allows components to adapt their behavior based on Request
 The `DynamicArgument<T, TRequestContext>` type represents values that can be static or dynamically resolved:
 
 ```typescript
-type DynamicArgument<T, TRequestContext = unknown> = 
-  | T 
-  | ((context: { requestContext: RequestContext<TRequestContext> }) => T | Promise<T>);
+type DynamicArgument<T, TRequestContext = unknown> =
+  | T
+  | ((context: {
+      requestContext: RequestContext<TRequestContext>
+    }) => T | Promise<T>)
 ```
 
 This pattern applies to most agent configuration fields:
+
 - `model` - Select model based on user tier, region, or feature flags
 - `instructions` - Customize system prompt per tenant or locale
 - `tools` - Enable/disable tools based on permissions
@@ -294,40 +296,40 @@ graph TB
     subgraph "Agent Configuration"
         AgentDef["Agent Definition<br/>model: function"]
     end
-    
+
     subgraph "Runtime Resolution"
         Stream["agent.stream() called"]
         GetCtx["Extract requestContext"]
         ResolveModel["Resolve model function"]
         CheckTier["Check context.get('tier')"]
     end
-    
+
     subgraph "Model Selection"
         Premium["tier === 'premium'<br/>→ 'openai/gpt-4'"]
         Standard["tier === 'standard'<br/>→ 'openai/gpt-3.5-turbo'"]
         Free["tier === 'free'<br/>→ 'groq/llama-3-8b'"]
     end
-    
+
     subgraph "Execution"
         CreateLLM["Create MastraLLMVNext<br/>with selected model"]
         Execute["Execute agent loop"]
     end
-    
+
     AgentDef --> Stream
     Stream --> GetCtx
     GetCtx --> ResolveModel
     ResolveModel --> CheckTier
-    
+
     CheckTier --> Premium
     CheckTier --> Standard
     CheckTier --> Free
-    
+
     Premium --> CreateLLM
     Standard --> CreateLLM
     Free --> CreateLLM
-    
+
     CreateLLM --> Execute
-    
+
     style Premium fill:#e8f5e9
     style Standard fill:#fff3cd
     style Free fill:#e1f5ff
@@ -341,24 +343,24 @@ const agent = new Agent({
   name: 'Assistant',
   instructions: 'You are a helpful assistant',
   model: ({ requestContext }) => {
-    const tier = requestContext.get('tier');
+    const tier = requestContext.get('tier')
     if (tier === 'premium') {
-      return 'openai/gpt-4';
+      return 'openai/gpt-4'
     } else if (tier === 'standard') {
-      return 'openai/gpt-3.5-turbo';
+      return 'openai/gpt-3.5-turbo'
     }
-    return 'groq/llama-3-8b'; // free tier
+    return 'groq/llama-3-8b' // free tier
   },
   // ... other config
-});
+})
 
 // Usage with RequestContext
-const context = new RequestContext();
-context.set('tier', 'premium');
+const context = new RequestContext()
+context.set('tier', 'premium')
 
-const response = await agent.stream('Hello!', { 
-  requestContext: context 
-});
+const response = await agent.stream('Hello!', {
+  requestContext: context,
+})
 ```
 
 **Sources:** [packages/core/src/agent/agent.ts:158-254](), [client-sdks/client-js/src/types.ts:178-227]()
@@ -373,24 +375,22 @@ const agent = new Agent({
   name: 'Resilient Agent',
   instructions: 'You are a resilient agent with fallbacks',
   model: ({ requestContext }) => {
-    const tier = requestContext.get('tier');
-    
+    const tier = requestContext.get('tier')
+
     if (tier === 'premium') {
       // Premium: multiple high-quality fallbacks
       return [
         { model: 'openai/gpt-4', maxRetries: 3 },
         { model: 'anthropic/claude-3-opus', maxRetries: 2 },
         { model: 'openai/gpt-3.5-turbo', maxRetries: 1 },
-      ];
+      ]
     }
-    
+
     // Standard: single model with retries
-    return [
-      { model: 'openai/gpt-3.5-turbo', maxRetries: 2 },
-    ];
+    return [{ model: 'openai/gpt-3.5-turbo', maxRetries: 2 }]
   },
   // ... other config
-});
+})
 ```
 
 **Sources:** [packages/core/src/agent/types.ts:125-219]()
@@ -404,22 +404,23 @@ const agent = new Agent({
   id: 'localized-agent',
   name: 'Localized Agent',
   instructions: ({ requestContext }) => {
-    const locale = requestContext.get('locale') || 'en';
-    const tier = requestContext.get('tier');
-    
-    let instructions = INSTRUCTIONS[locale] || INSTRUCTIONS['en'];
-    
+    const locale = requestContext.get('locale') || 'en'
+    const tier = requestContext.get('tier')
+
+    let instructions = INSTRUCTIONS[locale] || INSTRUCTIONS['en']
+
     if (tier === 'premium') {
-      instructions += '\
+      instructions +=
+        '\
 \
-You have access to advanced features like code execution and web search.';
+You have access to advanced features like code execution and web search.'
     }
-    
-    return instructions;
+
+    return instructions
   },
   model: 'openai/gpt-4',
   // ... other config
-});
+})
 ```
 
 **Sources:** [packages/core/src/agent/agent.ts:156-157]()
@@ -435,26 +436,26 @@ const agent = new Agent({
   instructions: 'You are a permissioned agent',
   model: 'openai/gpt-4',
   tools: ({ requestContext }) => {
-    const permissions = requestContext.get('permissions') || [];
-    
+    const permissions = requestContext.get('permissions') || []
+
     const baseTools = {
       searchWeb: webSearchTool,
       getWeather: weatherTool,
-    };
-    
+    }
+
     // Add admin tools only if user has admin permission
     if (permissions.includes('admin')) {
       return {
         ...baseTools,
         deleteUser: deleteUserTool,
         modifySettings: modifySettingsTool,
-      };
+      }
     }
-    
-    return baseTools;
+
+    return baseTools
   },
   // ... other config
-});
+})
 ```
 
 **Sources:** [packages/core/src/agent/agent.ts:169-278]()
@@ -470,7 +471,7 @@ const mastra = new Mastra({
     tenantA: new Memory({ storage, vector: vectorA }),
     tenantB: new Memory({ storage, vector: vectorB }),
   },
-});
+})
 
 // Agent with dynamic memory selection
 const agent = new Agent({
@@ -479,11 +480,11 @@ const agent = new Agent({
   instructions: 'You are a tenant-aware agent',
   model: 'openai/gpt-4',
   memory: ({ requestContext }) => {
-    const tenantId = requestContext.get('tenantId');
-    return mastra.getMemory(`tenant${tenantId}`);
+    const tenantId = requestContext.get('tenantId')
+    return mastra.getMemory(`tenant${tenantId}`)
   },
   // ... other config
-});
+})
 ```
 
 **Sources:** [packages/core/src/agent/agent.ts:281-282]()
@@ -501,53 +502,53 @@ graph TB
         AuthMW["Auth Middleware<br/>Sets MASTRA_RESOURCE_ID_KEY"]
         Handler["Agent Handler<br/>/api/agents/:id/stream"]
     end
-    
+
     subgraph "Agent Execution"
         AgentStream["agent.stream(messages, options)"]
         ResolveDynamic["Resolve dynamic config<br/>(model, tools, memory, etc.)"]
         ValidateCtx["Validate requestContext<br/>(if schema defined)"]
     end
-    
+
     subgraph "Workflow Layer"
         PrepareWorkflow["Prepare Stream Workflow"]
         PrepareMemory["Prepare Memory Step"]
         PrepareTools["Prepare Tools Step"]
         MapResults["Map Results Step"]
     end
-    
+
     subgraph "Model Loop"
         ModelLoop["Model Loop Execution"]
         LLMCall["LLM Call with context"]
         ToolCall["Tool Execution"]
     end
-    
+
     subgraph "Tool Execution Context"
         ToolCtx["ToolExecutionContext<br/>{requestContext, mastra, ...}"]
         ToolExecute["tool.execute(input, context)"]
         ValidateTool["Validate tool requestContext<br/>(if tool has schema)"]
     end
-    
+
     Request --> AuthMW
     AuthMW --> Handler
     Handler --> AgentStream
     AgentStream --> ResolveDynamic
     ResolveDynamic --> ValidateCtx
     ValidateCtx --> PrepareWorkflow
-    
+
     PrepareWorkflow --> PrepareMemory
     PrepareWorkflow --> PrepareTools
     PrepareWorkflow --> MapResults
-    
+
     PrepareMemory --> ModelLoop
     PrepareTools --> ModelLoop
     MapResults --> ModelLoop
-    
+
     ModelLoop --> LLMCall
     LLMCall --> ToolCall
     ToolCall --> ToolCtx
     ToolCtx --> ToolExecute
     ToolExecute --> ValidateTool
-    
+
     style AuthMW fill:#e1f5ff
     style ResolveDynamic fill:#fff3cd
     style ValidateCtx fill:#e8f5e9
@@ -558,14 +559,14 @@ graph TB
 
 ### Context Propagation Points
 
-| Layer | How Context Passes | Code Reference |
-|-------|-------------------|----------------|
-| **HTTP Handler** | Extracted from `options.requestContext` in request body | [packages/server/src/server/handlers/agents.ts:400-500]() |
-| **Agent Execution** | Passed to `agent.stream(messages, { requestContext })` | [packages/core/src/agent/agent.ts:1500-1600]() |
-| **Dynamic Resolution** | Provided to dynamic config functions as `{ requestContext }` | [packages/core/src/agent/agent.ts:800-1000]() |
-| **Workflow Steps** | Available in workflow step context via `prepareStep` | [packages/core/src/workflows/types.ts:100-200]() |
-| **Tool Execution** | Passed in `ToolExecutionContext` to `tool.execute()` | [packages/core/src/tools/tool-builder/builder.ts:310-400]() |
-| **Processors** | Available in processor input/output via context | [packages/core/src/processors/types.ts:1-100]() |
+| Layer                  | How Context Passes                                           | Code Reference                                              |
+| ---------------------- | ------------------------------------------------------------ | ----------------------------------------------------------- |
+| **HTTP Handler**       | Extracted from `options.requestContext` in request body      | [packages/server/src/server/handlers/agents.ts:400-500]()   |
+| **Agent Execution**    | Passed to `agent.stream(messages, { requestContext })`       | [packages/core/src/agent/agent.ts:1500-1600]()              |
+| **Dynamic Resolution** | Provided to dynamic config functions as `{ requestContext }` | [packages/core/src/agent/agent.ts:800-1000]()               |
+| **Workflow Steps**     | Available in workflow step context via `prepareStep`         | [packages/core/src/workflows/types.ts:100-200]()            |
+| **Tool Execution**     | Passed in `ToolExecutionContext` to `tool.execute()`         | [packages/core/src/tools/tool-builder/builder.ts:310-400]() |
+| **Processors**         | Available in processor input/output via context              | [packages/core/src/processors/types.ts:1-100]()             |
 
 ---
 
@@ -578,17 +579,17 @@ Server middleware sets reserved keys based on authenticated identity:
 ```typescript
 // Simplified example from server handlers
 const authMiddleware = (c: Context, next: () => Promise<void>) => {
-  const userId = authenticateUser(c.req.header('Authorization'));
-  
+  const userId = authenticateUser(c.req.header('Authorization'))
+
   // Create RequestContext and set reserved key
-  const requestContext = new RequestContext();
-  requestContext.set(MASTRA_RESOURCE_ID_KEY, userId);
-  
+  const requestContext = new RequestContext()
+  requestContext.set(MASTRA_RESOURCE_ID_KEY, userId)
+
   // Store in request state for handlers
-  c.set('requestContext', requestContext);
-  
-  return next();
-};
+  c.set('requestContext', requestContext)
+
+  return next()
+}
 ```
 
 **Sources:** [packages/server/src/server/handlers/utils.ts:1-50]()
@@ -601,27 +602,27 @@ Handler utilities always prefer context values over client-provided values:
 // From packages/server/src/server/handlers/utils.ts
 export function getEffectiveResourceId(
   requestContext: RequestContext | undefined,
-  clientProvidedResourceId?: string,
+  clientProvidedResourceId?: string
 ): string | undefined {
   // Context value takes precedence (set by auth middleware)
-  const contextResourceId = requestContext?.get(MASTRA_RESOURCE_ID_KEY);
+  const contextResourceId = requestContext?.get(MASTRA_RESOURCE_ID_KEY)
   if (contextResourceId) {
-    return contextResourceId;
+    return contextResourceId
   }
-  
+
   // Fall back to client value only if no context value
-  return clientProvidedResourceId;
+  return clientProvidedResourceId
 }
 
 export function getEffectiveThreadId(
   requestContext: RequestContext | undefined,
-  clientProvidedThreadId?: string,
+  clientProvidedThreadId?: string
 ): string | undefined {
-  const contextThreadId = requestContext?.get(MASTRA_THREAD_ID_KEY);
+  const contextThreadId = requestContext?.get(MASTRA_THREAD_ID_KEY)
   if (contextThreadId) {
-    return contextThreadId;
+    return contextThreadId
   }
-  return clientProvidedThreadId;
+  return clientProvidedThreadId
 }
 ```
 
@@ -635,19 +636,19 @@ Before accessing threads, handlers validate ownership:
 // From packages/server/src/server/handlers/utils.ts
 export async function validateThreadOwnership(
   thread: StorageThreadType,
-  requestContext?: RequestContext,
+  requestContext?: RequestContext
 ): Promise<void> {
-  const effectiveResourceId = requestContext?.get(MASTRA_RESOURCE_ID_KEY);
-  
+  const effectiveResourceId = requestContext?.get(MASTRA_RESOURCE_ID_KEY)
+
   if (!effectiveResourceId) {
     // No authenticated user - skip validation
-    return;
+    return
   }
-  
+
   if (thread.resourceId !== effectiveResourceId) {
     throw new HTTPException(403, {
       message: 'You do not have permission to access this thread',
-    });
+    })
   }
 }
 ```
@@ -662,9 +663,9 @@ export async function validateThreadOwnership(
 
 ```typescript
 // Client provides context
-const context = new RequestContext();
-context.set('tier', 'premium');
-context.set('locale', 'en-US');
+const context = new RequestContext()
+context.set('tier', 'premium')
+context.set('locale', 'en-US')
 
 // Context is used for:
 // 1. Dynamic configuration resolution
@@ -672,7 +673,7 @@ context.set('locale', 'en-US');
 // 3. Passed to tools, processors, memory
 const response = await agent.stream('Hello!', {
   requestContext: context,
-});
+})
 ```
 
 **Sources:** [packages/core/src/agent/agent.ts:1500-1700]()
@@ -688,19 +689,19 @@ const workflow = createWorkflow({
 })
   .prepareStep(async ({ inputData, requestContext }) => {
     // Access context to customize step execution
-    const tier = requestContext?.get('tier');
+    const tier = requestContext?.get('tier')
     return {
       ...inputData,
       model: tier === 'premium' ? 'gpt-4' : 'gpt-3.5-turbo',
-    };
+    }
   })
-  .then(/* ... */);
+  .then(/* ... */)
 
 // Context is passed when running
 const result = await workflow.run(
   { query: 'test' },
-  { requestContext: context },
-);
+  { requestContext: context }
+)
 ```
 
 **Sources:** [packages/core/src/workflows/types.ts:100-200]()
@@ -720,18 +721,18 @@ const tenantTool = createTool({
   }),
   execute: async (input, context) => {
     // Access context
-    const tenantId = context.requestContext?.get('tenantId');
-    const permissions = context.requestContext?.get('permissions') || [];
-    
+    const tenantId = context.requestContext?.get('tenantId')
+    const permissions = context.requestContext?.get('permissions') || []
+
     // Use context for authorization
     if (!permissions.includes('admin')) {
-      throw new Error('Insufficient permissions');
+      throw new Error('Insufficient permissions')
     }
-    
+
     // Perform tenant-scoped operation
-    return performAction(tenantId, input.action);
+    return performAction(tenantId, input.action)
   },
-});
+})
 ```
 
 **Sources:** [packages/core/src/tools/tool.ts:1-200]()
@@ -744,29 +745,29 @@ This section maps high-level concepts to specific code entities for easy searchi
 
 ### Core Classes and Types
 
-| Concept | Code Entity | Location |
-|---------|-------------|----------|
-| RequestContext class | `RequestContext` | [packages/core/src/request-context/index.ts:20-150]() |
-| Resource ID key | `MASTRA_RESOURCE_ID_KEY` | [packages/core/src/request-context/index.ts:5]() |
-| Thread ID key | `MASTRA_THREAD_ID_KEY` | [packages/core/src/request-context/index.ts:6]() |
-| Dynamic type | `DynamicArgument<T, TRequestContext>` | [packages/core/src/types.ts:1-50]() |
-| Agent config | `AgentConfig` interface | [packages/core/src/agent/types.ts:132-290]() |
-| Tool context | `ToolExecutionContext` | [packages/core/src/tools/types.ts:32-59]() |
+| Concept              | Code Entity                           | Location                                              |
+| -------------------- | ------------------------------------- | ----------------------------------------------------- |
+| RequestContext class | `RequestContext`                      | [packages/core/src/request-context/index.ts:20-150]() |
+| Resource ID key      | `MASTRA_RESOURCE_ID_KEY`              | [packages/core/src/request-context/index.ts:5]()      |
+| Thread ID key        | `MASTRA_THREAD_ID_KEY`                | [packages/core/src/request-context/index.ts:6]()      |
+| Dynamic type         | `DynamicArgument<T, TRequestContext>` | [packages/core/src/types.ts:1-50]()                   |
+| Agent config         | `AgentConfig` interface               | [packages/core/src/agent/types.ts:132-290]()          |
+| Tool context         | `ToolExecutionContext`                | [packages/core/src/tools/types.ts:32-59]()            |
 
 ### Server Security Functions
 
-| Function | Purpose | Location |
-|----------|---------|----------|
-| `getEffectiveResourceId()` | Prefer context over client value | [packages/server/src/server/handlers/utils.ts:50-65]() |
-| `getEffectiveThreadId()` | Prefer context over client value | [packages/server/src/server/handlers/utils.ts:67-82]() |
+| Function                    | Purpose                           | Location                                                 |
+| --------------------------- | --------------------------------- | -------------------------------------------------------- |
+| `getEffectiveResourceId()`  | Prefer context over client value  | [packages/server/src/server/handlers/utils.ts:50-65]()   |
+| `getEffectiveThreadId()`    | Prefer context over client value  | [packages/server/src/server/handlers/utils.ts:67-82]()   |
 | `validateThreadOwnership()` | Ensure thread belongs to resource | [packages/server/src/server/handlers/utils.ts:120-140]() |
 
 ### Validation Functions
 
-| Function | Purpose | Location |
-|----------|---------|----------|
-| `agent.__validateRequestContext()` | Validate context against schema | [packages/core/src/agent/agent.ts:382-407]() |
-| `validateRequestContext()` (tool) | Validate context for tool execution | [packages/core/src/tools/validation.ts:1-100]() |
+| Function                           | Purpose                             | Location                                        |
+| ---------------------------------- | ----------------------------------- | ----------------------------------------------- |
+| `agent.__validateRequestContext()` | Validate context against schema     | [packages/core/src/agent/agent.ts:382-407]()    |
+| `validateRequestContext()` (tool)  | Validate context for tool execution | [packages/core/src/tools/validation.ts:1-100]() |
 
 ---
 

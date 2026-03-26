@@ -40,14 +40,12 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 Framework integrations provide framework-specific wrappers around the headless `@tanstack/ai-client` library, enabling idiomatic chat interfaces across multiple UI frameworks. These packages adapt the framework-agnostic `ChatClient` to each framework's reactivity model while maintaining consistent APIs and behavior.
 
 TanStack AI provides official integrations for five major frameworks:
 
 - [React Integration](#6.1) - `@tanstack/ai-react` package
-- [Solid Integration](#6.2) - `@tanstack/ai-solid` package  
+- [Solid Integration](#6.2) - `@tanstack/ai-solid` package
 - [Vue Integration](#6.3) - `@tanstack/ai-vue` package
 - [Svelte Integration](#6.4) - `@tanstack/ai-svelte` package
 - [Preact Integration](#6.5) - `@tanstack/ai-preact` package
@@ -69,17 +67,17 @@ graph TB
         SvelteHook["@tanstack/ai-svelte<br/>useChat()<br/>stores, runes"]
         PreactHook["@tanstack/ai-preact<br/>useChat()<br/>useState, useEffect"]
     end
-    
+
     subgraph HeadlessLayer["Headless Client Layer"]
         Client["@tanstack/ai-client<br/>ChatClient<br/>messages, isLoading, error"]
         ConnectionAdapters["ConnectionAdapter<br/>fetchServerSentEvents<br/>fetchHttpStream<br/>stream()"]
         StreamProcessor["StreamProcessor<br/>ImmediateStrategy<br/>onChunk, onFinish"]
     end
-    
+
     subgraph CoreLayer["Core Layer"]
         Core["@tanstack/ai<br/>chat()<br/>toolDefinition()"]
     end
-    
+
     ReactHook --> Client
     SolidHook --> Client
     VueHook --> Client
@@ -91,6 +89,7 @@ graph TB
 ```
 
 **Sources:**
+
 - [packages/typescript/ai-react/package.json:1-60]()
 - [packages/typescript/ai-solid/package.json:1-59]()
 - [packages/typescript/ai-vue/package.json:1-59]()
@@ -101,6 +100,7 @@ graph TB
 ### Dependency Structure
 
 All framework packages share the same dependency structure:
+
 - `@tanstack/ai` (peer dependency) - Core AI primitives, type definitions
 - `@tanstack/ai-client` (direct dependency) - Headless `ChatClient` implementation
 
@@ -116,39 +116,40 @@ graph LR
     PreactPkg["@tanstack/ai-preact"]
     ClientPkg["@tanstack/ai-client"]
     CorePkg["@tanstack/ai"]
-    
+
     App --> ReactPkg
     App --> SolidPkg
     App --> VuePkg
     App --> SveltePkg
     App --> PreactPkg
-    
+
     ReactPkg --> ClientPkg
     SolidPkg --> ClientPkg
     VuePkg --> ClientPkg
     SveltePkg --> ClientPkg
     PreactPkg --> ClientPkg
-    
+
     ReactPkg --> CorePkg
     SolidPkg --> CorePkg
     VuePkg --> CorePkg
     SveltePkg --> CorePkg
     PreactPkg --> CorePkg
-    
+
     ClientPkg --> CorePkg
 ```
 
 Each package also declares framework-specific peer dependencies:
 
-| Package | Framework Peer Dependency |
-|---------|--------------------------|
-| `@tanstack/ai-react` | `react >=18.0.0` |
-| `@tanstack/ai-solid` | `solid-js >=1.9.10` |
-| `@tanstack/ai-vue` | `vue >=3.5.0` |
-| `@tanstack/ai-svelte` | `svelte ^5.0.0` |
-| `@tanstack/ai-preact` | `preact >=10.0.0` |
+| Package               | Framework Peer Dependency |
+| --------------------- | ------------------------- |
+| `@tanstack/ai-react`  | `react >=18.0.0`          |
+| `@tanstack/ai-solid`  | `solid-js >=1.9.10`       |
+| `@tanstack/ai-vue`    | `vue >=3.5.0`             |
+| `@tanstack/ai-svelte` | `svelte ^5.0.0`           |
+| `@tanstack/ai-preact` | `preact >=10.0.0`         |
 
 **Sources:**
+
 - [packages/typescript/ai-react/package.json:46-49]()
 - [packages/typescript/ai-solid/package.json:44-46]()
 - [packages/typescript/ai-vue/package.json:44-46]()
@@ -158,15 +159,16 @@ Each package also declares framework-specific peer dependencies:
 
 All framework integrations expose a `useChat` hook (or primitive/composable) as their primary API. Despite different underlying reactivity models, they share the same interface and behavior.
 
-| Framework | API Name | Returns |
-|-----------|----------|---------|
-| React | `useChat` (hook) | Direct values (`messages`, `isLoading`) |
-| Solid | `useChat` (primitive) | Accessors (`messages()`, `isLoading()`) |
-| Vue | `useChat` (composable) | Refs (`messages.value`, `isLoading.value`) |
-| Svelte | `useChat` (function) | Stores (reactive via `$messages`, `$isLoading`) |
-| Preact | `useChat` (hook) | Direct values (same as React) |
+| Framework | API Name               | Returns                                         |
+| --------- | ---------------------- | ----------------------------------------------- |
+| React     | `useChat` (hook)       | Direct values (`messages`, `isLoading`)         |
+| Solid     | `useChat` (primitive)  | Accessors (`messages()`, `isLoading()`)         |
+| Vue       | `useChat` (composable) | Refs (`messages.value`, `isLoading.value`)      |
+| Svelte    | `useChat` (function)   | Stores (reactive via `$messages`, `$isLoading`) |
+| Preact    | `useChat` (hook)       | Direct values (same as React)                   |
 
 **Sources:**
+
 - [docs/api/ai-react.md:14-93]()
 - [docs/api/ai-solid.md:14-96]()
 - [packages/typescript/ai-vue/package.json:1-59]()
@@ -181,28 +183,29 @@ sequenceDiagram
     participant Client as "ChatClient instance"
     participant State as "Framework State<br/>(useState/createSignal)"
     participant Adapter as "ConnectionAdapter"
-    
+
     Component->>Hook: useChat(options)
     Hook->>Client: new ChatClient({<br/>onMessagesChange,<br/>onLoadingChange,<br/>onErrorChange})
     Hook->>State: Initialize signals/state
-    
+
     Component->>Hook: sendMessage("Hello")
     Hook->>Client: client.sendMessage("Hello")
     Client->>Adapter: connect(messages, body, signal)
-    
+
     loop Stream Processing
         Adapter-->>Client: StreamChunk
         Client-->>Hook: onMessagesChange(newMessages)
         Hook->>State: Update state
         State-->>Component: Re-render with new data
     end
-    
+
     Client-->>Hook: onLoadingChange(false)
     Hook->>State: Update isLoading
     State-->>Component: Re-render
 ```
 
 **Sources:**
+
 - [packages/typescript/ai-solid/src/use-chat.ts:11-133]()
 - [docs/api/ai-react.md:14-93]()
 
@@ -210,20 +213,21 @@ sequenceDiagram
 
 Both integrations accept the same options (extending `ChatClientOptions` from `@tanstack/ai-client`):
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `connection` | `ConnectionAdapter` | Required. Connection to server endpoint |
-| `tools` | `ReadonlyArray<AnyClientTool>` | Client tool implementations |
-| `initialMessages` | `UIMessage[]` | Starting conversation history |
-| `id` | `string` | Unique chat instance identifier |
-| `body` | `Record<string, any>` | Additional request payload |
-| `onResponse` | `(response: any) => void` | Called when response received |
-| `onChunk` | `(chunk: StreamChunk) => void` | Called for each stream chunk |
-| `onFinish` | `(message: UIMessage) => void` | Called when response completes |
-| `onError` | `(error: Error) => void` | Called on errors |
-| `streamProcessor` | `StreamProcessorConfig` | Chunk buffering strategy |
+| Option            | Type                           | Description                             |
+| ----------------- | ------------------------------ | --------------------------------------- |
+| `connection`      | `ConnectionAdapter`            | Required. Connection to server endpoint |
+| `tools`           | `ReadonlyArray<AnyClientTool>` | Client tool implementations             |
+| `initialMessages` | `UIMessage[]`                  | Starting conversation history           |
+| `id`              | `string`                       | Unique chat instance identifier         |
+| `body`            | `Record<string, any>`          | Additional request payload              |
+| `onResponse`      | `(response: any) => void`      | Called when response received           |
+| `onChunk`         | `(chunk: StreamChunk) => void` | Called for each stream chunk            |
+| `onFinish`        | `(message: UIMessage) => void` | Called when response completes          |
+| `onError`         | `(error: Error) => void`       | Called on errors                        |
+| `streamProcessor` | `StreamProcessorConfig`        | Chunk buffering strategy                |
 
 **Sources:**
+
 - [packages/typescript/ai-solid/src/types.ts:27-31]()
 - [docs/api/ai-react.md:51-66]()
 
@@ -231,27 +235,29 @@ Both integrations accept the same options (extending `ChatClientOptions` from `@
 
 All hooks return similar methods and state, with framework-specific wrappers around reactive values:
 
-| Member | React/Preact | Solid | Vue | Svelte | Description |
-|--------|--------------|-------|-----|--------|-------------|
-| `messages` | `UIMessage[]` | `Accessor<UIMessage[]>` | `Ref<UIMessage[]>` | `Writable<UIMessage[]>` | Current conversation |
-| `sendMessage` | `(content: string) => Promise<void>` | Same | Same | Same | Send user message |
-| `append` | `(message) => Promise<void>` | Same | Same | Same | Append message manually |
-| `reload` | `() => Promise<void>` | Same | Same | Same | Regenerate last response |
-| `stop` | `() => void` | Same | Same | Same | Cancel active generation |
-| `isLoading` | `boolean` | `Accessor<boolean>` | `Ref<boolean>` | `Writable<boolean>` | Generation in progress |
-| `error` | `Error \| undefined` | `Accessor<Error \| undefined>` | `Ref<Error \| undefined>` | `Writable<Error \| undefined>` | Current error state |
-| `clear` | `() => void` | Same | Same | Same | Clear all messages |
-| `setMessages` | `(messages) => void` | Same | Same | Same | Manually set messages |
-| `addToolResult` | `(result) => Promise<void>` | Same | Same | Same | Add tool execution result |
-| `addToolApprovalResponse` | `(response) => Promise<void>` | Same | Same | Same | Approve/deny tool execution |
+| Member                    | React/Preact                         | Solid                          | Vue                       | Svelte                         | Description                 |
+| ------------------------- | ------------------------------------ | ------------------------------ | ------------------------- | ------------------------------ | --------------------------- |
+| `messages`                | `UIMessage[]`                        | `Accessor<UIMessage[]>`        | `Ref<UIMessage[]>`        | `Writable<UIMessage[]>`        | Current conversation        |
+| `sendMessage`             | `(content: string) => Promise<void>` | Same                           | Same                      | Same                           | Send user message           |
+| `append`                  | `(message) => Promise<void>`         | Same                           | Same                      | Same                           | Append message manually     |
+| `reload`                  | `() => Promise<void>`                | Same                           | Same                      | Same                           | Regenerate last response    |
+| `stop`                    | `() => void`                         | Same                           | Same                      | Same                           | Cancel active generation    |
+| `isLoading`               | `boolean`                            | `Accessor<boolean>`            | `Ref<boolean>`            | `Writable<boolean>`            | Generation in progress      |
+| `error`                   | `Error \| undefined`                 | `Accessor<Error \| undefined>` | `Ref<Error \| undefined>` | `Writable<Error \| undefined>` | Current error state         |
+| `clear`                   | `() => void`                         | Same                           | Same                      | Same                           | Clear all messages          |
+| `setMessages`             | `(messages) => void`                 | Same                           | Same                      | Same                           | Manually set messages       |
+| `addToolResult`           | `(result) => Promise<void>`          | Same                           | Same                      | Same                           | Add tool execution result   |
+| `addToolApprovalResponse` | `(response) => Promise<void>`        | Same                           | Same                      | Same                           | Approve/deny tool execution |
 
 **Access Patterns:**
+
 - **React/Preact**: Direct property access (`messages`, `isLoading`)
 - **Solid**: Accessor function calls (`messages()`, `isLoading()`)
 - **Vue**: Ref value access (`messages.value`, `isLoading.value`)
 - **Svelte**: Store subscription (`$messages`, `$isLoading`) or `.get()` method
 
 **Sources:**
+
 - [docs/api/ai-react.md:71-93]()
 - [docs/api/ai-solid.md:71-96]()
 - [packages/typescript/ai-vue/package.json:1-59]()
@@ -274,42 +280,44 @@ graph TB
         useEffect["useEffect<br/>(cleanup on unmount)"]
         useMemo["useMemo<br/>(ChatClient instance)"]
     end
-    
+
     subgraph "ChatClient Callbacks"
         onMessagesChange["onMessagesChange<br/>setMessages(newMessages)"]
         onLoadingChange["onLoadingChange<br/>setIsLoading(loading)"]
         onErrorChange["onErrorChange<br/>setError(error)"]
     end
-    
+
     subgraph "Component State"
         MessagesState["messages: UIMessage[]"]
         LoadingState["isLoading: boolean"]
         ErrorState["error: Error | undefined"]
     end
-    
+
     useState --> MessagesState
     useState --> LoadingState
     useState --> ErrorState
-    
+
     useMemo --> ChatClient["ChatClient instance"]
     ChatClient --> onMessagesChange
     ChatClient --> onLoadingChange
     ChatClient --> onErrorChange
-    
+
     onMessagesChange --> useState
     onLoadingChange --> useState
     onErrorChange --> useState
-    
+
     useEffect --> Cleanup["client.stop() on unmount"]
 ```
 
 **React Pattern:**
+
 - State is directly mutable via setter functions (`setState`)
 - `useEffect` handles cleanup when component unmounts
 - `useMemo` caches `ChatClient` instance based on `id`
 - Direct property access: `messages`, `isLoading`, `error`
 
 **Sources:**
+
 - [docs/api/ai-react.md:14-48]()
 - [packages/typescript/ai-react/package.json:42-49]()
 
@@ -328,42 +336,44 @@ graph TB
         createMemo1["createMemo<br/>(ChatClient instance)"]
         createUniqueId1["createUniqueId<br/>(generate hook ID)"]
     end
-    
+
     subgraph "ChatClient Callbacks"
         onMessagesChange2["onMessagesChange<br/>setMessages(newMessages)"]
         onLoadingChange2["onLoadingChange<br/>setIsLoading(loading)"]
         onErrorChange2["onErrorChange<br/>setError(error)"]
     end
-    
+
     subgraph "Component State (Signals)"
         MessagesAccessor["messages: Accessor<UIMessage[]>"]
         LoadingAccessor["isLoading: Accessor<boolean>"]
         ErrorAccessor["error: Accessor<Error>"]
     end
-    
+
     createSignal1 --> MessagesAccessor
     createSignal1 --> LoadingAccessor
     createSignal1 --> ErrorAccessor
-    
+
     createMemo1 --> ChatClient2["ChatClient instance"]
     ChatClient2 --> onMessagesChange2
     ChatClient2 --> onLoadingChange2
     ChatClient2 --> onErrorChange2
-    
+
     onMessagesChange2 --> createSignal1
     onLoadingChange2 --> createSignal1
     onErrorChange2 --> createSignal1
-    
+
     createEffect2 --> Cleanup2["client.stop() if loading"]
 ```
 
 **Solid Pattern:**
+
 - Signals provide fine-grained reactivity tracking
 - `createEffect` runs synchronously during component lifecycle
 - `createMemo` caches derived values and dependencies
 - Accessor function access: `messages()`, `isLoading()`, `error()`
 
 **Sources:**
+
 - [packages/typescript/ai-solid/src/use-chat.ts:1-133]()
 - [packages/typescript/ai-solid/src/types.ts:1-103]()
 - [packages/typescript/ai-solid/package.json:41-46]()
@@ -373,12 +383,14 @@ graph TB
 Vue integration uses the Composition API with `ref` and `watch`:
 
 **Vue Pattern:**
+
 - `ref()` creates reactive references to state
 - `watch()` tracks dependencies and runs side effects
 - `onUnmounted()` handles cleanup
 - Property access via `.value`: `messages.value`, `isLoading.value`
 
 **Sources:**
+
 - [packages/typescript/ai-vue/package.json:1-59]()
 - [packages/typescript/ai-vue/package.json:44-46]()
 
@@ -387,6 +399,7 @@ Vue integration uses the Composition API with `ref` and `watch`:
 Svelte integration uses stores compatible with Svelte 5 runes:
 
 **Svelte Pattern:**
+
 - `writable()` creates reactive stores
 - Stores expose `.subscribe()`, `.set()`, and `.update()` methods
 - Automatic subscription via `$` prefix in templates (`$messages`)
@@ -394,6 +407,7 @@ Svelte integration uses stores compatible with Svelte 5 runes:
 
 **Export Configuration:**
 The package uses special Svelte export fields:
+
 ```json
 {
   "svelte": "./dist/index.js",
@@ -407,6 +421,7 @@ The package uses special Svelte export fields:
 ```
 
 **Sources:**
+
 - [packages/typescript/ai-svelte/package.json:1-64]()
 - [packages/typescript/ai-svelte/package.json:13-21]()
 - [packages/typescript/ai-svelte/package.json:48-50]()
@@ -416,12 +431,14 @@ The package uses special Svelte export fields:
 Preact integration mirrors React's API but with a smaller bundle size:
 
 **Preact Pattern:**
+
 - Same API as React (`useState`, `useEffect`, `useMemo`)
 - Lightweight alternative for bundle-size-sensitive applications
 - Compatible with React ecosystem but 3KB vs React's 45KB
 - Direct property access like React: `messages`, `isLoading`, `error`
 
 **Sources:**
+
 - [packages/typescript/ai-react/package.json:1-60]()
 
 ## State Synchronization Pattern
@@ -436,29 +453,31 @@ sequenceDiagram
     participant Callbacks as "Hook Callbacks"
     participant State as "Framework State"
     participant UI as "Component UI"
-    
+
     Note over ChatClient: Internal state change
-    
+
     ChatClient->>Callbacks: onMessagesChange(newMessages)
     Callbacks->>State: setMessages(newMessages)<br/>or setMessages(newMessages)
     State->>UI: Trigger re-render
-    
+
     ChatClient->>Callbacks: onLoadingChange(true)
     Callbacks->>State: setIsLoading(true)<br/>or setIsLoading(true)
     State->>UI: Trigger re-render
-    
+
     ChatClient->>Callbacks: onErrorChange(error)
     Callbacks->>State: setError(error)<br/>or setError(error)
     State->>UI: Trigger re-render
 ```
 
 This pattern ensures:
+
 - Framework state stays synchronized with `ChatClient` internal state
 - Framework-specific re-renders trigger on state changes
 - Same callback interface works across all frameworks
 - Business logic remains in `ChatClient`, frameworks only handle reactivity
 
 **Sources:**
+
 - [packages/typescript/ai-solid/src/use-chat.ts:23-48]()
 - [docs/api/ai-client.md:35-49]()
 - [packages/typescript/ai-react/package.json:43-44]()
@@ -478,10 +497,11 @@ import {
   fetchHttpStream,
   stream,
   type ConnectionAdapter,
-} from "@tanstack/ai-react"; // or any framework package
+} from '@tanstack/ai-react' // or any framework package
 ```
 
 **Sources:**
+
 - [docs/api/ai-react.md:98-107]()
 - [docs/api/ai-solid.md:99-109]()
 - [packages/typescript/ai-vue/package.json:41-42]()
@@ -495,15 +515,17 @@ import {
   clientTools,
   createChatClientOptions,
   type InferChatMessages,
-} from "@tanstack/ai-react"; // or any framework package
+} from '@tanstack/ai-react' // or any framework package
 ```
 
 These helpers enable full type safety with client tools:
+
 - `clientTools(...tools)` - Creates typed tool arrays without `as const`
 - `createChatClientOptions(options)` - Creates typed chat options
 - `InferChatMessages<T>` - Extracts message type from options
 
 **Sources:**
+
 - [docs/api/ai-react.md:270-290]()
 - [docs/api/ai-solid.md:284-304]()
 - [docs/api/ai-client.md:179-218]()
@@ -513,6 +535,7 @@ These helpers enable full type safety with client tools:
 All framework packages re-export core types from `@tanstack/ai` and `@tanstack/ai-client`:
 
 From `@tanstack/ai-client`:
+
 - `UIMessage<TTools>`
 - `MessagePart<TTools>`
 - `TextPart`, `ThinkingPart`, `ToolCallPart<TTools>`, `ToolResultPart`
@@ -521,12 +544,14 @@ From `@tanstack/ai-client`:
 - `ChatRequestBody`
 
 From `@tanstack/ai`:
+
 - `toolDefinition()`
 - `ToolDefinitionInstance`
 - `ClientTool`, `ServerTool`
 - `ModelMessage`
 
 **Sources:**
+
 - [packages/typescript/ai-solid/src/types.ts:1-103]()
 - [docs/api/ai-react.md:293-312]()
 - [docs/api/ai-solid.md:307-327]()
@@ -566,6 +591,7 @@ result.current.isLoading
 The `renderUseChat` helper adapts SolidJS's testing library to a React-like API, enabling shared test patterns.
 
 **Sources:**
+
 - [packages/typescript/ai-solid/tests/use-chat.test.ts:1-1171]()
 - [packages/typescript/ai-solid/tests/test-utils.ts:1-56]()
 
@@ -574,17 +600,22 @@ The `renderUseChat` helper adapts SolidJS's testing library to a React-like API,
 Framework integrations follow these principles:
 
 ### 1. Minimal Wrapper
+
 Framework packages add only reactivity and lifecycle management. All business logic lives in `ChatClient`.
 
 ### 2. Consistent Interface
+
 The `useChat` API is identical across frameworks, with only reactivity model differences:
+
 - React/Preact: Direct access
 - Solid: Accessor functions
 - Vue: `.value` access
 - Svelte: Store subscription with `$` prefix
 
 ### 3. Framework Idioms
+
 Each integration uses idiomatic patterns:
+
 - **React**: `useState`, `useEffect`, `useMemo`
 - **Solid**: `createSignal`, `createEffect`, `createMemo`
 - **Vue**: `ref`, `watch`, `onUnmounted`
@@ -592,17 +623,21 @@ Each integration uses idiomatic patterns:
 - **Preact**: Same as React but smaller bundle
 
 ### 4. Type Safety
+
 Full TypeScript support with generics for tool typing:
+
 ```typescript
-const tools = clientTools(tool1, tool2);
-const options = createChatClientOptions({ connection, tools });
-type Messages = InferChatMessages<typeof options>;
+const tools = clientTools(tool1, tool2)
+const options = createChatClientOptions({ connection, tools })
+type Messages = InferChatMessages<typeof options>
 ```
 
 ### 5. Testability
+
 Test utilities enable framework-specific testing while maintaining shared test patterns.
 
 **Sources:**
+
 - [packages/typescript/ai-solid/src/use-chat.ts:23-48]()
 - [docs/guides/client-tools.md:116-170]()
 - [packages/typescript/ai-react/package.json:1-60]()
@@ -623,5 +658,6 @@ To create an integration for a new framework:
 The framework packages serve as reference implementations for React and Solid patterns.
 
 **Sources:**
+
 - [packages/typescript/ai-solid/package.json:1-61]()
 - [packages/typescript/ai-solid/src/use-chat.ts:1-133]()

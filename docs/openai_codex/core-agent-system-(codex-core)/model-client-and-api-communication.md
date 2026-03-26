@@ -23,8 +23,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents how `codex-core` constructs and sends requests to model provider APIs. It covers `ModelClient` (session-scoped) and `ModelClientSession` (turn-scoped), transport selection between WebSocket and SSE, connection reuse across turns, sticky-routing tokens, prewarm mechanics, and HTTP fallback on WebSocket failure.
 
 For how the prompts sent to the API are assembled from conversation history, see [Turn Execution and Prompt Construction](#3.3). For how the streamed response events are converted into `EventMsg` variants, see [Event Processing and State Management](#3.4).
@@ -33,17 +31,17 @@ For how the prompts sent to the API are assembled from conversation history, see
 
 ## Key Types
 
-| Type | Scope | File | Role |
-|---|---|---|---|
-| `ModelClient` | Session | `core/src/client.rs` | Shared config, auth, WS fallback state |
-| `ModelClientState` | Session (inner) | `core/src/client.rs` | `Arc`-shared data behind `ModelClient` |
-| `ModelClientSession` | Turn | `core/src/client.rs` | WS connection, sticky token, incremental append |
-| `WebsocketSession` | Turn (inner) | `core/src/client.rs` | Active WS connection + last request/response |
-| `Prompt` | Turn | `core/src/client_common.rs` | API request payload assembled per turn |
-| `ResponsesApiRequest` | Wire | `codex-api/src/common.rs` | JSON body sent to Responses API |
-| `ResponseEvent` | Stream item | `codex-api/src/common.rs` | Parsed events from SSE/WS stream |
-| `ResponseStream` | Stream | `core/src/client_common.rs` | `mpsc` channel wrapper for `ResponseEvent` |
-| `ResponsesWebsocketVersion` | Config | `core/src/client.rs` | `V1` or `V2` WS protocol variant |
+| Type                        | Scope           | File                        | Role                                            |
+| --------------------------- | --------------- | --------------------------- | ----------------------------------------------- |
+| `ModelClient`               | Session         | `core/src/client.rs`        | Shared config, auth, WS fallback state          |
+| `ModelClientState`          | Session (inner) | `core/src/client.rs`        | `Arc`-shared data behind `ModelClient`          |
+| `ModelClientSession`        | Turn            | `core/src/client.rs`        | WS connection, sticky token, incremental append |
+| `WebsocketSession`          | Turn (inner)    | `core/src/client.rs`        | Active WS connection + last request/response    |
+| `Prompt`                    | Turn            | `core/src/client_common.rs` | API request payload assembled per turn          |
+| `ResponsesApiRequest`       | Wire            | `codex-api/src/common.rs`   | JSON body sent to Responses API                 |
+| `ResponseEvent`             | Stream item     | `codex-api/src/common.rs`   | Parsed events from SSE/WS stream                |
+| `ResponseStream`            | Stream          | `core/src/client_common.rs` | `mpsc` channel wrapper for `ResponseEvent`      |
+| `ResponsesWebsocketVersion` | Config          | `core/src/client.rs`        | `V1` or `V2` WS protocol variant                |
 
 Sources: [codex-rs/core/src/client.rs:132-220](), [codex-rs/core/src/client_common.rs:26-65](), [codex-rs/codex-api/src/common.rs:55-163]()
 
@@ -109,13 +107,14 @@ A `ModelClientSession` is created at the start of each turn and dropped when the
 
 **Per-turn state it holds:**
 
-| Field | Type | Purpose |
-|---|---|---|
-| `client` | `ModelClient` | Back-reference for session state |
-| `websocket_session` | `WebsocketSession` | Active WS connection and incremental append state |
-| `turn_state` | `Arc<OnceLock<String>>` | Sticky-routing token (set once from server response header) |
+| Field               | Type                    | Purpose                                                     |
+| ------------------- | ----------------------- | ----------------------------------------------------------- |
+| `client`            | `ModelClient`           | Back-reference for session state                            |
+| `websocket_session` | `WebsocketSession`      | Active WS connection and incremental append state           |
+| `turn_state`        | `Arc<OnceLock<String>>` | Sticky-routing token (set once from server response header) |
 
 The `WebsocketSession` struct within holds:
+
 - `connection: Option<ApiWebSocketConnection>` — the live WS connection
 - `last_request: Option<ResponsesApiRequest>` — the last full request sent (for append diffing)
 - `last_response_rx: Option<oneshot::Receiver<LastResponse>>` — channel for receiving `response_id` + items after the stream completes
@@ -227,12 +226,12 @@ For WebSocket connections, the token is also passed to `ApiWebSocketResponsesCli
 
 Relevant header constants defined in `client.rs`:
 
-| Constant | Value |
-|---|---|
-| `X_CODEX_TURN_STATE_HEADER` | `"x-codex-turn-state"` |
-| `X_CODEX_TURN_METADATA_HEADER` | `"x-codex-turn-metadata"` |
-| `OPENAI_BETA_HEADER` | `"OpenAI-Beta"` |
-| `OPENAI_BETA_RESPONSES_WEBSOCKETS` (V1) | `"responses_websockets=2026-02-04"` |
+| Constant                                         | Value                               |
+| ------------------------------------------------ | ----------------------------------- |
+| `X_CODEX_TURN_STATE_HEADER`                      | `"x-codex-turn-state"`              |
+| `X_CODEX_TURN_METADATA_HEADER`                   | `"x-codex-turn-metadata"`           |
+| `OPENAI_BETA_HEADER`                             | `"OpenAI-Beta"`                     |
+| `OPENAI_BETA_RESPONSES_WEBSOCKETS` (V1)          | `"responses_websockets=2026-02-04"` |
 | `RESPONSES_WEBSOCKETS_V2_BETA_HEADER_VALUE` (V2) | `"responses_websockets=2026-02-06"` |
 
 Sources: [codex-rs/core/src/client.rs:103-115](), [codex-rs/core/src/client.rs:196-205](), [codex-rs/codex-api/src/endpoint/responses_websocket.rs:163-165](), [codex-rs/codex-api/src/sse/responses.rs:73-80]()
@@ -243,18 +242,18 @@ Sources: [codex-rs/core/src/client.rs:103-115](), [codex-rs/core/src/client.rs:1
 
 `ModelClientSession::build_responses_request()` constructs a `ResponsesApiRequest` from a `Prompt` and per-turn parameters. Key fields:
 
-| `ResponsesApiRequest` field | Source |
-|---|---|
-| `model` | `model_info.slug` |
-| `instructions` | `prompt.base_instructions.text` |
-| `input` | `prompt.get_formatted_input()` (may reserialize shell outputs) |
-| `tools` | `create_tools_json_for_responses_api(&prompt.tools)` |
-| `reasoning` | `Reasoning { effort, summary }` if model supports it |
-| `include` | `["reasoning.encrypted_content"]` when reasoning is enabled |
-| `service_tier` | `"priority"` when `ServiceTier::Fast`, else omitted |
-| `prompt_cache_key` | `conversation_id.to_string()` |
-| `text` | verbosity + optional JSON output schema |
-| `store` | `true` only for Azure Responses endpoint |
+| `ResponsesApiRequest` field | Source                                                         |
+| --------------------------- | -------------------------------------------------------------- |
+| `model`                     | `model_info.slug`                                              |
+| `instructions`              | `prompt.base_instructions.text`                                |
+| `input`                     | `prompt.get_formatted_input()` (may reserialize shell outputs) |
+| `tools`                     | `create_tools_json_for_responses_api(&prompt.tools)`           |
+| `reasoning`                 | `Reasoning { effort, summary }` if model supports it           |
+| `include`                   | `["reasoning.encrypted_content"]` when reasoning is enabled    |
+| `service_tier`              | `"priority"` when `ServiceTier::Fast`, else omitted            |
+| `prompt_cache_key`          | `conversation_id.to_string()`                                  |
+| `text`                      | verbosity + optional JSON output schema                        |
+| `store`                     | `true` only for Azure Responses endpoint                       |
 
 The `Prompt` struct's `get_formatted_input()` rewrites `FunctionCallOutput` bodies for Freeform `apply_patch` tools to structured plaintext format.
 
@@ -336,6 +335,7 @@ Sources: [codex-rs/core/src/client.rs:658-698](), [codex-rs/core/src/client.rs:6
 WebSocket fallback is session-scoped and permanent. `ModelClientSession::activate_http_fallback()` calls `disable_websockets.swap(true, Ordering::Relaxed)` on the shared `ModelClientState`. All subsequent `new_session()` calls check this flag via `active_ws_version()` and receive `None`, switching to HTTP SSE for the remainder of the session.
 
 Fallback is triggered when:
+
 - The WebSocket handshake returns HTTP 426 (Upgrade Required)
 - Stream retries are exhausted (as configured by `provider.stream_max_retries`)
 
@@ -349,11 +349,11 @@ Sources: [codex-rs/core/src/client.rs:508-515](), [codex-rs/core/src/client.rs:4
 
 Retry behavior is governed by `ModelProviderInfo` fields:
 
-| Field | Effect |
-|---|---|
-| `stream_max_retries` | Max retries for stream-level errors within a turn |
-| `request_max_retries` | Max retries for full request-level errors |
-| `stream_idle_timeout_ms` | Idle SSE stream timeout before error |
+| Field                    | Effect                                            |
+| ------------------------ | ------------------------------------------------- |
+| `stream_max_retries`     | Max retries for stream-level errors within a turn |
+| `request_max_retries`    | Max retries for full request-level errors         |
+| `stream_idle_timeout_ms` | Idle SSE stream timeout before error              |
 
 On the WebSocket path, if the connection is found to be closed at turn start (`connection.is_closed()`), `websocket_connection()` reconnects transparently using `connect_websocket()`, replaying the sticky-routing `turn_state` token into the new handshake headers.
 

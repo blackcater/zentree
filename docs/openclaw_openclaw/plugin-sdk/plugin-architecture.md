@@ -26,8 +26,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes OpenClaw's plugin architecture, including the plugin SDK structure, extension discovery, and plugin types. The plugin system enables developers to extend OpenClaw with custom channel integrations, tools, and functionality.
 
 For information about creating channel plugins specifically, see [Channel Plugins](#9.2). For tool plugin development, see [Tool Plugins](#9.3).
@@ -51,13 +49,13 @@ The plugin SDK is distributed as subpath exports from the main `openclaw` packag
 ```mermaid
 graph TB
     MainPackage["openclaw<br/>(Main Package)"]
-    
+
     subgraph "Core SDK Exports"
         PluginSDK["./plugin-sdk<br/>(Main Entry)"]
         Core["./plugin-sdk/core<br/>(Core Utilities)"]
         Compat["./plugin-sdk/compat<br/>(Compatibility Layer)"]
     end
-    
+
     subgraph "Channel SDK Exports"
         Telegram["./plugin-sdk/telegram"]
         Discord["./plugin-sdk/discord"]
@@ -72,7 +70,7 @@ graph TB
         Nostr["./plugin-sdk/nostr"]
         Others["./plugin-sdk/...<br/>(15+ more channels)"]
     end
-    
+
     subgraph "Feature SDK Exports"
         MemoryCore["./plugin-sdk/memory-core"]
         MemoryLanceDB["./plugin-sdk/memory-lancedb"]
@@ -84,11 +82,11 @@ graph TB
         AccountID["./plugin-sdk/account-id"]
         KeyedQueue["./plugin-sdk/keyed-async-queue"]
     end
-    
+
     MainPackage --> PluginSDK
     MainPackage --> Core
     MainPackage --> Compat
-    
+
     MainPackage --> Telegram
     MainPackage --> Discord
     MainPackage --> Slack
@@ -101,7 +99,7 @@ graph TB
     MainPackage --> IRC
     MainPackage --> Nostr
     MainPackage --> Others
-    
+
     MainPackage --> MemoryCore
     MainPackage --> MemoryLanceDB
     MainPackage --> DiagnosticsOTel
@@ -115,11 +113,11 @@ graph TB
 
 The plugin SDK is organized into three categories:
 
-| Category | Purpose | Example Exports |
-|----------|---------|----------------|
-| **Core SDK** | Base utilities and interfaces | `./plugin-sdk`, `./plugin-sdk/core`, `./plugin-sdk/compat` |
-| **Channel SDK** | Channel-specific implementations | `./plugin-sdk/telegram`, `./plugin-sdk/discord`, etc. (20+ channels) |
-| **Feature SDK** | Reusable functionality modules | `./plugin-sdk/memory-core`, `./plugin-sdk/diagnostics-otel`, `./plugin-sdk/voice-call` |
+| Category        | Purpose                          | Example Exports                                                                        |
+| --------------- | -------------------------------- | -------------------------------------------------------------------------------------- |
+| **Core SDK**    | Base utilities and interfaces    | `./plugin-sdk`, `./plugin-sdk/core`, `./plugin-sdk/compat`                             |
+| **Channel SDK** | Channel-specific implementations | `./plugin-sdk/telegram`, `./plugin-sdk/discord`, etc. (20+ channels)                   |
+| **Feature SDK** | Reusable functionality modules   | `./plugin-sdk/memory-core`, `./plugin-sdk/diagnostics-otel`, `./plugin-sdk/voice-call` |
 
 Each subpath export provides both TypeScript type definitions (`.d.ts`) and JavaScript implementation (`.js`), enabling type-safe plugin development.
 
@@ -133,38 +131,38 @@ graph LR
         Workspace["extensions/<br/>Directory"]
         NPM["npm Packages<br/>(node_modules)"]
     end
-    
+
     subgraph "Extension Package Structure"
         PackageJSON["package.json<br/>openclaw field"]
         ExtensionEntry["Extension Entry<br/>(index.ts)"]
         ChannelMeta["Channel Metadata<br/>(optional)"]
         InstallConfig["Install Config<br/>(optional)"]
     end
-    
+
     subgraph "Discovery Process"
         Scanner["Extension Scanner"]
         Validator["Schema Validator"]
         Registry["Plugin Registry"]
     end
-    
+
     subgraph "Runtime Loading"
         Loader["Dynamic Import"]
         ChannelPlugin["Channel Plugin<br/>Registration"]
         ToolPlugin["Tool Plugin<br/>Registration"]
         ExtensionInit["Extension<br/>Initialization"]
     end
-    
+
     Workspace --> PackageJSON
     NPM --> PackageJSON
-    
+
     PackageJSON --> Scanner
     ExtensionEntry --> Scanner
     ChannelMeta --> Scanner
     InstallConfig --> Scanner
-    
+
     Scanner --> Validator
     Validator --> Registry
-    
+
     Registry --> Loader
     Loader --> ChannelPlugin
     Loader --> ToolPlugin
@@ -190,9 +188,7 @@ Extensions are discovered through the following mechanisms:
   "version": "2026.3.13",
   "type": "module",
   "openclaw": {
-    "extensions": [
-      "./index.ts"
-    ]
+    "extensions": ["./index.ts"]
   }
 }
 ```
@@ -226,15 +222,15 @@ Channel extensions include additional metadata for UI integration:
 
 **Channel metadata fields:**
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `id` | `string` | Unique channel identifier |
-| `label` | `string` | Display name for UI |
-| `selectionLabel` | `string` | Label for channel selection dropdown |
-| `docsPath` | `string` | Documentation URL path |
-| `blurb` | `string` | Short description for UI |
-| `order` | `number` | Sort order in UI listings |
-| `quickstartAllowFrom` | `boolean` | Enable quickstart wizard support |
+| Field                 | Type      | Purpose                              |
+| --------------------- | --------- | ------------------------------------ |
+| `id`                  | `string`  | Unique channel identifier            |
+| `label`               | `string`  | Display name for UI                  |
+| `selectionLabel`      | `string`  | Label for channel selection dropdown |
+| `docsPath`            | `string`  | Documentation URL path               |
+| `blurb`               | `string`  | Short description for UI             |
+| `order`               | `number`  | Sort order in UI listings            |
+| `quickstartAllowFrom` | `boolean` | Enable quickstart wizard support     |
 
 **Sources:** [extensions/nostr/package.json:1-35]()
 
@@ -288,10 +284,10 @@ Diagnostics extensions provide observability integrations:
 
 OpenClaw distinguishes between two extension distribution models:
 
-| Model | Location | Distribution | Example |
-|-------|----------|--------------|---------|
+| Model       | Location                | Distribution            | Example                  |
+| ----------- | ----------------------- | ----------------------- | ------------------------ |
 | **Bundled** | `extensions/` directory | Included in npm package | Discord, Telegram, Slack |
-| **Managed** | External npm packages | Installed separately | Third-party extensions |
+| **Managed** | External npm packages   | Installed separately    | Third-party extensions   |
 
 Bundled extensions are included in the published `openclaw` package under the `extensions/` directory, while managed extensions are installed as separate npm dependencies.
 
@@ -307,18 +303,18 @@ graph LR
         BuildDTS["tsc -p tsconfig.plugin-sdk.dts.json<br/>(TypeScript Declarations)"]
         WriteEntry["write-plugin-sdk-entry-dts.ts<br/>(Entry Point DTS)"]
     end
-    
+
     subgraph "Output Artifacts"
         DistDir["dist/<br/>(Compiled JS)"]
         PluginSDKDist["dist/plugin-sdk/<br/>(SDK Modules)"]
         DTSFiles["*.d.ts<br/>(Type Definitions)"]
     end
-    
+
     TSDownBuild --> DistDir
     CopyAlias --> PluginSDKDist
     BuildDTS --> DTSFiles
     WriteEntry --> DTSFiles
-    
+
     DistDir --> NPMPackage["npm Package<br/>(openclaw)"]
     PluginSDKDist --> NPMPackage
     DTSFiles --> NPMPackage
@@ -354,21 +350,21 @@ dist/
 ```mermaid
 graph TB
     Root["Root Workspace<br/>(openclaw)"]
-    
+
     subgraph "Extension Workspaces"
         Ext1["extensions/discord"]
         Ext2["extensions/nostr"]
         Ext3["extensions/memory-lancedb"]
         Ext4["extensions/diagnostics-otel"]
     end
-    
+
     subgraph "Package Workspaces"
         Pkg1["packages/clawdbot"]
         Pkg2["packages/moltbot"]
     end
-    
+
     UI["ui<br/>(Control UI)"]
-    
+
     Root --> Ext1
     Root --> Ext2
     Root --> Ext3
@@ -376,7 +372,7 @@ graph TB
     Root --> Pkg1
     Root --> Pkg2
     Root --> UI
-    
+
     Pkg1 -.->|workspace:*| Root
     Pkg2 -.->|workspace:*| Root
 ```
@@ -385,10 +381,10 @@ The workspace structure uses pnpm workspaces for monorepo management:
 
 ```yaml
 packages:
-  - .              # Root package (openclaw)
-  - ui             # Control UI
-  - packages/*     # Packages (clawdbot, moltbot)
-  - extensions/*   # Plugin extensions
+  - . # Root package (openclaw)
+  - ui # Control UI
+  - packages/* # Packages (clawdbot, moltbot)
+  - extensions/* # Plugin extensions
 ```
 
 Extensions can reference the root workspace using `workspace:*` protocol:
@@ -409,11 +405,11 @@ OpenClaw uses pnpm's `onlyBuiltDependencies` to control which packages are allow
 
 ```yaml
 onlyBuiltDependencies:
-  - "@lydell/node-pty"
-  - "@matrix-org/matrix-sdk-crypto-nodejs"
-  - "@napi-rs/canvas"
-  - "@tloncorp/api"
-  - "@whiskeysockets/baileys"
+  - '@lydell/node-pty'
+  - '@matrix-org/matrix-sdk-crypto-nodejs'
+  - '@napi-rs/canvas'
+  - '@tloncorp/api'
+  - '@whiskeysockets/baileys'
   - authenticate-pam
   - esbuild
   - node-llama-cpp
@@ -463,10 +459,10 @@ This prevents plugins from importing the entire SDK (`import * from 'openclaw/pl
 
 ```typescript
 // ❌ Avoid - pulls in entire SDK
-import { ChannelPlugin } from 'openclaw/plugin-sdk';
+import { ChannelPlugin } from 'openclaw/plugin-sdk'
 
 // ✅ Preferred - targeted import
-import { ChannelPlugin } from 'openclaw/plugin-sdk/core';
+import { ChannelPlugin } from 'openclaw/plugin-sdk/core'
 ```
 
 **Sources:** [package.json:280]()
@@ -515,9 +511,7 @@ Release checks validate that bundled extensions mirror root package dependencies
 {
   "openclaw": {
     "releaseChecks": {
-      "rootDependencyMirrorAllowlist": [
-        "nostr-tools"
-      ]
+      "rootDependencyMirrorAllowlist": ["nostr-tools"]
     }
   }
 }

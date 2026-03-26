@@ -26,8 +26,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the package structure of the OpenClaw codebase, including the monorepo layout, workspace organization, module exports, and build artifacts. OpenClaw uses a **pnpm workspace** monorepo to manage multiple packages, extensions, and platform-specific applications from a single repository.
 
 For information about the CI/CD build process, see [CI/CD Pipeline](#11.2). For release versioning and publishing, see [Release Process](#11.3).
@@ -44,16 +42,16 @@ graph TB
     UI["ui/<br/>(openclaw-control-ui)"]
     Packages["packages/*<br/>(clawdbot, moltbot)"]
     Extensions["extensions/*<br/>(40+ plugins)"]
-    
+
     Root --> UI
     Root --> Packages
     Root --> Extensions
-    
+
     Packages --> Root
     Extensions --> Root
-    
+
     UI -.-> Root
-    
+
     style Root fill:#f0f0f0,stroke:#333,stroke-width:2px
     style Extensions fill:#f0f0f0,stroke:#333,stroke-width:2px
 ```
@@ -62,12 +60,12 @@ graph TB
 
 ### Workspace Packages
 
-| Workspace Pattern | Description | Example Packages |
-|-------------------|-------------|------------------|
-| `.` | Root package (`openclaw`) | Main npm package, CLI binary, plugin SDK |
-| `ui` | Control UI web application | `openclaw-control-ui` (private) |
-| `packages/*` | Derived packages/bots | `clawdbot`, `moltbot` |
-| `extensions/*` | Channel and tool plugins | `@openclaw/discord`, `@openclaw/telegram`, `@openclaw/nostr` |
+| Workspace Pattern | Description                | Example Packages                                             |
+| ----------------- | -------------------------- | ------------------------------------------------------------ |
+| `.`               | Root package (`openclaw`)  | Main npm package, CLI binary, plugin SDK                     |
+| `ui`              | Control UI web application | `openclaw-control-ui` (private)                              |
+| `packages/*`      | Derived packages/bots      | `clawdbot`, `moltbot`                                        |
+| `extensions/*`    | Channel and tool plugins   | `@openclaw/discord`, `@openclaw/telegram`, `@openclaw/nostr` |
 
 **Sources:** [pnpm-workspace.yaml:1-6](), [ui/package.json:1-29](), [extensions/nostr/package.json:1-35]()
 
@@ -86,29 +84,29 @@ graph LR
         SrcPlugins["plugins/"]
         SrcConfig["config/"]
     end
-    
+
     subgraph "Build Output (dist/)"
         DistIndex["index.js"]
         DistPluginSDK["plugin-sdk/<br/>40+ subpath modules"]
         DistProtocol["protocol.schema.json"]
     end
-    
+
     subgraph "Distribution Files"
         Binary["openclaw.mjs<br/>(CLI entry)"]
         Skills["skills/<br/>(bundled)"]
         Extensions["extensions/<br/>(bundled)"]
         Assets["assets/<br/>(UI/docs)"]
     end
-    
+
     SrcGateway --> DistIndex
     SrcAgent --> DistIndex
     SrcChannels --> DistPluginSDK
     SrcPlugins --> DistPluginSDK
     SrcConfig --> DistIndex
-    
+
     DistIndex --> Binary
     DistPluginSDK --> Extensions
-    
+
     style DistPluginSDK fill:#f0f0f0,stroke:#333,stroke-width:2px
 ```
 
@@ -118,15 +116,15 @@ graph LR
 
 Key fields in [package.json:1-22]():
 
-| Field | Value | Purpose |
-|-------|-------|---------|
-| `name` | `"openclaw"` | npm package name |
-| `version` | `"2026.3.13"` | CalVer versioning |
-| `type` | `"module"` | ES modules only |
-| `bin` | `{"openclaw": "openclaw.mjs"}` | CLI binary |
-| `main` | `"dist/index.js"` | Primary entry point |
-| `engines.node` | `">=22.16.0"` | Minimum Node version |
-| `packageManager` | `"pnpm@10.23.0"` | Enforced package manager |
+| Field            | Value                          | Purpose                  |
+| ---------------- | ------------------------------ | ------------------------ |
+| `name`           | `"openclaw"`                   | npm package name         |
+| `version`        | `"2026.3.13"`                  | CalVer versioning        |
+| `type`           | `"module"`                     | ES modules only          |
+| `bin`            | `{"openclaw": "openclaw.mjs"}` | CLI binary               |
+| `main`           | `"dist/index.js"`              | Primary entry point      |
+| `engines.node`   | `">=22.16.0"`                  | Minimum Node version     |
+| `packageManager` | `"pnpm@10.23.0"`               | Enforced package manager |
 
 **Sources:** [package.json:2-3](), [package.json:16-18](), [package.json:35-36](), [package.json:431-433]()
 
@@ -140,7 +138,7 @@ The `openclaw` package provides extensive **subpath exports** for the plugin SDK
 graph TB
     MainExport["openclaw<br/>(dist/index.js)"]
     PluginSDK["openclaw/plugin-sdk<br/>(core SDK)"]
-    
+
     subgraph "Channel Plugins"
         Telegram["openclaw/plugin-sdk/telegram"]
         Discord["openclaw/plugin-sdk/discord"]
@@ -149,7 +147,7 @@ graph TB
         WhatsApp["openclaw/plugin-sdk/whatsapp"]
         Others["+ 20 more channels"]
     end
-    
+
     subgraph "Utilities"
         Core["openclaw/plugin-sdk/core"]
         Compat["openclaw/plugin-sdk/compat"]
@@ -157,7 +155,7 @@ graph TB
         KeyedQueue["openclaw/plugin-sdk/keyed-async-queue"]
         TestUtils["openclaw/plugin-sdk/test-utils"]
     end
-    
+
     subgraph "Plugins"
         MemoryCore["openclaw/plugin-sdk/memory-core"]
         MemoryLanceDB["openclaw/plugin-sdk/memory-lancedb"]
@@ -165,12 +163,12 @@ graph TB
         LLMTask["openclaw/plugin-sdk/llm-task"]
         Diffs["openclaw/plugin-sdk/diffs"]
     end
-    
+
     PluginSDK --> Telegram
     PluginSDK --> Discord
     PluginSDK --> Core
     PluginSDK --> MemoryCore
-    
+
     style PluginSDK fill:#f0f0f0,stroke:#333,stroke-width:2px
 ```
 
@@ -187,13 +185,13 @@ Each plugin SDK export follows this pattern in [package.json:38-215]():
 }
 ```
 
-| Export Category | Count | Examples |
-|-----------------|-------|----------|
-| Channel plugins | 20+ | `telegram`, `discord`, `slack`, `whatsapp`, `signal`, `imessage`, `matrix`, `nostr` |
-| Core utilities | 5 | `core`, `compat`, `account-id`, `keyed-async-queue`, `test-utils` |
-| Extension plugins | 15+ | `memory-core`, `memory-lancedb`, `voice-call`, `llm-task`, `diffs`, `phone-control` |
-| Authentication | 3 | `google-gemini-cli-auth`, `minimax-portal-auth`, `qwen-portal-auth` |
-| Platform-specific | 5 | `bluebubbles`, `device-pair`, `copilot-proxy`, `acpx` |
+| Export Category   | Count | Examples                                                                            |
+| ----------------- | ----- | ----------------------------------------------------------------------------------- |
+| Channel plugins   | 20+   | `telegram`, `discord`, `slack`, `whatsapp`, `signal`, `imessage`, `matrix`, `nostr` |
+| Core utilities    | 5     | `core`, `compat`, `account-id`, `keyed-async-queue`, `test-utils`                   |
+| Extension plugins | 15+   | `memory-core`, `memory-lancedb`, `voice-call`, `llm-task`, `diffs`, `phone-control` |
+| Authentication    | 3     | `google-gemini-cli-auth`, `minimax-portal-auth`, `qwen-portal-auth`                 |
+| Platform-specific | 5     | `bluebubbles`, `device-pair`, `copilot-proxy`, `acpx`                               |
 
 **Sources:** [package.json:51-86](), [package.json:91-206]()
 
@@ -209,30 +207,30 @@ graph LR
         TS["src/**/*.ts<br/>extensions/**/*.ts"]
         UI["ui/src/**/*.ts"]
     end
-    
+
     subgraph "Build Steps"
         TSDown["tsdown<br/>(bundle)"]
         TSC["tsc<br/>(d.ts generation)"]
         UiBuild["vite build<br/>(UI)"]
         Scripts["Build scripts<br/>(metadata/compat)"]
     end
-    
+
     subgraph "Artifacts"
         DistJS["dist/**/*.js<br/>(bundled code)"]
         DistDTS["dist/**/*.d.ts<br/>(type definitions)"]
         UiDist["dist/ui/<br/>(static assets)"]
         Metadata["dist/build-info.json<br/>dist/cli-compat.json"]
     end
-    
+
     TS --> TSDown
     TS --> TSC
     UI --> UiBuild
-    
+
     TSDown --> DistJS
     TSC --> DistDTS
     UiBuild --> UiDist
     Scripts --> Metadata
-    
+
     style DistJS fill:#f0f0f0,stroke:#333,stroke-width:2px
     style DistDTS fill:#f0f0f0,stroke:#333,stroke-width:2px
 ```
@@ -270,32 +268,32 @@ graph TB
         ExtIndex["index.ts<br/>(entry point)"]
         ExtSrc["src/**/*.ts<br/>(implementation)"]
     end
-    
+
     subgraph "Extension Metadata"
         ExtMeta["openclaw.extensions[]<br/>(entry points)"]
         ExtChannel["openclaw.channel<br/>(channel config)"]
         ExtInstall["openclaw.install<br/>(install config)"]
     end
-    
+
     subgraph "Extension Types"
         Channel["Channel Plugin<br/>(messaging)"]
         Memory["Memory Plugin<br/>(vector/search)"]
         Tool["Tool Plugin<br/>(capabilities)"]
         Auth["Auth Plugin<br/>(provider OAuth)"]
     end
-    
+
     ExtPackage --> ExtMeta
     ExtPackage --> ExtChannel
     ExtPackage --> ExtInstall
-    
+
     ExtMeta --> ExtIndex
     ExtIndex --> ExtSrc
-    
+
     ExtMeta -.-> Channel
     ExtMeta -.-> Memory
     ExtMeta -.-> Tool
     ExtMeta -.-> Auth
-    
+
     style ExtMeta fill:#f0f0f0,stroke:#333,stroke-width:2px
 ```
 
@@ -305,12 +303,12 @@ graph TB
 
 Extensions use an `openclaw` section in `package.json`:
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `extensions` | Yes | Array of entry point paths (e.g., `["./index.ts"]`) |
-| `channel` | No | Channel plugin configuration (id, label, docs, order) |
-| `install` | No | Installation metadata (npm spec, local path, default) |
-| `releaseChecks` | No | Release validation rules |
+| Field           | Required | Description                                           |
+| --------------- | -------- | ----------------------------------------------------- |
+| `extensions`    | Yes      | Array of entry point paths (e.g., `["./index.ts"]`)   |
+| `channel`       | No       | Channel plugin configuration (id, label, docs, order) |
+| `install`       | No       | Installation metadata (npm spec, local path, default) |
+| `releaseChecks` | No       | Release validation rules                              |
 
 **Example:** [extensions/nostr/package.json:10-34]()
 
@@ -348,27 +346,27 @@ graph TB
         iOSActivity["ActivityWidget/<br/>(Live Activities)"]
         iOSWatch["WatchApp/<br/>(watchOS)"]
     end
-    
+
     subgraph "Android (apps/android/)"
         AndroidGradle["app/build.gradle.kts<br/>(Gradle)"]
         AndroidSources["app/src/main/<br/>(Kotlin)"]
         AndroidManifest["AndroidManifest.xml"]
     end
-    
+
     subgraph "macOS (apps/macos/)"
         macOSSources["Sources/<br/>(Swift)"]
         macOSPlist["Resources/Info.plist"]
         macOSPackage["Package.swift<br/>(SPM)"]
     end
-    
+
     subgraph "Shared Framework"
         OpenClawKit["apps/shared/OpenClawKit/<br/>(Swift Package)"]
     end
-    
+
     iOSSources --> OpenClawKit
     AndroidSources -.-> OpenClawKit
     macOSSources --> OpenClawKit
-    
+
     style OpenClawKit fill:#f0f0f0,stroke:#333,stroke-width:2px
 ```
 
@@ -378,13 +376,13 @@ graph TB
 
 The iOS app uses **XcodeGen** for project generation ([apps/ios/project.yml:1-6]()):
 
-| Target | Type | Description |
-|--------|------|-------------|
-| `OpenClaw` | `application` | Main iOS app |
-| `OpenClawShareExtension` | `app-extension` | Share sheet integration |
-| `OpenClawActivityWidget` | `app-extension` | Live Activities support |
-| `OpenClawWatchApp` | `application.watchapp2` | watchOS companion |
-| `OpenClawWatchExtension` | `watchkit2-extension` | watchOS extension |
+| Target                   | Type                    | Description             |
+| ------------------------ | ----------------------- | ----------------------- |
+| `OpenClaw`               | `application`           | Main iOS app            |
+| `OpenClawShareExtension` | `app-extension`         | Share sheet integration |
+| `OpenClawActivityWidget` | `app-extension`         | Live Activities support |
+| `OpenClawWatchApp`       | `application.watchapp2` | watchOS companion       |
+| `OpenClawWatchExtension` | `watchkit2-extension`   | watchOS extension       |
 
 **Sources:** [apps/ios/project.yml:38-281]()
 
@@ -392,14 +390,14 @@ The iOS app uses **XcodeGen** for project generation ([apps/ios/project.yml:1-6]
 
 The Android app uses **Gradle with Kotlin DSL** ([apps/android/app/build.gradle.kts:40-145]()):
 
-| Configuration | Value |
-|---------------|-------|
-| Namespace | `ai.openclaw.app` |
-| Min SDK | 31 (Android 12) |
-| Target SDK | 36 (Android 14+) |
-| Supported ABIs | `armeabi-v7a`, `arm64-v8a`, `x86`, `x86_64` |
-| Minification | ProGuard (release only) |
-| Output filename | `openclaw-{version}-{buildType}.apk` |
+| Configuration   | Value                                       |
+| --------------- | ------------------------------------------- |
+| Namespace       | `ai.openclaw.app`                           |
+| Min SDK         | 31 (Android 12)                             |
+| Target SDK      | 36 (Android 14+)                            |
+| Supported ABIs  | `armeabi-v7a`, `arm64-v8a`, `x86`, `x86_64` |
+| Minification    | ProGuard (release only)                     |
+| Output filename | `openclaw-{version}-{buildType}.apk`        |
 
 **Sources:** [apps/android/app/build.gradle.kts:41-72](), [apps/android/app/build.gradle.kts:74-86](), [apps/android/app/build.gradle.kts:127-139]()
 
@@ -420,7 +418,7 @@ graph LR
         Docs["docs/<br/>(documentation)"]
         Meta["CHANGELOG.md<br/>LICENSE<br/>README.md"]
     end
-    
+
     subgraph "Excluded from npm"
         SrcTS["src/**/*.ts"]
         Test["test/**/*"]
@@ -428,7 +426,7 @@ graph LR
         Scripts["scripts/**/*"]
         GitFiles[".git/**/*"]
     end
-    
+
     style Dist fill:#f0f0f0,stroke:#333,stroke-width:2px
 ```
 
@@ -438,17 +436,17 @@ graph LR
 
 From [package.json:23-34]():
 
-| Path | Description |
-|------|-------------|
-| `openclaw.mjs` | CLI binary entry point |
-| `dist/` | Compiled JavaScript and type definitions |
-| `extensions/` | Bundled extension sources |
-| `skills/` | Bundled skill definitions |
-| `assets/` | UI and documentation assets |
-| `docs/` | Documentation markdown files |
-| `CHANGELOG.md` | Version history |
-| `LICENSE` | MIT license |
-| `README.md` | Package readme |
+| Path           | Description                              |
+| -------------- | ---------------------------------------- |
+| `openclaw.mjs` | CLI binary entry point                   |
+| `dist/`        | Compiled JavaScript and type definitions |
+| `extensions/`  | Bundled extension sources                |
+| `skills/`      | Bundled skill definitions                |
+| `assets/`      | UI and documentation assets              |
+| `docs/`        | Documentation markdown files             |
+| `CHANGELOG.md` | Version history                          |
+| `LICENSE`      | MIT license                              |
+| `README.md`    | Package readme                           |
 
 **Sources:** [package.json:23-34]()
 
@@ -465,13 +463,13 @@ graph TB
         DevDeps["devDependencies<br/>(build/test)"]
         PeerDeps["peerDependencies<br/>(optional)"]
     end
-    
+
     subgraph "PNPM Configuration"
         Overrides["overrides<br/>(version pinning)"]
         OnlyBuilt["onlyBuiltDependencies<br/>(build allowlist)"]
         MinAge["minimumReleaseAge<br/>(48 hours)"]
     end
-    
+
     subgraph "Build-Constrained Deps"
         NodePty["@lydell/node-pty"]
         Canvas["@napi-rs/canvas"]
@@ -479,13 +477,13 @@ graph TB
         Baileys["@whiskeysockets/baileys"]
         NodeLlama["node-llama-cpp"]
     end
-    
+
     Deps --> Overrides
     Overrides --> OnlyBuilt
     OnlyBuilt --> NodePty
     OnlyBuilt --> Canvas
     OnlyBuilt --> Sharp
-    
+
     style OnlyBuilt fill:#f0f0f0,stroke:#333,stroke-width:2px
 ```
 
@@ -495,12 +493,12 @@ graph TB
 
 From [package.json:435-464]():
 
-| Configuration | Value | Purpose |
-|---------------|-------|---------|
-| `minimumReleaseAge` | 2880 minutes (48 hours) | Delay new package versions for stability |
-| `overrides` | Version pinning map | Force specific versions across the tree |
-| `onlyBuiltDependencies` | Allowlist array | Restrict which packages can run install scripts |
-| `packageExtensions` | Dependency additions | Add missing peer/runtime deps |
+| Configuration           | Value                   | Purpose                                         |
+| ----------------------- | ----------------------- | ----------------------------------------------- |
+| `minimumReleaseAge`     | 2880 minutes (48 hours) | Delay new package versions for stability        |
+| `overrides`             | Version pinning map     | Force specific versions across the tree         |
+| `onlyBuiltDependencies` | Allowlist array         | Restrict which packages can run install scripts |
+| `packageExtensions`     | Dependency additions    | Add missing peer/runtime deps                   |
 
 **Example overrides:** [package.json:437-451]()
 
@@ -514,14 +512,14 @@ From [package.json:435-464]():
 
 Only specific packages are allowed to execute build scripts ([package.json:452-464](), [pnpm-workspace.yaml:7-18]()):
 
-| Package | Reason |
-|---------|--------|
-| `@lydell/node-pty` | Native PTY bindings |
-| `@napi-rs/canvas` | Native canvas implementation |
-| `sharp` | Native image processing |
-| `@whiskeysockets/baileys` | WhatsApp protocol (native crypto) |
-| `node-llama-cpp` | Local LLM inference (optional peer) |
-| `@matrix-org/matrix-sdk-crypto-nodejs` | Matrix E2EE native bindings |
+| Package                                | Reason                              |
+| -------------------------------------- | ----------------------------------- |
+| `@lydell/node-pty`                     | Native PTY bindings                 |
+| `@napi-rs/canvas`                      | Native canvas implementation        |
+| `sharp`                                | Native image processing             |
+| `@whiskeysockets/baileys`              | WhatsApp protocol (native crypto)   |
+| `node-llama-cpp`                       | Local LLM inference (optional peer) |
+| `@matrix-org/matrix-sdk-crypto-nodejs` | Matrix E2EE native bindings         |
 
 **Sources:** [package.json:452-464](), [pnpm-workspace.yaml:7-18]()
 
@@ -534,20 +532,20 @@ OpenClaw uses **CalVer** versioning synchronized across all packages and native 
 ```mermaid
 graph LR
     RootVersion["package.json<br/>version: 2026.3.13"]
-    
+
     iOSVersion["apps/ios/Sources/Info.plist<br/>CFBundleShortVersionString<br/>CFBundleVersion"]
-    
+
     AndroidVersion["apps/android/app/build.gradle.kts<br/>versionName: 2026.3.13<br/>versionCode: 202603130"]
-    
+
     macOSVersion["apps/macos/Sources/.../Info.plist<br/>CFBundleShortVersionString<br/>CFBundleVersion"]
-    
+
     ExtVersions["extensions/*/package.json<br/>version: 2026.3.13"]
-    
+
     RootVersion --> iOSVersion
     RootVersion --> AndroidVersion
     RootVersion --> macOSVersion
     RootVersion --> ExtVersions
-    
+
     style RootVersion fill:#f0f0f0,stroke:#333,stroke-width:2px
 ```
 
@@ -555,11 +553,11 @@ graph LR
 
 ### Version Scheme
 
-| Platform | Marketing Version | Build Version | Format |
-|----------|-------------------|---------------|--------|
-| npm | `2026.3.13` | N/A | CalVer (`YYYY.M.D`) |
-| iOS | `OPENCLAW_MARKETING_VERSION` | `OPENCLAW_BUILD_VERSION` | From xcconfig |
-| Android | `versionName` | `versionCode` (202603130) | Numeric build code |
-| macOS | `CFBundleShortVersionString` | `CFBundleVersion` | From Info.plist |
+| Platform | Marketing Version            | Build Version             | Format              |
+| -------- | ---------------------------- | ------------------------- | ------------------- |
+| npm      | `2026.3.13`                  | N/A                       | CalVer (`YYYY.M.D`) |
+| iOS      | `OPENCLAW_MARKETING_VERSION` | `OPENCLAW_BUILD_VERSION`  | From xcconfig       |
+| Android  | `versionName`                | `versionCode` (202603130) | Numeric build code  |
+| macOS    | `CFBundleShortVersionString` | `CFBundleVersion`         | From Info.plist     |
 
 **Sources:** [package.json:3](), [apps/ios/Sources/Info.plist:26](), [apps/android/app/build.gradle.kts:66-67](), [apps/macos/Sources/OpenClaw/Resources/Info.plist:18-20]()

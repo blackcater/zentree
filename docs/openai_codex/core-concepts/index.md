@@ -20,11 +20,10 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the fundamental architectural patterns and systems that form the foundation of the Codex codebase. These concepts are invariant across all execution modes (TUI, CLI, IDE integration) and provide the core abstractions for session management, configuration, and security.
 
 For detailed information about specific subsystems built on these concepts, see:
+
 - Session lifecycle and threading: [#3.1](#3.1)
 - Tool execution and sandboxing: [#5.5](#5.5)
 - Configuration file formats and profiles: [#2.2](#2.2)
@@ -43,13 +42,13 @@ graph TB
     Codex["Codex Struct<br/>tx_sub: Sender&lt;Submission&gt;<br/>rx_event: Receiver&lt;Event&gt;"]
     Loop["submission_loop()<br/>Async Task"]
     Session["Session Struct<br/>Turn Orchestration"]
-    
+
     UI -->|"submit(Op)"| Codex
     Codex -->|"Submission Queue"| Loop
     Loop -->|"Process Op"| Session
     Session -->|"Event Stream"| Codex
     Codex -->|"next_event()"| UI
-    
+
     style Codex fill:#f9f9f9
     style Session fill:#f9f9f9
 ```
@@ -69,9 +68,9 @@ graph LR
         ExecApproval["ExecApproval<br/>Approve command"]
         Shutdown["Shutdown<br/>Terminate session"]
     end
-    
+
     Submission["Submission<br/>id: String<br/>op: Op<br/>trace: W3cTraceContext"]
-    
+
     UserInput --> Submission
     UserTurn --> Submission
     Interrupt --> Submission
@@ -81,14 +80,14 @@ graph LR
 
 **Key submission types:**
 
-| Op Variant | Purpose | Fields |
-|------------|---------|--------|
-| `UserInput` | Legacy user input submission | `items: Vec<UserInput>` |
-| `UserTurn` | Full turn with context | `items`, `cwd`, `model`, `approval_policy`, `sandbox_policy` |
-| `Interrupt` | Abort the current turn | None |
-| `ExecApproval` | Approve/deny command execution | `id`, `turn_id`, `decision` |
-| `PatchApproval` | Approve/deny file patch | `id`, `decision` |
-| `Shutdown` | Terminate the session | None |
+| Op Variant      | Purpose                        | Fields                                                       |
+| --------------- | ------------------------------ | ------------------------------------------------------------ |
+| `UserInput`     | Legacy user input submission   | `items: Vec<UserInput>`                                      |
+| `UserTurn`      | Full turn with context         | `items`, `cwd`, `model`, `approval_policy`, `sandbox_policy` |
+| `Interrupt`     | Abort the current turn         | None                                                         |
+| `ExecApproval`  | Approve/deny command execution | `id`, `turn_id`, `decision`                                  |
+| `PatchApproval` | Approve/deny file patch        | `id`, `decision`                                             |
+| `Shutdown`      | Terminate the session          | None                                                         |
 
 **Sources:** [codex-rs/protocol/src/protocol.rs:181-479](), [codex-rs/core/src/codex.rs:636-666]()
 
@@ -104,11 +103,11 @@ graph TB
         Codex["Codex<br/>rx_event: Receiver&lt;Event&gt;"]
         UI["UI Event Loop"]
     end
-    
+
     Session -->|"emit(EventMsg)"| EventTypes
     EventTypes -->|"Event{id, msg}"| Codex
     Codex -->|"next_event()"| UI
-    
+
     EventTypes -.->|"TurnStarted"| T1["Turn Lifecycle"]
     EventTypes -.->|"AgentMessageDelta"| T2["Streaming Output"]
     EventTypes -.->|"ExecCommandBegin"| T3["Tool Execution"]
@@ -118,13 +117,13 @@ graph TB
 
 **Common event categories:**
 
-| Category | Events | Usage |
-|----------|--------|-------|
-| Turn Lifecycle | `TurnStarted`, `TurnComplete`, `TurnAborted` | Track turn boundaries |
-| Agent Output | `AgentMessageDelta`, `AgentMessage`, `AgentReasoning` | Stream agent responses |
-| Tool Execution | `ExecCommandBegin`, `ExecCommandEnd`, `McpToolCallBegin` | Tool call lifecycle |
+| Category         | Events                                                          | Usage                  |
+| ---------------- | --------------------------------------------------------------- | ---------------------- |
+| Turn Lifecycle   | `TurnStarted`, `TurnComplete`, `TurnAborted`                    | Track turn boundaries  |
+| Agent Output     | `AgentMessageDelta`, `AgentMessage`, `AgentReasoning`           | Stream agent responses |
+| Tool Execution   | `ExecCommandBegin`, `ExecCommandEnd`, `McpToolCallBegin`        | Tool call lifecycle    |
 | User Interaction | `ExecApprovalRequest`, `RequestUserInput`, `ElicitationRequest` | Request user decisions |
-| Errors | `Error`, `Warning`, `StreamError` | Error reporting |
+| Errors           | `Error`, `Warning`, `StreamError`                               | Error reporting        |
 
 **Sources:** [codex-rs/protocol/src/protocol.rs:1-76](), [codex-rs/core/src/codex.rs:679-686]()
 
@@ -139,11 +138,11 @@ sequenceDiagram
     participant Loop as submission_loop
     participant Session
     participant rx_event as Event Stream
-    
+
     UI->>tx_sub: submit(Op::UserInput)
     Loop->>tx_sub: rx_sub.recv()
     tx_sub-->>Loop: Submission
-    
+
     alt Op::UserInput or Op::UserTurn
         Loop->>Session: spawn_task(RegularTask)
         Session->>rx_event: emit(TurnStarted)
@@ -157,7 +156,7 @@ sequenceDiagram
         Loop->>rx_event: emit(ShutdownComplete)
         Note over Loop: Exit loop
     end
-    
+
     UI->>rx_event: next_event()
     rx_event-->>UI: Event
 ```
@@ -204,7 +203,7 @@ graph TB
     Project["Project Config<br/>.codex/config.toml"]
     Global["User Config<br/>~/.codex/config.toml"]
     Defaults["Built-in Defaults<br/>Hardcoded in Config::default()"]
-    
+
     CLI --> Merge["ConfigBuilder::merge()"]
     Features --> Merge
     Profile --> Merge
@@ -212,7 +211,7 @@ graph TB
     Project --> Merge
     Global --> Merge
     Defaults --> Merge
-    
+
     Merge --> Validate["ConstraintResult<br/>requirements.toml enforcement"]
     Validate --> Final["Final Config<br/>Arc&lt;Config&gt;"]
 ```
@@ -223,15 +222,15 @@ graph TB
 
 The `Config` struct holds all session configuration. It is wrapped in `Arc<Config>` and shared across components:
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `model` | `Option<String>` | Selected model slug |
-| `model_provider` | `ModelProviderInfo` | Provider endpoint configuration |
-| `permissions` | `PermissionsConfig` | Approval and sandbox policies |
-| `features` | `ManagedFeatures` | Feature flag state |
-| `cwd` | `PathBuf` | Working directory for tool execution |
-| `mcp_servers` | `HashMap<String, McpServerConfig>` | MCP server configurations |
-| `codex_home` | `PathBuf` | Codex data directory (~/.codex) |
+| Field            | Type                               | Purpose                              |
+| ---------------- | ---------------------------------- | ------------------------------------ |
+| `model`          | `Option<String>`                   | Selected model slug                  |
+| `model_provider` | `ModelProviderInfo`                | Provider endpoint configuration      |
+| `permissions`    | `PermissionsConfig`                | Approval and sandbox policies        |
+| `features`       | `ManagedFeatures`                  | Feature flag state                   |
+| `cwd`            | `PathBuf`                          | Working directory for tool execution |
+| `mcp_servers`    | `HashMap<String, McpServerConfig>` | MCP server configurations            |
+| `codex_home`     | `PathBuf`                          | Codex data directory (~/.codex)      |
 
 **Sources:** [codex-rs/core/src/codex.rs:556-581]()
 
@@ -293,22 +292,22 @@ stateDiagram-v2
     Stable --> Deprecated: End of life
     Deprecated --> Removed: Clean up
     Removed --> [*]
-    
+
     note right of UnderDevelopment
         Hidden by default
         Not in /experimental menu
     end note
-    
+
     note right of Experimental
         Available in /experimental menu
         Opt-in via --experimental-*
     end note
-    
+
     note right of Stable
         Enabled by default
         Cannot be disabled via UI
     end note
-    
+
     note right of Deprecated
         Warning on use
         Planned removal
@@ -332,13 +331,13 @@ pub struct Feature {
 
 **Feature stages:**
 
-| Stage | Visibility | Default State | Can Toggle |
-|-------|-----------|---------------|------------|
-| `UnderDevelopment` | Hidden | Disabled | Force-enable via CLI |
-| `Experimental` | `/experimental` menu | Disabled | Yes |
-| `Stable` | Always available | Enabled | No (unless pinned) |
-| `Deprecated` | Always available | Enabled | Yes, with warning |
-| `Removed` | No-op | Disabled | Ignored |
+| Stage              | Visibility           | Default State | Can Toggle           |
+| ------------------ | -------------------- | ------------- | -------------------- |
+| `UnderDevelopment` | Hidden               | Disabled      | Force-enable via CLI |
+| `Experimental`     | `/experimental` menu | Disabled      | Yes                  |
+| `Stable`           | Always available     | Enabled       | No (unless pinned)   |
+| `Deprecated`       | Always available     | Enabled       | Yes, with warning    |
+| `Removed`          | No-op                | Disabled      | Ignored              |
 
 **Sources:** [codex-rs/core/src/codex.rs:29-31](), Diagram 6 from system overview
 
@@ -351,10 +350,10 @@ graph LR
     Config["Config<br/>features: ManagedFeatures"]
     Session["Session<br/>features: ManagedFeatures"]
     TurnContext["TurnContext<br/>features: ManagedFeatures"]
-    
+
     Config -->|"Arc::clone"| Session
     Session -->|"clone"| TurnContext
-    
+
     Config -.->|"Session-scoped<br/>invariant"| Note["Feature state cannot<br/>change during session"]
 ```
 
@@ -373,7 +372,7 @@ flowchart TB
     Check["Check Feature State"]
     Check -->|"enabled(Feature::JsRepl)"| EnabledPath["Load JsReplHandle<br/>Register js_repl tools"]
     Check -->|"disabled"| DisabledPath["Skip js_repl setup<br/>Tools unavailable"]
-    
+
     EnabledPath --> ValidateNode["Validate Node.js runtime"]
     ValidateNode -->|"Compatible"| Success["Feature Active"]
     ValidateNode -->|"Incompatible"| Fallback["Disable feature<br/>Add startup warning"]
@@ -395,19 +394,19 @@ The `AskForApproval` enum determines when user consent is required:
 graph TB
     ToolCall["Tool Call Request"]
     Policy["AskForApproval Policy"]
-    
+
     ToolCall --> Policy
-    
+
     Policy -->|"UnlessTrusted"| Check1["is_safe_command()?"]
     Check1 -->|"Yes + read-only"| AutoApprove1["Auto-approve"]
     Check1 -->|"No"| Prompt1["Request Approval"]
-    
+
     Policy -->|"OnRequest"| Check2["Model requested approval?"]
     Check2 -->|"Yes"| Prompt2["Request Approval"]
     Check2 -->|"No"| AutoApprove2["Auto-approve"]
-    
+
     Policy -->|"Never"| AutoApprove3["Auto-approve<br/>(returns errors to model)"]
-    
+
     Policy -->|"Granular(config)"| Check3["Check flow-specific flag"]
     Check3 -->|"Allowed"| Prompt3["Request Approval"]
     Check3 -->|"Denied"| Reject["Auto-reject"]
@@ -415,12 +414,12 @@ graph TB
 
 **Policy variants:**
 
-| Variant | Behavior | Use Case |
-|---------|----------|----------|
-| `UnlessTrusted` | Auto-approve safe read-only commands | Interactive use with safety checks |
-| `OnRequest` | Model decides when to ask | Default for most scenarios |
-| `Never` | Never prompt user | Non-interactive execution |
-| `Granular(config)` | Fine-grained per-flow control | Enterprise with specific approval requirements |
+| Variant            | Behavior                             | Use Case                                       |
+| ------------------ | ------------------------------------ | ---------------------------------------------- |
+| `UnlessTrusted`    | Auto-approve safe read-only commands | Interactive use with safety checks             |
+| `OnRequest`        | Model decides when to ask            | Default for most scenarios                     |
+| `Never`            | Never prompt user                    | Non-interactive execution                      |
+| `Granular(config)` | Fine-grained per-flow control        | Enterprise with specific approval requirements |
 
 **Sources:** [codex-rs/protocol/src/protocol.rs:483-570](), [codex-rs/core/src/codex.rs:566]()
 
@@ -436,14 +435,14 @@ graph TB
         Workspace["WorkspaceWrite<br/>Write to cwd + allowed roots<br/>Optional network"]
         External["ExternalSandbox<br/>Assume external isolation<br/>Specify network access"]
     end
-    
+
     Exec["Command Execution"]
-    
+
     Full -.-> Exec
     ReadOnly --> Platform["Platform-specific sandbox"]
     Workspace --> Platform
     External --> Exec
-    
+
     Platform -->|"Linux"| Landlock["Landlock LSM<br/>Restrict paths"]
     Platform -->|"macOS"| Seatbelt["Seatbelt sandbox-exec<br/>Restrict paths"]
     Platform -->|"Windows"| Token["Restricted Token<br/>Limited privileges"]
@@ -451,12 +450,12 @@ graph TB
 
 **Policy details:**
 
-| Policy | Filesystem Access | Network Access | Typical Use |
-|--------|------------------|----------------|-------------|
-| `DangerFullAccess` | Unrestricted | Unrestricted | Trusted scripts, local development |
-| `ReadOnly` | Read-only (configurable roots) | Optional | Safe exploration, read operations |
-| `WorkspaceWrite` | cwd + writable_roots | Optional | Project work with write isolation |
-| `ExternalSandbox` | Full read/write (external isolation) | Configurable | Docker, VM, cloud sandbox |
+| Policy             | Filesystem Access                    | Network Access | Typical Use                        |
+| ------------------ | ------------------------------------ | -------------- | ---------------------------------- |
+| `DangerFullAccess` | Unrestricted                         | Unrestricted   | Trusted scripts, local development |
+| `ReadOnly`         | Read-only (configurable roots)       | Optional       | Safe exploration, read operations  |
+| `WorkspaceWrite`   | cwd + writable_roots                 | Optional       | Project work with write isolation  |
+| `ExternalSandbox`  | Full read/write (external isolation) | Configurable   | Docker, VM, cloud sandbox          |
 
 **Sources:** [codex-rs/protocol/src/protocol.rs:659-758](), [codex-rs/core/src/codex.rs:568-569]()
 
@@ -471,18 +470,18 @@ graph TB
         Entry1["Entry: /project<br/>mode: ReadWrite"]
         Entry2["Entry: /tmp<br/>mode: Write"]
         Entry3["Entry: /etc<br/>mode: Read"]
-        
+
         Entries --> Entry1
         Entries --> Entry2
         Entries --> Entry3
     end
-    
+
     subgraph "Special Paths"
         Minimal[":minimal<br/>OS system paths only"]
         Root[":root<br/>Filesystem root"]
         ProjectRoots[":project_roots<br/>Git roots of workspace"]
     end
-    
+
     Entries -.-> Minimal
     Entries -.-> Root
     Entries -.-> ProjectRoots
@@ -506,10 +505,10 @@ sequenceDiagram
     participant Approval as ApprovalStore
     participant ExecPolicy as ExecPolicyManager
     participant Sandbox as SandboxBackend
-    
+
     Tool->>Router: execute(command, args)
     Router->>Approval: calculate_approval_requirement()
-    
+
     alt Approval Required
         Approval->>User: ExecApprovalRequest event
         User->>Approval: ExecApproval(decision)
@@ -517,10 +516,10 @@ sequenceDiagram
             Approval-->>Tool: Error: User denied
         end
     end
-    
+
     Router->>ExecPolicy: evaluate_rule(command)
     ExecPolicy-->>Router: Allow/Deny/Warn + amendments
-    
+
     alt Policy Denies
         Router-->>Tool: Error: Policy denied
     else Policy Allows
@@ -576,17 +575,17 @@ Codex uses structured error types with retry semantics:
 ```mermaid
 graph TB
     CodexErr["CodexErr"]
-    
+
     Retryable["Retryable Errors<br/>is_retryable() = true"]
     NonRetryable["Non-Retryable Errors<br/>is_retryable() = false"]
-    
+
     CodexErr --> Retryable
     CodexErr --> NonRetryable
-    
+
     Retryable --> Stream["Stream(msg, delay)<br/>Connection interrupted"]
     Retryable --> Timeout["Timeout<br/>Process timeout"]
     Retryable --> Unexpected["UnexpectedStatus<br/>HTTP errors"]
-    
+
     NonRetryable --> Aborted["TurnAborted<br/>User interrupted"]
     NonRetryable --> Fatal["Fatal(msg)<br/>Unrecoverable error"]
     NonRetryable --> Quota["QuotaExceeded<br/>Usage limit reached"]
@@ -594,15 +593,15 @@ graph TB
 
 **Key error types:**
 
-| Error | Retryable | Description |
-|-------|-----------|-------------|
-| `Stream(msg, delay)` | Yes | Stream disconnected, optional backoff delay |
-| `Timeout` | Yes | Process execution timeout |
-| `UnexpectedStatus` | Yes | HTTP non-2xx status |
-| `TurnAborted` | No | User pressed Ctrl+C or sent Interrupt |
-| `QuotaExceeded` | No | Account usage limit reached |
-| `ContextWindowExceeded` | No | Model context window full |
-| `UsageLimitReached` | No | Rate limit or quota exceeded |
+| Error                   | Retryable | Description                                 |
+| ----------------------- | --------- | ------------------------------------------- |
+| `Stream(msg, delay)`    | Yes       | Stream disconnected, optional backoff delay |
+| `Timeout`               | Yes       | Process execution timeout                   |
+| `UnexpectedStatus`      | Yes       | HTTP non-2xx status                         |
+| `TurnAborted`           | No        | User pressed Ctrl+C or sent Interrupt       |
+| `QuotaExceeded`         | No        | Account usage limit reached                 |
+| `ContextWindowExceeded` | No        | Model context window full                   |
+| `UsageLimitReached`     | No        | Rate limit or quota exceeded                |
 
 **Sources:** [codex-rs/core/src/error.rs:64-231](), [codex-rs/codex-api/src/error.rs:1-39]()
 
@@ -612,9 +611,9 @@ graph TB
 
 Codex supports two event persistence modes for rollout files:
 
-| Mode | Events Persisted | Use Case |
-|------|-----------------|----------|
-| `Limited` | Turn boundaries, agent messages, token counts | Default, minimal storage |
+| Mode       | Events Persisted                                | Use Case                   |
+| ---------- | ----------------------------------------------- | -------------------------- |
+| `Limited`  | Turn boundaries, agent messages, token counts   | Default, minimal storage   |
 | `Extended` | Adds tool execution results, errors, web search | Debugging, detailed replay |
 
 **Persistence filter logic:**

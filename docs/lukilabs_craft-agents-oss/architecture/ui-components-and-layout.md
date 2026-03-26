@@ -15,8 +15,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the UI component architecture of Craft Agents: the shared `@craft-agent/ui` package, the Electron renderer's application shell and chat components, and how they compose into the three-panel layout. For the IPC communication that backs many UI actions, see [2.6](#2.6). For the session lifecycle that drives the data rendered here, see [2.7](#2.7). For Mermaid diagram rendering specifically, see [2.11](#2.11).
 
 ---
@@ -27,32 +25,32 @@ The `@craft-agent/ui` package at `packages/ui/` is a React component library con
 
 ### Package Exports
 
-| Export path | Contents |
-|---|---|
-| `.` (index) | All public components and utilities |
-| `./chat` | `SessionViewer`, `TurnCard`, grouped re-exports |
-| `./chat/SessionViewer` | Standalone session transcript viewer |
-| `./chat/TurnCard` | Single assistant turn renderer |
-| `./chat/turn-utils` | `groupMessagesByTurn`, `formatTurnAsMarkdown`, etc. |
-| `./markdown` | `Markdown`, `StreamingMarkdown`, `CodeBlock`, etc. |
-| `./context` | Shared React contexts |
-| `./styles` | Base CSS (Tailwind v4) |
+| Export path            | Contents                                            |
+| ---------------------- | --------------------------------------------------- |
+| `.` (index)            | All public components and utilities                 |
+| `./chat`               | `SessionViewer`, `TurnCard`, grouped re-exports     |
+| `./chat/SessionViewer` | Standalone session transcript viewer                |
+| `./chat/TurnCard`      | Single assistant turn renderer                      |
+| `./chat/turn-utils`    | `groupMessagesByTurn`, `formatTurnAsMarkdown`, etc. |
+| `./markdown`           | `Markdown`, `StreamingMarkdown`, `CodeBlock`, etc.  |
+| `./context`            | Shared React contexts                               |
+| `./styles`             | Base CSS (Tailwind v4)                              |
 
 Sources: [packages/ui/package.json:1-67]()
 
 ### Key Dependencies
 
-| Dependency | Role |
-|---|---|
-| `@craft-agent/core` | Shared types (`ToolDisplayMeta`, etc.) |
-| `beautiful-mermaid` | Mermaid diagram rendering in chat |
-| `@pierre/diffs` | Line-level diff calculation for Edit/Write overlays |
-| `shiki` | Syntax highlighting in code blocks |
-| `unified` / `rehype-*` / `remark-*` | Markdown processing pipeline |
-| `katex` | Math formula rendering |
-| `motion` | Animation (AnimatePresence, motion.div) |
-| `jotai` | State atoms (optional peer dep) |
-| `@uiw/react-json-view` | JSON tree viewer in overlays |
+| Dependency                          | Role                                                |
+| ----------------------------------- | --------------------------------------------------- |
+| `@craft-agent/core`                 | Shared types (`ToolDisplayMeta`, etc.)              |
+| `beautiful-mermaid`                 | Mermaid diagram rendering in chat                   |
+| `@pierre/diffs`                     | Line-level diff calculation for Edit/Write overlays |
+| `shiki`                             | Syntax highlighting in code blocks                  |
+| `unified` / `rehype-*` / `remark-*` | Markdown processing pipeline                        |
+| `katex`                             | Math formula rendering                              |
+| `motion`                            | Animation (AnimatePresence, motion.div)             |
+| `jotai`                             | State atoms (optional peer dep)                     |
+| `@uiw/react-json-view`              | JSON tree viewer in overlays                        |
 
 Sources: [packages/ui/package.json:19-52]()
 
@@ -85,11 +83,11 @@ Sources: [apps/electron/src/renderer/components/app-shell/AppShell.tsx:444-451](
 
 Default proportions are `[LeftSidebar 20%] | [Navigator 32%] | [MainContent 48%]` but in practice widths are pixel-based and persisted to `localStorage`:
 
-| Panel | Default width | localStorage key |
-|---|---|---|
-| Left sidebar | 220 px | `sidebarWidth` |
-| Session list / Navigator | 300 px | `sessionListWidth` |
-| Main content | remaining | — |
+| Panel                    | Default width | localStorage key   |
+| ------------------------ | ------------- | ------------------ |
+| Left sidebar             | 220 px        | `sidebarWidth`     |
+| Session list / Navigator | 300 px        | `sessionListWidth` |
+| Main content             | remaining     | —                  |
 
 Drag handles are managed with `ResizeObserver` and two refs (`resizeHandleRef`, `sessionListHandleRef`). Focus mode (`isSidebarAndNavigatorHidden`, toggled via `app.toggleFocusMode` action / CMD+.) hides both the left sidebar and the navigator panel, leaving only the main content.
 
@@ -99,18 +97,19 @@ Sources: [apps/electron/src/renderer/components/app-shell/AppShell.tsx:494-510](
 
 The navigator panel (middle column) renders different content depending on the active `NavigationContext` state:
 
-| Navigation state | Navigator renders | Checked via |
-|---|---|---|
-| `sessions` | `SessionList` | `isSessionsNavigation(navState)` |
-| `sources` | `SourcesListPanel` | `isSourcesNavigation(navState)` |
-| `skills` | `SkillsListPanel` | `isSkillsNavigation(navState)` |
-| `automations` | `AutomationsListPanel` | `isAutomationsNavigation(navState)` |
+| Navigation state | Navigator renders      | Checked via                         |
+| ---------------- | ---------------------- | ----------------------------------- |
+| `sessions`       | `SessionList`          | `isSessionsNavigation(navState)`    |
+| `sources`        | `SourcesListPanel`     | `isSourcesNavigation(navState)`     |
+| `skills`         | `SkillsListPanel`      | `isSkillsNavigation(navState)`      |
+| `automations`    | `AutomationsListPanel` | `isAutomationsNavigation(navState)` |
 
 Sources: [apps/electron/src/renderer/components/app-shell/AppShell.tsx:565-580]()
 
 ### Left Sidebar
 
 `LeftSidebar` provides workspace-level navigation. It contains:
+
 - Workspace selector
 - Navigation items for Sessions, Sources, Skills, and Automations
 - Label tree (expandable/collapsible per label group)
@@ -190,12 +189,12 @@ Sources: [apps/electron/src/renderer/components/app-shell/ChatDisplay.tsx:197-20
 
 Messages are grouped into turns by `groupMessagesByTurn` (from `@craft-agent/ui/chat/turn-utils`) before rendering. Each turn type renders a different component:
 
-| Turn type | Rendered by | Notes |
-|---|---|---|
-| `user` | `UserMessageBubble` | Right-aligned bubble, supports attachments and badges |
-| `assistant` | `TurnCard` | Expand/collapse, tool activities, streaming response |
-| `system` | `MessageBubble` | Error, status, info, warning variants |
-| `auth-request` | `MemoizedAuthRequestCard` | OAuth/credential prompt, interactive only if last |
+| Turn type      | Rendered by               | Notes                                                 |
+| -------------- | ------------------------- | ----------------------------------------------------- |
+| `user`         | `UserMessageBubble`       | Right-aligned bubble, supports attachments and badges |
+| `assistant`    | `TurnCard`                | Expand/collapse, tool activities, streaming response  |
+| `system`       | `MessageBubble`           | Error, status, info, warning variants                 |
+| `auth-request` | `MemoizedAuthRequestCard` | OAuth/credential prompt, interactive only if last     |
 
 All rendered turns are wrapped in a `div` with a `ref` stored in `turnRefs` (a `Map<string, HTMLDivElement>`) for search highlighting.
 
@@ -239,16 +238,16 @@ Sources: [packages/ui/src/components/chat/TurnCard.tsx:187-210]()
 
 During streaming, `TurnCard` uses a buffering algorithm (`shouldShowContent`) to delay showing the response text until enough content has accumulated, preventing rapid layout shifts:
 
-| Trigger | Threshold | Min words |
-|---|---|---|
-| Always show | Stream complete | — |
-| Code block detected | ≥ 500 ms elapsed | 15 words |
-| Header (`#`) detected | ≥ 500 ms elapsed | 12 words |
-| List detected | ≥ 500 ms elapsed | 20 words |
-| Question ending | ≥ 500 ms elapsed | 8 words |
-| Standard prose | ≥ 500 ms elapsed | 40 words + structure |
-| High word count | ≥ 500 ms elapsed | 60 words (any) |
-| Timeout | > 2500 ms elapsed | 5 words |
+| Trigger               | Threshold         | Min words            |
+| --------------------- | ----------------- | -------------------- |
+| Always show           | Stream complete   | —                    |
+| Code block detected   | ≥ 500 ms elapsed  | 15 words             |
+| Header (`#`) detected | ≥ 500 ms elapsed  | 12 words             |
+| List detected         | ≥ 500 ms elapsed  | 20 words             |
+| Question ending       | ≥ 500 ms elapsed  | 8 words              |
+| Standard prose        | ≥ 500 ms elapsed  | 40 words + structure |
+| High word count       | ≥ 500 ms elapsed  | 60 words (any)       |
+| Timeout               | > 2500 ms elapsed | 5 words              |
 
 Sources: [packages/ui/src/components/chat/TurnCard.tsx:295-424]()
 
@@ -298,6 +297,7 @@ Sources: [packages/ui/src/components/chat/TurnCard.tsx:554-619]()
 - **Structured mode** (`StructuredInputState`): Rendered when `pendingPermission` or `pendingCredential` is set. Shows the permission prompt or credential request UI instead of the text input.
 
 `ActiveOptionBadges` renders above the input and shows active session options as dismissible chips:
+
 - Ultrathink mode badge
 - Permission mode indicator (ModeManager)
 - Background task badges (with kill buttons)
@@ -337,11 +337,11 @@ Sources: [packages/ui/src/components/overlay/PreviewOverlay.tsx:1-210](), [apps/
 
 `PreviewOverlay` is the base for all full-screen/modal previews. It switches between two rendering modes based on `useOverlayMode()` (which checks viewport width against `OVERLAY_LAYOUT`):
 
-| Mode | Trigger | Behavior |
-|---|---|---|
+| Mode       | Trigger           | Behavior                                                                                    |
+| ---------- | ----------------- | ------------------------------------------------------------------------------------------- |
 | Fullscreen | viewport < 1200px | Delegated to `FullscreenOverlayBase`, which owns its own masked scroll container and header |
-| Modal | viewport ≥ 1200px | Rendered via `ReactDOM.createPortal` to `document.body`, backdrop click closes |
-| Embedded | `embedded` prop | Inline `div`, no portal, for design system playground |
+| Modal      | viewport ≥ 1200px | Rendered via `ReactDOM.createPortal` to `document.body`, backdrop click closes              |
+| Embedded   | `embedded` prop   | Inline `div`, no portal, for design system playground                                       |
 
 Escape key handling: modal mode adds a `keydown` listener; fullscreen mode is handled by `FullscreenOverlayBase`.
 
@@ -363,12 +363,12 @@ type OverlayState =
 
 When an activity row is clicked (`onOpenActivityDetails`), the routing logic selects the overlay type:
 
-| Activity | Overlay shown |
-|---|---|
-| `Bash` or `mcp__*` | `ActivityCardsOverlay` (stacked input/output cards) |
-| `Edit` or `Write` (non-markdown) | `MultiDiffPreviewOverlay` (diff view) |
-| `Write` to `.md`/`.txt` | `DocumentFormattedMarkdownOverlay` |
-| Other tools | `GenericOverlay` or `DocumentFormattedMarkdownOverlay` depending on content |
+| Activity                         | Overlay shown                                                               |
+| -------------------------------- | --------------------------------------------------------------------------- |
+| `Bash` or `mcp__*`               | `ActivityCardsOverlay` (stacked input/output cards)                         |
+| `Edit` or `Write` (non-markdown) | `MultiDiffPreviewOverlay` (diff view)                                       |
+| `Write` to `.md`/`.txt`          | `DocumentFormattedMarkdownOverlay`                                          |
+| Other tools                      | `GenericOverlay` or `DocumentFormattedMarkdownOverlay` depending on content |
 
 Sources: [apps/electron/src/renderer/components/app-shell/ChatDisplay.tsx:63-91](), [apps/electron/src/renderer/components/app-shell/ChatDisplay.tsx:1547-1590]()
 
@@ -384,14 +384,14 @@ Sources: [packages/ui/src/components/overlay/GenericOverlay.tsx:45-112]()
 
 `AppShellProvider` supplies `AppShellContextType` via React context. All major child components access data and callbacks through `useAppShellContext()` instead of prop drilling. The key fields:
 
-| Category | Examples |
-|---|---|
-| Workspace data | `workspaces`, `activeWorkspaceId`, `llmConnections` |
-| Session callbacks | `onSendMessage`, `onDeleteSession`, `onFlagSession`, `onRenameSession` |
-| Permission handling | `onRespondToPermission`, `onRespondToCredential`, `pendingPermissions` |
-| Input state | `textareaRef`, `getDraft`, `onInputChange` |
-| Workspace config | `enabledSources`, `skills`, `labels`, `sessionStatuses`, `enabledModes` |
-| UI refs | `chatDisplayRef`, `onChatMatchInfoChange` |
+| Category            | Examples                                                                |
+| ------------------- | ----------------------------------------------------------------------- |
+| Workspace data      | `workspaces`, `activeWorkspaceId`, `llmConnections`                     |
+| Session callbacks   | `onSendMessage`, `onDeleteSession`, `onFlagSession`, `onRenameSession`  |
+| Permission handling | `onRespondToPermission`, `onRespondToCredential`, `pendingPermissions`  |
+| Input state         | `textareaRef`, `getDraft`, `onInputChange`                              |
+| Workspace config    | `enabledSources`, `skills`, `labels`, `sessionStatuses`, `enabledModes` |
+| UI refs             | `chatDisplayRef`, `onChatMatchInfoChange`                               |
 
 Session-specific Jotai atoms are used for isolated per-session updates: `sessionMetaMapAtom`, `loadedSessionsAtom`, `ensureSessionMessagesLoadedAtom` control lazy loading. The panel stack is managed by `panelStackAtom`, `focusedPanelIdAtom`, and `focusedSessionIdAtom`.
 
@@ -403,13 +403,13 @@ Sources: [apps/electron/src/renderer/components/app-shell/AppShell.tsx:464-489](
 
 `PanelStackContainer` and `panelStackAtom` implement a side-by-side panel layout where each panel holds an independent navigation route. Key atoms:
 
-| Atom | Type | Purpose |
-|---|---|---|
-| `panelStackAtom` | `PanelEntry[]` | Ordered list of open panels |
-| `panelCountAtom` | `number` | Derived from stack length |
-| `focusedPanelIdAtom` | `string` | Which panel has keyboard focus |
-| `focusedSessionIdAtom` | `string \| null` | Session in the focused panel |
-| `focusNextPanelAtom` / `focusPrevPanelAtom` | write-only | Panel focus cycling |
+| Atom                                        | Type             | Purpose                        |
+| ------------------------------------------- | ---------------- | ------------------------------ |
+| `panelStackAtom`                            | `PanelEntry[]`   | Ordered list of open panels    |
+| `panelCountAtom`                            | `number`         | Derived from stack length      |
+| `focusedPanelIdAtom`                        | `string`         | Which panel has keyboard focus |
+| `focusedSessionIdAtom`                      | `string \| null` | Session in the focused panel   |
+| `focusNextPanelAtom` / `focusPrevPanelAtom` | write-only       | Panel focus cycling            |
 
 `ChatDisplay` reads `isFocusedPanel` from `AppShellContext` to gate auto-focus of the text input and modify scroll behavior (unfocused panels always scroll instantly to bottom).
 
@@ -419,12 +419,12 @@ Sources: [apps/electron/src/renderer/components/app-shell/AppShell.tsx:89](), [a
 
 ## Component → File Reference
 
-| Component | File path |
-|---|---|
-| `AppShell`, `AppShellContent` | `apps/electron/src/renderer/components/app-shell/AppShell.tsx` |
-| `ChatPage` | `apps/electron/src/renderer/pages/ChatPage.tsx` |
-| `ChatDisplay`, `ChatDisplayHandle` | `apps/electron/src/renderer/components/app-shell/ChatDisplay.tsx` |
-| `TurnCard`, `ActivityStatusIcon`, `SIZE_CONFIG` | `packages/ui/src/components/chat/TurnCard.tsx` |
-| `PreviewOverlay` | `packages/ui/src/components/overlay/PreviewOverlay.tsx` |
-| `GenericOverlay`, `detectLanguage`, `detectLanguageFromPath` | `packages/ui/src/components/overlay/GenericOverlay.tsx` |
-| `@craft-agent/ui` package | `packages/ui/package.json` |
+| Component                                                    | File path                                                         |
+| ------------------------------------------------------------ | ----------------------------------------------------------------- |
+| `AppShell`, `AppShellContent`                                | `apps/electron/src/renderer/components/app-shell/AppShell.tsx`    |
+| `ChatPage`                                                   | `apps/electron/src/renderer/pages/ChatPage.tsx`                   |
+| `ChatDisplay`, `ChatDisplayHandle`                           | `apps/electron/src/renderer/components/app-shell/ChatDisplay.tsx` |
+| `TurnCard`, `ActivityStatusIcon`, `SIZE_CONFIG`              | `packages/ui/src/components/chat/TurnCard.tsx`                    |
+| `PreviewOverlay`                                             | `packages/ui/src/components/overlay/PreviewOverlay.tsx`           |
+| `GenericOverlay`, `detectLanguage`, `detectLanguageFromPath` | `packages/ui/src/components/overlay/GenericOverlay.tsx`           |
+| `@craft-agent/ui` package                                    | `packages/ui/package.json`                                        |

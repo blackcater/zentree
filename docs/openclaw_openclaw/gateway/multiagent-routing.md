@@ -66,8 +66,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes the Gateway's multi-agent routing system, which enables a single Gateway process to host multiple isolated agents. Each agent maintains its own workspace, authentication profiles, and session storage. The routing system uses a 6-tier priority mechanism to map inbound messages from messaging channels to the appropriate agent based on configurable bindings.
@@ -80,44 +78,44 @@ For multi-agent configuration examples and workspace isolation details, see [Mul
 
 Each agent in the Gateway is fully isolated with its own resources:
 
-| Resource | Path Pattern | Purpose |
-|----------|-------------|---------|
-| **Workspace** | `~/.openclaw/workspace-<agentId>` | Bootstrap files (`AGENTS.md`, `SOUL.md`), skills, notes |
-| **Agent Directory** | `~/.openclaw/agents/<agentId>/agent/` | Auth profiles, model registry |
-| **Session Store** | `~/.openclaw/agents/<agentId>/sessions/store.json` | Session metadata index |
-| **Session Transcripts** | `~/.openclaw/agents/<agentId>/sessions/<uuid>.jsonl` | JSONL conversation history |
+| Resource                | Path Pattern                                         | Purpose                                                 |
+| ----------------------- | ---------------------------------------------------- | ------------------------------------------------------- |
+| **Workspace**           | `~/.openclaw/workspace-<agentId>`                    | Bootstrap files (`AGENTS.md`, `SOUL.md`), skills, notes |
+| **Agent Directory**     | `~/.openclaw/agents/<agentId>/agent/`                | Auth profiles, model registry                           |
+| **Session Store**       | `~/.openclaw/agents/<agentId>/sessions/store.json`   | Session metadata index                                  |
+| **Session Transcripts** | `~/.openclaw/agents/<agentId>/sessions/<uuid>.jsonl` | JSONL conversation history                              |
 
 ```mermaid
 graph TB
     subgraph GatewayProcess["Gateway Process"]
         Router["Agent Router"]
     end
-    
+
     subgraph Agent1["Agent: main"]
         Workspace1["Workspace<br/>~/.openclaw/workspace"]
         AgentDir1["Agent Dir<br/>~/.openclaw/agents/main/agent"]
         Sessions1["Sessions<br/>~/.openclaw/agents/main/sessions"]
         Auth1["auth-profiles.json"]
         Store1["store.json"]
-        
+
         AgentDir1 --> Auth1
         Sessions1 --> Store1
     end
-    
+
     subgraph Agent2["Agent: work"]
         Workspace2["Workspace<br/>~/.openclaw/workspace-work"]
         AgentDir2["Agent Dir<br/>~/.openclaw/agents/work/agent"]
         Sessions2["Sessions<br/>~/.openclaw/agents/work/sessions"]
         Auth2["auth-profiles.json"]
         Store2["store.json"]
-        
+
         AgentDir2 --> Auth2
         Sessions2 --> Store2
     end
-    
+
     Router --> Agent1
     Router --> Agent2
-    
+
     style Router fill:#f9f9f9
     style Agent1 fill:#e1f5ff
     style Agent2 fill:#ffe1f5
@@ -128,6 +126,7 @@ graph TB
 The default agent ID is `"main"`. Agent IDs are normalized to lowercase via `normalizeAgentId()`.
 
 **Sources:**
+
 - [src/agents/agent-scope.ts:1-100]()
 - [src/routing/session-key.ts:20-60]()
 - [src/config/sessions/paths.ts:1-80]()
@@ -139,12 +138,12 @@ The default agent ID is `"main"`. Agent IDs are normalized to lowercase via `nor
 
 Session keys encode routing information in the format: `[agent:id:]scope`
 
-| Format | Example | Agent ID | Scope |
-|--------|---------|----------|-------|
-| Explicit agent | `agent:work:main` | `work` | `main` |
-| Default agent | `main` | `main` (default) | `main` |
-| Channel scope | `discord:guild:123` | `main` (default) | `discord:guild:123` |
-| Agent + channel | `agent:ops:telegram:456` | `ops` | `telegram:456` |
+| Format          | Example                  | Agent ID         | Scope               |
+| --------------- | ------------------------ | ---------------- | ------------------- |
+| Explicit agent  | `agent:work:main`        | `work`           | `main`              |
+| Default agent   | `main`                   | `main` (default) | `main`              |
+| Channel scope   | `discord:guild:123`      | `main` (default) | `discord:guild:123` |
+| Agent + channel | `agent:ops:telegram:456` | `ops`            | `telegram:456`      |
 
 ```mermaid
 graph LR
@@ -152,11 +151,11 @@ graph LR
     Parse["parseAgentSessionKey()"]
     AgentId["agentId: 'work'"]
     Rest["rest: 'discord:123'"]
-    
+
     Input --> Parse
     Parse --> AgentId
     Parse --> Rest
-    
+
     style Parse fill:#f9f9f9
 ```
 
@@ -165,6 +164,7 @@ graph LR
 The function `parseAgentSessionKey()` extracts the agent ID prefix. When no `agent:` prefix exists, the default agent is used.
 
 **Sources:**
+
 - [src/routing/session-key.ts:80-150]()
 - [src/config/sessions/session-key.ts:1-100]()
 - [src/gateway/session-utils.ts:180-250]()
@@ -175,30 +175,30 @@ The function `parseAgentSessionKey()` extracts the agent ID prefix. When no `age
 
 The routing system matches inbound messages to agents using a 6-tier priority cascade:
 
-| Tier | Binding Type | Context Field | Match Scope | Priority |
-|------|-------------|---------------|-------------|----------|
-| 1 | `peer` | `peerId` | Specific sender | Highest |
-| 2 | `parent` | `parentId` | Parent context (thread/topic) | ↓ |
-| 3 | `guild` | `guildId` | Discord guild/Slack workspace | ↓ |
-| 4 | `account` | `accountId` | Channel account ID | ↓ |
-| 5 | `channel` | `channel` | Messaging platform | ↓ |
-| 6 | `default` | (none) | Fallback when no match | Lowest |
+| Tier | Binding Type | Context Field | Match Scope                   | Priority |
+| ---- | ------------ | ------------- | ----------------------------- | -------- |
+| 1    | `peer`       | `peerId`      | Specific sender               | Highest  |
+| 2    | `parent`     | `parentId`    | Parent context (thread/topic) | ↓        |
+| 3    | `guild`      | `guildId`     | Discord guild/Slack workspace | ↓        |
+| 4    | `account`    | `accountId`   | Channel account ID            | ↓        |
+| 5    | `channel`    | `channel`     | Messaging platform            | ↓        |
+| 6    | `default`    | (none)        | Fallback when no match        | Lowest   |
 
 ```mermaid
 graph TD
     Start["Inbound Message"]
     ExtractCtx["Extract Context<br/>channel, accountId, guildId, peerId"]
     ResolveAgent["resolveAgentIdForInbound()"]
-    
+
     CheckPeer{"Peer binding<br/>match?"}
     CheckParent{"Parent binding<br/>match?"}
     CheckGuild{"Guild binding<br/>match?"}
     CheckAccount{"Account binding<br/>match?"}
     CheckChannel{"Channel binding<br/>match?"}
     DefaultAgent["Default Agent"]
-    
+
     MatchedAgent["Matched Agent ID"]
-    
+
     Start --> ExtractCtx
     ExtractCtx --> ResolveAgent
     ResolveAgent --> CheckPeer
@@ -213,7 +213,7 @@ graph TD
     CheckChannel -->|Yes| MatchedAgent
     CheckChannel -->|No| DefaultAgent
     DefaultAgent --> MatchedAgent
-    
+
     style ResolveAgent fill:#f9f9f9
     style MatchedAgent fill:#e1ffe1
 ```
@@ -223,6 +223,7 @@ graph TD
 The function `resolveAgentIdForInbound()` implements this priority logic by iterating through configured bindings in tier order.
 
 **Sources:**
+
 - [src/agents/agent-scope.ts:200-450]()
 - [docs/concepts/multi-agent.md:80-150]()
 - [README.md:130]()
@@ -238,40 +239,40 @@ Bindings are configured in `agents.list[].bindings` and specify which inbound co
   agents: {
     list: [
       {
-        name: "work",
-        workspace: "~/.openclaw/workspace-work",
-        agentDir: "~/.openclaw/agents/work/agent",
+        name: 'work',
+        workspace: '~/.openclaw/workspace-work',
+        agentDir: '~/.openclaw/agents/work/agent',
         bindings: [
           // Tier 1: Peer binding (specific user)
           {
-            channel: "discord",
-            accountId: "work-bot",
-            peerId: "user:123456789",
+            channel: 'discord',
+            accountId: 'work-bot',
+            peerId: 'user:123456789',
           },
           // Tier 3: Guild binding (Discord server)
           {
-            channel: "discord",
-            accountId: "work-bot",
-            guildId: "789",
+            channel: 'discord',
+            accountId: 'work-bot',
+            guildId: '789',
           },
           // Tier 4: Account binding (all messages to this bot)
           {
-            channel: "telegram",
-            accountId: "alerts",
+            channel: 'telegram',
+            accountId: 'alerts',
           },
           // Tier 5: Channel binding (all WhatsApp messages)
           {
-            channel: "whatsapp",
+            channel: 'whatsapp',
           },
         ],
       },
       {
-        name: "personal",
-        workspace: "~/.openclaw/workspace-personal",
+        name: 'personal',
+        workspace: '~/.openclaw/workspace-personal',
         bindings: [
           {
-            channel: "telegram",
-            accountId: "personal-bot",
+            channel: 'telegram',
+            accountId: 'personal-bot',
           },
         ],
       },
@@ -283,6 +284,7 @@ Bindings are configured in `agents.list[].bindings` and specify which inbound co
 Bindings are matched in declaration order within each tier. The first matching binding wins.
 
 **Sources:**
+
 - [docs/concepts/multi-agent.md:160-280]()
 - [src/agents/agent-scope.ts:250-400]()
 
@@ -298,24 +300,24 @@ sequenceDiagram
     participant Config as agents.list[].bindings
     participant Loader as loadSessionEntry
     participant Executor as runEmbeddedPiAgent
-    
+
     Channel->>Dispatch: Message + context
     Note over Channel,Dispatch: context: {channel, accountId, guildId, peerId}
-    
+
     Dispatch->>Router: resolveAgentIdForInbound(cfg, context)
     Router->>Config: Iterate bindings by tier
     Config-->>Router: Matched agent ID
-    
+
     Router-->>Dispatch: agentId: "work"
-    
+
     Dispatch->>Loader: loadSessionEntry(sessionKey)
     Note over Loader: sessionKey includes agent prefix
     Loader-->>Dispatch: {cfg, entry, storePath}
-    
+
     Dispatch->>Executor: Execute agent turn
     Note over Executor: Isolated workspace/auth/sessions
     Executor-->>Dispatch: Agent response
-    
+
     Dispatch->>Channel: Deliver response
 ```
 
@@ -332,6 +334,7 @@ sequenceDiagram
 9. **State Persistence**: Update session store via `updateSessionStore(storePath, ...)`
 
 **Sources:**
+
 - [src/auto-reply/dispatch.ts:50-300]()
 - [src/agents/agent-scope.ts:200-500]()
 - [src/commands/agent.ts:678-850]()
@@ -351,21 +354,21 @@ The session store is a JSON object mapping session keys to session entries:
 
 ```json5
 {
-  "main": {
-    "sessionId": "550e8400-e29b-41d4-a716-446655440000",
-    "updatedAt": 1704067200000,
-    "totalTokens": 12500,
-    "modelOverride": "claude-sonnet-4-6",
-    "authProfileOverride": "anthropic:work-key",
-    "channel": "discord",
-    "to": "user:123",
-    "accountId": "work-bot"
+  main: {
+    sessionId: '550e8400-e29b-41d4-a716-446655440000',
+    updatedAt: 1704067200000,
+    totalTokens: 12500,
+    modelOverride: 'claude-sonnet-4-6',
+    authProfileOverride: 'anthropic:work-key',
+    channel: 'discord',
+    to: 'user:123',
+    accountId: 'work-bot',
   },
-  "discord:guild:789": {
-    "sessionId": "660f9500-f39c-51e5-b827-557766550111",
-    "updatedAt": 1704070800000,
-    "totalTokens": 8200
-  }
+  'discord:guild:789': {
+    sessionId: '660f9500-f39c-51e5-b827-557766550111',
+    updatedAt: 1704070800000,
+    totalTokens: 8200,
+  },
 }
 ```
 
@@ -374,27 +377,27 @@ graph TB
     subgraph SessionStore["Session Store (store.json)"]
         StoreFile["~/.openclaw/agents/work/sessions/store.json"]
     end
-    
+
     subgraph Entries["Session Entries"]
         Entry1["main:<br/>{sessionId, tokens, model}"]
         Entry2["discord:123:<br/>{sessionId, tokens}"]
         Entry3["telegram:group:456:<br/>{sessionId, tokens}"]
     end
-    
+
     subgraph Transcripts["Transcripts (JSONL)"]
         Transcript1["550e8400-....jsonl"]
         Transcript2["660f9500-....jsonl"]
         Transcript3["770fa600-....jsonl"]
     end
-    
+
     StoreFile --> Entry1
     StoreFile --> Entry2
     StoreFile --> Entry3
-    
+
     Entry1 --> Transcript1
     Entry2 --> Transcript2
     Entry3 --> Transcript3
-    
+
     style StoreFile fill:#f9f9f9
 ```
 
@@ -403,11 +406,13 @@ graph TB
 Session transcripts are stored as JSONL files at `~/.openclaw/agents/<agentId>/sessions/<sessionId>.jsonl`.
 
 Functions:
+
 - `resolveStorePath(cfg, agentId)`: Returns path to session store
 - `updateSessionStore(storePath, updateFn)`: Atomic update with file locking
 - `loadSessionStore(storePath)`: Read session store with validation
 
 **Sources:**
+
 - [src/config/sessions/store.ts:1-250]()
 - [src/config/sessions/paths.ts:40-120]()
 - [src/gateway/session-utils.ts:180-400]()
@@ -453,6 +458,7 @@ Functions:
 The `agentDir` path is resolved via `resolveAgentDir(cfg, agentId)`, and workspace path via `resolveAgentWorkspaceDir(cfg, agentId)`.
 
 **Sources:**
+
 - [src/agents/agent-scope.ts:1-150]()
 - [src/config/paths.ts:1-100]()
 - [docs/concepts/multi-agent.md:40-80]()
@@ -466,6 +472,7 @@ The `agentDir` path is resolved via `resolveAgentDir(cfg, agentId)`, and workspa
 Executes an agent turn with explicit agent targeting:
 
 **Request Parameters:**
+
 ```typescript
 {
   message: string;           // User message
@@ -479,12 +486,14 @@ Executes an agent turn with explicit agent targeting:
 ```
 
 **Resolution Logic:**
+
 1. If `agentId` provided, use it (validate against `agents.list`)
 2. Else if `sessionKey` has `agent:` prefix, extract agent ID
 3. Else resolve via `resolveAgentIdForInbound()` using context
 4. Else use default agent
 
 **Sources:**
+
 - [src/gateway/server-methods/agent.ts:149-500]()
 - [src/commands/agent.ts:678-900]()
 
@@ -493,6 +502,7 @@ Executes an agent turn with explicit agent targeting:
 Sends a message in an existing session with automatic agent routing:
 
 **Request Parameters:**
+
 ```typescript
 {
   sessionKey: string;        // Session key (may include agent: prefix)
@@ -502,11 +512,13 @@ Sends a message in an existing session with automatic agent routing:
 ```
 
 **Agent Resolution:**
+
 1. Parse `sessionKey` for `agent:` prefix via `parseAgentSessionKey()`
 2. If no prefix, use default agent
 3. Load session store from `~/.openclaw/agents/<agentId>/sessions/`
 
 **Sources:**
+
 - [src/gateway/server-methods/chat.ts:1-600]()
 - [src/routing/session-key.ts:80-150]()
 
@@ -515,6 +527,7 @@ Sends a message in an existing session with automatic agent routing:
 Lists sessions across all agents or filtered by agent:
 
 **Request Parameters:**
+
 ```typescript
 {
   agentId?: string;          // Filter by agent
@@ -525,6 +538,7 @@ Lists sessions across all agents or filtered by agent:
 Returns combined session list from all agent stores via `loadCombinedSessionStoreForGateway()`.
 
 **Sources:**
+
 - [src/gateway/server-methods/sessions.ts:96-110]()
 - [src/gateway/session-utils.ts:550-650]()
 
@@ -549,6 +563,7 @@ Inbound messages carry routing context extracted by channel plugins:
 This context is passed to `resolveAgentIdForInbound()` which matches it against bindings.
 
 **Sources:**
+
 - [src/agents/agent-scope.ts:400-550]()
 - [src/auto-reply/dispatch.ts:50-200]()
 - [src/gateway/server-methods/agent.ts:195-270]()
@@ -568,12 +583,14 @@ openclaw agents list --json
 ```
 
 **Output:**
+
 - Agent name and ID
 - Workspace path
 - Agent directory path
 - Configured bindings (with `--bindings`)
 
 **Sources:**
+
 - [docs/cli/index.md:575-605]()
 
 ### `openclaw agents add`
@@ -594,6 +611,7 @@ openclaw agents add work \
 ```
 
 **Sources:**
+
 - [docs/cli/index.md:589-605]()
 - [src/commands/agents-add.ts:1-300]()
 
@@ -609,6 +627,7 @@ openclaw agents bind --agent work --bind telegram:alerts --bind whatsapp
 **Binding Format:** `channel[:accountId]`
 
 **Sources:**
+
 - [docs/cli/index.md:612-621]()
 
 ### `openclaw agents unbind`
@@ -621,6 +640,7 @@ openclaw agents unbind --agent work --all
 ```
 
 **Sources:**
+
 - [docs/cli/index.md:622-632]()
 
 ---
@@ -630,11 +650,13 @@ openclaw agents unbind --agent work --all
 The Gateway automatically migrates legacy session keys to canonical format:
 
 **Migration Triggers:**
+
 1. Loading session entries via `loadSessionEntry()`
 2. Updating session stores via `updateSessionStore()`
 3. Gateway method handlers (`chat.send`, `agent`, etc.)
 
 **Migration Logic:**
+
 1. Parse session key with `parseAgentSessionKey()`
 2. Normalize agent ID with `normalizeAgentId()` (lowercase)
 3. Find existing entry with case-insensitive match via `findStoreMatch()`
@@ -650,14 +672,14 @@ graph LR
     FindMatch["findStoreMatch()"]
     Migrate["migrateAndPruneGatewaySessionStoreKey()"]
     Store["Session Store<br/>(canonical keys only)"]
-    
+
     Legacy --> Parse
     Parse --> Normalize
     Normalize --> Canonical
     Canonical --> FindMatch
     FindMatch --> Migrate
     Migrate --> Store
-    
+
     style Canonical fill:#e1ffe1
     style Migrate fill:#f9f9f9
 ```
@@ -665,6 +687,7 @@ graph LR
 **Session Key Migration Flow**
 
 **Sources:**
+
 - [src/gateway/session-utils.ts:180-280]()
 - [src/config/sessions/store.ts:100-250]()
 - [src/routing/session-key.ts:20-80]()
@@ -676,18 +699,21 @@ graph LR
 When no agent ID is specified or matched, the Gateway resolves the default agent:
 
 **Resolution Order:**
+
 1. Check `agents.defaults.agentId` in config
 2. Fall back to `"main"` if not configured
 3. Create agent directories on first use via `ensureAgentWorkspace()`
 
 **Implementation:**
+
 ```typescript
 function resolveDefaultAgentId(cfg: OpenClawConfig): string {
-  return normalizeAgentId(cfg.agents?.defaults?.agentId ?? "main");
+  return normalizeAgentId(cfg.agents?.defaults?.agentId ?? 'main')
 }
 ```
 
 **Sources:**
+
 - [src/agents/agent-scope.ts:1-80]()
 - [src/config/sessions.ts:1-50]()
 
@@ -720,7 +746,7 @@ graph TD
     Bootstrap["Load Bootstrap Files"]
     Execute["runEmbeddedPiAgent()"]
     Persist["updateSessionStore()"]
-    
+
     Route --> Workspace
     Route --> SessionStore
     Route --> AuthProfiles
@@ -731,7 +757,7 @@ graph TD
     Skills --> Execute
     Bootstrap --> Execute
     Execute --> Persist
-    
+
     style Route fill:#f9f9f9
     style Execute fill:#e1ffe1
 ```
@@ -739,6 +765,7 @@ graph TD
 **Multi-Agent Execution Pipeline**
 
 **Sources:**
+
 - [src/commands/agent.ts:678-1100]()
 - [src/agents/pi-embedded.ts:1-500]()
 - [src/agents/workspace.ts:1-200]()

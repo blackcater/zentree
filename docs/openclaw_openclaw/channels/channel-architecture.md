@@ -56,11 +56,10 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the unified channel architecture that enables OpenClaw to connect to multiple messaging platforms (Telegram, Discord, Slack, WhatsApp, Signal, iMessage, etc.). It covers the plugin pattern, account resolution, configuration system, and message processing pipeline that all channels share.
 
 For details on specific channel integrations, see:
+
 - [Telegram Integration](#4.2)
 - [Discord Integration](#4.3)
 - [Other Channels](#4.4)
@@ -88,7 +87,7 @@ graph TB
         IMessageEntry["monitorIMessageProvider()"]
         WebEntry["monitorWebInbox()"]
     end
-    
+
     subgraph "Common Parameters"
         RuntimeEnv["RuntimeEnv<br/>(log/error/exit)"]
         ConfigObj["OpenClawConfig"]
@@ -96,7 +95,7 @@ graph TB
         AbortSignal["AbortSignal"]
         AllowFrom["allowFrom[]<br/>groupAllowFrom[]"]
     end
-    
+
     subgraph "Channel-Specific"
         TelegramToken["token"]
         DiscordToken["token"]
@@ -106,30 +105,31 @@ graph TB
         WhatsAppQR["QR pairing"]
         IMessageDb["Messages.sqlite"]
     end
-    
+
     TelegramEntry --> RuntimeEnv
     TelegramEntry --> ConfigObj
     TelegramEntry --> TelegramToken
     TelegramEntry --> AllowFrom
-    
+
     DiscordEntry --> RuntimeEnv
     DiscordEntry --> ConfigObj
     DiscordEntry --> DiscordToken
-    
+
     SlackEntry --> RuntimeEnv
     SlackEntry --> ConfigObj
     SlackEntry --> SlackToken
-    
+
     SignalEntry --> RuntimeEnv
     SignalEntry --> ConfigObj
     SignalEntry --> SignalAccount
     SignalEntry --> SignalDaemon
-    
+
     WebEntry --> RuntimeEnv
     WebEntry --> ConfigObj
 ```
 
 **Sources:**
+
 - [src/telegram/bot.ts:105-518]()
 - [src/discord/monitor.ts:1-29]()
 - [src/slack/monitor.ts:1-6]()
@@ -147,12 +147,12 @@ sequenceDiagram
     participant Plugin as Channel Plugin
     participant Platform as External Platform<br/>(Telegram/Discord/etc)
     participant Handlers as Message Handlers
-    
+
     Gateway->>Plugin: Call monitor/create function
     Note over Plugin: Load config, resolve account
     Plugin->>Plugin: Validate credentials
     Plugin->>Platform: Establish connection
-    
+
     alt Telegram (grammY Bot)
         Plugin->>Platform: bot.start() polling
     else Discord (WebSocket)
@@ -163,22 +163,23 @@ sequenceDiagram
         Plugin->>Plugin: Spawn signal-cli daemon
         Plugin->>Platform: SSE /v1/receive stream
     end
-    
+
     Plugin->>Handlers: Register event listeners
-    
+
     loop Message Reception
         Platform->>Plugin: Inbound message event
         Plugin->>Plugin: Deduplicate, validate
         Plugin->>Handlers: Process message
         Handlers->>Gateway: Forward to agent router
     end
-    
+
     Gateway->>Plugin: Shutdown signal
     Plugin->>Platform: Graceful disconnect
     Plugin->>Plugin: Cleanup resources
 ```
 
 **Sources:**
+
 - [src/telegram/bot.ts:219-224]()
 - [src/signal/monitor.ts:96-123]()
 - [src/discord/monitor.ts:20-29]()
@@ -196,18 +197,18 @@ graph TB
     subgraph "Config File Structure"
         Root["openclaw.json"]
         Channels["channels: {}"]
-        
+
         TelegramConfig["telegram: {}"]
         TelegramAccounts["accounts: {}<br/>accountId → config"]
         TelegramDefault["(default account)"]
-        
+
         DiscordConfig["discord: {}"]
         DiscordAccounts["accounts: {}"]
-        
+
         SlackConfig["slack: {}"]
         SlackAccounts["accounts: {}"]
     end
-    
+
     subgraph "Account Config Fields"
         Token["token / appToken"]
         DmPolicy["dmPolicy: open|pairing|allowlist"]
@@ -219,12 +220,12 @@ graph TB
         ExecApprovals["execApprovals: {}"]
         Capabilities["capabilities: []"]
     end
-    
+
     Root --> Channels
     Channels --> TelegramConfig
     Channels --> DiscordConfig
     Channels --> SlackConfig
-    
+
     TelegramConfig --> TelegramAccounts
     TelegramAccounts --> TelegramDefault
     TelegramDefault --> Token
@@ -232,12 +233,13 @@ graph TB
     TelegramDefault --> AllowFrom
     TelegramDefault --> Groups
     TelegramDefault --> Network
-    
+
     DiscordConfig --> DiscordAccounts
     SlackConfig --> SlackAccounts
 ```
 
 **Sources:**
+
 - [src/config/types.ts]() (config schema definitions)
 - [src/telegram/accounts.ts]()
 - [src/discord/monitor.ts]()
@@ -254,19 +256,19 @@ graph LR
         Validate["Validate required fields<br/>(token, etc)"]
         Return["Return TelegramAccountConfig<br/>DiscordAccountConfig, etc"]
     end
-    
+
     Input --> LoadConfig
     LoadConfig --> ChannelSection
     ChannelSection --> AccountLookup
     AccountLookup --> Validate
     Validate --> Return
-    
+
     subgraph "Default Account Behavior"
         NoAccountId["accountId not specified"]
         CheckSingleAccount["Single account configured?"]
         UseSingleAccount["Use that account"]
         CheckDefaultMarker["Look for 'default' or first entry"]
-        
+
         NoAccountId --> CheckSingleAccount
         CheckSingleAccount -->|Yes| UseSingleAccount
         CheckSingleAccount -->|No| CheckDefaultMarker
@@ -275,15 +277,16 @@ graph LR
 
 The account resolution functions per channel:
 
-| Channel | Resolver Function | Config Type |
-|---------|------------------|-------------|
+| Channel  | Resolver Function          | Config Type             |
+| -------- | -------------------------- | ----------------------- |
 | Telegram | `resolveTelegramAccount()` | `TelegramAccountConfig` |
-| Discord | `resolveDiscordAccount()` | `DiscordAccountConfig` |
-| Slack | `resolveSlackAccount()` | `SlackAccountConfig` |
-| Signal | `resolveSignalAccount()` | `SignalAccountConfig` |
+| Discord  | `resolveDiscordAccount()`  | `DiscordAccountConfig`  |
+| Slack    | `resolveSlackAccount()`    | `SlackAccountConfig`    |
+| Signal   | `resolveSignalAccount()`   | `SignalAccountConfig`   |
 | WhatsApp | `resolveWhatsAppAccount()` | `WhatsAppAccountConfig` |
 
 **Sources:**
+
 - [src/telegram/accounts.ts]()
 - [src/telegram/bot.ts:108-111]()
 
@@ -305,31 +308,31 @@ sequenceDiagram
     participant Router as Agent Router
     participant Session as Session Manager
     participant Agent as Agent Runtime
-    
+
     Platform->>BotHandler: Raw message event
     BotHandler->>Dedupe: Check update ID / message ID
-    
+
     alt Duplicate detected
         Dedupe-->>BotHandler: Skip processing
     else New message
         Dedupe->>Access: Validate sender
-        
+
         alt DM Policy check
             Access->>Access: Check dmPolicy:<br/>open/pairing/allowlist
         else Group Policy check
             Access->>Access: Check groupPolicy,<br/>allowFrom, groupAllowFrom
         end
-        
+
         alt Unauthorized
             Access-->>BotHandler: Drop or send auth error
         else Authorized
             Access->>Context: Build context payload
-            
+
             Context->>Context: Extract text, media
             Context->>Context: Resolve thread/topic ID
             Context->>Context: Build session key
             Context->>Context: Check require mention
-            
+
             Context->>Router: Forward InboundContext
             Router->>Session: Resolve session
             Session->>Agent: Execute agent turn
@@ -340,6 +343,7 @@ sequenceDiagram
 ```
 
 **Sources:**
+
 - [src/telegram/bot-handlers.ts:124-509]()
 - [src/telegram/bot-message-context.ts:40-469]()
 - [src/discord/monitor.ts]()
@@ -351,35 +355,35 @@ Each channel builds a standardized `InboundContext` payload:
 
 ```typescript
 type InboundContext = {
-  Channel: string;              // "telegram", "discord", etc
-  Provider: string;             // Same as Channel
-  Surface: string;              // "telegram", "web", etc
-  OriginatingChannel: string;   // Original channel
-  AccountId: string;            // Channel account ID
-  
+  Channel: string // "telegram", "discord", etc
+  Provider: string // Same as Channel
+  Surface: string // "telegram", "web", etc
+  OriginatingChannel: string // Original channel
+  AccountId: string // Channel account ID
+
   // Identity
-  From: string;                 // Channel-specific peer ID
-  SenderId?: string;            // Sender user ID
-  SenderUsername?: string;      // Sender username
-  
+  From: string // Channel-specific peer ID
+  SenderId?: string // Sender user ID
+  SenderUsername?: string // Sender username
+
   // Message content
-  Body: string;                 // Extracted text
-  MessageId?: string;           // Platform message ID
-  MediaPath?: string;           // Local media path
-  MediaUrl?: string;            // Remote media URL
-  MediaType?: string;           // MIME type
-  
+  Body: string // Extracted text
+  MessageId?: string // Platform message ID
+  MediaPath?: string // Local media path
+  MediaUrl?: string // Remote media URL
+  MediaType?: string // MIME type
+
   // Routing
-  SessionKey: string;           // Session identifier
-  AgentId: string;              // Target agent
-  
+  SessionKey: string // Session identifier
+  AgentId: string // Target agent
+
   // Group chat
-  ChatType: "direct" | "group"; // DM or group
-  GroupId?: string;             // Group/guild/chat ID
-  ThreadId?: string;            // Forum topic / thread ID
-  
+  ChatType: 'direct' | 'group' // DM or group
+  GroupId?: string // Group/guild/chat ID
+  ThreadId?: string // Forum topic / thread ID
+
   // History
-  History?: HistoryEntry[];     // Recent group messages
+  History?: HistoryEntry[] // Recent group messages
 }
 ```
 
@@ -391,6 +395,7 @@ Channel-specific context builders:
 - **Signal**: Constructs context from signal-cli JSON events
 
 **Sources:**
+
 - [src/telegram/bot-message-context.ts:416-444]()
 - [src/channels/inbound-context.ts]()
 
@@ -405,31 +410,31 @@ graph TB
         BuildMedia["Resolve media URLs/paths"]
         BuildButtons["Build inline buttons"]
     end
-    
+
     subgraph "Channel Delivery"
         TelegramDeliver["deliverReplies()<br/>sendMessage/sendPhoto"]
         DiscordDeliver["sendMessage()<br/>createMessage"]
         SlackDeliver["chat.postMessage<br/>files.upload"]
         SignalDeliver["signalRpcRequest<br/>/v2/send"]
     end
-    
+
     subgraph "Platform API"
         TelegramAPI["Telegram Bot API"]
         DiscordAPI["Discord REST API"]
         SlackAPI["Slack Web API"]
         SignalAPI["signal-cli HTTP"]
     end
-    
+
     FinalPayload --> ChunkText
     ChunkText --> FormatPlatform
     FormatPlatform --> BuildMedia
     BuildMedia --> BuildButtons
-    
+
     BuildButtons --> TelegramDeliver
     BuildButtons --> DiscordDeliver
     BuildButtons --> SlackDeliver
     BuildButtons --> SignalDeliver
-    
+
     TelegramDeliver --> TelegramAPI
     DiscordDeliver --> DiscordAPI
     SlackDeliver --> SlackAPI
@@ -438,14 +443,15 @@ graph TB
 
 Delivery functions per channel:
 
-| Channel | Delivery Function | Location |
-|---------|------------------|----------|
-| Telegram | `deliverReplies()` | [src/telegram/bot/delivery.ts:1-2]() |
-| Discord | `sendMessage()` in monitor | [src/discord/monitor.ts]() |
-| Slack | Bolt `client.chat.postMessage` | [src/slack/monitor.ts]() |
-| Signal | `sendMessageSignal()` | [src/signal/send.ts]() |
+| Channel  | Delivery Function              | Location                             |
+| -------- | ------------------------------ | ------------------------------------ |
+| Telegram | `deliverReplies()`             | [src/telegram/bot/delivery.ts:1-2]() |
+| Discord  | `sendMessage()` in monitor     | [src/discord/monitor.ts]()           |
+| Slack    | Bolt `client.chat.postMessage` | [src/slack/monitor.ts]()             |
+| Signal   | `sendMessageSignal()`          | [src/signal/send.ts]()               |
 
 **Sources:**
+
 - [src/telegram/bot/delivery.ts]()
 - [src/auto-reply/reply/provider-dispatcher.ts]()
 
@@ -464,25 +470,25 @@ graph TB
         DmPairing["dmPolicy: 'pairing'<br/>QR/code pairing required"]
         DmAllowlist["dmPolicy: 'allowlist'<br/>Explicit allowFrom only"]
     end
-    
+
     subgraph "Layer 2: Sender Allowlists"
         AllowFrom["allowFrom: []<br/>DM sender IDs"]
         GroupAllowFrom["groupAllowFrom: []<br/>Group sender IDs"]
         PairingStore["Pairing store<br/>~/.openclaw/pairing"]
     end
-    
+
     subgraph "Layer 3: Group Policy"
         GroupOpen["groupPolicy: 'open'"]
         GroupAllowlist["groupPolicy: 'allowlist'"]
         GroupDisabled["groupPolicy: 'disabled'"]
     end
-    
+
     subgraph "Layer 4: Per-Group Config"
         GroupConfig["groups[groupId].disabled"]
         GroupAllowOverride["groups[groupId].allowFrom"]
         TopicConfig["topics[topicId].disabled"]
     end
-    
+
     subgraph "Layer 5: Commands Access"
         CommandsAllowFrom["commands.allowFrom"]
         CommandsAccessGroups["commands.useAccessGroups"]
@@ -490,6 +496,7 @@ graph TB
 ```
 
 **Sources:**
+
 - [src/telegram/bot-message-context.ts:76-149]()
 - [src/telegram/dm-access.ts]()
 - [src/telegram/group-access.ts:14-86]()
@@ -517,6 +524,7 @@ For direct messages, channels check:
 [src/telegram/dm-access.ts]() - `enforceTelegramDmAccess()`
 
 **Sources:**
+
 - [src/telegram/bot-message-context.ts:187-200]()
 - [src/telegram/dm-access.ts]()
 - [src/pairing/pairing-store.ts]()
@@ -543,6 +551,7 @@ For group messages, channels check:
 [src/telegram/group-access.ts:14-86]() - `evaluateTelegramGroupBaseAccess()`
 
 **Sources:**
+
 - [src/telegram/bot-message-context.ts:122-149]()
 - [src/telegram/group-access.ts]()
 - [src/config/group-policy.ts]()
@@ -556,6 +565,7 @@ For group messages, channels check:
 Telegram channels use the [grammY framework](https://grammy.dev/) for bot interactions:
 
 **Core Components:**
+
 - **Entry Point**: [src/telegram/bot.ts:105]() - `createTelegramBot()`
 - **Account Resolution**: [src/telegram/accounts.ts]() - `resolveTelegramAccount()`
 - **Message Context**: [src/telegram/bot-message-context.ts:40]() - `buildTelegramMessageContext()`
@@ -563,6 +573,7 @@ Telegram channels use the [grammY framework](https://grammy.dev/) for bot intera
 - **Delivery**: [src/telegram/bot/delivery.ts]() - `deliverReplies()`
 
 **Special Features:**
+
 - Forum topic support with `message_thread_id`
 - DM topics (private chat threads)
 - Media groups (multiple photos/videos in one message)
@@ -571,6 +582,7 @@ Telegram channels use the [grammY framework](https://grammy.dev/) for bot intera
 - Exec approval workflows with callback queries
 
 **Sources:**
+
 - [src/telegram/bot.ts]()
 - [src/telegram/bot-message-context.ts]()
 - [src/telegram/bot-handlers.ts]()
@@ -580,11 +592,13 @@ Telegram channels use the [grammY framework](https://grammy.dev/) for bot intera
 Discord channels use the Discord.js library with REST + Gateway APIs:
 
 **Core Components:**
+
 - **Entry Point**: [src/discord/monitor.ts:26]() - `monitorDiscordProvider()`
 - **Message Handler**: Creates handlers for MESSAGE_CREATE events
 - **Policy Checks**: [src/discord/monitor.ts:6-17]() - Allow list and guild resolution
 
 **Special Features:**
+
 - Guild (server) routing
 - Thread bindings for persistent agent conversations
 - Forum channel support
@@ -592,6 +606,7 @@ Discord channels use the Discord.js library with REST + Gateway APIs:
 - Voice channel integration (via @discordjs/voice)
 
 **Sources:**
+
 - [src/discord/monitor.ts]()
 
 ### Slack
@@ -599,11 +614,13 @@ Discord channels use the Discord.js library with REST + Gateway APIs:
 Slack channels use the Bolt framework with Socket Mode or HTTP mode:
 
 **Core Components:**
+
 - **Entry Point**: [src/slack/monitor.ts:3]() - `monitorSlackProvider()`
 - **Slash Commands**: [src/slack/monitor.ts:1]() - `buildSlackSlashCommandMatcher()`
 - **Policy**: [src/slack/monitor.ts:2]() - `isSlackChannelAllowedByPolicy()`
 
 **Special Features:**
+
 - Workspace-based routing
 - Slash command support
 - Threaded message support with `thread_ts`
@@ -611,6 +628,7 @@ Slack channels use the Bolt framework with Socket Mode or HTTP mode:
 - Block Kit message formatting
 
 **Sources:**
+
 - [src/slack/monitor.ts]()
 
 ### Signal
@@ -618,12 +636,14 @@ Slack channels use the Bolt framework with Socket Mode or HTTP mode:
 Signal channels manage a `signal-cli` daemon subprocess and communicate via HTTP + SSE:
 
 **Core Components:**
+
 - **Entry Point**: [src/signal/monitor.ts:31]() - `monitorSignalProvider()`
 - **Daemon Management**: [src/signal/daemon.ts]() - `spawnSignalDaemon()`
 - **SSE Client**: [src/signal/sse-reconnect.ts]() - `runSignalSseLoop()`
 - **RPC**: [src/signal/client.ts:19]() - `signalRpcRequest()`
 
 **Special Features:**
+
 - E2E encrypted messaging
 - Group v2 support
 - Phone number-based identity
@@ -632,6 +652,7 @@ Signal channels manage a `signal-cli` daemon subprocess and communicate via HTTP
 - Typing indicators
 
 **Sources:**
+
 - [src/signal/monitor.ts]()
 - [src/signal/daemon.ts]()
 
@@ -640,6 +661,7 @@ Signal channels manage a `signal-cli` daemon subprocess and communicate via HTTP
 WhatsApp channels use the Baileys library for the WhatsApp Web protocol:
 
 **Core Components:**
+
 - Located in `src/whatsapp/` directory
 - QR code pairing for authentication
 - Multi-device support
@@ -649,11 +671,13 @@ WhatsApp channels use the Baileys library for the WhatsApp Web protocol:
 iMessage channels interface with macOS/iOS Messages.app:
 
 **Core Components:**
+
 - **Entry Point**: [src/imessage/monitor.ts:1]() - `monitorIMessageProvider()`
 - Reads from `Messages.sqlite` database
 - macOS/iOS only (AppleScript bridge)
 
 **Sources:**
+
 - [src/imessage/monitor.ts]()
 
 ---
@@ -673,29 +697,29 @@ graph TB
         Transport["transport: 'http'|'https'"]
         TimeoutSeconds["timeoutSeconds"]
     end
-    
+
     subgraph "Transport Resolution"
         ResolveFn["resolveTelegramTransport()"]
         ProxyAgent["HttpsProxyAgent"]
         CustomFetch["Custom fetch wrapper"]
         DefaultFetch["globalThis.fetch"]
     end
-    
+
     subgraph "API Client"
         BotAPI["grammY Bot API client"]
         FetchImpl["fetch implementation"]
         AbortSignal["AbortSignal for shutdown"]
     end
-    
+
     Network --> ProxyUrl
     Network --> Transport
     ProxyUrl --> ResolveFn
     Transport --> ResolveFn
-    
+
     ResolveFn --> ProxyAgent
     ResolveFn --> CustomFetch
     ResolveFn --> DefaultFetch
-    
+
     CustomFetch --> BotAPI
     DefaultFetch --> BotAPI
     BotAPI --> FetchImpl
@@ -705,11 +729,13 @@ graph TB
 **Telegram Transport Example:**
 
 [src/telegram/bot.ts:135-188]() shows fetch wrapping for:
+
 - Abort signal forwarding for graceful shutdown
 - Network error tagging
 - Proxy support via `https-proxy-agent`
 
 **Sources:**
+
 - [src/telegram/bot.ts:135-205]()
 - [src/telegram/fetch.ts]()
 
@@ -723,7 +749,7 @@ sequenceDiagram
     participant Plugin as Channel Plugin
     participant Platform as Platform Connection
     participant Inflight as In-Flight Requests
-    
+
     Gateway->>Plugin: Shutdown signal (AbortSignal)
     Plugin->>Inflight: Abort in-flight fetches
     Inflight-->>Platform: Connection aborted
@@ -737,6 +763,7 @@ Telegram's fetch abort implementation: [src/telegram/bot.ts:150-188]()
 Signal's daemon lifecycle: [src/signal/monitor.ts:96-123]()
 
 **Sources:**
+
 - [src/telegram/bot.ts:58-59]()
 - [src/telegram/bot.ts:150-188]()
 - [src/signal/monitor.ts:96-123]()
@@ -751,70 +778,71 @@ Channels are configured in `~/.openclaw/openclaw.json` under the `channels` sect
 {
   channels: {
     telegram: {
-      dmPolicy: "pairing",
-      allowFrom: ["*"],
-      groupPolicy: "allowlist",
-      groupAllowFrom: ["user123", "user456"],
-      
+      dmPolicy: 'pairing',
+      allowFrom: ['*'],
+      groupPolicy: 'allowlist',
+      groupAllowFrom: ['user123', 'user456'],
+
       // Multiple account support
       accounts: {
-        "bot-main": {
-          token: "env:TELEGRAM_BOT_TOKEN",
+        'bot-main': {
+          token: 'env:TELEGRAM_BOT_TOKEN',
           // ... per-account config
         },
-        "bot-testing": {
-          token: "env:TELEGRAM_TEST_TOKEN",
+        'bot-testing': {
+          token: 'env:TELEGRAM_TEST_TOKEN',
           // ... per-account config
-        }
+        },
       },
-      
+
       // Per-group configuration
       groups: {
-        "-1001234567890": {
+        '-1001234567890': {
           disabled: false,
-          agentId: "work",
+          agentId: 'work',
           requireMention: true,
-          allowFrom: ["admin1", "admin2"],
+          allowFrom: ['admin1', 'admin2'],
           topics: {
-            "42": {
-              agentId: "support",
-              requireMention: false
-            }
-          }
-        }
+            '42': {
+              agentId: 'support',
+              requireMention: false,
+            },
+          },
+        },
       },
-      
+
       // Network configuration
       network: {
-        proxyUrl: "http://proxy:8080",
-        transport: "https"
-      }
+        proxyUrl: 'http://proxy:8080',
+        transport: 'https',
+      },
     },
-    
+
     discord: {
       // Similar structure for Discord
     },
-    
+
     slack: {
       // Similar structure for Slack
-    }
-  }
+    },
+  },
 }
 ```
 
 **Common Configuration Fields:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `dmPolicy` | `"open" \| "pairing" \| "allowlist"` | DM access policy |
-| `allowFrom` | `Array<string \| number>` | DM sender allowlist |
-| `groupPolicy` | `"open" \| "allowlist" \| "disabled"` | Group chat policy |
-| `groupAllowFrom` | `Array<string \| number>` | Group sender allowlist |
-| `groups` | `Record<string, GroupConfig>` | Per-group settings |
-| `accounts` | `Record<string, AccountConfig>` | Multiple accounts |
-| `network` | `{ proxyUrl?, transport? }` | Network settings |
+| Field            | Type                                  | Description            |
+| ---------------- | ------------------------------------- | ---------------------- |
+| `dmPolicy`       | `"open" \| "pairing" \| "allowlist"`  | DM access policy       |
+| `allowFrom`      | `Array<string \| number>`             | DM sender allowlist    |
+| `groupPolicy`    | `"open" \| "allowlist" \| "disabled"` | Group chat policy      |
+| `groupAllowFrom` | `Array<string \| number>`             | Group sender allowlist |
+| `groups`         | `Record<string, GroupConfig>`         | Per-group settings     |
+| `accounts`       | `Record<string, AccountConfig>`       | Multiple accounts      |
+| `network`        | `{ proxyUrl?, transport? }`           | Network settings       |
 
 **Sources:**
+
 - [src/config/types.ts]()
 - [src/telegram/bot.ts:108-134]()
 
@@ -836,9 +864,11 @@ import { ... } from "openclaw/plugin-sdk/signal";
 **Package.json exports:** [package.json:51-74]()
 
 Each channel plugin SDK exports:
+
 - Monitor/creation functions
 - Type definitions for config
 - Helper utilities (formatting, parsing, etc.)
 
 **Sources:**
+
 - [package.json:39-95]()

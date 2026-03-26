@@ -20,13 +20,12 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page provides an overview of AionUi's configuration management and data persistence strategies. The system implements a multi-layered architecture separating configuration, conversation metadata, and message history. It uses a hybrid approach combining JSON files for configuration and SQLite for conversation data, enabling both human-editable settings and efficient querying.
 
 **Child Pages:**
+
 - **[Configuration System (8.1)](#)**: ConfigStorage schema, configuration cascading (defaults < file < environment < runtime), and hot-reload mechanisms
-- **[Storage Architecture (8.2)](#)**: storage.buildStorage factory, localStorage vs SQLite usage patterns, draft persistence, and panel state persistence  
+- **[Storage Architecture (8.2)](#)**: storage.buildStorage factory, localStorage vs SQLite usage patterns, draft persistence, and panel state persistence
 - **[Data Migration (8.3)](#)**: Migration flags in ConfigStorage, version tracking, and schema change handling
 
 For conversation data models and message transformation, see page 7.1 and 7.2. For IPC communication patterns, see page 3.3.
@@ -39,12 +38,12 @@ For conversation data models and message transformation, see page 7.1 and 7.2. F
 
 AionUi's persistence system provides four primary storage abstractions built using `storage.buildStorage()`:
 
-| Storage Interface | Configuration Key | Purpose | Example Keys |
-|------------------|-------------------|---------|--------------|
-| `ConfigStorage` | `'agent.config'` | System settings, agent config, model providers | `'model.config'`, `'gemini.config'`, `'acp.config'` |
-| `ChatStorage` | `'agent.chat'` | Conversation metadata list | `'chat.history'` |
-| `ChatMessageStorage` | `'agent.chat.message'` | Message history (per conversation) | Per-conversation message files |
-| `EnvStorage` | `'agent.env'` | Directory paths | `'aionui.dir'` |
+| Storage Interface    | Configuration Key      | Purpose                                        | Example Keys                                        |
+| -------------------- | ---------------------- | ---------------------------------------------- | --------------------------------------------------- |
+| `ConfigStorage`      | `'agent.config'`       | System settings, agent config, model providers | `'model.config'`, `'gemini.config'`, `'acp.config'` |
+| `ChatStorage`        | `'agent.chat'`         | Conversation metadata list                     | `'chat.history'`                                    |
+| `ChatMessageStorage` | `'agent.chat.message'` | Message history (per conversation)             | Per-conversation message files                      |
+| `EnvStorage`         | `'agent.env'`          | Directory paths                                | `'aionui.dir'`                                      |
 
 **Sources:** [src/common/storage.ts:10-22]()
 
@@ -55,28 +54,28 @@ graph TB
     subgraph "Renderer Process"
         UI["Settings UI<br/>React Components"]
     end
-    
+
     subgraph "IPC Bridge"
         SaveConfig["mode.saveModelConfig.invoke()"]
         GetConfig["mode.getModelConfig.invoke()"]
     end
-    
+
     subgraph "Main Process Storage"
         ProcessConfig["ProcessConfig<br/>ConfigStorage instance"]
         FileSystem["File System<br/>userData/config/"]
         Database["SQLite<br/>conversations.db"]
     end
-    
+
     UI -->|"IProvider[]"| SaveConfig
     SaveConfig --> ProcessConfig
     ProcessConfig -->|"set('model.config')"| FileSystem
-    
+
     GetConfig --> ProcessConfig
     ProcessConfig -->|"get('model.config')"| FileSystem
     FileSystem -->|"IProvider[]"| UI
-    
+
     ProcessConfig -.->|"Message data"| Database
-    
+
     style ProcessConfig fill:#e1f5ff
     style FileSystem fill:#fff4e1
 ```
@@ -87,13 +86,13 @@ graph TB
 
 Configuration in `ConfigStorage` is organized into typed domains defined by the `IConfigStorageRefer` interface:
 
-| Configuration Domain | Storage Key | Type | Purpose |
-|---------------------|-------------|------|---------|
-| Model Providers | `'model.config'` | `IProvider[]` | API endpoints, keys, model lists, capabilities |
-| MCP Servers | `'mcp.config'` | `IMcpServer[]` | Model Context Protocol server configurations |
-| Agent Settings | `'gemini.config'`, `'acp.config'`, `'codex.config'` | Object | Auth methods, CLI paths, yolo mode per agent |
-| UI Preferences | `'language'`, `'theme'`, `'customCss'` | String | Localization and theming |
-| Custom Agents | `'acp.customAgents'` | `AcpBackendConfig[]` | Built-in and user-defined assistant configurations |
+| Configuration Domain | Storage Key                                         | Type                 | Purpose                                            |
+| -------------------- | --------------------------------------------------- | -------------------- | -------------------------------------------------- |
+| Model Providers      | `'model.config'`                                    | `IProvider[]`        | API endpoints, keys, model lists, capabilities     |
+| MCP Servers          | `'mcp.config'`                                      | `IMcpServer[]`       | Model Context Protocol server configurations       |
+| Agent Settings       | `'gemini.config'`, `'acp.config'`, `'codex.config'` | Object               | Auth methods, CLI paths, yolo mode per agent       |
+| UI Preferences       | `'language'`, `'theme'`, `'customCss'`              | String               | Localization and theming                           |
+| Custom Agents        | `'acp.customAgents'`                                | `AcpBackendConfig[]` | Built-in and user-defined assistant configurations |
 
 **Sources:** [src/common/storage.ts:24-118]()
 
@@ -114,32 +113,32 @@ graph LR
         EditModal["EditModeModal<br/>User edits provider"]
         ModeSettings["ModeSettings<br/>Provider list display"]
     end
-    
+
     subgraph "IPC Bridge"
         SaveProvider["mode.saveModelConfig.invoke()"]
         GetProviders["mode.getModelConfig.invoke()"]
         FetchModels["mode.fetchModelList.invoke()"]
     end
-    
+
     subgraph "Main Process"
         ModelBridge["modelBridge.ts<br/>IPC handlers"]
         ProcessConfig["ProcessConfig.set()<br/>ProcessConfig.get()"]
     end
-    
+
     AddModal -->|"IProvider"| SaveProvider
     EditModal -->|"IProvider"| SaveProvider
     SaveProvider --> ModelBridge
     ModelBridge --> ProcessConfig
-    
+
     ModeSettings --> GetProviders
     GetProviders --> ModelBridge
     ModelBridge --> ProcessConfig
     ProcessConfig -->|"IProvider[]"| ModeSettings
-    
+
     AddModal -->|"base_url, api_key"| FetchModels
     FetchModels --> ModelBridge
     ModelBridge -->|"models[]"| AddModal
-    
+
     style ModelBridge fill:#e1f5ff
     style ProcessConfig fill:#fff4e1
 ```
@@ -148,18 +147,19 @@ graph LR
 
 ```typescript
 interface IProvider {
-  id: string;
-  platform: string;              // 'gemini', 'openai', 'anthropic', 'bedrock', etc.
-  name: string;
-  baseUrl: string;
-  apiKey: string;
-  model: string[];                // Available models
-  capabilities?: ModelCapability[]; // vision, function_calling, web_search, etc.
-  bedrockConfig?: {               // AWS Bedrock specific
-    authMethod: 'accessKey' | 'profile';
-    region: string;
-  };
-  modelProtocols?: Record<string, string>; // New API per-model protocol mapping
+  id: string
+  platform: string // 'gemini', 'openai', 'anthropic', 'bedrock', etc.
+  name: string
+  baseUrl: string
+  apiKey: string
+  model: string[] // Available models
+  capabilities?: ModelCapability[] // vision, function_calling, web_search, etc.
+  bedrockConfig?: {
+    // AWS Bedrock specific
+    authMethod: 'accessKey' | 'profile'
+    region: string
+  }
+  modelProtocols?: Record<string, string> // New API per-model protocol mapping
 }
 ```
 
@@ -180,25 +180,25 @@ graph TB
         Test["testProtocol()<br/>for each candidate"]
         Result["ProtocolDetectionResponse"]
     end
-    
+
     subgraph "Protocol Tests"
         TestGemini["testGeminiProtocol()<br/>/v1beta/models"]
         TestOpenAI["testOpenAIProtocol()<br/>/v1/models"]
         TestAnthropic["testAnthropicProtocol()<br/>/v1/messages"]
     end
-    
+
     Input --> Normalize
     Normalize --> Guess
     Guess -->|"Protocol priority order"| Test
-    
+
     Test --> TestGemini
     Test --> TestOpenAI
     Test --> TestAnthropic
-    
+
     TestGemini -->|"Success"| Result
     TestOpenAI -->|"Success"| Result
     TestAnthropic -->|"Success"| Result
-    
+
     style Guess fill:#e1f5ff
     style Result fill:#fff4e1
 ```
@@ -222,7 +222,7 @@ graph TB
     subgraph "TChatConversation Union"
         Base["IChatConversation<br/>id, name, type, createTime, model"]
     end
-    
+
     subgraph "Agent-Specific Types"
         Gemini["type: 'gemini'<br/>extra: {workspace, webSearchEngine, sessionMode}"]
         ACP["type: 'acp'<br/>extra: {backend, cliPath, acpSessionId, sessionMode}"]
@@ -230,25 +230,25 @@ graph TB
         OpenClaw["type: 'openclaw-gateway'<br/>extra: {workspace, gateway, sessionKey}"]
         Nanobot["type: 'nanobot'<br/>extra: {workspace}"]
     end
-    
+
     Base --> Gemini
     Base --> ACP
     Base --> Codex
     Base --> OpenClaw
     Base --> Nanobot
-    
+
     style Base fill:#e1f5ff
 ```
 
 **Common Fields:**
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `id` | `string` | Unique conversation identifier |
-| `type` | `'gemini' \| 'acp' \| 'codex' \| 'openclaw-gateway' \| 'nanobot'` | Agent type discriminator |
-| `model` | `TProviderWithModel` | Selected model provider configuration |
-| `extra` | Agent-specific | Configuration object varying by agent type |
-| `source` | `ConversationSource` | Origin: `'aionui'`, `'telegram'`, `'lark'`, `'dingtalk'` |
+| Field    | Type                                                              | Purpose                                                  |
+| -------- | ----------------------------------------------------------------- | -------------------------------------------------------- |
+| `id`     | `string`                                                          | Unique conversation identifier                           |
+| `type`   | `'gemini' \| 'acp' \| 'codex' \| 'openclaw-gateway' \| 'nanobot'` | Agent type discriminator                                 |
+| `model`  | `TProviderWithModel`                                              | Selected model provider configuration                    |
+| `extra`  | Agent-specific                                                    | Configuration object varying by agent type               |
+| `source` | `ConversationSource`                                              | Origin: `'aionui'`, `'telegram'`, `'lark'`, `'dingtalk'` |
 
 **Sources:** [src/common/storage.ts:127-302]()
 
@@ -264,23 +264,23 @@ graph TB
         SaveDB["db.insertConversation()"]
         SaveFile["ProcessChat.set('chat.history')"]
     end
-    
+
     subgraph "Retrieval"
         GetConv["database.getUserConversations.invoke()"]
         QueryDB["db.getConversation()"]
         QueryFile["ProcessChat.get('chat.history')"]
         InitAgent["Initialize Agent Manager<br/>GeminiAgentManager, etc."]
     end
-    
+
     CreateConv --> BuildConv
     BuildConv --> SaveDB
     BuildConv --> SaveFile
-    
+
     GetConv --> QueryDB
     QueryDB -->|"Not found"| QueryFile
     QueryDB -->|"Found"| InitAgent
     QueryFile -->|"Found"| InitAgent
-    
+
     style BuildConv fill:#e1f5ff
     style QueryDB fill:#fff4e1
 ```
@@ -304,34 +304,34 @@ graph TB
         Flag2["migration.builtinDefaultSkillsAdded_v2"]
         Flag3["migration.promptsI18nAdded"]
     end
-    
+
     subgraph "Migration Execution"
         Check["Check flag value"]
         Apply["Apply migration<br/>Data transformation"]
         SetFlag["Set flag = true"]
         Skip["Skip migration<br/>Already applied"]
     end
-    
+
     Flag1 --> Check
     Flag2 --> Check
     Flag3 --> Check
-    
+
     Check -->|"undefined or false"| Apply
     Check -->|"true"| Skip
-    
+
     Apply --> SetFlag
-    
+
     style Check fill:#e1f5ff
     style SetFlag fill:#fff4e1
 ```
 
 **Common Migration Patterns:**
 
-| Migration Type | Example | Storage Key |
-|----------------|---------|-------------|
-| Field rename | `selectedModel` → `useModel` | Per-conversation in `TChatConversation` |
-| Schema addition | Add `enabledSkills` to assistants | `'migration.builtinDefaultSkillsAdded_v2'` |
-| Data transformation | Convert prompt strings to i18n objects | `'migration.promptsI18nAdded'` |
+| Migration Type      | Example                                | Storage Key                                |
+| ------------------- | -------------------------------------- | ------------------------------------------ |
+| Field rename        | `selectedModel` → `useModel`           | Per-conversation in `TChatConversation`    |
+| Schema addition     | Add `enabledSkills` to assistants      | `'migration.builtinDefaultSkillsAdded_v2'` |
+| Data transformation | Convert prompt strings to i18n objects | `'migration.promptsI18nAdded'`             |
 
 **Sources:** [src/common/storage.ts:74-82]()
 
@@ -352,32 +352,32 @@ graph TB
         CreateIPC["conversation.create.invoke()"]
         BuildConv["buildConversation()"]
     end
-    
+
     subgraph "Configuration Retrieval"
         GetGeminiCfg["ProcessConfig.get('gemini.config')"]
         GetAcpCfg["ProcessConfig.get('acp.config')"]
         GetModelCfg["ProcessConfig.get('model.config')"]
         GetCustomAgents["ProcessConfig.get('acp.customAgents')"]
     end
-    
+
     subgraph "Agent Manager Creation"
         GeminiMgr["new GeminiAgentManager({<br/>  workspace,<br/>  yoloMode,<br/>  sessionMode<br/>})"]
         AcpMgr["new AcpAgentManager({<br/>  backend,<br/>  cliPath,<br/>  yoloMode<br/>})"]
     end
-    
+
     GuidPage --> CreateIPC
     CreateIPC --> BuildConv
-    
+
     BuildConv --> GetGeminiCfg
     BuildConv --> GetAcpCfg
     BuildConv --> GetModelCfg
     BuildConv --> GetCustomAgents
-    
+
     GetGeminiCfg --> GeminiMgr
     GetAcpCfg --> AcpMgr
     GetModelCfg --> GeminiMgr
     GetModelCfg --> AcpMgr
-    
+
     style BuildConv fill:#e1f5ff
     style GeminiMgr fill:#fff4e1
     style AcpMgr fill:#fff4e1
@@ -398,14 +398,14 @@ sequenceDiagram
     participant Bridge as "modelBridge.ts"
     participant Storage as "ProcessConfig"
     participant Agent as "Active Agent Manager"
-    
+
     Settings->>IPC: invoke(IProvider[])
     IPC->>Bridge: provider()
     Bridge->>Storage: set('model.config', providers)
     Storage-->>Bridge: success
     Bridge-->>IPC: {success: true}
     IPC-->>Settings: Configuration saved
-    
+
     Settings->>Agent: Hot-reload signal (if needed)
     Agent->>Storage: get('model.config')
     Storage-->>Agent: Updated IProvider[]
@@ -424,23 +424,25 @@ The `ipcBridge` provides type-safe IPC communication for configuration operation
 
 **Configuration IPC Providers:**
 
-| IPC Channel | Request Type | Response Type | Implementation |
-|-------------|--------------|---------------|----------------|
-| `mode.saveModelConfig` | `IProvider[]` | `IBridgeResponse` | [src/process/bridge/modelBridge.ts:428-436]() |
-| `mode.getModelConfig` | `void` | `IProvider[]` | [src/process/bridge/modelBridge.ts:438-469]() |
-| `mode.fetchModelList` | `{base_url, api_key, platform}` | `{mode: string[]}` | [src/process/bridge/modelBridge.ts:64-426]() |
-| `mode.detectProtocol` | `ProtocolDetectionRequest` | `ProtocolDetectionResponse` | [src/process/bridge/modelBridge.ts:472-588]() |
+| IPC Channel            | Request Type                    | Response Type               | Implementation                                |
+| ---------------------- | ------------------------------- | --------------------------- | --------------------------------------------- |
+| `mode.saveModelConfig` | `IProvider[]`                   | `IBridgeResponse`           | [src/process/bridge/modelBridge.ts:428-436]() |
+| `mode.getModelConfig`  | `void`                          | `IProvider[]`               | [src/process/bridge/modelBridge.ts:438-469]() |
+| `mode.fetchModelList`  | `{base_url, api_key, platform}` | `{mode: string[]}`          | [src/process/bridge/modelBridge.ts:64-426]()  |
+| `mode.detectProtocol`  | `ProtocolDetectionRequest`      | `ProtocolDetectionResponse` | [src/process/bridge/modelBridge.ts:472-588]() |
 
 **Sources:** [src/common/ipcBridge.ts:224-230]()
 
 ### localStorage vs ConfigStorage Usage
 
 **localStorage** (Renderer-only):
+
 - UI panel state (collapse state, split ratios)
 - SendBox drafts (per-conversation)
 - Recent selections (last selected agent on Guid page)
 
 **ConfigStorage** (Cross-process, persisted):
+
 - System settings (`language`, `theme`, `customCss`)
 - Agent authentication (`gemini.config`, `acp.config`)
 - Model providers (`model.config`)
@@ -456,31 +458,31 @@ graph TB
         Recent["Recent selections"]
         Storage1["localStorage"]
     end
-    
+
     subgraph "Persistent Configuration"
         Settings["System settings"]
         Auth["Agent auth tokens"]
         Providers["Model providers"]
         Storage2["ConfigStorage<br/>ProcessConfig"]
     end
-    
+
     subgraph "Conversation Data"
         Metadata["Conversation list"]
         Messages["Message history"]
         Storage3["SQLite Database<br/>+ File Backup"]
     end
-    
+
     PanelState --> Storage1
     Drafts --> Storage1
     Recent --> Storage1
-    
+
     Settings --> Storage2
     Auth --> Storage2
     Providers --> Storage2
-    
+
     Metadata --> Storage3
     Messages --> Storage3
-    
+
     style Storage1 fill:#e1f5ff
     style Storage2 fill:#fff4e1
     style Storage3 fill:#ffe1e1
@@ -528,18 +530,19 @@ macOS symlinks (CLI-safe paths):
 
 ### Path Resolution Functions
 
-| Function | Purpose | Returns |
-|----------|---------|---------|
-| `getConfigPath()` | Configuration directory | `userData/config` (or `~/.aionui-config` on macOS) |
-| `getDataPath()` | Data directory | `userData/aionui` (or `~/.aionui` on macOS) |
-| `getTempPath()` | Temporary workspace | `temp/aionui` |
-| `getAssistantsDir()` | Assistant rules | `config/assistants` |
-| `getSkillsDir()` | Skills | `config/skills` |
-| `getBuiltinSkillsDir()` | Built-in skills | `config/skills/_builtin` |
+| Function                | Purpose                 | Returns                                            |
+| ----------------------- | ----------------------- | -------------------------------------------------- |
+| `getConfigPath()`       | Configuration directory | `userData/config` (or `~/.aionui-config` on macOS) |
+| `getDataPath()`         | Data directory          | `userData/aionui` (or `~/.aionui` on macOS)        |
+| `getTempPath()`         | Temporary workspace     | `temp/aionui`                                      |
+| `getAssistantsDir()`    | Assistant rules         | `config/assistants`                                |
+| `getSkillsDir()`        | Skills                  | `config/skills`                                    |
+| `getBuiltinSkillsDir()` | Built-in skills         | `config/skills/_builtin`                           |
 
 **CLI-Safe Symlinks (macOS):**
 
 The `ensureCliSafeSymlink()` function creates symlinks in the home directory to avoid spaces in paths, which break CLI tools like Qwen. The function:
+
 1. Checks if symlink exists and points to correct target
 2. Verifies target directory exists (fixes broken symlinks)
 3. Removes blocking files/wrong symlinks
@@ -561,12 +564,14 @@ The `ensureCliSafeSymlink()` function creates symlinks in the home directory to 
 ### File vs Database Trade-offs
 
 **Use Files When:**
+
 - Configuration needs to be human-editable
 - Data is relatively small (<1MB)
 - Frequent random access is not required
 - Backup/restore should be simple file copying
 
 **Use Database When:**
+
 - Data requires complex queries (filtering, sorting, pagination)
 - Relationships between entities need to be maintained
 - Atomic transactions are required

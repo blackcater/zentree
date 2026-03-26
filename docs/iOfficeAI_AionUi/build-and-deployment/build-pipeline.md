@@ -14,8 +14,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Overview
 
 The build pipeline is implemented in `.github/workflows/build-and-release.yml` and orchestrates multi-platform builds through GitHub Actions. The pipeline coordinates electron-vite (TypeScript/React compilation), electron-builder (packaging), and release management across five platform-architecture combinations.
@@ -31,19 +29,19 @@ The pipeline triggers on three distinct scenarios:
 ```mermaid
 graph TB
     Triggers["Workflow Triggers"]
-    
+
     DevPush["Push to dev branch<br/>refs/heads/dev"]
     TagPush["Push version tag<br/>refs/tags/v*"]
     Manual["Manual workflow_dispatch<br/>with matrix selection"]
-    
+
     DevAction["Execute: Code Quality + Build Matrix<br/>Then: Auto-create dev tag"]
     TagAction["Execute: Code Quality + Build Matrix<br/>Skip: Tag creation (already exists)"]
     ManualAction["Execute: Code Quality + Selected Matrix<br/>Skip: Tag creation + Release"]
-    
+
     Triggers --> DevPush
     Triggers --> TagPush
     Triggers --> Manual
-    
+
     DevPush --> DevAction
     TagPush --> TagAction
     Manual --> ManualAction
@@ -74,21 +72,21 @@ The build system uses a modular architecture with a reusable workflow:
 graph TB
     Main[".github/workflows/build-and-release.yml<br/>Main Workflow"]
     Reusable[".github/workflows/_build-reusable.yml<br/>Reusable Workflow"]
-    
+
     Quality["code-quality Job<br/>ESLint, Prettier, TypeScript, Vitest"]
     Build["build Job<br/>Matrix: 5 platform configs"]
     AutoRetry["auto-retry-workflow Job<br/>First-failure retry with 5min cooldown"]
     CreateTag["create-tag Job<br/>Dev tag creation + version bump"]
     Release["release Job<br/>GitHub Release + artifacts"]
-    
+
     Main -->|"uses: ./.github/workflows/_build-reusable.yml"| Reusable
     Reusable --> Quality
     Quality -->|"needs: code-quality"| Build
-    
+
     Main --> AutoRetry
     Main --> CreateTag
     Main --> Release
-    
+
     Build -.->|"if: failure() && run_attempt == 1"| AutoRetry
     Build -->|"needs: [build-pipeline]<br/>if: success()"| CreateTag
     CreateTag -->|"needs: [build-pipeline, create-tag]"| Release
@@ -102,11 +100,11 @@ Sources: [.github/workflows/build-and-release.yml:19-34]()
 
 The `code-quality` job runs TypeScript compilation, ESLint, and Prettier checks. Only TypeScript failures block the build.
 
-| Check | Command | Exit on Failure |
-|-------|---------|-----------------|
-| TypeScript | `npx tsc --noEmit` | Yes |
-| ESLint | `npm run lint \|\| echo "warning"` | No |
-| Prettier | `npm run format:check \|\| echo "warning"` | No |
+| Check      | Command                                    | Exit on Failure |
+| ---------- | ------------------------------------------ | --------------- |
+| TypeScript | `npx tsc --noEmit`                         | Yes             |
+| ESLint     | `npm run lint \|\| echo "warning"`         | No              |
+| Prettier   | `npm run format:check \|\| echo "warning"` | No              |
 
 The job runs on `ubuntu-latest` with Node.js 22 and NPM cache enabled.
 
@@ -121,13 +119,13 @@ The `build` job uses a matrix strategy to build five platform-architecture combi
 ```mermaid
 graph TB
     Matrix["strategy.matrix.include"]
-    
+
     MacArm["platform: macos-arm64<br/>os: macos-14<br/>arch: arm64<br/>command: build-with-builder.js arm64 --mac --arm64"]
     MacX64["platform: macos-x64<br/>os: macos-14<br/>arch: x64<br/>command: build-with-builder.js x64 --mac --x64"]
     WinX64["platform: windows-x64<br/>os: windows-2022<br/>arch: x64<br/>command: build-with-builder.js x64 --win --x64"]
     WinArm["platform: windows-arm64<br/>os: windows-2022<br/>arch: arm64<br/>command: build-with-builder.js arm64 --win --arm64"]
     Linux["platform: linux<br/>os: ubuntu-latest<br/>arch: x64,arm64<br/>command: npm run dist:linux"]
-    
+
     Matrix --> MacArm
     Matrix --> MacX64
     Matrix --> WinX64
@@ -148,13 +146,13 @@ The build matrix defines five platform-architecture combinations that execute in
 ```mermaid
 graph TB
     Matrix["strategy.matrix.include<br/>from workflow input"]
-    
+
     MacArm["Platform: macos-arm64<br/>Runner: macos-14<br/>Arch: arm64<br/>Command: node scripts/build-with-builder.js arm64 --mac --arm64<br/>Artifact: macos-build-arm64"]
     MacX64["Platform: macos-x64<br/>Runner: macos-14<br/>Arch: x64<br/>Command: node scripts/build-with-builder.js x64 --mac --x64<br/>Artifact: macos-build-x64"]
     WinX64["Platform: windows-x64<br/>Runner: windows-2022<br/>Arch: x64<br/>Command: node scripts/build-with-builder.js x64 --win --x64<br/>Artifact: windows-build-x64"]
     WinArm["Platform: windows-arm64<br/>Runner: windows-2022<br/>Arch: arm64<br/>Command: node scripts/build-with-builder.js arm64 --win --arm64<br/>Artifact: windows-build-arm64"]
     Linux["Platform: linux<br/>Runner: ubuntu-latest<br/>Arch: x64,arm64<br/>Command: bun run dist:linux<br/>Artifact: linux-build"]
-    
+
     Matrix --> MacArm
     Matrix --> MacX64
     Matrix --> WinX64
@@ -194,7 +192,7 @@ sequenceDiagram
     participant Vite as "electron-vite build"
     participant Builder as "electron-builder"
     participant Upload as "Upload Artifacts"
-    
+
     GHA->>Setup: "Checkout + Node 22 + Bun + Python 3.12"
     Setup->>Cache: "Restore Electron/npm caches"
     Cache->>GHA: "Get Electron version from package.json"
@@ -215,18 +213,20 @@ The script computes an MD5 hash of source files and caches it in `out/.build-has
 
 ```javascript
 function computeSourceHash() {
-  const hash = crypto.createHash('md5');
+  const hash = crypto.createHash('md5')
   // Hash package.json, tsconfig.json, src/, public/, scripts/
-  return hash.digest('hex');
+  return hash.digest('hex')
 }
 
 if (cachedHash && currentHash === cachedHash && viteBuildExists()) {
-  console.log('📦 Incremental build: Vite output unchanged, skipping compilation');
-  return true;
+  console.log(
+    '📦 Incremental build: Vite output unchanged, skipping compilation'
+  )
+  return true
 }
 ```
 
-Sources: [.github/workflows/_build-reusable.yml:60-241](), [scripts/build-with-builder.js:44-131]()
+Sources: [.github/workflows/\_build-reusable.yml:60-241](), [scripts/build-with-builder.js:44-131]()
 
 ## Platform-Specific Build Steps
 
@@ -234,19 +234,19 @@ Sources: [.github/workflows/_build-reusable.yml:60-241](), [scripts/build-with-b
 
 macOS builds require Xcode Command Line Tools, code signing certificate installation, and notarization with timeout tolerance.
 
-**Environment Setup** [.github/workflows/_build-reusable.yml:100-113]()
+**Environment Setup** [.github/workflows/\_build-reusable.yml:100-113]()
 
 ```yaml
 - name: Install Python
   uses: actions/setup-python@v5
   with:
     python-version: '3.12'
-    
+
 - name: Install Xcode Command Line Tools
   run: xcode-select --install || true
 ```
 
-**Code Signing Certificate Installation** [.github/workflows/_build-reusable.yml:115-145]()
+**Code Signing Certificate Installation** [.github/workflows/\_build-reusable.yml:115-145]()
 
 ```bash
 # Decode certificate from base64 secret
@@ -267,20 +267,20 @@ security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN
 macOS builds implement a 3-attempt retry mechanism for DMG creation failures:
 
 ```javascript
-const DMG_RETRY_MAX = 3;
-const DMG_RETRY_DELAY_SEC = 30;
+const DMG_RETRY_MAX = 3
+const DMG_RETRY_DELAY_SEC = 30
 
 function buildWithDmgRetry(cmd, targetArch) {
   try {
-    execSync(cmd, { stdio: 'inherit' });
-    return;
+    execSync(cmd, { stdio: 'inherit' })
+    return
   } catch (error) {
     // Check if .app exists but .dmg missing
-    if (!appDir || dmgExists(outDir)) throw error;
-    
+    if (!appDir || dmgExists(outDir)) throw error
+
     for (let attempt = 1; attempt <= DMG_RETRY_MAX; attempt++) {
-      cleanupDiskImages();  // Detach stale disk images
-      createDmgWithPrepackaged(appDir, targetArch);
+      cleanupDiskImages() // Detach stale disk images
+      createDmgWithPrepackaged(appDir, targetArch)
     }
   }
 }
@@ -292,17 +292,17 @@ The `--prepackaged` flag preserves DMG styling (window size, icon positions) whe
 
 Notarization is handled by `scripts/afterSign.js` as an afterSign hook. Failures are tolerated (degraded mode) to avoid blocking releases.
 
-**Keychain Cleanup** [.github/workflows/_build-reusable.yml:202-209]()
+**Keychain Cleanup** [.github/workflows/\_build-reusable.yml:202-209]()
 
 Always runs to delete `build.keychain`, even on failure.
 
-Sources: [.github/workflows/_build-reusable.yml:100-209](), [scripts/build-with-builder.js:19-251]()
+Sources: [.github/workflows/\_build-reusable.yml:100-209](), [scripts/build-with-builder.js:19-251]()
 
 ### Windows Build Steps
 
 Windows builds require Visual Studio Build Tools with MSVC ARM64 toolchain and native module compilation with fallback strategy.
 
-**Toolchain Setup** [.github/workflows/_build-reusable.yml:65-98]()
+**Toolchain Setup** [.github/workflows/\_build-reusable.yml:65-98]()
 
 ```yaml
 - name: Setup Python
@@ -326,7 +326,7 @@ Windows builds require Visual Studio Build Tools with MSVC ARM64 toolchain and n
 
 The Windows SDK version `10.0.19041.0` provides ConPTY support for `node-pty`.
 
-**Native Module Rebuild Strategy** [.github/workflows/_build-reusable.yml:211-241]()
+**Native Module Rebuild Strategy** [.github/workflows/\_build-reusable.yml:211-241]()
 
 Windows uses a two-phase approach: prebuild-install (prebuilt binaries) with electron-rebuild fallback:
 
@@ -357,9 +357,9 @@ Windows builds inject architecture-specific NSIS scripts to prevent installation
 
 ```javascript
 if (targetArch === 'arm64') {
-  nsisInclude = `--config.nsis.include="resources/windows-installer-arm64.nsh"`;
+  nsisInclude = `--config.nsis.include="resources/windows-installer-arm64.nsh"`
 } else if (targetArch === 'x64') {
-  nsisInclude = `--config.nsis.include="resources/windows-installer-x64.nsh"`;
+  nsisInclude = `--config.nsis.include="resources/windows-installer-x64.nsh"`
 }
 ```
 
@@ -368,23 +368,23 @@ if (targetArch === 'arm64') {
 Before building, the script removes stale Windows artifacts from previous runs:
 
 ```javascript
-const winUnpackedDirRe = /^win(?:-[a-z0-9]+)?-unpacked$/i;
-const winArtifactFileRe = /-win-[^.]+\.(?:exe|msi|zip|7z|blockmap)$/i;
+const winUnpackedDirRe = /^win(?:-[a-z0-9]+)?-unpacked$/i
+const winArtifactFileRe = /-win-[^.]+\.(?:exe|msi|zip|7z|blockmap)$/i
 
 for (const entry of fs.readdirSync(outDir)) {
   if (winUnpackedDirRe.test(entry.name) || winArtifactFileRe.test(entry.name)) {
-    fs.rmSync(fullPath, { recursive: true, force: true });
+    fs.rmSync(fullPath, { recursive: true, force: true })
   }
 }
 ```
 
-Sources: [.github/workflows/_build-reusable.yml:65-241](), [scripts/build-with-builder.js:253-481](), [resources/windows-installer-arm64.nsh:1-20](), [resources/windows-installer-x64.nsh:1-30]()
+Sources: [.github/workflows/\_build-reusable.yml:65-241](), [scripts/build-with-builder.js:253-481](), [resources/windows-installer-arm64.nsh:1-20](), [resources/windows-installer-x64.nsh:1-30]()
 
 ### Linux Build Steps
 
 Linux builds require system dependencies for native compilation and Electron runtime libraries.
 
-**System Dependencies** [.github/workflows/_build-reusable.yml:147-159]()
+**System Dependencies** [.github/workflows/\_build-reusable.yml:147-159]()
 
 ```bash
 sudo apt-get update
@@ -398,14 +398,14 @@ sudo apt-get install -y \
 
 **Dependency Categories**
 
-| Category | Packages | Purpose |
-|----------|----------|---------|
-| Build Tools | `build-essential`, `python3`, `pkg-config` | Native module compilation |
-| Native Modules | `libsqlite3-dev` | better-sqlite3 compilation |
-| Packaging | `fakeroot`, `dpkg-dev`, `rpm` | DEB/RPM creation |
-| Electron Runtime | `libnss3-dev`, `libgtk-3-dev`, `libatk-bridge2.0-dev`, etc. | GTK3, NSS, ATK, DRM, ALSA |
+| Category         | Packages                                                    | Purpose                    |
+| ---------------- | ----------------------------------------------------------- | -------------------------- |
+| Build Tools      | `build-essential`, `python3`, `pkg-config`                  | Native module compilation  |
+| Native Modules   | `libsqlite3-dev`                                            | better-sqlite3 compilation |
+| Packaging        | `fakeroot`, `dpkg-dev`, `rpm`                               | DEB/RPM creation           |
+| Electron Runtime | `libnss3-dev`, `libgtk-3-dev`, `libatk-bridge2.0-dev`, etc. | GTK3, NSS, ATK, DRM, ALSA  |
 
-**Build Execution** [.github/workflows/_build-reusable.yml:161-178]()
+**Build Execution** [.github/workflows/\_build-reusable.yml:161-178]()
 
 Linux builds use `bun run dist:linux` which invokes `scripts/build-with-builder.js auto --linux`. The script builds both x64 and arm64 architectures in a single run:
 
@@ -415,13 +415,13 @@ node scripts/build-with-builder.js auto --linux
 
 The `auto` mode detects target architectures from `electron-builder.yml` where Linux is configured with `arch: [x64, arm64]`.
 
-Sources: [.github/workflows/_build-reusable.yml:147-178](), [electron-builder.yml:156-159]()
+Sources: [.github/workflows/\_build-reusable.yml:147-178](), [electron-builder.yml:156-159]()
 
 ## Native Module Handling
 
 Native modules are compiled for the target Electron version and architecture. The approach differs by platform to optimize build speed and reliability.
 
-**Electron Version Extraction** [.github/workflows/_build-reusable.yml:244-250]()
+**Electron Version Extraction** [.github/workflows/\_build-reusable.yml:244-250]()
 
 ```yaml
 - name: Get Electron version
@@ -434,25 +434,25 @@ Native modules are compiled for the target Electron version and architecture. Th
 
 **Platform-Specific Rebuild Strategies**
 
-| Platform | Primary Method | Fallback | Verification | ASAR Unpacking |
-|----------|---------------|----------|--------------|----------------|
-| Windows | `prebuild-install` | `electron-rebuild` | Explicit file check | Yes (better-sqlite3, bcrypt, node-pty) |
-| macOS | `electron-builder install-app-deps` | None | Implicit (build failure) | Yes (better-sqlite3, bcrypt, node-pty) |
-| Linux | `electron-builder install-app-deps` | None | Implicit (build failure) | Yes (better-sqlite3, bcrypt, node-pty) |
+| Platform | Primary Method                      | Fallback           | Verification             | ASAR Unpacking                         |
+| -------- | ----------------------------------- | ------------------ | ------------------------ | -------------------------------------- |
+| Windows  | `prebuild-install`                  | `electron-rebuild` | Explicit file check      | Yes (better-sqlite3, bcrypt, node-pty) |
+| macOS    | `electron-builder install-app-deps` | None               | Implicit (build failure) | Yes (better-sqlite3, bcrypt, node-pty) |
+| Linux    | `electron-builder install-app-deps` | None               | Implicit (build failure) | Yes (better-sqlite3, bcrypt, node-pty) |
 
 **Critical Native Modules**
 
 ```javascript
 // From electron-builder.yml asarUnpack configuration
 const nativeModules = [
-  'better-sqlite3',  // SQLite3 bindings for database
-  'bcrypt',          // Password hashing for WebUI auth
-  'node-pty',        // PTY bindings for terminal emulation
-  '@mapbox/node-pre-gyp',  // Native module installer
-];
+  'better-sqlite3', // SQLite3 bindings for database
+  'bcrypt', // Password hashing for WebUI auth
+  'node-pty', // PTY bindings for terminal emulation
+  '@mapbox/node-pre-gyp', // Native module installer
+]
 ```
 
-**Windows Verification Logic** [.github/workflows/_build-reusable.yml:229-241]()
+**Windows Verification Logic** [.github/workflows/\_build-reusable.yml:229-241]()
 
 ```powershell
 $sqliteNode = "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
@@ -471,16 +471,16 @@ Native modules must be unpacked from ASAR for runtime filesystem access:
 
 ```yaml
 asarUnpack:
-  - "**/node_modules/better-sqlite3/**/*"
-  - "**/node_modules/bcrypt/**/*"
-  - "**/node_modules/node-pty/**/*"
-  - "**/node_modules/@mapbox/**/*"
-  - "**/node_modules/web-tree-sitter/**/*"  # WASM files
-  - "rules/**/*"   # Builtin resources
-  - "skills/**/*"  # Builtin resources
+  - '**/node_modules/better-sqlite3/**/*'
+  - '**/node_modules/bcrypt/**/*'
+  - '**/node_modules/node-pty/**/*'
+  - '**/node_modules/@mapbox/**/*'
+  - '**/node_modules/web-tree-sitter/**/*' # WASM files
+  - 'rules/**/*' # Builtin resources
+  - 'skills/**/*' # Builtin resources
 ```
 
-Sources: [.github/workflows/_build-reusable.yml:211-250](), [electron-builder.yml:181-203]()
+Sources: [.github/workflows/\_build-reusable.yml:211-250](), [electron-builder.yml:181-203]()
 
 ## Build Retry Mechanisms
 
@@ -493,27 +493,29 @@ The build script implements a 3-attempt retry specifically for macOS DMG creatio
 ```javascript
 function buildWithDmgRetry(cmd, targetArch) {
   try {
-    execSync(cmd, { stdio: 'inherit' });
-    return;
+    execSync(cmd, { stdio: 'inherit' })
+    return
   } catch (error) {
-    const appDir = findAppDir(outDir);
-    
+    const appDir = findAppDir(outDir)
+
     // Only retry if .app exists but .dmg is missing
-    if (!appDir || dmgExists(outDir)) throw error;
-    
-    console.log('\
-🔄 Build failed during DMG creation (.app exists, .dmg missing)');
-    
+    if (!appDir || dmgExists(outDir)) throw error
+
+    console.log(
+      '\
+🔄 Build failed during DMG creation (.app exists, .dmg missing)'
+    )
+
     for (let attempt = 1; attempt <= DMG_RETRY_MAX; attempt++) {
-      cleanupDiskImages();  // Detach stale /dev/disk* mounts
-      sleep(DMG_RETRY_DELAY_SEC);
-      
+      cleanupDiskImages() // Detach stale /dev/disk* mounts
+      sleep(DMG_RETRY_DELAY_SEC)
+
       try {
-        createDmgWithPrepackaged(appDir, targetArch);  // Use --prepackaged
-        console.log('✅ DMG created successfully on retry');
-        return;
+        createDmgWithPrepackaged(appDir, targetArch) // Use --prepackaged
+        console.log('✅ DMG created successfully on retry')
+        return
       } catch (retryError) {
-        if (attempt === DMG_RETRY_MAX) throw retryError;
+        if (attempt === DMG_RETRY_MAX) throw retryError
       }
     }
   }
@@ -539,7 +541,7 @@ auto-retry-workflow:
       run: |
         echo "⏳ Waiting 5 minutes before retry..."
         sleep 300
-        
+
     - name: Trigger workflow rerun
       run: |
         curl -X POST \
@@ -570,7 +572,7 @@ graph TB
     CheckRemote{"Remote tag<br/>exists?"}
     PushTag["git tag + git push"]
     BumpVersion["Increment patch version<br/>Update package.json + bun.lock<br/>git commit + push<br/>Get new COMMIT_SHORT"]
-    
+
     Trigger --> Success
     Success --> Extract
     Extract --> CreateTag
@@ -607,18 +609,18 @@ if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME$"; then
   if [ "$IS_DEV" = "false" ]; then
     # Main branch: Auto-increment patch version
     echo "⚠️ Tag $TAG_NAME already exists, auto-incrementing version..."
-    
+
     NEW_PATCH=$((PATCH + 1))
     NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
-    
+
     # Update package.json using bun
     bun pm version $NEW_VERSION
-    
+
     # Commit and push version bump
     git add package.json bun.lock
     git commit -m "chore: bump version to $NEW_VERSION"
     git push origin $BRANCH_NAME
-    
+
     # Get new commit ID and create tag
     COMMIT_SHORT=$(git rev-parse --short HEAD)
     TAG_NAME="v${NEW_VERSION}-${COMMIT_SHORT}"
@@ -643,9 +645,9 @@ The `release` job aggregates build artifacts and creates a GitHub Release with a
 release:
   runs-on: ubuntu-latest
   needs: [build-pipeline, create-tag]
-  if: always() && needs.build-pipeline.result == 'success' && 
-      (needs.create-tag.result == 'success' || 
-       (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
+  if: always() && needs.build-pipeline.result == 'success' &&
+    (needs.create-tag.result == 'success' ||
+    (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
   environment: ${{ needs.create-tag.outputs.is_dev == 'true' && 'dev-release' || 'release' }}
 ```
 
@@ -658,10 +660,10 @@ release:
 
 **Environment Selection**
 
-| Trigger | Environment | Purpose |
-|---------|-------------|---------|
-| Dev branch push | `dev-release` | Development releases with prerelease flag |
-| Version tag push | `release` | Production releases |
+| Trigger          | Environment   | Purpose                                   |
+| ---------------- | ------------- | ----------------------------------------- |
+| Dev branch push  | `dev-release` | Development releases with prerelease flag |
+| Version tag push | `release`     | Production releases                       |
 
 **Artifact Download and Organization** [.github/workflows/build-and-release.yml:232-239]()
 
@@ -703,9 +705,9 @@ release-assets/
 - uses: softprops/action-gh-release@v2
   with:
     tag_name: ${{ steps.version.outputs.tag_name }}
-    name: ${{ steps.version.outputs.is_dev == 'true' && 
-              format('Development Build {0}', steps.version.outputs.tag_name) || 
-              steps.version.outputs.tag_name }}
+    name: ${{ steps.version.outputs.is_dev == 'true' &&
+      format('Development Build {0}', steps.version.outputs.tag_name) ||
+      steps.version.outputs.tag_name }}
     files: |
       release-assets/**/*.exe
       release-assets/**/*.msi
@@ -717,10 +719,10 @@ release-assets/
       release-assets/**/*.blockmap
     generate_release_notes: true
     draft: true
-    prerelease: ${{ steps.version.outputs.is_dev == 'true' || 
-                    contains(steps.version.outputs.tag_name, 'beta') || 
-                    contains(steps.version.outputs.tag_name, 'alpha') || 
-                    contains(steps.version.outputs.tag_name, 'rc') }}
+    prerelease: ${{ steps.version.outputs.is_dev == 'true' ||
+      contains(steps.version.outputs.tag_name, 'beta') ||
+      contains(steps.version.outputs.tag_name, 'alpha') ||
+      contains(steps.version.outputs.tag_name, 'rc') }}
   env:
     GH_TOKEN: ${{ secrets.GH_TOKEN }}
 ```
@@ -755,7 +757,7 @@ graph TB
     CleanupWin["cleanupWindowsPackOutput()<br/>remove stale win-unpacked dirs"]
     AddNsisScript["add NSIS arch detection script<br/>--config.nsis.include"]
     RunBuilder["buildWithDmgRetry()<br/>bunx electron-builder {args} --publish=never"]
-    
+
     ParseArgs --> DetectArch
     DetectArch --> ComputeHash
     ComputeHash --> CheckCache
@@ -775,23 +777,25 @@ graph TB
 **Architecture Detection** [scripts/build-with-builder.js:327-361]()
 
 ```javascript
-const buildMachineArch = process.arch;
-let targetArch;
-let multiArch = false;
+const buildMachineArch = process.arch
+let targetArch
+let multiArch = false
 
-const archArgs = [...new Set(rawArchArgs)];  // Remove duplicates
+const archArgs = [...new Set(rawArchArgs)] // Remove duplicates
 
 if (archArgs.length > 1) {
   // Multiple architectures: let electron-builder handle it
-  multiArch = true;
-  targetArch = archArgs[0];  // Use first for Vite build
+  multiArch = true
+  targetArch = archArgs[0] // Use first for Vite build
 } else if (args[0] === 'auto') {
   // Auto mode: read from electron-builder.yml
-  const configArch = detectedPlatform ? getTargetArchFromConfig(detectedPlatform) : null;
-  targetArch = configArch || buildMachineArch;
+  const configArch = detectedPlatform
+    ? getTargetArchFromConfig(detectedPlatform)
+    : null
+  targetArch = configArch || buildMachineArch
 } else {
   // Explicit architecture or default to build machine
-  targetArch = archArgs[0] || buildMachineArch;
+  targetArch = archArgs[0] || buildMachineArch
 }
 ```
 
@@ -799,41 +803,46 @@ if (archArgs.length > 1) {
 
 ```javascript
 function computeSourceHash() {
-  const hash = crypto.createHash('md5');
-  
+  const hash = crypto.createHash('md5')
+
   // Hash key files
-  const filesToHash = ['package.json', 'bun.lock', 'tsconfig.json', 
-                       'electron.vite.config.ts', 'electron-builder.yml'];
+  const filesToHash = [
+    'package.json',
+    'bun.lock',
+    'tsconfig.json',
+    'electron.vite.config.ts',
+    'electron-builder.yml',
+  ]
   for (const file of filesToHash) {
     if (fs.existsSync(file)) {
-      hash.update(file + ':');
-      hash.update(fs.readFileSync(file));
+      hash.update(file + ':')
+      hash.update(fs.readFileSync(file))
     }
   }
-  
+
   // Hash directories (file paths + sizes + mtimes)
-  const hashDirs = ['src', 'public', 'scripts'];
+  const hashDirs = ['src', 'public', 'scripts']
   for (const dir of hashDirs) {
-    const files = walkFiles(dir).sort();
+    const files = walkFiles(dir).sort()
     for (const relPath of files) {
-      const stat = fs.statSync(relPath);
-      hash.update(relPath + ':');
-      hash.update(String(stat.size));
-      hash.update(String(stat.mtimeMs));
+      const stat = fs.statSync(relPath)
+      hash.update(relPath + ':')
+      hash.update(String(stat.size))
+      hash.update(String(stat.mtimeMs))
     }
   }
-  
-  return hash.digest('hex');
+
+  return hash.digest('hex')
 }
 
 function shouldSkipViteBuild(skipViteFlag, forceFlag) {
-  if (forceFlag) return false;  // --force overrides cache
-  if (skipViteFlag) return true;  // --skip-vite explicit
-  
-  const currentHash = computeSourceHash();
-  const cachedHash = loadCachedHash();  // from out/.build-hash
-  
-  return cachedHash && currentHash === cachedHash && viteBuildExists();
+  if (forceFlag) return false // --force overrides cache
+  if (skipViteFlag) return true // --skip-vite explicit
+
+  const currentHash = computeSourceHash()
+  const cachedHash = loadCachedHash() // from out/.build-hash
+
+  return cachedHash && currentHash === cachedHash && viteBuildExists()
 }
 ```
 
@@ -841,33 +850,33 @@ function shouldSkipViteBuild(skipViteFlag, forceFlag) {
 
 ```javascript
 if (!skipViteBuild) {
-  console.log(`📦 Building ${targetArch}...`);
+  console.log(`📦 Building ${targetArch}...`)
   execSync(`bunx electron-vite build`, {
     stdio: 'inherit',
     shell: process.platform === 'win32',
     env: {
       ...process.env,
       ELECTRON_BUILDER_ARCH: targetArch,
-    }
-  });
-  
-  saveCurrentHash(computeSourceHash());
+    },
+  })
+
+  saveCurrentHash(computeSourceHash())
 } else {
-  console.log('📦 Using cached Vite build output');
+  console.log('📦 Using cached Vite build output')
 }
 ```
 
 **Output Verification** [scripts/build-with-builder.js:401-417]()
 
 ```javascript
-const mainIndex = path.join(outDir, 'main', 'index.js');
-const rendererIndex = path.join(outDir, 'renderer', 'index.html');
+const mainIndex = path.join(outDir, 'main', 'index.js')
+const rendererIndex = path.join(outDir, 'renderer', 'index.html')
 
 if (!fs.existsSync(mainIndex)) {
-  throw new Error('Missing main entry: out/main/index.js');
+  throw new Error('Missing main entry: out/main/index.js')
 }
 if (!fs.existsSync(rendererIndex)) {
-  throw new Error('Missing renderer entry: out/renderer/index.html');
+  throw new Error('Missing renderer entry: out/renderer/index.html')
 }
 ```
 
@@ -877,34 +886,36 @@ if (!fs.existsSync(rendererIndex)) {
 // 7za compression: 0 (store) to 9 (ultra)
 // CI: 9 (maximum) for smallest size
 // Local: 7 (normal) for 30-50% faster ASAR packing
-const isCI = process.env.CI === 'true';
+const isCI = process.env.CI === 'true'
 if (!process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL) {
-  process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL = isCI ? '9' : '7';
+  process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL = isCI ? '9' : '7'
 }
-console.log(`📦 Compression level: ${process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL}`);
+console.log(
+  `📦 Compression level: ${process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL}`
+)
 ```
 
 **electron-builder Execution** [scripts/build-with-builder.js:442-504]()
 
 ```javascript
-let archFlag = multiArch 
-  ? archArgs.map(arch => `--${arch}`).join(' ')  // Multiple: --x64 --arm64
-  : `--${targetArch}`;  // Single: --arm64
+let archFlag = multiArch
+  ? archArgs.map((arch) => `--${arch}`).join(' ') // Multiple: --x64 --arm64
+  : `--${targetArch}` // Single: --arm64
 
 // Add NSIS architecture detection script for Windows
-let nsisInclude = '';
+let nsisInclude = ''
 if (builderArgs.includes('--win') && !multiArch) {
   if (targetArch === 'arm64') {
-    nsisInclude = `--config.nsis.include="resources/windows-installer-arm64.nsh"`;
+    nsisInclude = `--config.nsis.include="resources/windows-installer-arm64.nsh"`
   } else if (targetArch === 'x64') {
-    nsisInclude = `--config.nsis.include="resources/windows-installer-x64.nsh"`;
+    nsisInclude = `--config.nsis.include="resources/windows-installer-x64.nsh"`
   }
 }
 
 buildWithDmgRetry(
   `bunx electron-builder ${builderArgs} ${archFlag} ${nsisInclude} --publish=never`,
   targetArch
-);
+)
 ```
 
 Sources: [scripts/build-with-builder.js:1-511]()
@@ -921,14 +932,14 @@ files:
   - out/main/**/*
   - out/preload/**/*
   - out/renderer/**/*
-  
+
   # Static resources
   - public/**/*
   - rules/**/*
   - skills/**/*
   - assistant/**/*
   - package.json
-  
+
   # Native modules and dependencies
   - node_modules/better-sqlite3/**/*
   - node_modules/bcrypt/**/*
@@ -936,16 +947,16 @@ files:
   - node_modules/@mapbox/**/*
   - node_modules/web-tree-sitter/**/*
   - node_modules/tree-sitter-bash/**/*
-  
+
   # Exclude tree-sitter native binaries (prevent signing issues)
   - '!**/node_modules/tree-sitter-*/prebuilds/**'
   - '!**/node_modules/tree-sitter-*/**/*.node'
   - '!**/node_modules/tree-sitter-*/**/*.{obj,o,cc,c}'
-  
+
   # Exclude JAR files and JNI libraries (notarization issues)
   - '!**/*.jar'
   - '!**/*.jnilib'
-  
+
   # Exclude vendor directories (unsigned binaries)
   - '!**/node_modules/*/vendor/**'
   - '!**/node_modules/@*/*/vendor/**'
@@ -956,43 +967,44 @@ files:
 ```yaml
 asarUnpack:
   # Native modules requiring filesystem access
-  - "**/node_modules/better-sqlite3/**/*"
-  - "**/node_modules/bcrypt/**/*"
-  - "**/node_modules/node-pty/**/*"
-  - "**/node_modules/@mapbox/**/*"
-  - "**/node_modules/detect-libc/**/*"
-  - "**/node_modules/prebuild-install/**/*"
-  - "**/node_modules/node-gyp-build/**/*"
-  - "**/node_modules/bindings/**/*"
-  
+  - '**/node_modules/better-sqlite3/**/*'
+  - '**/node_modules/bcrypt/**/*'
+  - '**/node_modules/node-pty/**/*'
+  - '**/node_modules/@mapbox/**/*'
+  - '**/node_modules/detect-libc/**/*'
+  - '**/node_modules/prebuild-install/**/*'
+  - '**/node_modules/node-gyp-build/**/*'
+  - '**/node_modules/bindings/**/*'
+
   # WASM files requiring fs.readFile access
-  - "**/node_modules/web-tree-sitter/**/*"
-  - "**/node_modules/tree-sitter-bash/**/*"
-  
+  - '**/node_modules/web-tree-sitter/**/*'
+  - '**/node_modules/tree-sitter-bash/**/*'
+
   # Builtin resources (required for Homebrew installations)
-  - "rules/**/*"
-  - "skills/**/*"
+  - 'rules/**/*'
+  - 'skills/**/*'
 ```
 
 ASAR unpacking is required for:
+
 - Native modules with `.node` binaries
 - WASM files accessed via `fs.readFile()`
 - Resources accessed with `fs.readdir(..., { withFileTypes: true })`
 
 **Platform Targets and Artifact Naming** [electron-builder.yml:104-176]()
 
-| Platform | Targets | Architectures | Artifact Format |
-|----------|---------|---------------|-----------------|
-| macOS | `dmg`, `zip` | Single (arm64 or x64) | `AionUi-${version}-mac-${arch}.{dmg,zip}` |
-| Windows | `nsis`, `zip` | Single (x64 or arm64) | `AionUi-${version}-win-${arch}.{exe,zip}` |
-| Linux | `deb`, `AppImage` | Multi (x64, arm64) | `AionUi-${version}-linux-${arch}.{deb,AppImage}` |
+| Platform | Targets           | Architectures         | Artifact Format                                  |
+| -------- | ----------------- | --------------------- | ------------------------------------------------ |
+| macOS    | `dmg`, `zip`      | Single (arm64 or x64) | `AionUi-${version}-mac-${arch}.{dmg,zip}`        |
+| Windows  | `nsis`, `zip`     | Single (x64 or arm64) | `AionUi-${version}-win-${arch}.{exe,zip}`        |
+| Linux    | `deb`, `AppImage` | Multi (x64, arm64)    | `AionUi-${version}-linux-${arch}.{deb,AppImage}` |
 
 **macOS DMG Configuration** [electron-builder.yml:134-152]()
 
 ```yaml
 dmg:
-  format: UDZO            # Reliable on CI (uncompressed)
-  internetEnabled: false  # Avoid network issues
+  format: UDZO # Reliable on CI (uncompressed)
+  internetEnabled: false # Avoid network issues
   window:
     width: 540
     height: 380
@@ -1021,7 +1033,7 @@ afterSign: scripts/afterSign.js
 **Compression and Rebuild Settings** [electron-builder.yml:177-179]()
 
 ```yaml
-npmRebuild: false              # Native rebuild handled by CI
+npmRebuild: false # Native rebuild handled by CI
 buildDependenciesFromSource: false
 nodeGypRebuild: false
 ```
@@ -1035,7 +1047,7 @@ publish:
   provider: github
   owner: iOfficeAI
   repo: AionUi
-  publishAutoUpdate: true      # Generate latest*.yml files
+  publishAutoUpdate: true # Generate latest*.yml files
   releaseType: release
 ```
 
@@ -1049,18 +1061,18 @@ The build pipeline uses environment variables for configuration, caching, and pl
 
 **Build Configuration Variables**
 
-| Variable | Value | Purpose |
-|----------|-------|---------|
-| `ELECTRON_BUILDER_ARCH` | `matrix.arch` (arm64, x64) | Target architecture for builds |
-| `npm_config_arch` | `matrix.arch` | NPM native module architecture |
-| `npm_config_target` | Electron version | Electron headers version for native builds |
-| `npm_config_runtime` | `electron` | Target runtime for native modules |
-| `npm_config_disturl` | `https://electronjs.org/headers` | Electron headers download URL |
-| `npm_config_build_from_source` | `true` | Force native module source compilation |
-| `CI` | `true` | CI environment flag |
-| `ELECTRON_BUILDER_COMPRESSION_LEVEL` | `9` (CI), `7` (local) | 7za ASAR compression level |
+| Variable                             | Value                            | Purpose                                    |
+| ------------------------------------ | -------------------------------- | ------------------------------------------ |
+| `ELECTRON_BUILDER_ARCH`              | `matrix.arch` (arm64, x64)       | Target architecture for builds             |
+| `npm_config_arch`                    | `matrix.arch`                    | NPM native module architecture             |
+| `npm_config_target`                  | Electron version                 | Electron headers version for native builds |
+| `npm_config_runtime`                 | `electron`                       | Target runtime for native modules          |
+| `npm_config_disturl`                 | `https://electronjs.org/headers` | Electron headers download URL              |
+| `npm_config_build_from_source`       | `true`                           | Force native module source compilation     |
+| `CI`                                 | `true`                           | CI environment flag                        |
+| `ELECTRON_BUILDER_COMPRESSION_LEVEL` | `9` (CI), `7` (local)            | 7za ASAR compression level                 |
 
-**Cache Directories** [.github/workflows/_build-reusable.yml:39-42]()
+**Cache Directories** [.github/workflows/\_build-reusable.yml:39-42]()
 
 ```yaml
 env:
@@ -1068,36 +1080,36 @@ env:
   ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
 ```
 
-| Variable | Path | Purpose |
-|----------|------|---------|
-| `ELECTRON_CACHE` | `$RUNNER_TEMP/.cache/electron` | Electron binary cache |
+| Variable                 | Path                                   | Purpose                |
+| ------------------------ | -------------------------------------- | ---------------------- |
+| `ELECTRON_CACHE`         | `$RUNNER_TEMP/.cache/electron`         | Electron binary cache  |
 | `ELECTRON_BUILDER_CACHE` | `$RUNNER_TEMP/.cache/electron-builder` | electron-builder cache |
 
 **macOS Code Signing Variables** (GitHub Secrets)
 
-| Variable | Purpose |
-|----------|---------|
-| `BUILD_CERTIFICATE_BASE64` | Base64-encoded P12 certificate |
-| `P12_PASSWORD` | Certificate password |
-| `KEYCHAIN_PASSWORD` | Temporary keychain password |
-| `APP_ID` | Bundle identifier (com.aionui.app) |
-| `appleId` | Apple Developer account email |
-| `appleIdPassword` | App-specific password for notarization |
-| `teamId` | Apple Developer Team ID |
-| `CSC_NAME` | Certificate common name for electron-builder |
+| Variable                   | Purpose                                      |
+| -------------------------- | -------------------------------------------- |
+| `BUILD_CERTIFICATE_BASE64` | Base64-encoded P12 certificate               |
+| `P12_PASSWORD`             | Certificate password                         |
+| `KEYCHAIN_PASSWORD`        | Temporary keychain password                  |
+| `APP_ID`                   | Bundle identifier (com.aionui.app)           |
+| `appleId`                  | Apple Developer account email                |
+| `appleIdPassword`          | App-specific password for notarization       |
+| `teamId`                   | Apple Developer Team ID                      |
+| `CSC_NAME`                 | Certificate common name for electron-builder |
 
-**Windows Compilation Variables** [.github/workflows/_build-reusable.yml:86-95]()
+**Windows Compilation Variables** [.github/workflows/\_build-reusable.yml:86-95]()
 
 ```yaml
 - name: Set Windows SDK version
   run: echo "WindowsTargetPlatformVersion=10.0.19041.0" >> $env:GITHUB_ENV
 ```
 
-| Variable | Value | Purpose |
-|----------|-------|---------|
+| Variable                       | Value          | Purpose                        |
+| ------------------------------ | -------------- | ------------------------------ |
 | `WindowsTargetPlatformVersion` | `10.0.19041.0` | Windows SDK for ConPTY support |
-| `MSVS_VERSION` | `2022` | Visual Studio version |
-| `GYP_MSVS_VERSION` | `2022` | node-gyp VS version |
+| `MSVS_VERSION`                 | `2022`         | Visual Studio version          |
+| `GYP_MSVS_VERSION`             | `2022`         | node-gyp VS version            |
 
 **Registry Configuration** [.github/workflows/build-and-release.yml:15-16]()
 
@@ -1108,7 +1120,7 @@ env:
 
 Forces Bun to use npmjs.org registry for package resolution.
 
-Sources: [.github/workflows/_build-reusable.yml:39-42, 86-95, 253-274](), [.github/workflows/build-and-release.yml:15-16](), [scripts/build-with-builder.js:429-439]()
+Sources: [.github/workflows/\_build-reusable.yml:39-42, 86-95, 253-274](), [.github/workflows/build-and-release.yml:15-16](), [scripts/build-with-builder.js:429-439]()
 
 ## Environment Variables
 
@@ -1116,44 +1128,44 @@ The workflow uses environment variables to control build behavior and caching.
 
 **Build Configuration**
 
-| Variable | Purpose | Value Source |
-|----------|---------|--------------|
-| `ELECTRON_BUILDER_ARCH` | Target architecture | `matrix.arch` |
-| `npm_config_arch` | NPM native module arch | `matrix.arch` |
-| `npm_config_target` | Electron version | `steps.electron-version.outputs.version` |
-| `npm_config_runtime` | Runtime target | `electron` |
-| `npm_config_disturl` | Electron headers URL | `https://electronjs.org/headers` |
-| `npm_config_build_from_source` | Force source compilation | `true` |
-| `CI` | CI flag | `true` |
+| Variable                       | Purpose                  | Value Source                             |
+| ------------------------------ | ------------------------ | ---------------------------------------- |
+| `ELECTRON_BUILDER_ARCH`        | Target architecture      | `matrix.arch`                            |
+| `npm_config_arch`              | NPM native module arch   | `matrix.arch`                            |
+| `npm_config_target`            | Electron version         | `steps.electron-version.outputs.version` |
+| `npm_config_runtime`           | Runtime target           | `electron`                               |
+| `npm_config_disturl`           | Electron headers URL     | `https://electronjs.org/headers`         |
+| `npm_config_build_from_source` | Force source compilation | `true`                                   |
+| `CI`                           | CI flag                  | `true`                                   |
 
 **Caching**
 
-| Variable | Path |
-|----------|------|
-| `npm_config_cache` | `$RUNNER_TEMP/.npm` |
-| `ELECTRON_CACHE` | `$RUNNER_TEMP/.cache/electron` |
+| Variable                 | Path                                   |
+| ------------------------ | -------------------------------------- |
+| `npm_config_cache`       | `$RUNNER_TEMP/.npm`                    |
+| `ELECTRON_CACHE`         | `$RUNNER_TEMP/.cache/electron`         |
 | `ELECTRON_BUILDER_CACHE` | `$RUNNER_TEMP/.cache/electron-builder` |
 
 **macOS Signing** (GitHub Secrets)
 
-| Variable | Purpose |
-|----------|---------|
-| `APP_ID` | Bundle identifier |
-| `appleId` | Apple Developer email |
-| `appleIdPassword` | App-specific password |
-| `teamId` | Developer Team ID |
-| `identity` | Certificate common name |
-| `CSC_NAME` | electron-builder cert name |
-| `CSC_IDENTITY_AUTO_DISCOVERY` | `false` (explicit cert) |
+| Variable                      | Purpose                    |
+| ----------------------------- | -------------------------- |
+| `APP_ID`                      | Bundle identifier          |
+| `appleId`                     | Apple Developer email      |
+| `appleIdPassword`             | App-specific password      |
+| `teamId`                      | Developer Team ID          |
+| `identity`                    | Certificate common name    |
+| `CSC_NAME`                    | electron-builder cert name |
+| `CSC_IDENTITY_AUTO_DISCOVERY` | `false` (explicit cert)    |
 
 **Windows Compilation**
 
-| Variable | Value |
-|----------|-------|
-| `MSVS_VERSION` | `2022` |
-| `GYP_MSVS_VERSION` | `2022` |
+| Variable                       | Value          |
+| ------------------------------ | -------------- |
+| `MSVS_VERSION`                 | `2022`         |
+| `GYP_MSVS_VERSION`             | `2022`         |
 | `WindowsTargetPlatformVersion` | `10.0.19041.0` |
-| `_WIN32_WINNT` | `0x0A00` |
+| `_WIN32_WINNT`                 | `0x0A00`       |
 
 Sources: [.github/workflows/build-and-release.yml:234-300](), [.github/workflows/build-and-release.yml:366-387]()
 
@@ -1165,13 +1177,13 @@ Each platform build produces multiple artifact types for different distribution 
 
 **Artifact Summary by Platform**
 
-| Platform | Artifact Types | Size (Typical) | Upload Retention |
-|----------|----------------|----------------|------------------|
-| macOS arm64 | `.dmg`, `.zip` | ~200-300 MB | 7 days |
-| macOS x64 | `.dmg`, `.zip` | ~200-300 MB | 7 days |
-| Windows x64 | `.exe`, `.zip` | ~180-250 MB | 7 days |
-| Windows arm64 | `.zip` | ~180-250 MB | 7 days |
-| Linux | `.deb`, `.AppImage` (x64, arm64) | ~150-200 MB | 7 days |
+| Platform      | Artifact Types                   | Size (Typical) | Upload Retention |
+| ------------- | -------------------------------- | -------------- | ---------------- |
+| macOS arm64   | `.dmg`, `.zip`                   | ~200-300 MB    | 7 days           |
+| macOS x64     | `.dmg`, `.zip`                   | ~200-300 MB    | 7 days           |
+| Windows x64   | `.exe`, `.zip`                   | ~180-250 MB    | 7 days           |
+| Windows arm64 | `.zip`                           | ~180-250 MB    | 7 days           |
+| Linux         | `.deb`, `.AppImage` (x64, arm64) | ~150-200 MB    | 7 days           |
 
 **Artifact Upload Configuration**
 

@@ -35,8 +35,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the skills system in OpenClaw, which extends agent capabilities through modular instruction sets packaged as skill folders. Skills teach the agent how to use tools, discover binaries on the host, and inject environment variables or API keys at runtime.
 
 For configuration details (enabling/disabling, API key injection, allowlists), see [Skills Configuration](#5.2).  
@@ -66,35 +64,35 @@ graph TB
         B["Bundled Skills<br/>npm package/app bundle<br/>Lowest Priority"]
         E["Extra Dirs<br/>skills.load.extraDirs<br/>Lowest Priority"]
     end
-    
+
     subgraph "Loading Process"
         Scan["Skill Scanner"]
         Filter["Eligibility Filter<br/>metadata.openclaw.requires"]
         Config["Config Override<br/>skills.entries"]
         Snapshot["Session Snapshot"]
     end
-    
+
     W --> Scan
     M --> Scan
     B --> Scan
     E --> Scan
-    
+
     Scan --> Filter
     Filter --> Config
     Config --> Snapshot
-    
+
     style W fill:#e1f5ff
     style Scan fill:#ffe1e1
 ```
 
 **Precedence rules:**
 
-| Tier | Location | Scope | Overrides |
-|------|----------|-------|-----------|
-| **1** | `<workspace>/skills` | Per-agent | Managed + Bundled |
-| **2** | `~/.openclaw/skills` | Shared | Bundled |
-| **3** | Bundled (package) | Global | None |
-| **4** | `skills.load.extraDirs` | Shared | None |
+| Tier  | Location                | Scope     | Overrides         |
+| ----- | ----------------------- | --------- | ----------------- |
+| **1** | `<workspace>/skills`    | Per-agent | Managed + Bundled |
+| **2** | `~/.openclaw/skills`    | Shared    | Bundled           |
+| **3** | Bundled (package)       | Global    | None              |
+| **4** | `skills.load.extraDirs` | Shared    | None              |
 
 If a skill name exists in multiple locations, the highest-priority source wins. Plugins can contribute additional skill directories via `openclaw.plugin.json` manifest entries.
 
@@ -111,20 +109,20 @@ graph LR
     subgraph "Agent: main"
         W1["workspace/skills<br/>(main-only)"]
     end
-    
+
     subgraph "Agent: coding"
         W2["workspace-coding/skills<br/>(coding-only)"]
     end
-    
+
     subgraph "Shared Skills"
         M["~/.openclaw/skills"]
         E["skills.load.extraDirs"]
     end
-    
+
     W1 -.-> M
     W2 -.-> M
     M -.-> E
-    
+
     style W1 fill:#e1f5ff
     style W2 fill:#e1f5ff
     style M fill:#fff4e1
@@ -161,17 +159,17 @@ The result will be written to `{baseDir}/output.png`.
 
 ### Frontmatter Fields
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | Skill identifier (used in config keys) |
-| `description` | Yes | Short summary shown to the agent |
-| `metadata` | No | Single-line JSON object with OpenClaw extensions |
-| `homepage` | No | URL shown in macOS Skills UI |
-| `user-invocable` | No | `true|false` (default: true). Exposes as slash command |
-| `disable-model-invocation` | No | `true|false` (default: false). Excludes from model prompt |
-| `command-dispatch` | No | `tool` = bypass model and invoke tool directly |
-| `command-tool` | No | Tool name when `command-dispatch: tool` |
-| `command-arg-mode` | No | `raw` = forward raw args string to tool |
+| Field                      | Required | Description                                      |
+| -------------------------- | -------- | ------------------------------------------------ | --------------------------------------------------- |
+| `name`                     | Yes      | Skill identifier (used in config keys)           |
+| `description`              | Yes      | Short summary shown to the agent                 |
+| `metadata`                 | No       | Single-line JSON object with OpenClaw extensions |
+| `homepage`                 | No       | URL shown in macOS Skills UI                     |
+| `user-invocable`           | No       | `true                                            | false` (default: true). Exposes as slash command    |
+| `disable-model-invocation` | No       | `true                                            | false` (default: false). Excludes from model prompt |
+| `command-dispatch`         | No       | `tool` = bypass model and invoke tool directly   |
+| `command-tool`             | No       | Tool name when `command-dispatch: tool`          |
+| `command-arg-mode`         | No       | `raw` = forward raw args string to tool          |
 
 **Instruction references:**
 
@@ -192,7 +190,7 @@ OpenClaw filters skills at **load time** using `metadata.openclaw` requirements.
 graph TB
     SkillDir["Skill Directory<br/>SKILL.md"]
     Parse["Parse Frontmatter"]
-    
+
     subgraph "metadata.openclaw Checks"
         Always["always: true?"]
         OS["os match?"]
@@ -201,12 +199,12 @@ graph TB
         Env["requires.env set?"]
         Config["requires.config truthy?"]
     end
-    
+
     AllowBundled["skills.allowBundled<br/>filter (bundled only)"]
     Enabled["skills.entries.<name>.enabled<br/>config override"]
     Eligible["Eligible Skill"]
     Excluded["Excluded"]
-    
+
     SkillDir --> Parse
     Parse --> Always
     Always -->|Yes| Eligible
@@ -225,7 +223,7 @@ graph TB
     AllowBundled -->|Pass| Enabled
     Enabled -->|false| Excluded
     Enabled -->|true/unset| Eligible
-    
+
     style Eligible fill:#e1ffe1
     style Excluded fill:#ffe1e1
 ```
@@ -236,24 +234,42 @@ graph TB
 ---
 name: gemini
 description: Use Gemini CLI for coding assistance
-metadata: { "openclaw": { "emoji": "♊️", "requires": { "bins": ["gemini"], "env": ["GEMINI_API_KEY"] }, "primaryEnv": "GEMINI_API_KEY", "install": [{ "id": "brew", "kind": "brew", "formula": "gemini-cli", "bins": ["gemini"], "label": "Install Gemini CLI (brew)" }] } }
+metadata:
+  {
+    'openclaw':
+      {
+        'emoji': '♊️',
+        'requires': { 'bins': ['gemini'], 'env': ['GEMINI_API_KEY'] },
+        'primaryEnv': 'GEMINI_API_KEY',
+        'install':
+          [
+            {
+              'id': 'brew',
+              'kind': 'brew',
+              'formula': 'gemini-cli',
+              'bins': ['gemini'],
+              'label': 'Install Gemini CLI (brew)',
+            },
+          ],
+      },
+  }
 ---
 ```
 
 **Field reference:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `always` | boolean | Always include (skip other gates) |
-| `emoji` | string | macOS Skills UI icon |
-| `homepage` | string | Website link in UI |
-| `os` | string[] | Platform filter (`darwin`, `linux`, `win32`) |
-| `requires.bins` | string[] | All must exist on `PATH` |
-| `requires.anyBins` | string[] | At least one must exist |
-| `requires.env` | string[] | All must be set (env or config) |
-| `requires.config` | string[] | All must be truthy in `openclaw.json` |
-| `primaryEnv` | string | Env var for `skills.entries.<name>.apiKey` |
-| `install` | object[] | Installer specs for macOS Skills UI |
+| Field              | Type     | Description                                  |
+| ------------------ | -------- | -------------------------------------------- |
+| `always`           | boolean  | Always include (skip other gates)            |
+| `emoji`            | string   | macOS Skills UI icon                         |
+| `homepage`         | string   | Website link in UI                           |
+| `os`               | string[] | Platform filter (`darwin`, `linux`, `win32`) |
+| `requires.bins`    | string[] | All must exist on `PATH`                     |
+| `requires.anyBins` | string[] | At least one must exist                      |
+| `requires.env`     | string[] | All must be set (env or config)              |
+| `requires.config`  | string[] | All must be truthy in `openclaw.json`        |
+| `primaryEnv`       | string   | Env var for `skills.entries.<name>.apiKey`   |
+| `install`          | object[] | Installer specs for macOS Skills UI          |
 
 **Sandbox note:** `requires.bins` checks the **host** at load time. If an agent runs sandboxed, the binary must also exist **inside the container**. Install it via `agents.defaults.sandbox.docker.setupCommand`.
 
@@ -278,7 +294,7 @@ sequenceDiagram
     participant SkillLoader
     participant AgentRuntime
     participant ProcessEnv
-    
+
     Session->>SkillLoader: Start agent turn
     SkillLoader->>ProcessEnv: Snapshot original env
     SkillLoader->>ProcessEnv: Inject skills.entries.<name>.env
@@ -296,16 +312,16 @@ sequenceDiagram
 {
   skills: {
     entries: {
-      "nano-banana-pro": {
+      'nano-banana-pro': {
         enabled: true,
-        apiKey: { source: "env", provider: "default", id: "GEMINI_API_KEY" },
+        apiKey: { source: 'env', provider: 'default', id: 'GEMINI_API_KEY' },
         env: {
-          GEMINI_MODEL: "nano-pro",
-          GEMINI_ENDPOINT: "https://example.invalid"
-        }
-      }
-    }
-  }
+          GEMINI_MODEL: 'nano-pro',
+          GEMINI_ENDPOINT: 'https://example.invalid',
+        },
+      },
+    },
+  },
 }
 ```
 
@@ -326,14 +342,14 @@ graph LR
     Turn1["Turn 1<br/>(uses snapshot)"]
     Turn2["Turn 2<br/>(uses snapshot)"]
     TurnN["Turn N<br/>(uses snapshot)"]
-    
+
     SessionStart --> SkillScan
     SkillScan --> Filter
     Filter --> Snapshot
     Snapshot --> Turn1
     Snapshot --> Turn2
     Snapshot --> TurnN
-    
+
     style Snapshot fill:#fff4e1
 ```
 

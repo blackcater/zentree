@@ -39,12 +39,12 @@ winget install Codex -s msstore
 The Codex app on Windows supports a native [Windows sandbox](https://developers.openai.com/codex/windows#windows-sandbox) when the agent runs in PowerShell, and uses Linux sandboxing when you run the agent in [Windows Subsystem for Linux (WSL)](#windows-subsystem-for-linux-wsl). To apply sandbox protections in either mode, set sandbox permissions to **Default permissions** in the Composer before sending messages to Codex.
 
 Running Codex in full access mode means Codex is not limited to your project
-  directory and might perform unintentional destructive actions that can lead to
-  data loss. Keep sandbox boundaries in place and use [rules](https://developers.openai.com/codex/rules) for
-  targeted exceptions, or set your [approval policy to
-  never](https://developers.openai.com/codex/agent-approvals-security#run-without-approval-prompts) to have
-  Codex attempt to solve problems without asking for escalated permissions,
-  based on your [approval and security setup](https://developers.openai.com/codex/agent-approvals-security).
+directory and might perform unintentional destructive actions that can lead to
+data loss. Keep sandbox boundaries in place and use [rules](https://developers.openai.com/codex/rules) for
+targeted exceptions, or set your [approval policy to
+never](https://developers.openai.com/codex/agent-approvals-security#run-without-approval-prompts) to have
+Codex attempt to solve problems without asking for escalated permissions,
+based on your [approval and security setup](https://developers.openai.com/codex/agent-approvals-security).
 
 ## Customize for your dev setup
 

@@ -37,8 +37,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 TanStack AI is a type-safe, framework-agnostic SDK for building production-ready AI applications with streaming responses, tool execution, and multimodal content support. The system provides a layered architecture consisting of a core library ([`@tanstack/ai`]()), provider adapters ([`@tanstack/ai-openai`](), [`@tanstack/ai-anthropic`](), etc.), client state management ([`@tanstack/ai-client`]()), and framework-specific integrations for React, Solid, Vue, Svelte, and Preact.
 
 This document provides a high-level overview of TanStack AI's architecture, package organization, and core capabilities. For detailed architecture information, see [Architecture](#2). For specific package documentation, see the relevant sections: [Core Library](#3), [Client Libraries](#4), [Framework Integrations](#6), and [Streaming Protocols](#5).
@@ -55,7 +53,7 @@ graph TB
         AI["@tanstack/ai<br/>chat(), toolDefinition()<br/>streaming utilities"]
         CLIENT["@tanstack/ai-client<br/>ChatClient class<br/>state management"]
     end
-    
+
     subgraph "Provider Adapters"
         OPENAI["@tanstack/ai-openai<br/>openaiText()<br/>openaiSummarize()"]
         ANTHROPIC["@tanstack/ai-anthropic<br/>anthropicText()"]
@@ -63,7 +61,7 @@ graph TB
         OLLAMA["@tanstack/ai-ollama<br/>ollamaText()"]
         GROK["@tanstack/ai-grok<br/>grokText()"]
     end
-    
+
     subgraph "Framework Bindings"
         REACT["@tanstack/ai-react<br/>useChat() hook"]
         SOLID["@tanstack/ai-solid<br/>useChat() primitive"]
@@ -71,26 +69,26 @@ graph TB
         SVELTE["@tanstack/ai-svelte<br/>useChat() binding"]
         PREACT["@tanstack/ai-preact<br/>useChat() hook"]
     end
-    
+
     subgraph "UI Components"
         REACT_UI["@tanstack/ai-react-ui<br/>react-markdown"]
         SOLID_UI["@tanstack/ai-solid-ui<br/>solid-markdown"]
         VUE_UI["@tanstack/ai-vue-ui<br/>vue-markdown"]
     end
-    
+
     AI --> CLIENT
     CLIENT --> REACT
     CLIENT --> SOLID
     CLIENT --> VUE
     CLIENT --> SVELTE
     CLIENT --> PREACT
-    
+
     AI --> OPENAI
     AI --> ANTHROPIC
     AI --> GEMINI
     AI --> OLLAMA
     AI --> GROK
-    
+
     REACT --> REACT_UI
     SOLID --> SOLID_UI
     VUE --> VUE_UI
@@ -98,13 +96,13 @@ graph TB
 
 **Package Organization:**
 
-| Layer | Packages | Purpose |
-|-------|----------|---------|
-| Core | `@tanstack/ai`, `@tanstack/ai-client` | Framework-agnostic SDK and state management |
-| Adapters | `@tanstack/ai-openai`, `@tanstack/ai-anthropic`, `@tanstack/ai-gemini`, `@tanstack/ai-ollama`, `@tanstack/ai-grok` | Provider-specific implementations |
-| Framework | `@tanstack/ai-react`, `@tanstack/ai-solid`, `@tanstack/ai-vue`, `@tanstack/ai-svelte`, `@tanstack/ai-preact` | Reactive bindings for each framework |
-| UI | `@tanstack/ai-react-ui`, `@tanstack/ai-solid-ui`, `@tanstack/ai-vue-ui` | Pre-built components with markdown rendering |
-| Devtools | `@tanstack/ai-devtools`, `@tanstack/react-ai-devtools`, `@tanstack/solid-ai-devtools` | Debugging and inspection tools |
+| Layer     | Packages                                                                                                           | Purpose                                      |
+| --------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| Core      | `@tanstack/ai`, `@tanstack/ai-client`                                                                              | Framework-agnostic SDK and state management  |
+| Adapters  | `@tanstack/ai-openai`, `@tanstack/ai-anthropic`, `@tanstack/ai-gemini`, `@tanstack/ai-ollama`, `@tanstack/ai-grok` | Provider-specific implementations            |
+| Framework | `@tanstack/ai-react`, `@tanstack/ai-solid`, `@tanstack/ai-vue`, `@tanstack/ai-svelte`, `@tanstack/ai-preact`       | Reactive bindings for each framework         |
+| UI        | `@tanstack/ai-react-ui`, `@tanstack/ai-solid-ui`, `@tanstack/ai-vue-ui`                                            | Pre-built components with markdown rendering |
+| Devtools  | `@tanstack/ai-devtools`, `@tanstack/react-ai-devtools`, `@tanstack/solid-ai-devtools`                              | Debugging and inspection tools               |
 
 **Sources:** [pnpm-lock.yaml:1-950](), [package.json:1-73](), [README.md:40-48]()
 
@@ -120,14 +118,14 @@ sequenceDiagram
     participant Server as "API Route Handler<br/>chat()"
     participant Adapter as "openaiText()<br/>anthropicText()"
     participant Provider as "LLM API<br/>(OpenAI/Anthropic)"
-    
+
     App->>Hook: "sendMessage('Hello')"
     Hook->>Client: "update messages state"
     Client->>Server: "POST /api/chat<br/>{messages, tools}"
     Server->>Server: "Build tool definitions"
     Server->>Adapter: "chat({adapter, messages, tools})"
     Adapter->>Provider: "Provider-specific request"
-    
+
     loop "Streaming Response"
         Provider-->>Adapter: "Raw stream chunks"
         Adapter->>Adapter: "Normalize to StreamChunk"
@@ -159,17 +157,17 @@ graph LR
     subgraph "Tool Definition (Shared)"
         DEF["toolDefinition({<br/>  name: 'get_weather',<br/>  inputSchema: z.object({...}),<br/>  outputSchema: z.object({...})<br/>})"]
     end
-    
+
     subgraph "Server Implementation"
         SERVER["getWeatherDef.server(<br/>  async (input) => {<br/>    // DB/API access<br/>    return result<br/>  }<br/>)"]
         CHAT_SERVER["chat({<br/>  adapter: openaiText('gpt-5.2'),<br/>  tools: [getWeatherServer]<br/>})"]
     end
-    
+
     subgraph "Client Implementation"
         CLIENT["getWeatherDef.client(<br/>  (input) => {<br/>    // Browser APIs<br/>    return result<br/>  }<br/>)"]
         CHAT_CLIENT["useChat({<br/>  connection: fetchServerSentEvents(),<br/>  tools: clientTools(getWeatherClient)<br/>})"]
     end
-    
+
     DEF --> SERVER
     DEF --> CLIENT
     SERVER --> CHAT_SERVER
@@ -203,11 +201,11 @@ graph TB
     subgraph "Provider Layer"
         PROVIDER["LLM Provider<br/>(OpenAI/Anthropic)"]
     end
-    
+
     subgraph "Adapter Normalization"
         NORMALIZE["Adapter transforms to:<br/>ContentStreamChunk<br/>ThinkingStreamChunk<br/>ToolCallStreamChunk<br/>ToolInputAvailableStreamChunk<br/>ApprovalRequestedStreamChunk<br/>ToolResultStreamChunk<br/>DoneStreamChunk<br/>ErrorStreamChunk"]
     end
-    
+
     subgraph "Transport Protocols"
         SSE["toServerSentEventsResponse()<br/>Format: data: {'{'}JSON{'}'}\
 \
@@ -215,16 +213,16 @@ graph TB
         HTTP["HTTP Stream (NDJSON)<br/>Format: {'{'}JSON{'}'}\
 <br/>No end marker"]
     end
-    
+
     subgraph "Client Processing"
         PARSE["fetchServerSentEvents()<br/>or fetchHttpStream()"]
         PROCESSOR["StreamProcessor<br/>- Track parallel tool calls<br/>- Accumulate text<br/>- Emit UIMessage[]"]
     end
-    
+
     subgraph "Framework State"
         STATE["useChat()<br/>messages: UIMessage[]<br/>sendMessage()<br/>stop()"]
     end
-    
+
     PROVIDER --> NORMALIZE
     NORMALIZE --> SSE
     NORMALIZE --> HTTP
@@ -236,16 +234,16 @@ graph TB
 
 **Chunk Types:**
 
-| Type | Purpose | Key Fields |
-|------|---------|-----------|
-| `ContentStreamChunk` | Text generation | `delta`, `content`, `role` |
-| `ThinkingStreamChunk` | Model reasoning | `delta`, `content` |
-| `ToolCallStreamChunk` | Tool invocation | `toolCall.function.name`, `toolCall.function.arguments` |
-| `ToolInputAvailableStreamChunk` | Client tool ready | `toolName`, `input` |
-| `ApprovalRequestedStreamChunk` | User approval needed | `toolName`, `input`, `approval.id` |
-| `ToolResultStreamChunk` | Tool execution result | `toolCallId`, `content` |
-| `DoneStreamChunk` | Stream completion | `finishReason`, `usage` |
-| `ErrorStreamChunk` | Stream error | `error.message`, `error.code` |
+| Type                            | Purpose               | Key Fields                                              |
+| ------------------------------- | --------------------- | ------------------------------------------------------- |
+| `ContentStreamChunk`            | Text generation       | `delta`, `content`, `role`                              |
+| `ThinkingStreamChunk`           | Model reasoning       | `delta`, `content`                                      |
+| `ToolCallStreamChunk`           | Tool invocation       | `toolCall.function.name`, `toolCall.function.arguments` |
+| `ToolInputAvailableStreamChunk` | Client tool ready     | `toolName`, `input`                                     |
+| `ApprovalRequestedStreamChunk`  | User approval needed  | `toolName`, `input`, `approval.id`                      |
+| `ToolResultStreamChunk`         | Tool execution result | `toolCallId`, `content`                                 |
+| `DoneStreamChunk`               | Stream completion     | `finishReason`, `usage`                                 |
+| `ErrorStreamChunk`              | Stream error          | `error.message`, `error.code`                           |
 
 **Sources:** [docs/protocol/chunk-definitions.md:1-446](), [docs/protocol/sse-protocol.md:1-355](), [docs/guides/streaming.md:1-175]()
 
@@ -258,18 +256,18 @@ graph TB
     subgraph "Source Code"
         SRC["TypeScript Source<br/>packages/typescript/*/src/"]
     end
-    
+
     subgraph "Build Tools"
         VITE["Vite<br/>Most packages<br/>ESM + tree-shaking"]
         TSDOWN["tsdown<br/>Solid, Vue packages<br/>Unbundle mode"]
         SVELTE_PKG["@sveltejs/package<br/>Svelte components"]
     end
-    
+
     subgraph "Nx Orchestration"
         NX["nx.json<br/>parallel: 5<br/>targetDefaults:<br/>- build (depends ^build)<br/>- test:lib (depends ^build)<br/>- test:types"]
         CACHE["Build Cache<br/>inputs: production<br/>outputs: dist/"]
     end
-    
+
     subgraph "Quality Tools"
         VITEST["vitest<br/>Unit tests"]
         ESLINT["eslint<br/>@tanstack/eslint-config"]
@@ -278,30 +276,30 @@ graph TB
         SHERIF["sherif<br/>Package consistency"]
         PUBLINT["publint<br/>Package validation"]
     end
-    
+
     subgraph "CI/CD"
         GITHUB["GitHub Actions<br/>.github/workflows/"]
         CHANGESETS["changesets<br/>Version management"]
     end
-    
+
     SRC --> VITE
     SRC --> TSDOWN
     SRC --> SVELTE_PKG
-    
+
     VITE --> NX
     TSDOWN --> NX
     SVELTE_PKG --> NX
-    
+
     NX --> CACHE
-    
+
     SRC --> VITEST
     SRC --> ESLINT
     SRC --> TSC
     SRC --> KNIP
     SRC --> SHERIF
-    
+
     CACHE --> PUBLINT
-    
+
     NX --> GITHUB
     GITHUB --> CHANGESETS
 ```
@@ -315,13 +313,13 @@ graph TB
 
 **Development Scripts:**
 
-| Command | Purpose |
-|---------|---------|
-| `pnpm test:ci` | Run all tests (sherif, knip, eslint, lib, types, build) |
-| `pnpm build` | Build affected packages |
-| `pnpm watch` | Build all packages in watch mode |
-| `pnpm generate-docs` | Generate TypeDoc API documentation |
-| `pnpm changeset:version` | Version packages via changesets |
+| Command                  | Purpose                                                 |
+| ------------------------ | ------------------------------------------------------- |
+| `pnpm test:ci`           | Run all tests (sherif, knip, eslint, lib, types, build) |
+| `pnpm build`             | Build affected packages                                 |
+| `pnpm watch`             | Build all packages in watch mode                        |
+| `pnpm generate-docs`     | Generate TypeDoc API documentation                      |
+| `pnpm changeset:version` | Version packages via changesets                         |
 
 **Sources:** [nx.json:1-75](), [package.json:1-73](), [pnpm-lock.yaml:1-80](), [scripts/generate-docs.ts:1-37]()
 
@@ -359,13 +357,13 @@ TanStack AI supports text, images, audio, video, and documents as input content.
 
 TanStack AI provides first-class integrations for five major JavaScript frameworks, each following framework-specific patterns while sharing the same underlying client logic.
 
-| Framework | Package | Reactive Primitive | Build Tool |
-|-----------|---------|-------------------|------------|
-| React | `@tanstack/ai-react` | Hooks (`useChat()`) | Vite |
-| Solid | `@tanstack/ai-solid` | Primitives (`useChat()`) | tsdown |
-| Vue | `@tanstack/ai-vue` | Composables (`useChat()`) | tsdown |
-| Svelte | `@tanstack/ai-svelte` | Runes (`useChat()`) | @sveltejs/package |
-| Preact | `@tanstack/ai-preact` | Hooks (`useChat()`) | Vite |
+| Framework | Package               | Reactive Primitive        | Build Tool        |
+| --------- | --------------------- | ------------------------- | ----------------- |
+| React     | `@tanstack/ai-react`  | Hooks (`useChat()`)       | Vite              |
+| Solid     | `@tanstack/ai-solid`  | Primitives (`useChat()`)  | tsdown            |
+| Vue       | `@tanstack/ai-vue`    | Composables (`useChat()`) | tsdown            |
+| Svelte    | `@tanstack/ai-svelte` | Runes (`useChat()`)       | @sveltejs/package |
+| Preact    | `@tanstack/ai-preact` | Hooks (`useChat()`)       | Vite              |
 
 **Sources:** [pnpm-lock.yaml:752-949](), [packages/typescript/ai-solid/tsdown.config.ts:1-16]()
 
@@ -386,14 +384,14 @@ Framework-specific devtools packages provide real-time inspection of AI interact
 
 The repository includes seven example applications demonstrating real-world usage patterns across different frameworks and configurations:
 
-| Example | Framework | Features |
-|---------|-----------|----------|
-| `ts-react-chat` | React + TanStack Router | Full chat with tools, multiple providers, devtools |
-| `ts-solid-chat` | Solid + TanStack Router | Solid primitives, markdown rendering |
-| `ts-vue-chat` | Vue 3 + Vue Router | Vue composables, Express server |
-| `ts-svelte-chat` | Svelte 5 + SvelteKit | Runes-based state, marked rendering |
-| `ts-group-chat` | React + TanStack Router | Multi-agent conversations |
-| `vanilla-chat` | Vanilla JS | Framework-agnostic client usage |
+| Example          | Framework               | Features                                           |
+| ---------------- | ----------------------- | -------------------------------------------------- |
+| `ts-react-chat`  | React + TanStack Router | Full chat with tools, multiple providers, devtools |
+| `ts-solid-chat`  | Solid + TanStack Router | Solid primitives, markdown rendering               |
+| `ts-vue-chat`    | Vue 3 + Vue Router      | Vue composables, Express server                    |
+| `ts-svelte-chat` | Svelte 5 + SvelteKit    | Runes-based state, marked rendering                |
+| `ts-group-chat`  | React + TanStack Router | Multi-agent conversations                          |
+| `vanilla-chat`   | Vanilla JS              | Framework-agnostic client usage                    |
 
 **Sources:** [pnpm-lock.yaml:93-599]()
 

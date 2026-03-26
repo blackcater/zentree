@@ -15,8 +15,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers how Craft Agents stores and protects secrets: the on-disk encrypted file format, the `CredentialManager` API and its backend abstraction, credential type taxonomy, expiry logic, and how build-time OAuth client secrets are injected. For an overview of how OAuth flows are initiated during onboarding, see [Authentication Setup](#3.3). For the separation between credential storage and general configuration files (`config.json`, workspace configs), see [Storage & Configuration](#2.8).
 
 ---
@@ -71,10 +69,10 @@ On initialization ([packages/shared/src/credentials/manager.ts:50-76]()):
 
 Currently only one backend is operational:
 
-| Backend | Class | Priority | Status |
-|---|---|---|---|
-| Encrypted file | `SecureStorageBackend` | 100 | **Active** |
-| Environment variables | `EnvironmentBackend` | 110 | **Disabled** (`isAvailable()` returns `false`) |
+| Backend               | Class                  | Priority | Status                                         |
+| --------------------- | ---------------------- | -------- | ---------------------------------------------- |
+| Encrypted file        | `SecureStorageBackend` | 100      | **Active**                                     |
+| Environment variables | `EnvironmentBackend`   | 110      | **Disabled** (`isAvailable()` returns `false`) |
 
 `EnvironmentBackend` was disabled to force explicit credential entry rather than silently picking up ambient environment variables.
 
@@ -117,15 +115,15 @@ Sources: [packages/shared/src/credentials/manager.ts:174-444]()
 
 The convenience methods on `CredentialManager` map directly to these IDs:
 
-| Convenience method | `CredentialId.type` | Scoping field |
-|---|---|---|
-| `getApiKey` / `setApiKey` | `anthropic_api_key` | — |
-| `getClaudeOAuthCredentials` / `setClaudeOAuthCredentials` | `claude_oauth` | — |
-| `getWorkspaceOAuth` / `setWorkspaceOAuth` | `workspace_oauth` | `workspaceId` |
-| `getLlmApiKey` / `setLlmApiKey` | `llm_api_key` | `connectionSlug` |
-| `getLlmOAuth` / `setLlmOAuth` | `llm_oauth` | `connectionSlug` |
-| `getLlmIamCredentials` / `setLlmIamCredentials` | `llm_iam` | `connectionSlug` |
-| `getLlmServiceAccount` / `setLlmServiceAccount` | `llm_service_account` | `connectionSlug` |
+| Convenience method                                        | `CredentialId.type`   | Scoping field    |
+| --------------------------------------------------------- | --------------------- | ---------------- |
+| `getApiKey` / `setApiKey`                                 | `anthropic_api_key`   | —                |
+| `getClaudeOAuthCredentials` / `setClaudeOAuthCredentials` | `claude_oauth`        | —                |
+| `getWorkspaceOAuth` / `setWorkspaceOAuth`                 | `workspace_oauth`     | `workspaceId`    |
+| `getLlmApiKey` / `setLlmApiKey`                           | `llm_api_key`         | `connectionSlug` |
+| `getLlmOAuth` / `setLlmOAuth`                             | `llm_oauth`           | `connectionSlug` |
+| `getLlmIamCredentials` / `setLlmIamCredentials`           | `llm_iam`             | `connectionSlug` |
+| `getLlmServiceAccount` / `setLlmServiceAccount`           | `llm_service_account` | `connectionSlug` |
 
 Sources: [packages/shared/src/credentials/manager.ts:174-443]()
 
@@ -135,21 +133,21 @@ Sources: [packages/shared/src/credentials/manager.ts:174-443]()
 
 Once decrypted, each entry is a `StoredCredential` record. Fields are optional because different credential types use different subsets:
 
-| Field | Type | Used by |
-|---|---|---|
-| `value` | `string` | All types (primary secret: API key, access token, secret key JSON, etc.) |
-| `refreshToken` | `string?` | OAuth credentials |
-| `expiresAt` | `number?` | OAuth credentials (Unix ms) |
-| `source` | `string?` | `claude_oauth` — `'native'` or `'cli'` |
-| `tokenType` | `string?` | `workspace_oauth` |
-| `clientId` | `string?` | `workspace_oauth` |
-| `idToken` | `string?` | `llm_oauth` (OpenAI/Codex OIDC id_token) |
-| `awsAccessKeyId` | `string?` | `llm_iam` |
-| `awsRegion` | `string?` | `llm_iam` |
-| `awsSessionToken` | `string?` | `llm_iam` |
-| `gcpProjectId` | `string?` | `llm_service_account` |
-| `gcpRegion` | `string?` | `llm_service_account` |
-| `serviceAccountEmail` | `string?` | `llm_service_account` |
+| Field                 | Type      | Used by                                                                  |
+| --------------------- | --------- | ------------------------------------------------------------------------ |
+| `value`               | `string`  | All types (primary secret: API key, access token, secret key JSON, etc.) |
+| `refreshToken`        | `string?` | OAuth credentials                                                        |
+| `expiresAt`           | `number?` | OAuth credentials (Unix ms)                                              |
+| `source`              | `string?` | `claude_oauth` — `'native'` or `'cli'`                                   |
+| `tokenType`           | `string?` | `workspace_oauth`                                                        |
+| `clientId`            | `string?` | `workspace_oauth`                                                        |
+| `idToken`             | `string?` | `llm_oauth` (OpenAI/Codex OIDC id_token)                                 |
+| `awsAccessKeyId`      | `string?` | `llm_iam`                                                                |
+| `awsRegion`           | `string?` | `llm_iam`                                                                |
+| `awsSessionToken`     | `string?` | `llm_iam`                                                                |
+| `gcpProjectId`        | `string?` | `llm_service_account`                                                    |
+| `gcpRegion`           | `string?` | `llm_service_account`                                                    |
+| `serviceAccountEmail` | `string?` | `llm_service_account`                                                    |
 
 Sources: [packages/shared/src/credentials/manager.ts:196-443]()
 
@@ -221,8 +219,8 @@ caller → CredentialManager.get(id)
 
 ```ts
 // Inside removeWorkspace():
-const manager = getCredentialManager();
-await manager.deleteWorkspaceCredentials(workspaceId);
+const manager = getCredentialManager()
+await manager.deleteWorkspaceCredentials(workspaceId)
 ```
 
 `deleteWorkspaceCredentials()` calls `list({ workspaceId })` to enumerate all matching `CredentialId`s and then `delete()` each one.
@@ -241,11 +239,11 @@ Sources: [packages/shared/src/credentials/manager.ts:87-168](), [packages/shared
 
 1. **Decryption test** — calls `list({})`, which forces the backend to read and decrypt `credentials.enc`. If this fails, it classifies the error:
 
-| Error pattern | `CredentialHealthIssue.type` | User message |
-|---|---|---|
-| `decrypt`, `cipher`, `authentication tag` | `decryption_failed` | "Credentials from another machine detected" |
-| `json`, `parse`, `unexpected` | `file_corrupted` | "Credential file is corrupted" |
-| Other | `file_corrupted` | "Failed to read credentials" |
+| Error pattern                             | `CredentialHealthIssue.type` | User message                                |
+| ----------------------------------------- | ---------------------------- | ------------------------------------------- |
+| `decrypt`, `cipher`, `authentication tag` | `decryption_failed`          | "Credentials from another machine detected" |
+| `json`, `parse`, `unexpected`             | `file_corrupted`             | "Credential file is corrupted"              |
+| Other                                     | `file_corrupted`             | "Failed to read credentials"                |
 
 2. **Default connection check** — resolves the default `LlmConnection` slug from config and checks whether credentials exist for it via `hasLlmCredentials()`. Reports `no_default_credentials` if absent.
 
@@ -263,12 +261,12 @@ The migration is reflected in removed helper functions — the comments in `stor
 
 [packages/shared/src/config/storage.ts:178-203]()
 
-| Removed function | Replacement |
-|---|---|
-| `getAnthropicApiKey()` | `credentialManager.getLlmApiKey(connectionSlug)` |
-| `getClaudeOAuthToken()` | `credentialManager.getLlmOAuth(connectionSlug)` |
-| `updateApiKey()` | `setupLlmConnection` IPC handler |
-| `getAuthType()` / `setAuthType()` | Derived from `getLlmConnection()` |
+| Removed function                  | Replacement                                      |
+| --------------------------------- | ------------------------------------------------ |
+| `getAnthropicApiKey()`            | `credentialManager.getLlmApiKey(connectionSlug)` |
+| `getClaudeOAuthToken()`           | `credentialManager.getLlmOAuth(connectionSlug)`  |
+| `updateApiKey()`                  | `setupLlmConnection` IPC handler                 |
+| `getAuthType()` / `setAuthType()` | Derived from `getLlmConnection()`                |
 
 The legacy `anthropic_api_key` and `claude_oauth` credential types remain supported in `CredentialManager` for backward compatibility with any credentials stored before migration, but new credentials are always written under `llm_api_key` or `llm_oauth` with a `connectionSlug`.
 
@@ -291,13 +289,13 @@ The build pipeline reads these secrets from a `.env` file (populated by `sync-se
 [packages/shared/src/credentials/manager.ts:655-663]()
 
 ```ts
-let manager: CredentialManager | null = null;
+let manager: CredentialManager | null = null
 
 export function getCredentialManager(): CredentialManager {
   if (!manager) {
-    manager = new CredentialManager();
+    manager = new CredentialManager()
   }
-  return manager;
+  return manager
 }
 ```
 

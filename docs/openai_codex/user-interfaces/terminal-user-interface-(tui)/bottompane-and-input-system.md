@@ -18,8 +18,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers the interactive input layer at the bottom of the Codex TUI: the `BottomPane` container, the `ChatComposer` text-input state machine, the `TextArea` editing buffer, slash command routing, and the `BottomPaneView` overlay stack. It does not cover the conversation history display above the input area (see page [4.1.2](#4.1.2)) or the status line rendering (see page [4.1.4](#4.1.4)).
 
 ---
@@ -78,16 +76,16 @@ Sources: [codex-rs/tui/src/bottom_pane/mod.rs:150-181](), [codex-rs/tui/src/bott
 
 ### Fields
 
-| Field | Type | Purpose |
-|---|---|---|
-| `composer` | `ChatComposer` | Retained even when a view is active so draft state is preserved |
-| `view_stack` | `Vec<Box<dyn BottomPaneView>>` | Stack of transient overlays/modals |
-| `status` | `Option<StatusIndicatorWidget>` | Inline status row shown while a task is running |
-| `unified_exec_footer` | `UnifiedExecFooter` | Shows unified exec session summary |
-| `queued_user_messages` | `QueuedUserMessages` | Shows messages queued during a running turn |
-| `pending_thread_approvals` | `PendingThreadApprovals` | Inactive threads with pending approval requests |
-| `is_task_running` | `bool` | Controls spinner and interrupt hints |
-| `context_window_percent` | `Option<i64>` | Forwarded to composer for footer display |
+| Field                      | Type                            | Purpose                                                         |
+| -------------------------- | ------------------------------- | --------------------------------------------------------------- |
+| `composer`                 | `ChatComposer`                  | Retained even when a view is active so draft state is preserved |
+| `view_stack`               | `Vec<Box<dyn BottomPaneView>>`  | Stack of transient overlays/modals                              |
+| `status`                   | `Option<StatusIndicatorWidget>` | Inline status row shown while a task is running                 |
+| `unified_exec_footer`      | `UnifiedExecFooter`             | Shows unified exec session summary                              |
+| `queued_user_messages`     | `QueuedUserMessages`            | Shows messages queued during a running turn                     |
+| `pending_thread_approvals` | `PendingThreadApprovals`        | Inactive threads with pending approval requests                 |
+| `is_task_running`          | `bool`                          | Controls spinner and interrupt hints                            |
+| `context_window_percent`   | `Option<i64>`                   | Forwarded to composer for footer display                        |
 
 ### Key Event Routing
 
@@ -135,11 +133,11 @@ Sources: [codex-rs/tui/src/bottom_pane/mod.rs:120-130](), [codex-rs/tui/src/bott
 
 `ChatComposerConfig` [codex-rs/tui/src/bottom_pane/chat_composer.rs:288-319]() gates optional behaviors:
 
-| Flag | Default | Effect when `false` |
-|---|---|---|
-| `popups_enabled` | `true` | `sync_popups()` forces `ActivePopup::None` |
-| `slash_commands_enabled` | `true` | `/...` input is not parsed as commands; custom prompt expansion is skipped |
-| `image_paste_enabled` | `true` | File-path paste image attachment is skipped |
+| Flag                     | Default | Effect when `false`                                                        |
+| ------------------------ | ------- | -------------------------------------------------------------------------- |
+| `popups_enabled`         | `true`  | `sync_popups()` forces `ActivePopup::None`                                 |
+| `slash_commands_enabled` | `true`  | `/...` input is not parsed as commands; custom prompt expansion is skipped |
+| `image_paste_enabled`    | `true`  | File-path paste image attachment is skipped                                |
 
 The static constructor `ChatComposerConfig::plain_text()` disables all three, making the composer a simple text field for embedding in other surfaces.
 
@@ -189,14 +187,14 @@ Sources: [codex-rs/tui/src/bottom_pane/chat_composer.rs:1-130](), [docs/tui-chat
 
 ### Core Fields
 
-| Field | Type | Purpose |
-|---|---|---|
-| `text` | `String` | Raw UTF-8 buffer |
-| `cursor_pos` | `usize` | Byte offset of the cursor |
-| `elements` | `Vec<TextElement>` | Ranges marking placeholder spans that edit atomically |
-| `kill_buffer` | `String` | Single-entry kill ring for `Ctrl+K`/`Ctrl+Y` |
-| `wrap_cache` | `RefCell<Option<WrapCache>>` | Cached line-wrap state invalidated on edits |
-| `preferred_col` | `Option<usize>` | Sticky column for vertical cursor movement |
+| Field           | Type                         | Purpose                                               |
+| --------------- | ---------------------------- | ----------------------------------------------------- |
+| `text`          | `String`                     | Raw UTF-8 buffer                                      |
+| `cursor_pos`    | `usize`                      | Byte offset of the cursor                             |
+| `elements`      | `Vec<TextElement>`           | Ranges marking placeholder spans that edit atomically |
+| `kill_buffer`   | `String`                     | Single-entry kill ring for `Ctrl+K`/`Ctrl+Y`          |
+| `wrap_cache`    | `RefCell<Option<WrapCache>>` | Cached line-wrap state invalidated on edits           |
+| `preferred_col` | `Option<usize>`              | Sticky column for vertical cursor movement            |
 
 ### Text Elements
 
@@ -214,16 +212,16 @@ The public `TextElement` type from `codex_protocol::user_input` is mapped to int
 
 ### Key Editing Bindings
 
-| Binding | Action |
-|---|---|
-| `Ctrl+K` | Kill to end of line → kill buffer |
-| `Ctrl+Y` | Yank kill buffer at cursor |
-| `Ctrl+A` / `Home` | Beginning of line |
-| `Ctrl+E` / `End` | End of line |
-| `Ctrl+W` / `Alt+Backspace` | Delete word backward |
-| `Alt+D` | Delete word forward |
-| `Ctrl+Left` / `Alt+Left` | Word backward |
-| `Ctrl+Right` / `Alt+Right` | Word forward |
+| Binding                    | Action                            |
+| -------------------------- | --------------------------------- |
+| `Ctrl+K`                   | Kill to end of line → kill buffer |
+| `Ctrl+Y`                   | Yank kill buffer at cursor        |
+| `Ctrl+A` / `Home`          | Beginning of line                 |
+| `Ctrl+E` / `End`           | End of line                       |
+| `Ctrl+W` / `Alt+Backspace` | Delete word backward              |
+| `Alt+D`                    | Delete word forward               |
+| `Ctrl+Left` / `Alt+Left`   | Word backward                     |
+| `Ctrl+Right` / `Alt+Right` | Word forward                      |
 
 Sources: [codex-rs/tui/src/bottom_pane/textarea.rs:62-70](), [codex-rs/tui/src/bottom_pane/textarea.rs:84-200]()
 
@@ -237,21 +235,21 @@ Sources: [codex-rs/tui/src/bottom_pane/textarea.rs:62-70](), [codex-rs/tui/src/b
 
 Selected variants and their routing:
 
-| Variant | Command | Notes |
-|---|---|---|
-| `Model` | `/model` | Opens model + reasoning effort picker |
-| `Approvals` | `/approvals` | Opens approval presets popup |
-| `Review` | `/review` | Supports inline args |
-| `Plan` | `/plan` | Supports inline args |
-| `Rename` | `/rename` | Supports inline args |
-| `Resume` | `/resume` | Opens session resume picker |
-| `Fork` | `/fork` | Forks current thread |
-| `Compact` | `/compact` | Summarizes conversation history |
-| `Status` | `/status` | Shows token/rate-limit info |
-| `Diff` | `/diff` | Shows git diff |
-| `Copy` | `/copy` | Copies latest output to clipboard |
-| `Skills` | `/skills` | Opens skills list |
-| `Quit` / `Exit` | `/quit` `/exit` | Exits Codex |
+| Variant         | Command         | Notes                                 |
+| --------------- | --------------- | ------------------------------------- |
+| `Model`         | `/model`        | Opens model + reasoning effort picker |
+| `Approvals`     | `/approvals`    | Opens approval presets popup          |
+| `Review`        | `/review`       | Supports inline args                  |
+| `Plan`          | `/plan`         | Supports inline args                  |
+| `Rename`        | `/rename`       | Supports inline args                  |
+| `Resume`        | `/resume`       | Opens session resume picker           |
+| `Fork`          | `/fork`         | Forks current thread                  |
+| `Compact`       | `/compact`      | Summarizes conversation history       |
+| `Status`        | `/status`       | Shows token/rate-limit info           |
+| `Diff`          | `/diff`         | Shows git diff                        |
+| `Copy`          | `/copy`         | Copies latest output to clipboard     |
+| `Skills`        | `/skills`       | Opens skills list                     |
+| `Quit` / `Exit` | `/quit` `/exit` | Exits Codex                           |
 
 `supports_inline_args()` [codex-rs/tui/src/slash_command.rs:122-131]() returns `true` for commands that accept an argument after the command name. `available_during_task()` [codex-rs/tui/src/slash_command.rs:134-179]() governs whether the command can fire while an agent turn is in progress.
 
@@ -316,16 +314,17 @@ Sources: [codex-rs/tui/src/bottom_pane/chat_composer.rs:1-130](), [docs/tui-chat
 
 ### Two History Sources
 
-| Source | Storage | What Is Preserved |
-|---|---|---|
-| **Persistent** | `~/.codex/history.jsonl` (via `history_log_id`) | Text only |
-| **Local** | In-memory `local_history` vec | Full draft: text, `TextElement` ranges, local image paths, remote image URLs, pending paste payloads |
+| Source         | Storage                                         | What Is Preserved                                                                                    |
+| -------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Persistent** | `~/.codex/history.jsonl` (via `history_log_id`) | Text only                                                                                            |
+| **Local**      | In-memory `local_history` vec                   | Full draft: text, `TextElement` ranges, local image paths, remote image URLs, pending paste payloads |
 
 Recalling a persistent entry only restores text. Recalling a local entry (`HistoryEntry` [codex-rs/tui/src/bottom_pane/chat_composer_history.rs:13-26]()) rehydrates all attachment state.
 
 ### Navigation Guard
 
 `should_handle_navigation()` [codex-rs/tui/src/bottom_pane/chat_composer_history.rs:173-191]() allows Up/Down to navigate history only when:
+
 - The buffer is empty, **or**
 - The current text matches the last recalled history entry **and** the cursor is at a line boundary (start or end).
 
@@ -360,12 +359,12 @@ FlushResult::Paste"
 
 ### Key Decisions
 
-| `CharDecision` variant | Meaning |
-|---|---|
-| `RetainFirstChar` | Do not insert yet; hold the char for burst detection |
-| `BeginBufferFromPending` | The held char was a preamble; start buffering |
+| `CharDecision` variant        | Meaning                                                   |
+| ----------------------------- | --------------------------------------------------------- |
+| `RetainFirstChar`             | Do not insert yet; hold the char for burst detection      |
+| `BeginBufferFromPending`      | The held char was a preamble; start buffering             |
 | `BeginBuffer { retro_chars }` | Retro-capture already-inserted prefix and start buffering |
-| `BufferAppend` | Append to the existing burst buffer |
+| `BufferAppend`                | Append to the existing burst buffer                       |
 
 Non-ASCII/IME characters go through `on_plain_char_no_hold()` which never retains the first char (to avoid the perception of dropped input), but can still detect and join a burst retroactively.
 
@@ -383,16 +382,16 @@ Sources: [codex-rs/tui/src/bottom_pane/paste_burst.rs:1-147](), [docs/tui-chat-c
 
 ### Known View Implementations
 
-| Type | File | Purpose |
-|---|---|---|
-| `ApprovalOverlay` | `approval_overlay.rs` | Exec/patch approval prompts |
-| `RequestUserInputOverlay` | `request_user_input.rs` | Agent-requested free-form text prompts |
-| `AppLinkView` | `app_link_view.rs` | App connector link info and install |
-| `ListSelectionView` | `list_selection_view.rs` | Generic selection list (models, approval presets, etc.) |
-| `CustomPromptView` | `custom_prompt_view.rs` | Custom prompt editor |
-| `ExperimentalFeaturesView` | `experimental_features_view.rs` | Feature flag toggles |
-| `SkillsToggleView` | `skills_toggle_view.rs` | Enable/disable skills |
-| `FeedbackNoteView` | `feedback_view.rs` | Optional feedback note entry |
+| Type                       | File                            | Purpose                                                 |
+| -------------------------- | ------------------------------- | ------------------------------------------------------- |
+| `ApprovalOverlay`          | `approval_overlay.rs`           | Exec/patch approval prompts                             |
+| `RequestUserInputOverlay`  | `request_user_input.rs`         | Agent-requested free-form text prompts                  |
+| `AppLinkView`              | `app_link_view.rs`              | App connector link info and install                     |
+| `ListSelectionView`        | `list_selection_view.rs`        | Generic selection list (models, approval presets, etc.) |
+| `CustomPromptView`         | `custom_prompt_view.rs`         | Custom prompt editor                                    |
+| `ExperimentalFeaturesView` | `experimental_features_view.rs` | Feature flag toggles                                    |
+| `SkillsToggleView`         | `skills_toggle_view.rs`         | Enable/disable skills                                   |
+| `FeedbackNoteView`         | `feedback_view.rs`              | Optional feedback note entry                            |
 
 These views intercept `Ctrl+C` via `on_ctrl_c() -> CancellationEvent`. If a view returns `Handled`, it dismisses itself. If it returns `NotHandled`, `ChatWidget` may treat the key as an interrupt or arm the double-press quit shortcut.
 
@@ -429,12 +428,12 @@ Remote image URLs (from app-server clients or backtrack history) are shown as no
 
 **Keyboard interactions in the remote image row region:**
 
-| Key | Action |
-|---|---|
+| Key                             | Action                                   |
+| ------------------------------- | ---------------------------------------- |
 | `Up` (when textarea cursor = 0) | Enter row selection at last remote image |
-| `Up` / `Down` | Move between remote image rows |
-| `Down` (on last row) | Return cursor to textarea |
-| `Delete` / `Backspace` | Remove selected remote image row |
+| `Up` / `Down`                   | Move between remote image rows           |
+| `Down` (on last row)            | Return cursor to textarea                |
+| `Delete` / `Backspace`          | Remove selected remote image row         |
 
 Sources: [docs/tui-chat-composer.md:137-152](), [codex-rs/tui/src/bottom_pane/chat_composer.rs:383-387]()
 

@@ -46,8 +46,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents how inbound messages are processed, validated, routed to the correct session, and how agent responses are delivered back to users through their respective messaging channels. It covers the complete message lifecycle from initial receipt through final delivery.
 
 For channel-specific integration details, see [Channel Architecture](#4.1). For session management and storage, see [Session Management](#2.4). For multi-agent routing logic, see [Multi-Agent Routing](#2.5).
@@ -64,11 +62,11 @@ When a message arrives from any channel (Telegram, Discord, Slack, etc.), it pas
 
 Channels support multiple DM (direct message) policies that determine whether users can interact with the agent:
 
-| Policy | Behavior | Configuration |
-|--------|----------|---------------|
-| `open` | All users allowed | `channels.<provider>.dmPolicy: "open"` |
-| `pairing` | Only paired users allowed (see [#10.1](#10.1)) | `channels.<provider>.dmPolicy: "pairing"` |
-| `allowlist` | Explicit user/chat allowlist | `channels.<provider>.allowFrom: [...]` |
+| Policy      | Behavior                                       | Configuration                             |
+| ----------- | ---------------------------------------------- | ----------------------------------------- |
+| `open`      | All users allowed                              | `channels.<provider>.dmPolicy: "open"`    |
+| `pairing`   | Only paired users allowed (see [#10.1](#10.1)) | `channels.<provider>.dmPolicy: "pairing"` |
+| `allowlist` | Explicit user/chat allowlist                   | `channels.<provider>.allowFrom: [...]`    |
 
 The `enforceTelegramDmAccess` function [src/telegram/dm-access.ts:13-90]() validates DM access by checking the sender against the effective allow list, which combines channel-level `allowFrom`, pairing store entries (for pairing mode), and per-DM/topic overrides.
 
@@ -123,7 +121,7 @@ graph TB
         MediaResolve["Media Resolution<br/>resolveMedia"]
         PayloadBuild["Payload Assembly<br/>buildTelegramInboundContextPayload"]
     end
-    
+
     subgraph "Context Payload"
         SessionKey["SessionKey"]
         Body["Body (text)"]
@@ -133,14 +131,14 @@ graph TB
         GroupMeta["ChatType, GroupId<br/>MessageThreadId"]
         SkillFilter["SkillFilter"]
     end
-    
+
     RawMsg --> AccessCheck
     AccessCheck --> RouteResolve
     RouteResolve --> BodyParse
     BodyParse --> HistoryLoad
     HistoryLoad --> MediaResolve
     MediaResolve --> PayloadBuild
-    
+
     PayloadBuild --> SessionKey
     PayloadBuild --> Body
     PayloadBuild --> MediaPaths
@@ -173,20 +171,24 @@ Telegram and other channels implement update deduplication to prevent processing
 
 ```typescript
 // From bot.ts:226-275
-const recentUpdates = createTelegramUpdateDedupe();
+const recentUpdates = createTelegramUpdateDedupe()
 const shouldSkipUpdate = (ctx: TelegramUpdateKeyContext) => {
-  const updateId = resolveTelegramUpdateId(ctx);
-  const skipCutoff = highestPersistedUpdateId ?? initialUpdateId;
-  if (typeof updateId === "number" && skipCutoff !== null && updateId <= skipCutoff) {
-    return true;
+  const updateId = resolveTelegramUpdateId(ctx)
+  const skipCutoff = highestPersistedUpdateId ?? initialUpdateId
+  if (
+    typeof updateId === 'number' &&
+    skipCutoff !== null &&
+    updateId <= skipCutoff
+  ) {
+    return true
   }
-  const key = buildTelegramUpdateKey(ctx);
-  const skipped = recentUpdates.check(key);
+  const key = buildTelegramUpdateKey(ctx)
+  const skipped = recentUpdates.check(key)
   if (skipped && key && shouldLogVerbose()) {
-    logVerbose(`telegram dedupe: skipped ${key}`);
+    logVerbose(`telegram dedupe: skipped ${key}`)
   }
-  return skipped;
-};
+  return skipped
+}
 ```
 
 The deduplication key includes chat ID, message ID, and update type to detect true duplicates while allowing concurrent updates.
@@ -205,7 +207,7 @@ graph LR
         Process["Process Combined<br/>'Hello\
 World'"]
     end
-    
+
     Msg1 --> Timer
     Msg2 --> Timer
     Timer --> Flush
@@ -233,20 +235,31 @@ Telegram photo/video albums arrive as separate updates with a shared `media_grou
 ```typescript
 // From bot-handlers.ts:371-407
 const processMediaGroup = async (entry: MediaGroupEntry) => {
-  entry.messages.sort((a, b) => a.msg.message_id - b.msg.message_id);
-  const captionMsg = entry.messages.find((m) => m.msg.caption || m.msg.text);
-  const primaryEntry = captionMsg ?? entry.messages[0];
-  
-  const allMedia: TelegramMediaRef[] = [];
+  entry.messages.sort((a, b) => a.msg.message_id - b.msg.message_id)
+  const captionMsg = entry.messages.find((m) => m.msg.caption || m.msg.text)
+  const primaryEntry = captionMsg ?? entry.messages[0]
+
+  const allMedia: TelegramMediaRef[] = []
   for (const { ctx } of entry.messages) {
-    const media = await resolveMedia(ctx, mediaMaxBytes, opts.token, telegramTransport);
+    const media = await resolveMedia(
+      ctx,
+      mediaMaxBytes,
+      opts.token,
+      telegramTransport
+    )
     if (media) {
-      allMedia.push({ path: media.path, contentType: media.contentType });
+      allMedia.push({ path: media.path, contentType: media.contentType })
     }
   }
-  
-  await processMessage(primaryEntry.ctx, allMedia, storeAllowFrom, undefined, replyMedia);
-};
+
+  await processMessage(
+    primaryEntry.ctx,
+    allMedia,
+    storeAllowFrom,
+    undefined,
+    replyMedia
+  )
+}
 ```
 
 Media groups are flushed after a configurable timeout (default 300ms, overridable via `opts.testTimings.mediaGroupFlushMs`).
@@ -257,18 +270,27 @@ When a user replies to a message containing media, OpenClaw can include that med
 
 ```typescript
 // From bot-handlers.ts:465-490
-const resolveReplyMediaForMessage = async (ctx: TelegramContext, msg: Message) => {
-  const replyMessage = msg.reply_to_message;
+const resolveReplyMediaForMessage = async (
+  ctx: TelegramContext,
+  msg: Message
+) => {
+  const replyMessage = msg.reply_to_message
   if (!replyMessage || !hasInboundMedia(replyMessage)) {
-    return [];
+    return []
   }
-  const replyFileId = resolveInboundMediaFileId(replyMessage);
+  const replyFileId = resolveInboundMediaFileId(replyMessage)
   const media = await resolveMedia(
-    { message: replyMessage, me: ctx.me, getFile: () => bot.api.getFile(replyFileId) },
-    mediaMaxBytes, opts.token, telegramTransport
-  );
-  return media ? [{ path: media.path, contentType: media.contentType }] : [];
-};
+    {
+      message: replyMessage,
+      me: ctx.me,
+      getFile: () => bot.api.getFile(replyFileId),
+    },
+    mediaMaxBytes,
+    opts.token,
+    telegramTransport
+  )
+  return media ? [{ path: media.path, contentType: media.contentType }] : []
+}
 ```
 
 **Deferred Download**
@@ -294,7 +316,7 @@ graph TB
         SenderId["senderId (user ID)"]
         TopicAgent["topicAgentId (per-topic override)"]
     end
-    
+
     subgraph "Binding Match (6-tier priority)"
         Peer["1. Peer Binding<br/>(exact peer match)"]
         Parent["2. Parent Binding<br/>(forum group fallback)"]
@@ -303,26 +325,26 @@ graph TB
         Channel["5. Channel Binding<br/>(telegram-wide default)"]
         Default["6. Default Agent"]
     end
-    
+
     subgraph "Route Output"
         AgentId["route.agentId"]
         SessionKey["route.sessionKey"]
         MatchedBy["route.matchedBy"]
         ConfigBinding["configuredBinding (ACP)"]
     end
-    
+
     ChatId --> Peer
     IsGroup --> Peer
     ThreadId --> Peer
     SenderId --> Peer
     TopicAgent --> Peer
-    
+
     Peer --> Parent
     Parent --> Guild
     Guild --> Account
     Account --> Channel
     Channel --> Default
-    
+
     Default --> AgentId
     Default --> SessionKey
     Default --> MatchedBy
@@ -347,20 +369,26 @@ The final session key format depends on the route and thread context:
 const baseSessionKey = isNamedAccountFallback
   ? buildAgentSessionKey({
       agentId: route.agentId,
-      channel: "telegram",
+      channel: 'telegram',
       accountId: route.accountId,
-      peer: { kind: "direct", id: resolveTelegramDirectPeerId({ chatId, senderId }) },
-      dmScope: "per-account-channel-peer",
+      peer: {
+        kind: 'direct',
+        id: resolveTelegramDirectPeerId({ chatId, senderId }),
+      },
+      dmScope: 'per-account-channel-peer',
       identityLinks: freshCfg.session?.identityLinks,
     }).toLowerCase()
-  : route.sessionKey;
+  : route.sessionKey
 
 // DMs: use thread suffix for session isolation
 const threadKeys =
   dmThreadId != null
-    ? resolveThreadSessionKeys({ baseSessionKey, threadId: `${chatId}:${dmThreadId}` })
-    : null;
-const sessionKey = threadKeys?.sessionKey ?? baseSessionKey;
+    ? resolveThreadSessionKeys({
+        baseSessionKey,
+        threadId: `${chatId}:${dmThreadId}`,
+      })
+    : null
+const sessionKey = threadKeys?.sessionKey ?? baseSessionKey
 ```
 
 **DM Topic Isolation**
@@ -384,20 +412,26 @@ When a conversation route resolves to a configured ACP binding, the system ensur
 // From bot-message-context.ts:201-225
 const ensureConfiguredBindingReady = async (): Promise<boolean> => {
   if (!configuredBinding) {
-    return true;
+    return true
   }
   const ensured = await ensureConfiguredAcpRouteReady({
     cfg: freshCfg,
     configuredBinding,
-  });
+  })
   if (ensured.ok) {
-    logVerbose(`telegram: using configured ACP binding for ${configuredBinding.spec.conversationId}`);
-    return true;
+    logVerbose(
+      `telegram: using configured ACP binding for ${configuredBinding.spec.conversationId}`
+    )
+    return true
   }
-  logVerbose(`telegram: configured ACP binding unavailable: ${ensured.error}`);
-  logInboundDrop({ log: logVerbose, channel: "telegram", reason: "configured ACP binding unavailable" });
-  return false;
-};
+  logVerbose(`telegram: configured ACP binding unavailable: ${ensured.error}`)
+  logInboundDrop({
+    log: logVerbose,
+    channel: 'telegram',
+    reason: 'configured ACP binding unavailable',
+  })
+  return false
+}
 ```
 
 If the ACP subagent is not available, the message is dropped with a logged reason.
@@ -424,32 +458,32 @@ graph TB
         Delivery["Final Delivery<br/>deliverReplies"]
         Cleanup["Cleanup<br/>(clear drafts, remove ACK)"]
     end
-    
+
     subgraph "Streaming Hooks"
         OnPartial["onPartialReply<br/>(draft preview updates)"]
         OnBlock["onBlockReply<br/>(thinking/tool blocks)"]
         OnFinal["onFinalReply<br/>(complete response)"]
     end
-    
+
     subgraph "Lane Coordinators"
         AnswerLane["Answer Lane<br/>(user-facing response)"]
         ReasoningLane["Reasoning Lane<br/>(thinking process)"]
         LaneRouter["splitTelegramReasoningText<br/>(route content to lanes)"]
     end
-    
+
     Context --> StreamSetup
     StreamSetup --> Typing
     Typing --> AckReaction
     AckReaction --> AgentInvoke
-    
+
     AgentInvoke --> OnPartial
     AgentInvoke --> OnBlock
     AgentInvoke --> OnFinal
-    
+
     OnPartial --> LaneRouter
     LaneRouter --> AnswerLane
     LaneRouter --> ReasoningLane
-    
+
     OnFinal --> Delivery
     Delivery --> Cleanup
 ```
@@ -458,10 +492,10 @@ graph TB
 
 OpenClaw uses a dual-lane system to separate user-facing answers from internal reasoning:
 
-| Lane | Purpose | When Shown | Configuration |
-|------|---------|------------|---------------|
-| `answer` | User-facing response | Always | Controlled by `streamMode` |
-| `reasoning` | Thinking process | `reasoningLevel: "stream"` | Session-level setting |
+| Lane        | Purpose              | When Shown                 | Configuration              |
+| ----------- | -------------------- | -------------------------- | -------------------------- |
+| `answer`    | User-facing response | Always                     | Controlled by `streamMode` |
+| `reasoning` | Thinking process     | `reasoningLevel: "stream"` | Session-level setting      |
 
 The `createLaneTextDeliverer` [src/telegram/lane-delivery-text-deliverer.ts:1-600]() manages per-lane delivery lifecycle, handling draft updates, finalization, and error recovery independently for each lane.
 
@@ -483,13 +517,13 @@ The `createTelegramDraftStream` [src/telegram/draft-stream.ts:1-400]() automatic
 ```typescript
 // From draft-stream.ts:89-135
 const previewTransport =
-  params.previewTransport === "draft"
-    ? "draft"
-    : params.previewTransport === "message"
-      ? "message"
+  params.previewTransport === 'draft'
+    ? 'draft'
+    : params.previewTransport === 'message'
+      ? 'message'
       : sendMessageDraft && shouldUseDraftTransport({ chatId, thread })
-        ? "draft"
-        : "message";
+        ? 'draft'
+        : 'message'
 ```
 
 **Draft Lifecycle**
@@ -500,22 +534,22 @@ sequenceDiagram
     participant Stream as DraftStream
     participant Loop as DraftStreamLoop
     participant API as Telegram API
-    
+
     Agent->>Stream: update("Hello")
     Stream->>Loop: enqueue update
     Note over Loop: Throttle (1000ms)
-    
+
     Agent->>Stream: update("Hello world")
     Stream->>Loop: enqueue update
     Note over Loop: Batch updates
-    
+
     Loop->>API: sendMessageDraft(chatId, draftId, "Hello world")
     API-->>Loop: success
-    
+
     Agent->>Stream: flush()
     Stream->>API: sendMessage("Hello world")
     API-->>Stream: message_id: 123
-    
+
     Agent->>Stream: update("Next message")
     Note over Stream: forceNewMessage() called
     Stream->>API: sendMessage("Next message")
@@ -540,18 +574,18 @@ Sources: [src/telegram/draft-stream.ts:1-400](), [src/channels/draft-stream-loop
 
 Different channels have different message size limits:
 
-| Channel | Limit | Configuration |
-|---------|-------|---------------|
-| Telegram | 4096 chars | `resolveTextChunkLimit(cfg, "telegram", accountId)` |
-| Discord | 2000 chars | `resolveTextChunkLimit(cfg, "discord", accountId)` |
-| Slack | ~40000 chars | `resolveTextChunkLimit(cfg, "slack", accountId)` |
+| Channel  | Limit        | Configuration                                       |
+| -------- | ------------ | --------------------------------------------------- |
+| Telegram | 4096 chars   | `resolveTextChunkLimit(cfg, "telegram", accountId)` |
+| Discord  | 2000 chars   | `resolveTextChunkLimit(cfg, "discord", accountId)`  |
+| Slack    | ~40000 chars | `resolveTextChunkLimit(cfg, "slack", accountId)`    |
 
 **Chunking Modes**
 
 The `chunkMarkdownTextWithMode` function [src/auto-reply/chunk.ts]() implements multiple chunking strategies:
 
 ```typescript
-type ChunkMode = "paragraph" | "sentence" | "word" | "char";
+type ChunkMode = 'paragraph' | 'sentence' | 'word' | 'char'
 ```
 
 - **paragraph**: Split on double newlines (preserves markdown structure)
@@ -567,15 +601,19 @@ Tables are formatted differently per channel:
 
 ```typescript
 // From delivery.replies.ts:89-106
-const tableMode = resolveMarkdownTableMode({ cfg, channel: "telegram", accountId });
-const rendered = renderTelegramHtmlText(text, { tableMode });
+const tableMode = resolveMarkdownTableMode({
+  cfg,
+  channel: 'telegram',
+  accountId,
+})
+const rendered = renderTelegramHtmlText(text, { tableMode })
 ```
 
-| Mode | Behavior | Channels |
-|------|----------|----------|
-| `"preserve"` | Keep markdown tables as-is | Slack |
-| `"plaintext"` | Convert to plain text | Telegram, Discord |
-| `"remove"` | Strip tables entirely | Legacy fallback |
+| Mode          | Behavior                   | Channels          |
+| ------------- | -------------------------- | ----------------- |
+| `"preserve"`  | Keep markdown tables as-is | Slack             |
+| `"plaintext"` | Convert to plain text      | Telegram, Discord |
+| `"remove"`    | Strip tables entirely      | Legacy fallback   |
 
 Sources: [src/auto-reply/chunk.ts](), [src/telegram/format.ts](), [src/config/markdown-tables.ts]()
 
@@ -588,7 +626,7 @@ Sources: [src/auto-reply/chunk.ts](), [src/telegram/format.ts](), [src/config/ma
 Channels support different reply threading behaviors:
 
 ```typescript
-type ReplyToMode = "off" | "first" | "all";
+type ReplyToMode = 'off' | 'first' | 'all'
 ```
 
 - **off**: Never use reply threading
@@ -602,20 +640,20 @@ For Telegram, the `buildTelegramThreadParams` function [src/telegram/bot/helpers
 ```typescript
 export function buildTelegramThreadParams(thread?: TelegramThreadSpec | null) {
   if (thread?.id == null) {
-    return undefined;
+    return undefined
   }
-  const normalized = Math.trunc(thread.id);
-  
-  if (thread.scope === "dm") {
-    return normalized > 0 ? { message_thread_id: normalized } : undefined;
+  const normalized = Math.trunc(thread.id)
+
+  if (thread.scope === 'dm') {
+    return normalized > 0 ? { message_thread_id: normalized } : undefined
   }
-  
+
   // Telegram rejects message_thread_id=1 for General forum topic
   if (normalized === TELEGRAM_GENERAL_TOPIC_ID) {
-    return undefined;
+    return undefined
   }
-  
-  return { message_thread_id: normalized };
+
+  return { message_thread_id: normalized }
 }
 ```
 
@@ -643,19 +681,19 @@ graph TB
         Replies["ReplyPayload[]<br/>(from agent)"]
         ChunkSplit["Chunk Splitting<br/>chunkMarkdownTextWithMode"]
     end
-    
+
     subgraph "Media Handling"
         LocalMedia["Local Media<br/>(file:// paths)"]
         WebMedia["Web Media<br/>(http:// URLs)"]
         AudioVoice["Audio as Voice<br/>(OGG conversion)"]
     end
-    
+
     subgraph "Hook Points"
         PreSendHook["message_sending hook<br/>(plugin modification)"]
         PostSendHook["message_sent hook<br/>(plugin notification)"]
         InternalHook["Internal hooks<br/>(message_sent event)"]
     end
-    
+
     subgraph "API Calls"
         SendMessage["bot.api.sendMessage"]
         SendPhoto["bot.api.sendPhoto"]
@@ -663,36 +701,36 @@ graph TB
         SendVoice["bot.api.sendVoice"]
         SendMediaGroup["bot.api.sendMediaGroup"]
     end
-    
+
     subgraph "Error Recovery"
         ThreadNotFound["Thread Not Found<br/>(retry without thread_id)"]
         VoiceForbidden["Voice Forbidden<br/>(fallback to document)"]
         NetworkRetry["Network Errors<br/>(retry with backoff)"]
     end
-    
+
     Replies --> ChunkSplit
     ChunkSplit --> LocalMedia
     ChunkSplit --> WebMedia
     ChunkSplit --> AudioVoice
-    
+
     LocalMedia --> PreSendHook
     WebMedia --> PreSendHook
     AudioVoice --> PreSendHook
-    
+
     PreSendHook --> SendMessage
     PreSendHook --> SendPhoto
     PreSendHook --> SendDocument
     PreSendHook --> SendVoice
     PreSendHook --> SendMediaGroup
-    
+
     SendMessage --> ThreadNotFound
     SendVoice --> VoiceForbidden
     SendPhoto --> NetworkRetry
-    
+
     ThreadNotFound --> PostSendHook
     VoiceForbidden --> PostSendHook
     NetworkRetry --> PostSendHook
-    
+
     PostSendHook --> InternalHook
 ```
 
@@ -704,16 +742,24 @@ The delivery system routes payloads based on content:
 // From delivery.replies.ts:200-350
 if (payload.audioAsVoice && audioPath) {
   // Send as voice message
-  await bot.api.sendVoice(chatId, new InputFile(audioBuffer), { ...threadParams });
+  await bot.api.sendVoice(chatId, new InputFile(audioBuffer), {
+    ...threadParams,
+  })
 } else if (mediaPaths.length > 1) {
   // Send as media group
-  await bot.api.sendMediaGroup(chatId, mediaGroupPayload, threadParams);
+  await bot.api.sendMediaGroup(chatId, mediaGroupPayload, threadParams)
 } else if (singleMediaPath) {
   // Send single media with caption
-  await bot.api.sendPhoto(chatId, new InputFile(mediaBuffer), { caption: text, ...threadParams });
+  await bot.api.sendPhoto(chatId, new InputFile(mediaBuffer), {
+    caption: text,
+    ...threadParams,
+  })
 } else {
   // Send text message
-  await bot.api.sendMessage(chatId, text, { parse_mode: "HTML", ...threadParams });
+  await bot.api.sendMessage(chatId, text, {
+    parse_mode: 'HTML',
+    ...threadParams,
+  })
 }
 ```
 
@@ -724,8 +770,8 @@ For exec approval prompts, inline buttons are injected:
 ```typescript
 // From delivery.replies.ts:450-480
 if (buttons && buttons.length > 0) {
-  const inlineKeyboard = buildInlineKeyboard(buttons);
-  sendParams.reply_markup = inlineKeyboard;
+  const inlineKeyboard = buildInlineKeyboard(buttons)
+  sendParams.reply_markup = inlineKeyboard
 }
 ```
 
@@ -741,17 +787,20 @@ Discord delivery is handled by the `createDiscordMessageHandler` [src/discord/mo
 
 ```typescript
 // Discord reply dispatch
-await channel.sendTyping();
+await channel.sendTyping()
 const replies = await dispatchReplyWithBufferedBlockDispatcher({
   payload: ctxPayload,
   dispatcherOptions: {
     deliver: async (block, meta) => {
-      if (meta.kind === "final") {
-        await channel.send({ content: block.text, reply: { messageReference: messageId } });
+      if (meta.kind === 'final') {
+        await channel.send({
+          content: block.text,
+          reply: { messageReference: messageId },
+        })
       }
     },
   },
-});
+})
 ```
 
 **Discord-Specific Features**
@@ -776,7 +825,7 @@ await client.chat.postMessage({
   text: reply.text,
   thread_ts: threadTs,
   mrkdwn: true,
-});
+})
 ```
 
 **Slack Threading**
@@ -798,14 +847,14 @@ Signal delivery uses the `signal-cli` JSON-RPC protocol:
 ```typescript
 // From signal/send.ts
 await signalRpcRequest({
-  method: "send",
+  method: 'send',
   params: {
     recipient: recipientAddress,
     message: text,
     attachments: attachmentPaths,
     quoteTimestamp: replyToTimestamp,
   },
-});
+})
 ```
 
 **Signal-Specific Constraints**
@@ -828,27 +877,27 @@ The system classifies errors to determine retry behavior:
 ```typescript
 // From telegram/network-errors.ts
 export function isRecoverableTelegramNetworkError(err: unknown): boolean {
-  const msg = String(err);
+  const msg = String(err)
   return (
-    msg.includes("ETIMEDOUT") ||
-    msg.includes("ECONNRESET") ||
-    msg.includes("ENOTFOUND") ||
-    msg.includes("429") || // Rate limit
-    msg.includes("502") || // Bad gateway
-    msg.includes("503")    // Service unavailable
-  );
+    msg.includes('ETIMEDOUT') ||
+    msg.includes('ECONNRESET') ||
+    msg.includes('ENOTFOUND') ||
+    msg.includes('429') || // Rate limit
+    msg.includes('502') || // Bad gateway
+    msg.includes('503') // Service unavailable
+  )
 }
 ```
 
 **Error Categories**
 
-| Category | Examples | Retry Strategy |
-|----------|----------|----------------|
-| Recoverable network | ETIMEDOUT, ECONNRESET, 429, 502, 503 | Retry with exponential backoff |
-| Client rejection | 400 Bad Request, 403 Forbidden | No retry, log error |
-| Thread not found | "message thread not found" | Retry without thread_id |
-| Voice forbidden | VOICE_MESSAGES_FORBIDDEN | Fallback to document |
-| Message not modified | MESSAGE_NOT_MODIFIED | Skip (no-op) |
+| Category             | Examples                             | Retry Strategy                 |
+| -------------------- | ------------------------------------ | ------------------------------ |
+| Recoverable network  | ETIMEDOUT, ECONNRESET, 429, 502, 503 | Retry with exponential backoff |
+| Client rejection     | 400 Bad Request, 403 Forbidden       | No retry, log error            |
+| Thread not found     | "message thread not found"           | Retry without thread_id        |
+| Voice forbidden      | VOICE_MESSAGES_FORBIDDEN             | Fallback to document           |
+| Message not modified | MESSAGE_NOT_MODIFIED                 | Skip (no-op)                   |
 
 **Thread Not Found Recovery**
 
@@ -857,9 +906,9 @@ When Telegram rejects a message with "thread not found", the system retries with
 ```typescript
 // From lane-delivery-text-deliverer.ts:400-450
 if (isThreadNotFoundError(err)) {
-  logVerbose(`telegram: thread not found, retrying without thread_id`);
-  await sendPayload({ ...payload, threadParams: undefined });
-  return;
+  logVerbose(`telegram: thread not found, retrying without thread_id`)
+  await sendPayload({ ...payload, threadParams: undefined })
+  return
 }
 ```
 
@@ -872,16 +921,16 @@ If voice message delivery fails with VOICE_MESSAGES_FORBIDDEN:
 ```typescript
 // From delivery.replies.ts:550-600
 try {
-  await bot.api.sendVoice(chatId, voiceBuffer, params);
+  await bot.api.sendVoice(chatId, voiceBuffer, params)
 } catch (err) {
   if (isVoiceMessagesForbiddenError(err)) {
     // Fallback to document
     await bot.api.sendDocument(chatId, voiceBuffer, {
       ...params,
-      caption: "Audio message (voice messages are disabled in this chat)",
-    });
+      caption: 'Audio message (voice messages are disabled in this chat)',
+    })
   } else {
-    throw err;
+    throw err
   }
 }
 ```
@@ -898,7 +947,7 @@ grammY's built-in throttler prevents rate limit violations:
 
 ```typescript
 // From telegram/bot.ts:220
-bot.api.config.use(apiThrottler());
+bot.api.config.use(apiThrottler())
 ```
 
 This automatically queues requests when approaching Telegram's rate limits.
@@ -910,32 +959,42 @@ The `sendChatAction` API (typing indicators) has strict rate limits. OpenClaw im
 ```typescript
 // From telegram/sendchataction-401-backoff.ts
 export function createTelegramSendChatActionHandler(params: {
-  sendChatActionFn: (chatId: number | string, action: string, threadParams?: object) => Promise<void>;
-  logger?: (message: string) => void;
+  sendChatActionFn: (
+    chatId: number | string,
+    action: string,
+    threadParams?: object
+  ) => Promise<void>
+  logger?: (message: string) => void
 }) {
-  let consecutive401Count = 0;
-  const MAX_CONSECUTIVE_401 = 3;
-  
+  let consecutive401Count = 0
+  const MAX_CONSECUTIVE_401 = 3
+
   return {
-    sendChatAction: async (chatId: number | string, action: string, threadParams?: object) => {
+    sendChatAction: async (
+      chatId: number | string,
+      action: string,
+      threadParams?: object
+    ) => {
       if (consecutive401Count >= MAX_CONSECUTIVE_401) {
         // Circuit open: skip typing indicators
-        return;
+        return
       }
       try {
-        await params.sendChatActionFn(chatId, action, threadParams);
-        consecutive401Count = 0; // Reset on success
+        await params.sendChatActionFn(chatId, action, threadParams)
+        consecutive401Count = 0 // Reset on success
       } catch (err) {
         if (is401Error(err)) {
-          consecutive401Count++;
+          consecutive401Count++
           if (consecutive401Count >= MAX_CONSECUTIVE_401) {
-            params.logger?.("typing indicators disabled after repeated 401 errors");
+            params.logger?.(
+              'typing indicators disabled after repeated 401 errors'
+            )
           }
         }
-        throw err;
+        throw err
       }
     },
-  };
+  }
 }
 ```
 
@@ -962,11 +1021,11 @@ const hookContext = toPluginMessageContext({
   content: text,
   mediaUrls: mediaPaths,
   channelData: { buttons, parseMode, ...threadParams },
-});
+})
 
-const hookResult = await messageHookRunner.runMessageSending(hookContext);
+const hookResult = await messageHookRunner.runMessageSending(hookContext)
 if (hookResult?.content !== undefined) {
-  text = hookResult.content;
+  text = hookResult.content
 }
 ```
 
@@ -982,7 +1041,7 @@ await messageHookRunner.runMessageSent({
   content: text,
   success: true,
   timestamp: Date.now(),
-});
+})
 ```
 
 ### Internal Hooks
@@ -992,15 +1051,15 @@ Internal system hooks track message flow:
 ```typescript
 // From delivery.replies.ts:700-750
 await triggerInternalHook(
-  createInternalHookEvent("message_sent", {
-    channel: "telegram",
+  createInternalHookEvent('message_sent', {
+    channel: 'telegram',
     chatId: String(chatId),
     sessionKey: params.sessionKeyForInternalHooks,
     messageId: String(result.message_id),
     text,
     success: true,
   })
-);
+)
 ```
 
 These hooks power:

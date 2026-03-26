@@ -26,8 +26,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The macOS client (`OpenClaw.app`) is a menu bar application that serves as both a Gateway control interface and a device node. It provides Voice Wake/push-to-talk, Talk Mode overlay, WebChat access, debug tools, and remote Gateway control via SSH tunnels and Tailscale discovery. The app is packaged as a Swift Package at `apps/macos/`.
 
 Related pages: [iOS Client](#6.1), [Android Client](#6.3), [WebSocket Protocol & RPC](#2.1), [Authentication & Device Pairing](#2.2).
@@ -45,15 +43,15 @@ It also serves as a pairing approval surface: when iOS/Android nodes send `node.
 
 **Key features** (from README.md and CHANGELOG.md):
 
-| Feature | Purpose |
-|---------|---------|
-| Menu bar control | Gateway health, session list, agent picker |
-| Voice Wake / PTT | Wake-word detection (`SwabbleKit`), push-to-talk overlay |
-| Talk Mode | Continuous voice interaction overlay |
-| WebChat | In-app browser-based chat UI |
-| Debug tools | Session inspector, capability testing |
-| Remote Gateway control | SSH tunnel relay, Tailscale Serve/Funnel discovery |
-| Pairing approval | Interactive/silent approval for remote nodes |
+| Feature                | Purpose                                                  |
+| ---------------------- | -------------------------------------------------------- |
+| Menu bar control       | Gateway health, session list, agent picker               |
+| Voice Wake / PTT       | Wake-word detection (`SwabbleKit`), push-to-talk overlay |
+| Talk Mode              | Continuous voice interaction overlay                     |
+| WebChat                | In-app browser-based chat UI                             |
+| Debug tools            | Session inspector, capability testing                    |
+| Remote Gateway control | SSH tunnel relay, Tailscale Serve/Funnel discovery       |
+| Pairing approval       | Interactive/silent approval for remote nodes             |
 
 Sources: [README.md:289-295](), [CHANGELOG.md:161](), [package.json:1-18]()
 
@@ -95,26 +93,26 @@ Sources: [apps/macos/Package.swift:1-92](), [README.md:289-295](), [CHANGELOG.md
 
 The macOS app is a standalone Swift Package (`apps/macos/Package.swift`) targeting macOS 15+. It produces four products:
 
-| Product | Kind | Purpose |
-|---|---|---|
-| `OpenClawIPC` | library | Local IPC protocol between the menu bar process and other processes (e.g., `BridgeServer`) |
-| `OpenClawDiscovery` | library | Bonjour/mDNS discovery of local Gateway instances |
-| `OpenClaw` | executable | The menu bar app itself |
-| `openclaw-mac` | executable | Headless CLI companion (`OpenClawMacCLI` target) |
+| Product             | Kind       | Purpose                                                                                    |
+| ------------------- | ---------- | ------------------------------------------------------------------------------------------ |
+| `OpenClawIPC`       | library    | Local IPC protocol between the menu bar process and other processes (e.g., `BridgeServer`) |
+| `OpenClawDiscovery` | library    | Bonjour/mDNS discovery of local Gateway instances                                          |
+| `OpenClaw`          | executable | The menu bar app itself                                                                    |
+| `openclaw-mac`      | executable | Headless CLI companion (`OpenClawMacCLI` target)                                           |
 
 **Main app dependencies**
 
-| Dependency | Role in macOS app |
-|---|---|
-| `MenuBarExtraAccess` | Menu bar window lifecycle and access management |
-| `swift-subprocess` | Powers `RelayProcessManager` for spawning subprocesses |
-| `swift-log` | Structured logging |
-| `Sparkle` | In-app auto-update |
-| `PeekabooBridge` / `PeekabooAutomationKit` | Screen automation capabilities exposed to the agent |
-| `OpenClawKit` | Shared models, bridge frames, capability definitions |
-| `OpenClawChatUI` | Shared chat UI components |
-| `OpenClawProtocol` | Gateway WebSocket protocol frame types |
-| `SwabbleKit` | Wake-word engine (same lib as iOS) |
+| Dependency                                 | Role in macOS app                                      |
+| ------------------------------------------ | ------------------------------------------------------ |
+| `MenuBarExtraAccess`                       | Menu bar window lifecycle and access management        |
+| `swift-subprocess`                         | Powers `RelayProcessManager` for spawning subprocesses |
+| `swift-log`                                | Structured logging                                     |
+| `Sparkle`                                  | In-app auto-update                                     |
+| `PeekabooBridge` / `PeekabooAutomationKit` | Screen automation capabilities exposed to the agent    |
+| `OpenClawKit`                              | Shared models, bridge frames, capability definitions   |
+| `OpenClawChatUI`                           | Shared chat UI components                              |
+| `OpenClawProtocol`                         | Gateway WebSocket protocol frame types                 |
+| `SwabbleKit`                               | Wake-word engine (same lib as iOS)                     |
 
 Sources: [apps/macos/Package.swift:1-92](), [apps/macos/Package.resolved:1-132]()
 
@@ -155,17 +153,17 @@ Sources: [apps/macos/Package.swift:26-92]()
 
 The main executable `OpenClaw` runs as a menu bar-resident application (no Dock icon). It leverages `MenuBarExtraAccess` for lifecycle management and presents a popover UI with the following surfaces:
 
-| Surface | Purpose |
-|---------|---------|
-| Connection status | Gateway reachability (connected/connecting/offline) |
-| Session list | Active chat sessions, selectable for WebChat |
-| Agent picker | Configured agents from `agents.list` |
-| Pairing approvals | Interactive prompts for `node.pair.requested` events |
-| Voice Wake controls | Wake word on/off, push-to-talk activation |
-| Talk Mode toggle | Enable continuous voice overlay |
-| WebChat window | In-app browser view of `http://127.0.0.1:18789/` |
-| Debug tools | Session inspector, capability probe, log viewer |
-| Settings | Gateway URL, auth token/password, node display name |
+| Surface             | Purpose                                              |
+| ------------------- | ---------------------------------------------------- |
+| Connection status   | Gateway reachability (connected/connecting/offline)  |
+| Session list        | Active chat sessions, selectable for WebChat         |
+| Agent picker        | Configured agents from `agents.list`                 |
+| Pairing approvals   | Interactive prompts for `node.pair.requested` events |
+| Voice Wake controls | Wake word on/off, push-to-talk activation            |
+| Talk Mode toggle    | Enable continuous voice overlay                      |
+| WebChat window      | In-app browser view of `http://127.0.0.1:18789/`     |
+| Debug tools         | Session inspector, capability probe, log viewer      |
+| Settings            | Gateway URL, auth token/password, node display name  |
 
 **Dual WebSocket connections**:
 
@@ -223,7 +221,7 @@ sequenceDiagram
 
     RemoteNode->>Gateway: "node.pair.request<br/>{silent: true}"
     Gateway-->>MacApp: "node.pair.requested<br/>event"
-    
+
     alt silent=true
         MacApp->>SSH: "ssh <host> echo ok"
         alt SSH succeeds
@@ -238,7 +236,7 @@ sequenceDiagram
         MacApp-->>MacApp: "show UI prompt"
         MacApp->>Gateway: "node.pair.approve<br/>or node.pair.reject"
     end
-    
+
     Gateway-->>RemoteNode: "node.pair.resolved<br/>(token issued)"
     RemoteNode->>Gateway: "reconnect with token"
 ```
@@ -251,12 +249,12 @@ The `OpenClawMacCLI` target produces a standalone binary (`openclaw-mac`) for he
 
 **Use cases**:
 
-| Scenario | Example |
-|----------|---------|
-| Scripted Gateway calls | `openclaw-mac call sessions.list` |
-| CI/CD automation | Trigger agent runs without the full app |
-| Gateway discovery | `openclaw-mac discover` (Bonjour/mDNS probe) |
-| Tailscale peer probe | Discover Gateway via `wss://<peer>.ts.net` (CHANGELOG.md #32860) |
+| Scenario               | Example                                                          |
+| ---------------------- | ---------------------------------------------------------------- |
+| Scripted Gateway calls | `openclaw-mac call sessions.list`                                |
+| CI/CD automation       | Trigger agent runs without the full app                          |
+| Gateway discovery      | `openclaw-mac discover` (Bonjour/mDNS probe)                     |
+| Tailscale peer probe   | Discover Gateway via `wss://<peer>.ts.net` (CHANGELOG.md #32860) |
 
 **Architecture**: Pure command-line tool with no `OpenClawIPC` or UI dependencies. Uses `OpenClawDiscovery` for mDNS (`_openclaw-gw._tcp`) and DNS-SD wide-area lookups, including Tailscale Serve/Funnel endpoints.
 
@@ -268,20 +266,20 @@ The macOS app registers node capabilities with the Gateway via `node.describe` a
 
 **macOS-specific capabilities**:
 
-| Capability | Implementation | Agent access |
-|------------|----------------|--------------|
-| `system.run` | Command execution (bash/zsh) | `node.invoke action=system.run` |
-| `system.notify` | macOS notification center | `node.invoke action=system.notify` |
-| Screen automation | `PeekabooBridge`, `PeekabooAutomationKit` | `node.invoke action=screen.*` |
-| Screen capture | Accessibility + Screen Recording permissions | `node.invoke action=screen.capture` |
+| Capability        | Implementation                               | Agent access                        |
+| ----------------- | -------------------------------------------- | ----------------------------------- |
+| `system.run`      | Command execution (bash/zsh)                 | `node.invoke action=system.run`     |
+| `system.notify`   | macOS notification center                    | `node.invoke action=system.notify`  |
+| Screen automation | `PeekabooBridge`, `PeekabooAutomationKit`    | `node.invoke action=screen.*`       |
+| Screen capture    | Accessibility + Screen Recording permissions | `node.invoke action=screen.capture` |
 
 **Shared capabilities** (also on iOS):
 
-| Capability | Implementation | Agent access |
-|------------|----------------|--------------|
-| Canvas rendering | `OpenClawKit` (web view) | `canvas.*` tool actions |
-| Camera snap/clip | System camera APIs | `node.invoke action=camera.*` |
-| Voice Wake | `SwabbleKit` wake-word engine | Wake word triggers chat sessions |
+| Capability       | Implementation                | Agent access                     |
+| ---------------- | ----------------------------- | -------------------------------- |
+| Canvas rendering | `OpenClawKit` (web view)      | `canvas.*` tool actions          |
+| Camera snap/clip | System camera APIs            | `node.invoke action=camera.*`    |
+| Voice Wake       | `SwabbleKit` wake-word engine | Wake word triggers chat sessions |
 
 **Permission model**: The macOS app tracks TCC (Transparency, Consent, and Control) permissions for Screen Recording, Accessibility, Camera, and Microphone. When a `node.invoke` action requires a missing permission, the response includes `PERMISSION_MISSING` with actionable guidance.
 
@@ -289,6 +287,7 @@ Sources: [apps/macos/Package.swift:43-67](), [README.md:240-252]()
 </str>
 
 <old_str>
+
 ## Node Pairing Approval
 
 When a remote node (iOS, Android, etc.) attempts to pair with the Gateway, the Gateway emits a `node.pair.requested` event to all connected operator-role clients. The macOS app receives this event and presents an approval UI.
@@ -301,8 +300,9 @@ The pairing flow documented in `docs/gateway/pairing.md`:
 4. If the request carries `silent: true`, the app can attempt **silent auto-approval** by verifying an SSH connection to the gateway host using the same local user. If SSH verification fails, it falls back to the interactive prompt.
 5. On approval, the app calls `node.pair.approve`, which causes the Gateway to issue a fresh auth token to the node.
 6. The Gateway emits `node.pair.resolved`.
-</old_str>
-<new_str>
+   </old_str>
+   <new_str>
+
 ## Pairing Approval Flow
 
 When a remote node (iOS, Android) attempts to pair, the Gateway emits `node.pair.requested` to all connected operator clients. The macOS app presents an approval UI (or attempts silent auto-approval).
@@ -318,6 +318,7 @@ When a remote node (iOS, Android) attempts to pair, the Gateway emits `node.pair
 5. Gateway emits `node.pair.resolved`, remote node receives token and reconnects.
 
 **Silent approval logic** (introduced in CHANGELOG.md #32860):
+
 - Requires `silent: true` in the pairing request.
 - macOS app probes SSH connectivity: `ssh <gateway-host> echo ok`.
 - If probe succeeds, approval is automatic (no user interaction).
@@ -333,13 +334,13 @@ graph TD
     Discovery["OpenClawDiscovery"]
     Protocol["OpenClawProtocol"]
     Kit["OpenClawKit"]
-    
+
     subgraph "Discovery methods"
         Bonjour["Bonjour/mDNS<br/>(_openclaw-gw._tcp)"]
         DNSSD["DNS-SD wide-area"]
         Tailscale["Tailscale peer probe<br/>(wss://<peer>.ts.net)"]
     end
-    
+
     Gateway["GatewayServer<br/>(local or remote)"]
 
     CLI --> Discovery

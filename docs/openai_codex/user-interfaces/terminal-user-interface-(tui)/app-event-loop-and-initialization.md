@@ -18,8 +18,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page documents the `App` struct's main event loop, initialization sequence, and event dispatch mechanism in the TUI. The `App` serves as the top-level orchestrator that coordinates the terminal UI, manages multiple conversation threads, and routes events between the UI layer and the core agent system.
@@ -34,30 +32,30 @@ For details about the chat surface rendering and protocol event handling, see [C
 
 ### Core Fields
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `server` | `Arc<ThreadManager>` | Manages multiple conversation threads via `codex-core` |
-| `session_telemetry` | `SessionTelemetry` | Tracks session-level telemetry and metrics |
-| `app_event_tx` | `AppEventSender` | Internal event channel for widget-to-app communication |
-| `chat_widget` | `ChatWidget` | Active chat surface rendering conversation UI |
-| `auth_manager` | `Arc<AuthManager>` | Authentication state and token refresh |
-| `config` | `Config` | Resolved configuration from all layers |
-| `active_profile` | `Option<String>` | Active config profile name for scoped writes |
-| `cli_kv_overrides` | `Vec<(String, TomlValue)>` | CLI `-c key=value` overrides |
-| `file_search` | `FileSearchManager` | Async file search for `@` mentions |
-| `transcript_cells` | `Vec<Arc<dyn HistoryCell>>` | Committed history for transcript overlay (`Ctrl+T`) |
-| `overlay` | `Option<Overlay>` | Full-screen overlay (transcript, diff, pickers) |
-| `enhanced_keys_supported` | `bool` | Whether terminal supports enhanced key reporting |
-| `commit_anim_running` | `Arc<AtomicBool>` | Controls background commit animation thread |
-| `backtrack` | `BacktrackState` | Esc-backtracking state for undo/navigation |
-| `suppress_shutdown_complete` | `bool` | One-shot guard for intentional thread switches |
-| `pending_shutdown_exit_thread_id` | `Option<ThreadId>` | Thread whose `ShutdownComplete` triggers exit |
-| `thread_event_channels` | `HashMap<ThreadId, ThreadEventChannel>` | Per-thread event buffering (32,768 capacity) |
-| `thread_event_listener_tasks` | `HashMap<ThreadId, JoinHandle<()>>` | Background tasks listening to thread events |
-| `active_thread_id` | `Option<ThreadId>` | Currently displayed thread |
-| `active_thread_rx` | `Option<mpsc::Receiver<Event>>` | Active thread's protocol event receiver |
-| `primary_thread_id` | `Option<ThreadId>` | Primary (root) thread for sub-agent failover |
-| `primary_session_configured` | `Option<SessionConfiguredEvent>` | Primary thread's session config for failover |
+| Field                             | Type                                    | Purpose                                                |
+| --------------------------------- | --------------------------------------- | ------------------------------------------------------ |
+| `server`                          | `Arc<ThreadManager>`                    | Manages multiple conversation threads via `codex-core` |
+| `session_telemetry`               | `SessionTelemetry`                      | Tracks session-level telemetry and metrics             |
+| `app_event_tx`                    | `AppEventSender`                        | Internal event channel for widget-to-app communication |
+| `chat_widget`                     | `ChatWidget`                            | Active chat surface rendering conversation UI          |
+| `auth_manager`                    | `Arc<AuthManager>`                      | Authentication state and token refresh                 |
+| `config`                          | `Config`                                | Resolved configuration from all layers                 |
+| `active_profile`                  | `Option<String>`                        | Active config profile name for scoped writes           |
+| `cli_kv_overrides`                | `Vec<(String, TomlValue)>`              | CLI `-c key=value` overrides                           |
+| `file_search`                     | `FileSearchManager`                     | Async file search for `@` mentions                     |
+| `transcript_cells`                | `Vec<Arc<dyn HistoryCell>>`             | Committed history for transcript overlay (`Ctrl+T`)    |
+| `overlay`                         | `Option<Overlay>`                       | Full-screen overlay (transcript, diff, pickers)        |
+| `enhanced_keys_supported`         | `bool`                                  | Whether terminal supports enhanced key reporting       |
+| `commit_anim_running`             | `Arc<AtomicBool>`                       | Controls background commit animation thread            |
+| `backtrack`                       | `BacktrackState`                        | Esc-backtracking state for undo/navigation             |
+| `suppress_shutdown_complete`      | `bool`                                  | One-shot guard for intentional thread switches         |
+| `pending_shutdown_exit_thread_id` | `Option<ThreadId>`                      | Thread whose `ShutdownComplete` triggers exit          |
+| `thread_event_channels`           | `HashMap<ThreadId, ThreadEventChannel>` | Per-thread event buffering (32,768 capacity)           |
+| `thread_event_listener_tasks`     | `HashMap<ThreadId, JoinHandle<()>>`     | Background tasks listening to thread events            |
+| `active_thread_id`                | `Option<ThreadId>`                      | Currently displayed thread                             |
+| `active_thread_rx`                | `Option<mpsc::Receiver<Event>>`         | Active thread's protocol event receiver                |
+| `primary_thread_id`               | `Option<ThreadId>`                      | Primary (root) thread for sub-agent failover           |
+| `primary_session_configured`      | `Option<SessionConfiguredEvent>`        | Primary thread's session config for failover           |
 
 Sources: [codex-rs/tui/src/app.rs:641-709]()
 
@@ -90,10 +88,10 @@ graph TB
 
     AppStruct --> SharedServices
     AppStruct --> EventChannels
-    
+
     chat_widget -->|"owns"| bottom_pane["BottomPane"]
     bottom_pane -->|"owns"| composer["ChatComposer"]
-    
+
     app_event_tx -.->|"AppEvent::*"| AppStruct
     active_thread_rx -.->|"Event (protocol)"| chat_widget
     codex_op_tx -.->|"Op::*"| server
@@ -110,10 +108,12 @@ The `App` owns a single `ChatWidget` instance for the active thread. When switch
 `AppEventSender` is defined in [codex-rs/tui/src/app_event_sender.rs:1-23]() as a cloneable wrapper around `tokio::sync::mpsc::UnboundedSender<AppEvent>`. It provides the communication channel from widgets and background tasks back to the `App` main loop.
 
 The wrapper type serves two purposes:
+
 - Named, greppable abstraction for discovering all event emission sites
 - Prevents widgets from directly coupling to `App` internals
 
 `AppEventSender` clones are distributed during initialization to:
+
 - `ChatWidget` (via `ChatWidgetInit`)
 - `BottomPane` and `ChatComposer`
 - `FileSearchManager` and other async background tasks
@@ -126,82 +126,82 @@ Sources: [codex-rs/tui/src/app_event_sender.rs:1-23](), [codex-rs/tui/src/chatwi
 
 **Protocol Forwarding**
 
-| Variant | Description |
-|---------|-------------|
-| `CodexEvent(Event)` | Raw protocol event from codex-core, routed to the active `ChatWidget` |
-| `CodexOp(Op)` | Forward an `Op` to the current agent without reaching through widget layers |
-| `SubmitThreadOp { thread_id, op }` | Submit an `Op` to a specific thread regardless of active focus |
-| `ThreadEvent { thread_id, event }` | Route a protocol event from a non-primary thread into the app-level router |
+| Variant                            | Description                                                                 |
+| ---------------------------------- | --------------------------------------------------------------------------- |
+| `CodexEvent(Event)`                | Raw protocol event from codex-core, routed to the active `ChatWidget`       |
+| `CodexOp(Op)`                      | Forward an `Op` to the current agent without reaching through widget layers |
+| `SubmitThreadOp { thread_id, op }` | Submit an `Op` to a specific thread regardless of active focus              |
+| `ThreadEvent { thread_id, event }` | Route a protocol event from a non-primary thread into the app-level router  |
 
 **Session and Thread Lifecycle**
 
-| Variant | Description |
-|---------|-------------|
-| `NewSession` | Shut down current agent, start a fresh thread |
-| `ClearUi` | Clear terminal + scrollback, start new session (preserves resumeability) |
-| `OpenResumePicker` | Display the resume picker overlay |
-| `ForkCurrentSession` | Fork current session into a new thread |
-| `OpenAgentPicker` | Open multi-thread agent picker |
-| `SelectAgentThread(ThreadId)` | Switch the active thread to the given ID |
+| Variant                       | Description                                                              |
+| ----------------------------- | ------------------------------------------------------------------------ |
+| `NewSession`                  | Shut down current agent, start a fresh thread                            |
+| `ClearUi`                     | Clear terminal + scrollback, start new session (preserves resumeability) |
+| `OpenResumePicker`            | Display the resume picker overlay                                        |
+| `ForkCurrentSession`          | Fork current session into a new thread                                   |
+| `OpenAgentPicker`             | Open multi-thread agent picker                                           |
+| `SelectAgentThread(ThreadId)` | Switch the active thread to the given ID                                 |
 
 **Exit Control**
 
-| Variant | Description |
-|---------|-------------|
-| `Exit(ExitMode)` | Request exit. `ExitMode::ShutdownFirst` triggers graceful shutdown; `ExitMode::Immediate` skips cleanup |
-| `FatalExitRequest(String)` | Signal a fatal error; displays the error and exits |
+| Variant                    | Description                                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `Exit(ExitMode)`           | Request exit. `ExitMode::ShutdownFirst` triggers graceful shutdown; `ExitMode::Immediate` skips cleanup |
+| `FatalExitRequest(String)` | Signal a fatal error; displays the error and exits                                                      |
 
 **Async Task Results**
 
-| Variant | Description |
-|---------|-------------|
-| `StartFileSearch(String)` | Kick off an async file search for `@`-mention completion |
-| `FileSearchResult { query, matches }` | Deliver file search results back to the active widget |
-| `RateLimitSnapshotFetched(RateLimitSnapshot)` | Deliver polled rate-limit data |
-| `ConnectorsLoaded { result, is_final }` | Deliver prefetched app-connector state |
-| `DiffResult(String)` | Deliver a computed git diff string for the diff overlay |
+| Variant                                       | Description                                              |
+| --------------------------------------------- | -------------------------------------------------------- |
+| `StartFileSearch(String)`                     | Kick off an async file search for `@`-mention completion |
+| `FileSearchResult { query, matches }`         | Deliver file search results back to the active widget    |
+| `RateLimitSnapshotFetched(RateLimitSnapshot)` | Deliver polled rate-limit data                           |
+| `ConnectorsLoaded { result, is_final }`       | Deliver prefetched app-connector state                   |
+| `DiffResult(String)`                          | Deliver a computed git diff string for the diff overlay  |
 
 **History and Rendering**
 
-| Variant | Description |
-|---------|-------------|
-| `InsertHistoryCell(Box<dyn HistoryCell>)` | Append a rendered cell to the transcript |
-| `ApplyThreadRollback { num_turns }` | Trim transcript cells after a thread rollback |
+| Variant                                                       | Description                                              |
+| ------------------------------------------------------------- | -------------------------------------------------------- |
+| `InsertHistoryCell(Box<dyn HistoryCell>)`                     | Append a rendered cell to the transcript                 |
+| `ApplyThreadRollback { num_turns }`                           | Trim transcript cells after a thread rollback            |
 | `StartCommitAnimation` / `StopCommitAnimation` / `CommitTick` | Control the background streaming commit animation thread |
 
 **Model and Config Updates**
 
-| Variant | Description |
-|---------|-------------|
-| `UpdateModel(String)` | Update the active model slug in the running app |
-| `UpdateReasoningEffort(Option<ReasoningEffort>)` | Update the current reasoning effort level |
-| `UpdateCollaborationMode(CollaborationModeMask)` | Update the active collaboration mode mask |
-| `UpdatePersonality(Personality)` | Update the current personality |
-| `PersistModelSelection { model, effort }` | Write model and effort to the appropriate config layer |
-| `PersistPersonalitySelection { personality }` | Write personality selection to config |
-| `PersistServiceTierSelection { service_tier }` | Write service tier to config |
-| `PersistModelMigrationPromptAcknowledged { from_model, to_model }` | Record a model migration acknowledgment |
+| Variant                                                            | Description                                            |
+| ------------------------------------------------------------------ | ------------------------------------------------------ |
+| `UpdateModel(String)`                                              | Update the active model slug in the running app        |
+| `UpdateReasoningEffort(Option<ReasoningEffort>)`                   | Update the current reasoning effort level              |
+| `UpdateCollaborationMode(CollaborationModeMask)`                   | Update the active collaboration mode mask              |
+| `UpdatePersonality(Personality)`                                   | Update the current personality                         |
+| `PersistModelSelection { model, effort }`                          | Write model and effort to the appropriate config layer |
+| `PersistPersonalitySelection { personality }`                      | Write personality selection to config                  |
+| `PersistServiceTierSelection { service_tier }`                     | Write service tier to config                           |
+| `PersistModelMigrationPromptAcknowledged { from_model, to_model }` | Record a model migration acknowledgment                |
 
 **UI / Overlay Actions**
 
-| Variant | Description |
-|---------|-------------|
-| `OpenAppLink { app_id, ... }` | Open an app-link view in the bottom pane |
-| `OpenUrlInBrowser { url }` | Open a URL in the default browser |
-| `RefreshConnectors { force_refetch }` | Trigger a connector state refresh |
-| `OpenReasoningPopup { model }` | Open the reasoning-effort selection popup |
-| `OpenPlanReasoningScopePrompt { model, effort }` | Open the plan-mode reasoning scope prompt |
-| `OpenAllModelsPopup { models }` | Open the full model picker overlay |
-| `OpenFullAccessConfirmation { preset, ... }` | Prompt before enabling full-access sandbox mode |
+| Variant                                          | Description                                     |
+| ------------------------------------------------ | ----------------------------------------------- |
+| `OpenAppLink { app_id, ... }`                    | Open an app-link view in the bottom pane        |
+| `OpenUrlInBrowser { url }`                       | Open a URL in the default browser               |
+| `RefreshConnectors { force_refetch }`            | Trigger a connector state refresh               |
+| `OpenReasoningPopup { model }`                   | Open the reasoning-effort selection popup       |
+| `OpenPlanReasoningScopePrompt { model, effort }` | Open the plan-mode reasoning scope prompt       |
+| `OpenAllModelsPopup { models }`                  | Open the full model picker overlay              |
+| `OpenFullAccessConfirmation { preset, ... }`     | Prompt before enabling full-access sandbox mode |
 
 **Audio / Realtime**
 
-| Variant | Description |
-|---------|-------------|
-| `OpenRealtimeAudioDeviceSelection { kind }` | Open microphone or speaker device picker |
+| Variant                                              | Description                                      |
+| ---------------------------------------------------- | ------------------------------------------------ |
+| `OpenRealtimeAudioDeviceSelection { kind }`          | Open microphone or speaker device picker         |
 | `PersistRealtimeAudioDeviceSelection { kind, name }` | Write audio device selection to top-level config |
-| `RestartRealtimeAudioDevice { kind }` | Restart the selected audio device |
-| `TranscriptionFailed { id, error }` | Voice transcription failure notification |
+| `RestartRealtimeAudioDevice { kind }`                | Restart the selected audio device                |
+| `TranscriptionFailed { id, error }`                  | Voice transcription failure notification         |
 
 Sources: [codex-rs/tui/src/app_event.rs:70-300]()
 
@@ -219,29 +219,29 @@ The TUI initialization follows a multi-stage sequence that handles onboarding, a
 graph TD
     Start["tui::run (tui.rs)"] --> LoadConfig["ConfigBuilder::build<br/>(config.rs)"]
     LoadConfig --> CheckAuth["AuthManager::new<br/>check current_auth()"]
-    
+
     CheckAuth -->|"CodexAuth::None"| OnboardingFlow["run_onboarding_flow<br/>(app.rs:1255-1278)"]
     CheckAuth -->|"Authenticated"| SessionPrompt["prompt_for_session<br/>(app.rs:1279-1336)"]
-    
+
     OnboardingFlow --> ApprovalPreset["Select approval preset<br/>(Agent/Coding/Ask)"]
     ApprovalPreset --> InitialMessage["Optional initial message"]
     InitialMessage --> SessionPrompt
-    
+
     SessionPrompt -->|"New"| CreatePrimary["ThreadManager::thread_start<br/>create primary thread"]
     SessionPrompt -->|"Resume"| LoadRollout["Load rollout file<br/>replay initial_messages"]
-    
+
     CreatePrimary --> RefreshModels["ModelsManager::refresh<br/>(RefreshStrategy::InitialLoad)"]
     LoadRollout --> RefreshModels
-    
+
     RefreshModels --> CheckMigration["should_show_model_migration_prompt<br/>(app.rs:409-447)"]
     CheckMigration -->|"Yes"| MigrationPrompt["run_model_migration_prompt<br/>(model_migration.rs)"]
     CheckMigration -->|"No"| TooltipNux["prepare_startup_tooltip_override<br/>(app.rs:497-534)"]
-    
+
     MigrationPrompt -->|"Accepted"| UpdateModel["ConfigEditsBuilder::apply<br/>persist model + effort"]
     MigrationPrompt -->|"Rejected"| TooltipNux
     MigrationPrompt -->|"Exit"| End["Exit TUI"]
     UpdateModel --> TooltipNux
-    
+
     TooltipNux --> CreateApp["App::new<br/>(app.rs:737-900)"]
     CreateApp --> SpawnAgent["spawn_agent<br/>(chatwidget/agent.rs)"]
     SpawnAgent --> MainLoop["App::run_event_loop<br/>(app.rs:1484-1629)"]
@@ -267,6 +267,7 @@ Sources: [codex-rs/tui/src/app.rs:1255-1278]()
 When authenticated, the user is prompted to either start a new session or resume an existing one. The resume picker loads the session index from `$CODEX_HOME/session_index.jsonl` and displays thread metadata (name, last updated timestamp).
 
 If resuming, the `App` reconstructs the session by:
+
 1. Loading the rollout file (`$CODEX_HOME/sessions/<thread_id>.jsonl`)
 2. Replaying initial messages into the `ChatWidget` history
 3. Setting the working directory to the session's last known CWD
@@ -278,6 +279,7 @@ Sources: [codex-rs/tui/src/app.rs:1279-1336]()
 After model list refresh, the `App` checks whether the configured model has an upgrade path (for example, `gpt-4` → `gpt-5.1`). If an upgrade is available and has not been previously acknowledged, the TUI displays a migration prompt with upgrade details.
 
 The user can:
+
 - **Accept**: Update `config.model` and `config.model_reasoning_effort`, persist the selection, and record the migration acknowledgment
 - **Reject**: Persist the acknowledgment without changing the model
 - **Exit**: Quit the TUI immediately
@@ -302,21 +304,21 @@ graph LR
         Terminal["tui_event_rx<br/>mpsc::Receiver&lt;TuiEvent&gt;<br/>(crossterm terminal)"]
         CommitAnim["anim_tick_rx<br/>broadcast::Receiver<br/>(commit animation thread)"]
     end
-    
+
     subgraph InternalSources["Internal Event Sources"]
         AppEventRx["app_event_rx<br/>mpsc::UnboundedReceiver&lt;AppEvent&gt;<br/>(widgets + background tasks)"]
         ThreadEventRx["active_thread_rx<br/>mpsc::Receiver&lt;Event&gt;<br/>(codex-core protocol)"]
     end
-    
+
     subgraph MainLoop["run_event_loop (app.rs:1484-1629)"]
         Select["tokio::select! {<br/>  tui_event_rx.recv()<br/>  app_event_rx.recv()<br/>  active_thread_rx.recv()<br/>  anim_tick_rx.recv()<br/>}"]
     end
-    
+
     Terminal -->|"TuiEvent"| Select
     CommitAnim -->|"CommitTick"| Select
     AppEventRx -->|"AppEvent"| Select
     ThreadEventRx -->|"Event"| Select
-    
+
     Select -->|"TuiEvent"| HandleTui["handle_tui_event<br/>(app.rs:1631-1709)"]
     Select -->|"AppEvent"| HandleApp["handle_app_event<br/>(app.rs:1711-2490)"]
     Select -->|"Event"| ForwardWidget["ChatWidget::handle_codex_event<br/>(chatwidget.rs)"]
@@ -416,6 +418,7 @@ Sources: [codex-rs/tui/src/app.rs:1711-2490](), [codex-rs/tui/src/app_event.rs:7
 ### Main Loop Structure
 
 `App::run_event_loop` (app.rs:1484-1629) implements a four-way `tokio::select!` that polls:
+
 1. `tui_event_rx` — terminal events from crossterm
 2. `app_event_rx` — widget and background task events
 3. `active_thread_rx` — protocol events from `codex-core`
@@ -457,23 +460,23 @@ The `App` supports multiple concurrent conversation threads via `ThreadManager` 
 
 Each thread has a dedicated `ThreadEventChannel` (app.rs:381-407):
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `sender` | `mpsc::Sender<Event>` | Receives protocol events from `codex-core` agent |
-| `receiver` | `Option<mpsc::Receiver<Event>>` | Active thread holds receiver; `None` when inactive |
-| `store` | `Arc<Mutex<ThreadEventStore>>` | Bounded buffer (32,768 capacity) for inactive threads |
+| Field      | Type                            | Purpose                                               |
+| ---------- | ------------------------------- | ----------------------------------------------------- |
+| `sender`   | `mpsc::Sender<Event>`           | Receives protocol events from `codex-core` agent      |
+| `receiver` | `Option<mpsc::Receiver<Event>>` | Active thread holds receiver; `None` when inactive    |
+| `store`    | `Arc<Mutex<ThreadEventStore>>`  | Bounded buffer (32,768 capacity) for inactive threads |
 
 `THREAD_EVENT_CHANNEL_CAPACITY` is defined at app.rs:122 as `32768`. When a thread is **active**, its receiver is moved to `App::active_thread_rx` and events flow directly into `ChatWidget::handle_codex_event`. When **inactive**, a background task (`spawn_event_listener`) buffers events into `ThreadEventStore`.
 
 `ThreadEventStore` (app.rs:270-378) tracks:
 
-| Field | Purpose |
-|-------|---------|
-| `session_configured: Option<Event>` | Most recent `SessionConfigured` (always kept, not evicted) |
-| `buffer: VecDeque<Event>` | Circular buffer (evicts oldest when full) |
-| `user_message_ids: HashSet<String>` | Deduplicates `UserMessage` events by ID |
-| `pending_interactive_replay` | `PendingInteractiveReplayState` — filters events for replay (pending approvals) |
-| `input_state: Option<ThreadInputState>` | Captures composer state for thread restoration |
+| Field                                   | Purpose                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------- |
+| `session_configured: Option<Event>`     | Most recent `SessionConfigured` (always kept, not evicted)                      |
+| `buffer: VecDeque<Event>`               | Circular buffer (evicts oldest when full)                                       |
+| `user_message_ids: HashSet<String>`     | Deduplicates `UserMessage` events by ID                                         |
+| `pending_interactive_replay`            | `PendingInteractiveReplayState` — filters events for replay (pending approvals) |
+| `input_state: Option<ThreadInputState>` | Captures composer state for thread restoration                                  |
 
 Sources: [codex-rs/tui/src/app.rs:122](), [codex-rs/tui/src/app.rs:270-407]()
 
@@ -533,47 +536,47 @@ Sources: [codex-rs/tui/src/app.rs:2492-2636](), [codex-rs/tui/src/app.rs:344-361
 
 ### Session Lifecycle Events
 
-| Event | Handler | Actions |
-|-------|---------|---------|
-| `NewSession` | `handle_new_session` (app.rs:1903-1936) | Shutdown current agent, run onboarding flow, create new thread |
-| `OpenResumePicker` | `handle_open_resume_picker` (app.rs:1937-1971) | Shutdown current agent, display resume picker overlay |
-| `SelectAgentThread(id)` | `handle_select_agent_thread` (app.rs:2492-2636) | Thread switch flow: store receiver, shutdown, replay events |
-| `ForkCurrentSession` | `handle_fork_current_session` (app.rs:1972-1980) | Submit `Op::Fork`, create new `ThreadEventChannel` |
-| `ClearUi` | `handle_clear_ui` (app.rs:1981-1991) | Clear terminal + scrollback, `Op::Shutdown`, start new session |
+| Event                   | Handler                                          | Actions                                                        |
+| ----------------------- | ------------------------------------------------ | -------------------------------------------------------------- |
+| `NewSession`            | `handle_new_session` (app.rs:1903-1936)          | Shutdown current agent, run onboarding flow, create new thread |
+| `OpenResumePicker`      | `handle_open_resume_picker` (app.rs:1937-1971)   | Shutdown current agent, display resume picker overlay          |
+| `SelectAgentThread(id)` | `handle_select_agent_thread` (app.rs:2492-2636)  | Thread switch flow: store receiver, shutdown, replay events    |
+| `ForkCurrentSession`    | `handle_fork_current_session` (app.rs:1972-1980) | Submit `Op::Fork`, create new `ThreadEventChannel`             |
+| `ClearUi`               | `handle_clear_ui` (app.rs:1981-1991)             | Clear terminal + scrollback, `Op::Shutdown`, start new session |
 
 Sources: [codex-rs/tui/src/app.rs:1903-1991](), [codex-rs/tui/src/app.rs:2492-2636]()
 
 ### Configuration Events
 
-| Event | Handler | Actions |
-|-------|---------|---------|
-| `UpdateModel(slug)` | `handle_update_model` (app.rs:2094-2110) | Update `config.model`, call `chat_widget.update_model` |
-| `UpdateReasoningEffort(effort)` | inline (app.rs:1793) | Call `chat_widget.update_reasoning_effort` |
+| Event                                     | Handler                                             | Actions                                                                      |
+| ----------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `UpdateModel(slug)`                       | `handle_update_model` (app.rs:2094-2110)            | Update `config.model`, call `chat_widget.update_model`                       |
+| `UpdateReasoningEffort(effort)`           | inline (app.rs:1793)                                | Call `chat_widget.update_reasoning_effort`                                   |
 | `PersistModelSelection { model, effort }` | `handle_persist_model_selection` (app.rs:2073-2093) | `ConfigEditsBuilder::set_model_selection`, write to active profile or global |
-| `PersistModelMigrationPromptAcknowledged` | `handle_persist_model_migration` (app.rs:2241-2270) | Append `from_model -> to_model` to `config.notices.model_migrations` map |
-| `UpdateCollaborationMode(mask)` | inline (app.rs:1795) | Call `chat_widget.update_collaboration_mode(mask)` |
+| `PersistModelMigrationPromptAcknowledged` | `handle_persist_model_migration` (app.rs:2241-2270) | Append `from_model -> to_model` to `config.notices.model_migrations` map     |
+| `UpdateCollaborationMode(mask)`           | inline (app.rs:1795)                                | Call `chat_widget.update_collaboration_mode(mask)`                           |
 
 Sources: [codex-rs/tui/src/app.rs:1793-1795](), [codex-rs/tui/src/app.rs:2073-2270]()
 
 ### Async Task Events
 
-| Event | Handler | Actions |
-|-------|---------|---------|
-| `StartFileSearch(query)` | `handle_start_file_search` (app.rs:1862-1878) | Cancel prior search, spawn `FileSearchManager::search` |
-| `FileSearchResult { query, matches }` | `handle_file_search_result` (app.rs:1845-1861) | Forward to `chat_widget.complete_file_search` if query matches |
-| `DiffResult(diff)` | `handle_diff_result` (app.rs:2637-2643) | Create static `Overlay::new(diff)`, display full-screen |
+| Event                                 | Handler                                        | Actions                                                               |
+| ------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------- |
+| `StartFileSearch(query)`              | `handle_start_file_search` (app.rs:1862-1878)  | Cancel prior search, spawn `FileSearchManager::search`                |
+| `FileSearchResult { query, matches }` | `handle_file_search_result` (app.rs:1845-1861) | Forward to `chat_widget.complete_file_search` if query matches        |
+| `DiffResult(diff)`                    | `handle_diff_result` (app.rs:2637-2643)        | Create static `Overlay::new(diff)`, display full-screen               |
 | `RefreshConnectors { force_refetch }` | `handle_refresh_connectors` (app.rs:2644-2755) | Spawn `connectors::get_connectors`, emit `AppEvent::ConnectorsLoaded` |
-| `RateLimitSnapshotFetched(snapshot)` | inline (app.rs:1758) | Call `chat_widget.update_rate_limit_snapshot(snapshot)` |
+| `RateLimitSnapshotFetched(snapshot)`  | inline (app.rs:1758)                           | Call `chat_widget.update_rate_limit_snapshot(snapshot)`               |
 
 Sources: [codex-rs/tui/src/app.rs:1758](), [codex-rs/tui/src/app.rs:1845-1878](), [codex-rs/tui/src/app.rs:2637-2755]()
 
 ### Exit and Error Handling
 
-| Event | Handler | Actions |
-|-------|---------|---------|
+| Event                           | Handler                          | Actions                                                                                                       |
+| ------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `Exit(ExitMode::ShutdownFirst)` | `handle_exit` (app.rs:1992-2022) | Set `pending_shutdown_exit_thread_id`, submit `Op::Shutdown`; wait for `ShutdownComplete` in `run_event_loop` |
-| `Exit(ExitMode::Immediate)` | `handle_exit` (app.rs:1992-2022) | Return `AppRunControl::Exit(UserRequested)` immediately, skip cleanup |
-| `FatalExitRequest(msg)` | inline (app.rs:1721-1723) | Return `AppRunControl::Exit(Fatal(msg))`, display error to user |
+| `Exit(ExitMode::Immediate)`     | `handle_exit` (app.rs:1992-2022) | Return `AppRunControl::Exit(UserRequested)` immediately, skip cleanup                                         |
+| `FatalExitRequest(msg)`         | inline (app.rs:1721-1723)        | Return `AppRunControl::Exit(Fatal(msg))`, display error to user                                               |
 
 `ExitMode::ShutdownFirst` (app_event.rs:464-465) ensures codex-core flushes rollout and cleans up child processes. `pending_shutdown_exit_thread_id` (app.rs:697) distinguishes user-initiated shutdown from unexpected agent death — only matching thread's `ShutdownComplete` triggers exit. `EventMsg::ShutdownComplete` handling (app.rs:1812-1837) checks this field.
 
@@ -585,13 +588,13 @@ Sources: [codex-rs/tui/src/app.rs:697](), [codex-rs/tui/src/app.rs:1721-1723](),
 
 `App` maintains consistency between `ChatWidget` state and shared services through these synchronization patterns:
 
-| Trigger | Mechanism | Effect |
-|---------|-----------|--------|
-| Config write | `ConfigEditsBuilder::apply()` then `rebuild_config_for_cwd()` | Reload config from disk, call `ChatWidget::reload_config` |
-| Model list refresh | `ModelsManager::refresh()` | Forward updated `Vec<ModelPreset>` to `ChatWidget::set_available_models` |
-| Git branch lookup | Async task → `AppEvent::StatusLineBranchUpdated` | Update `ChatWidget` status line branch display |
+| Trigger            | Mechanism                                                        | Effect                                                                          |
+| ------------------ | ---------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Config write       | `ConfigEditsBuilder::apply()` then `rebuild_config_for_cwd()`    | Reload config from disk, call `ChatWidget::reload_config`                       |
+| Model list refresh | `ModelsManager::refresh()`                                       | Forward updated `Vec<ModelPreset>` to `ChatWidget::set_available_models`        |
+| Git branch lookup  | Async task → `AppEvent::StatusLineBranchUpdated`                 | Update `ChatWidget` status line branch display                                  |
 | Session configured | `EventMsg::SessionConfigured` → `ChatWidget::handle_codex_event` | Sync `config.cwd`, `approval_policy`, `sandbox_policy` from core's ground truth |
-| Rate limit data | `AppEvent::RateLimitSnapshotFetched` | Forward snapshot to `ChatWidget` for status line display |
+| Rate limit data    | `AppEvent::RateLimitSnapshotFetched`                             | Forward snapshot to `ChatWidget` for status line display                        |
 
 These hooks ensure UI state reflects the latest shared state without `ChatWidget` needing to poll services directly.
 

@@ -23,8 +23,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The User Interface subsystem provides the visual layer of AionUi, implemented as a React-based renderer process in Electron. This page covers the overall UI architecture, application bootstrap, component hierarchy, styling system, and internationalization framework. For specific subsystems, see the child pages: Layout System (5.1), Conversation Interface (5.2), Message Rendering System (5.4), Message Input System (5.5), and Styling & Theming (5.8).
 
 ## Application Bootstrap
@@ -33,13 +31,13 @@ The renderer entry point is `src/renderer/index.ts`. It mounts the React tree in
 
 **Provider tree (outermost → innermost):**
 
-| Provider | Source | Purpose |
-|---|---|---|
-| `AuthProvider` | `src/renderer/context/AuthContext` | JWT authentication state for WebUI mode |
-| `ThemeProvider` | `src/renderer/context/ThemeContext` | Dark/light theme switching |
-| `PreviewProvider` | `src/renderer/pages/conversation/preview` | Preview panel open/close state |
-| `ConversationTabsProvider` | `src/renderer/pages/conversation/context/ConversationTabsContext` | Multi-tab conversation management |
-| `ConfigProvider` | `@arco-design/web-react` | Arco Design locale and primary color |
+| Provider                   | Source                                                            | Purpose                                 |
+| -------------------------- | ----------------------------------------------------------------- | --------------------------------------- |
+| `AuthProvider`             | `src/renderer/context/AuthContext`                                | JWT authentication state for WebUI mode |
+| `ThemeProvider`            | `src/renderer/context/ThemeContext`                               | Dark/light theme switching              |
+| `PreviewProvider`          | `src/renderer/pages/conversation/preview`                         | Preview panel open/close state          |
+| `ConversationTabsProvider` | `src/renderer/pages/conversation/context/ConversationTabsContext` | Multi-tab conversation management       |
+| `ConfigProvider`           | `@arco-design/web-react`                                          | Arco Design locale and primary color    |
 
 The `Config` component reads the current `i18n.language` to select the matching Arco Design locale object, so the component library's date pickers, modals, and other elements are localized in sync with the app locale [src/renderer/index.ts:66-73]().
 
@@ -51,13 +49,13 @@ AionUi's UI is a React + TypeScript single-page application. The renderer proces
 
 ### State Management Patterns
 
-| Pattern | Implementation | Usage |
-|---|---|---|
-| React Context | `LayoutContext`, `ThemeContext`, `PreviewProvider`, `ConversationTabsProvider` | Global panel visibility, theme, preview state |
-| SWR | `useSWR` | Caching IPC calls for model config, agent lists, conversations |
-| Local state | `useState`, `useReducer` | Component-level UI state (collapse, editing, draft) |
-| Custom hooks | `useResizableSplit`, `usePreviewContext`, `useConversationTabs` | Reusable stateful logic for panels and tabs |
-| Event emitter | `emitter` in `src/renderer/utils/emitter` | Cross-component renderer-side events (see page 7.3) |
+| Pattern       | Implementation                                                                 | Usage                                                          |
+| ------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| React Context | `LayoutContext`, `ThemeContext`, `PreviewProvider`, `ConversationTabsProvider` | Global panel visibility, theme, preview state                  |
+| SWR           | `useSWR`                                                                       | Caching IPC calls for model config, agent lists, conversations |
+| Local state   | `useState`, `useReducer`                                                       | Component-level UI state (collapse, editing, draft)            |
+| Custom hooks  | `useResizableSplit`, `usePreviewContext`, `useConversationTabs`                | Reusable stateful logic for panels and tabs                    |
+| Event emitter | `emitter` in `src/renderer/utils/emitter`                                      | Cross-component renderer-side events (see page 7.3)            |
 
 ### Component Hierarchy
 
@@ -175,13 +173,13 @@ Sources: [src/renderer/sider.tsx:1-128](), [src/renderer/pages/settings/Settings
 
 **Dispatch logic by `conversation.type`:**
 
-| `type` value | Rendered component | Notes |
-|---|---|---|
-| `gemini` | `GeminiChat` via `GeminiConversationPanel` | Includes `GeminiModelSelector` in header |
-| `acp` | `AcpChat` | Uses `AcpModelSelector` |
-| `codex` | `CodexChat` | Legacy; new Codex sessions use `acp` type |
-| `openclaw-gateway` | `OpenClawChat` | |
-| `nanobot` | `NanobotChat` | |
+| `type` value       | Rendered component                         | Notes                                     |
+| ------------------ | ------------------------------------------ | ----------------------------------------- |
+| `gemini`           | `GeminiChat` via `GeminiConversationPanel` | Includes `GeminiModelSelector` in header  |
+| `acp`              | `AcpChat`                                  | Uses `AcpModelSelector`                   |
+| `codex`            | `CodexChat`                                | Legacy; new Codex sessions use `acp` type |
+| `openclaw-gateway` | `OpenClawChat`                             |                                           |
+| `nanobot`          | `NanobotChat`                              |                                           |
 
 `GeminiConversationPanel` is an inner component that manages a shared `useGeminiModelSelection` hook so the header selector and send box share model state without re-mounting [src/renderer/pages/conversation/ChatConversation.tsx:102-139]().
 
@@ -200,6 +198,7 @@ Sources: [src/renderer/pages/conversation/ChatConversation.tsx:1-220]()
 **Panel sizing** uses `useResizableSplit` for drag handles between chat/preview and chat/workspace. Ratios are stored in `localStorage` with keys `chat-preview-split-ratio` and `chat-workspace-split-ratio`.
 
 **Workspace panel collapse** behavior:
+
 - Persisted in `localStorage` under `STORAGE_KEYS.WORKSPACE_PANEL_COLLAPSE`
 - Per-conversation user preference stored as `workspace-preference-{conversationId}`
 - Auto-expands when agent writes files (`WORKSPACE_HAS_FILES_EVENT`), auto-collapses if no files
@@ -246,6 +245,7 @@ Sources: [src/renderer/pages/conversation/ChatLayout.tsx:20-519](), [src/rendere
 The `GuidPage` is the entry point for creating new conversations. It handles agent selection, model configuration, and workspace setup. See page 5.3 for full details.
 
 Key responsibilities:
+
 - `@`-mention dropdown for agent/assistant selection
 - Model and provider selection (grouped by `IProvider`, filtered for function calling)
 - Workspace folder input
@@ -258,14 +258,14 @@ Key responsibilities:
 
 Key message renderers:
 
-| `TMessage.type` | Renderer component |
-|---|---|
+| `TMessage.type`     | Renderer component                          |
+| ------------------- | ------------------------------------------- |
 | `text` / `markdown` | `MessageText` → `MarkdownView` (Shadow DOM) |
-| Tool call (Gemini) | `MessageToolGroup` |
-| Tool call (ACP) | `MessageAcpToolCall` |
-| Tool call (Codex) | `MessageCodexToolCall` |
-| `tips` | `MessageTips` |
-| `plan` | `MessagePlan` |
+| Tool call (Gemini)  | `MessageToolGroup`                          |
+| Tool call (ACP)     | `MessageAcpToolCall`                        |
+| Tool call (Codex)   | `MessageCodexToolCall`                      |
+| `tips`              | `MessageTips`                               |
+| `plan`              | `MessagePlan`                               |
 
 `MarkdownView` isolates rendered content in a Shadow DOM to prevent CSS conflicts, and supports LaTeX via `remark-math` + `rehype-katex`.
 
@@ -274,6 +274,7 @@ Key message renderers:
 `SendBox` is a base input component with agent-specific subclasses: `GeminiSendBox`, `AcpSendBox`, `CodexSendBox`, and `OpenClawSendBox`. See page 5.5 for full details.
 
 Key features:
+
 - Dynamic height adjustment (single-line → multi-line)
 - File attachment via drag/drop (`useDragUpload`), paste (`usePasteService`), or `@filepath` mention
 - Draft persistence per conversation via `useSendBoxDraft`
@@ -285,14 +286,14 @@ AionUi supports 6 locales through `react-i18next`. See page 10 for the full i18n
 
 **Supported locales:**
 
-| Locale code | Language |
-|---|---|
-| `en-US` | English (fallback) |
-| `zh-CN` | Simplified Chinese |
-| `zh-TW` | Traditional Chinese |
-| `ja-JP` | Japanese |
-| `ko-KR` | Korean |
-| `tr-TR` | Turkish |
+| Locale code | Language            |
+| ----------- | ------------------- |
+| `en-US`     | English (fallback)  |
+| `zh-CN`     | Simplified Chinese  |
+| `zh-TW`     | Traditional Chinese |
+| `ja-JP`     | Japanese            |
+| `ko-KR`     | Korean              |
+| `tr-TR`     | Turkish             |
 
 **Initialization** (`src/renderer/i18n/index.ts`):
 
@@ -308,15 +309,15 @@ The `Config` component reads `i18n.language` and maps it to the corresponding Ar
 
 **Translation key naming convention:**
 
-| Namespace prefix | Usage |
-|---|---|
-| `conversation.welcome` | Guid page (new chat screen) |
-| `conversation.chat` | Active chat interface |
-| `conversation.history` | Sidebar history list |
-| `conversation.workspace` | Workspace panel |
-| `settings.*` | Settings section labels |
-| `preview.*` | Preview panel actions |
-| `agentMode.*` | Agent mode selector labels |
+| Namespace prefix         | Usage                       |
+| ------------------------ | --------------------------- |
+| `conversation.welcome`   | Guid page (new chat screen) |
+| `conversation.chat`      | Active chat interface       |
+| `conversation.history`   | Sidebar history list        |
+| `conversation.workspace` | Workspace panel             |
+| `settings.*`             | Settings section labels     |
+| `preview.*`              | Preview panel actions       |
+| `agentMode.*`            | Agent mode selector labels  |
 
 Sources: [src/renderer/i18n/index.ts:1-65](), [src/renderer/components/LanguageSwitcher.tsx:1-51](), [src/renderer/index.ts:56-73]()
 
@@ -330,15 +331,15 @@ See page 5.4 for full details on `MarkdownView`, `CodeBlock`, and specialized me
 
 AionUi uses a layered styling system:
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| Base styles | `src/renderer/styles/themes/base.css` | Layout skeleton, scrollbars, mobile safe areas, animation keyframes |
-| Theme tokens | CSS variables (`--bg-1`, `--bg-2`, `--text-primary`, etc.) | Light/dark color scheme |
-| Component library | Arco Design (`arco.css`) | Form controls, dropdowns, modals |
-| Utility classes | UnoCSS (`uno.css`) | Inline spacing, sizing, flex utilities |
-| Arco overrides | `src/renderer/arco-override.css` | Fixes and visual adjustments to Arco defaults |
-| Custom user CSS | `ConfigStorage.get('customCss')` | User-defined overrides, injected last |
-| Shadow DOM styles | Per-instance inside `MarkdownView` | Isolated markdown and KaTeX styles |
+| Layer             | Technology                                                 | Purpose                                                             |
+| ----------------- | ---------------------------------------------------------- | ------------------------------------------------------------------- |
+| Base styles       | `src/renderer/styles/themes/base.css`                      | Layout skeleton, scrollbars, mobile safe areas, animation keyframes |
+| Theme tokens      | CSS variables (`--bg-1`, `--bg-2`, `--text-primary`, etc.) | Light/dark color scheme                                             |
+| Component library | Arco Design (`arco.css`)                                   | Form controls, dropdowns, modals                                    |
+| Utility classes   | UnoCSS (`uno.css`)                                         | Inline spacing, sizing, flex utilities                              |
+| Arco overrides    | `src/renderer/arco-override.css`                           | Fixes and visual adjustments to Arco defaults                       |
+| Custom user CSS   | `ConfigStorage.get('customCss')`                           | User-defined overrides, injected last                               |
+| Shadow DOM styles | Per-instance inside `MarkdownView`                         | Isolated markdown and KaTeX styles                                  |
 
 **Base styles** define the `app-shell`, `app-titlebar`, `layout-sider`, `workspace-header__toggle`, and `preview-panel` class rules [src/renderer/styles/themes/base.css:1-301](). Mobile media queries override `.layout-sider` to use `position: fixed`, `100dvh` height, and safe-area padding.
 
@@ -359,7 +360,7 @@ const result = await ipcBridge.conversation.create.invoke({
   name: 'New Chat',
   workspace: '/path/to/workspace',
   // ...
-});
+})
 
 // Example: Listening for response stream
 useEffect(() => {
@@ -367,8 +368,8 @@ useEffect(() => {
     if (message.conversation_id === currentId) {
       // Handle message
     }
-  });
-}, [currentId]);
+  })
+}, [currentId])
 ```
 
 **Sources:** [src/common/ipcBridge.ts:24-35]()
@@ -379,12 +380,12 @@ The `emitter` utility provides a type-safe event bus for renderer-side events:
 
 ```typescript
 // Emit event to fill sendbox from preview panel
-emitter.emit('sendbox.fill', textContent);
+emitter.emit('sendbox.fill', textContent)
 
 // Listen for file selection events
 useAddEventListener('file.selected', (files) => {
-  setUploadFile(files);
-});
+  setUploadFile(files)
+})
 ```
 
 **Sources:** [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:21-23]()

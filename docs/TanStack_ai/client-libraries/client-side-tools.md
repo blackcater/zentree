@@ -30,9 +30,7 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
-This document explains the client-side tool execution system in TanStack AI. Client tools are functions that execute in the browser to perform operations like UI updates, local storage access, and browser API interactions. 
+This document explains the client-side tool execution system in TanStack AI. Client tools are functions that execute in the browser to perform operations like UI updates, local storage access, and browser API interactions.
 
 For information about server-side tool execution, see [Server Tools](#3.2). For the overall tool architecture and isomorphic tool definitions, see [Isomorphic Tool System](#3.2). For framework-agnostic state management, see [ChatClient](#4.1).
 
@@ -53,31 +51,31 @@ graph TB
     subgraph "Tool Definition Layer"
         DEF["toolDefinition()<br/>@tanstack/ai<br/>───────<br/>Shared schema:<br/>• name<br/>• inputSchema<br/>• outputSchema<br/>• needsApproval"]
     end
-    
+
     subgraph "Client Implementation Layer"
         CLIENT_IMPL[".client(fn)<br/>───────<br/>Returns ClientTool<br/>with execute() function"]
         TOOLS_HELPER["clientTools()<br/>@tanstack/ai-client<br/>───────<br/>Creates typed array<br/>Enables discriminated unions"]
     end
-    
+
     subgraph "Integration Layer"
         CHAT_OPTIONS["createChatClientOptions()<br/>───────<br/>connection: ConnectionAdapter<br/>tools: ClientTool[]"]
-        
+
         REACT_HOOK["useChat()<br/>@tanstack/ai-react"]
         SOLID_HOOK["useChat()<br/>@tanstack/ai-solid"]
         PREACT_HOOK["useChat()<br/>@tanstack/ai-preact"]
         VUE_HOOK["useChat()<br/>@tanstack/ai-vue"]
     end
-    
+
     subgraph "Execution Layer"
         CHAT_CLIENT["ChatClient<br/>@tanstack/ai-client<br/>───────<br/>Automatic tool execution<br/>State management"]
     end
-    
+
     subgraph "Type System"
         INFER["InferChatMessages<T><br/>───────<br/>Extracts typed messages<br/>from options"]
         UI_MESSAGE["UIMessage<TTools><br/>───────<br/>parts: MessagePart[]"]
         TOOL_CALL_PART["ToolCallPart<TTools><br/>───────<br/>name: discriminated union<br/>input: typed from schema<br/>output: typed from schema"]
     end
-    
+
     DEF -->|".client()"| CLIENT_IMPL
     CLIENT_IMPL --> TOOLS_HELPER
     TOOLS_HELPER --> CHAT_OPTIONS
@@ -85,16 +83,16 @@ graph TB
     CHAT_OPTIONS --> SOLID_HOOK
     CHAT_OPTIONS --> PREACT_HOOK
     CHAT_OPTIONS --> VUE_HOOK
-    
+
     REACT_HOOK --> CHAT_CLIENT
     SOLID_HOOK --> CHAT_CLIENT
     PREACT_HOOK --> CHAT_CLIENT
     VUE_HOOK --> CHAT_CLIENT
-    
+
     CHAT_OPTIONS --> INFER
     INFER --> UI_MESSAGE
     UI_MESSAGE --> TOOL_CALL_PART
-    
+
     style DEF fill:#e1ffe1
     style CLIENT_IMPL fill:#ffe1e1
     style TOOLS_HELPER fill:#e1e1ff
@@ -115,16 +113,16 @@ sequenceDiagram
     participant Client as "ChatClient<br/>@tanstack/ai-client"
     participant Tool as "ClientTool.execute()"
     participant UI as "Browser State<br/>(React/Solid/etc)"
-    
+
     LLM->>Server: "StreamChunk<br/>{type: 'tool-call'<br/>name: 'updateUI'<br/>arguments: {...}}"
     Server->>Server: "Check tool.execute<br/>undefined = client tool"
-    
+
     Note over Server: "No server execute()<br/>= client-side tool"
-    
+
     Server->>Adapter: "SSE chunk:<br/>tool-input-available"
     Adapter->>Client: "StreamChunk object"
     Client->>Client: "Parse tool call<br/>Find matching tool<br/>by name"
-    
+
     alt "Tool found in tools array"
         Client->>Tool: "execute(parsedInput)"
         Tool->>UI: "Update state<br/>localStorage<br/>DOM, etc"
@@ -156,3 +154,4 @@ const updateUIDef = toolDefinition({
   inputSchema: z.object({
     message: z.string(),
     type: z.enum(["success", "error", "info\
+```

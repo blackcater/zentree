@@ -47,8 +47,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Configuration System manages hierarchical loading and merging of OpenCode settings from multiple sources with well-defined precedence rules. It handles configuration for providers, agents, tools, permissions, plugins, and UI preferences across global, project, and runtime scopes.
 
 For provider-specific authentication credentials, see the auth system. For runtime flag overrides, see [CLI Entrypoint & Commands](#2.1).
@@ -71,7 +69,7 @@ graph TB
     Inline["6. Inline Config<br/>OPENCODE_CONFIG_CONTENT"]
     Account["7. Account Config<br/>Console API"]
     Managed["8. Managed Config<br/>/etc/opencode or<br/>/Library/Application Support/opencode"]
-    
+
     Remote --> Global
     Global --> Custom
     Custom --> Project
@@ -79,7 +77,7 @@ graph TB
     OpenCodeDir --> Inline
     Inline --> Account
     Account --> Managed
-    
+
     style Managed fill:#f9f9f9,stroke:#333,stroke-width:2px
 ```
 
@@ -87,16 +85,16 @@ Sources: [packages/opencode/src/config/config.ts:81-214]()
 
 ### Precedence Rules
 
-| Priority | Source | Description | Can Disable |
-|----------|--------|-------------|-------------|
-| 8 (Highest) | Managed Config | Enterprise admin-controlled settings | No |
-| 7 | Account Config | Console organization settings | Yes (logout) |
-| 6 | Inline Config | `OPENCODE_CONFIG_CONTENT` environment variable | Yes (unset) |
-| 5 | .opencode Directory | Project-local configs, agents, plugins | Yes (remove directory) |
-| 4 | Project Config | `opencode.json` in project root | Yes (`OPENCODE_DISABLE_PROJECT_CONFIG`) |
-| 3 | Custom Config | Path specified by `OPENCODE_CONFIG` | Yes (unset) |
-| 2 | Global Config | User-level configuration | No |
-| 1 (Lowest) | Remote Config | Fetched from `.well-known/opencode` URL | Yes (remove auth) |
+| Priority    | Source              | Description                                    | Can Disable                             |
+| ----------- | ------------------- | ---------------------------------------------- | --------------------------------------- |
+| 8 (Highest) | Managed Config      | Enterprise admin-controlled settings           | No                                      |
+| 7           | Account Config      | Console organization settings                  | Yes (logout)                            |
+| 6           | Inline Config       | `OPENCODE_CONFIG_CONTENT` environment variable | Yes (unset)                             |
+| 5           | .opencode Directory | Project-local configs, agents, plugins         | Yes (remove directory)                  |
+| 4           | Project Config      | `opencode.json` in project root                | Yes (`OPENCODE_DISABLE_PROJECT_CONFIG`) |
+| 3           | Custom Config       | Path specified by `OPENCODE_CONFIG`            | Yes (unset)                             |
+| 2           | Global Config       | User-level configuration                       | No                                      |
+| 1 (Lowest)  | Remote Config       | Fetched from `.well-known/opencode` URL        | Yes (remove auth)                       |
 
 Sources: [packages/opencode/src/config/config.ts:81-109](), [packages/opencode/src/config/config.ts:114-128]()
 
@@ -112,33 +110,33 @@ graph LR
         AuthFile["Authentication<br/>Global.Path.auth"]
         CacheDir["Cache<br/>Global.Path.cache"]
     end
-    
+
     subgraph "Linux/Unix"
         LinuxConfig["~/.config/opencode/opencode.json"]
         LinuxState["~/.local/share/opencode/"]
         LinuxAuth["~/.local/share/opencode/auth.json"]
     end
-    
+
     subgraph "macOS"
         MacConfig["~/Library/Application Support/opencode/opencode.json"]
         MacState["~/Library/Application Support/opencode/"]
         MacAuth["~/Library/Application Support/opencode/auth.json"]
     end
-    
+
     subgraph "Windows"
         WinConfig["%APPDATA%/opencode/opencode.json"]
         WinState["%APPDATA%/opencode/"]
         WinAuth["%APPDATA%/opencode/auth.json"]
     end
-    
+
     GlobalConfig -.Linux.-> LinuxConfig
     GlobalConfig -.macOS.-> MacConfig
     GlobalConfig -.Windows.-> WinConfig
-    
+
     StateDir -.Linux.-> LinuxState
     StateDir -.macOS.-> MacState
     StateDir -.Windows.-> WinState
-    
+
     AuthFile -.All.-> LinuxAuth
     AuthFile -.All.-> MacAuth
     AuthFile -.All.-> WinAuth
@@ -148,11 +146,11 @@ graph LR
 
 Managed configurations (enterprise-controlled, highest precedence) are located at:
 
-| Platform | Path |
-|----------|------|
-| Linux | `/etc/opencode/opencode.json` |
-| macOS | `/Library/Application Support/opencode/opencode.json` |
-| Windows | `C:\ProgramData\opencode\opencode.json` |
+| Platform | Path                                                  |
+| -------- | ----------------------------------------------------- |
+| Linux    | `/etc/opencode/opencode.json`                         |
+| macOS    | `/Library/Application Support/opencode/opencode.json` |
+| Windows  | `C:\ProgramData\opencode\opencode.json`               |
 
 Override with: `OPENCODE_TEST_MANAGED_CONFIG_DIR` (testing only)
 
@@ -167,7 +165,7 @@ The root configuration object is defined by `Config.Info` schema. Here are the p
 ```mermaid
 graph TD
     ConfigRoot["Config.Info"]
-    
+
     ConfigRoot --> Provider["provider<br/>Record<string, ProviderConfig>"]
     ConfigRoot --> Agent["agent<br/>Record<string, AgentConfig>"]
     ConfigRoot --> Plugin["plugin<br/>string[]"]
@@ -178,7 +176,7 @@ graph TD
     ConfigRoot --> TUI["tui<br/>TUIConfig"]
     ConfigRoot --> Compaction["compaction<br/>CompactionConfig"]
     ConfigRoot --> Skills["skills<br/>SkillsConfig"]
-    
+
     Provider --> ProviderOpts["options<br/>headers<br/>models"]
     Agent --> AgentModel["model<br/>prompt<br/>permission<br/>temperature"]
     Permission --> PermRule["PermissionRule<br/>ask | allow | deny"]
@@ -190,24 +188,24 @@ Sources: [packages/opencode/src/config/config.ts:843-967]()
 
 ### Core Configuration Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `$schema` | `string` | JSON Schema URL for validation |
-| `provider` | `Record<string, ProviderConfig>` | AI provider configurations |
-| `agent` | `Record<string, AgentConfig>` | Agent definitions (build, plan, custom) |
-| `mode` | `Record<string, AgentConfig>` | Legacy: migrated to `agent` |
-| `plugin` | `string[]` | Plugin specifiers (npm, file://, local) |
-| `permission` | `PermissionConfig` | Tool permission rules |
-| `tools` | `Record<string, boolean>` | Legacy: migrated to `permission` |
-| `command` | `Record<string, Command>` | Slash command definitions |
-| `mcp` | `Record<string, McpConfig>` | MCP server configurations |
-| `instructions` | `string[]` | Additional system prompt instructions |
-| `username` | `string` | User identifier for prompts |
-| `share` | `"auto" \| "manual" \| "disabled"` | Session sharing behavior |
-| `keybinds` | `KeybindsConfig` | TUI keyboard shortcuts |
-| `tui` | `TUIConfig` | Terminal UI settings |
-| `compaction` | `CompactionConfig` | Context management settings |
-| `skills` | `SkillsConfig` | Skill paths and URLs |
+| Field          | Type                               | Description                             |
+| -------------- | ---------------------------------- | --------------------------------------- |
+| `$schema`      | `string`                           | JSON Schema URL for validation          |
+| `provider`     | `Record<string, ProviderConfig>`   | AI provider configurations              |
+| `agent`        | `Record<string, AgentConfig>`      | Agent definitions (build, plan, custom) |
+| `mode`         | `Record<string, AgentConfig>`      | Legacy: migrated to `agent`             |
+| `plugin`       | `string[]`                         | Plugin specifiers (npm, file://, local) |
+| `permission`   | `PermissionConfig`                 | Tool permission rules                   |
+| `tools`        | `Record<string, boolean>`          | Legacy: migrated to `permission`        |
+| `command`      | `Record<string, Command>`          | Slash command definitions               |
+| `mcp`          | `Record<string, McpConfig>`        | MCP server configurations               |
+| `instructions` | `string[]`                         | Additional system prompt instructions   |
+| `username`     | `string`                           | User identifier for prompts             |
+| `share`        | `"auto" \| "manual" \| "disabled"` | Session sharing behavior                |
+| `keybinds`     | `KeybindsConfig`                   | TUI keyboard shortcuts                  |
+| `tui`          | `TUIConfig`                        | Terminal UI settings                    |
+| `compaction`   | `CompactionConfig`                 | Context management settings             |
+| `skills`       | `SkillsConfig`                     | Skill paths and URLs                    |
 
 Sources: [packages/opencode/src/config/config.ts:843-967]()
 
@@ -220,50 +218,50 @@ The configuration loading process is implemented in `Config.state()` using the I
 ```mermaid
 graph TB
     Start["Config.state()"]
-    
+
     Start --> LoadAuth["Load Auth.all()<br/>Check for wellknown tokens"]
-    
+
     LoadAuth --> RemoteLoop["For each wellknown auth:<br/>Fetch .well-known/opencode"]
     RemoteLoop --> MergeRemote["mergeConfigConcatArrays()<br/>result + remoteConfig"]
-    
+
     MergeRemote --> LoadGlobal["Load Config.global()<br/>~/.config/opencode/opencode.json"]
     LoadGlobal --> MergeGlobal["Merge global config"]
-    
+
     MergeGlobal --> CheckCustom{{"Flag.OPENCODE_CONFIG<br/>exists?"}}
     CheckCustom -->|Yes| LoadCustom["loadFile(OPENCODE_CONFIG)"]
     CheckCustom -->|No| CheckProject
     LoadCustom --> MergeCustom["Merge custom config"]
-    
+
     MergeCustom --> CheckProject{{"OPENCODE_DISABLE_PROJECT_CONFIG?"}}
     CheckProject -->|No| LoadProject["Load project configs<br/>ConfigPaths.projectFiles()"]
     CheckProject -->|Yes| LoadDirs
     LoadProject --> MergeProject["Merge project configs"]
-    
+
     MergeProject --> LoadDirs["Load .opencode directories<br/>ConfigPaths.directories()"]
     LoadDirs --> ProcessDirs["For each directory:<br/>- loadCommand()<br/>- loadAgent()<br/>- loadMode()<br/>- loadPlugin()<br/>- installDependencies()"]
-    
+
     ProcessDirs --> CheckInline{{"OPENCODE_CONFIG_CONTENT<br/>exists?"}}
     CheckInline -->|Yes| LoadInline["Config.load(env var)"]
     CheckInline -->|No| CheckAccount
     LoadInline --> MergeInline["Merge inline config"]
-    
+
     MergeInline --> CheckAccount{{"Account.active()<br/>with org?"}}
     CheckAccount -->|Yes| LoadAccount["Account.config()<br/>Account.token()"]
     CheckAccount -->|No| CheckManaged
     LoadAccount --> MergeAccount["Merge account config<br/>Set OPENCODE_CONSOLE_TOKEN"]
-    
+
     MergeAccount --> CheckManaged{{"Managed dir<br/>exists?"}}
     CheckManaged -->|Yes| LoadManaged["Load managed configs"]
     CheckManaged -->|No| Migrations
     LoadManaged --> MergeManaged["Merge managed config<br/>(highest precedence)"]
-    
+
     MergeManaged --> Migrations["Apply migrations:<br/>- mode -> agent<br/>- tools -> permission<br/>- autoshare -> share<br/>- maxSteps -> steps"]
-    
+
     Migrations --> Flags["Apply flag overrides:<br/>- OPENCODE_PERMISSION<br/>- OPENCODE_DISABLE_AUTOCOMPACT<br/>- OPENCODE_DISABLE_PRUNE"]
-    
+
     Flags --> Dedupe["deduplicatePlugins()"]
     Dedupe --> Return["Return:<br/>{ config, directories, deps }"]
-    
+
     style Start fill:#f9f9f9,stroke:#333,stroke-width:2px
     style Return fill:#f9f9f9,stroke:#333,stroke-width:2px
 ```
@@ -318,6 +316,7 @@ Provider configurations define connection settings, authentication, and model ov
 ```
 
 Each provider config contains:
+
 - `options`: Provider-specific options (baseURL, headers, region, etc.)
 - `models`: Model overrides or additions
 
@@ -358,19 +357,19 @@ Agents define behavior modes for the AI assistant:
 
 Agent configuration schema (`Agent`):
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `model` | `ModelID` | Default model for this agent |
-| `variant` | `string` | Model variant (reasoning effort) |
-| `prompt` | `string` | System prompt override |
-| `temperature` | `number` | Sampling temperature |
-| `top_p` | `number` | Nucleus sampling parameter |
-| `permission` | `PermissionConfig` | Tool permission overrides |
-| `mode` | `"primary" \| "subagent" \| "all"` | Agent visibility |
-| `hidden` | `boolean` | Hide from @ autocomplete |
-| `steps` | `number` | Max agentic iterations |
-| `color` | `string` | UI color (hex or theme name) |
-| `description` | `string` | When to use this agent |
+| Field         | Type                               | Description                      |
+| ------------- | ---------------------------------- | -------------------------------- |
+| `model`       | `ModelID`                          | Default model for this agent     |
+| `variant`     | `string`                           | Model variant (reasoning effort) |
+| `prompt`      | `string`                           | System prompt override           |
+| `temperature` | `number`                           | Sampling temperature             |
+| `top_p`       | `number`                           | Nucleus sampling parameter       |
+| `permission`  | `PermissionConfig`                 | Tool permission overrides        |
+| `mode`        | `"primary" \| "subagent" \| "all"` | Agent visibility                 |
+| `hidden`      | `boolean`                          | Hide from @ autocomplete         |
+| `steps`       | `number`                           | Max agentic iterations           |
+| `color`       | `string`                           | UI color (hex or theme name)     |
+| `description` | `string`                           | When to use this agent           |
 
 Sources: [packages/opencode/src/config/config.ts:712-799]()
 
@@ -396,6 +395,7 @@ The permission system controls tool access with glob patterns:
 ```
 
 Permission structure:
+
 - Simple action: `"toolname": "allow" | "ask" | "deny"`
 - Pattern-based: `"toolname": { "pattern": "action" }`
 - Wildcard: `"*": "action"` sets default for all tools
@@ -422,6 +422,7 @@ Plugins extend OpenCode functionality through hooks and custom tools:
 Plugins are deduplicated by canonical name (version removed). Later plugins override earlier ones with the same name.
 
 Plugin loading order determines precedence:
+
 1. Global opencode.json plugins
 2. Global plugin/ directory
 3. Project opencode.json plugins
@@ -438,14 +439,14 @@ The `.opencode` directory provides convention-based configuration:
 ```mermaid
 graph TD
     OpenCodeDir[".opencode/"]
-    
+
     OpenCodeDir --> ConfigFile["opencode.json<br/>Main config override"]
     OpenCodeDir --> Agents["agents/<br/>*.md files"]
     OpenCodeDir --> Commands["commands/<br/>*.md files"]
     OpenCodeDir --> Plugins["plugins/<br/>*.ts, *.js files"]
     OpenCodeDir --> PackageJSON["package.json<br/>Dependencies"]
     OpenCodeDir --> NodeModules["node_modules/<br/>Installed deps"]
-    
+
     Agents --> AgentMD["agent.md<br/>---<br/>model: ...<br/>---<br/>Prompt..."]
     Commands --> CommandMD["command.md<br/>---<br/>agent: ...<br/>---<br/>Template..."]
     Plugins --> PluginTS["plugin.ts<br/>export default {...}"]
@@ -499,8 +500,8 @@ export default {
   hooks: {
     'tool.execute.before': async (ctx, data) => {
       // Hook implementation
-    }
-  }
+    },
+  },
 }
 ```
 
@@ -522,6 +523,7 @@ The `.opencode` directory can have a `package.json` for additional dependencies:
 ```
 
 The system automatically:
+
 1. Checks if `node_modules/@opencode-ai/plugin` exists and is up-to-date
 2. Creates/updates `package.json` with required dependencies
 3. Runs `bun install` to install dependencies
@@ -538,23 +540,23 @@ The `ConfigPaths` module handles platform-specific path resolution:
 ```mermaid
 graph TB
     ConfigPaths["ConfigPaths"]
-    
+
     ConfigPaths --> Global["global()<br/>Platform-specific<br/>global config"]
     ConfigPaths --> ProjectFiles["projectFiles()<br/>Find project<br/>configs"]
     ConfigPaths --> Directories["directories()<br/>Resolve .opencode<br/>directories"]
-    
+
     Global --> LinuxGlobal["Linux:<br/>~/.config/opencode/<br/>opencode.json{,c}"]
     Global --> MacGlobal["macOS:<br/>~/Library/Application Support/<br/>opencode/opencode.json{,c}"]
     Global --> WindowsGlobal["Windows:<br/>%APPDATA%/opencode/<br/>opencode.json{,c}"]
-    
+
     ProjectFiles --> SearchUp["Walk up from directory<br/>looking for opencode.json"]
     ProjectFiles --> CheckWorktree["Check if inside<br/>git worktree"]
     ProjectFiles --> ReturnPaths["Return all found<br/>config paths"]
-    
+
     Directories --> ConfigDir{{"OPENCODE_CONFIG_DIR<br/>set?"}}
     ConfigDir -->|Yes| UseConfigDir["Use specified<br/>directory"]
     ConfigDir -->|No| UseOpenCodeDirs["Find .opencode dirs<br/>in directory tree"]
-    
+
     UseOpenCodeDirs --> CheckGit{{"Git repo?"}}
     CheckGit -->|Yes| GitDirs["Include .opencode in:<br/>- Worktree root<br/>- Repo root"]
     CheckGit -->|No| NonGitDirs["Include .opencode in:<br/>- Current directory<br/>- Parent directories"]
@@ -605,6 +607,7 @@ await Config.updateProject(partialConfig)
 ```
 
 The update functions:
+
 1. Load current configuration file
 2. Deep merge with new values
 3. Write back to file
@@ -617,8 +620,8 @@ Sources: [packages/opencode/src/config/config.ts:1125-1223]()
 
 The configuration system publishes events when config changes:
 
-| Event | Description | Payload |
-|-------|-------------|---------|
+| Event            | Description               | Payload            |
+| ---------------- | ------------------------- | ------------------ |
 | `config.updated` | Configuration was updated | `{ info: Config }` |
 
 Sources: [packages/opencode/src/config/config.ts:1041-1061]()
@@ -669,6 +672,7 @@ Enterprise deployments can enforce settings via managed configuration directorie
 **Write Operations**: Skipped (read-only, no plugin installation)
 
 This allows IT departments to:
+
 - Enforce security policies (disable tools, require permissions)
 - Configure approved providers
 - Set organizational defaults
@@ -679,15 +683,15 @@ Sources: [packages/opencode/src/config/config.ts:47-64](), [packages/opencode/sr
 
 Specific flags override configuration at runtime:
 
-| Environment Variable | Override Target | Effect |
-|---------------------|-----------------|--------|
-| `OPENCODE_PERMISSION` | `config.permission` | Deep merge with JSON value |
-| `OPENCODE_DISABLE_AUTOCOMPACT` | `config.compaction.auto` | Set to `false` |
-| `OPENCODE_DISABLE_PRUNE` | `config.compaction.prune` | Set to `false` |
-| `OPENCODE_CONFIG` | Config file path | Load from custom location |
-| `OPENCODE_CONFIG_CONTENT` | Inline config | Parse and merge JSON |
-| `OPENCODE_CONFIG_DIR` | .opencode directory | Override discovery |
-| `OPENCODE_DISABLE_PROJECT_CONFIG` | Project configs | Skip loading |
+| Environment Variable              | Override Target           | Effect                     |
+| --------------------------------- | ------------------------- | -------------------------- |
+| `OPENCODE_PERMISSION`             | `config.permission`       | Deep merge with JSON value |
+| `OPENCODE_DISABLE_AUTOCOMPACT`    | `config.compaction.auto`  | Set to `false`             |
+| `OPENCODE_DISABLE_PRUNE`          | `config.compaction.prune` | Set to `false`             |
+| `OPENCODE_CONFIG`                 | Config file path          | Load from custom location  |
+| `OPENCODE_CONFIG_CONTENT`         | Inline config             | Parse and merge JSON       |
+| `OPENCODE_CONFIG_DIR`             | .opencode directory       | Override discovery         |
+| `OPENCODE_DISABLE_PROJECT_CONFIG` | Project configs           | Skip loading               |
 
 Sources: [packages/opencode/src/config/config.ts:226-257]()
 
@@ -702,14 +706,15 @@ All configuration sections use Zod schemas for validation:
 ```typescript
 const parsed = Config.Info.safeParse(configData)
 if (!parsed.success) {
-  throw new InvalidError({ 
-    path: configPath, 
-    issues: parsed.error.issues 
+  throw new InvalidError({
+    path: configPath,
+    issues: parsed.error.issues,
   })
 }
 ```
 
 Validation occurs during:
+
 - File loading (`loadFile`, `load`)
 - Agent/command/plugin loading
 - Configuration updates
@@ -720,13 +725,13 @@ Sources: [packages/opencode/src/config/config.ts:1176-1188]()
 
 The system automatically migrates legacy configuration:
 
-| Legacy Field | New Field | Migration |
-|--------------|-----------|-----------|
-| `mode` | `agent` | Copy with `mode: "primary"` |
-| `tools` | `permission` | Map `true` → `"allow"`, `false` → `"deny"` |
-| `autoshare` | `share` | `true` → `"auto"` |
-| `maxSteps` | `steps` | Direct copy |
-| `write`/`edit`/`patch`/`multiedit` tools | `edit` permission | All map to `edit` |
+| Legacy Field                             | New Field         | Migration                                  |
+| ---------------------------------------- | ----------------- | ------------------------------------------ |
+| `mode`                                   | `agent`           | Copy with `mode: "primary"`                |
+| `tools`                                  | `permission`      | Map `true` → `"allow"`, `false` → `"deny"` |
+| `autoshare`                              | `share`           | `true` → `"auto"`                          |
+| `maxSteps`                               | `steps`           | Direct copy                                |
+| `write`/`edit`/`patch`/`multiedit` tools | `edit` permission | All map to `edit`                          |
 
 Sources: [packages/opencode/src/config/config.ts:217-242](), [packages/opencode/src/config/config.ts:748-794]()
 
@@ -776,20 +781,21 @@ The configuration uses the `Instance.state()` pattern for lifecycle management:
 graph LR
     Request["Config.get()"]
     Request --> State["Instance.state()<br/>Cached result"]
-    
+
     State --> CheckCache{{"Cache valid?"}}
     CheckCache -->|Yes| ReturnCache["Return cached config"]
     CheckCache -->|No| Load["Load configuration"]
-    
+
     Load --> Process["Process all sources<br/>Merge configs<br/>Install deps"]
     Process --> Store["Store in cache:<br/>{ config, directories, deps }"]
     Store --> ReturnNew["Return new config"]
-    
+
     Dispose["Instance.dispose()"]
     Dispose --> Cleanup["Call state disposer:<br/>Abort installs<br/>Clear cache"]
 ```
 
 **Lifecycle:**
+
 1. First call to `Config.get()` loads and caches configuration
 2. Subsequent calls return cached result
 3. `Instance.dispose()` clears cache and aborts pending operations

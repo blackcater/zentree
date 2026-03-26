@@ -20,8 +20,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Console Management System is a SaaS platform that provides managed access to OpenCode's AI services, specifically OpenCode Zen (40+ curated models) and OpenCode Go (open source models). It consists of a three-tier architecture deployed on Cloudflare infrastructure: a SolidStart frontend application, Cloudflare Workers backend API, and shared core business logic with database integration. The system handles user authentication, workspace management, payment processing via Stripe, usage tracking, and serves as a proxy for AI model requests.
 
 For information about the main OpenCode CLI and server application, see [Core Application](#2). For details about the frontend components, see [Console Frontend](#7.3). For backend implementation details, see [Console Backend](#7.2).
@@ -35,20 +33,20 @@ graph TB
     subgraph "Frontend Layer"
         ConsoleApp["console-app<br/>@opencode-ai/console-app<br/>packages/console/app"]
     end
-    
+
     subgraph "API Layer"
         ConsoleFunction["console-function<br/>@opencode-ai/console-function<br/>packages/console/function"]
     end
-    
+
     subgraph "Business Logic Layer"
         ConsoleCore["console-core<br/>@opencode-ai/console-core<br/>packages/console/core"]
     end
-    
+
     subgraph "Support Packages"
         ConsoleMail["console-mail<br/>@opencode-ai/console-mail<br/>packages/console/mail"]
         ConsoleResource["console-resource<br/>@opencode-ai/console-resource<br/>packages/console/resource"]
     end
-    
+
     subgraph "External Services"
         Stripe["Stripe API<br/>Payment Processing"]
         Database["Database<br/>PlanetScale/Postgres"]
@@ -56,25 +54,25 @@ graph TB
         OpenAuth["OpenAuth<br/>Authentication"]
         AIProviders["AI Providers<br/>OpenAI, Anthropic"]
     end
-    
+
     ConsoleApp --> ConsoleFunction
     ConsoleApp --> ConsoleCore
     ConsoleApp --> ConsoleMail
     ConsoleApp --> ConsoleResource
-    
+
     ConsoleFunction --> ConsoleCore
     ConsoleFunction --> ConsoleResource
-    
+
     ConsoleCore --> Database
     ConsoleCore --> Stripe
     ConsoleCore --> ConsoleMail
-    
+
     ConsoleApp --> OpenAuth
     ConsoleFunction --> OpenAuth
-    
+
     ConsoleFunction --> AIProviders
     ConsoleFunction --> CloudflareKV
-    
+
     style ConsoleApp fill:#f9f9f9
     style ConsoleFunction fill:#f9f9f9
     style ConsoleCore fill:#f9f9f9
@@ -86,13 +84,13 @@ graph TB
 
 The Console system consists of five interdependent packages:
 
-| Package | Path | Purpose | Key Dependencies |
-|---------|------|---------|------------------|
-| `console-app` | `packages/console/app` | SolidStart frontend application | SolidStart, OpenAuth, Stripe.js, UI components |
-| `console-function` | `packages/console/function` | Cloudflare Workers API backend | Hono, AI SDK, OpenAuth |
-| `console-core` | `packages/console/core` | Business logic and database layer | Drizzle ORM, Stripe, AWS STS |
-| `console-mail` | `packages/console/mail` | Email template system | JSX Email, React |
-| `console-resource` | `packages/console/resource` | Shared TypeScript types | Cloudflare Workers types |
+| Package            | Path                        | Purpose                           | Key Dependencies                               |
+| ------------------ | --------------------------- | --------------------------------- | ---------------------------------------------- |
+| `console-app`      | `packages/console/app`      | SolidStart frontend application   | SolidStart, OpenAuth, Stripe.js, UI components |
+| `console-function` | `packages/console/function` | Cloudflare Workers API backend    | Hono, AI SDK, OpenAuth                         |
+| `console-core`     | `packages/console/core`     | Business logic and database layer | Drizzle ORM, Stripe, AWS STS                   |
+| `console-mail`     | `packages/console/mail`     | Email template system             | JSX Email, React                               |
+| `console-resource` | `packages/console/resource` | Shared TypeScript types           | Cloudflare Workers types                       |
 
 **Sources:** [packages/console/app/package.json:1-46](), [packages/console/function/package.json:1-31](), [packages/console/core/package.json:1-52](), [packages/console/mail/package.json:1-22]()
 
@@ -109,17 +107,17 @@ graph LR
         SchemaFiles["Schema Files<br/>src/*.ts"]
         MigrationScripts["Migration Scripts<br/>drizzle.config.ts"]
     end
-    
+
     subgraph "Database Providers"
         PlanetScale["PlanetScale<br/>@planetscale/database"]
         Postgres["Postgres<br/>postgres package"]
     end
-    
+
     subgraph "CLI Tools"
         DrizzleKit["drizzle-kit<br/>Migration Tool"]
         SSTShell["sst shell<br/>Environment Access"]
     end
-    
+
     SchemaFiles --> DrizzleORM
     DrizzleORM --> PlanetScale
     DrizzleORM --> Postgres
@@ -141,10 +139,10 @@ The database management scripts are defined in [packages/console/core/package.js
 
 The `console-core` package provides centralized business logic accessible to both frontend and backend:
 
-| Export Pattern | Description |
-|----------------|-------------|
-| `./*.js` | TypeScript source files compiled to JavaScript |
-| `./*` | Direct TypeScript source file imports |
+| Export Pattern | Description                                    |
+| -------------- | ---------------------------------------------- |
+| `./*.js`       | TypeScript source files compiled to JavaScript |
+| `./*`          | Direct TypeScript source file imports          |
 
 This allows both `console-app` and `console-function` to import shared logic directly from the source files. The core package handles:
 
@@ -167,40 +165,40 @@ graph TB
     subgraph "console-function Routes"
         HonoApp["Hono App<br/>HTTP Router"]
         ZodValidator["@hono/zod-validator<br/>Request Validation"]
-        
+
         AuthMiddleware["OpenAuth Middleware<br/>Session Validation"]
-        
+
         ModelProxy["Model Proxy Routes<br/>/v1/chat/completions"]
         AdminRoutes["Admin Routes<br/>Workspace Management"]
         UsageRoutes["Usage Routes<br/>Tracking & Limits"]
     end
-    
+
     subgraph "AI SDK Integration"
         AnthropicSDK["@ai-sdk/anthropic"]
         OpenAISDK["@ai-sdk/openai"]
         CompatibleSDK["@ai-sdk/openai-compatible"]
         AICore["ai package<br/>Core AI SDK"]
     end
-    
+
     subgraph "Business Logic"
         CoreLogic["console-core<br/>Database Operations"]
     end
-    
+
     HonoApp --> ZodValidator
     HonoApp --> AuthMiddleware
-    
+
     AuthMiddleware --> ModelProxy
     AuthMiddleware --> AdminRoutes
     AuthMiddleware --> UsageRoutes
-    
+
     ModelProxy --> AnthropicSDK
     ModelProxy --> OpenAISDK
     ModelProxy --> CompatibleSDK
-    
+
     AnthropicSDK --> AICore
     OpenAISDK --> AICore
     CompatibleSDK --> AICore
-    
+
     AdminRoutes --> CoreLogic
     UsageRoutes --> CoreLogic
 ```
@@ -226,7 +224,7 @@ sequenceDiagram
     participant Function as "console-function"
     participant Core as "console-core"
     participant DB as "Database"
-    
+
     Client->>Auth: Request authentication
     Auth->>Client: Return session token
     Client->>Function: API request + session token
@@ -247,14 +245,14 @@ sequenceDiagram
 
 The `console-app` uses SolidStart with Vite for the frontend application:
 
-| Technology | Purpose |
-|------------|---------|
-| SolidStart | Meta-framework for SolidJS with SSR |
-| Vite | Build tool and dev server |
-| Cloudflare Vite Plugin | Cloudflare Workers integration |
-| OpenAuth | Authentication client |
-| Stripe.js | Payment form integration |
-| Chart.js | Usage analytics visualization |
+| Technology             | Purpose                             |
+| ---------------------- | ----------------------------------- |
+| SolidStart             | Meta-framework for SolidJS with SSR |
+| Vite                   | Build tool and dev server           |
+| Cloudflare Vite Plugin | Cloudflare Workers integration      |
+| OpenAuth               | Authentication client               |
+| Stripe.js              | Payment form integration            |
+| Chart.js               | Usage analytics visualization       |
 
 **Build Process:**
 
@@ -275,38 +273,38 @@ graph TB
         Layouts["Layouts<br/>Shared UI Structure"]
         Pages["Pages<br/>Route Components"]
     end
-    
+
     subgraph "UI Components"
         UILib["@opencode-ai/ui<br/>Shared Component Library"]
         Kobalte["@kobalte/core<br/>Accessible Primitives"]
         StripeElements["Stripe Elements<br/>solid-stripe"]
         Charts["Chart Components<br/>chart.js"]
     end
-    
+
     subgraph "State Management"
         SolidSignals["SolidJS Signals<br/>Reactive State"]
         Router["@solidjs/router<br/>Navigation State"]
         Meta["@solidjs/meta<br/>Document Metadata"]
     end
-    
+
     subgraph "Data Layer"
         CoreAPI["console-core<br/>Business Logic"]
         MailTemplates["console-mail<br/>Email Previews"]
         ResourceTypes["console-resource<br/>Type Definitions"]
     end
-    
+
     Routes --> Pages
     Layouts --> Pages
-    
+
     Pages --> UILib
     Pages --> Kobalte
     Pages --> StripeElements
     Pages --> Charts
-    
+
     Pages --> SolidSignals
     Pages --> Router
     Pages --> Meta
-    
+
     Pages --> CoreAPI
     Pages --> MailTemplates
     Pages --> ResourceTypes
@@ -318,10 +316,10 @@ graph TB
 
 Development modes support both local and remote API configurations:
 
-| Script | Environment | Purpose |
-|--------|-------------|---------|
-| `dev` | Local | Development server on `0.0.0.0` |
-| `dev:remote` | Remote | Connect to `auth.dev.opencode.ai` with test Stripe keys |
+| Script       | Environment | Purpose                                                 |
+| ------------ | ----------- | ------------------------------------------------------- |
+| `dev`        | Local       | Development server on `0.0.0.0`                         |
+| `dev:remote` | Remote      | Connect to `auth.dev.opencode.ai` with test Stripe keys |
 
 The remote development mode [packages/console/app/package.json:9-9]() uses SST shell to inject environment variables for the development stage.
 
@@ -339,21 +337,21 @@ graph LR
         JSXTemplates["JSX Templates<br/>emails/templates/*.tsx"]
         ReactComponents["React Components<br/>@jsx-email/all"]
     end
-    
+
     subgraph "Rendering"
         JSXEmailRender["@jsx-email/render<br/>HTML Generation"]
         JSXEmailCLI["@jsx-email/cli<br/>Preview Server"]
     end
-    
+
     subgraph "Consumers"
         CoreLogic["console-core<br/>Email Sending"]
         AppPreview["console-app<br/>Template Preview"]
     end
-    
+
     JSXTemplates --> ReactComponents
     ReactComponents --> JSXEmailRender
     JSXTemplates --> JSXEmailCLI
-    
+
     JSXEmailRender --> CoreLogic
     JSXEmailRender --> AppPreview
 ```
@@ -380,10 +378,10 @@ bun dev  # Starts preview server for emails/templates directory
 
 The `console-resource` package provides shared TypeScript type definitions used across the Console system:
 
-| Dependency | Purpose |
-|------------|---------|
+| Dependency                  | Purpose                              |
+| --------------------------- | ------------------------------------ |
 | `@cloudflare/workers-types` | Cloudflare Workers environment types |
-| `cloudflare` (dev) | Cloudflare API type generation |
+| `cloudflare` (dev)          | Cloudflare API type generation       |
 
 This package defines common interfaces for:
 
@@ -411,20 +409,20 @@ graph LR
         PullDev["pull-models-from-dev<br/>script/pull-models.ts dev"]
         PullProd["pull-models-from-prod<br/>script/pull-models.ts production"]
     end
-    
+
     subgraph "Environments"
         LocalConfig["Local Configuration<br/>Development"]
         DevStage["Dev Stage<br/>Staging Environment"]
         ProdStage["Production Stage<br/>Live Environment"]
     end
-    
+
     UpdateModels --> LocalConfig
     LocalConfig --> PromoteDev
     LocalConfig --> PromoteProd
-    
+
     PromoteDev --> DevStage
     PromoteProd --> ProdStage
-    
+
     DevStage --> PullDev
     ProdStage --> PullProd
 ```
@@ -464,10 +462,12 @@ These scripts [packages/console/core/package.json:37-39]() control:
 The Console system integrates Stripe for payment processing:
 
 **Backend (console-core):**
+
 - `stripe` package - Server-side Stripe SDK for payment processing
 - Handles webhook events, subscription management, usage-based billing
 
 **Frontend (console-app):**
+
 - `@stripe/stripe-js` - Stripe.js library for client-side payment forms
 - `solid-stripe` - SolidJS wrapper for Stripe Elements
 
@@ -486,29 +486,29 @@ graph TB
     subgraph "SST Configuration"
         SSTConfig["sst.config.ts<br/>Infrastructure Definition"]
     end
-    
+
     subgraph "Cloudflare Resources"
         Workers["Cloudflare Workers<br/>console-function"]
         Pages["Cloudflare Pages<br/>console-app"]
         KV["Cloudflare KV<br/>Session Storage"]
         D1["Cloudflare D1<br/>Optional Database"]
     end
-    
+
     subgraph "External Resources"
         DB["PlanetScale/Postgres<br/>Primary Database"]
         StripeAPI["Stripe API<br/>Payments"]
         AuthService["OpenAuth Service<br/>Authentication"]
     end
-    
+
     SSTConfig --> Workers
     SSTConfig --> Pages
     SSTConfig --> KV
     SSTConfig --> D1
-    
+
     Workers --> DB
     Workers --> StripeAPI
     Workers --> KV
-    
+
     Pages --> Workers
     Pages --> AuthService
 ```
@@ -540,13 +540,13 @@ graph LR
         ViteBuild["Vite Build<br/>vite build"]
         SchemaGen["Schema Generation<br/>opencode config.json"]
     end
-    
+
     subgraph "Artifacts"
         OutputDir[".output/public/<br/>Static Assets"]
         ConfigJSON["config.json<br/>OpenCode Schema"]
         TUIJSON["tui.json<br/>TUI Schema"]
     end
-    
+
     TypeCheck --> GenerateSitemap
     GenerateSitemap --> ViteBuild
     ViteBuild --> OutputDir

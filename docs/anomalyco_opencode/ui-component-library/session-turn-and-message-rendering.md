@@ -23,8 +23,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose & Scope
 
 This page documents how the `@opencode-ai/ui` component library renders conversational turns in a session: how user prompts and assistant responses are structured, how individual message parts are dispatched to display components, how the tool registry maps tool names to UI, and how per-turn file diffs are presented.
@@ -37,25 +35,25 @@ This covers components in `packages/ui/src/components/` and the context in `pack
 
 Every rendered turn is grounded in three data types from the SDK:
 
-| Type | Where stored in context | Description |
-|---|---|---|
-| `Message` | `store.message[sessionID][]` | Either a `UserMessage` or an `AssistantMessage` |
-| `Part` | `store.part[messageID][]` | A single typed fragment of a message (text, tool call, reasoning, file, etc.) |
-| `FileDiff` | `store.session_diff[sessionID][]` or `message.summary.diffs[]` | Before/after contents for a file changed during the turn |
+| Type       | Where stored in context                                        | Description                                                                   |
+| ---------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `Message`  | `store.message[sessionID][]`                                   | Either a `UserMessage` or an `AssistantMessage`                               |
+| `Part`     | `store.part[messageID][]`                                      | A single typed fragment of a message (text, tool call, reasoning, file, etc.) |
+| `FileDiff` | `store.session_diff[sessionID][]` or `message.summary.diffs[]` | Before/after contents for a file changed during the turn                      |
 
-A *turn* is one user message and all assistant messages whose `parentID` equals that user message's `id`.
+A _turn_ is one user message and all assistant messages whose `parentID` equals that user message's `id`.
 
 ### Part types
 
-| `part.type` | Display behavior |
-|---|---|
-| `"text"` | Rendered as Markdown via the `Markdown` component |
-| `"tool"` | Dispatched through `ToolRegistry`; hides `todowrite`/`todoread` |
-| `"reasoning"` | Shown as Markdown in a lighter style when `showReasoningSummaries` is true |
-| `"compaction"` | Shown inline as a context-compaction divider |
-| `"file"` | Shown inside `UserMessageDisplay` as attachment thumbnails or inline references |
-| `"agent"` | Shown inside `UserMessageDisplay` as highlighted text |
-| *(custom)* | Registered via `registerPartComponent` and dispatched dynamically |
+| `part.type`    | Display behavior                                                                |
+| -------------- | ------------------------------------------------------------------------------- |
+| `"text"`       | Rendered as Markdown via the `Markdown` component                               |
+| `"tool"`       | Dispatched through `ToolRegistry`; hides `todowrite`/`todoread`                 |
+| `"reasoning"`  | Shown as Markdown in a lighter style when `showReasoningSummaries` is true      |
+| `"compaction"` | Shown inline as a context-compaction divider                                    |
+| `"file"`       | Shown inside `UserMessageDisplay` as attachment thumbnails or inline references |
+| `"agent"`      | Shown inside `UserMessageDisplay` as highlighted text                           |
+| _(custom)_     | Registered via `registerPartComponent` and dispatched dynamically               |
 
 Sources: [packages/ui/src/components/message-part.tsx:1-110]()
 
@@ -152,29 +150,29 @@ Sources: [packages/ui/src/components/session-turn.tsx:349-511](), [packages/ui/s
 
 **Props:**
 
-| Prop | Type | Description |
-|---|---|---|
-| `sessionID` | `string` | The session to look up messages from |
-| `messageID` | `string` | ID of the user message that starts this turn |
-| `showReasoningSummaries` | `boolean?` | Whether to render reasoning parts (default: true) |
-| `shellToolDefaultOpen` | `boolean?` | Whether bash tool collapsibles default to open |
-| `editToolDefaultOpen` | `boolean?` | Whether edit/write tool collapsibles default to open |
-| `onUserInteracted` | `() => void` | Called when user scrolls/interacts (disables auto-scroll) |
-| `classes` | `{ root?, content?, container? }` | CSS class overrides |
+| Prop                     | Type                              | Description                                               |
+| ------------------------ | --------------------------------- | --------------------------------------------------------- |
+| `sessionID`              | `string`                          | The session to look up messages from                      |
+| `messageID`              | `string`                          | ID of the user message that starts this turn              |
+| `showReasoningSummaries` | `boolean?`                        | Whether to render reasoning parts (default: true)         |
+| `shellToolDefaultOpen`   | `boolean?`                        | Whether bash tool collapsibles default to open            |
+| `editToolDefaultOpen`    | `boolean?`                        | Whether edit/write tool collapsibles default to open      |
+| `onUserInteracted`       | `() => void`                      | Called when user scrolls/interacts (disables auto-scroll) |
+| `classes`                | `{ root?, content?, container? }` | CSS class overrides                                       |
 
 ### Internal memos computed
 
-| Memo | Purpose |
-|---|---|
-| `message()` | The user `Message` object for this turn |
-| `assistantMessages()` | All assistant messages with `parentID === message().id` |
-| `parts()` | Parts for the user message |
-| `compaction()` | A part of type `"compaction"` from the user message parts |
-| `diffs()` | Deduplicated `FileDiff[]` from `message().summary.diffs` |
-| `working()` | Whether this is the active turn and status is not idle |
-| `showThinking()` | Whether to show the shimmer "thinking" indicator |
-| `assistantVisible()` | Count of visible parts across all assistant messages |
-| `error()` | First non-abort error across all assistant messages |
+| Memo                  | Purpose                                                   |
+| --------------------- | --------------------------------------------------------- |
+| `message()`           | The user `Message` object for this turn                   |
+| `assistantMessages()` | All assistant messages with `parentID === message().id`   |
+| `parts()`             | Parts for the user message                                |
+| `compaction()`        | A part of type `"compaction"` from the user message parts |
+| `diffs()`             | Deduplicated `FileDiff[]` from `message().summary.diffs`  |
+| `working()`           | Whether this is the active turn and status is not idle    |
+| `showThinking()`      | Whether to show the shimmer "thinking" indicator          |
+| `assistantVisible()`  | Count of visible parts across all assistant messages      |
+| `error()`             | First non-abort error across all assistant messages       |
 
 ### Layout order (rendered top to bottom)
 
@@ -201,14 +199,14 @@ Sources: [packages/ui/src/components/session-turn.tsx:138-511]()
 
 Rendered at [packages/ui/src/components/message-part.tsx:682-836]().
 
-| Slot | Content |
-|---|---|
-| Attachments | `FilePart` entries with `image/*` or `application/pdf` MIME type, shown as thumbnails |
-| Body | Text from the non-synthetic `TextPart`, rendered as pre-wrapped plain text |
-| Inline file highlights | `FilePart` entries with `source.text.start/end` offsets, highlighted in the text |
-| Agent highlights | `AgentPart` entries with `source.start/end` offsets, highlighted in the text |
-| Metadata | Agent name, model name, timestamp (12-hour format), interrupted status |
-| Copy button | Copies raw text to clipboard; fades in on hover |
+| Slot                   | Content                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------- |
+| Attachments            | `FilePart` entries with `image/*` or `application/pdf` MIME type, shown as thumbnails |
+| Body                   | Text from the non-synthetic `TextPart`, rendered as pre-wrapped plain text            |
+| Inline file highlights | `FilePart` entries with `source.text.start/end` offsets, highlighted in the text      |
+| Agent highlights       | `AgentPart` entries with `source.start/end` offsets, highlighted in the text          |
+| Metadata               | Agent name, model name, timestamp (12-hour format), interrupted status                |
+| Copy button            | Copies raw text to clipboard; fades in on hover                                       |
 
 The `HighlightedText` function ([packages/ui/src/components/message-part.tsx:840-875]()) segments the raw text string by the offset ranges of file and agent references and wraps each segment in a `<span data-highlight="file|agent">`.
 
@@ -279,12 +277,12 @@ PART_MAPPING: Record<string, PartComponent | undefined>
 
 **Built-in entries registered inline in `message-part.tsx`:**
 
-| Key | Component | Notes |
-|---|---|---|
-| `"tool"` | `ToolPartDisplay` | Dispatches further to `ToolRegistry` |
-| `"compaction"` | inline function | Renders a divider with label "Context compacted" |
-| `"text"` | inline function | Renders via `Markdown`, with copy button |
-| `"reasoning"` | inline function | Renders via `Markdown` in a muted style |
+| Key            | Component         | Notes                                            |
+| -------------- | ----------------- | ------------------------------------------------ |
+| `"tool"`       | `ToolPartDisplay` | Dispatches further to `ToolRegistry`             |
+| `"compaction"` | inline function   | Renders a divider with label "Context compacted" |
+| `"text"`       | inline function   | Renders via `Markdown`, with copy button         |
+| `"reasoning"`  | inline function   | Renders via `Markdown` in a muted style          |
 
 **Extension point:**
 
@@ -316,6 +314,7 @@ Defined at [packages/ui/src/components/message-part.tsx:908-928]().
 Rendered at [packages/ui/src/components/message-part.tsx:966-1038]().
 
 Logic:
+
 1. Skip if tool is `todowrite` or `todoread` (always hidden).
 2. If the tool is `question` and status is `pending` or `running`, suppress rendering.
 3. If `part.state.status === "error"`, render an error `Card` with the error text.
@@ -362,15 +361,15 @@ Most tool-specific components use `BasicTool` ([packages/ui/src/components/basic
 
 Before rendering, parts are filtered by `partState` (in `session-turn.tsx`) and `renderable` (in `message-part.tsx`):
 
-| Condition | Visible |
-|---|---|
-| `type === "tool"`, tool in `{"todowrite","todoread"}` | No |
-| `type === "tool"`, tool is `"question"` and status is pending/running | No |
-| `type === "tool"`, any other | Yes |
-| `type === "text"` with non-empty trimmed text | Yes |
-| `type === "reasoning"` with `showReasoningSummaries=true` and non-empty text | Yes |
-| `type` has an entry in `PART_MAPPING` | Yes |
-| Otherwise | No |
+| Condition                                                                    | Visible |
+| ---------------------------------------------------------------------------- | ------- |
+| `type === "tool"`, tool in `{"todowrite","todoread"}`                        | No      |
+| `type === "tool"`, tool is `"question"` and status is pending/running        | No      |
+| `type === "tool"`, any other                                                 | Yes     |
+| `type === "text"` with non-empty trimmed text                                | Yes     |
+| `type === "reasoning"` with `showReasoningSummaries=true` and non-empty text | Yes     |
+| `type` has an entry in `PART_MAPPING`                                        | Yes     |
+| Otherwise                                                                    | No      |
 
 Sources: [packages/ui/src/components/session-turn.tsx:85-100](), [packages/ui/src/components/message-part.tsx:274-283]()
 

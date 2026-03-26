@@ -36,13 +36,11 @@ The following files were used as context for generating this wiki page:
 - [codex-rs/exec/src/cli.rs](codex-rs/exec/src/cli.rs)
 - [codex-rs/exec/src/lib.rs](codex-rs/exec/src/lib.rs)
 - [codex-rs/tui/Cargo.toml](codex-rs/tui/Cargo.toml)
-- [codex-rs/tui/src/chatwidget/snapshots/codex_tui__chatwidget__tests__image_generation_call_history_snapshot.snap](codex-rs/tui/src/chatwidget/snapshots/codex_tui__chatwidget__tests__image_generation_call_history_snapshot.snap)
+- [codex-rs/tui/src/chatwidget/snapshots/codex_tui**chatwidget**tests\_\_image_generation_call_history_snapshot.snap](codex-rs/tui/src/chatwidget/snapshots/codex_tui__chatwidget__tests__image_generation_call_history_snapshot.snap)
 - [codex-rs/tui/src/cli.rs](codex-rs/tui/src/cli.rs)
 - [codex-rs/tui/src/lib.rs](codex-rs/tui/src/lib.rs)
 
 </details>
-
-
 
 This page documents the non-interactive `resume` and `review` commands available through `codex exec`. These commands enable headless session continuation and code review workflows without requiring the full TUI.
 
@@ -69,13 +67,13 @@ Both commands leverage the app server protocol to manage thread lifecycle and ev
 
 The resume command accepts the following arguments:
 
-| Argument | Description | Type |
-|----------|-------------|------|
-| `SESSION_ID` | UUID or thread name to resume | Optional positional |
-| `--last` | Resume most recent session without picker | Flag |
-| `--all` | Show all sessions (disables cwd filtering) | Flag |
-| `--image` / `-i` | Attach images to follow-up prompt | Repeatable path |
-| `PROMPT` | Optional prompt to send after resuming | Positional |
+| Argument         | Description                                | Type                |
+| ---------------- | ------------------------------------------ | ------------------- |
+| `SESSION_ID`     | UUID or thread name to resume              | Optional positional |
+| `--last`         | Resume most recent session without picker  | Flag                |
+| `--all`          | Show all sessions (disables cwd filtering) | Flag                |
+| `--image` / `-i` | Attach images to follow-up prompt          | Repeatable path     |
+| `PROMPT`         | Optional prompt to send after resuming     | Positional          |
 
 When `--last` is specified without an explicit prompt, the positional argument is interpreted as the prompt rather than a session ID.
 
@@ -87,31 +85,31 @@ When `--last` is specified without an explicit prompt, the positional argument i
 graph TB
     CLI["codex exec resume"] --> ParseArgs["Parse ResumeArgs"]
     ParseArgs --> CheckLast{"--last flag?"}
-    
+
     CheckLast -->|Yes| GetRecent["RolloutRecorder::list_threads<br/>limit=1, sort=UpdatedAt"]
     CheckLast -->|No| ResolveId["Resolve SESSION_ID"]
-    
+
     ResolveId --> IsUUID{"UUID.parse_str"}
     IsUUID -->|Yes| FindById["find_thread_path_by_id_str"]
     IsUUID -->|No| FindByName["find_thread_path_by_name_str"]
-    
+
     GetRecent --> FirstItem["page.items.first()"]
     FindById --> ResolvePath["PathBuf"]
     FindByName --> ResolvePath
     FirstItem --> ResolvePath
-    
+
     ResolvePath --> ReadMeta["resolve_session_thread_id<br/>read_session_meta_line"]
     ReadMeta --> ThreadId["ThreadId"]
-    
+
     ThreadId --> AppServer["InProcessAppServerClient"]
     AppServer --> ThreadResume["ClientRequest::ThreadResume<br/>ThreadResumeParams"]
-    
+
     ThreadResume --> WaitConfigured["Wait for SessionConfiguredEvent"]
     WaitConfigured --> FollowUp{"Follow-up prompt?"}
-    
+
     FollowUp -->|Yes| TurnStart["ClientRequest::TurnStart<br/>TurnStartParams"]
     FollowUp -->|No| Done["Session ready"]
-    
+
     TurnStart --> ProcessEvents["EventProcessor::process_event loop"]
     ProcessEvents --> Done
 ```
@@ -131,7 +129,7 @@ sequenceDiagram
     participant AppServer as AppServer Protocol
     participant ThreadMgr as ThreadManager
     participant Rollout as RolloutRecorder
-    
+
     Exec->>Client: ThreadResume(thread_id, thread_path)
     Client->>AppServer: thread/resume request
     AppServer->>ThreadMgr: resume_thread()
@@ -141,7 +139,7 @@ sequenceDiagram
     ThreadMgr-->>AppServer: SessionConfiguredEvent
     AppServer-->>Client: Notification
     Client-->>Exec: config + thread_id
-    
+
     opt Follow-up prompt
         Exec->>Client: TurnStart(items, schema)
         Client->>AppServer: turn/start request
@@ -171,11 +169,11 @@ The `ThreadResumeParams` structure includes the thread path for event replay. If
 
 The review command accepts:
 
-| Argument | Description | Type |
-|----------|-------------|------|
-| `--working-tree` / `-w` | Review uncommitted changes in working tree | Flag |
-| `--target` / `-t` | Specific file paths to review | Repeatable path |
-| `PROMPT` | Optional instructions for review focus | Positional |
+| Argument                | Description                                | Type            |
+| ----------------------- | ------------------------------------------ | --------------- |
+| `--working-tree` / `-w` | Review uncommitted changes in working tree | Flag            |
+| `--target` / `-t`       | Specific file paths to review              | Repeatable path |
+| `PROMPT`                | Optional instructions for review focus     | Positional      |
 
 At least one of `--working-tree` or `--target` must be specified.
 
@@ -186,16 +184,16 @@ At least one of `--working-tree` or `--target` must be specified.
 ```mermaid
 graph LR
     Args["ReviewArgs"] --> BuildTarget["Build ReviewRequest"]
-    
+
     BuildTarget --> WTFlag{"--working-tree?"}
     WTFlag -->|Yes| WTTarget["ReviewTarget::WorkingTree"]
     WTFlag -->|No| FilesTarget["ReviewTarget::Files(paths)"]
-    
+
     WTTarget --> Optional["Optional user prompt"]
     FilesTarget --> Optional
-    
+
     Optional --> ReviewReq["ReviewRequest<br/>{target, user_message}"]
-    
+
     ReviewReq --> StartParams["ReviewStartParams<br/>{review_request, thread_id}"]
     StartParams --> AppServerAPI["ClientRequest::ReviewStart"]
 ```
@@ -214,34 +212,34 @@ graph TB
         ExecMode["codex exec review"]
         PrimaryConfig["Config<br/>(full permissions)"]
     end
-    
+
     subgraph "Review Sub-Agent"
         SubConfig["Restricted Config<br/>- web_search = Disabled<br/>- approval_policy = Never<br/>- SpawnCsv disabled<br/>- Collab disabled"]
         ReviewPrompt["base_instructions =<br/>REVIEW_PROMPT"]
         ReviewModel["model = review_model<br/>or ctx.model_info.slug"]
     end
-    
+
     subgraph "Sub-Agent Execution"
         OneShot["run_codex_thread_one_shot()"]
         ReviewTask["ReviewTask::run()"]
         EventStream["async_channel::Receiver<Event>"]
     end
-    
+
     ExecMode --> PrimaryConfig
     PrimaryConfig --> CloneConfig["Clone & restrict"]
     CloneConfig --> SubConfig
     CloneConfig --> ReviewPrompt
     CloneConfig --> ReviewModel
-    
+
     SubConfig --> OneShot
     ReviewPrompt --> OneShot
     ReviewModel --> OneShot
-    
+
     OneShot --> ReviewTask
     ReviewTask --> EventStream
     EventStream --> ParseOutput["parse_review_output_event()"]
     ParseOutput --> ReviewOutputEvent["ReviewOutputEvent<br/>{findings: Vec<ReviewFinding>}"]
-    
+
     ReviewOutputEvent --> Format["render_review_output_text()"]
     Format --> ExitReview["ExitedReviewModeEvent"]
 ```
@@ -266,10 +264,10 @@ sequenceDiagram
     participant EventRx as async_channel::Receiver
     participant Parser as parse_review_output_event
     participant Formatter as render_review_output_text
-    
+
     ReviewTask->>SubAgent: run_codex_thread_one_shot()
     SubAgent-->>EventRx: Event stream
-    
+
     loop Process events
         EventRx->>ReviewTask: Event
         alt AgentMessage
@@ -283,7 +281,7 @@ sequenceDiagram
             ReviewTask->>ReviewTask: Forward to primary session
         end
     end
-    
+
     ReviewTask->>Formatter: ReviewOutputEvent
     Formatter->>Formatter: format_review_findings_block()
     Formatter-->>ReviewTask: Formatted text
@@ -324,7 +322,7 @@ graph LR
     Processor --> ToolStart["ToolExecutionStarted<br/>→ format & log"]
     Processor --> ToolOutput["ToolExecutionOutput<br/>→ format & display"]
     Processor --> Complete["TurnComplete<br/>→ extract last message"]
-    
+
     Complete --> WriteFile["last_message_file?"]
     WriteFile -->|Some| FileWrite["fs::write(path, text)"]
     WriteFile -->|None| Skip["Skip"]
@@ -357,24 +355,24 @@ This mode enables programmatic consumption by external tools.
 ```mermaid
 graph TB
     CLI_Resume["codex exec resume SESSION_ID"]
-    
+
     CLI_Resume --> MainRs["cli/src/main.rs:130<br/>Subcommand::Resume"]
     MainRs --> ExecCliRs["exec/src/cli.rs:127<br/>ResumeArgs struct"]
     ExecCliRs --> ExecLibRs["exec/src/lib.rs:544<br/>run_exec_session()"]
-    
+
     ExecLibRs --> ResolveSession["resolve_session_thread_id()"]
     ResolveSession --> FindById["rollout::find_thread_path_by_id_str()"]
     ResolveSession --> FindByName["rollout::find_thread_path_by_name_str()"]
-    
+
     ExecLibRs --> AppServerClient["InProcessAppServerClient::start()"]
     AppServerClient --> ThreadResume["ClientRequest::ThreadResume<br/>ThreadResumeParams"]
-    
+
     ThreadResume --> ThreadMgr["ThreadManager::resume_thread()"]
     ThreadMgr --> RolloutRestore["RolloutRecorder::restore_thread()"]
-    
+
     RolloutRestore --> EventReplay["Session::replay_events()"]
     EventReplay --> SessionConfigured["SessionConfiguredEvent"]
-    
+
     SessionConfigured --> FollowUpTurn["Optional: TurnStart"]
     FollowUpTurn --> EventProc["EventProcessor::process_event()"]
 ```
@@ -388,28 +386,28 @@ graph TB
 ```mermaid
 graph TB
     CLI_Review["codex exec review --working-tree"]
-    
+
     CLI_Review --> MainRs["cli/src/main.rs:91<br/>Subcommand::Review"]
     MainRs --> ExecCliRs["exec/src/cli.rs:207<br/>ReviewArgs struct"]
     ExecCliRs --> ExecLibRs["exec/src/lib.rs:684<br/>run_exec_session()"]
-    
+
     ExecLibRs --> BuildRequest["ReviewRequest<br/>{target, user_message}"]
     BuildRequest --> AppServerClient["InProcessAppServerClient::start()"]
     AppServerClient --> ReviewStart["ClientRequest::ReviewStart<br/>ReviewStartParams"]
-    
+
     ReviewStart --> ThreadMgr["ThreadManager::start_review()"]
     ThreadMgr --> SpawnTask["Session::spawn_task(ReviewTask)"]
-    
+
     SpawnTask --> ReviewTaskRun["ReviewTask::run()"]
     ReviewTaskRun --> OneShot["codex_delegate::run_codex_thread_one_shot()"]
-    
+
     OneShot --> SubAgentConfig["Restricted Config<br/>+ REVIEW_PROMPT"]
     SubAgentConfig --> SubSession["Sub-agent Session"]
-    
+
     SubSession --> EventStream["async_channel::Receiver<Event>"]
     EventStream --> ProcessReview["process_review_events()"]
     ProcessReview --> ParseOutput["parse_review_output_event()"]
-    
+
     ParseOutput --> ReviewOutput["ReviewOutputEvent"]
     ReviewOutput --> ExitReview["ExitedReviewModeEvent"]
 ```

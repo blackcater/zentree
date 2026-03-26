@@ -8,7 +8,7 @@ The following files were used as context for generating this wiki page:
 - [examples/bird-checker-with-express/src/index.ts](examples/bird-checker-with-express/src/index.ts)
 - [examples/bird-checker-with-nextjs-and-eval/src/lib/mastra/actions.ts](examples/bird-checker-with-nextjs-and-eval/src/lib/mastra/actions.ts)
 - [packages/core/src/action/index.ts](packages/core/src/action/index.ts)
-- [packages/core/src/agent/__tests__/utils.test.ts](packages/core/src/agent/__tests__/utils.test.ts)
+- [packages/core/src/agent/**tests**/utils.test.ts](packages/core/src/agent/__tests__/utils.test.ts)
 - [packages/core/src/agent/agent-legacy.ts](packages/core/src/agent/agent-legacy.ts)
 - [packages/core/src/agent/agent.test.ts](packages/core/src/agent/agent.test.ts)
 - [packages/core/src/agent/agent.ts](packages/core/src/agent/agent.ts)
@@ -27,7 +27,7 @@ The following files were used as context for generating this wiki page:
 - [packages/core/src/llm/model/model.loop.types.ts](packages/core/src/llm/model/model.loop.types.ts)
 - [packages/core/src/llm/model/model.test.ts](packages/core/src/llm/model/model.test.ts)
 - [packages/core/src/llm/model/model.ts](packages/core/src/llm/model/model.ts)
-- [packages/core/src/loop/__snapshots__/loop.test.ts.snap](packages/core/src/loop/__snapshots__/loop.test.ts.snap)
+- [packages/core/src/loop/**snapshots**/loop.test.ts.snap](packages/core/src/loop/__snapshots__/loop.test.ts.snap)
 - [packages/core/src/loop/index.ts](packages/core/src/loop/index.ts)
 - [packages/core/src/loop/loop.test.ts](packages/core/src/loop/loop.test.ts)
 - [packages/core/src/loop/loop.ts](packages/core/src/loop/loop.ts)
@@ -64,8 +64,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents how Mastra handles structured output generation from language models and schema validation across the framework. It covers schema types, conversion between formats, structured output modes for agents, tool input/output validation, and provider-specific compatibility layers.
 
 For information about general agent configuration and execution, see [Agent Configuration and Execution](#3.1). For tool definition patterns, see [Tool Definition and Execution Context](#6.1).
@@ -101,15 +99,15 @@ graph TB
     JSON7["JSONSchema7"]
     Standard["StandardSchemaWithJSON"]
     AiSdk["AI SDK Schema"]
-    
+
     User -->|"z.object()"| ZodV3
     User -->|"z.object()"| ZodV4
     User -->|"JSON Schema object"| JSON7
-    
+
     ZodV3 -->|"toStandardSchema()"| Standard
     ZodV4 -->|"toStandardSchema()"| Standard
     JSON7 -->|"toStandardSchema()"| Standard
-    
+
     Standard -->|"standardSchemaToJSONSchema()"| JSON7
     Standard -->|"jsonSchema()"| AiSdk
     ZodV3 -->|"convertZodSchemaToAISDKSchema()"| AiSdk
@@ -125,12 +123,12 @@ graph TB
 
 `StandardSchemaWithJSON` is Mastra's internal unified schema representation that preserves both validation capabilities and JSON Schema representation:
 
-| Property | Type | Purpose |
-|----------|------|---------|
-| `~standard.validate()` | Function | Validates input and returns issues or typed value |
-| `~standard.types.input` | Type | TypeScript type for input |
-| `~standard.types.output` | Type | TypeScript type for output |
-| `jsonSchema` | JSONSchema7 | JSON Schema representation for serialization |
+| Property                 | Type        | Purpose                                           |
+| ------------------------ | ----------- | ------------------------------------------------- |
+| `~standard.validate()`   | Function    | Validates input and returns issues or typed value |
+| `~standard.types.input`  | Type        | TypeScript type for input                         |
+| `~standard.types.output` | Type        | TypeScript type for output                        |
+| `jsonSchema`             | JSONSchema7 | JSON Schema representation for serialization      |
 
 This interface allows Mastra to work with any schema format while maintaining type safety and enabling serialization for storage/transport.
 
@@ -147,17 +145,17 @@ Agents can generate structured output in two distinct modes:
 ```typescript
 // StructuredOutputOptionsBase type definition
 type StructuredOutputOptionsBase<OUTPUT> = {
-  model?: MastraModelConfig;           // Optional internal structuring model
-  instructions?: string;                 // Custom instructions for structuring
-  jsonPromptInjection?: boolean;        // Use prompt injection vs native format
-  logger?: IMastraLogger;
-  providerOptions?: ProviderOptions;    // Provider-specific options
-} & FallbackFields<OUTPUT>;
+  model?: MastraModelConfig // Optional internal structuring model
+  instructions?: string // Custom instructions for structuring
+  jsonPromptInjection?: boolean // Use prompt injection vs native format
+  logger?: IMastraLogger
+  providerOptions?: ProviderOptions // Provider-specific options
+} & FallbackFields<OUTPUT>
 
 // With schema
 type StructuredOutputOptions<OUTPUT> = StructuredOutputOptionsBase<OUTPUT> & {
-  schema: StandardSchemaWithJSON<OUTPUT>;
-};
+  schema: StandardSchemaWithJSON<OUTPUT>
+}
 ```
 
 **Sources**: [packages/core/src/agent/types.ts:70-110]()
@@ -167,13 +165,13 @@ type StructuredOutputOptions<OUTPUT> = StructuredOutputOptionsBase<OUTPUT> & {
 ```mermaid
 graph LR
     UserCall["agent.generate(prompt, { structuredOutput })"]
-    
+
     subgraph DirectMode["Direct Mode (no model)"]
         DirectLLM["LLM with response_format"]
         DirectJson["Native JSON output"]
         DirectStream["Object stream transformers"]
     end
-    
+
     subgraph ProcessorMode["Processor Mode (with model)"]
         InitialLLM["Primary LLM call"]
         ExtractText["Extract text response"]
@@ -181,13 +179,13 @@ graph LR
         InternalAgent["Internal structuring agent"]
         ValidateSchema["Validate against schema"]
     end
-    
+
     UserCall -->|"No model in options"| DirectMode
     UserCall -->|"Model provided"| ProcessorMode
-    
+
     DirectLLM --> DirectJson
     DirectJson --> DirectStream
-    
+
     InitialLLM --> ExtractText
     ExtractText --> StructProc
     StructProc --> InternalAgent
@@ -225,14 +223,14 @@ Structured output supports configurable error handling:
 ```typescript
 type FallbackFields<OUTPUT> =
   | { errorStrategy?: 'strict' | 'warn'; fallbackValue?: never }
-  | { errorStrategy: 'fallback'; fallbackValue: OUTPUT };
+  | { errorStrategy: 'fallback'; fallbackValue: OUTPUT }
 ```
 
-| Strategy | Behavior |
-|----------|----------|
-| `strict` (default) | Throws error if validation fails |
-| `warn` | Logs warning but returns invalid data |
-| `fallback` | Returns `fallbackValue` on validation failure |
+| Strategy           | Behavior                                      |
+| ------------------ | --------------------------------------------- |
+| `strict` (default) | Throws error if validation fails              |
+| `warn`             | Logs warning but returns invalid data         |
+| `fallback`         | Returns `fallbackValue` on validation failure |
 
 **Sources**: [packages/core/src/agent/types.ts:66-69]()
 
@@ -246,10 +244,10 @@ sequenceDiagram
     participant StructuredOutputProcessor
     participant LLMLoop
     participant Output
-    
+
     User->>Agent: generate(prompt, { structuredOutput })
     Agent->>PrepareStream: Process options
-    
+
     alt Direct Mode
         PrepareStream->>LLMLoop: Add schema to LLM call
         LLMLoop->>Output: Stream with object chunks
@@ -278,11 +276,11 @@ Tools define schemas for input, output, suspend, and resume operations:
 
 ```typescript
 interface ToolAction {
-  inputSchema?: StandardSchemaWithJSON<TSchemaIn>;      // Required input validation
-  outputSchema?: StandardSchemaWithJSON<TSchemaOut>;    // Optional output validation
-  suspendSchema?: StandardSchemaWithJSON<TSuspendSchema>; // Suspend payload schema
-  resumeSchema?: StandardSchemaWithJSON<TResumeSchema>;   // Resume data schema
-  execute?: (inputData: TSchemaIn, context: TContext) => Promise<TSchemaOut>;
+  inputSchema?: StandardSchemaWithJSON<TSchemaIn> // Required input validation
+  outputSchema?: StandardSchemaWithJSON<TSchemaOut> // Optional output validation
+  suspendSchema?: StandardSchemaWithJSON<TSuspendSchema> // Suspend payload schema
+  resumeSchema?: StandardSchemaWithJSON<TResumeSchema> // Resume data schema
+  execute?: (inputData: TSchemaIn, context: TContext) => Promise<TSchemaOut>
 }
 ```
 
@@ -299,10 +297,10 @@ graph TB
     Execute["Execute tool function"]
     OutputValidation["Validate against outputSchema"]
     Return["Return result"]
-    
+
     Error1["Throw ValidationError"]
     Error2["Throw ValidationError"]
-    
+
     ToolCall --> ParseArgs
     ParseArgs -->|"Malformed"| JsonRepair
     JsonRepair --> InputValidation
@@ -322,14 +320,15 @@ graph TB
 
 The `validation.ts` module provides type-safe validation functions:
 
-| Function | Purpose | Returns |
-|----------|---------|---------|
-| `validateToolInput()` | Validates args against inputSchema | `{ success: true, data }` or `{ success: false, error }` |
-| `validateToolOutput()` | Validates result against outputSchema | `{ success: true, data }` or `{ success: false, error }` |
-| `validateToolSuspendData()` | Validates suspend payload | `{ success: true, data }` or `{ success: false, error }` |
-| `validateRequestContext()` | Validates request context values | `{ success: true, data }` or `{ success: false, error }` |
+| Function                    | Purpose                               | Returns                                                  |
+| --------------------------- | ------------------------------------- | -------------------------------------------------------- |
+| `validateToolInput()`       | Validates args against inputSchema    | `{ success: true, data }` or `{ success: false, error }` |
+| `validateToolOutput()`      | Validates result against outputSchema | `{ success: true, data }` or `{ success: false, error }` |
+| `validateToolSuspendData()` | Validates suspend payload             | `{ success: true, data }` or `{ success: false, error }` |
+| `validateRequestContext()`  | Validates request context values      | `{ success: true, data }` or `{ success: false, error }` |
 
 Each validation function:
+
 1. Checks if schema is defined
 2. Calls the schema's `~standard.validate()` method
 3. Returns typed success/failure result with detailed error information
@@ -342,15 +341,15 @@ Tools that support suspend/resume automatically get extended input schemas:
 
 ```typescript
 // Original schema
-const originalSchema = z.object({ 
-  filepath: z.string() 
-});
+const originalSchema = z.object({
+  filepath: z.string(),
+})
 
 // Auto-extended schema for suspend-capable tools
 const extendedSchema = originalSchema.extend({
   suspendedToolRunId: z.string().nullable().optional(),
-  resumeData: z.any().optional()
-});
+  resumeData: z.any().optional(),
+})
 ```
 
 This allows the LLM to resume suspended tool executions by passing the `suspendedToolRunId` and `resumeData`.
@@ -369,32 +368,32 @@ This allows the LLM to resume suspended tool executions by passing the `suspende
 graph TB
     Input["Tool Definition"]
     CheckFormat["Check schema format"]
-    
+
     subgraph Zod["Zod Schema Path"]
         Z1["convertZodSchemaToAISDKSchema()"]
     end
-    
+
     subgraph Standard["StandardSchema Path"]
         S1["standardSchemaToJSONSchema()"]
         S2["Wrap in { jsonSchema }"]
     end
-    
+
     subgraph JSON["JSON Schema Path"]
         J1["Wrap in { jsonSchema }"]
     end
-    
+
     subgraph AlreadyAISDK["AI SDK Schema Path"]
         A1["Use as-is"]
     end
-    
+
     Output["AI SDK Schema"]
-    
+
     Input --> CheckFormat
     CheckFormat -->|"Zod"| Z1
     CheckFormat -->|"StandardSchema"| S1
     CheckFormat -->|"JSONSchema7"| J1
     CheckFormat -->|"Has jsonSchema property"| A1
-    
+
     Z1 --> Output
     S1 --> S2
     S2 --> Output
@@ -405,6 +404,7 @@ graph TB
 **Diagram**: Schema format conversion in CoreToolBuilder
 
 The conversion happens at multiple points:
+
 - **Input schema conversion**: [packages/core/src/tools/tool-builder/builder.ts:119-151]()
 - **Output schema conversion**: [packages/core/src/tools/tool-builder/builder.ts:153-170]()
 - **Provider-defined tools**: [packages/core/src/tools/tool-builder/builder.ts:201-290]()
@@ -421,8 +421,8 @@ processedParameters = {
     type: 'object',
     properties: {},
     additionalProperties: false,
-  }
-};
+  },
+}
 ```
 
 This ensures OpenAI compatibility, which requires at minimum `type: "object"` even for parameter-less tools.
@@ -440,7 +440,7 @@ Different LLM providers have varying schema requirements. Mastra applies compati
 ```mermaid
 graph LR
     InputSchema["Input Schema (Zod/JSON)"]
-    
+
     subgraph CompatLayers["Compatibility Layers"]
         OpenAIReasoning["OpenAIReasoningSchemaCompatLayer"]
         OpenAIStrict["OpenAISchemaCompatLayer"]
@@ -449,10 +449,10 @@ graph LR
         DeepSeek["DeepSeekSchemaCompatLayer"]
         Meta["MetaSchemaCompatLayer"]
     end
-    
+
     ApplyCompat["applyCompatLayer()"]
     OutputSchema["Provider-Compatible Schema"]
-    
+
     InputSchema --> ApplyCompat
     OpenAIReasoning --> ApplyCompat
     OpenAIStrict --> ApplyCompat
@@ -471,14 +471,14 @@ graph LR
 
 Each layer checks model information and applies transformations:
 
-| Layer | Provider | Transformations |
-|-------|----------|----------------|
-| `OpenAIReasoningSchemaCompatLayer` | OpenAI reasoning models | Strips unsupported fields for reasoning models |
-| `OpenAISchemaCompatLayer` | OpenAI | Enables strict mode when `supportsStructuredOutputs: true` |
-| `GoogleSchemaCompatLayer` | Google | Adapts schema for Google's specific requirements |
-| `AnthropicSchemaCompatLayer` | Anthropic | Handles Anthropic's tool calling format |
-| `DeepSeekSchemaCompatLayer` | DeepSeek | DeepSeek-specific adaptations |
-| `MetaSchemaCompatLayer` | Meta (Llama) | Meta model requirements |
+| Layer                              | Provider                | Transformations                                            |
+| ---------------------------------- | ----------------------- | ---------------------------------------------------------- |
+| `OpenAIReasoningSchemaCompatLayer` | OpenAI reasoning models | Strips unsupported fields for reasoning models             |
+| `OpenAISchemaCompatLayer`          | OpenAI                  | Enables strict mode when `supportsStructuredOutputs: true` |
+| `GoogleSchemaCompatLayer`          | Google                  | Adapts schema for Google's specific requirements           |
+| `AnthropicSchemaCompatLayer`       | Anthropic               | Handles Anthropic's tool calling format                    |
+| `DeepSeekSchemaCompatLayer`        | DeepSeek                | DeepSeek-specific adaptations                              |
+| `MetaSchemaCompatLayer`            | Meta (Llama)            | Meta model requirements                                    |
 
 The `applyCompatLayer()` function iterates through all layers and applies transformations that match the current model.
 
@@ -509,7 +509,7 @@ graph TB
     Malformed{"Malformed?"}
     JsonRepair["JSON repair utilities"]
     Success["Valid args object"]
-    
+
     ToolCallChunk --> ParseJSON
     ParseJSON --> Malformed
     Malformed -->|"No"| Success
@@ -520,6 +520,7 @@ graph TB
 **Diagram**: JSON repair for tool call arguments
 
 The repair process handles common malformation patterns:
+
 - Incomplete JSON (missing closing braces/brackets)
 - Extra commas
 - Unquoted keys
@@ -551,25 +552,28 @@ This ensures tool execution can proceed even when the LLM's JSON generation is i
 For storing agent configurations, structured output schemas are serialized to JSON Schema:
 
 ```typescript
-type SerializableStructuredOutputOptions<OUTPUT> = 
-  Omit<StructuredOutputOptionsBase<OUTPUT>, 'model'> & {
-    model?: ModelRouterModelId | OpenAICompatibleConfig;
-    schema: JSONSchema7;  // Always JSON Schema for serialization
-  };
+type SerializableStructuredOutputOptions<OUTPUT> = Omit<
+  StructuredOutputOptionsBase<OUTPUT>,
+  'model'
+> & {
+  model?: ModelRouterModelId | OpenAICompatibleConfig
+  schema: JSONSchema7 // Always JSON Schema for serialization
+}
 ```
 
 This allows agent definitions with structured output to be:
+
 - Saved to storage
 - Retrieved and hydrated
 - Transmitted over the network
 - Version controlled
 
 The conversion from Zod/StandardSchema to JSONSchema7 happens via:
+
 ```typescript
-const jsonSchema = standardSchemaToJSONSchema(
-  toStandardSchema(schema), 
-  { io: 'input' }
-);
+const jsonSchema = standardSchemaToJSONSchema(toStandardSchema(schema), {
+  io: 'input',
+})
 ```
 
 **Sources**: [packages/core/src/agent/types.ts:112-116]()
@@ -578,10 +582,10 @@ const jsonSchema = standardSchemaToJSONSchema(
 
 Schema conversion supports an `io` parameter to specify whether the schema describes input or output:
 
-| Direction | Usage | Validation |
-|-----------|-------|------------|
-| `input` | Tool parameters, agent input | More permissive (allows unknown properties) |
-| `output` | Tool results, agent output | Stricter validation |
+| Direction | Usage                        | Validation                                  |
+| --------- | ---------------------------- | ------------------------------------------- |
+| `input`   | Tool parameters, agent input | More permissive (allows unknown properties) |
+| `output`  | Tool results, agent output   | Stricter validation                         |
 
 This distinction ensures appropriate validation strictness at each boundary.
 
@@ -597,15 +601,15 @@ When agents produce structured output, the result is stored in the message conte
 
 ```typescript
 type MastraMessageContent = {
-  format: 2;
-  parts: MastraMessagePart[];
+  format: 2
+  parts: MastraMessagePart[]
   metadata?: {
     structuredOutput?: {
-      schema: JSONSchema7;
-      object: unknown;
-    };
-  };
-};
+      schema: JSONSchema7
+      object: unknown
+    }
+  }
+}
 ```
 
 This preserves both the generated object and its schema for later retrieval and validation.
@@ -619,13 +623,13 @@ The `MastraModelOutput` class provides multiple access patterns for structured o
 ```typescript
 class MastraModelOutput<OUTPUT> {
   // Stream of partial objects as they're generated
-  get objectStream(): AsyncIterable<OUTPUT>;
-  
+  get objectStream(): AsyncIterable<OUTPUT>
+
   // Promise that resolves to complete object
-  get object(): Promise<OUTPUT>;
-  
+  get object(): Promise<OUTPUT>
+
   // Full output including object and metadata
-  async getFullOutput(): Promise<FullOutput<OUTPUT>>;
+  async getFullOutput(): Promise<FullOutput<OUTPUT>>
 }
 ```
 

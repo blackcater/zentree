@@ -13,11 +13,9 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
-This page documents the `AgentSession` class, which serves as the central orchestrator for the coding agent's runtime. It coordinates between the core agent loop ([pi-agent-core](#3)), session persistence ([SessionManager](#4.3)), configuration ([SettingsManager](#4.6)), and the extension system ([Extension System](#4.4)). 
+This page documents the `AgentSession` class, which serves as the central orchestrator for the coding agent's runtime. It coordinates between the core agent loop ([pi-agent-core](#3)), session persistence ([SessionManager](#4.3)), configuration ([SettingsManager](#4.6)), and the extension system ([Extension System](#4.4)).
 
 For information about session persistence and history management, see [Session Management & History Tree](#4.3). For tool execution details, see [Tool Execution & Built-in Tools](#4.5). For extension lifecycle and hooks, see [Extension System](#4.4).
 
@@ -51,7 +49,7 @@ classDiagram
         -Map~string,AgentTool~ _toolRegistry
         -string _baseSystemPrompt
         -AgentSessionEventListener[] _eventListeners
-        
+
         +prompt(text, options) Promise~void~
         +subscribe(listener) Function
         +cycleModel(direction) ModelCycleResult
@@ -68,33 +66,33 @@ classDiagram
         -_checkCompaction(msg) Promise~void~
         -_buildRuntime(opts) void
     }
-    
+
     class Agent {
         <<from pi-agent-core>>
         +AgentState state
         +prompt(message) Promise~void~
         +subscribe(listener) Function
     }
-    
+
     class SessionManager {
         +appendMessage(msg) void
         +appendModelChange(provider, id) void
         +buildSessionContext() SessionContext
         +compact(entries, summary) void
     }
-    
+
     class SettingsManager {
         +getDefaultModel() string
         +getDefaultThinkingLevel() ThinkingLevel
         +getRetrySettings() RetrySettings
     }
-    
+
     class ExtensionRunner {
         +emit(event) Promise~void~
         +getRegisteredCommands() SlashCommandInfo[]
         +getRegisteredTools() ToolDefinition[]
     }
-    
+
     AgentSession --> Agent : wraps
     AgentSession --> SessionManager : persists to
     AgentSession --> SettingsManager : reads config from
@@ -103,17 +101,17 @@ classDiagram
 
 **AgentSession Core Properties**
 
-| Property | Type | Purpose |
-|----------|------|---------|
-| `agent` | `Agent` | Core agent instance from pi-agent-core |
-| `sessionManager` | `SessionManager` | Session persistence and history tree |
-| `settingsManager` | `SettingsManager` | Configuration (global and project) |
-| `modelRegistry` | `ModelRegistry` | API key resolution and model discovery |
-| `resourceLoader` | `ResourceLoader` | Skills, prompts, themes, extensions |
-| `_extensionRunner` | `ExtensionRunner?` | Extension lifecycle and event dispatch |
-| `_toolRegistry` | `Map<string, AgentTool>` | Active tools available to the LLM |
-| `_baseSystemPrompt` | `string` | System prompt before extension modifications |
-| `_eventListeners` | `AgentSessionEventListener[]` | Subscribers to session events |
+| Property            | Type                          | Purpose                                      |
+| ------------------- | ----------------------------- | -------------------------------------------- |
+| `agent`             | `Agent`                       | Core agent instance from pi-agent-core       |
+| `sessionManager`    | `SessionManager`              | Session persistence and history tree         |
+| `settingsManager`   | `SettingsManager`             | Configuration (global and project)           |
+| `modelRegistry`     | `ModelRegistry`               | API key resolution and model discovery       |
+| `resourceLoader`    | `ResourceLoader`              | Skills, prompts, themes, extensions          |
+| `_extensionRunner`  | `ExtensionRunner?`            | Extension lifecycle and event dispatch       |
+| `_toolRegistry`     | `Map<string, AgentTool>`      | Active tools available to the LLM            |
+| `_baseSystemPrompt` | `string`                      | System prompt before extension modifications |
+| `_eventListeners`   | `AgentSessionEventListener[]` | Subscribers to session events                |
 
 **Sources:** [packages/coding-agent/src/core/agent-session.ts:213-276]()
 
@@ -130,23 +128,23 @@ flowchart TB
     Init --> Settings["Create/load SettingsManager<br/>SessionManager<br/>ModelRegistry"]
     Settings --> Resources["Create ResourceLoader<br/>resourceLoader.reload()"]
     Resources --> CheckSession{"Existing<br/>session data?"}
-    
+
     CheckSession -->|Yes| Restore["Restore model from<br/>session context"]
     CheckSession -->|No| FindModel["findInitialModel()<br/>(settings default or provider default)"]
     Restore --> FindModel
-    
+
     FindModel --> ThinkingLevel["Determine thinking level<br/>(session > settings > DEFAULT_THINKING_LEVEL)"]
     ThinkingLevel --> Clamp["Clamp thinking level<br/>to model capabilities"]
     Clamp --> CreateAgent["new Agent(initialState,<br/>convertToLlm,<br/>getApiKey callback)"]
     CreateAgent --> RestoreMessages{"Existing<br/>messages?"}
-    
+
     RestoreMessages -->|Yes| ReplayMessages["agent.replaceMessages(<br/>session.messages)"]
     RestoreMessages -->|No| InitSession["sessionManager.appendModelChange()<br/>sessionManager.appendThinkingLevelChange()"]
     ReplayMessages --> InitSession
-    
+
     InitSession --> CreateSession["new AgentSession(config)"]
     CreateSession --> Return["Return {session,<br/>extensionsResult,<br/>modelFallbackMessage}"]
-    
+
     style CreateAgent fill:#f9f9f9
     style CreateSession fill:#f9f9f9
 ```
@@ -170,21 +168,22 @@ The `AgentSession` constructor accepts a configuration object:
 
 ```typescript
 interface AgentSessionConfig {
-  agent: Agent;
-  sessionManager: SessionManager;
-  settingsManager: SettingsManager;
-  cwd: string;
-  scopedModels?: Array<{ model: Model<any>; thinkingLevel?: ThinkingLevel }>;
-  resourceLoader: ResourceLoader;
-  customTools?: ToolDefinition[];
-  modelRegistry: ModelRegistry;
-  initialActiveToolNames?: string[];
-  baseToolsOverride?: Record<string, AgentTool>;
-  extensionRunnerRef?: { current?: ExtensionRunner };
+  agent: Agent
+  sessionManager: SessionManager
+  settingsManager: SettingsManager
+  cwd: string
+  scopedModels?: Array<{ model: Model<any>; thinkingLevel?: ThinkingLevel }>
+  resourceLoader: ResourceLoader
+  customTools?: ToolDefinition[]
+  modelRegistry: ModelRegistry
+  initialActiveToolNames?: string[]
+  baseToolsOverride?: Record<string, AgentTool>
+  extensionRunnerRef?: { current?: ExtensionRunner }
 }
 ```
 
 The constructor immediately:
+
 1. Subscribes to agent events via `this.agent.subscribe(this._handleAgentEvent)`
 2. Calls `this._buildRuntime()` to initialize tools and system prompt
 
@@ -198,39 +197,39 @@ stateDiagram-v2
     Created --> RuntimeBuilt: _buildRuntime()
     RuntimeBuilt --> ExtensionsBound: initExtensions()
     ExtensionsBound --> Ready: Event subscription active
-    
+
     Ready --> Prompting: prompt(message)
     Prompting --> AgentLoop: Agent processes message
     AgentLoop --> ToolExecution: LLM requests tools
     ToolExecution --> AgentLoop: Tool results
     AgentLoop --> AssistantResponse: LLM response complete
     AssistantResponse --> Persistence: SessionManager.appendMessage()
-    
+
     Persistence --> CheckCompaction: agent_end event
     CheckCompaction --> AutoCompaction: Context exceeds threshold
     CheckCompaction --> Ready: Below threshold
     AutoCompaction --> Ready: Compaction complete
-    
+
     AssistantResponse --> AutoRetry: stopReason: error
     AutoRetry --> Prompting: Retry with backoff
     AutoRetry --> Ready: Max retries exceeded
-    
+
     Ready --> [*]: dispose()
 ```
 
 **Phase Descriptions:**
 
-| Phase | Trigger | Actions |
-|-------|---------|---------|
-| **Created** | `new AgentSession()` | Agent event subscription, store config |
-| **RuntimeBuilt** | Constructor calls `_buildRuntime()` | Build tool registry, system prompt, wrap tools |
-| **ExtensionsBound** | `initExtensions()` called by mode | Load extensions, bind UI/command context, register tools |
-| **Ready** | After binding complete | Waiting for `prompt()` calls |
-| **Prompting** | `prompt(message)` called | Pre-process message, emit `before_agent_start`, call `agent.prompt()` |
-| **AgentLoop** | Agent streaming begins | Emit `message_start`, `message_update`, `tool_execution_*` events |
-| **Persistence** | `message_end` event | Write message to session file via `SessionManager` |
-| **CheckCompaction** | `agent_end` event | Check context usage vs thresholds |
-| **AutoRetry** | `stopReason: "error"` | Exponential backoff retry for retryable errors |
+| Phase               | Trigger                             | Actions                                                               |
+| ------------------- | ----------------------------------- | --------------------------------------------------------------------- |
+| **Created**         | `new AgentSession()`                | Agent event subscription, store config                                |
+| **RuntimeBuilt**    | Constructor calls `_buildRuntime()` | Build tool registry, system prompt, wrap tools                        |
+| **ExtensionsBound** | `initExtensions()` called by mode   | Load extensions, bind UI/command context, register tools              |
+| **Ready**           | After binding complete              | Waiting for `prompt()` calls                                          |
+| **Prompting**       | `prompt(message)` called            | Pre-process message, emit `before_agent_start`, call `agent.prompt()` |
+| **AgentLoop**       | Agent streaming begins              | Emit `message_start`, `message_update`, `tool_execution_*` events     |
+| **Persistence**     | `message_end` event                 | Write message to session file via `SessionManager`                    |
+| **CheckCompaction** | `agent_end` event                   | Check context usage vs thresholds                                     |
+| **AutoRetry**       | `stopReason: "error"`               | Exponential backoff retry for retryable errors                        |
 
 **Sources:** [packages/coding-agent/src/core/agent-session.ts:291-299](), [packages/coding-agent/src/core/agent-session.ts:914-955](), [packages/coding-agent/src/core/agent-session.ts:320-452]()
 
@@ -242,27 +241,44 @@ stateDiagram-v2
 
 ```typescript
 type AgentSessionEvent =
-  | AgentEvent  // Core events from pi-agent-core
-  | { type: "auto_compaction_start"; reason: "threshold" | "overflow" }
-  | { type: "auto_compaction_end"; result?: CompactionResult; aborted: boolean; willRetry: boolean; errorMessage?: string }
-  | { type: "auto_retry_start"; attempt: number; maxAttempts: number; delayMs: number; errorMessage: string }
-  | { type: "auto_retry_end"; success: boolean; attempt: number; finalError?: string }
+  | AgentEvent // Core events from pi-agent-core
+  | { type: 'auto_compaction_start'; reason: 'threshold' | 'overflow' }
+  | {
+      type: 'auto_compaction_end'
+      result?: CompactionResult
+      aborted: boolean
+      willRetry: boolean
+      errorMessage?: string
+    }
+  | {
+      type: 'auto_retry_start'
+      attempt: number
+      maxAttempts: number
+      delayMs: number
+      errorMessage: string
+    }
+  | {
+      type: 'auto_retry_end'
+      success: boolean
+      attempt: number
+      finalError?: string
+    }
 ```
 
 **Core Agent Events** (forwarded from `Agent`):
 
-| Event Type | When Emitted | Payload |
-|------------|--------------|---------|
-| `agent_start` | Agent begins processing | `{ messages: AgentMessage[] }` |
-| `agent_end` | Agent completes processing | `{ messages: AgentMessage[] }` |
-| `message_start` | New message begins streaming | `{ message: AgentMessage }` |
-| `message_update` | Message content updates | `{ message: AgentMessage; delta: string }` |
-| `message_end` | Message complete | `{ message: AgentMessage }` |
-| `tool_execution_start` | Tool execution begins | `{ toolCall: ToolCall; tool: AgentTool }` |
-| `tool_execution_update` | Tool emits progress update | `{ toolCall: ToolCall; update: string }` |
-| `tool_execution_end` | Tool execution completes | `{ toolCall: ToolCall; result: AgentToolResult }` |
-| `turn_start` | New conversation turn begins | `{ turnIndex: number }` |
-| `turn_end` | Conversation turn completes | `{ turnIndex: number }` |
+| Event Type              | When Emitted                 | Payload                                           |
+| ----------------------- | ---------------------------- | ------------------------------------------------- |
+| `agent_start`           | Agent begins processing      | `{ messages: AgentMessage[] }`                    |
+| `agent_end`             | Agent completes processing   | `{ messages: AgentMessage[] }`                    |
+| `message_start`         | New message begins streaming | `{ message: AgentMessage }`                       |
+| `message_update`        | Message content updates      | `{ message: AgentMessage; delta: string }`        |
+| `message_end`           | Message complete             | `{ message: AgentMessage }`                       |
+| `tool_execution_start`  | Tool execution begins        | `{ toolCall: ToolCall; tool: AgentTool }`         |
+| `tool_execution_update` | Tool emits progress update   | `{ toolCall: ToolCall; update: string }`          |
+| `tool_execution_end`    | Tool execution completes     | `{ toolCall: ToolCall; result: AgentToolResult }` |
+| `turn_start`            | New conversation turn begins | `{ turnIndex: number }`                           |
+| `turn_end`              | Conversation turn completes  | `{ turnIndex: number }`                           |
 
 **Sources:** [packages/coding-agent/src/core/agent-session.ts:112-126]()
 
@@ -275,29 +291,29 @@ sequenceDiagram
     participant Agent as "Agent<br/>(pi-agent-core)"
     participant Extensions as "ExtensionRunner"
     participant SessionMgr as "SessionManager"
-    
+
     Mode->>Session: subscribe(listener)
     Note over Session: Store listener in _eventListeners
-    
+
     Mode->>Session: prompt(message)
     Session->>Extensions: emit('before_agent_start')
     Extensions-->>Session: Modified message/system prompt
     Session->>Agent: prompt(modified message)
-    
+
     Agent->>Session: emit('agent_start')
     Session->>Session: _handleAgentEvent()
     Session->>Extensions: emit('agent_start')
     Session->>Mode: listener({ type: 'agent_start' })
-    
+
     Agent->>Session: emit('message_start')
     Session->>Session: Queue in _agentEventQueue
     Session->>Extensions: emit('message_start')
     Session->>Mode: listener({ type: 'message_start' })
-    
+
     Agent->>Session: emit('message_update')
     Session->>Extensions: emit('message_update')
     Session->>Mode: listener({ type: 'message_update' })
-    
+
     Agent->>Session: emit('message_end')
     Session->>Session: Check message role
     alt User/Assistant/ToolResult
@@ -307,7 +323,7 @@ sequenceDiagram
     end
     Session->>Extensions: emit('message_end')
     Session->>Mode: listener({ type: 'message_end' })
-    
+
     Agent->>Session: emit('agent_end')
     Session->>Session: _checkCompaction(lastAssistant)
     alt Context overflow
@@ -336,19 +352,19 @@ graph TB
     subgraph "AgentSession Orchestration Layer"
         Session["AgentSession"]
     end
-    
+
     subgraph "Core Agent Runtime"
         Agent["Agent<br/>(pi-agent-core)"]
         AgentState["AgentState<br/>{messages, model,<br/>thinkingLevel, tools}"]
         Agent --> AgentState
     end
-    
+
     subgraph "Persistence Layer"
         SessionMgr["SessionManager"]
         SessionFile["context.jsonl<br/>(session file)"]
         SessionMgr --> SessionFile
     end
-    
+
     subgraph "Configuration Layer"
         SettingsMgr["SettingsManager"]
         GlobalSettings["~/.pi/agent/settings.json"]
@@ -356,7 +372,7 @@ graph TB
         SettingsMgr --> GlobalSettings
         SettingsMgr --> ProjectSettings
     end
-    
+
     subgraph "Resource Layer"
         ResourceLoader["ResourceLoader"]
         Skills["Skills<br/>(SKILL.md files)"]
@@ -368,7 +384,7 @@ graph TB
         ResourceLoader --> Extensions
         ResourceLoader --> ContextFiles
     end
-    
+
     subgraph "Extension Layer"
         ExtRunner["ExtensionRunner"]
         ExtTools["Extension Tools"]
@@ -378,7 +394,7 @@ graph TB
         ExtRunner --> ExtCommands
         ExtRunner --> ExtHooks
     end
-    
+
     subgraph "Model Layer"
         ModelReg["ModelRegistry"]
         AuthStorage["AuthStorage"]
@@ -386,14 +402,14 @@ graph TB
         ModelReg --> AuthStorage
         ModelReg --> ModelsJson
     end
-    
+
     Session --> Agent
     Session --> SessionMgr
     Session --> SettingsMgr
     Session --> ResourceLoader
     Session --> ExtRunner
     Session --> ModelReg
-    
+
     Session -.reads model/thinking level.-> SettingsMgr
     Session -.loads skills/prompts.-> ResourceLoader
     Session -.emits events to.-> ExtRunner
@@ -407,14 +423,14 @@ graph TB
 
 **Orchestration Responsibilities:**
 
-| Component | AgentSession's Role |
-|-----------|---------------------|
-| **Agent** | Wraps instance, subscribes to events, delegates prompt calls |
-| **SessionManager** | Persists messages, model changes, thinking level changes, compaction entries |
-| **SettingsManager** | Reads defaults, retry settings, tool toggles, compaction thresholds |
-| **ResourceLoader** | Loads skills, prompts, extensions, context files for system prompt |
+| Component           | AgentSession's Role                                                          |
+| ------------------- | ---------------------------------------------------------------------------- |
+| **Agent**           | Wraps instance, subscribes to events, delegates prompt calls                 |
+| **SessionManager**  | Persists messages, model changes, thinking level changes, compaction entries |
+| **SettingsManager** | Reads defaults, retry settings, tool toggles, compaction thresholds          |
+| **ResourceLoader**  | Loads skills, prompts, extensions, context files for system prompt           |
 | **ExtensionRunner** | Binds after initialization, emits events, collects registered tools/commands |
-| **ModelRegistry** | Resolves API keys dynamically via `getApiKey` callback to Agent |
+| **ModelRegistry**   | Resolves API keys dynamically via `getApiKey` callback to Agent              |
 
 **Sources:** [packages/coding-agent/src/core/agent-session.ts:213-276](), [packages/coding-agent/src/core/agent-session.ts:1092-1202]()
 
@@ -429,16 +445,16 @@ flowchart LR
     Base["Base Tools<br/>(read, bash, edit, write)"]
     Custom["SDK Custom Tools<br/>(customTools option)"]
     ExtReg["Extension Registered Tools<br/>(registerTool())"]
-    
+
     Base --> Wrap["wrapRegisteredTools()"]
     Custom --> Wrap
     ExtReg --> Wrap
-    
+
     Wrap --> Filter["Filter by activeToolNames"]
     Filter --> ExtWrap["wrapToolsWithExtensions()<br/>(apply tool hooks)"]
     ExtWrap --> Registry["_toolRegistry<br/>Map&lt;string, AgentTool&gt;"]
     Registry --> AgentState["agent.state.tools"]
-    
+
     ExtReg -.runtime.-> Refresh["refreshTools()<br/>(dynamic tool registration)"]
     Refresh --> Filter
 ```
@@ -470,15 +486,15 @@ flowchart TB
     Start --> Skills["Load skills from ResourceLoader"]
     Start --> Context["Load context files from ResourceLoader"]
     Start --> Base["Load base system prompt<br/>(skills-based or docs/base-system-prompt.md)"]
-    
+
     Skills --> SkillsBlock["Build Available Skills section<br/>(name, description, file path)"]
     Context --> ContextBlock["Build Context Files section<br/>(file paths)"]
     Base --> BasePrompt["Base instructions"]
-    
+
     SkillsBlock --> Concat["Concatenate all sections"]
     ContextBlock --> Concat
     BasePrompt --> Concat
-    
+
     Concat --> Cache["Cache as _baseSystemPrompt"]
     Cache --> ExtAppends["Apply extension appends<br/>(promptSnippet, promptGuidelines)"]
     ExtAppends --> Final["Return final system prompt"]
@@ -506,7 +522,7 @@ sequenceDiagram
     participant Agent as "Agent"
     participant LLM as "LLM Provider"
     participant SessionMgr as "SessionManager"
-    
+
     Caller->>Session: prompt(text, options)
     Note over Session: expandPromptTemplates<br/>if enabled
     Session->>Session: buildSystemPrompt()
@@ -514,14 +530,14 @@ sequenceDiagram
     Note over Ext: Extensions can modify<br/>message, systemPrompt,<br/>attachments
     Ext-->>Session: { message?, systemPrompt?, images? }
     Session->>Agent: prompt(final message)
-    
+
     loop Agent Loop
         Agent->>Agent: Build LLM messages<br/>via convertToLlm()
         Agent->>LLM: Stream request
         LLM-->>Agent: Stream response
         Agent->>Session: emit('message_update')<br/>{ delta: ... }
         Session->>Caller: Forward event
-        
+
         alt Tool Call
             Agent->>Session: emit('tool_execution_start')
             Session->>Ext: emit('tool_execution_start')<br/>(can block via {block: true})
@@ -532,11 +548,11 @@ sequenceDiagram
             end
         end
     end
-    
+
     Agent->>Session: emit('message_end')
     Session->>SessionMgr: appendMessage(message)
     SessionMgr->>SessionMgr: Write to context.jsonl
-    
+
     Agent->>Session: emit('agent_end')
     Session->>Session: _checkCompaction()
     alt Context overflow
@@ -566,33 +582,33 @@ flowchart TD
     AgentEnd --> CheckLast{"Last message<br/>was assistant?"}
     CheckLast -->|No| Skip["Skip compaction check"]
     CheckLast -->|Yes| CheckUsage["Calculate context usage<br/>from lastAssistantMessage"]
-    
+
     CheckUsage --> CheckEnabled{"autoCompactionEnabled<br/>in settings?"}
     CheckEnabled -->|No| Skip
     CheckEnabled -->|Yes| CheckThreshold{"Usage > threshold<br/>OR context overflow?"}
-    
+
     CheckThreshold -->|No| Skip
     CheckThreshold -->|Yes| EmitStart["Emit auto_compaction_start<br/>{reason: 'threshold' | 'overflow'}"]
-    
+
     EmitStart --> CreateAbort["Create _autoCompactionAbortController"]
     CreateAbort --> RunCompaction["_runAutoCompaction()"]
-    
+
     RunCompaction --> PrepareEntries["prepareCompaction()<br/>(select messages to summarize)"]
     PrepareEntries --> CallLLM["compact()<br/>(call LLM with summarization prompt)"]
     CallLLM --> WriteEntry["SessionManager.compact()<br/>(write compaction entry, rebuild session)"]
-    
+
     WriteEntry --> CheckQueuedMsgs{"Queued steering/<br/>follow-up messages?"}
     CheckQueuedMsgs -->|Yes| ResumeAgent["agent.continue()"]
     CheckQueuedMsgs -->|No| EmitEnd["Emit auto_compaction_end<br/>{result, aborted: false}"]
-    
+
     ResumeAgent --> EmitEnd
-    
+
     CallLLM -->|Error: Overflow| MarkOverflow["Set _overflowRecoveryAttempted = true"]
     MarkOverflow --> EmitEndRetry["Emit auto_compaction_end<br/>{aborted: false, willRetry: true}"]
     EmitEndRetry --> RetryPrompt["agent.prompt(original message)"]
-    
+
     CallLLM -->|Other Error| EmitEndError["Emit auto_compaction_end<br/>{aborted: false, willRetry: false, errorMessage}"]
-    
+
     style RunCompaction fill:#f9f9f9
     style WriteEntry fill:#f9f9f9
 ```
@@ -600,6 +616,7 @@ flowchart TD
 **Threshold Calculation:**
 
 Auto-compaction triggers when:
+
 - `(usageTokens / maxContextTokens) >= autoCompactThreshold` (default 0.80)
 - OR context overflow error from LLM provider
 
@@ -626,10 +643,10 @@ stateDiagram-v2
     CheckRetryable --> IsRetryable: stopReason: "error" AND<br/>errorMessage matches patterns
     IsRetryable --> CheckAttempts: Is retryable error
     CheckRetryable --> [*]: Not retryable
-    
+
     CheckAttempts --> StartRetry: attempt < maxAttempts
     CheckAttempts --> [*]: Max attempts exceeded
-    
+
     StartRetry --> EmitRetryStart: Emit auto_retry_start<br/>{attempt, delayMs}
     EmitRetryStart --> Sleep: await sleep(delayMs)
     Sleep --> RemoveError: Remove error assistant message
@@ -646,13 +663,13 @@ stateDiagram-v2
 
 **Retry Configuration** (from `SettingsManager.getRetrySettings()`):
 
-| Setting | Default | Purpose |
-|---------|---------|---------|
-| `enabled` | `true` | Enable/disable auto-retry |
-| `maxAttempts` | `3` | Maximum retry attempts |
-| `initialDelayMs` | `1000` | Base delay for exponential backoff |
-| `maxDelayMs` | `60000` | Cap on retry delay |
-| `backoffMultiplier` | `2` | Multiplier for each retry |
+| Setting             | Default | Purpose                            |
+| ------------------- | ------- | ---------------------------------- |
+| `enabled`           | `true`  | Enable/disable auto-retry          |
+| `maxAttempts`       | `3`     | Maximum retry attempts             |
+| `initialDelayMs`    | `1000`  | Base delay for exponential backoff |
+| `maxDelayMs`        | `60000` | Cap on retry delay                 |
+| `backoffMultiplier` | `2`     | Multiplier for each retry          |
 
 **Retry Flow:**
 
@@ -675,28 +692,28 @@ sequenceDiagram
     participant Session as "AgentSession"
     participant Runner as "ExtensionRunner"
     participant Extension as "Extension"
-    
+
     Mode->>Session: new AgentSession(config)
     Note over Session: extensionRunnerRef stored
-    
+
     Mode->>Session: initExtensions(loader, bindings)
     Session->>Runner: new ExtensionRunner(extensions)
     Note over Runner: Load extension files,<br/>call factory functions
-    
+
     Session->>Runner: bindCore(actions, contextActions)
     Note over Runner: Populate runtime with<br/>session methods
-    
+
     Session->>Session: extensionRunnerRef.current = runner
     Session->>Session: refreshTools()<br/>(register extension tools)
     Session->>Runner: emit('session_start')
     Runner->>Extension: session_start handler
-    
+
     Mode->>Session: prompt(message)
     Session->>Runner: emit('before_agent_start')
     Runner->>Extension: Handler returns<br/>{message?, systemPrompt?}
     Extension-->>Runner: Modified values
     Runner-->>Session: Merged result
-    
+
     Session->>Agent: prompt(modified message)
     Note over Agent: LLM requests tool
     Session->>Runner: emit('tool_execution_start')
@@ -722,11 +739,11 @@ sequenceDiagram
 Extensions access session functionality via the `ExtensionAPI` passed to their factory function:
 
 ```typescript
-pi.sendMessage(text)           // Queue a custom message for next turn
-pi.sendUserMessage(text)       // Send user message immediately
-pi.newSession()                // Create a new session
-pi.getAllTools()               // Get active tool list
-pi.registerTool(definition)    // Register a custom tool
+pi.sendMessage(text) // Queue a custom message for next turn
+pi.sendUserMessage(text) // Send user message immediately
+pi.newSession() // Create a new session
+pi.getAllTools() // Get active tool list
+pi.registerTool(definition) // Register a custom tool
 pi.registerCommand(definition) // Register a slash command
 ```
 

@@ -17,8 +17,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes AionUi's scheduled tasks system, which enables automated, unattended execution of AI agent interactions at specified times. The system allows users to configure recurring tasks that automatically send messages to specific conversations, enabling 24/7 autonomous operation without manual intervention.
@@ -33,13 +31,13 @@ The scheduled tasks feature transforms AionUi from a manual interaction tool int
 
 **Key Characteristics:**
 
-| Property | Description |
-|----------|-------------|
-| **Scheduling** | Cron expression-based with support for standard patterns (daily, weekly, monthly, custom) |
-| **Execution Context** | Fully bound to conversation - inherits all conversation settings, workspace, and history |
-| **Lifecycle** | Created, modified, enabled/disabled, deleted through UI or API |
-| **Persistence** | Task definitions stored in configuration; execution history in conversation messages |
-| **Timing** | Runs in main process; survives application restarts if enabled |
+| Property              | Description                                                                               |
+| --------------------- | ----------------------------------------------------------------------------------------- |
+| **Scheduling**        | Cron expression-based with support for standard patterns (daily, weekly, monthly, custom) |
+| **Execution Context** | Fully bound to conversation - inherits all conversation settings, workspace, and history  |
+| **Lifecycle**         | Created, modified, enabled/disabled, deleted through UI or API                            |
+| **Persistence**       | Task definitions stored in configuration; execution history in conversation messages      |
+| **Timing**            | Runs in main process; survives application restarts if enabled                            |
 
 Sources: [readme.md:206-235](), architecture diagrams
 
@@ -53,7 +51,7 @@ graph TB
         SETTINGS["Settings UI<br/>Scheduled Tasks Panel"]
         CONVUI["Conversation View<br/>Shows task execution messages"]
     end
-    
+
     subgraph "IPC Bridge Layer"
         IPC["ipcBridge"]
         IPC_CREATE["scheduledTask.create"]
@@ -61,64 +59,64 @@ graph TB
         IPC_DELETE["scheduledTask.delete"]
         IPC_LIST["scheduledTask.list"]
         IPC_TOGGLE["scheduledTask.toggle"]
-        
+
         EMIT_EXEC["Event: task.executed"]
         EMIT_ERROR["Event: task.error"]
     end
-    
+
     subgraph "Main Process - Scheduler Core"
         SCHEDULER["CronScheduler<br/>Main scheduler instance"]
         TASKSTORE["TaskStore<br/>In-memory task registry"]
         CRONENGINE["Cron Engine<br/>node-cron or similar"]
-        
+
         SCHEDULER --> TASKSTORE
         SCHEDULER --> CRONENGINE
     end
-    
+
     subgraph "Configuration Layer"
         CONFIG["ConfigStorage<br/>scheduledTasks[]"]
         TASKDEF["IScheduledTask<br/>id, conversationId, cronExpression<br/>message, enabled, metadata"]
     end
-    
+
     subgraph "Execution Layer"
         EXECUTOR["TaskExecutor<br/>Executes scheduled tasks"]
         MSGINJECTOR["Message Injector<br/>Sends message to conversation"]
-        
+
         EXECUTOR --> MSGINJECTOR
     end
-    
+
     subgraph "Conversation & Agent System"
         CONVMGR["ConversationManager<br/>Manages active conversations"]
         AGENT["Agent Instances<br/>GeminiAgent, AcpAgent, etc"]
         DB[("SQLite Database<br/>conversations, messages")]
-        
+
         CONVMGR --> AGENT
         AGENT --> DB
     end
-    
+
     SETTINGS -->|invoke| IPC_CREATE
     SETTINGS -->|invoke| IPC_UPDATE
     SETTINGS -->|invoke| IPC_LIST
-    
+
     IPC_CREATE --> SCHEDULER
     IPC_UPDATE --> SCHEDULER
     IPC_DELETE --> SCHEDULER
     IPC_LIST --> TASKSTORE
     IPC_TOGGLE --> SCHEDULER
-    
+
     SCHEDULER -->|loads from| CONFIG
     SCHEDULER -->|persists to| CONFIG
     TASKSTORE -->|stores| TASKDEF
-    
+
     CRONENGINE -->|triggers| EXECUTOR
     EXECUTOR -->|reads| TASKSTORE
-    
+
     MSGINJECTOR -->|sends message via| CONVMGR
     MSGINJECTOR -->|streams response to| CONVUI
-    
+
     EXECUTOR -->|emits| EMIT_EXEC
     EXECUTOR -->|emits| EMIT_ERROR
-    
+
     style SCHEDULER fill:#e8f5e9
     style CONFIG fill:#f3e5f5
     style EXECUTOR fill:#fff4e6
@@ -152,25 +150,25 @@ graph LR
         ENABLED["enabled: boolean<br/>Active state"]
         META["metadata<br/>created, modified, lastRun"]
     end
-    
+
     subgraph "Cron Expression Examples"
         DAILY["'0 9 * * *'<br/>Daily at 9 AM"]
         WEEKLY["'0 9 * * 1'<br/>Every Monday at 9 AM"]
         MONTHLY["'0 9 1 * *'<br/>1st of month at 9 AM"]
         CUSTOM["'*/15 * * * *'<br/>Every 15 minutes"]
     end
-    
+
     subgraph "Configuration Storage"
         CFGOBJ["agent.config<br/>scheduledTasks: IScheduledTask[]"]
     end
-    
+
     ID --> CFGOBJ
     CONVID --> CFGOBJ
     CRON --> CFGOBJ
     MSG --> CFGOBJ
     ENABLED --> CFGOBJ
     META --> CFGOBJ
-    
+
     CRON -.example.-> DAILY
     CRON -.example.-> WEEKLY
     CRON -.example.-> MONTHLY
@@ -179,16 +177,16 @@ graph LR
 
 **Task Properties:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | `string` | UUID or generated unique identifier |
-| `conversationId` | `string` | Reference to target conversation; must exist |
-| `cronExpression` | `string` | Standard cron syntax (minute hour day month weekday) |
-| `message` | `string` | The prompt/message to send to the agent |
-| `enabled` | `boolean` | Whether task is active; disabled tasks are skipped |
-| `metadata` | `object` | Contains `createdAt`, `modifiedAt`, `lastRun`, `nextRun` timestamps |
-| `name` | `string` (optional) | User-friendly task name |
-| `description` | `string` (optional) | Task purpose description |
+| Field            | Type                | Description                                                         |
+| ---------------- | ------------------- | ------------------------------------------------------------------- |
+| `id`             | `string`            | UUID or generated unique identifier                                 |
+| `conversationId` | `string`            | Reference to target conversation; must exist                        |
+| `cronExpression` | `string`            | Standard cron syntax (minute hour day month weekday)                |
+| `message`        | `string`            | The prompt/message to send to the agent                             |
+| `enabled`        | `boolean`           | Whether task is active; disabled tasks are skipped                  |
+| `metadata`       | `object`            | Contains `createdAt`, `modifiedAt`, `lastRun`, `nextRun` timestamps |
+| `name`           | `string` (optional) | User-friendly task name                                             |
+| `description`    | `string` (optional) | Task purpose description                                            |
 
 Sources: [readme.md:220-235](), architecture context
 
@@ -210,16 +208,16 @@ AionUi uses standard cron expression syntax with five time fields:
 
 ### Common Patterns
 
-| Pattern | Expression | Description |
-|---------|-----------|-------------|
-| Every minute | `* * * * *` | Runs every minute (use sparingly) |
-| Every 15 minutes | `*/15 * * * *` | Runs at :00, :15, :30, :45 |
-| Hourly | `0 * * * *` | Runs at the start of every hour |
-| Daily at 9 AM | `0 9 * * *` | Runs once per day at 9:00 AM |
-| Weekdays at 9 AM | `0 9 * * 1-5` | Monday through Friday at 9 AM |
-| Weekly (Monday 9 AM) | `0 9 * * 1` | Every Monday at 9 AM |
-| Monthly (1st at 9 AM) | `0 9 1 * *` | First day of each month at 9 AM |
-| Quarterly | `0 9 1 */3 *` | First day of Jan, Apr, Jul, Oct at 9 AM |
+| Pattern               | Expression     | Description                             |
+| --------------------- | -------------- | --------------------------------------- |
+| Every minute          | `* * * * *`    | Runs every minute (use sparingly)       |
+| Every 15 minutes      | `*/15 * * * *` | Runs at :00, :15, :30, :45              |
+| Hourly                | `0 * * * *`    | Runs at the start of every hour         |
+| Daily at 9 AM         | `0 9 * * *`    | Runs once per day at 9:00 AM            |
+| Weekdays at 9 AM      | `0 9 * * 1-5`  | Monday through Friday at 9 AM           |
+| Weekly (Monday 9 AM)  | `0 9 * * 1`    | Every Monday at 9 AM                    |
+| Monthly (1st at 9 AM) | `0 9 1 * *`    | First day of each month at 9 AM         |
+| Quarterly             | `0 9 1 */3 *`  | First day of Jan, Apr, Jul, Oct at 9 AM |
 
 ### Special Characters
 
@@ -238,38 +236,38 @@ Sources: Standard cron specification, [readme.md:211-213]()
 stateDiagram-v2
     [*] --> Created: User creates task
     Created --> Validated: Validate cron expression<br/>and conversation exists
-    
+
     Validated --> Disabled: enabled=false
     Validated --> Scheduled: enabled=true
-    
+
     Disabled --> Scheduled: User enables task
     Scheduled --> Disabled: User disables task
-    
+
     Scheduled --> PendingExecution: Cron trigger fires
     PendingExecution --> Executing: Lock acquired
     PendingExecution --> Scheduled: Lock failed (skip)
-    
+
     Executing --> MessageSent: Send message to conversation
     MessageSent --> AgentProcessing: Agent receives message
     AgentProcessing --> Completed: Response streamed
     AgentProcessing --> Failed: Execution error
-    
+
     Completed --> Scheduled: Record lastRun, wait for next
     Failed --> Scheduled: Record error, wait for next
-    
+
     Scheduled --> Modified: User updates task
     Modified --> Validated: Re-validate
-    
+
     Disabled --> Deleted: User deletes task
     Scheduled --> Deleted: User deletes task
     Deleted --> [*]
-    
+
     note right of Scheduled
         Task stays in memory
         CronJob registered with engine
         Waits for next trigger
     end note
-    
+
     note right of Executing
         Prevents concurrent executions
         Uses conversation lock
@@ -302,7 +300,7 @@ graph TB
     subgraph "Task Definition"
         TASK["ScheduledTask<br/>conversationId: 'conv-123'<br/>message: 'Generate daily report'"]
     end
-    
+
     subgraph "Conversation Context"
         CONV["TChatConversation<br/>id: 'conv-123'"]
         TYPE["type: 'gemini' | 'acp' | 'codex'"]
@@ -311,26 +309,26 @@ graph TB
         SETTINGS["Conversation Settings<br/>model, temperature, etc"]
         SKILLS["Enabled Skills<br/>pptx, xlsx, etc"]
     end
-    
+
     subgraph "Task Execution"
         EXEC["TaskExecutor"]
         INJECT["Message Injector"]
         AGENT["Agent Instance<br/>GeminiAgent / AcpAgent / etc"]
     end
-    
+
     TASK -->|references| CONV
-    
+
     CONV --> TYPE
     CONV --> WORKSPACE
     CONV --> HISTORY
     CONV --> SETTINGS
     CONV --> SKILLS
-    
+
     TASK --> EXEC
     EXEC --> INJECT
     INJECT -->|loads context| CONV
     INJECT -->|sends to| AGENT
-    
+
     AGENT -->|uses| WORKSPACE
     AGENT -->|reads| HISTORY
     AGENT -->|applies| SETTINGS
@@ -339,14 +337,14 @@ graph TB
 
 **Inherited Context Elements:**
 
-| Element | Description | Impact on Task Execution |
-|---------|-------------|-------------------------|
-| **Agent Type** | `gemini`, `acp`, `codex`, etc. | Determines which agent processes the task message |
-| **Workspace** | File system directory | Task can access/modify files in workspace |
-| **Message History** | All previous messages | Agent has full context of prior interactions |
-| **Model Configuration** | API keys, model selection | Uses same model as manual interactions |
-| **Skills** | Enabled skill set | Task can use PPTX generation, Excel processing, etc. |
-| **System Prompt** | Assistant personality | Maintains consistent agent behavior |
+| Element                 | Description                    | Impact on Task Execution                             |
+| ----------------------- | ------------------------------ | ---------------------------------------------------- |
+| **Agent Type**          | `gemini`, `acp`, `codex`, etc. | Determines which agent processes the task message    |
+| **Workspace**           | File system directory          | Task can access/modify files in workspace            |
+| **Message History**     | All previous messages          | Agent has full context of prior interactions         |
+| **Model Configuration** | API keys, model selection      | Uses same model as manual interactions               |
+| **Skills**              | Enabled skill set              | Task can use PPTX generation, Excel processing, etc. |
+| **System Prompt**       | Assistant personality          | Maintains consistent agent behavior                  |
 
 Sources: [readme.md:223-225](), architecture diagrams
 
@@ -364,45 +362,45 @@ sequenceDiagram
     participant Agent as Agent Instance
     participant DB as SQLite Database
     participant UI as Renderer UI
-    
+
     Cron->>Sched: Trigger event (time match)
     Sched->>Store: Get task by ID
     Store-->>Sched: Return IScheduledTask
-    
+
     alt Task disabled
         Sched->>Sched: Skip execution
     else Task enabled
         Sched->>Exec: Execute task
-        
+
         Exec->>Conv: Check conversation exists
         Conv-->>Exec: Conversation found
-        
+
         Exec->>Conv: Acquire conversation lock
-        
+
         alt Lock acquired
             Conv-->>Exec: Lock granted
-            
+
             Exec->>Conv: Send message (task.message)
             Conv->>Agent: Forward to agent
-            
+
             Agent->>Agent: Process message with context
             Agent->>Agent: Execute tools if needed
             Agent->>DB: Persist user message
-            
+
             loop Stream response
                 Agent->>Conv: Stream response chunk
                 Conv->>UI: Emit responseStream event
                 UI->>UI: Update conversation view
             end
-            
+
             Agent->>DB: Persist agent response
             Agent->>Conv: Mark complete
-            
+
             Conv->>Exec: Release lock
             Exec->>Store: Update lastRun timestamp
             Exec->>Sched: Emit task.executed event
             Sched->>UI: Notify task completed
-            
+
         else Lock failed (conversation busy)
             Conv-->>Exec: Lock denied
             Exec->>Sched: Skip this run
@@ -431,15 +429,15 @@ Sources: Architecture diagrams, [readme.md:224-225]()
 
 The scheduled tasks system exposes the following operations through the IPC bridge:
 
-| Operation | IPC Method | Parameters | Return Value |
-|-----------|-----------|-----------|--------------|
-| **Create Task** | `scheduledTask.create` | `{ conversationId, cronExpression, message, enabled }` | `IScheduledTask` |
-| **Update Task** | `scheduledTask.update` | `{ id, ...updates }` | `IScheduledTask` |
-| **Delete Task** | `scheduledTask.delete` | `{ id }` | `boolean` |
-| **List Tasks** | `scheduledTask.list` | `{ conversationId? }` | `IScheduledTask[]` |
-| **Toggle Task** | `scheduledTask.toggle` | `{ id, enabled }` | `IScheduledTask` |
-| **Get Task** | `scheduledTask.get` | `{ id }` | `IScheduledTask` |
-| **Test Expression** | `scheduledTask.testCron` | `{ cronExpression }` | `{ valid, nextRuns: Date[] }` |
+| Operation           | IPC Method               | Parameters                                             | Return Value                  |
+| ------------------- | ------------------------ | ------------------------------------------------------ | ----------------------------- |
+| **Create Task**     | `scheduledTask.create`   | `{ conversationId, cronExpression, message, enabled }` | `IScheduledTask`              |
+| **Update Task**     | `scheduledTask.update`   | `{ id, ...updates }`                                   | `IScheduledTask`              |
+| **Delete Task**     | `scheduledTask.delete`   | `{ id }`                                               | `boolean`                     |
+| **List Tasks**      | `scheduledTask.list`     | `{ conversationId? }`                                  | `IScheduledTask[]`            |
+| **Toggle Task**     | `scheduledTask.toggle`   | `{ id, enabled }`                                      | `IScheduledTask`              |
+| **Get Task**        | `scheduledTask.get`      | `{ id }`                                               | `IScheduledTask`              |
+| **Test Expression** | `scheduledTask.testCron` | `{ cronExpression }`                                   | `{ valid, nextRuns: Date[] }` |
 
 ### Configuration Persistence
 
@@ -449,25 +447,25 @@ Tasks are persisted in the `ConfigStorage` system under the `scheduledTasks` key
 // Configuration schema
 interface IConfigStorageRefer {
   // ... other config fields
-  scheduledTasks?: IScheduledTask[];
+  scheduledTasks?: IScheduledTask[]
 }
 
 interface IScheduledTask {
-  id: string;
-  conversationId: string;
-  cronExpression: string;
-  message: string;
-  enabled: boolean;
-  name?: string;
-  description?: string;
+  id: string
+  conversationId: string
+  cronExpression: string
+  message: string
+  enabled: boolean
+  name?: string
+  description?: string
   metadata: {
-    createdAt: string;
-    modifiedAt: string;
-    lastRun?: string;
-    nextRun?: string;
-    executionCount: number;
-    errorCount: number;
-  };
+    createdAt: string
+    modifiedAt: string
+    lastRun?: string
+    nextRun?: string
+    executionCount: number
+    errorCount: number
+  }
 }
 ```
 
@@ -496,7 +494,7 @@ graph TD
         E4["Invalid Cron Expression<br/>Syntax error"]
         E5["Message Send Failure<br/>IPC error"]
     end
-    
+
     subgraph "Recovery Strategies"
         R1["Skip & Log<br/>Wait for next scheduled time"]
         R2["Retry with Backoff<br/>Max 3 attempts"]
@@ -504,19 +502,19 @@ graph TD
         R4["Immediate Validation<br/>Reject on create/update"]
         R5["Queue for Retry<br/>When conversation free"]
     end
-    
+
     E1 -->|strategy| R3
     E2 -->|strategy| R1
     E3 -->|strategy| R2
     E4 -->|strategy| R4
     E5 -->|strategy| R2
-    
+
     subgraph "Monitoring"
         M1["Error Counter<br/>Per task"]
         M2["Last Error Message<br/>Stored in metadata"]
         M3["Execution History<br/>Success/failure log"]
     end
-    
+
     R1 --> M1
     R2 --> M2
     R3 --> M3
@@ -524,13 +522,13 @@ graph TD
 
 **Error Handling Rules:**
 
-| Error Type | Behavior | User Notification |
-|-----------|----------|-------------------|
-| **Conversation deleted** | Auto-disable task, log warning | Show error badge in task list |
-| **Conversation busy** | Skip execution, retry next scheduled time | No notification (normal) |
-| **Agent API failure** | Retry up to 3 times, then mark failed | Show error in conversation |
-| **Invalid cron** | Reject on create/update | Inline validation error |
-| **Repeated failures** | Auto-disable after 5 consecutive errors | Email/notification alert |
+| Error Type               | Behavior                                  | User Notification             |
+| ------------------------ | ----------------------------------------- | ----------------------------- |
+| **Conversation deleted** | Auto-disable task, log warning            | Show error badge in task list |
+| **Conversation busy**    | Skip execution, retry next scheduled time | No notification (normal)      |
+| **Agent API failure**    | Retry up to 3 times, then mark failed     | Show error in conversation    |
+| **Invalid cron**         | Reject on create/update                   | Inline validation error       |
+| **Repeated failures**    | Auto-disable after 5 consecutive errors   | Email/notification alert      |
 
 ### Execution Constraints
 
@@ -565,6 +563,7 @@ Sources: Architecture patterns, [12.3](#12.3) reference
 ```
 
 **Workflow:**
+
 1. Task triggers at 9 AM on weekdays
 2. Message sent to conversation with sales analysis context
 3. Agent reads workspace files (e.g., `sales.xlsx`)
@@ -620,13 +619,13 @@ Sources: [readme.md:227-233]()
 
 Different agent types handle scheduled tasks with slight variations:
 
-| Agent Type | Task Execution Behavior |
-|------------|------------------------|
-| **GeminiAgent** | Full tool support (web search, file ops, image gen); streams responses normally |
-| **AcpAgent** | Delegates to CLI tool; may prompt for approvals if `yolo` mode not enabled |
-| **CodexAgent** | MCP tools available; long-running operations supported |
-| **OpenClawAgent** | Gateway-based execution; network latency considerations |
-| **NanobotAgent** | Simplified execution; limited tool support |
+| Agent Type        | Task Execution Behavior                                                         |
+| ----------------- | ------------------------------------------------------------------------------- |
+| **GeminiAgent**   | Full tool support (web search, file ops, image gen); streams responses normally |
+| **AcpAgent**      | Delegates to CLI tool; may prompt for approvals if `yolo` mode not enabled      |
+| **CodexAgent**    | MCP tools available; long-running operations supported                          |
+| **OpenClawAgent** | Gateway-based execution; network latency considerations                         |
+| **NanobotAgent**  | Simplified execution; limited tool support                                      |
 
 ### Permission Model
 
@@ -646,13 +645,13 @@ Sources: [4.1](#4.1), [4.3](#4.3), [12.4](#12.4) references
 
 ### Resource Considerations
 
-| Metric | Limit/Guideline | Rationale |
-|--------|----------------|-----------|
-| **Maximum Active Tasks** | 50 per instance | Memory overhead of cron job registry |
-| **Minimum Interval** | 1 minute | Prevent scheduler overload |
-| **Concurrent Executions** | 1 per conversation | Maintain conversation state integrity |
-| **Task Execution Timeout** | Agent timeout (5-10 min) | Prevent runaway tasks |
-| **Config File Size Impact** | ~1 KB per task | Minimal impact on startup time |
+| Metric                      | Limit/Guideline          | Rationale                             |
+| --------------------------- | ------------------------ | ------------------------------------- |
+| **Maximum Active Tasks**    | 50 per instance          | Memory overhead of cron job registry  |
+| **Minimum Interval**        | 1 minute                 | Prevent scheduler overload            |
+| **Concurrent Executions**   | 1 per conversation       | Maintain conversation state integrity |
+| **Task Execution Timeout**  | Agent timeout (5-10 min) | Prevent runaway tasks                 |
+| **Config File Size Impact** | ~1 KB per task           | Minimal impact on startup time        |
 
 ### Optimization Strategies
 

@@ -43,8 +43,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 Codex is an AI coding agent that supports multiple execution modes (TUI, CLI, IDE integrations, web interface) all powered by a shared core engine. The system uses a queue-based submission/event protocol to enable asynchronous, interruptible workflows.
 
 ## System Organization
@@ -78,56 +76,56 @@ graph TB
         IDE["IDE Extensions<br/>(VS Code, Cursor)<br/>via App Server"]
         Web["Codex Web<br/>(Cloud-based)"]
     end
-    
+
     subgraph CoreEngine["Core Engine - codex-rs/core"]
         Codex["Codex Struct<br/>Session Management<br/>Op/Event Queue"]
         Session["Session<br/>Turn Management<br/>Context & State"]
         ThreadMgr["ThreadManager<br/>Thread Lifecycle<br/>Multi-Agent Support"]
         CtxMgr["ContextManager<br/>History & Compaction<br/>Token Tracking"]
     end
-    
+
     subgraph ExecAndTools["Execution & Tools"]
         ToolRouter["Tool Router<br/>Built-in & MCP Tools<br/>Approval Workflows"]
         UnifiedExec["UnifiedExec<br/>Interactive Shell<br/>Process Management"]
         CodeMode["Code Mode<br/>JavaScript REPL<br/>Yield/Resume"]
         McpMgr["MCP Connection Manager<br/>External Tool Servers<br/>Elicitation Handling"]
     end
-    
+
     subgraph ConfigAndModel["Configuration & Model Management"]
         Config["Config System<br/>Profiles & Permissions<br/>Feature Flags"]
         ModelsMgr["Models Manager<br/>Model Discovery<br/>Caching & Metadata"]
         Auth["Auth Manager<br/>ChatGPT/API Key<br/>Token Refresh"]
     end
-    
+
     subgraph ExtServices["External Services"]
         ModelAPI["Model Provider APIs<br/>OpenAI/Ollama/Custom<br/>SSE Streaming"]
         McpServers["MCP Servers<br/>stdio/HTTP<br/>External Tools"]
         Backend["Codex Backend<br/>Account/Requirements<br/>Cloud Tasks"]
     end
-    
+
     subgraph AppServerIntegration["App Server (IDE Integration)"]
         AppServer["App Server<br/>JSON-RPC Protocol<br/>Thread Management"]
         V2Protocol["v2 API<br/>thread/*, turn/*<br/>Notifications"]
     end
-    
+
     TUI --> Codex
     CLI --> Codex
     IDE --> AppServer
     AppServer --> ThreadMgr
-    
+
     Codex --> Session
     ThreadMgr --> Session
-    
+
     Session --> CtxMgr
     Session --> ToolRouter
     Session --> Config
     Session --> ModelsMgr
     Session --> Auth
-    
+
     ToolRouter --> UnifiedExec
     ToolRouter --> CodeMode
     ToolRouter --> McpMgr
-    
+
     McpMgr --> McpServers
     Session --> ModelAPI
     ModelsMgr --> ModelAPI
@@ -154,7 +152,7 @@ graph LR
     SubLoop["submission_loop<br/>Tokio task"]
     Session["Session"]
     RxEvent["rx_event: Receiver&lt;Event&gt;"]
-    
+
     Client -->|"submit(Op)"| TxSub
     TxSub --> SubLoop
     SubLoop -->|"dispatch"| Session
@@ -163,6 +161,7 @@ graph LR
 ```
 
 **Key Protocol Types**:
+
 - **`Submission`**: Wraps `Op` with unique ID and optional trace context
 - **`Op`**: Operation variants include `UserTurn`, `Interrupt`, `Shutdown`, `ExecApproval`, `SteerInput`
 - **`Event`**: Wraps `EventMsg` with submission ID
@@ -190,22 +189,22 @@ sequenceDiagram
     participant ModelClient
     participant API as Model Provider<br/>SSE Stream
     participant Tools as Tool System
-    
+
     User->>UI: Submit Input
     UI->>Codex: submit(Op::UserInput)
     Codex->>Session: Process Op
-    
+
     Session->>CtxMgr: Record user message
     Session->>CtxMgr: Build prompt (with cache)
     CtxMgr-->>Session: Prompt + cached prefix
-    
+
     Session->>ModelClient: stream_responses(prompt)
     ModelClient->>API: POST /v1/responses<br/>with headers & telemetry
-    
+
     loop SSE Event Stream
         API-->>ModelClient: ResponseEvent
         ModelClient-->>Session: Map to EventMsg
-        
+
         alt Agent Message
             Session->>CtxMgr: Record message
             Session->>Codex: Emit event
@@ -221,16 +220,16 @@ sequenceDiagram
             Session->>Codex: Emit event
         end
     end
-    
+
     API-->>ModelClient: response.completed
     ModelClient-->>Session: Final tokens
     Session->>CtxMgr: Update token usage
-    
+
     alt Auto-compact needed
         Session->>Session: Spawn CompactTask
         Session->>CtxMgr: Replace with summary
     end
-    
+
     Session->>Codex: TurnComplete
     Codex-->>UI: Display complete
 ```
@@ -254,7 +253,7 @@ graph LR
         Brew["brew install<br/>--cask codex"]
         Binary["GitHub Releases<br/>Platform Binaries"]
     end
-    
+
     subgraph ExecModes["Execution Modes"]
         Interactive["codex<br/>(Interactive TUI)"]
         Exec["codex exec 'task'<br/>(Non-interactive)"]
@@ -263,7 +262,7 @@ graph LR
         McpServerMode["codex mcp-server<br/>(MCP Server)"]
         AppMode["codex app<br/>(Desktop App)"]
     end
-    
+
     subgraph ConfigSources["Configuration Sources"]
         GlobalConfig["~/.codex/config.toml<br/>(Global Settings)"]
         ProjectConfig[".codex/config.toml<br/>(Project Settings)"]
@@ -271,32 +270,32 @@ graph LR
         CLIArgs["CLI Arguments<br/>--model, -c, --enable"]
         Requirements["requirements.toml<br/>(Constraints)"]
     end
-    
+
     subgraph Initialization["Core Initialization"]
         ConfigBuilder["ConfigBuilder<br/>Merge & Validate"]
         ThreadMgr["ThreadManager::new<br/>Auth + Config"]
         SessionStart["thread/start or<br/>thread/resume"]
     end
-    
+
     NPM --> Interactive
     Brew --> Interactive
     Binary --> Interactive
-    
+
     Interactive --> ConfigBuilder
     Exec --> ConfigBuilder
     Review --> ConfigBuilder
     AppServerMode --> ConfigBuilder
     McpServerMode --> ConfigBuilder
-    
+
     GlobalConfig --> ConfigBuilder
     ProjectConfig --> ConfigBuilder
     EnvVars --> ConfigBuilder
     CLIArgs --> ConfigBuilder
     Requirements --> ConfigBuilder
-    
+
     ConfigBuilder --> ThreadMgr
     ThreadMgr --> SessionStart
-    
+
     AppServerMode --> VSCode["VS Code<br/>Extension"]
     AppServerMode --> Cursor["Cursor IDE"]
     AppServerMode --> OtherIDE["Other IDEs"]
@@ -308,14 +307,13 @@ graph LR
 
 ### Execution Mode Summary
 
-| Mode | Entry Point | Primary Use Case | Event Processing |
-|------|-------------|------------------|------------------|
-| **TUI** | `codex` binary, `App` struct | Interactive terminal sessions | `ChatWidget` maintains UI state, renders cells |
-| **Exec** | `codex exec` subcommand | CI/CD pipelines, scripts | `EventProcessorWithHumanOutput` or `EventProcessorWithJsonOutput` |
-| **App Server** | `codex app-server` binary | IDE extensions (VS Code, Cursor) | `CodexMessageProcessor` translates to JSON-RPC notifications |
-| **Review** | `codex review` subcommand | Code review workflows | Spawns review sub-agent with restricted config |
-| **MCP Server** | `codex mcp-server` binary | Expose Codex as MCP tool provider | Handles MCP protocol requests |
-
+| Mode           | Entry Point                  | Primary Use Case                  | Event Processing                                                  |
+| -------------- | ---------------------------- | --------------------------------- | ----------------------------------------------------------------- |
+| **TUI**        | `codex` binary, `App` struct | Interactive terminal sessions     | `ChatWidget` maintains UI state, renders cells                    |
+| **Exec**       | `codex exec` subcommand      | CI/CD pipelines, scripts          | `EventProcessorWithHumanOutput` or `EventProcessorWithJsonOutput` |
+| **App Server** | `codex app-server` binary    | IDE extensions (VS Code, Cursor)  | `CodexMessageProcessor` translates to JSON-RPC notifications      |
+| **Review**     | `codex review` subcommand    | Code review workflows             | Spawns review sub-agent with restricted config                    |
+| **MCP Server** | `codex mcp-server` binary    | Expose Codex as MCP tool provider | Handles MCP protocol requests                                     |
 
 ---
 
@@ -331,48 +329,48 @@ graph TB
         Primary["Primary Thread<br/>ThreadId: main"]
         PrimaryTasks["Active Tasks<br/>Regular/Compact"]
     end
-    
+
     subgraph SubAgentDelegation["Sub-Agent Delegation"]
         Review["Review Sub-Agent<br/>ThreadId: review-*"]
         SubAgent["Custom Sub-Agent<br/>ThreadId: task-*"]
         Guardian["Guardian Sub-Agent<br/>Approval Analysis"]
     end
-    
+
     subgraph TaskTypes["Task Types"]
         RegularTask["Regular Task<br/>Standard Chat Turn"]
         CompactTask["Compact Task<br/>History Summarization"]
         ReviewTask["Review Task<br/>Code Analysis"]
         GhostTask["Ghost Snapshot<br/>State Persistence"]
     end
-    
+
     subgraph SessionStateManagement["Session State Management"]
         EventStore["ThreadEventStore<br/>Buffered Events (32k)"]
         InputState["ThreadInputState<br/>Composer State"]
         SessionConfig["SessionConfigured<br/>Thread Config"]
     end
-    
+
     Primary --> PrimaryTasks
     PrimaryTasks --> RegularTask
     PrimaryTasks --> CompactTask
-    
+
     RegularTask -.->|"Spawns"| Review
     RegularTask -.->|"Spawns"| SubAgent
     RegularTask -.->|"Spawns"| Guardian
-    
+
     Review --> ReviewTask
     SubAgent --> RegularTask
     Guardian --> RegularTask
-    
+
     Primary --> EventStore
     Review --> EventStore
     SubAgent --> EventStore
-    
+
     EventStore --> SessionConfig
     EventStore --> InputState
-    
+
     Primary -.->|"Thread Switch"| Review
     Review -.->|"Exit Review"| Primary
-    
+
     Primary -.->|"Fork"| SubAgent
     SubAgent -.->|"Independent"| EventStore
 ```
@@ -380,7 +378,6 @@ graph TB
 **Analysis**: This diagram illustrates Codex's multi-agent architecture. A primary thread manages the main user conversation and can spawn sub-agents for specialized tasks. Each thread has its own `ThreadEventStore` that buffers up to 32,768 events, enabling thread switching with full state preservation. The review sub-agent uses a restricted configuration (disabled web search, `approval_policy = Never`) to analyze code safely. Custom sub-agents can be spawned for arbitrary tasks. The guardian sub-agent analyzes permission requests to auto-approve low-risk operations. Thread switching is supported through event replay—when switching to a previously-active thread, the system replays buffered events to rebuild `ChatWidget` state.
 
 **Sources**: [codex-rs/core/src/thread_manager.rs](), [codex-rs/core/src/tasks/mod.rs](), [codex-rs/core/src/tasks/review.rs](), [codex-rs/tui/src/app.rs:260-380]()
-
 
 ---
 
@@ -399,64 +396,64 @@ graph TB
         ViewImage["view_image<br/>Image Analysis"]
         RequestPerms["request_permissions<br/>Dynamic Grants"]
     end
-    
+
     subgraph CodeExecution["Code Execution"]
         UnifiedExec["UnifiedExec System<br/>Interactive PTY<br/>Process Manager"]
         CodeMode["Code Mode<br/>JavaScript REPL<br/>Yield/Resume"]
         Sandbox["Sandbox Selection<br/>Landlock/Seatbelt<br/>Windows Token"]
     end
-    
+
     subgraph MCPServerIntegration["MCP Server Integration"]
         McpMgr["McpConnectionManager<br/>Server Lifecycle"]
         StdioServers["stdio Servers<br/>Command-based"]
         HttpServers["HTTP Servers<br/>Remote Tools"]
         CodexApps["codex-apps Server<br/>Cached Tools"]
     end
-    
+
     subgraph ApprovalSystem["Approval System"]
         Policy["Approval Policy<br/>Always/OnRequest/Never"]
         ExecPolicy["Exec Policy<br/>Starlark Rules"]
         Guardian["Guardian Sub-Agent<br/>AI-Powered Review"]
         UserPrompt["User Prompt<br/>Interactive Decision"]
     end
-    
+
     subgraph ToolRouter["Tool Router"]
         ToolReg["Tool Registry<br/>Built-in + MCP"]
         ToolOrchestrator["Tool Orchestrator<br/>Approval + Sandbox"]
         Runtime["Shell/Exec Runtime<br/>Process Spawning"]
     end
-    
+
     Shell --> UnifiedExec
     Shell --> CodeMode
     Patch --> Runtime
-    
+
     UnifiedExec --> Sandbox
     CodeMode --> Sandbox
-    
+
     McpMgr --> StdioServers
     McpMgr --> HttpServers
     McpMgr --> CodexApps
-    
+
     StdioServers -.->|"Expose Tools"| ToolReg
     HttpServers -.->|"Expose Tools"| ToolReg
     CodexApps -.->|"Cached"| ToolReg
-    
+
     Shell -.->|"Register"| ToolReg
     Patch -.->|"Register"| ToolReg
     WebSearch -.->|"Register"| ToolReg
     ViewImage -.->|"Register"| ToolReg
     RequestPerms -.->|"Register"| ToolReg
-    
+
     ToolReg --> ToolOrchestrator
-    
+
     ToolOrchestrator --> Policy
     Policy --> ExecPolicy
     ExecPolicy --> Guardian
     ExecPolicy --> UserPrompt
-    
+
     Guardian -.->|"Auto-approve"| Runtime
     UserPrompt -.->|"Manual"| Runtime
-    
+
     ToolOrchestrator --> Runtime
 ```
 
@@ -482,17 +479,17 @@ graph TB
         CLIOver["CLI overrides<br/>--set key=value"]
         Cloud["Cloud requirements<br/>(cloud_requirements.rs)"]
     end
-    
+
     Defaults --> LayerStack["ConfigLayerStack<br/>(config_loader.rs:100)"]
     UserConfig --> LayerStack
     ProjConfig --> LayerStack
     Profiles --> LayerStack
     CLIOver --> LayerStack
     Cloud --> LayerStack
-    
+
     LayerStack --> Merge["Layer merging<br/>(highest priority wins)"]
     Merge --> Config["Config<br/>(config/mod.rs:50)<br/>Effective settings"]
-    
+
     subgraph RuntimeConfig["Runtime Config Fields"]
         Model["model: Option<String>"]
         Effort["model_reasoning_effort"]
@@ -501,17 +498,18 @@ graph TB
         Feat["features: Features"]
         McpServers["mcp_servers: HashMap"]
     end
-    
+
     Config --> RuntimeConfig
-    
+
     Config --> SessionConfig["SessionConfiguration<br/>(codex.rs:708)<br/>Frozen snapshot"]
     SessionConfig --> SessionState["SessionState<br/>(state.rs:50)<br/>Mutable turn state"]
-    
+
     SessionState --> ContextMgr["ContextManager<br/>(context_manager.rs)<br/>History + tokens"]
     SessionState --> Rollout["RolloutRecorder<br/>(rollout/mod.rs)<br/>JSONL persistence"]
 ```
 
 **Configuration Resolution** ([config/mod.rs:50-500]()):
+
 1. Load defaults ([config/default.rs:1-200]())
 2. Load user config from `~/.codex/config.toml` (if exists)
 3. Walk directory tree, load `.codex/config.toml` files (project config)
@@ -521,6 +519,7 @@ graph TB
 7. Merge layers by priority (CLI > cloud > profile > project > user > defaults)
 
 **`Config` Structure** ([config/mod.rs:50-300]()):
+
 - **`model: Option<String>`**: Model slug (e.g., `"gpt-4o"`)
 - **`model_reasoning_effort: Option<ReasoningEffortConfig>`**: Reasoning effort (low/medium/high)
 - **`permissions: Permissions`**: Approval/sandbox policies
@@ -528,11 +527,13 @@ graph TB
 - **`mcp_servers: HashMap<String, McpServerConfig>`**: MCP server configurations
 
 **`SessionConfiguration`** ([codex.rs:708-800]()):
+
 - Frozen snapshot of config at session start
 - Contains base instructions, CWD, approval/sandbox policies
 - Immutable for session lifetime (per-turn config derived from this)
 
 **Rollout Persistence** ([rollout/mod.rs:1-300]()):
+
 - JSONL format: one `RolloutLine` per line
 - `RolloutLine::Turn`: Complete turn with all events
 - `RolloutLine::SessionMeta`: Thread name, updated timestamp
@@ -541,9 +542,7 @@ graph TB
 
 **Sources**: [codex-rs/core/src/config/mod.rs:50-500](), [codex-rs/core/src/config/default.rs:1-200](), [codex-rs/core/src/config_loader.rs:100-800](), [codex-rs/core/src/codex.rs:708-800](), [codex-rs/core/src/state.rs:50-250](), [codex-rs/core/src/rollout/mod.rs:1-300]()
 
-
 ---
-
 
 ---
 
@@ -558,34 +557,35 @@ The `ThreadManager` ([thread_manager.rs:1-500]()) coordinates multiple conversat
 ```mermaid
 graph TB
     ThreadMgr["ThreadManager<br/>(thread_manager.rs:50)<br/>Arc-wrapped, shared"]
-    
+
     subgraph ThreadMap["threads: HashMap<ThreadId, CodexThread>"]
         Thread1["CodexThread 1"]
         Thread2["CodexThread 2"]
         ThreadN["CodexThread N"]
     end
-    
+
     ThreadMgr --> ThreadMap
-    
+
     subgraph CodexThread["CodexThread (codex_thread.rs:50)"]
         Codex["codex: Codex<br/>(codex.rs:274)"]
         Meta["metadata: ThreadMetadata<br/>name, updated_at"]
         EventTx["event_tx: Sender<Event><br/>Buffered event stream"]
     end
-    
+
     Thread1 --> CodexThread
-    
+
     subgraph Operations["ThreadManager Operations"]
         Create["create_thread()<br/>InitialHistory::New"]
         Resume["resume_thread(thread_id)<br/>InitialHistory::Resumed"]
         Fork["fork_thread(source_id)<br/>InitialHistory::Forked"]
         List["list_threads(cursor, sort)<br/>Paginated"]
     end
-    
+
     ThreadMgr --> Operations
 ```
 
 **ThreadManager Key Methods**:
+
 - **`create_thread()`** ([thread_manager.rs:200-300]()): Spawns new `Codex` with `InitialHistory::New`
 - **`resume_thread(thread_id)`** ([thread_manager.rs:350-450]()): Loads JSONL rollout, creates `Codex` with `InitialHistory::Resumed`
 - **`fork_thread(source_id, fork_from_turn_id)`** ([thread_manager.rs:500-600]()): Copies rollout to new file, creates `Codex` with `InitialHistory::Forked`
@@ -596,7 +596,6 @@ graph TB
 **Sources**: [codex-rs/core/src/thread_manager.rs:50-850](), [codex-rs/core/src/codex_thread.rs:50-300](), [codex-rs/tui/src/app.rs:245-320]()
 
 ---
-
 
 ---
 
@@ -616,7 +615,7 @@ sequenceDiagram
     participant API["Model API<br/>/v1/responses"]
     participant ToolRouter["ToolRouter<br/>(tools/mod.rs)"]
     participant UnifiedExec["UnifiedExec<br/>(unified_exec.rs)"]
-    
+
     User->>TUI: Enter message
     TUI->>Codex: submit(Op::UserTurn)
     Codex->>Session: submission_loop<br/>handle_user_turn
@@ -624,17 +623,17 @@ sequenceDiagram
     Session->>Session: Build TurnContext<br/>+ Prompt
     Session->>ModelClient: stream(prompt, model_info)
     ModelClient->>API: POST /v1/responses<br/>(WebSocket or HTTP+SSE)
-    
+
     loop Response Events
         API-->>ModelClient: ResponseEvent
         ModelClient-->>Session: ResponseEvent
-        
+
         alt Agent Message
             Session->>Codex: emit(AgentMessageDelta)
             Codex-->>TUI: next_event()
             TUI->>User: Display streaming text
         end
-        
+
         alt Function Call (shell)
             Session->>ToolRouter: route_tool_call("shell", args)
             ToolRouter->>ToolRouter: Check approval/sandbox
@@ -655,7 +654,7 @@ sequenceDiagram
             Codex-->>TUI: next_event()
         end
     end
-    
+
     Session->>Codex: emit(TurnComplete)
     Codex-->>TUI: next_event()
     TUI->>User: Display final state

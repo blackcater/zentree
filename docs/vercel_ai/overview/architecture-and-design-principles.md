@@ -11,7 +11,7 @@ The following files were used as context for generating this wiki page:
 - [examples/ai-functions/src/stream-text/anthropic/fine-grained-tool-streaming.ts](examples/ai-functions/src/stream-text/anthropic/fine-grained-tool-streaming.ts)
 - [packages/ai/CHANGELOG.md](packages/ai/CHANGELOG.md)
 - [packages/ai/package.json](packages/ai/package.json)
-- [packages/anthropic/src/__snapshots__/anthropic-messages-language-model.test.ts.snap](packages/anthropic/src/__snapshots__/anthropic-messages-language-model.test.ts.snap)
+- [packages/anthropic/src/**snapshots**/anthropic-messages-language-model.test.ts.snap](packages/anthropic/src/__snapshots__/anthropic-messages-language-model.test.ts.snap)
 - [packages/anthropic/src/anthropic-messages-api.ts](packages/anthropic/src/anthropic-messages-api.ts)
 - [packages/anthropic/src/anthropic-messages-language-model.test.ts](packages/anthropic/src/anthropic-messages-language-model.test.ts)
 - [packages/anthropic/src/anthropic-messages-language-model.ts](packages/anthropic/src/anthropic-messages-language-model.ts)
@@ -43,8 +43,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes the foundational architecture and design principles of the Vercel AI SDK. It covers the layered system architecture, the Provider-V3 specification that enables provider interoperability, streaming patterns, tool execution models, and the monorepo structure. For specific implementation details of individual components, see [Core SDK Functionality](#2), [Provider Ecosystem](#3), and [UI Framework Integrations](#4).
@@ -61,30 +59,30 @@ graph TB
         UTILS["@ai-sdk/provider-utils<br/>postJsonToApi<br/>createEventSourceResponseHandler"]
         GATEWAY["@ai-sdk/gateway<br/>GatewayModelId routing"]
     end
-    
+
     subgraph "Layer 2: UI Framework Integration"
         REACT["@ai-sdk/react<br/>useChat/useObject<br/>AbstractChat"]
         VUE["@ai-sdk/vue<br/>useChat composable"]
         SVELTE["@ai-sdk/svelte<br/>Chat class with $state"]
         RSC["@ai-sdk/rsc<br/>createStreamableUI"]
     end
-    
+
     subgraph "Layer 3: Provider Implementations"
         OPENAI["@ai-sdk/openai<br/>OpenAIChatLanguageModel<br/>OpenAIResponsesLanguageModel"]
         ANTHROPIC["@ai-sdk/anthropic<br/>AnthropicMessagesLanguageModel"]
         GOOGLE["@ai-sdk/google<br/>GoogleGenerativeAILanguageModel"]
         COMPAT["@ai-sdk/openai-compatible<br/>Base implementation"]
     end
-    
+
     REACT --> AI
     VUE --> AI
     SVELTE --> AI
     RSC --> AI
-    
+
     AI --> PROVIDER
     AI --> UTILS
     AI --> GATEWAY
-    
+
     OPENAI --> PROVIDER
     OPENAI --> UTILS
     ANTHROPIC --> PROVIDER
@@ -114,37 +112,38 @@ graph LR
         DOGEN["doGenerate(options)<br/>→ LanguageModelV3GenerateResult"]
         DOSTREAM["doStream(options)<br/>→ LanguageModelV3StreamResult"]
     end
-    
+
     subgraph "Call Options"
         PROMPT["prompt: LanguageModelV3Prompt"]
         TOOLS["tools?: LanguageModelV3FunctionTool[]"]
         OUTPUT["responseFormat?: {type, schema}"]
         PARAMS["temperature, topP, maxOutputTokens"]
     end
-    
+
     subgraph "Result Types"
         GENRESULT["LanguageModelV3GenerateResult<br/>content: LanguageModelV3Content[]<br/>usage: TokenUsage<br/>finishReason"]
         STREAMRESULT["LanguageModelV3StreamResult<br/>stream: AsyncIterable<LanguageModelV3StreamPart>"]
     end
-    
+
     SPEC --> DOGEN
     SPEC --> DOSTREAM
-    
+
     PROMPT --> DOGEN
     TOOLS --> DOGEN
     OUTPUT --> DOGEN
     PARAMS --> DOGEN
-    
+
     PROMPT --> DOSTREAM
     TOOLS --> DOSTREAM
     OUTPUT --> DOSTREAM
     PARAMS --> DOSTREAM
-    
+
     DOGEN --> GENRESULT
     DOSTREAM --> STREAMRESULT
 ```
 
 The specification defines:
+
 - **Model metadata**: `provider`, `modelId`, `specificationVersion` fields identify the model
 - **Core methods**: `doGenerate()` for non-streaming requests, `doStream()` for streaming
 - **Prompt format**: `LanguageModelV3Prompt` standardizes message structures across providers
@@ -158,12 +157,16 @@ The specification defines:
 
 ```typescript
 export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
-  readonly modelId: AnthropicMessagesModelId;
-  readonly provider: string;
-  
-  async doGenerate(options: LanguageModelV3CallOptions): Promise<LanguageModelV3GenerateResult>
-  async doStream(options: LanguageModelV3CallOptions): Promise<LanguageModelV3StreamResult>
+  readonly specificationVersion = 'v3'
+  readonly modelId: AnthropicMessagesModelId
+  readonly provider: string
+
+  async doGenerate(
+    options: LanguageModelV3CallOptions
+  ): Promise<LanguageModelV3GenerateResult>
+  async doStream(
+    options: LanguageModelV3CallOptions
+  ): Promise<LanguageModelV3StreamResult>
 }
 ```
 
@@ -180,62 +183,63 @@ graph TB
         PROVIDER["@ai-sdk/provider<br/>workspace:*"]
         PROVIDERUTILS["@ai-sdk/provider-utils<br/>workspace:*"]
         GATEWAY["@ai-sdk/gateway<br/>workspace:*"]
-        
+
         REACT["@ai-sdk/react<br/>workspace:*"]
         VUE["@ai-sdk/vue<br/>workspace:*"]
         SVELTE["@ai-sdk/svelte<br/>workspace:*"]
         RSC["@ai-sdk/rsc<br/>workspace:*"]
-        
+
         OPENAI["@ai-sdk/openai<br/>workspace:*"]
         ANTHROPIC["@ai-sdk/anthropic<br/>workspace:*"]
         AZURE["@ai-sdk/azure<br/>workspace:*"]
         MISTRAL["@ai-sdk/mistral<br/>workspace:*"]
     end
-    
+
     subgraph "External Dependencies"
         OTEL["@opentelemetry/api<br/>1.9.0"]
         ZOD["zod<br/>^3.25.76 || ^4.1.8"]
         SWR["swr<br/>^2.2.5"]
     end
-    
+
     AI --> PROVIDER
     AI --> PROVIDERUTILS
     AI --> GATEWAY
     AI --> OTEL
-    
+
     REACT --> AI
     REACT --> PROVIDERUTILS
     REACT --> SWR
-    
+
     VUE --> AI
     VUE --> PROVIDERUTILS
-    
+
     SVELTE --> AI
     SVELTE --> PROVIDERUTILS
-    
+
     RSC --> AI
     RSC --> PROVIDER
     RSC --> PROVIDERUTILS
-    
+
     OPENAI --> PROVIDER
     OPENAI --> PROVIDERUTILS
-    
+
     ANTHROPIC --> PROVIDER
     ANTHROPIC --> PROVIDERUTILS
-    
+
     AZURE --> OPENAI
     AZURE --> PROVIDER
     AZURE --> PROVIDERUTILS
-    
+
     MISTRAL --> PROVIDER
     MISTRAL --> PROVIDERUTILS
-    
+
     AI -.peer.-> ZOD
     OPENAI -.peer.-> ZOD
     ANTHROPIC -.peer.-> ZOD
 ```
 
 Key dependency patterns:
+
 - **Core dependencies**: All packages use `workspace:*` for internal dependencies, ensuring version consistency
 - **Provider dependencies**: Provider packages depend on `@ai-sdk/provider` (specification) and `@ai-sdk/provider-utils` (shared utilities)
 - **UI framework dependencies**: UI packages depend on the core `ai` package and `@ai-sdk/provider-utils`
@@ -254,19 +258,19 @@ graph LR
         DOSTREAM["doStream()<br/>→ AsyncIterable<StreamPart>"]
         PROVIDERSTREAM["text-delta<br/>tool-call<br/>tool-call-delta<br/>finish<br/>error"]
     end
-    
+
     subgraph "Transformation Pipeline"
         RUNTOOLSTRANSFORM["runToolsTransformation<br/>executeToolCall()<br/>providerExecuted handling"]
         SMOOTHSTREAM["smoothStream<br/>DelayedAsyncIterableStream"]
         UIMESSAGESTREAM["createUIMessageStream<br/>UIMessageChunk encoding"]
     end
-    
+
     subgraph "Transport Layer"
         ASYNCITERABLESTREAM["AsyncIterableStream<br/>pipeThrough()<br/>toReadableStream()"]
         READABLESTREAM["ReadableStream<br/>Web Streams API"]
         CHATRANSPORT["ChatTransport<br/>HttpChatTransport<br/>parseUIMessageStream()"]
     end
-    
+
     DOSTREAM --> PROVIDERSTREAM
     PROVIDERSTREAM --> RUNTOOLSTRANSFORM
     RUNTOOLSTRANSFORM --> SMOOTHSTREAM
@@ -279,22 +283,26 @@ graph LR
 ### Stream Processing Components
 
 **AsyncIterableStream** [packages/ai/core/util/async-iterable-stream.ts:1-100]() provides:
+
 - `pipeThrough()`: Chain transformations using TransformStreams
 - `toReadableStream()`: Convert to Web Streams ReadableStream
 - `splitTextDeltas()`: Split text deltas on boundaries
 
 **runToolsTransformation** [packages/ai/core/generate-text/run-tools-transformation.ts:1-200]() handles:
+
 - Tool call execution via `Tool.execute()`
 - Provider-executed tool result processing (`providerExecuted: true`)
 - Tool approval workflow with `needsApproval` checks
 - Multi-step agent loops with `stopWhen` conditions
 
 **smoothStream** [packages/ai/core/generate-text/smooth-stream.ts:1-100]() provides:
+
 - Configurable chunk delay via `DelayedAsyncIterableStream`
 - Maintains reasoning part boundaries
 - Supports custom `Intl.Segmenter` for text splitting
 
 **createUIMessageStream** [packages/ai/src/ui/create-ui-message-stream.ts:1-100]() creates:
+
 - `UIMessageChunk` protocol for client-server communication
 - Encodes `message-start`, `text-delta`, `tool-call`, `finish` events
 - Handles `providerMetadata` propagation
@@ -311,35 +319,35 @@ graph TB
         TOOL["LanguageModelV3FunctionTool<br/>name: string<br/>parameters: JSONSchema<br/>execute?: Function<br/>needsApproval?: boolean | Function"]
         PROVIDERTOOL["providerExecuted: true<br/>Results in model response"]
     end
-    
+
     subgraph "Client-Executed Tools"
         EXECUTE["Tool.execute(input)<br/>Runs in application"]
         APPROVAL["needsApproval check<br/>tool-approval-request"]
         APPROVALRESPONSE["addToolApprovalResponse()<br/>tool-approval-response"]
         RESULT["tool-result in next call"]
     end
-    
+
     subgraph "Provider-Executed Tools"
         PROVIDEREXEC["providerExecuted: true<br/>Executed by AI service"]
         MODELRESPONSE["Results in model response<br/>No separate tool-result"]
     end
-    
+
     subgraph "Transformation Stage"
         RUNTRANS["runToolsTransformation"]
         STOPWHEN["stopWhen conditions<br/>stepCountIs(n)<br/>toolCallCountIs(n)"]
     end
-    
+
     TOOL --> EXECUTE
     TOOL --> PROVIDERTOOL
-    
+
     EXECUTE --> APPROVAL
     APPROVAL -->|approved| RESULT
     APPROVAL -->|requires approval| APPROVALRESPONSE
     APPROVALRESPONSE --> RESULT
-    
+
     PROVIDERTOOL --> PROVIDEREXEC
     PROVIDEREXEC --> MODELRESPONSE
-    
+
     RESULT --> RUNTRANS
     MODELRESPONSE --> RUNTRANS
     RUNTRANS --> STOPWHEN
@@ -348,6 +356,7 @@ graph TB
 ### Client-Executed Tools
 
 Tools with `execute` functions run in the application environment:
+
 1. Model generates `tool-call` with arguments
 2. `runToolsTransformation` intercepts and checks `needsApproval`
 3. If approval needed, emits `tool-approval-request` and pauses
@@ -360,6 +369,7 @@ Tools with `execute` functions run in the application environment:
 ### Provider-Executed Tools
 
 Tools marked `providerExecuted: true` run on the provider's infrastructure:
+
 - OpenAI: `web_search`, `file_search`, `code_interpreter` [packages/openai/src/openai-tools.ts:1-100]()
 - Anthropic: `web_search_20260209`, `code_execution`, `computer_20251124` [packages/anthropic/src/anthropic-tools.ts:1-100]()
 - Google: `googleSearch`, `codeExecution`, `fileSearch` [packages/google/src/google-tools.ts:1-100]()
@@ -381,12 +391,12 @@ graph TB
     ANTHROPIC["AnthropicMessagesLanguageModel"]
     IMPL["Implements"]
     SPEC["LanguageModelV3"]
-    
+
     CONVERT["convertToAnthropicMessagesPrompt"]
     PREPTOOLS["prepareTools"]
     STREAMING["anthropicMessagesChunkSchema<br/>SSE parsing"]
     FAILHANDLER["anthropicFailedResponseHandler"]
-    
+
     ANTHROPIC --> IMPL
     IMPL --> SPEC
     ANTHROPIC --> CONVERT
@@ -396,6 +406,7 @@ graph TB
 ```
 
 **AnthropicMessagesLanguageModel** [packages/anthropic/src/anthropic-messages-language-model.ts:134-172]() demonstrates:
+
 - Custom prompt conversion [packages/anthropic/src/convert-to-anthropic-messages-prompt.ts:1-100]()
 - Provider-specific tool definitions [packages/anthropic/src/anthropic-tools.ts:1-50]()
 - Cache control headers for context management
@@ -413,18 +424,18 @@ graph TB
         BASEDOSTREAM["doStream() implementation"]
         BASETOOLS["Tool handling<br/>SSE parsing<br/>Usage tracking"]
     end
-    
+
     subgraph "Derived Providers"
         XAI["@ai-sdk/xai<br/>xai-grok-3"]
         FIREWORKS["@ai-sdk/fireworks<br/>kimi reasoning"]
         CEREBRAS["@ai-sdk/cerebras<br/>wafer-scale engines"]
         TOGETHER["@ai-sdk/togetherai<br/>reranking support"]
     end
-    
+
     BASE --> BASEDOGEN
     BASE --> BASEDOSTREAM
     BASE --> BASETOOLS
-    
+
     XAI --> BASE
     FIREWORKS --> BASE
     CEREBRAS --> BASE
@@ -440,6 +451,7 @@ This pattern enables rapid provider integration by sharing streaming logic, tool
 Some providers extend existing implementations:
 
 **Azure** [packages/azure/package.json:46-50]() extends **OpenAI** rather than reimplementing:
+
 - Reuses `OpenAIChatLanguageModel` and `OpenAIResponsesLanguageModel`
 - Adds Azure-specific authentication and API versioning
 - Overrides `baseURL` and `headers` configuration
@@ -457,19 +469,19 @@ graph TB
         CHANGESETS[".changeset/**/*.md<br/>Change tracking"]
         VERSION["Version synchronization<br/>ai: 7.0.0-beta.7<br/>@ai-sdk/react: 4.0.0-beta.7"]
     end
-    
+
     subgraph "Build System"
         TSUP["tsup<br/>CJS + ESM builds"]
         TSCONFIG["tools/tsconfig/base.json<br/>Shared TS config"]
         VITEST["vitest<br/>vitest.node.config.js<br/>vitest.edge.config.js"]
     end
-    
+
     subgraph "Quality Gates"
         ESLINT["@vercel/ai-tsconfig<br/>eslint-config-vercel-ai"]
         TYPECHECK["tsc --build"]
         PREPACK["prepack: copy docs"]
     end
-    
+
     PREJSON --> VERSION
     CHANGESETS --> VERSION
     VERSION --> TSUP
@@ -482,6 +494,7 @@ graph TB
 ### Package Configuration Pattern
 
 All packages follow consistent structure [packages/ai/package.json:1-117]():
+
 - **Build**: `pnpm clean && tsup --tsconfig tsconfig.build.json`
 - **Test**: `pnpm test:node && pnpm test:edge` for multi-runtime support
 - **Exports**: Dual CJS/ESM exports via `main`, `module`, `types` fields
@@ -491,6 +504,7 @@ All packages follow consistent structure [packages/ai/package.json:1-117]():
 ### Beta Pre-Release Mode
 
 [.changeset/pre.json]() coordinates v7 beta releases:
+
 - All packages maintain synchronized beta versions
 - Core `ai` package at `7.0.0-beta.7`
 - UI packages at `4.0.0-beta.7` (React), `5.0.0-beta.7` (Svelte)
@@ -505,11 +519,13 @@ The SDK targets both Node.js and Edge runtimes through dual testing:
 ### Test Configuration
 
 **Node.js tests** [vitest.node.config.js]():
+
 - Standard Node.js environment
 - Full filesystem and network access
 - Used for integration tests with HTTP servers
 
 **Edge tests** [vitest.edge.config.js]():
+
 - Simulated edge runtime environment via `@edge-runtime/vm`
 - Restricted APIs (no `fs`, limited globals)
 - Validates compatibility with Vercel Edge Functions, Cloudflare Workers
@@ -517,6 +533,7 @@ The SDK targets both Node.js and Edge runtimes through dual testing:
 ### API Design Constraints
 
 To maintain edge compatibility:
+
 - Uses Web Streams API (`ReadableStream`, `TransformStream`)
 - Avoids Node.js-specific APIs (`fs`, `path`, `buffer`)
 - Uses `fetch` for HTTP (available in both environments)
@@ -537,18 +554,18 @@ graph LR
     subgraph "Application Code"
         CALL["generateText({<br/>  providerOptions: {<br/>    anthropic: {...},<br/>    'custom-anthropic': {...}<br/>  }<br/>})"]
     end
-    
+
     subgraph "Provider Instance"
         PROVIDER["createAnthropic({<br/>  provider: 'custom-anthropic.messages'<br/>})"]
         PARSECANONICAL["parseProviderOptions<br/>provider: 'anthropic'"]
         PARSECUSTOM["parseProviderOptions<br/>provider: 'custom-anthropic'"]
         MERGE["Object.assign merge"]
     end
-    
+
     subgraph "Options Schema"
         SCHEMA["anthropicLanguageModelOptions<br/>thinking<br/>cacheControl<br/>headers"]
     end
-    
+
     CALL --> PROVIDER
     PROVIDER --> PARSECANONICAL
     PROVIDER --> PARSECUSTOM
@@ -558,6 +575,7 @@ graph LR
 ```
 
 [packages/anthropic/src/anthropic-messages-language-model.ts:163-261]() demonstrates:
+
 - Extracts provider name from `config.provider` (e.g., `'my-custom-anthropic'` from `'my-custom-anthropic.messages'`)
 - Parses both canonical `anthropic` key and custom key from `providerOptions`
 - Merges options with custom key taking precedence
@@ -571,15 +589,15 @@ This enables multiple configured instances of the same provider with distinct se
 
 The architecture embodies these core principles:
 
-| Principle | Implementation |
-|-----------|----------------|
-| **Provider Interoperability** | Provider-V3 specification with `LanguageModelV3` interface |
-| **Separation of Concerns** | Three-layer architecture: Core SDK, UI Frameworks, Providers |
-| **Code Reuse** | OpenAI-compatible bridge, shared provider utilities |
-| **Multi-Runtime** | Web Streams API, dual Node.js/Edge testing |
-| **Streaming-First** | `AsyncIterableStream`, `TransformStream` pipelines |
-| **Type Safety** | TypeScript throughout, Zod schema validation |
-| **Monorepo Coordination** | Changesets, synchronized beta releases |
-| **Framework Agnostic** | Core functions work without UI framework dependencies |
+| Principle                     | Implementation                                               |
+| ----------------------------- | ------------------------------------------------------------ |
+| **Provider Interoperability** | Provider-V3 specification with `LanguageModelV3` interface   |
+| **Separation of Concerns**    | Three-layer architecture: Core SDK, UI Frameworks, Providers |
+| **Code Reuse**                | OpenAI-compatible bridge, shared provider utilities          |
+| **Multi-Runtime**             | Web Streams API, dual Node.js/Edge testing                   |
+| **Streaming-First**           | `AsyncIterableStream`, `TransformStream` pipelines           |
+| **Type Safety**               | TypeScript throughout, Zod schema validation                 |
+| **Monorepo Coordination**     | Changesets, synchronized beta releases                       |
+| **Framework Agnostic**        | Core functions work without UI framework dependencies        |
 
 **Sources:** All files referenced above, High-level diagrams sections 1-6

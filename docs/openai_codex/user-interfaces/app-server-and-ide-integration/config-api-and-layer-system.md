@@ -36,8 +36,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page documents the configuration API exposed by the app-server and the layered configuration system that underpins Codex's runtime behavior. The Config API provides JSON-RPC endpoints for reading and writing configuration values, while the layer system determines how settings from multiple sources (MDM, system files, user files, project files, CLI arguments) are merged with precedence rules.
@@ -64,24 +62,24 @@ graph LR
         Project["Project Layers<br/>(.codex/config.toml)"]
         SessionFlags["Session Flags<br/>(-c key=value)"]
     end
-    
+
     subgraph "Merge Process"
         ConfigBuilder["ConfigBuilder::build()"]
         LayerStack["ConfigLayerStack"]
         Requirements["Requirements Constraints<br/>(requirements.toml)"]
     end
-    
+
     subgraph "Final Output"
         Config["Merged Config Struct"]
         Origins["Origin Metadata"]
     end
-    
+
     MDM --> ConfigBuilder
     System --> ConfigBuilder
     User --> ConfigBuilder
     Project --> ConfigBuilder
     SessionFlags --> ConfigBuilder
-    
+
     ConfigBuilder --> LayerStack
     LayerStack --> Requirements
     Requirements --> Config
@@ -98,15 +96,15 @@ Sources: [codex-rs/app-server-protocol/src/protocol/v2.rs:405-473](), [codex-rs/
 
 Configuration is assembled from up to seven distinct layers, each with a specific precedence level. Higher-precedence layers override settings from lower-precedence layers:
 
-| Precedence | Layer Source | Type | Description |
-|------------|--------------|------|-------------|
-| 0 | `Mdm` | Managed | macOS MDM preferences (domain + key) |
-| 10 | `System` | Managed | System-wide `managed_config.toml` |
-| 20 | `User` | Writable | User's `~/.codex/config.toml` |
-| 25 | `Project` | Writable | Project `.codex/config.toml` files |
-| 30 | `SessionFlags` | Ephemeral | CLI arguments (`-c key=value`) |
-| 40 | `LegacyManagedConfigTomlFromFile` | Legacy | Old managed config file |
-| 50 | `LegacyManagedConfigTomlFromMdm` | Legacy | Old MDM managed config |
+| Precedence | Layer Source                      | Type      | Description                          |
+| ---------- | --------------------------------- | --------- | ------------------------------------ |
+| 0          | `Mdm`                             | Managed   | macOS MDM preferences (domain + key) |
+| 10         | `System`                          | Managed   | System-wide `managed_config.toml`    |
+| 20         | `User`                            | Writable  | User's `~/.codex/config.toml`        |
+| 25         | `Project`                         | Writable  | Project `.codex/config.toml` files   |
+| 30         | `SessionFlags`                    | Ephemeral | CLI arguments (`-c key=value`)       |
+| 40         | `LegacyManagedConfigTomlFromFile` | Legacy    | Old managed config file              |
+| 50         | `LegacyManagedConfigTomlFromMdm`  | Legacy    | Old MDM managed config               |
 
 Sources: [codex-rs/app-server-protocol/src/protocol/v2.rs:462-472]()
 
@@ -127,19 +125,19 @@ classDiagram
         +LegacyManagedConfigTomlFromMdm
         +precedence() i16
     }
-    
+
     class ConfigLayer {
         +name: ConfigLayerSource
         +version: String
         +config: JsonValue
         +disabled_reason: Option~String~
     }
-    
+
     class ConfigLayerStack {
         +effective_config() TomlValue
         +get_layers() Vec~ConfigLayer~
     }
-    
+
     ConfigLayer --> ConfigLayerSource
     ConfigLayerStack --> ConfigLayer
 ```
@@ -159,25 +157,25 @@ sequenceDiagram
     participant LayerLoader as load_config_layers_state
     participant FileSystem
     participant Requirements as CloudRequirementsLoader
-    
+
     Client->>ConfigBuilder: ConfigBuilder::default()
     Client->>ConfigBuilder: .codex_home(path)
     Client->>ConfigBuilder: .cli_overrides(vec)
     Client->>ConfigBuilder: .cloud_requirements(loader)
     Client->>ConfigBuilder: .build()
-    
+
     ConfigBuilder->>LayerLoader: load_config_layers_state()
-    
+
     LayerLoader->>FileSystem: Read MDM preferences
     LayerLoader->>FileSystem: Read system config
     LayerLoader->>FileSystem: Read ~/.codex/config.toml
     LayerLoader->>FileSystem: Walk up from cwd, read .codex/config.toml
     LayerLoader->>LayerLoader: Apply cli_overrides
     LayerLoader->>LayerLoader: Merge layers (lowest to highest precedence)
-    
+
     LayerLoader->>Requirements: Apply requirements.toml constraints
     Requirements-->>LayerLoader: Constrained config
-    
+
     LayerLoader-->>ConfigBuilder: ConfigLayerStack
     ConfigBuilder->>ConfigBuilder: Deserialize merged TOML to Config
     ConfigBuilder-->>Client: Config struct
@@ -201,12 +199,12 @@ Sources: [codex-rs/core/src/config/profile.rs:1-58](), [codex-rs/core/src/config
 
 The app-server exposes four JSON-RPC methods for configuration management:
 
-| Method | Purpose | Experimental |
-|--------|---------|--------------|
-| `config/read` | Read effective config with optional layer details | Partially |
-| `config/value/write` | Write a single config key-value pair | No |
-| `config/batchWrite` | Apply multiple config edits atomically | No |
-| `configRequirements/read` | Read requirements.toml constraints | Yes |
+| Method                    | Purpose                                           | Experimental |
+| ------------------------- | ------------------------------------------------- | ------------ |
+| `config/read`             | Read effective config with optional layer details | Partially    |
+| `config/value/write`      | Write a single config key-value pair              | No           |
+| `config/batchWrite`       | Apply multiple config edits atomically            | No           |
+| `configRequirements/read` | Read requirements.toml constraints                | Yes          |
 
 Sources: [codex-rs/app-server/src/codex_message_processor.rs:862-953](), [codex-rs/app-server-protocol/src/protocol/common.rs:205-203]()
 
@@ -220,13 +218,13 @@ classDiagram
         +include_layers: bool
         +cwd: Option~String~
     }
-    
+
     class ConfigReadResponse {
         +config: Config
         +origins: HashMap~String, ConfigLayerMetadata~
         +layers: Option~Vec~ConfigLayer~~
     }
-    
+
     class Config {
         +model: Option~String~
         +approval_policy: Option~AskForApproval~
@@ -236,12 +234,12 @@ classDiagram
         +apps: Option~AppsConfig~
         +additional: HashMap~String, JsonValue~
     }
-    
+
     class ConfigLayerMetadata {
         +name: ConfigLayerSource
         +version: String
     }
-    
+
     ConfigReadParams --> ConfigReadResponse : request/response
     ConfigReadResponse --> Config
     ConfigReadResponse --> ConfigLayerMetadata
@@ -261,33 +259,33 @@ classDiagram
         +file_path: Option~String~
         +expected_version: Option~String~
     }
-    
+
     class ConfigBatchWriteParams {
         +edits: Vec~ConfigEdit~
         +file_path: Option~String~
         +expected_version: Option~String~
         +reload_user_config: bool
     }
-    
+
     class ConfigWriteResponse {
         +status: WriteStatus
         +version: String
         +file_path: AbsolutePathBuf
         +overridden_metadata: Option~OverriddenMetadata~
     }
-    
+
     class MergeStrategy {
         <<enumeration>>
         Replace
         Upsert
     }
-    
+
     class WriteStatus {
         <<enumeration>>
         Ok
         OkOverridden
     }
-    
+
     ConfigValueWriteParams --> MergeStrategy
     ConfigBatchWriteParams --> ConfigEdit
     ConfigValueWriteParams --> ConfigWriteResponse
@@ -314,26 +312,26 @@ sequenceDiagram
     participant Loader as load_latest_config
     participant Builder as ConfigBuilder
     participant Serializer
-    
+
     Client->>Processor: config/read { include_layers, cwd }
     Processor->>Loader: load_latest_config(cwd)
-    
+
     Loader->>Builder: ConfigBuilder::default()
     Loader->>Builder: .cli_overrides(self.cli_overrides)
     Loader->>Builder: .fallback_cwd(cwd)
     Loader->>Builder: .cloud_requirements(...)
     Loader->>Builder: .build()
-    
+
     Builder-->>Loader: Config struct
     Loader-->>Processor: Config
-    
+
     Processor->>Serializer: Serialize Config to UserSavedConfig
     Processor->>Serializer: Build origins map
-    
+
     alt include_layers == true
         Processor->>Processor: Serialize all ConfigLayer objects
     end
-    
+
     Processor-->>Client: ConfigReadResponse { config, origins, layers }
 ```
 
@@ -368,7 +366,10 @@ When `include_layers: true`, the response includes a full `layers` array with ea
       "config": { "model": "gpt-4", "approval_policy": "on-request" }
     },
     {
-      "name": { "type": "project", "dot_codex_folder": "/Users/me/proj/.codex" },
+      "name": {
+        "type": "project",
+        "dot_codex_folder": "/Users/me/proj/.codex"
+      },
       "version": "def456...",
       "config": { "sandbox_mode": "workspace-write" },
       "disabled_reason": null
@@ -387,17 +388,17 @@ Sources: [codex-rs/app-server-protocol/src/protocol/v2.rs:654-663]()
 
 Configuration writes target the user layer (`~/.codex/config.toml`) by default. The `ConfigEdit` enum defines atomic operations:
 
-| Edit Type | Purpose | Fields |
-|-----------|---------|--------|
-| `SetModel` | Update model and reasoning effort | `model: Option<String>`, `effort: Option<ReasoningEffort>` |
-| `SetServiceTier` | Update service tier preference | `service_tier: Option<ServiceTier>` |
-| `SetModelPersonality` | Update personality | `personality: Option<Personality>` |
-| `SetNotice*` | Toggle notice acknowledgement flags | `bool` |
-| `ReplaceMcpServers` | Replace entire `[mcp_servers]` table | `BTreeMap<String, McpServerConfig>` |
-| `SetConfigValue` | Set arbitrary key-value pair | `key_path: String`, `value: TomlValue`, `merge_strategy: MergeStrategy` |
-| `DeleteConfigKey` | Delete a key | `key_path: String` |
-| `ReplaceProfile` | Replace a profile definition | `profile_name: String`, `profile: Option<ConfigProfile>` |
-| `SetTrustLevel` | Set project trust level | `trust_level: TrustLevel` |
+| Edit Type             | Purpose                              | Fields                                                                  |
+| --------------------- | ------------------------------------ | ----------------------------------------------------------------------- |
+| `SetModel`            | Update model and reasoning effort    | `model: Option<String>`, `effort: Option<ReasoningEffort>`              |
+| `SetServiceTier`      | Update service tier preference       | `service_tier: Option<ServiceTier>`                                     |
+| `SetModelPersonality` | Update personality                   | `personality: Option<Personality>`                                      |
+| `SetNotice*`          | Toggle notice acknowledgement flags  | `bool`                                                                  |
+| `ReplaceMcpServers`   | Replace entire `[mcp_servers]` table | `BTreeMap<String, McpServerConfig>`                                     |
+| `SetConfigValue`      | Set arbitrary key-value pair         | `key_path: String`, `value: TomlValue`, `merge_strategy: MergeStrategy` |
+| `DeleteConfigKey`     | Delete a key                         | `key_path: String`                                                      |
+| `ReplaceProfile`      | Replace a profile definition         | `profile_name: String`, `profile: Option<ConfigProfile>`                |
+| `SetTrustLevel`       | Set project trust level              | `trust_level: TrustLevel`                                               |
 
 Sources: [codex-rs/core/src/config/edit.rs:23-74]()
 
@@ -413,29 +414,29 @@ sequenceDiagram
     participant Processor
     participant Builder as ConfigEditsBuilder
     participant FileSystem
-    
+
     Client->>Processor: config/batchWrite { edits, expected_version }
-    
+
     Processor->>FileSystem: Read current ~/.codex/config.toml
     Processor->>Processor: Hash content → current_version
-    
+
     alt expected_version mismatch
         Processor-->>Client: Error: ConfigVersionConflict
     end
-    
+
     Processor->>Builder: ConfigEditsBuilder::new(document)
-    
+
     loop For each edit in edits
         Processor->>Builder: .apply(edit)
         Builder->>Builder: Mutate TOML document
     end
-    
+
     Processor->>Builder: .build()
     Builder-->>Processor: Modified DocumentMut
-    
+
     Processor->>FileSystem: Write atomically (temp file + rename)
     Processor->>FileSystem: Hash new content → new_version
-    
+
     Processor-->>Client: ConfigWriteResponse { version: new_version, ... }
 ```
 
@@ -460,6 +461,7 @@ When writing config values with `SetConfigValue`, the merge strategy determines 
 - **Upsert**: For tables/objects, merges new fields into existing table; for other types, replaces
 
 Example with `merge_strategy: Upsert` on `profiles.dev`:
+
 ```toml
 # Before
 [profiles.dev]
@@ -499,26 +501,26 @@ graph TD
     RawConfig["Merged Config (unconstrained)"]
     Requirements["requirements.toml / MDM"]
     Enforcement["Constraint Enforcement"]
-    
+
     RawConfig --> Enforcement
     Requirements --> Enforcement
-    
+
     Enforcement --> ApprovalCheck{"approval_policy<br/>in allowed list?"}
     ApprovalCheck -->|No| ApprovalFallback["Use first allowed policy"]
     ApprovalCheck -->|Yes| ApprovalOk["Keep value"]
-    
+
     Enforcement --> SandboxCheck{"sandbox_mode<br/>in allowed list?"}
     SandboxCheck -->|No| SandboxFallback["Use first allowed mode"]
     SandboxCheck -->|Yes| SandboxOk["Keep value"]
-    
+
     Enforcement --> FeatureCheck{"feature enabled<br/>but required disabled?"}
     FeatureCheck -->|Yes| FeatureForce["Force disable"]
     FeatureCheck -->|No| FeatureOk["Keep value"]
-    
+
     Enforcement --> McpCheck{"MCP server<br/>in allowlist?"}
     McpCheck -->|No| McpDisable["Set enabled=false<br/>disabled_reason=Requirements"]
     McpCheck -->|Yes| McpOk["Keep enabled"]
-    
+
     ApprovalFallback --> ConstrainedConfig
     ApprovalOk --> ConstrainedConfig
     SandboxFallback --> ConstrainedConfig
@@ -527,7 +529,7 @@ graph TD
     FeatureOk --> ConstrainedConfig
     McpDisable --> ConstrainedConfig
     McpOk --> ConstrainedConfig
-    
+
     ConstrainedConfig["Constrained<T> Config"]
 ```
 
@@ -595,14 +597,14 @@ classDiagram
         +cloud_requirements(CloudRequirementsLoader) Self
         +build() Result~Config~
     }
-    
+
     class ConfigLayerStack {
         -layers: Vec~ConfigLayerWithMetadata~
         -requirements: ConfigRequirements
         +effective_config() TomlValue
         +get_layers() Vec~ConfigLayer~
     }
-    
+
     class Config {
         +config_layer_stack: ConfigLayerStack
         +model: Option~String~
@@ -612,13 +614,13 @@ classDiagram
         +active_profile: Option~String~
         +active_project: ProjectConfig
     }
-    
+
     class CloudRequirementsLoader {
         -requirements: Option~ConfigRequirements~
         +from_file(PathBuf) Self
         +from_mdm() Self
     }
-    
+
     ConfigBuilder --> ConfigLayerStack : creates
     ConfigBuilder --> CloudRequirementsLoader : uses
     ConfigLayerStack --> Config : embedded in
@@ -630,14 +632,14 @@ Sources: [codex-rs/core/src/config/mod.rs:546-622](), [codex-rs/core/src/config_
 
 The configuration system interacts with several filesystem paths:
 
-| Path | Purpose | Layer Type |
-|------|---------|------------|
-| `/Library/Preferences/com.openai.codex.plist` | macOS MDM managed preferences | Mdm |
-| `/etc/codex/managed_config.toml` | System-wide managed config (Linux/macOS) | System |
-| `~/.codex/config.toml` | User configuration (writable by user) | User |
-| `<project>/.codex/config.toml` | Project-specific configuration | Project |
-| `<project>/.codex/requirements.toml` | Project requirements constraints | Requirements |
-| `~/.codex/requirements.toml` | User requirements constraints | Requirements |
+| Path                                          | Purpose                                  | Layer Type   |
+| --------------------------------------------- | ---------------------------------------- | ------------ |
+| `/Library/Preferences/com.openai.codex.plist` | macOS MDM managed preferences            | Mdm          |
+| `/etc/codex/managed_config.toml`              | System-wide managed config (Linux/macOS) | System       |
+| `~/.codex/config.toml`                        | User configuration (writable by user)    | User         |
+| `<project>/.codex/config.toml`                | Project-specific configuration           | Project      |
+| `<project>/.codex/requirements.toml`          | Project requirements constraints         | Requirements |
+| `~/.codex/requirements.toml`                  | User requirements constraints            | Requirements |
 
 Multiple project layers can be active simultaneously when cwd is nested within multiple `.codex` directories. The loader walks up from cwd to the filesystem root, discovering all project layers.
 
@@ -658,7 +660,7 @@ classDiagram
         -replace_profile(name, profile)
         -ensure_table(path) &mut TomlTable
     }
-    
+
     class ConfigEdit {
         <<enumeration>>
         SetModel
@@ -671,12 +673,12 @@ classDiagram
         ReplaceProfile
         SetTrustLevel
     }
-    
+
     class TomlDocument {
         <<toml_edit>>
         +as_table_mut() &mut TomlTable
     }
-    
+
     ConfigEditsBuilder --> ConfigEdit : applies
     ConfigEditsBuilder --> TomlDocument : mutates
 ```
@@ -686,7 +688,7 @@ The builder pattern allows chaining multiple edits before committing to disk:
 ```rust
 ConfigEditsBuilder::new(doc)
     .apply(ConfigEdit::SetModel { model: Some("gpt-4o".into()), effort: None })?
-    .apply(ConfigEdit::SetConfigValue { 
+    .apply(ConfigEdit::SetConfigValue {
         key_path: "profiles.dev.sandbox_mode".into(),
         value: Value::String("workspace-write".into()),
         merge_strategy: MergeStrategy::Upsert,

@@ -13,8 +13,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers the Sources system: what source types exist, how they are configured on disk, how MCP and REST API connections are established, how authentication is managed, and how sources are activated per session.
 
 For information about the workspace that owns sources, see [Workspaces](#4.1). For the automation triggers that fire when sources are used, see [Hooks & Automation](#4.9). For the IPC surface that the renderer uses to manage sources, see [IPC Communication Layer](#2.6). For the credential encryption backing credential storage, see [Credential Storage & Encryption](#7.2).
@@ -27,11 +25,11 @@ A **source** is a named, configured connection to an external service or local r
 
 There are three source types:
 
-| Type | Value | Description |
-|---|---|---|
-| MCP | `mcp` | Model Context Protocol server — remote or local subprocess |
-| API | `api` | REST API endpoint with configurable auth |
-| Local | `local` | Local filesystem or application path |
+| Type  | Value   | Description                                                |
+| ----- | ------- | ---------------------------------------------------------- |
+| MCP   | `mcp`   | Model Context Protocol server — remote or local subprocess |
+| API   | `api`   | REST API endpoint with configurable auth                   |
+| Local | `local` | Local filesystem or application path                       |
 
 Sources are defined by the `SourceType` union type in [packages/shared/src/sources/types.ts:16]().
 
@@ -51,18 +49,18 @@ The `config.json` is parsed into a `FolderSourceConfig` object. The `guide.md` i
 
 **`FolderSourceConfig` fields (abbreviated):**
 
-| Field | Type | Purpose |
-|---|---|---|
-| `id` | `string` | Unique source ID |
-| `slug` | `string` | URL-safe name, used in `@mentions` and credential keys |
-| `type` | `SourceType` | `mcp`, `api`, or `local` |
-| `enabled` | `boolean` | Whether the source is active |
-| `provider` | `string` | Freeform label (e.g., `"linear"`, `"google"`) |
-| `mcp` | `McpSourceConfig?` | Present when `type === 'mcp'` |
-| `api` | `ApiSourceConfig?` | Present when `type === 'api'` |
-| `local` | `LocalSourceConfig?` | Present when `type === 'local'` |
-| `isAuthenticated` | `boolean?` | Runtime auth status |
-| `connectionStatus` | `SourceConnectionStatus?` | `connected`, `needs_auth`, `failed`, etc. |
+| Field              | Type                      | Purpose                                                |
+| ------------------ | ------------------------- | ------------------------------------------------------ |
+| `id`               | `string`                  | Unique source ID                                       |
+| `slug`             | `string`                  | URL-safe name, used in `@mentions` and credential keys |
+| `type`             | `SourceType`              | `mcp`, `api`, or `local`                               |
+| `enabled`          | `boolean`                 | Whether the source is active                           |
+| `provider`         | `string`                  | Freeform label (e.g., `"linear"`, `"google"`)          |
+| `mcp`              | `McpSourceConfig?`        | Present when `type === 'mcp'`                          |
+| `api`              | `ApiSourceConfig?`        | Present when `type === 'api'`                          |
+| `local`            | `LocalSourceConfig?`      | Present when `type === 'local'`                        |
+| `isAuthenticated`  | `boolean?`                | Runtime auth status                                    |
+| `connectionStatus` | `SourceConnectionStatus?` | `connected`, `needs_auth`, `failed`, etc.              |
 
 Full interface at [packages/shared/src/sources/types.ts:334-372]().
 
@@ -102,24 +100,24 @@ MCP sources connect to Model Context Protocol servers. The `mcp` block of `Folde
 
 The `McpTransport` type [packages/shared/src/sources/types.ts:207]() has three values:
 
-| Transport | Value | Description |
-|---|---|---|
-| HTTP | `http` | HTTP streaming transport to a remote URL |
-| SSE | `sse` | Server-Sent Events transport to a remote URL |
-| Stdio | `stdio` | Spawns a local subprocess; communicates over stdin/stdout |
+| Transport | Value   | Description                                               |
+| --------- | ------- | --------------------------------------------------------- |
+| HTTP      | `http`  | HTTP streaming transport to a remote URL                  |
+| SSE       | `sse`   | Server-Sent Events transport to a remote URL              |
+| Stdio     | `stdio` | Spawns a local subprocess; communicates over stdin/stdout |
 
 `transport` defaults to `http` if omitted.
 
 ### MCP Configuration Fields
 
-| Field | Applies To | Purpose |
-|---|---|---|
-| `url` | `http`, `sse` | Remote endpoint URL |
-| `authType` | `http`, `sse` | `oauth`, `bearer`, or `none` |
-| `clientId` | `http`, `sse` | OAuth client ID (non-secret) |
-| `command` | `stdio` | Command to spawn (e.g., `npx`, `python`) |
-| `args` | `stdio` | Arguments passed to the command |
-| `env` | `stdio` | Environment variables injected into the subprocess |
+| Field      | Applies To    | Purpose                                            |
+| ---------- | ------------- | -------------------------------------------------- |
+| `url`      | `http`, `sse` | Remote endpoint URL                                |
+| `authType` | `http`, `sse` | `oauth`, `bearer`, or `none`                       |
+| `clientId` | `http`, `sse` | OAuth client ID (non-secret)                       |
+| `command`  | `stdio`       | Command to spawn (e.g., `npx`, `python`)           |
+| `args`     | `stdio`       | Arguments passed to the command                    |
+| `env`      | `stdio`       | Environment variables injected into the subprocess |
 
 Full interface at [packages/shared/src/sources/types.ts:213-252]().
 
@@ -179,14 +177,14 @@ API sources connect to REST APIs. The `api` block holds an `ApiSourceConfig` obj
 
 The `ApiAuthType` type [packages/shared/src/sources/types.ts:27]():
 
-| Auth Type | Value | Behavior |
-|---|---|---|
-| Bearer token | `bearer` | `Authorization: Bearer {token}` header. `authScheme` field overrides `Bearer` prefix; empty string omits it. |
-| Custom header | `header` | Single or multi-header credential (e.g., `x-api-key`, or `DD-API-KEY` + `DD-APPLICATION-KEY`) |
-| Query parameter | `query` | Token appended to URL as query param named by `queryParam` |
-| Basic auth | `basic` | `Authorization: Basic {base64(username:password)}` |
-| OAuth | `oauth` | Managed OAuth flow (Google, Slack, Microsoft) |
-| None | `none` | No authentication (public API) |
+| Auth Type       | Value    | Behavior                                                                                                     |
+| --------------- | -------- | ------------------------------------------------------------------------------------------------------------ |
+| Bearer token    | `bearer` | `Authorization: Bearer {token}` header. `authScheme` field overrides `Bearer` prefix; empty string omits it. |
+| Custom header   | `header` | Single or multi-header credential (e.g., `x-api-key`, or `DD-API-KEY` + `DD-APPLICATION-KEY`)                |
+| Query parameter | `query`  | Token appended to URL as query param named by `queryParam`                                                   |
+| Basic auth      | `basic`  | `Authorization: Basic {base64(username:password)}`                                                           |
+| OAuth           | `oauth`  | Managed OAuth flow (Google, Slack, Microsoft)                                                                |
+| None            | `none`   | No authentication (public API)                                                                               |
 
 Header construction is handled by `buildHeaders()` in [packages/shared/src/sources/api-tools.ts:69-119](), which reads `ApiConfig.auth` and the resolved credential to produce a `Record<string, string>`.
 
@@ -270,15 +268,15 @@ Local sources are surfaced to the agent as filesystem context rather than as MCP
 
 Certain `provider` string values trigger special handling:
 
-| Provider | Type | Auth |
-|---|---|---|
-| `google` | API | Google OAuth (user-supplied credentials) |
-| `microsoft` | API | Microsoft OAuth (build-baked credentials) |
-| `slack` | API | Slack OAuth (build-baked credentials) |
-| `linear` | MCP | Standard MCP OAuth via `CraftOAuth` |
-| `github` | MCP | Standard MCP OAuth via `CraftOAuth` |
-| `notion` | MCP | Standard MCP OAuth via `CraftOAuth` |
-| `exa` | API | API key |
+| Provider    | Type | Auth                                      |
+| ----------- | ---- | ----------------------------------------- |
+| `google`    | API  | Google OAuth (user-supplied credentials)  |
+| `microsoft` | API  | Microsoft OAuth (build-baked credentials) |
+| `slack`     | API  | Slack OAuth (build-baked credentials)     |
+| `linear`    | MCP  | Standard MCP OAuth via `CraftOAuth`       |
+| `github`    | MCP  | Standard MCP OAuth via `CraftOAuth`       |
+| `notion`    | MCP  | Standard MCP OAuth via `CraftOAuth`       |
+| `exa`       | API  | API key                                   |
 
 Defined as `KnownProvider` type at [packages/shared/src/sources/types.ts:157-164]().
 
@@ -344,13 +342,13 @@ The `isOAuthSource()` function [packages/shared/src/sources/types.ts:187-199]() 
 
 `TokenRefreshManager` [packages/shared/src/sources/token-refresh-manager.ts:39-238]() handles proactive token refresh with rate limiting. Key behaviors:
 
-| Method | Purpose |
-|---|---|
-| `needsRefresh(source)` | Returns `true` if the token is expired or expiring within 5 minutes |
-| `ensureFreshToken(source)` | Refreshes if needed; skips if in cooldown after a recent failure |
-| `getSourcesNeedingRefresh(sources)` | Filters an array of `LoadedSource` to those needing refresh |
-| `refreshSources(sources)` | Refreshes multiple sources in parallel |
-| `isInCooldown(slug)` | Checks 5-minute post-failure cooldown |
+| Method                              | Purpose                                                             |
+| ----------------------------------- | ------------------------------------------------------------------- |
+| `needsRefresh(source)`              | Returns `true` if the token is expired or expiring within 5 minutes |
+| `ensureFreshToken(source)`          | Refreshes if needed; skips if in cooldown after a recent failure    |
+| `getSourcesNeedingRefresh(sources)` | Filters an array of `LoadedSource` to those needing refresh         |
+| `refreshSources(sources)`           | Refreshes multiple sources in parallel                              |
+| `isInCooldown(slug)`                | Checks 5-minute post-failure cooldown                               |
 
 The `createTokenGetter()` factory [packages/shared/src/sources/token-refresh-manager.ts:244-255]() wraps a `TokenRefreshManager` into an `() => Promise<string>` function that can be passed as an `ApiCredentialSource` to `createApiTool()`.
 
@@ -406,12 +404,12 @@ For the session lifecycle in detail, see [Session Lifecycle](#2.7). For how the 
 
 The `SourceConnectionStatus` type [packages/shared/src/sources/types.ts:310]() tracks the state of each source:
 
-| Status | Meaning |
-|---|---|
-| `connected` | Last test succeeded |
-| `needs_auth` | Authentication is required or expired |
-| `failed` | Connection attempt failed with an error |
-| `untested` | Source has never been tested |
+| Status           | Meaning                                                 |
+| ---------------- | ------------------------------------------------------- |
+| `connected`      | Last test succeeded                                     |
+| `needs_auth`     | Authentication is required or expired                   |
+| `failed`         | Connection attempt failed with an error                 |
+| `untested`       | Source has never been tested                            |
 | `local_disabled` | Stdio source is disabled (local MCP servers turned off) |
 
 `connectionError` on `FolderSourceConfig` stores the error message when `connectionStatus` is `failed`.

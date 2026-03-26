@@ -18,8 +18,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the application shell structure, the collapsible left `Sider`, the `LayoutContext` context, and the per-conversation `ChatLayout` multi-panel system. It covers how the application adapts between mobile and desktop viewports.
 
 For the conversation content rendered inside the layout, see [Conversation Interface (5.2)](#5.2). For theming and CSS variables, see [Styling & Theming (5.8)](#5.8).
@@ -75,10 +73,10 @@ The `Layout` component in [src/renderer/layout.tsx:67-288]() is the outermost Re
 
 ### Sider Dimensions
 
-| Mode | Default Width | Collapsed Width |
-|---|---|---|
+| Mode    | Default Width                 | Collapsed Width       |
+| ------- | ----------------------------- | --------------------- |
 | Desktop | `DEFAULT_SIDER_WIDTH` = 250px | 64px (icon-only mode) |
-| Mobile | 250px (fixed overlay) | 0px (fully hidden) |
+| Mobile  | 250px (fixed overlay)         | 0px (fully hidden)    |
 
 The sider width constant is defined at [src/renderer/layout.tsx:54]().
 
@@ -86,12 +84,12 @@ The sider width constant is defined at [src/renderer/layout.tsx:54]().
 
 Both `Layout` and `ChatLayout` use a `detectMobileViewportOrTouch()` function with the following criteria:
 
-| Criterion | Condition |
-|---|---|
-| Viewport width | `window.innerWidth < 768` |
-| Hover media query | `(hover: none)` matches |
-| Pointer media query | `(pointer: coarse)` matches |
-| Touch points | `navigator.maxTouchPoints > 0` |
+| Criterion           | Condition                      |
+| ------------------- | ------------------------------ |
+| Viewport width      | `window.innerWidth < 768`      |
+| Hover media query   | `(hover: none)` matches        |
+| Pointer media query | `(pointer: coarse)` matches    |
+| Touch points        | `navigator.maxTouchPoints > 0` |
 
 In Electron desktop mode (`isElectronDesktop()`), only the viewport width check applies. Defined in [src/renderer/layout.tsx:56-65]() and duplicated in [src/renderer/pages/conversation/ChatLayout.tsx:25-34]().
 
@@ -111,10 +109,10 @@ Clicking the AionUi logo 3 times within 1 second opens Electron DevTools via `ip
 
 `LayoutContext` is defined in `src/renderer/context/LayoutContext` and provided by `Layout`. It carries three values:
 
-| Field | Type | Description |
-|---|---|---|
-| `isMobile` | `boolean` | Whether the viewport is in mobile mode |
-| `siderCollapsed` | `boolean` | Whether the left sider is collapsed |
+| Field               | Type                   | Description                            |
+| ------------------- | ---------------------- | -------------------------------------- |
+| `isMobile`          | `boolean`              | Whether the viewport is in mobile mode |
+| `siderCollapsed`    | `boolean`              | Whether the left sider is collapsed    |
 | `setSiderCollapsed` | `(v: boolean) => void` | Imperatively collapse/expand the sider |
 
 **LayoutContext Consumer Map**
@@ -158,16 +156,16 @@ When the desktop sider is collapsed to 64px, text labels are hidden using the `.
 
 `SettingsSider` ([src/renderer/pages/settings/SettingsSider.tsx:11-103]()) renders the following nav items:
 
-| Label key | Path |
-|---|---|
-| `settings.gemini` | `/settings/gemini` |
-| `settings.model` | `/settings/model` |
-| `settings.assistants` | `/settings/agent` |
-| `settings.tools` | `/settings/tools` |
-| `settings.display` | `/settings/display` |
-| `settings.webui` | `/settings/webui` |
-| `settings.system` | `/settings/system` |
-| `settings.about` | `/settings/about` |
+| Label key             | Path                |
+| --------------------- | ------------------- |
+| `settings.gemini`     | `/settings/gemini`  |
+| `settings.model`      | `/settings/model`   |
+| `settings.assistants` | `/settings/agent`   |
+| `settings.tools`      | `/settings/tools`   |
+| `settings.display`    | `/settings/display` |
+| `settings.webui`      | `/settings/webui`   |
+| `settings.system`     | `/settings/system`  |
+| `settings.about`      | `/settings/about`   |
 
 ---
 
@@ -200,28 +198,28 @@ Sources: [src/renderer/pages/conversation/ChatLayout.tsx:382-516]()
 
 ### Props
 
-| Prop | Type | Purpose |
-|---|---|---|
-| `children` | `ReactNode` | The chat UI content |
-| `sider` | `ReactNode` | Workspace panel content (file tree, etc.) |
-| `siderTitle` | `ReactNode` | Header inside workspace panel |
-| `title` | `ReactNode` | Conversation title shown in header |
-| `headerExtra` | `ReactNode` | Right-side header additions (e.g., `CronJobManager`) |
-| `headerLeft` | `ReactNode` | Left-side header additions (e.g., model selector) |
-| `backend` | `string` | Agent backend identifier for `AgentModeSelector` |
-| `agentName` | `string` | Display name override for agent |
-| `agentLogo` | `string` | SVG path or emoji for agent avatar |
-| `workspaceEnabled` | `boolean` | Whether workspace panel is shown |
-| `conversationId` | `string` | Used to look up per-conversation workspace preference |
+| Prop               | Type        | Purpose                                               |
+| ------------------ | ----------- | ----------------------------------------------------- |
+| `children`         | `ReactNode` | The chat UI content                                   |
+| `sider`            | `ReactNode` | Workspace panel content (file tree, etc.)             |
+| `siderTitle`       | `ReactNode` | Header inside workspace panel                         |
+| `title`            | `ReactNode` | Conversation title shown in header                    |
+| `headerExtra`      | `ReactNode` | Right-side header additions (e.g., `CronJobManager`)  |
+| `headerLeft`       | `ReactNode` | Left-side header additions (e.g., model selector)     |
+| `backend`          | `string`    | Agent backend identifier for `AgentModeSelector`      |
+| `agentName`        | `string`    | Display name override for agent                       |
+| `agentLogo`        | `string`    | SVG path or emoji for agent avatar                    |
+| `workspaceEnabled` | `boolean`   | Whether workspace panel is shown                      |
+| `conversationId`   | `string`    | Used to look up per-conversation workspace preference |
 
 ### Resizable Panel Splits
 
 Panel widths are managed by `useResizableSplit`, with ratios stored in `localStorage`:
 
-| Panel split | Default | Min | Max | Storage key |
-|---|---|---|---|---|
-| Chat ↔ Preview | 60% | 25% | 80% | `chat-preview-split-ratio` |
-| Chat/Preview ↔ Workspace | 20% | 12% | 40% | `chat-workspace-split-ratio` |
+| Panel split              | Default | Min | Max | Storage key                  |
+| ------------------------ | ------- | --- | --- | ---------------------------- |
+| Chat ↔ Preview           | 60%     | 25% | 80% | `chat-preview-split-ratio`   |
+| Chat/Preview ↔ Workspace | 20%     | 12% | 40% | `chat-workspace-split-ratio` |
 
 Sources: [src/renderer/pages/conversation/ChatLayout.tsx:20-23](), [src/renderer/pages/conversation/ChatLayout.tsx:292-311]()
 
@@ -239,10 +237,10 @@ previewFlex = flex: 1 (auto-fills remainder)
 
 The workspace toggle button placement varies by platform:
 
-| Platform | Toggle Location |
-|---|---|
-| macOS | Hidden from header (controlled via Titlebar) |
-| Windows | Injected into `ArcoLayout.Header` right side |
+| Platform      | Toggle Location                                                   |
+| ------------- | ----------------------------------------------------------------- |
+| macOS         | Hidden from header (controlled via Titlebar)                      |
+| Windows       | Injected into `ArcoLayout.Header` right side                      |
 | Linux / other | Floating button on right edge; also inside `WorkspacePanelHeader` |
 
 [src/renderer/pages/conversation/ChatLayout.tsx:393-397](), [src/renderer/pages/conversation/ChatLayout.tsx:429]()
@@ -278,9 +276,9 @@ Sources: [src/renderer/pages/conversation/ChatLayout.tsx:92-212](), [src/rendere
 
 Communication between components and `ChatLayout` for workspace state uses custom DOM events:
 
-| Event name | Constant | Purpose |
-|---|---|---|
-| `WORKSPACE_TOGGLE_EVENT` | `workspaceEvents.ts` | Toggle workspace open/closed |
+| Event name                  | Constant             | Purpose                                    |
+| --------------------------- | -------------------- | ------------------------------------------ |
+| `WORKSPACE_TOGGLE_EVENT`    | `workspaceEvents.ts` | Toggle workspace open/closed               |
 | `WORKSPACE_HAS_FILES_EVENT` | `workspaceEvents.ts` | Notify that a conversation has/lacks files |
 
 `dispatchWorkspaceToggleEvent()` and `dispatchWorkspaceStateEvent()` are the dispatchers. [src/renderer/pages/conversation/ChatLayout.tsx:15]()
@@ -313,14 +311,14 @@ graph TD
 
 Key mobile-specific behaviors:
 
-| Behavior | Detail |
-|---|---|
-| Left sider | `position: fixed`, slides in from left, backdrop overlay on tap-outside |
+| Behavior        | Detail                                                                         |
+| --------------- | ------------------------------------------------------------------------------ |
+| Left sider      | `position: fixed`, slides in from left, backdrop overlay on tap-outside        |
 | Workspace panel | `position: fixed`, slides in from right with `translateX(100%)` when collapsed |
-| Chat panel | `width: 100%`, hides when preview is open |
-| Preview panel | Full width when visible (`width: calc(100% - 16px)`) |
-| Workspace width | Capped at `Math.min(500, Math.max(200, ratio * viewportWidth))` px |
-| Input focus | `blurActiveElement()` called on conversation switch to prevent soft keyboard |
+| Chat panel      | `width: 100%`, hides when preview is open                                      |
+| Preview panel   | Full width when visible (`width: calc(100% - 16px)`)                           |
+| Workspace width | Capped at `Math.min(500, Math.max(200, ratio * viewportWidth))` px             |
+| Input focus     | `blurActiveElement()` called on conversation switch to prevent soft keyboard   |
 
 Sources: [src/renderer/layout.tsx:199-218](), [src/renderer/pages/conversation/ChatLayout.tsx:484-507](), [src/renderer/pages/conversation/ChatLayout.tsx:282-290]()
 
@@ -330,17 +328,17 @@ Sources: [src/renderer/layout.tsx:199-218](), [src/renderer/pages/conversation/C
 
 Relevant CSS classes and variables defined in [src/renderer/styles/themes/base.css]():
 
-| Class / Variable | Purpose |
-|---|---|
-| `--titlebar-height: 36px` | Titlebar height used by `app-titlebar` |
-| `--app-min-width: 360px` | Minimum layout width |
-| `.app-shell` | Root flex column container |
-| `.layout-sider` | Base sider style; `border-right: 1px solid var(--border-base)` |
-| `.layout-sider.collapsed` | Triggers `.collapsed-hidden` to hide labels |
-| `.workspace-header__toggle` | 28×28px toggle button |
-| `.workspace-toggle-floating` | Floating expand button when workspace collapsed on desktop |
-| `.preview-panel` | Entry animation: `translateX(20px)` → `translateX(0)` over 250ms |
-| `.chat-history--collapsed` | Fades and slides out item labels and sections |
+| Class / Variable             | Purpose                                                          |
+| ---------------------------- | ---------------------------------------------------------------- |
+| `--titlebar-height: 36px`    | Titlebar height used by `app-titlebar`                           |
+| `--app-min-width: 360px`     | Minimum layout width                                             |
+| `.app-shell`                 | Root flex column container                                       |
+| `.layout-sider`              | Base sider style; `border-right: 1px solid var(--border-base)`   |
+| `.layout-sider.collapsed`    | Triggers `.collapsed-hidden` to hide labels                      |
+| `.workspace-header__toggle`  | 28×28px toggle button                                            |
+| `.workspace-toggle-floating` | Floating expand button when workspace collapsed on desktop       |
+| `.preview-panel`             | Entry animation: `translateX(20px)` → `translateX(0)` over 250ms |
+| `.chat-history--collapsed`   | Fades and slides out item labels and sections                    |
 
 Mobile overrides (`@media (max-width: 767px)`) apply `height: 100dvh`, `position: fixed`, and flex column layout to `.layout-sider` to handle dynamic browser chrome on iOS/Android. [src/renderer/styles/themes/base.css:207-260]()
 

@@ -10,8 +10,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers how Mermaid diagrams are rendered inside session chat outputs — specifically the `packages/mermaid` workspace package, the `beautiful-mermaid` npm dependency it wraps, the `MarkdownMermaidBlock` component in `packages/ui`, and how `TurnCard` surfaces them. For general markdown rendering beyond Mermaid, see the broader UI component coverage in [2.5](#2.5). For the session display pipeline that feeds content into `TurnCard`, see [2.7](#2.7).
 
 ---
@@ -22,12 +20,12 @@ When an AI agent response includes a fenced code block tagged as `mermaid`, the 
 
 The rendering path involves three layers:
 
-| Layer | Package | Key Symbol |
-|---|---|---|
-| Raw mermaid engine + theming | `packages/mermaid` + `beautiful-mermaid` | `packages/mermaid` |
-| React component wrapper | `packages/ui` | `MarkdownMermaidBlock` |
-| Markdown dispatcher | `packages/ui` | `Markdown` (in `Markdown.tsx`) |
-| Chat surface | `packages/ui` | `ResponseCard` → `TurnCard` |
+| Layer                        | Package                                  | Key Symbol                     |
+| ---------------------------- | ---------------------------------------- | ------------------------------ |
+| Raw mermaid engine + theming | `packages/mermaid` + `beautiful-mermaid` | `packages/mermaid`             |
+| React component wrapper      | `packages/ui`                            | `MarkdownMermaidBlock`         |
+| Markdown dispatcher          | `packages/ui`                            | `Markdown` (in `Markdown.tsx`) |
+| Chat surface                 | `packages/ui`                            | `ResponseCard` → `TurnCard`    |
 
 ---
 
@@ -114,11 +112,11 @@ Sources: [packages/ui/src/components/markdown/Markdown.tsx:94-101](), [packages/
 
 `TurnCard` wraps `ResponseCard` in a container that has its own fullscreen button in the top-right corner (`Maximize2` icon, [packages/ui/src/components/chat/TurnCard.tsx:1479-1490]()). When a message begins directly with a mermaid fence, `MarkdownMermaidBlock`'s own inline expand button would overlap that same corner.
 
-To prevent the overlap, `Markdown.tsx` tracks whether the current mermaid block is the *first content* of the message:
+To prevent the overlap, `Markdown.tsx` tracks whether the current mermaid block is the _first content_ of the message:
 
 [packages/ui/src/components/markdown/Markdown.tsx:449-456]()
 
-```
+````
 const firstMermaidCodeRef = React.useRef<string | null>(null)
 const trimmed = children.trimStart()
 if (trimmed.startsWith('```mermaid')) {
@@ -129,7 +127,7 @@ $/, '') : null
 } else {
   firstMermaidCodeRef.current = null
 }
-```
+````
 
 A `ref` (not state) is used deliberately: storing this in state would add `children` to the `createComponents` memo dependencies, causing every component registered in the map to remount on every streaming character — destroying internal state in all rendered blocks.
 
@@ -137,7 +135,7 @@ The `hideFirstMermaidExpand` prop on `Markdown` (default `true`) controls this b
 
 **First-block detection logic**
 
-```mermaid
+````mermaid
 flowchart TD
   A["Markdown receives children string"] --> B{"trimmed string\
 starts with\
@@ -152,7 +150,7 @@ firstMermaidCodeRef.current\
 AND hideFirstMermaidExpand?"}
   F -- "Yes (isFirstBlock=true)" --> G["showExpandButton = false"]
   F -- "No" --> H["showExpandButton = true"]
-```
+````
 
 Sources: [packages/ui/src/components/markdown/Markdown.tsx:444-460](), [packages/ui/src/components/markdown/Markdown.tsx:72-74](), [packages/ui/src/components/chat/TurnCard.tsx:1477-1491]()
 
@@ -162,11 +160,11 @@ Sources: [packages/ui/src/components/markdown/Markdown.tsx:444-460](), [packages
 
 Based on all call sites in `Markdown.tsx`, `MarkdownMermaidBlock` accepts the following props:
 
-| Prop | Type | Description |
-|---|---|---|
-| `code` | `string` | Raw Mermaid diagram source |
-| `className` | `string` | Tailwind class applied to the wrapper (`"my-2"` at all call sites) |
-| `showExpandButton` | `boolean` | Whether to render an inline expand/fullscreen button |
+| Prop               | Type      | Description                                                        |
+| ------------------ | --------- | ------------------------------------------------------------------ |
+| `code`             | `string`  | Raw Mermaid diagram source                                         |
+| `className`        | `string`  | Tailwind class applied to the wrapper (`"my-2"` at all call sites) |
+| `showExpandButton` | `boolean` | Whether to render an inline expand/fullscreen button               |
 
 Sources: [packages/ui/src/components/markdown/Markdown.tsx:240](), [packages/ui/src/components/markdown/Markdown.tsx:340]()
 
@@ -211,10 +209,10 @@ Sources: [packages/ui/src/components/chat/TurnCard.tsx:1383-1642](), [packages/u
 
 The `Markdown` component supports three modes (`terminal`, `minimal`, `full`). Mermaid rendering is **skipped in `terminal` mode** — that mode provides no special `code` handler and falls back to a plain `<code>` element. Both `minimal` and `full` modes invoke `MarkdownMermaidBlock`.
 
-| Mode | Mermaid rendered? | Notes |
-|---|---|---|
-| `terminal` | No | Plain monospace `<code>` output |
-| `minimal` | Yes | Used by `ResponseCard` in `TurnCard` |
-| `full` | Yes | Used in document/overlay contexts |
+| Mode       | Mermaid rendered? | Notes                                |
+| ---------- | ----------------- | ------------------------------------ |
+| `terminal` | No                | Plain monospace `<code>` output      |
+| `minimal`  | Yes               | Used by `ResponseCard` in `TurnCard` |
+| `full`     | Yes               | Used in document/overlay contexts    |
 
 Sources: [packages/ui/src/components/markdown/Markdown.tsx:161-184](), [packages/ui/src/components/markdown/Markdown.tsx:187-289](), [packages/ui/src/components/markdown/Markdown.tsx:292-420]()

@@ -25,13 +25,12 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Overview
 
 The Conversation Interface centers around the `ChatConversation` router component, which discriminates conversation types and renders agent-specific UIs. Each conversation type (`gemini`, `acp`, `codex`, `openclaw-gateway`, `nanobot`) receives a specialized panel that integrates `MessageList`, agent-specific `SendBox`, and workspace panels through the shared `ChatLayout` wrapper.
 
 **Key Components:**
+
 - **ChatConversation**: Type-based router that selects agent UI
 - **ChatLayout**: Three-panel layout wrapper (chat/preview/workspace)
 - **Agent-specific panels**: GeminiChat, AcpChat, CodexChat, etc.
@@ -51,28 +50,28 @@ The `ChatConversation` component serves as the central routing point, using Type
 ```mermaid
 graph TB
     Router["ChatConversation<br/>conversation?: TChatConversation"]
-    
+
     TypeCheck{"conversation.type"}
-    
+
     GeminiPath["type === 'gemini'"]
     ACPPath["type === 'acp'"]
     CodexPath["type === 'codex'"]
     OpenClawPath["type === 'openclaw-gateway'"]
     NanobotPath["type === 'nanobot'"]
-    
+
     GeminiPanel["GeminiConversationPanel<br/>+ GeminiModelSelector<br/>+ GeminiSendBox"]
     ACPPanel["ChatLayout<br/>+ AcpChat<br/>+ AcpModelSelector"]
     CodexPanel["ChatLayout<br/>+ CodexChat<br/>+ AcpModelSelector"]
     OpenClawPanel["ChatLayout<br/>+ OpenClawChat"]
     NanobotPanel["ChatLayout<br/>+ NanobotChat"]
-    
+
     Router --> TypeCheck
     TypeCheck --> GeminiPath
     TypeCheck --> ACPPath
     TypeCheck --> CodexPath
     TypeCheck --> OpenClawPath
     TypeCheck --> NanobotPath
-    
+
     GeminiPath --> GeminiPanel
     ACPPath --> ACPPanel
     CodexPath --> CodexPanel
@@ -85,8 +84,8 @@ graph TB
 ```typescript
 // Early return for Gemini with dedicated layout
 if (conversation && conversation.type === 'gemini') {
-  return <GeminiConversationPanel key={conversation.id} 
-                                  conversation={conversation} 
+  return <GeminiConversationPanel key={conversation.id}
+                                  conversation={conversation}
                                   sliderTitle={sliderTitle} />;
 }
 
@@ -95,11 +94,11 @@ const conversationNode = useMemo(() => {
   if (!conversation || isGeminiConversation) return null;
   switch (conversation.type) {
     case 'acp':
-      return <AcpChat key={conversation.id} conversation_id={conversation.id} 
-                      workspace={conversation.extra?.workspace} 
+      return <AcpChat key={conversation.id} conversation_id={conversation.id}
+                      workspace={conversation.extra?.workspace}
                       backend={conversation.extra?.backend} />;
     case 'codex':
-      return <CodexChat key={conversation.id} conversation_id={conversation.id} 
+      return <CodexChat key={conversation.id} conversation_id={conversation.id}
                         workspace={conversation.extra?.workspace} />;
     // ... other cases
   }
@@ -117,12 +116,12 @@ graph LR
     Check1{"Has preset<br/>assistant info?"}
     Check2{"Is loading<br/>preset?"}
     Check3{"Has backend<br/>type?"}
-    
+
     Preset["Use preset logo/name<br/>(agentLogo, agentName)"]
     Wait["Skip branding<br/>(avoid premature fallback)"]
     Backend["Use backend logo<br/>(ACP_BACKENDS_ALL)"]
     Empty["No branding"]
-    
+
     Check1 -->|Yes| Preset
     Check1 -->|No| Check2
     Check2 -->|Yes| Wait
@@ -146,40 +145,40 @@ graph TB
     subgraph ChatLayout["ChatLayout Component"]
         Header["Chat Header<br/>(Model Selector, Agent Logo)"]
         ConvTabs["ConversationTabs<br/>Tab Management"]
-        
+
         subgraph ThreePanels["Three-Panel Container"]
             ChatPanel["Chat Panel<br/>(Messages + SendBox)"]
             PreviewPanel["Preview Panel<br/>(File Viewer)"]
             WorkspacePanel["Workspace Panel<br/>(File Tree)"]
         end
-        
+
         DragHandles["Resize Drag Handles<br/>(useResizableSplit)"]
     end
-    
+
     subgraph StateManagement["State Management"]
         RightCollapsed["rightSiderCollapsed<br/>(localStorage)"]
         WorkspacePreference["workspace-preference-{id}<br/>(User Manual Preference)"]
         SplitRatios["Split Ratios<br/>(chat/workspace/preview)"]
     end
-    
+
     subgraph ResponsiveBehavior["Responsive Behavior"]
         DesktopLayout["Desktop: Flex Layout<br/>(All Panels Visible)"]
         MobileLayout["Mobile: Fixed Positioning<br/>(Workspace Overlay)"]
         AutoCollapse["Auto-Collapse Logic<br/>(Preview Opens -> Collapse Others)"]
     end
-    
+
     Header --> ConvTabs
     ConvTabs --> ThreePanels
     ThreePanels --> ChatPanel
     ThreePanels --> PreviewPanel
     ThreePanels --> WorkspacePanel
-    
+
     DragHandles --> SplitRatios
     SplitRatios --> ThreePanels
-    
+
     RightCollapsed --> WorkspacePanel
     WorkspacePreference --> RightCollapsed
-    
+
     AutoCollapse --> RightCollapsed
     DesktopLayout --> ThreePanels
     MobileLayout --> WorkspacePanel
@@ -191,12 +190,13 @@ graph TB
 
 The layout uses two `useResizableSplit` hooks for independent width control:
 
-| Split | Storage Key | Default | Min | Max | Controls |
-|-------|-------------|---------|-----|-----|----------|
-| Chat/Preview | `chat-preview-split-ratio` | 60% | 25% | 80% | Chat panel width when preview is open |
-| Chat/Workspace | `chat-workspace-split-ratio` | 20% | 12% | 40% | Workspace panel width |
+| Split          | Storage Key                  | Default | Min | Max | Controls                              |
+| -------------- | ---------------------------- | ------- | --- | --- | ------------------------------------- |
+| Chat/Preview   | `chat-preview-split-ratio`   | 60%     | 25% | 80% | Chat panel width when preview is open |
+| Chat/Workspace | `chat-workspace-split-ratio` | 20%     | 12% | 40% | Workspace panel width                 |
 
 Width constraints are enforced dynamically:
+
 - When preview opens, workspace max width shrinks to prevent overflow: `maxWorkspace = 100 - chatRatio - MIN_PREVIEW_RATIO`
 - When workspace expands, chat max width adjusts: `maxChat = 100 - workspaceRatio - MIN_PREVIEW_RATIO`
 
@@ -211,20 +211,20 @@ stateDiagram-v2
     [*] --> CheckPreference
     CheckPreference --> UsePreference: User has manual preference
     CheckPreference --> CheckFiles: No manual preference
-    
+
     UsePreference --> Expanded: preference='expanded'
     UsePreference --> Collapsed: preference='collapsed'
-    
+
     CheckFiles --> Expanded: hasFiles=true
     CheckFiles --> Collapsed: hasFiles=false
-    
+
     Expanded --> UserManualToggle: User clicks toggle
     Collapsed --> UserManualToggle: User clicks toggle
-    
+
     UserManualToggle --> SavePreference: Save to localStorage
     SavePreference --> Expanded
     SavePreference --> Collapsed
-    
+
     note right of SavePreference
         localStorage key:
         workspace-preference-{conversationId}
@@ -240,15 +240,15 @@ When the preview panel opens, the layout automatically collapses the sidebar and
 ```typescript
 // Auto-collapse logic when preview opens
 if (isPreviewOpen && !previousPreviewOpenRef.current) {
-  previousWorkspaceCollapsedRef.current = rightSiderCollapsed;
-  previousSiderCollapsedRef.current = layout?.siderCollapsed;
-  setRightSiderCollapsed(true);
-  layout?.setSiderCollapsed?.(true);
+  previousWorkspaceCollapsedRef.current = rightSiderCollapsed
+  previousSiderCollapsedRef.current = layout?.siderCollapsed
+  setRightSiderCollapsed(true)
+  layout?.setSiderCollapsed?.(true)
 }
 // Restore previous states when preview closes
 else if (!isPreviewOpen && previousPreviewOpenRef.current) {
-  setRightSiderCollapsed(previousWorkspaceCollapsedRef.current);
-  layout?.setSiderCollapsed(previousSiderCollapsedRef.current);
+  setRightSiderCollapsed(previousWorkspaceCollapsedRef.current)
+  layout?.setSiderCollapsed(previousSiderCollapsedRef.current)
 }
 ```
 
@@ -270,7 +270,7 @@ graph TB
         Chat["Agent Chat Component<br/>(GeminiChat, AcpChat, etc.)"]
         SendBox["Agent SendBox<br/>(GeminiSendBox, AcpSendBox, etc.)"]
     end
-    
+
     subgraph LayoutProps["ChatLayout Props"]
         HeaderLeft["headerLeft<br/>(Model Selector)"]
         HeaderExtra["headerExtra<br/>(Cron Manager)"]
@@ -278,18 +278,18 @@ graph TB
         Sider["sider<br/>(ChatSider + Workspace)"]
         SiderTitle["siderTitle"]
     end
-    
+
     subgraph Rendering["Rendered Layout"]
         Header["Chat Header<br/>(Title, Logo, Controls)"]
         MessageList["MessageList<br/>(Message Rendering)"]
         SendBoxUI["SendBox UI<br/>(Input + Files)"]
         Workspace["Workspace Panel<br/>(File Tree)"]
     end
-    
+
     Chat --> Children
     SendBox --> MessageList
     SendBox --> SendBoxUI
-    
+
     HeaderLeft --> Header
     HeaderExtra --> Header
     Children --> MessageList
@@ -306,23 +306,23 @@ Gemini is unique in providing dynamic model selection, implemented through share
 ```mermaid
 graph TB
     Panel["GeminiConversationPanel"]
-    
+
     ModelHook["useGeminiModelSelection<br/>(initialModel, onSelectModel)"]
-    
+
     Header["GeminiModelSelector<br/>(headerLeft prop)"]
     SendBox["GeminiSendBox<br/>(modelSelection prop)"]
-    
+
     UserSelect["User selects model"]
     IPC["conversation.update.invoke<br/>{model: TProviderWithModel}"]
-    
+
     Panel --> ModelHook
     ModelHook --> Header
     ModelHook --> SendBox
-    
+
     Header --> UserSelect
     UserSelect --> IPC
     IPC --> ModelHook
-    
+
     note["Shared state ensures<br/>header + sendbox sync"]
 ```
 
@@ -330,15 +330,15 @@ graph TB
 
 ```typescript
 const onSelectModel = async (_provider: IProvider, modelName: string) => {
-  const selected = { ..._provider, useModel: modelName } as TProviderWithModel;
-  const ok = await ipcBridge.conversation.update.invoke({ 
-    id: conversation.id, 
-    updates: { model: selected } 
-  });
-  return Boolean(ok);
-};
+  const selected = { ..._provider, useModel: modelName } as TProviderWithModel
+  const ok = await ipcBridge.conversation.update.invoke({
+    id: conversation.id,
+    updates: { model: selected },
+  })
+  return Boolean(ok)
+}
 
-const modelSelection = useGeminiModelSelection({ initialModel, onSelectModel });
+const modelSelection = useGeminiModelSelection({ initialModel, onSelectModel })
 ```
 
 **ChatLayout integration:**
@@ -353,7 +353,7 @@ const modelSelection = useGeminiModelSelection({ initialModel, onSelectModel });
   agentName={presetAssistantInfo?.name}
   agentLogo={presetAssistantInfo?.logo}
 >
-  <GeminiChat conversation_id={conversation.id} 
+  <GeminiChat conversation_id={conversation.id}
               modelSelection={modelSelection} />
 </ChatLayout>
 ```
@@ -367,10 +367,10 @@ Non-Gemini agents use a simpler integration with `AcpModelSelector` for runtime 
 ```typescript
 // ACP: Show model selector with backend context
 const modelSelector = conversation.type === 'acp' ? (
-  <AcpModelSelector 
-    conversationId={conversation.id} 
+  <AcpModelSelector
+    conversationId={conversation.id}
     backend={conversation.extra?.backend}
-    initialModelId={conversation.extra?.currentModelId} 
+    initialModelId={conversation.extra?.currentModelId}
   />
 ) : <GeminiModelSelector disabled={true} />;
 
@@ -402,25 +402,25 @@ graph TB
         GThought["ThoughtDisplay"]
         GSendBox["GeminiSendBox<br/>(model selection)"]
     end
-    
+
     subgraph AcpChat["AcpChat"]
         AMsgList["MessageList"]
         AThought["ThoughtDisplay"]
         ASendBox["AcpSendBox<br/>(backend-specific)"]
     end
-    
+
     subgraph CodexChat["CodexChat"]
         CMsgList["MessageList"]
         CThought["ThoughtDisplay"]
         CSendBox["CodexSendBox<br/>(session status)"]
     end
-    
+
     GMsgList --> GThought
     GThought --> GSendBox
-    
+
     AMsgList --> AThought
     AThought --> ASendBox
-    
+
     CMsgList --> CThought
     CThought --> CSendBox
 ```
@@ -432,7 +432,7 @@ const GeminiChat: React.FC<{ conversation_id: string; modelSelection }> = () => 
   return (
     <FlexFullContainer className="flex flex-col">
       <MessageList conversation_id={conversation_id} />
-      <GeminiSendBox conversation_id={conversation_id} 
+      <GeminiSendBox conversation_id={conversation_id}
                      modelSelection={modelSelection} />
     </FlexFullContainer>
   );
@@ -457,26 +457,26 @@ graph TB
         Tools["Tool Buttons<br/>(tools prop)"]
         SendButton["Send/Stop Button<br/>(loading state)"]
     end
-    
+
     subgraph StateManagement["Input State Management"]
         SingleLineDetection["Single-line Detection<br/>(Canvas Text Measurement)"]
         CompositionInput["useCompositionInput<br/>(IME Handling)"]
         PasteService["usePasteService<br/>(File/Text Paste)"]
         DragUpload["useDragUpload<br/>(File Drop)"]
     end
-    
+
     subgraph AgentSpecific["Agent-Specific SendBoxes"]
         GeminiSB["GeminiSendBox"]
         CodexSB["CodexSendBox"]
         AcpSB["AcpSendBox"]
     end
-    
+
     Input --> SingleLineDetection
     Input --> CompositionInput
     Input --> PasteService
-    
+
     FileUI --> DragUpload
-    
+
     GeminiSB --> SharedSendBox
     CodexSB --> SharedSendBox
     AcpSB --> SharedSendBox
@@ -490,16 +490,16 @@ The `SendBox` uses canvas text measurement to determine when to switch between s
 
 ```typescript
 // Detect content width using offscreen canvas
-const canvas = measurementCanvasRef.current ?? document.createElement('canvas');
-const context = canvas.getContext('2d');
-context.font = textareaStyle.font;
-const textWidth = context.measureText(input || '').width;
+const canvas = measurementCanvasRef.current ?? document.createElement('canvas')
+const context = canvas.getContext('2d')
+context.font = textareaStyle.font
+const textWidth = context.measureText(input || '').width
 
 // Switch to multi-line if text exceeds baseline width
 if (textWidth >= baseWidth) {
-  setIsSingleLine(false);
+  setIsSingleLine(false)
 } else if (textWidth < baseWidth - 30 && !lockMultiLine) {
-  setIsSingleLine(true);
+  setIsSingleLine(true)
 }
 ```
 
@@ -511,11 +511,11 @@ This prevents expensive DOM layout calculations for long text by switching to mu
 
 Each agent SendBox uses `getSendBoxDraftHook` to create a type-specific draft hook:
 
-| Agent | Hook Name | Draft Type | Fields |
-|-------|-----------|------------|--------|
+| Agent  | Hook Name               | Draft Type                                                                               | Fields                                |
+| ------ | ----------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------- |
 | Gemini | `useGeminiSendBoxDraft` | `{ _type: 'gemini', content: string, atPath: FileOrFolderItem[], uploadFile: string[] }` | Text, workspace files, uploaded files |
-| Codex | `useCodexSendBoxDraft` | `{ _type: 'codex', content: string, atPath: FileOrFolderItem[], uploadFile: string[] }` | Text, workspace files, uploaded files |
-| ACP | `useAcpSendBoxDraft` | `{ _type: 'acp', content: string, atPath: FileOrFolderItem[], uploadFile: string[] }` | Text, workspace files, uploaded files |
+| Codex  | `useCodexSendBoxDraft`  | `{ _type: 'codex', content: string, atPath: FileOrFolderItem[], uploadFile: string[] }`  | Text, workspace files, uploaded files |
+| ACP    | `useAcpSendBoxDraft`    | `{ _type: 'acp', content: string, atPath: FileOrFolderItem[], uploadFile: string[] }`    | Text, workspace files, uploaded files |
 
 The `getSendBoxDraftHook` factory function returns a hook that persists drafts to `sessionStorage` with the key pattern `sendbox-draft-{agentType}-{conversationId}`.
 
@@ -534,28 +534,28 @@ Gemini uses the most complex state tracking due to tool execution and streaming:
 ```mermaid
 stateDiagram-v2
     [*] --> Idle
-    
+
     Idle --> WaitingResponse: User sends message
     WaitingResponse --> StreamRunning: Receive 'start' event
-    
+
     StreamRunning --> ToolsActive: Receive 'tool_group' (active tools)
     StreamRunning --> Idle: Receive 'finish' (no active tools)
-    
+
     ToolsActive --> WaitingResponse: Tools complete
     ToolsActive --> StreamRunning: Tool result received
-    
+
     WaitingResponse --> Idle: Receive 'finish'
-    
+
     note right of WaitingResponse
         Button shows stop icon
         waitingResponse=true
     end note
-    
+
     note right of StreamRunning
         Displaying streamed text
         streamRunning=true
     end note
-    
+
     note right of ToolsActive
         Executing/Confirming tools
         hasActiveTools=true
@@ -572,12 +572,16 @@ Gemini implements event filtering using `activeMsgIdRef` to prevent aborted requ
 
 ```typescript
 // Set active message ID when sending
-setActiveMsgId(msg_id);
+setActiveMsgId(msg_id)
 
 // Filter out events from old requests
-if (activeMsgIdRef.current && message.msg_id && message.msg_id !== activeMsgIdRef.current) {
+if (
+  activeMsgIdRef.current &&
+  message.msg_id &&
+  message.msg_id !== activeMsgIdRef.current
+) {
   if (message.type === 'thought') {
-    return; // Only filter thought/start, other messages must render
+    return // Only filter thought/start, other messages must render
   }
 }
 ```
@@ -589,11 +593,13 @@ if (activeMsgIdRef.current && message.msg_id && message.msg_id !== activeMsgIdRe
 Codex and ACP use simpler state management:
 
 **Codex:**
+
 - `running`: General execution state (legacy, rarely used)
 - `aiProcessing`: AI response in progress (loading state)
 - `codexStatus`: Connection state (`'connecting'`, `'session_active'`, etc.)
 
 **ACP:**
+
 - `running`: Stream running state (from `'start'`/`'finish'` events)
 - `aiProcessing`: Loading state while waiting for AI response
 - `acpStatus`: Agent authentication state
@@ -607,25 +613,28 @@ Both reset all state when `conversation_id` changes to prevent state pollution w
 All three SendBoxes implement thought message throttling to reduce render frequency:
 
 ```typescript
-const THROTTLE_MS = 50;
+const THROTTLE_MS = 50
 const throttledSetThought = useMemo(() => {
   return (data: ThoughtData) => {
-    const now = Date.now();
-    const ref = thoughtThrottleRef.current;
-    
+    const now = Date.now()
+    const ref = thoughtThrottleRef.current
+
     if (now - ref.lastUpdate >= THROTTLE_MS) {
-      setThought(data); // Update immediately
-      ref.lastUpdate = now;
+      setThought(data) // Update immediately
+      ref.lastUpdate = now
     } else {
-      ref.pending = data; // Queue for later
+      ref.pending = data // Queue for later
       if (!ref.timer) {
-        ref.timer = setTimeout(() => {
-          setThought(ref.pending);
-        }, THROTTLE_MS - (now - ref.lastUpdate));
+        ref.timer = setTimeout(
+          () => {
+            setThought(ref.pending)
+          },
+          THROTTLE_MS - (now - ref.lastUpdate)
+        )
       }
     }
-  };
-}, []);
+  }
+}, [])
 ```
 
 This prevents excessive re-renders during rapid thought updates from the backend.
@@ -647,24 +656,24 @@ sequenceDiagram
     participant ChatView
     participant GeminiSendBox
     participant IPC
-    
+
     GuidPage->>SessionStorage: Store initial message<br/>(gemini_initial_message_{id})
     GuidPage->>ChatView: Navigate to /conversation/{id}
-    
+
     ChatView->>GeminiSendBox: Mount component
-    
+
     GeminiSendBox->>SessionStorage: Check for stored message
     SessionStorage-->>GeminiSendBox: {input, files}
-    
+
     GeminiSendBox->>SessionStorage: Remove stored message<br/>(prevent duplicate)
-    
+
     GeminiSendBox->>GeminiSendBox: setActiveMsgId(msg_id)
     GeminiSendBox->>GeminiSendBox: setWaitingResponse(true)
-    
+
     GeminiSendBox->>GeminiSendBox: addOrUpdateMessage<br/>(Display user message)
-    
+
     GeminiSendBox->>IPC: geminiConversation.sendMessage.invoke
-    
+
     IPC-->>GeminiSendBox: Start streaming events
 ```
 
@@ -676,22 +685,22 @@ Codex waits for `codexStatus === 'session_active'` before sending the initial me
 
 ```typescript
 useEffect(() => {
-  if (!conversation_id || !codexStatus) return;
-  if (codexStatus !== 'session_active') return;
+  if (!conversation_id || !codexStatus) return
+  if (codexStatus !== 'session_active') return
 
   const processInitialMessage = async () => {
-    const stored = sessionStorage.getItem(storageKey);
-    if (!stored) return;
-    
+    const stored = sessionStorage.getItem(storageKey)
+    if (!stored) return
+
     // Double-check locking to prevent race conditions
-    if (sessionStorage.getItem(processedKey)) return;
-    sessionStorage.setItem(processedKey, 'true');
-    
+    if (sessionStorage.getItem(processedKey)) return
+    sessionStorage.setItem(processedKey, 'true')
+
     // Send message...
-  };
-  
-  setTimeout(() => processInitialMessage(), 200); // Small delay for state stabilization
-}, [conversation_id, codexStatus]);
+  }
+
+  setTimeout(() => processInitialMessage(), 200) // Small delay for state stabilization
+}, [conversation_id, codexStatus])
 ```
 
 **Sources:** [src/renderer/pages/conversation/codex/CodexSendBox.tsx:267-338]()
@@ -702,18 +711,18 @@ ACP also waits for authentication (`acpStatus === 'session_active'`) and uses a 
 
 ```typescript
 useEffect(() => {
-  if (!acpStatus || acpStatus !== 'session_active') return;
-  
+  if (!acpStatus || acpStatus !== 'session_active') return
+
   const sendInitialMessage = async () => {
-    if (sendingInitialMessageRef.current) return; // Prevent duplicate
-    sendingInitialMessageRef.current = true;
-    
-    const storedMessage = sessionStorage.getItem(storageKey);
-    if (!storedMessage) return;
-    
+    if (sendingInitialMessageRef.current) return // Prevent duplicate
+    sendingInitialMessageRef.current = true
+
+    const storedMessage = sessionStorage.getItem(storageKey)
+    if (!storedMessage) return
+
     // Send message and handle errors...
-  };
-}, [conversation_id, backend, acpStatus]);
+  }
+}, [conversation_id, backend, acpStatus])
 ```
 
 **Sources:** [src/renderer/pages/conversation/acp/AcpSendBox.tsx:252-330]()
@@ -723,6 +732,7 @@ useEffect(() => {
 ## File Handling Integration
 
 All SendBoxes display files in two sections:
+
 1. **File previews** (top): Individual files with thumbnails
 2. **Folder tags** (bottom): Folders selected from workspace
 
@@ -735,15 +745,15 @@ graph TB
             UploadedFiles["Uploaded Files<br/>(uploadFile array)"]
             WorkspaceFiles["Workspace Files<br/>(atPath.filter(isFile))"]
         end
-        
+
         subgraph Folders["Folders Section (Tag)"]
             WorkspaceFolders["Workspace Folders<br/>(atPath.filter(!isFile))"]
         end
     end
-    
+
     UploadedFiles --> FilePreview1["FilePreview<br/>(path, onRemove)"]
     WorkspaceFiles --> FilePreview2["FilePreview<br/>(path, onRemove)"]
-    
+
     WorkspaceFolders --> FolderTag["Tag<br/>(closable)"]
 ```
 
@@ -753,21 +763,21 @@ graph TB
 
 SendBoxes listen to workspace file selection events using `useAddEventListener`:
 
-| Event Name | Purpose | Payload |
-|------------|---------|---------|
-| `{agent}.selected.file` | Replace entire file selection | `Array<string \| FileOrFolderItem>` |
+| Event Name                     | Purpose                       | Payload                             |
+| ------------------------------ | ----------------------------- | ----------------------------------- |
+| `{agent}.selected.file`        | Replace entire file selection | `Array<string \| FileOrFolderItem>` |
 | `{agent}.selected.file.append` | Merge with existing selection | `Array<string \| FileOrFolderItem>` |
-| `{agent}.selected.file.clear` | Clear all selections | `void` |
+| `{agent}.selected.file.clear`  | Clear all selections          | `void`                              |
 
 The `append` event uses `mergeFileSelectionItems` to deduplicate files:
 
 ```typescript
 useAddEventListener('gemini.selected.file.append', (items) => {
-  const merged = mergeFileSelectionItems(atPathRef.current, items);
+  const merged = mergeFileSelectionItems(atPathRef.current, items)
   if (merged !== atPathRef.current) {
-    setAtPath(merged);
+    setAtPath(merged)
   }
-});
+})
 ```
 
 **Sources:** [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:546-552](), [src/renderer/pages/conversation/codex/CodexSendBox.tsx:215-222](), [src/renderer/pages/conversation/acp/AcpSendBox.tsx:400-406]()
@@ -783,6 +793,7 @@ The layout implements different strategies for desktop and mobile devices.
 Desktop uses a flex-based layout where all three panels are visible simultaneously. Drag handles allow users to adjust panel widths, which are persisted to `localStorage`.
 
 **Key behaviors:**
+
 - Workspace panel: Toggleable via button in header (Windows) or floating button (Linux)
 - Preview panel: Opens in center, auto-collapses sidebar and workspace
 - Minimum widths enforced: Chat 240px, Workspace 220px, Preview 260px
@@ -807,12 +818,14 @@ transform: rightSiderCollapsed ? 'translateX(100%)' : 'translateX(0)';
 A backdrop is rendered when workspace is open:
 
 ```tsx
-{layout?.isMobile && !rightSiderCollapsed && (
-  <div 
-    className='fixed inset-0 bg-black/30 z-90' 
-    onClick={() => setRightSiderCollapsed(true)} 
-  />
-)}
+{
+  layout?.isMobile && !rightSiderCollapsed && (
+    <div
+      className="fixed inset-0 bg-black/30 z-90"
+      onClick={() => setRightSiderCollapsed(true)}
+    />
+  )
+}
 ```
 
 **Sources:** [src/renderer/pages/conversation/ChatLayout.tsx:474-500]()
@@ -824,13 +837,13 @@ Mobile detection is handled by `useLayoutContext` in the parent `Layout` compone
 ```typescript
 useEffect(() => {
   const checkMobile = () => {
-    const mobile = window.innerWidth < 768;
-    setIsMobile(mobile);
-  };
-  checkMobile();
-  window.addEventListener('resize', checkMobile);
-  return () => window.removeEventListener('resize', checkMobile);
-}, []);
+    const mobile = window.innerWidth < 768
+    setIsMobile(mobile)
+  }
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+  return () => window.removeEventListener('resize', checkMobile)
+}, [])
 ```
 
 **Sources:** [src/renderer/layout.tsx:148-160]()
@@ -847,17 +860,17 @@ The workspace panel is integrated through `ChatSider`, which wraps the `ChatWork
 graph TB
     ChatLayout["ChatLayout<br/>sider prop"]
     ChatSider["ChatSider<br/>conversation prop"]
-    
+
     TypeCheck{"conversation.type"}
-    
+
     GeminiWS["ChatWorkspace<br/>eventPrefix='gemini'<br/>workspace={extra.workspace}"]
     AcpWS["ChatWorkspace<br/>eventPrefix='acp'<br/>workspace={extra.workspace}"]
     CodexWS["ChatWorkspace<br/>eventPrefix='codex'<br/>workspace={extra.workspace}"]
     NoWS["Empty div<br/>(no workspace)"]
-    
+
     ChatLayout --> ChatSider
     ChatSider --> TypeCheck
-    
+
     TypeCheck -->|"type='gemini'"| GeminiWS
     TypeCheck -->|"type='acp'"| AcpWS
     TypeCheck -->|"type='codex'"| CodexWS
@@ -872,21 +885,21 @@ const ChatSider: React.FC<{ conversation?: TChatConversation }> = ({ conversatio
 
   let workspaceNode: React.ReactNode = null;
   if (conversation?.type === 'gemini') {
-    workspaceNode = <ChatWorkspace 
-      conversation_id={conversation.id} 
-      workspace={conversation.extra.workspace} 
-      messageApi={messageApi} 
+    workspaceNode = <ChatWorkspace
+      conversation_id={conversation.id}
+      workspace={conversation.extra.workspace}
+      messageApi={messageApi}
     />;
   } else if (conversation?.type === 'acp' && conversation.extra?.workspace) {
-    workspaceNode = <ChatWorkspace 
-      conversation_id={conversation.id} 
-      workspace={conversation.extra.workspace} 
-      eventPrefix='acp' 
-      messageApi={messageApi} 
+    workspaceNode = <ChatWorkspace
+      conversation_id={conversation.id}
+      workspace={conversation.extra.workspace}
+      eventPrefix='acp'
+      messageApi={messageApi}
     />;
   }
   // ... codex case similar
-  
+
   return <>{messageContext}{workspaceNode}</>;
 };
 ```
@@ -897,22 +910,22 @@ const ChatSider: React.FC<{ conversation?: TChatConversation }> = ({ conversatio
 
 The `eventPrefix` enables agent-specific workspace events:
 
-| Event Pattern | Gemini | ACP | Codex |
-|---------------|--------|-----|-------|
-| File selection | `gemini.selected.file` | `acp.selected.file` | `codex.selected.file` |
-| File append | `gemini.selected.file.append` | `acp.selected.file.append` | `codex.selected.file.append` |
-| Clear selection | `gemini.selected.file.clear` | `acp.selected.file.clear` | `codex.selected.file.clear` |
-| Refresh workspace | `gemini.workspace.refresh` | `acp.workspace.refresh` | `codex.workspace.refresh` |
+| Event Pattern     | Gemini                        | ACP                        | Codex                        |
+| ----------------- | ----------------------------- | -------------------------- | ---------------------------- |
+| File selection    | `gemini.selected.file`        | `acp.selected.file`        | `codex.selected.file`        |
+| File append       | `gemini.selected.file.append` | `acp.selected.file.append` | `codex.selected.file.append` |
+| Clear selection   | `gemini.selected.file.clear`  | `acp.selected.file.clear`  | `codex.selected.file.clear`  |
+| Refresh workspace | `gemini.workspace.refresh`    | `acp.workspace.refresh`    | `codex.workspace.refresh`    |
 
 SendBox components listen to their specific events:
 
 ```typescript
 // In GeminiSendBox
-useAddEventListener('gemini.selected.file', setAtPath);
+useAddEventListener('gemini.selected.file', setAtPath)
 useAddEventListener('gemini.selected.file.append', (items) => {
-  const merged = mergeFileSelectionItems(atPathRef.current, items);
-  setAtPath(merged);
-});
+  const merged = mergeFileSelectionItems(atPathRef.current, items)
+  setAtPath(merged)
+})
 ```
 
 **Sources:** [src/renderer/pages/conversation/gemini/GeminiSendBox.tsx:814-820](), [src/renderer/pages/conversation/acp/AcpSendBox.tsx:542-548](), [src/renderer/pages/conversation/workspace/index.tsx:1-600]()
@@ -926,13 +939,13 @@ The `ConversationTabs` component provides multi-conversation tab management, dis
 ```mermaid
 graph LR
     TabsContext["ConversationTabsContext<br/>(openTabs, activeTabId)"]
-    
+
     TabsUI["ConversationTabs UI<br/>(Horizontal Scroll)"]
-    
+
     TabItem["Tab: conversation.name<br/>(Click to switch, X to close)"]
-    
+
     ChatLayout["ChatLayout<br/>(Hides title when tabs present)"]
-    
+
     TabsContext --> TabsUI
     TabsUI --> TabItem
     TabsUI --> ChatLayout

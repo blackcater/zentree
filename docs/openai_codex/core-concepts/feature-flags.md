@@ -23,8 +23,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the feature flag system used throughout Codex to gate experimental, optional, and platform-specific functionality. Feature flags enable progressive feature rollout through well-defined lifecycle stages and provide users with fine-grained control over which capabilities are active in their sessions.
 
 For information about configuring individual features, see the configuration reference documentation. For details on how features integrate with profiles and config layers, see [Configuration System](#2.2).
@@ -53,27 +51,27 @@ stateDiagram-v2
     Stable --> Deprecated: "Superseded"
     Deprecated --> Removed: "Cleanup complete"
     Removed --> [*]: "Flag retired"
-    
+
     note right of UnderDevelopment
         Hidden from users
         Triggers warnings
     end note
-    
+
     note right of Experimental
         Appears in /experimental menu
         Opt-in usage
     end note
-    
+
     note right of Stable
         Default behavior
         Production quality
     end note
-    
+
     note right of Deprecated
         Warns users
         Still functional
     end note
-    
+
     note right of Removed
         No-op flag
         Config compat only
@@ -82,13 +80,13 @@ stateDiagram-v2
 
 ### Stage Definitions
 
-| Stage | Visibility | Default State | Purpose |
-|-------|-----------|---------------|---------|
-| `UnderDevelopment` | Internal only | `false` | Active development, not ready for external use |
-| `Experimental` | `/experimental` menu | `false` | User-facing but unstable, opt-in required |
-| `Stable` | Standard config | Varies | Production-ready, may be enabled by default |
-| `Deprecated` | Standard config | `false` | Superseded, warns users to migrate |
-| `Removed` | Config compat | `false` | No-op retained for config backwards compatibility |
+| Stage              | Visibility           | Default State | Purpose                                           |
+| ------------------ | -------------------- | ------------- | ------------------------------------------------- |
+| `UnderDevelopment` | Internal only        | `false`       | Active development, not ready for external use    |
+| `Experimental`     | `/experimental` menu | `false`       | User-facing but unstable, opt-in required         |
+| `Stable`           | Standard config      | Varies        | Production-ready, may be enabled by default       |
+| `Deprecated`       | Standard config      | `false`       | Superseded, warns users to migrate                |
+| `Removed`          | Config compat        | `false`       | No-op retained for config backwards compatibility |
 
 **Sources:** [codex-rs/core/src/features.rs:29-74]()
 
@@ -102,24 +100,24 @@ All features are defined in the `FEATURES` array ([features.rs:515-864]()), a co
 graph TB
     subgraph "Feature Registry Structure"
         FEATURES["FEATURES: &[FeatureSpec]<br/>Compile-time array"]
-        
+
         FeatureSpec1["FeatureSpec {<br/>id: Feature::GhostCommit<br/>key: 'undo'<br/>stage: Stable<br/>default_enabled: false<br/>}"]
-        
+
         FeatureSpec2["FeatureSpec {<br/>id: Feature::JsRepl<br/>key: 'js_repl'<br/>stage: Experimental<br/>default_enabled: false<br/>}"]
-        
+
         FeatureSpec3["FeatureSpec {<br/>id: Feature::UnifiedExec<br/>key: 'unified_exec'<br/>stage: Stable<br/>default_enabled: !cfg!(windows)<br/>}"]
-        
+
         FEATURES --> FeatureSpec1
         FEATURES --> FeatureSpec2
         FEATURES --> FeatureSpec3
         FEATURES --> DotDotDot["..."]
     end
-    
+
     subgraph "Runtime Lookup"
         feature_for_key["feature_for_key(key: &str)<br/>-> Option<Feature>"]
         Feature_info["Feature::info(self)<br/>-> &'static FeatureSpec"]
     end
-    
+
     FEATURES -.->|"Searched by"| feature_for_key
     FEATURES -.->|"Indexed by"| Feature_info
 ```
@@ -181,7 +179,7 @@ graph LR
         BaseFeatures["[features]<br/>Top-level toggles"]
         Defaults["Built-in Defaults<br/>from FeatureSpec"]
     end
-    
+
     subgraph "Merge Process"
         FeaturesDefault["Features::with_defaults()"]
         ApplyBase["apply_map(base_features)"]
@@ -189,11 +187,11 @@ graph LR
         ApplyOverrides["FeatureOverrides::apply()"]
         Normalize["normalize_dependencies()"]
     end
-    
+
     subgraph "Runtime State"
         FeaturesStruct["Features {<br/>enabled: BTreeSet<Feature><br/>legacy_usages: BTreeSet<LegacyFeatureUsage><br/>}"]
     end
-    
+
     Defaults --> FeaturesDefault
     FeaturesDefault --> ApplyBase
     BaseFeatures --> ApplyBase
@@ -248,7 +246,7 @@ if config.features.enabled(Feature::JsRepl) {
 }
 
 // Multi-feature logic
-if config.features.enabled(Feature::UnifiedExec) 
+if config.features.enabled(Feature::UnifiedExec)
     && config.features.enabled(Feature::ShellTool) {
     // Register unified exec shell tools
 }
@@ -298,24 +296,24 @@ The feature system maintains backwards compatibility for renamed or restructured
 graph TB
     subgraph "Legacy Key Resolution"
         UserConfig["User Config<br/>[features]<br/>connectors = true"]
-        
+
         feature_for_key["feature_for_key(key)"]
         canonical_lookup["FEATURES array lookup"]
         legacy_lookup["ALIASES array lookup"]
-        
+
         UserConfig --> feature_for_key
         feature_for_key --> canonical_lookup
         canonical_lookup -->|"Not found"| legacy_lookup
         legacy_lookup -->|"Found"| LegacyAlias["Alias {<br/>legacy_key: 'connectors'<br/>feature: Feature::Apps<br/>}"]
-        
+
         LegacyAlias --> RecordUsage["record_legacy_usage()"]
         RecordUsage --> EnableFeature["enable(Feature::Apps)"]
     end
-    
+
     subgraph "Legacy Usage Tracking"
         LegacyFeatureUsage["LegacyFeatureUsage {<br/>alias: 'connectors'<br/>feature: Feature::Apps<br/>summary: '`connectors` is deprecated...'<br/>details: Some('Use apps instead...')<br/>}"]
     end
-    
+
     RecordUsage --> LegacyFeatureUsage
 ```
 
@@ -323,12 +321,12 @@ graph TB
 
 The `ALIASES` array ([features/legacy.rs:11-48]()) maps old keys to current features:
 
-| Legacy Key | Current Feature | Context |
-|-----------|-----------------|---------|
-| `connectors` | `Feature::Apps` | Renamed for consistency |
-| `experimental_use_unified_exec_tool` | `Feature::UnifiedExec` | Graduated from experimental |
-| `include_apply_patch_tool` | `Feature::ApplyPatchFreeform` | Consolidated |
-| `web_search` | `Feature::WebSearchRequest` | Replaced by web_search_mode config |
+| Legacy Key                           | Current Feature               | Context                            |
+| ------------------------------------ | ----------------------------- | ---------------------------------- |
+| `connectors`                         | `Feature::Apps`               | Renamed for consistency            |
+| `experimental_use_unified_exec_tool` | `Feature::UnifiedExec`        | Graduated from experimental        |
+| `include_apply_patch_tool`           | `Feature::ApplyPatchFreeform` | Consolidated                       |
+| `web_search`                         | `Feature::WebSearchRequest`   | Replaced by web_search_mode config |
 
 ### Legacy Toggles in ConfigToml
 
@@ -376,7 +374,7 @@ pub(crate) fn normalize_dependencies(&mut self) {
     if self.enabled(Feature::SpawnCsv) && !self.enabled(Feature::Collab) {
         self.enable(Feature::Collab);
     }
-    
+
     // JsReplToolsOnly requires JsRepl
     if self.enabled(Feature::JsReplToolsOnly) && !self.enabled(Feature::JsRepl) {
         tracing::warn!("js_repl_tools_only requires js_repl; disabling js_repl_tools_only");
@@ -400,24 +398,24 @@ graph TB
     subgraph "Experimental Feature Metadata"
         ExpStage["Stage::Experimental {<br/>name: 'JavaScript REPL'<br/>menu_description: 'Enable a persistent...'<br/>announcement: 'NEW: JavaScript REPL...'<br/>}"]
     end
-    
+
     subgraph "Menu Rendering"
         GetExperimental["Get all Experimental features"]
         RenderMenu["Render /experimental overlay"]
         ToggleFeature["User toggles feature"]
         SaveConfig["Persist to config.toml"]
     end
-    
+
     subgraph "Announcement System"
         CheckAnnouncement["Check if announcement exists"]
         ShowBanner["Display announcement banner"]
     end
-    
+
     ExpStage --> GetExperimental
     GetExperimental --> RenderMenu
     RenderMenu --> ToggleFeature
     ToggleFeature --> SaveConfig
-    
+
     ExpStage --> CheckAnnouncement
     CheckAnnouncement -->|"Non-empty"| ShowBanner
 ```
@@ -533,45 +531,45 @@ This tracks which features are actively used in non-default configurations, info
 
 ### Stable Features (Production)
 
-| Feature | Key | Default | Description |
-|---------|-----|---------|-------------|
-| `GhostCommit` | `undo` | `false` | Create git snapshots at each turn for undo |
-| `ShellTool` | `shell_tool` | `true` | Enable default shell tool |
-| `UnifiedExec` | `unified_exec` | `!windows` | Use single PTY-backed exec tool |
-| `ShellSnapshot` | `shell_snapshot` | `true` | Experimental shell snapshotting |
-| `PowershellUtf8` | `powershell_utf8` | `windows` | Enforce UTF8 output in PowerShell |
-| `EnableRequestCompression` | `enable_request_compression` | `true` | Compress requests to backend |
-| `Personality` | `personality` | `true` | Enable personality selection |
-| `FastMode` | `fast_mode` | `true` | Enable Fast mode selection |
+| Feature                    | Key                          | Default    | Description                                |
+| -------------------------- | ---------------------------- | ---------- | ------------------------------------------ |
+| `GhostCommit`              | `undo`                       | `false`    | Create git snapshots at each turn for undo |
+| `ShellTool`                | `shell_tool`                 | `true`     | Enable default shell tool                  |
+| `UnifiedExec`              | `unified_exec`               | `!windows` | Use single PTY-backed exec tool            |
+| `ShellSnapshot`            | `shell_snapshot`             | `true`     | Experimental shell snapshotting            |
+| `PowershellUtf8`           | `powershell_utf8`            | `windows`  | Enforce UTF8 output in PowerShell          |
+| `EnableRequestCompression` | `enable_request_compression` | `true`     | Compress requests to backend               |
+| `Personality`              | `personality`                | `true`     | Enable personality selection               |
+| `FastMode`                 | `fast_mode`                  | `true`     | Enable Fast mode selection                 |
 
 ### Experimental Features (User Opt-In)
 
-| Feature | Key | Menu Name | Description |
-|---------|-----|-----------|-------------|
-| `JsRepl` | `js_repl` | JavaScript REPL | Node-backed JavaScript REPL |
-| `Collab` | `multi_agent` | Multi-agents | Spawn multiple agents for parallelization |
-| `Apps` | `apps` | Apps | Use connected ChatGPT Apps |
-| `GuardianApproval` | `guardian_approval` | Automatic approval review | Dispatch approvals to security reviewer sub-agent |
-| `PreventIdleSleep` | `prevent_idle_sleep` | Prevent sleep while running | Keep computer awake during turns |
+| Feature            | Key                  | Menu Name                   | Description                                       |
+| ------------------ | -------------------- | --------------------------- | ------------------------------------------------- |
+| `JsRepl`           | `js_repl`            | JavaScript REPL             | Node-backed JavaScript REPL                       |
+| `Collab`           | `multi_agent`        | Multi-agents                | Spawn multiple agents for parallelization         |
+| `Apps`             | `apps`               | Apps                        | Use connected ChatGPT Apps                        |
+| `GuardianApproval` | `guardian_approval`  | Automatic approval review   | Dispatch approvals to security reviewer sub-agent |
+| `PreventIdleSleep` | `prevent_idle_sleep` | Prevent sleep while running | Keep computer awake during turns                  |
 
 ### Deprecated Features
 
-| Feature | Key | Replacement |
-|---------|-----|-------------|
+| Feature            | Key                  | Replacement                   |
+| ------------------ | -------------------- | ----------------------------- |
 | `WebSearchRequest` | `web_search_request` | `web_search` top-level config |
-| `WebSearchCached` | `web_search_cached` | `web_search` top-level config |
+| `WebSearchCached`  | `web_search_cached`  | `web_search` top-level config |
 
 ### Removed Features (No-Op)
 
-| Feature | Key | Status |
-|---------|-----|--------|
-| `SearchTool` | `search_tool` | Superseded by web_search |
-| `UseLinuxSandboxBwrap` | `use_linux_sandbox_bwrap` | Default behavior |
-| `RequestRule` | `request_rule` | Removed functionality |
-| `WindowsSandbox` | `experimental_windows_sandbox` | Now `[windows].sandbox` config |
-| `Sqlite` | `sqlite` | Always enabled |
-| `RemoteModels` | `remote_models` | Default behavior |
-| `Steer` | `steer` | Default behavior |
-| `CollaborationModes` | `collaboration_modes` | Default behavior |
+| Feature                | Key                            | Status                         |
+| ---------------------- | ------------------------------ | ------------------------------ |
+| `SearchTool`           | `search_tool`                  | Superseded by web_search       |
+| `UseLinuxSandboxBwrap` | `use_linux_sandbox_bwrap`      | Default behavior               |
+| `RequestRule`          | `request_rule`                 | Removed functionality          |
+| `WindowsSandbox`       | `experimental_windows_sandbox` | Now `[windows].sandbox` config |
+| `Sqlite`               | `sqlite`                       | Always enabled                 |
+| `RemoteModels`         | `remote_models`                | Default behavior               |
+| `Steer`                | `steer`                        | Default behavior               |
+| `CollaborationModes`   | `collaboration_modes`          | Default behavior               |
 
 **Sources:** [codex-rs/core/src/features.rs:515-864]()

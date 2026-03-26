@@ -13,14 +13,21 @@ interface RegisteredHandler {
 
 export class HttpRpcServer implements RpcServer {
 	private readonly _handlers = new Map<string, RegisteredHandler>()
-	private readonly _sseClients = new Map<string, Set<{ stream: SSEStreamingApi; clientId: string }>>()
+	private readonly _sseClients = new Map<
+		string,
+		Set<{ stream: SSEStreamingApi; clientId: string }>
+	>()
 
 	constructor(private readonly app: Hono) {
 		this._setupRoutes()
 		this._setupSSERoutes()
 	}
 
-	private async _handleRPC(path: string, args: unknown[], ctx: Rpc.RequestContext) {
+	private async _handleRPC(
+		path: string,
+		args: unknown[],
+		ctx: Rpc.RequestContext
+	) {
 		const handler = this._handlers.get(path)
 
 		if (!handler) {
@@ -33,11 +40,18 @@ export class HttpRpcServer implements RpcServer {
 			const result = await schema['~standard'].validate(args)
 
 			if ('issues' in result) {
-				throw new RpcError('INVALID_PARAMS', 'Schema validation failed', result.issues)
+				throw new RpcError(
+					'INVALID_PARAMS',
+					'Schema validation failed',
+					result.issues
+				)
 			}
 
 			// result.value is the standardized output, use it directly as args
-			return handler.handler(ctx, ...(Array.isArray(result.value) ? result.value : [result.value]))
+			return handler.handler(
+				ctx,
+				...(Array.isArray(result.value) ? result.value : [result.value])
+			)
 		}
 
 		return handler.handler(ctx, ...args)
@@ -59,7 +73,11 @@ export class HttpRpcServer implements RpcServer {
 				const result = await this._handleRPC(path, args, ctx)
 
 				// Handle async iterator (streaming)
-				if (result && typeof result === 'object' && Symbol.asyncIterator in result) {
+				if (
+					result &&
+					typeof result === 'object' &&
+					Symbol.asyncIterator in result
+				) {
 					const chunks: unknown[] = []
 					for await (const chunk of result as unknown as AsyncIterable<unknown>) {
 						chunks.push(chunk)
@@ -70,7 +88,10 @@ export class HttpRpcServer implements RpcServer {
 				return c.json({ result })
 			} catch (err) {
 				const rpcError = RpcError.from(err)
-				return c.json({ error: rpcError.toJSON() }, rpcError.code === 'NOT_FOUND' ? 404 : 500)
+				return c.json(
+					{ error: rpcError.toJSON() },
+					rpcError.code === 'NOT_FOUND' ? 404 : 500
+				)
 			}
 		})
 	}
@@ -87,7 +108,10 @@ export class HttpRpcServer implements RpcServer {
 				}
 				this._sseClients.get(clientId)!.add(controller)
 
-				await stream.writeSSE({ event: 'connected', data: JSON.stringify({ clientId }) })
+				await stream.writeSSE({
+					event: 'connected',
+					data: JSON.stringify({ clientId }),
+				})
 
 				stream.onAbort(() => {
 					this._sseClients.get(clientId)?.delete(controller)

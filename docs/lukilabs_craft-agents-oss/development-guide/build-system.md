@@ -12,8 +12,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the multi-step build pipeline used to compile the Craft Agents Electron application from TypeScript source into runnable and distributable artifacts. It covers the individual build scripts, their inputs and outputs, toolchain choices (esbuild vs. Vite), and how OAuth credentials are injected at build time.
 
 For information on how the three resulting Electron processes (main, preload, renderer) communicate at runtime, see [Electron Application Architecture](#2.2). For platform-specific distribution packaging (DMG, installer, Linux), see [Platform-Specific Builds](#6.1). For development-mode startup (watch/hot-reload), see [Development Setup](#5.1).
@@ -93,16 +91,16 @@ Sources: [scripts/electron-build-main.ts:1-326](), [scripts/electron-build-rende
 
 Each build step produces one or more artifacts under `apps/electron/dist/`.
 
-| Script / Step | Tool | Input | Output |
-|---|---|---|---|
-| `electron:build:main` | esbuild | `apps/electron/src/main/index.ts` | `apps/electron/dist/main.cjs` |
-| `electron:build:main` | esbuild | `packages/shared/src/unified-network-interceptor.ts` | `apps/electron/dist/interceptor.cjs` |
-| `electron:build:main` | `bun build` | `packages/session-mcp-server/src/index.ts` | `packages/session-mcp-server/dist/index.js` |
-| `electron:build:main` | `bun build` | `packages/pi-agent-server/src/index.ts` | `packages/pi-agent-server/dist/index.js` (optional) |
-| `electron:build:preload` | esbuild | `apps/electron/src/preload/index.ts` | `apps/electron/dist/preload.cjs` |
-| `electron:build:preload` | esbuild | `apps/electron/src/preload/browser-toolbar.ts` | `apps/electron/dist/browser-toolbar-preload.cjs` |
-| `electron:build:renderer` | Vite | `apps/electron/vite.config.ts` | `apps/electron/dist/renderer/` |
-| `electron:build:assets` | `copy-assets.ts` + `validate-assets.ts` | static assets | `apps/electron/dist/` (various) |
+| Script / Step             | Tool                                    | Input                                                | Output                                              |
+| ------------------------- | --------------------------------------- | ---------------------------------------------------- | --------------------------------------------------- |
+| `electron:build:main`     | esbuild                                 | `apps/electron/src/main/index.ts`                    | `apps/electron/dist/main.cjs`                       |
+| `electron:build:main`     | esbuild                                 | `packages/shared/src/unified-network-interceptor.ts` | `apps/electron/dist/interceptor.cjs`                |
+| `electron:build:main`     | `bun build`                             | `packages/session-mcp-server/src/index.ts`           | `packages/session-mcp-server/dist/index.js`         |
+| `electron:build:main`     | `bun build`                             | `packages/pi-agent-server/src/index.ts`              | `packages/pi-agent-server/dist/index.js` (optional) |
+| `electron:build:preload`  | esbuild                                 | `apps/electron/src/preload/index.ts`                 | `apps/electron/dist/preload.cjs`                    |
+| `electron:build:preload`  | esbuild                                 | `apps/electron/src/preload/browser-toolbar.ts`       | `apps/electron/dist/browser-toolbar-preload.cjs`    |
+| `electron:build:renderer` | Vite                                    | `apps/electron/vite.config.ts`                       | `apps/electron/dist/renderer/`                      |
+| `electron:build:assets`   | `copy-assets.ts` + `validate-assets.ts` | static assets                                        | `apps/electron/dist/` (various)                     |
 
 Sources: [scripts/electron-build-main.ts:10-20](), [apps/electron/package.json:18-26]()
 
@@ -167,6 +165,7 @@ vite build --config apps/electron/vite.config.ts
 ```
 
 The script `scripts/electron-build-renderer.ts` wraps this call and:
+
 - Deletes `apps/electron/dist/renderer/` before building to ensure a clean output.
 - Sets `NODE_OPTIONS=--max-old-space-size=4096` to handle the large React dependency tree without OOM errors.
 
@@ -186,13 +185,13 @@ OAuth client credentials and Sentry configuration are baked into `main.cjs` at c
 
 The function `getBuildDefines()` ([scripts/electron-build-main.ts:49-62]()) maps each variable to an esbuild `--define` argument:
 
-| Environment Variable | Injected into Code As |
-|---|---|
-| `SLACK_OAUTH_CLIENT_ID` | `process.env.SLACK_OAUTH_CLIENT_ID` |
-| `SLACK_OAUTH_CLIENT_SECRET` | `process.env.SLACK_OAUTH_CLIENT_SECRET` |
-| `MICROSOFT_OAUTH_CLIENT_ID` | `process.env.MICROSOFT_OAUTH_CLIENT_ID` |
+| Environment Variable            | Injected into Code As                       |
+| ------------------------------- | ------------------------------------------- |
+| `SLACK_OAUTH_CLIENT_ID`         | `process.env.SLACK_OAUTH_CLIENT_ID`         |
+| `SLACK_OAUTH_CLIENT_SECRET`     | `process.env.SLACK_OAUTH_CLIENT_SECRET`     |
+| `MICROSOFT_OAUTH_CLIENT_ID`     | `process.env.MICROSOFT_OAUTH_CLIENT_ID`     |
 | `MICROSOFT_OAUTH_CLIENT_SECRET` | `process.env.MICROSOFT_OAUTH_CLIENT_SECRET` |
-| `SENTRY_ELECTRON_INGEST_URL` | `process.env.SENTRY_ELECTRON_INGEST_URL` |
+| `SENTRY_ELECTRON_INGEST_URL`    | `process.env.SENTRY_ELECTRON_INGEST_URL`    |
 
 > **Note:** Google OAuth credentials are **not** baked into the build. Users provide their own via source config. See `README_FOR_OSS.md` for setup instructions.
 
@@ -255,12 +254,12 @@ Sources: [scripts/electron-build-main.ts:1-326](), [scripts/electron-build-rende
 
 The `electron:dist` family of scripts extends the standard build by invoking `electron-builder` after `electron:build` completes:
 
-| Script | Target |
-|---|---|
-| `electron:dist` | Current platform |
-| `electron:dist:mac` | macOS (all arches) |
-| `electron:dist:win` | Windows |
-| `electron:dist:linux` | Linux |
+| Script                | Target             |
+| --------------------- | ------------------ |
+| `electron:dist`       | Current platform   |
+| `electron:dist:mac`   | macOS (all arches) |
+| `electron:dist:win`   | Windows            |
+| `electron:dist:linux` | Linux              |
 
 All use the configuration file `electron-builder.yml` with `--project apps/electron`.
 
@@ -282,13 +281,13 @@ Sources: [package.json:38-41]()
 
 ## Toolchain Summary
 
-| Process | Bundler | Format | Why |
-|---|---|---|---|
-| Main (`main.cjs`) | esbuild | CJS | Electron main requires CJS; esbuild is fast and supports `--define` injection |
-| Preload (`preload.cjs`, `browser-toolbar-preload.cjs`) | esbuild | CJS | Preload runs in Node context; must be CJS |
-| Network interceptor (`interceptor.cjs`) | esbuild | CJS | Loaded via `--require` into Node.js subprocesses |
-| Renderer (`dist/renderer/`) | Vite | ESM bundle | React/Tailwind ecosystem; HMR support in dev mode |
-| Session MCP server | `bun build` | CJS | Spawned as Node.js subprocess; CJS works with Node target |
-| Pi agent server | `bun build` | ESM | `@mariozechner/pi-coding-agent` is ESM-only |
+| Process                                                | Bundler     | Format     | Why                                                                           |
+| ------------------------------------------------------ | ----------- | ---------- | ----------------------------------------------------------------------------- |
+| Main (`main.cjs`)                                      | esbuild     | CJS        | Electron main requires CJS; esbuild is fast and supports `--define` injection |
+| Preload (`preload.cjs`, `browser-toolbar-preload.cjs`) | esbuild     | CJS        | Preload runs in Node context; must be CJS                                     |
+| Network interceptor (`interceptor.cjs`)                | esbuild     | CJS        | Loaded via `--require` into Node.js subprocesses                              |
+| Renderer (`dist/renderer/`)                            | Vite        | ESM bundle | React/Tailwind ecosystem; HMR support in dev mode                             |
+| Session MCP server                                     | `bun build` | CJS        | Spawned as Node.js subprocess; CJS works with Node target                     |
+| Pi agent server                                        | `bun build` | ESM        | `@mariozechner/pi-coding-agent` is ESM-only                                   |
 
 Sources: [scripts/electron-build-main.ts:136-254](), [apps/electron/package.json:18-26]()

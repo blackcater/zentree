@@ -27,8 +27,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents AionUi's styling and theming architecture, including the UnoCSS atomic CSS framework, CSS variable-based theme system, custom CSS injection, and component styling patterns. For layout-specific information, see [Layout System](#5.1). For component-specific UI patterns, see [User Interface](#5).
 
 ---
@@ -61,7 +59,7 @@ AionUi uses UnoCSS as its primary styling engine, configured in [uno.config.ts:1
 graph TB
     subgraph "UnoCSS System"
         UnoConfig["uno.config.ts<br/>Configuration"]
-        
+
         subgraph "Color Token Types"
             TextColors["Text Colors<br/>t-primary, t-secondary, t-disabled"]
             SemanticColors["Semantic Colors<br/>primary, success, warning, danger"]
@@ -70,35 +68,35 @@ graph TB
             BrandColors["Brand Colors<br/>brand, brand-light, brand-hover"]
             AouColors["AOU Colors<br/>aou-1..10"]
         end
-        
+
         subgraph "CSS Variable Mapping"
             CSSVars["CSS Variables<br/>--text-primary, --bg-1, etc."]
             ThemeFiles["Theme Files<br/>default.css, base.css"]
         end
-        
+
         subgraph "Custom Rules"
             ArcoRules["Arco Design Rules<br/>text-1..4, bg-fill-1..4"]
             ColorLevels["Color Level Rules<br/>primary-1..9, success-1..9"]
             CustomRules["Project Rules<br/>bg-dialog-fill-0, text-0"]
         end
     end
-    
+
     UnoConfig --> TextColors
     UnoConfig --> SemanticColors
     UnoConfig --> BgColors
     UnoConfig --> BorderColors
     UnoConfig --> BrandColors
     UnoConfig --> AouColors
-    
+
     TextColors --> CSSVars
     SemanticColors --> CSSVars
     BgColors --> CSSVars
     BorderColors --> CSSVars
     BrandColors --> CSSVars
     AouColors --> CSSVars
-    
+
     CSSVars --> ThemeFiles
-    
+
     UnoConfig --> ArcoRules
     UnoConfig --> ColorLevels
     UnoConfig --> CustomRules
@@ -110,14 +108,14 @@ graph TB
 
 The UnoCSS configuration defines six categories of color tokens:
 
-| Category | Tokens | CSS Variable Pattern | Usage |
-|----------|--------|---------------------|-------|
-| **Text Colors** | `t-primary`, `t-secondary`, `t-disabled` | `--text-*` | Body text, headings, labels |
-| **Semantic Colors** | `primary`, `success`, `warning`, `danger`, `info` | `--primary`, `--success`, etc. | Buttons, status indicators, alerts |
-| **Background Colors** | `bg-base`, `bg-1`..`bg-10`, `bg-hover`, `bg-active` | `--bg-*` | Backgrounds, containers, cards |
-| **Border Colors** | `border-base`, `b-1`, `b-2`, `b-3` | `--border-*`, `--bg-*` | Borders, dividers, separators |
-| **Brand Colors** | `brand`, `brand-light`, `brand-hover` | `--brand`, `--brand-*` | Brand identity elements |
-| **AOU Colors** | `aou-1`..`aou-10` | `--aou-*` | AOU-specific brand gradients |
+| Category              | Tokens                                              | CSS Variable Pattern           | Usage                              |
+| --------------------- | --------------------------------------------------- | ------------------------------ | ---------------------------------- |
+| **Text Colors**       | `t-primary`, `t-secondary`, `t-disabled`            | `--text-*`                     | Body text, headings, labels        |
+| **Semantic Colors**   | `primary`, `success`, `warning`, `danger`, `info`   | `--primary`, `--success`, etc. | Buttons, status indicators, alerts |
+| **Background Colors** | `bg-base`, `bg-1`..`bg-10`, `bg-hover`, `bg-active` | `--bg-*`                       | Backgrounds, containers, cards     |
+| **Border Colors**     | `border-base`, `b-1`, `b-2`, `b-3`                  | `--border-*`, `--bg-*`         | Borders, dividers, separators      |
+| **Brand Colors**      | `brand`, `brand-light`, `brand-hover`               | `--brand`, `--brand-*`         | Brand identity elements            |
+| **AOU Colors**        | `aou-1`..`aou-10`                                   | `--aou-*`                      | AOU-specific brand gradients       |
 
 **Sources:** [uno.config.ts:8-78]()
 
@@ -133,10 +131,10 @@ UnoCSS rules extend the framework with Arco Design compatibility and project-spe
 [/^bg-fill-([1-4])$/, ([, d]) => ({ 'background-color': `var(--color-fill-${d})` })],
 
 // Color level rules: bg-primary-1..9, text-success-1..9, border-danger-1..9
-[/^(bg|text|border)-(primary|success|warning|danger)-([1-9])$/, 
+[/^(bg|text|border)-(primary|success|warning|danger)-([1-9])$/,
   ([, prefix, color, d]) => {
-    const prop = prefix === 'bg' ? 'background-color' 
-               : prefix === 'text' ? 'color' 
+    const prop = prefix === 'bg' ? 'background-color'
+               : prefix === 'text' ? 'color'
                : 'border-color';
     return { [prop]: `rgb(var(--${color}-${d}))` };
   }
@@ -160,45 +158,45 @@ graph TB
         useTheme["useTheme()<br/>hooks/useTheme.ts"]
         useColorScheme["useColorScheme()"]
         useFontScale["useFontScale()"]
-        
+
         ThemeProvider --> useTheme
         ThemeProvider --> useColorScheme
         ThemeProvider --> useFontScale
     end
-    
+
     subgraph "Configuration Storage"
         ConfigStorage["ConfigStorage.get('theme')<br/>ConfigStorage.get('css.activeThemeId')"]
         CustomCSSKey["ConfigStorage.get('customCss')"]
         ThemesArray["ConfigStorage.get('css.themes')"]
     end
-    
+
     subgraph "DOM Attribute Application"
         applyTheme["applyTheme(theme)<br/>document.documentElement.dataset.theme"]
         arcoTheme["document.body.setAttribute('arco-theme')"]
     end
-    
+
     subgraph "CSS Files"
         BaseCSS["src/renderer/styles/themes/base.css<br/>Layout constants, animations"]
         DefaultScheme["color-schemes/default.css<br/>[data-theme='dark'] selectors"]
         ArcoOverride["src/renderer/arco-override.css<br/>Component-specific overrides"]
     end
-    
+
     subgraph "Runtime CSS Injection"
         StyleElement["<style id='user-defined-custom-css'>"]
         MutationObs["MutationObserver on document.head"]
         ensureStyleAtEnd["ensureStyleAtEnd()<br/>layout.tsx:170-183"]
     end
-    
+
     ConfigStorage --> useTheme
     useTheme --> applyTheme
     applyTheme --> arcoTheme
-    
+
     CustomCSSKey --> StyleElement
     ThemesArray --> CustomCSSKey
     StyleElement --> MutationObs
     MutationObs --> ensureStyleAtEnd
     ensureStyleAtEnd --> StyleElement
-    
+
     applyTheme --> DefaultScheme
     DefaultScheme --> ArcoOverride
     ArcoOverride --> BaseCSS
@@ -249,16 +247,16 @@ The default color scheme [src/renderer/styles/themes/color-schemes/default.css:1
   --bg-1: #f7f8fa;
   --bg-2: #f2f3f5;
   --bg-3: #e5e6eb;
-  
+
   /* Text Colors */
   --text-primary: #1d2129;
   --text-secondary: #86909c;
   --text-disabled: #c9cdd4;
-  
+
   /* Interactive States */
   --bg-hover: #f3f4f6;
   --bg-active: #e5e6eb;
-  
+
   /* AOU Brand Colors */
   --aou-1: #eff0f6;
   --aou-7: #596590;
@@ -275,16 +273,16 @@ The default color scheme [src/renderer/styles/themes/color-schemes/default.css:1
   --bg-1: #1a1a1a;
   --bg-2: #262626;
   --bg-3: #333333;
-  
+
   /* Text Colors */
   --text-primary: #e5e5e5;
   --text-secondary: #a6a6a6;
   --text-disabled: #737373;
-  
+
   /* Interactive States */
   --bg-hover: #1f1f1f;
   --bg-active: #2d2d2d;
-  
+
   /* AOU Brand Colors */
   --aou-1: #2a2a2a;
   --aou-7: #b5bcd6;
@@ -315,7 +313,7 @@ graph TB
         ShadowView["ShadowView wrapper<br/>Markdown.tsx:419"]
         RefCallback["ref callback<br/>el.attachShadow()"]
     end
-    
+
     subgraph "Style Injection Pipeline"
         createInitStyle["createInitStyle(theme, cssVars, customCss)<br/>Markdown.tsx:248"]
         ComputedStyle["getComputedStyle(document.documentElement)<br/>Markdown.tsx:462"]
@@ -323,45 +321,45 @@ graph TB
         StyleElement["<style> element<br/>Markdown.tsx:249"]
         AppendToShadow["shadowRoot.appendChild(style)<br/>Markdown.tsx:481"]
     end
-    
+
     subgraph "KaTeX Stylesheet Adoption"
         getKatexStyleSheet["getKatexStyleSheet()<br/>Markdown.tsx:380"]
         FindSheet["Find katex in document.styleSheets<br/>Markdown.tsx:385"]
         ConstructSheet["new CSSStyleSheet()<br/>Markdown.tsx:389"]
         AdoptedSheets["shadowRoot.adoptedStyleSheets<br/>Markdown.tsx:487"]
     end
-    
+
     subgraph "Theme Reactivity"
         MutationObserver["MutationObserver on documentElement<br/>Markdown.tsx:504"]
         ObserveAttrs["attributeFilter: ['data-theme', 'class']<br/>Markdown.tsx:510"]
         updateStyles["updateStyles(shadowRoot)<br/>Markdown.tsx:460"]
     end
-    
+
     subgraph "Custom CSS Integration"
         LoadCustomCSS["ConfigStorage.get('customCss')<br/>Markdown.tsx:427"]
         addImportantToAll["addImportantToAll(css)<br/>Markdown.tsx:431"]
         EventListener["window.addEventListener('custom-css-updated')<br/>Markdown.tsx:452"]
     end
-    
+
     MarkdownView --> ShadowView
     ShadowView --> RefCallback
     RefCallback --> createInitStyle
     RefCallback --> getKatexStyleSheet
-    
+
     createInitStyle --> ComputedStyle
     ComputedStyle --> ExtractVars
     ExtractVars --> StyleElement
     StyleElement --> AppendToShadow
-    
+
     getKatexStyleSheet --> FindSheet
     FindSheet --> ConstructSheet
     ConstructSheet --> AdoptedSheets
-    
+
     RefCallback --> MutationObserver
     MutationObserver --> ObserveAttrs
     ObserveAttrs --> updateStyles
     updateStyles --> createInitStyle
-    
+
     LoadCustomCSS --> addImportantToAll
     addImportantToAll --> createInitStyle
     EventListener --> updateStyles
@@ -374,14 +372,20 @@ graph TB
 The `createInitStyle` function at [src/renderer/components/Markdown.tsx:248-370]() generates a `<style>` element that bridges external CSS variables into the Shadow DOM:
 
 ```typescript
-const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string>, customCss?: string) => {
-  const style = document.createElement('style');
+const createInitStyle = (
+  currentTheme = 'light',
+  cssVars?: Record<string, string>,
+  customCss?: string
+) => {
+  const style = document.createElement('style')
   const cssVarsDeclaration = cssVars
     ? Object.entries(cssVars)
         .map(([key, value]) => `${key}: ${value};`)
-        .join('\
-    ')
-    : '';
+        .join(
+          '\
+    '
+        )
+    : ''
 
   style.innerHTML = `
   :host {
@@ -397,9 +401,9 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
   
   /* User custom CSS injected here */
   ${customCss || ''}
-  `;
-  return style;
-};
+  `
+  return style
+}
 ```
 
 **Variable Extraction Process:**
@@ -416,13 +420,13 @@ graph LR
 
 **Implementation Details:**
 
-| Feature | Implementation | Location |
-|---------|---------------|----------|
-| **CSS Variable Bridge** | `getComputedStyle(document.documentElement)` extracts 8 specific variables | [src/renderer/components/Markdown.tsx:462-472]() |
-| **Theme Monitoring** | `MutationObserver` with `attributeFilter: ['data-theme', 'class']` | [src/renderer/components/Markdown.tsx:504-513]() |
+| Feature                    | Implementation                                                                   | Location                                         |
+| -------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------ |
+| **CSS Variable Bridge**    | `getComputedStyle(document.documentElement)` extracts 8 specific variables       | [src/renderer/components/Markdown.tsx:462-472]() |
+| **Theme Monitoring**       | `MutationObserver` with `attributeFilter: ['data-theme', 'class']`               | [src/renderer/components/Markdown.tsx:504-513]() |
 | **Custom CSS Integration** | Loaded from `ConfigStorage.get('customCss')`, processed by `addImportantToAll()` | [src/renderer/components/Markdown.tsx:425-456]() |
-| **KaTeX Styles** | Adopted via `shadowRoot.adoptedStyleSheets` using `getKatexStyleSheet()` | [src/renderer/components/Markdown.tsx:380-488]() |
-| **Style Replacement** | Old style removed before appending new one via `styleRef.current.remove()` | [src/renderer/components/Markdown.tsx:476-481]() |
+| **KaTeX Styles**           | Adopted via `shadowRoot.adoptedStyleSheets` using `getKatexStyleSheet()`         | [src/renderer/components/Markdown.tsx:380-488]() |
+| **Style Replacement**      | Old style removed before appending new one via `styleRef.current.remove()`       | [src/renderer/components/Markdown.tsx:476-481]() |
 
 The `updateStyles` callback at [src/renderer/components/Markdown.tsx:460-491]() is triggered both on mount and whenever the `MutationObserver` detects theme attribute changes, ensuring Shadow DOM styles stay synchronized with the main document theme.
 
@@ -437,21 +441,21 @@ Custom CSS is processed before injection to ensure it takes precedence:
 useEffect(() => {
   ConfigStorage.get('customCss').then((css) => {
     if (css) {
-      const processed = addImportantToAll(css);
-      setCustomCss(processed);
+      const processed = addImportantToAll(css)
+      setCustomCss(processed)
     }
-  });
-}, []);
+  })
+}, [])
 ```
 
 **Processing Pipeline:**
 
-| Step | Function | Purpose |
-|------|----------|---------|
-| 1. Load | `ConfigStorage.get('customCss')` | Retrieve user CSS from storage |
-| 2. Process | `addImportantToAll(css)` | Parse and add `!important` to declarations |
-| 3. Inject | `createInitStyle(theme, vars, processed)` | Include in Shadow DOM `<style>` |
-| 4. Apply | `shadowRoot.appendChild(style)` | Render in isolated context |
+| Step       | Function                                  | Purpose                                    |
+| ---------- | ----------------------------------------- | ------------------------------------------ |
+| 1. Load    | `ConfigStorage.get('customCss')`          | Retrieve user CSS from storage             |
+| 2. Process | `addImportantToAll(css)`                  | Parse and add `!important` to declarations |
+| 3. Inject  | `createInitStyle(theme, vars, processed)` | Include in Shadow DOM `<style>`            |
+| 4. Apply   | `shadowRoot.appendChild(style)`           | Render in isolated context                 |
 
 The `addImportantToAll()` utility ensures user styles override both application defaults and third-party library styles (like `react-markdown`, `diff2html`) within the Shadow DOM.
 
@@ -463,7 +467,7 @@ Components use CSS Modules for scoped styles that don't pollute the global names
 
 ```typescript
 // Workspace panel header styling
-<div className='workspace-panel-header flex items-center justify-start px-12px py-4px gap-12px border-b border-[var(--bg-3)]' 
+<div className='workspace-panel-header flex items-center justify-start px-12px py-4px gap-12px border-b border-[var(--bg-3)]'
      style={{ height: WORKSPACE_HEADER_HEIGHT, minHeight: WORKSPACE_HEADER_HEIGHT }}>
 ```
 
@@ -490,6 +494,7 @@ The chat layout demonstrates advanced styling with computed CSS variables, condi
 ```
 
 This pattern provides:
+
 - **CSS Modules**: Component-specific layout and structure
 - **UnoCSS**: Utility classes (`!bg-1`, `relative`, positioning)
 - **classNames Library**: Conditional class application
@@ -530,9 +535,9 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
 };
 
 // Usage in header
-{agentLogo 
-  ? agentLogoIsEmoji 
-    ? <span className='text-sm'>{agentLogo}</span> 
+{agentLogo
+  ? agentLogoIsEmoji
+    ? <span className='text-sm'>{agentLogo}</span>
     : <img src={agentLogo} alt={`${agentName} logo`} width={16} height={16} />
   : AGENT_LOGO_MAP[backend]
     ? <img src={AGENT_LOGO_MAP[backend]} alt={`${backend} logo`} width={16} height={16} />
@@ -556,42 +561,42 @@ AionUi provides a dual-layer custom CSS system: user-defined custom CSS and save
 graph TB
     subgraph "Theme Management System"
         SettingsUI["Settings UI<br/>CSS Settings Panel"]
-        
+
         subgraph "Storage Layer"
             ThemeList["ConfigStorage.get('css.themes')<br/>ICssTheme[]"]
             ActiveTheme["ConfigStorage.get('css.activeThemeId')<br/>string"]
             CustomCSS["ConfigStorage.get('customCss')<br/>string"]
         end
-        
+
         subgraph "Theme Application"
             ThemeSelector["User selects theme<br/>from css.themes"]
             DirectEdit["User edits custom CSS<br/>in Settings"]
             ThemeApply["Apply theme CSS<br/>to customCss storage key"]
         end
-        
+
         subgraph "Renderer Process"
             LayoutEffect["layout.tsx<br/>useEffect(() => loadCustomCss())"]
             Processor["processCustomCss()<br/>wraps with scope"]
             StyleInject["<style id='user-defined-custom-css'>"]
         end
-        
+
         subgraph "DOM Management"
             HeadElement["document.head"]
             MutationObs["MutationObserver<br/>childList on head"]
             EnsureLast["ensureStyleAtEnd()<br/>move to end of head"]
         end
-        
+
         DOMTree["Rendered Components<br/>Custom styles override defaults"]
     end
-    
+
     SettingsUI --> ThemeList
     SettingsUI --> ActiveTheme
     SettingsUI --> CustomCSS
-    
+
     ThemeSelector --> ThemeApply
     DirectEdit --> CustomCSS
     ThemeApply --> CustomCSS
-    
+
     CustomCSS --> LayoutEffect
     LayoutEffect --> Processor
     Processor --> StyleInject
@@ -604,11 +609,11 @@ graph TB
 
 **Key Storage Keys:**
 
-| Storage Key | Type | Purpose |
-|-------------|------|---------|
-| `customCss` | `string` | Currently active CSS (from theme or direct edit) |
-| `css.themes` | `ICssTheme[]` | Saved theme presets with name and CSS |
-| `css.activeThemeId` | `string` | ID of currently selected theme preset |
+| Storage Key         | Type          | Purpose                                          |
+| ------------------- | ------------- | ------------------------------------------------ |
+| `customCss`         | `string`      | Currently active CSS (from theme or direct edit) |
+| `css.themes`        | `ICssTheme[]` | Saved theme presets with name and CSS            |
+| `css.activeThemeId` | `string`      | ID of currently selected theme preset            |
 
 **Sources:** [src/common/storage.ts:56-57](), [src/renderer/layout.tsx:68-144]()
 
@@ -623,8 +628,8 @@ const loadAndHealCustomCss = useCallback(async () => {
     const [savedCssRaw, activeThemeId, savedThemes] = await Promise.all([
       ConfigStorage.get('customCss'),
       ConfigStorage.get('css.activeThemeId'),
-      ConfigStorage.get('css.themes')
-    ]);
+      ConfigStorage.get('css.themes'),
+    ])
 
     const decision = computeCssSyncDecision({
       savedCss: savedCssRaw || '',
@@ -632,38 +637,41 @@ const loadAndHealCustomCss = useCallback(async () => {
       savedThemes: (savedThemes || []) as ICssTheme[],
       currentUiCss: customCss,
       lastUiCssUpdateAt: lastUiCssUpdateAtRef.current,
-    });
+    })
 
     if (decision.shouldSkipApply) {
-      return;
+      return
     }
 
-    const effectiveCss = decision.effectiveCss;
+    const effectiveCss = decision.effectiveCss
     if (decision.shouldHealStorage) {
-      await ConfigStorage.set('customCss', effectiveCss);
+      await ConfigStorage.set('customCss', effectiveCss)
     }
 
-    setCustomCss(effectiveCss);
-    window.dispatchEvent(new CustomEvent('custom-css-updated', { 
-      detail: { customCss: effectiveCss } 
-    }));
+    setCustomCss(effectiveCss)
+    window.dispatchEvent(
+      new CustomEvent('custom-css-updated', {
+        detail: { customCss: effectiveCss },
+      })
+    )
   } catch (error) {
-    console.error('Failed to load or heal custom CSS:', error);
+    console.error('Failed to load or heal custom CSS:', error)
   }
-}, [customCss]);
+}, [customCss])
 ```
 
 **Event Propagation Channels:**
 
-| Event Channel | Trigger | Scope | Implementation | Use Case |
-|---------------|---------|-------|----------------|----------|
-| `custom-css-updated` | `window.dispatchEvent()` | Same window | [layout.tsx:120]() | Settings UI → Layout → Shadow DOM |
-| `storage` | Browser `StorageEvent` | Cross-window | [layout.tsx:139]() | Multi-window sync |
-| `loadAndHealCustomCss()` | Component mount / route change | Current component | [layout.tsx:129,155]() | Initial load & route sync |
+| Event Channel            | Trigger                        | Scope             | Implementation         | Use Case                          |
+| ------------------------ | ------------------------------ | ----------------- | ---------------------- | --------------------------------- |
+| `custom-css-updated`     | `window.dispatchEvent()`       | Same window       | [layout.tsx:120]()     | Settings UI → Layout → Shadow DOM |
+| `storage`                | Browser `StorageEvent`         | Cross-window      | [layout.tsx:139]()     | Multi-window sync                 |
+| `loadAndHealCustomCss()` | Component mount / route change | Current component | [layout.tsx:129,155]() | Initial load & route sync         |
 
 **Theme Healing Decision Logic:**
 
 The `computeCssSyncDecision()` function at [src/renderer/utils/themeCssSync.ts]() (referenced in [layout.tsx:98]()) determines whether to:
+
 - **Skip application** if UI CSS is already current
 - **Heal storage** if active theme CSS differs from stored `customCss`
 - **Use effective CSS** from active theme or fallback to stored CSS
@@ -678,56 +686,59 @@ Custom CSS is processed and injected with cascade priority management using `Mut
 
 ```typescript
 useEffect(() => {
-  const styleId = 'user-defined-custom-css';
+  const styleId = 'user-defined-custom-css'
 
   if (!customCss) {
-    document.getElementById(styleId)?.remove();
-    return;
+    document.getElementById(styleId)?.remove()
+    return
   }
 
-  const wrappedCss = processCustomCss(customCss);
+  const wrappedCss = processCustomCss(customCss)
 
   const ensureStyleAtEnd = () => {
-    let styleEl = document.getElementById(styleId) as HTMLStyleElement | null;
+    let styleEl = document.getElementById(styleId) as HTMLStyleElement | null
 
     // Skip if already at end and unchanged
-    if (styleEl && styleEl.textContent === wrappedCss && 
-        styleEl === document.head.lastElementChild) {
-      return;
+    if (
+      styleEl &&
+      styleEl.textContent === wrappedCss &&
+      styleEl === document.head.lastElementChild
+    ) {
+      return
     }
 
-    styleEl?.remove();
-    styleEl = document.createElement('style');
-    styleEl.id = styleId;
-    styleEl.type = 'text/css';
-    styleEl.textContent = wrappedCss;
-    document.head.appendChild(styleEl);
-  };
+    styleEl?.remove()
+    styleEl = document.createElement('style')
+    styleEl.id = styleId
+    styleEl.type = 'text/css'
+    styleEl.textContent = wrappedCss
+    document.head.appendChild(styleEl)
+  }
 
-  ensureStyleAtEnd();
+  ensureStyleAtEnd()
 
   const observer = new MutationObserver((mutations) => {
     const hasNewStyle = mutations.some((mutation) =>
-      Array.from(mutation.addedNodes).some((node) =>
-        node.nodeName === 'STYLE' || node.nodeName === 'LINK'
+      Array.from(mutation.addedNodes).some(
+        (node) => node.nodeName === 'STYLE' || node.nodeName === 'LINK'
       )
-    );
+    )
 
     if (hasNewStyle) {
-      const element = document.getElementById(styleId);
+      const element = document.getElementById(styleId)
       if (element && element !== document.head.lastElementChild) {
-        ensureStyleAtEnd();
+        ensureStyleAtEnd()
       }
     }
-  });
+  })
 
-  observer.observe(document.head, { childList: true });
+  observer.observe(document.head, { childList: true })
 
   return () => {
-    observer.disconnect();
-    document.getElementById(styleId)?.remove();
-  };
-}, [customCss]);
+    observer.disconnect()
+    document.getElementById(styleId)?.remove()
+  }
+}, [customCss])
 ```
 
 **Cascade Priority Strategy:**
@@ -739,7 +750,7 @@ graph LR
     Load3 --> Load4["arco-override.css"]
     Load4 --> Load5["@unocss/runtime output"]
     Load5 --> UserCSS["<style id='user-defined-custom-css'>"]
-    
+
     NewStyle["New <style> or <link> added"] --> MutationObs["MutationObserver callback<br/>layout.tsx:187"]
     MutationObs --> Check["Check if styleId is last<br/>layout.tsx:192-194"]
     Check --> Reorder["ensureStyleAtEnd()<br/>layout.tsx:170"]
@@ -748,13 +759,13 @@ graph LR
 
 **Key Implementation Details:**
 
-| Aspect | Implementation | Location |
-|--------|---------------|----------|
-| **Style ID** | `'user-defined-custom-css'` constant | [layout.tsx:161]() |
-| **Processing** | `processCustomCss(customCss)` wraps CSS in scope selector | [layout.tsx:168]() |
-| **Optimization** | Skip re-render if content unchanged and already at end | [layout.tsx:173-176]() |
-| **Observer Setup** | `observer.observe(document.head, { childList: true })` | [layout.tsx:198]() |
-| **Cleanup** | `observer.disconnect()` and remove style element | [layout.tsx:201-203]() |
+| Aspect             | Implementation                                            | Location               |
+| ------------------ | --------------------------------------------------------- | ---------------------- |
+| **Style ID**       | `'user-defined-custom-css'` constant                      | [layout.tsx:161]()     |
+| **Processing**     | `processCustomCss(customCss)` wraps CSS in scope selector | [layout.tsx:168]()     |
+| **Optimization**   | Skip re-render if content unchanged and already at end    | [layout.tsx:173-176]() |
+| **Observer Setup** | `observer.observe(document.head, { childList: true })`    | [layout.tsx:198]()     |
+| **Cleanup**        | `observer.disconnect()` and remove style element          | [layout.tsx:201-203]() |
 
 The `MutationObserver` ensures that even when dynamic stylesheets are injected (e.g., by Arco Design modals or UnoCSS runtime), user CSS maintains cascade priority by being the last element in `<head>`.
 
@@ -766,7 +777,7 @@ Custom CSS is processed through `addImportantToAll()` to ensure override priorit
 
 ```typescript
 // From renderer/utils/customCssProcessor.ts (referenced in Markdown.tsx)
-const processedCss = addImportantToAll(css);
+const processedCss = addImportantToAll(css)
 ```
 
 This utility parses CSS and appends `!important` to all declarations, guaranteeing user styles override defaults even when specificity would normally prevent it. This is particularly important for Shadow DOM content where external styles have limited reach.
@@ -793,8 +804,8 @@ const Config: React.FC<PropsWithChildren> = ({ children }) => {
   const arcoLocale = arcoLocales[language] ?? enUS;
 
   return (
-    <ConfigProvider 
-      theme={{ primaryColor: '#4E5969' }} 
+    <ConfigProvider
+      theme={{ primaryColor: '#4E5969' }}
       locale={arcoLocale}
     >
       {children}
@@ -854,7 +865,11 @@ The `arco-override.css` file provides project-specific overrides for Arco Design
 
 /* Dark mode */
 body[arco-theme='dark'] .arco-message-success {
-  background: linear-gradient(270deg, rgba(249, 255, 242, 0.3) 0%, rgba(210, 255, 217, 0.3) 100%) !important;
+  background: linear-gradient(
+    270deg,
+    rgba(249, 255, 242, 0.3) 0%,
+    rgba(210, 255, 217, 0.3) 100%
+  ) !important;
 }
 ```
 
@@ -922,11 +937,11 @@ body[arco-theme='dark'] .arco-tag-checked.arco-tag-green {
 
 The `ThemeContext` at [src/renderer/context/ThemeContext.tsx]() is a unified context that composes three independent concerns, each managed by its own hook:
 
-| Concern | Hook | Interface Key | Purpose |
-|---------|------|---------------|---------|
-| Light/Dark mode | `useTheme` | `theme`, `setTheme` | Controls `data-theme` / `arco-theme` attributes |
-| Color palette | `useColorScheme` | `colorScheme`, `setColorScheme` | Selects color scheme variant |
-| UI zoom level | `useFontScale` | `fontScale`, `setFontScale` | Controls Electron window zoom factor |
+| Concern         | Hook             | Interface Key                   | Purpose                                         |
+| --------------- | ---------------- | ------------------------------- | ----------------------------------------------- |
+| Light/Dark mode | `useTheme`       | `theme`, `setTheme`             | Controls `data-theme` / `arco-theme` attributes |
+| Color palette   | `useColorScheme` | `colorScheme`, `setColorScheme` | Selects color scheme variant                    |
+| UI zoom level   | `useFontScale`   | `fontScale`, `setFontScale`     | Controls Electron window zoom factor            |
 
 The `ThemeProvider` component renders these three hooks and exposes them through `ThemeContextValue`:
 
@@ -964,10 +979,10 @@ ThemeContextValue {
 
 **Attribute targets written by `applyTheme`:**
 
-| Attribute | Target element | Consumer |
-|-----------|---------------|---------|
+| Attribute    | Target element             | Consumer                              |
+| ------------ | -------------------------- | ------------------------------------- |
 | `data-theme` | `document.documentElement` | CSS selectors (`[data-theme='dark']`) |
-| `arco-theme` | `document.body` | Arco Design dark mode |
+| `arco-theme` | `document.body`            | Arco Design dark mode                 |
 
 **Sources:** [src/renderer/hooks/useTheme.ts:1-73]()
 
@@ -1013,6 +1028,7 @@ The layout system at [src/renderer/styles/themes/base.css:436-530]() uses CSS en
 ```
 
 **Key features:**
+
 - **Dynamic Viewport Height (`dvh`)**: Accounts for browser chrome on mobile (iOS Safari address bar)
 - **Safe Area Insets**: Prevents content from being obscured by notches, home indicators
 - **Flex Layout**: Ensures proper space distribution within safe area bounds
@@ -1049,19 +1065,24 @@ The sidebar at [src/renderer/layout.tsx:262-325]() uses fixed positioning with t
 **Width Calculation:**
 
 ```typescript
-const DEFAULT_SIDER_WIDTH = 250;
-const MOBILE_SIDER_WIDTH_RATIO = 0.67;
-const MOBILE_SIDER_MIN_WIDTH = 260;
-const MOBILE_SIDER_MAX_WIDTH = 420;
+const DEFAULT_SIDER_WIDTH = 250
+const MOBILE_SIDER_WIDTH_RATIO = 0.67
+const MOBILE_SIDER_MIN_WIDTH = 260
+const MOBILE_SIDER_MAX_WIDTH = 420
 
-const siderWidth = isMobile 
-  ? Math.max(MOBILE_SIDER_MIN_WIDTH, 
-      Math.min(MOBILE_SIDER_MAX_WIDTH, 
-        Math.round(viewportWidth * MOBILE_SIDER_WIDTH_RATIO))) 
-  : DEFAULT_SIDER_WIDTH;
+const siderWidth = isMobile
+  ? Math.max(
+      MOBILE_SIDER_MIN_WIDTH,
+      Math.min(
+        MOBILE_SIDER_MAX_WIDTH,
+        Math.round(viewportWidth * MOBILE_SIDER_WIDTH_RATIO)
+      )
+    )
+  : DEFAULT_SIDER_WIDTH
 ```
 
 **Mobile Behavior:**
+
 - **Desktop**: Collapses to 64px width, animates smoothly
 - **Mobile**: Slides off-screen (`translateX(-100%)`), uses backdrop overlay at [layout.tsx:260]()
 - **No transition**: `transition: 'none'` prevents janky animations on mobile
@@ -1090,11 +1111,11 @@ The workspace panel at [src/renderer/pages/conversation/ChatLayout.tsx:482-533](
       pointerEvents: rightSiderCollapsed ? 'none' : 'auto',
     }}
   >
-    <WorkspacePanelHeader showToggle collapsed={rightSiderCollapsed} 
+    <WorkspacePanelHeader showToggle collapsed={rightSiderCollapsed}
       onToggle={() => dispatchWorkspaceToggleEvent()} togglePlacement='left'>
       {props.siderTitle}
     </WorkspacePanelHeader>
-    <ArcoLayout.Content className='bg-1' 
+    <ArcoLayout.Content className='bg-1'
       style={{ height: `calc(100% - ${WORKSPACE_HEADER_HEIGHT}px)` }}>
       {props.sider}
     </ArcoLayout.Content>
@@ -1128,11 +1149,11 @@ The workspace panel at [src/renderer/pages/conversation/ChatLayout.tsx:482-533](
 **Width Calculation:**
 
 ```typescript
-const mobileViewportWidth = viewportWidth || window.innerWidth;
+const mobileViewportWidth = viewportWidth || window.innerWidth
 const mobileWorkspaceWidthPx = Math.min(
-  Math.max(300, Math.round(mobileViewportWidth * 0.84)), 
+  Math.max(300, Math.round(mobileViewportWidth * 0.84)),
   Math.max(300, Math.min(420, mobileViewportWidth - 20))
-);
+)
 ```
 
 This ensures the workspace panel takes 84% of viewport width, clamped between 300px and 420px, with a 20px minimum margin.
@@ -1172,7 +1193,7 @@ The theme system respects user motion preferences:
     transition: none !important;
     animation: none !important;
   }
-  
+
   .chat-history,
   .chat-history__item,
   .chat-history__item-name,
@@ -1203,36 +1224,38 @@ The workspace panel uses localStorage-based preference tracking with automatic c
 // Global collapse state
 const [rightSiderCollapsed, setRightSiderCollapsed] = useState(() => {
   try {
-    const stored = localStorage.getItem(STORAGE_KEYS.WORKSPACE_PANEL_COLLAPSE);
+    const stored = localStorage.getItem(STORAGE_KEYS.WORKSPACE_PANEL_COLLAPSE)
     if (stored !== null) {
-      return stored === 'true';
+      return stored === 'true'
     }
   } catch {}
-  return true; // Default collapsed
-});
+  return true // Default collapsed
+})
 
 // Per-conversation preference
 const handleHasFiles = (event: Event) => {
-  const detail = (event as CustomEvent<WorkspaceHasFilesDetail>).detail;
-  const conversationId = detail.conversationId;
-  
+  const detail = (event as CustomEvent<WorkspaceHasFilesDetail>).detail
+  const conversationId = detail.conversationId
+
   // Check user preference
-  let userPreference: 'expanded' | 'collapsed' | null = null;
+  let userPreference: 'expanded' | 'collapsed' | null = null
   if (conversationId) {
-    const stored = localStorage.getItem(`workspace-preference-${conversationId}`);
+    const stored = localStorage.getItem(
+      `workspace-preference-${conversationId}`
+    )
     if (stored === 'expanded' || stored === 'collapsed') {
-      userPreference = stored;
+      userPreference = stored
     }
   }
-  
+
   // Apply preference or file-based logic
   if (userPreference) {
-    setRightSiderCollapsed(userPreference === 'collapsed');
+    setRightSiderCollapsed(userPreference === 'collapsed')
   } else {
     // No preference: expand if has files, collapse if not
-    setRightSiderCollapsed(!detail.hasFiles);
+    setRightSiderCollapsed(!detail.hasFiles)
   }
-};
+}
 ```
 
 **Pattern**: User manual toggles override automatic file-based behavior, stored per-conversation.
@@ -1259,13 +1282,18 @@ Layout components use theme-aware transitions with performance optimizations:
 
 .chat-history__item,
 .settings-sider__item {
-  transition: padding 0.2s ease, margin 0.2s ease, background-color 0.2s ease;
+  transition:
+    padding 0.2s ease,
+    margin 0.2s ease,
+    background-color 0.2s ease;
 }
 
 .chat-history__item-name,
 .chat-history__item-editor,
 .settings-sider__item-label {
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
   transform-origin: left center;
 }
 
@@ -1390,17 +1418,15 @@ Scrollbars remain invisible until hover, reducing visual clutter while maintaini
 ### 1. Use Semantic Color Tokens
 
 **Preferred:**
+
 ```tsx
-<div className="bg-1 text-t-primary border-b-base">
-  Content
-</div>
+<div className="bg-1 text-t-primary border-b-base">Content</div>
 ```
 
 **Avoid:**
+
 ```tsx
-<div style={{ backgroundColor: '#f7f8fa', color: '#1d2129' }}>
-  Content
-</div>
+<div style={{ backgroundColor: '#f7f8fa', color: '#1d2129' }}>Content</div>
 ```
 
 Using semantic tokens ensures theme compatibility and easier maintenance.
@@ -1408,6 +1434,7 @@ Using semantic tokens ensures theme compatibility and easier maintenance.
 ### 2. Combine UnoCSS with CSS Modules
 
 **Preferred:**
+
 ```tsx
 <div className={`${styles.container} flex items-center gap-16px bg-2`}>
 ```
@@ -1418,10 +1445,11 @@ Using semantic tokens ensures theme compatibility and easier maintenance.
 ### 3. Dynamic Theme Colors via Hooks
 
 **Preferred:**
+
 ```tsx
 const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
 
-<div 
+<div
   style={{
     borderColor: isActive ? activeBorderColor : inactiveBorderColor,
     boxShadow: isActive ? activeShadow : 'none',
@@ -1438,9 +1466,15 @@ Hooks encapsulate theme logic and provide computed colors based on current theme
 Always include responsive and accessibility considerations:
 
 ```css
-@media (max-width: 768px) { /* Mobile styles */ }
-@media (prefers-reduced-motion: reduce) { /* Disable animations */ }
-@supports (-webkit-touch-callout: none) { /* iOS-specific fixes */ }
+@media (max-width: 768px) {
+  /* Mobile styles */
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Disable animations */
+}
+@supports (-webkit-touch-callout: none) {
+  /* iOS-specific fixes */
+}
 ```
 
 ### 5. Custom CSS Scoping
@@ -1451,13 +1485,13 @@ When users add custom CSS, it should be scoped appropriately to avoid breaking c
 
 ## Summary
 
-| Component | Purpose | Key Files |
-|-----------|---------|-----------|
-| **UnoCSS** | Atomic utility classes | [uno.config.ts:1-178]() |
-| **CSS Variables** | Theme tokens and values | [base.css:1-496](), [default.css:1-141]() |
-| **CSS Modules** | Component-scoped styles | [index.module.css:1-106]() |
-| **Arco Design** | Component library theming | [index.ts:18-51](), [base.css:489-496]() |
-| **Custom CSS** | User personalization | [layout.tsx:68-144]() |
-| **ThemeProvider** | Context and state management | [index.ts:42]() |
+| Component         | Purpose                      | Key Files                                 |
+| ----------------- | ---------------------------- | ----------------------------------------- |
+| **UnoCSS**        | Atomic utility classes       | [uno.config.ts:1-178]()                   |
+| **CSS Variables** | Theme tokens and values      | [base.css:1-496](), [default.css:1-141]() |
+| **CSS Modules**   | Component-scoped styles      | [index.module.css:1-106]()                |
+| **Arco Design**   | Component library theming    | [index.ts:18-51](), [base.css:489-496]()  |
+| **Custom CSS**    | User personalization         | [layout.tsx:68-144]()                     |
+| **ThemeProvider** | Context and state management | [index.ts:42]()                           |
 
 The styling system provides a robust, scalable foundation for UI development while maintaining theme consistency, accessibility, and user customization capabilities.

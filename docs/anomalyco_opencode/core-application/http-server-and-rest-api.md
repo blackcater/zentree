@@ -54,8 +54,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the HTTP server implementation and REST API architecture that powers OpenCode's networked functionality. The server provides a comprehensive REST API for managing sessions, projects, configurations, and real-time AI interactions.
 
 For information about the event bus system that works alongside the HTTP API, see [Event Bus & Real-time Updates](#2.7). For details on the CLI and TUI interfaces that consume this API, see [Terminal User Interface (TUI)](#3.1). For the JavaScript SDK that wraps this API, see [JavaScript SDK](#5.1).
@@ -65,7 +63,7 @@ For information about the event bus system that works alongside the HTTP API, se
 The HTTP server serves as the central networked interface to OpenCode's core functionality. It exposes over 200 REST endpoints for:
 
 - Session management and AI conversation lifecycle
-- Project and workspace operations  
+- Project and workspace operations
 - Configuration management across the 7-layer hierarchy
 - Real-time event streaming via Server-Sent Events (SSE)
 - WebSocket connections for pseudo-terminal (PTY) sessions
@@ -83,7 +81,7 @@ The server is built on the [Hono](https://hono.dev/) web framework and runs as a
 graph TB
     Client["HTTP Client<br/>(SDK, TUI, Web)"]
     Entry["Hono App Entry"]
-    
+
     subgraph "Middleware Stack"
         ErrorHandler["Error Handler<br/>onError()"]
         AuthMiddleware["Basic Auth<br/>basicAuth()"]
@@ -93,7 +91,7 @@ graph TB
         WorkspaceRouter["WorkspaceRouterMiddleware"]
         InstanceProvider["Instance.provide()"]
     end
-    
+
     subgraph "Route Handlers"
         GlobalRoutes["GlobalRoutes<br/>/global/*"]
         ProjectRoutes["ProjectRoutes<br/>/project/*"]
@@ -103,9 +101,9 @@ graph TB
         McpRoutes["McpRoutes<br/>/mcp/*"]
         OtherRoutes["File, Provider, Permission,<br/>Experimental Routes"]
     end
-    
+
     Response["JSON Response<br/>or SSE Stream"]
-    
+
     Client -->|HTTP Request| Entry
     Entry --> ErrorHandler
     ErrorHandler --> AuthMiddleware
@@ -114,7 +112,7 @@ graph TB
     CORS --> WorkspaceQuery
     WorkspaceQuery --> WorkspaceRouter
     WorkspaceRouter --> InstanceProvider
-    
+
     InstanceProvider --> GlobalRoutes
     InstanceProvider --> ProjectRoutes
     InstanceProvider --> SessionRoutes
@@ -122,7 +120,7 @@ graph TB
     InstanceProvider --> ConfigRoutes
     InstanceProvider --> McpRoutes
     InstanceProvider --> OtherRoutes
-    
+
     GlobalRoutes --> Response
     ProjectRoutes --> Response
     SessionRoutes --> Response
@@ -130,7 +128,7 @@ graph TB
     ConfigRoutes --> Response
     McpRoutes --> Response
     OtherRoutes --> Response
-    
+
     Response -->|HTTP Response| Client
 ```
 
@@ -145,17 +143,17 @@ graph LR
     Bootstrap["CLI Bootstrap<br/>ServeCommand"]
     ServerStart["Server.start()"]
     HonoApp["Server.App()"]
-    
+
     subgraph "Server State"
         URL["_url: URL<br/>localhost:4096"]
         CORSWhitelist["_corsWhitelist: string[]"]
     end
-    
+
     subgraph "Server Components"
         MDNS["MDNS.advertise()<br/>Network Discovery"]
         Listener["Bun.serve()<br/>HTTP Listener"]
     end
-    
+
     Bootstrap --> ServerStart
     ServerStart --> HonoApp
     HonoApp --> URL
@@ -165,6 +163,7 @@ graph LR
 ```
 
 The server URL is stored and accessed via `Server.url()`, which returns the configured base URL. CORS is configured to allow requests from:
+
 - `localhost` and `127.0.0.1` on any port
 - `tauri://localhost` (desktop app)
 - `*.opencode.ai` domains (web app)
@@ -176,21 +175,21 @@ Sources: [packages/opencode/src/server/server.ts:50-134]()
 
 Routes are organized into separate modules for maintainability. Each route module returns a `Hono` instance that is mounted on the main app:
 
-| Route Prefix | Module | Purpose |
-|--------------|--------|---------|
-| `/global` | `GlobalRoutes` | Health checks, global config, events, dispose |
-| `/auth/:providerID` | Inline handlers | Set/remove provider credentials |
-| `/project` | `ProjectRoutes` | Project listing, git init, project updates |
-| `/pty` | `PtyRoutes` | Pseudo-terminal session management |
-| `/config` | `ConfigRoutes` | Configuration get/update, provider list |
-| `/session` | `SessionRoutes` | Session CRUD, messages, prompting, streaming |
-| `/permission` | `PermissionRoutes` | Permission requests and responses |
-| `/question` | `QuestionRoutes` | Question tool interactions |
-| `/provider` | `ProviderRoutes` | Provider and model discovery |
-| `/mcp` | `McpRoutes` | MCP server management |
-| `/file` | `FileRoutes` | File operations, patches, snapshots |
-| `/experimental` | `ExperimentalRoutes` | Tool lists, workspace management |
-| `/tui` | `TuiRoutes` | TUI-specific endpoints |
+| Route Prefix        | Module               | Purpose                                       |
+| ------------------- | -------------------- | --------------------------------------------- |
+| `/global`           | `GlobalRoutes`       | Health checks, global config, events, dispose |
+| `/auth/:providerID` | Inline handlers      | Set/remove provider credentials               |
+| `/project`          | `ProjectRoutes`      | Project listing, git init, project updates    |
+| `/pty`              | `PtyRoutes`          | Pseudo-terminal session management            |
+| `/config`           | `ConfigRoutes`       | Configuration get/update, provider list       |
+| `/session`          | `SessionRoutes`      | Session CRUD, messages, prompting, streaming  |
+| `/permission`       | `PermissionRoutes`   | Permission requests and responses             |
+| `/question`         | `QuestionRoutes`     | Question tool interactions                    |
+| `/provider`         | `ProviderRoutes`     | Provider and model discovery                  |
+| `/mcp`              | `McpRoutes`          | MCP server management                         |
+| `/file`             | `FileRoutes`         | File operations, patches, snapshots           |
+| `/experimental`     | `ExperimentalRoutes` | Tool lists, workspace management              |
+| `/tui`              | `TuiRoutes`          | TUI-specific endpoints                        |
 
 Sources: [packages/opencode/src/server/server.ts:135-258]()
 
@@ -203,16 +202,16 @@ graph LR
     describeRoute["describeRoute()<br/>OpenAPI metadata"]
     validator["validator()<br/>Input validation"]
     handler["Handler Function<br/>async (c) => {...}"]
-    
+
     describeRoute --> validator
     validator --> handler
-    
+
     subgraph "Handler Implementation"
         ParseInput["c.req.valid('json')<br/>c.req.valid('param')<br/>c.req.valid('query')"]
         BusinessLogic["Call Session, Project,<br/>Config, etc. functions"]
         Response["c.json(result)<br/>or c.stream()"]
     end
-    
+
     handler --> ParseInput
     ParseInput --> BusinessLogic
     BusinessLogic --> Response
@@ -247,6 +246,7 @@ The middleware pipeline processes every request in the following order:
 ### 1. Error Handler
 
 Catches all errors and converts them to appropriate HTTP responses. Special handling for:
+
 - `NamedError` instances → structured error objects with specific status codes
 - `NotFoundError` → 404
 - `Provider.ModelNotFoundError` → 400
@@ -271,6 +271,7 @@ Sources: [packages/opencode/src/server/server.ts:83-91]()
 ### 3. Basic Authentication
 
 Optional HTTP Basic Auth controlled by environment variables:
+
 - `OPENCODE_SERVER_PASSWORD` - Required for auth
 - `OPENCODE_SERVER_USERNAME` - Username (default: "opencode")
 
@@ -323,7 +324,7 @@ Extracts workspace and directory from query params or headers:
 .use(async (c, next) => {
   const workspaceID = c.req.query("workspace") || c.req.header("x-opencode-workspace")
   const directory = c.req.query("directory") || c.req.header("x-opencode-directory") || process.cwd()
-  
+
   return WorkspaceContext.provide({
     workspaceID,
     async fn() {
@@ -352,14 +353,14 @@ graph TB
     Client["Client<br/>(SDK, Web, Desktop)"]
     EventEndpoint["/global/event<br/>GET"]
     StreamSSE["streamSSE()<br/>Hono streaming"]
-    
+
     subgraph "Event Bus"
         GlobalBus["GlobalBus.subscribe()"]
         Events["session.created<br/>session.updated<br/>message.updated<br/>message.part.updated<br/>permission.updated<br/>installation.updated<br/>..."]
     end
-    
+
     SSEStream["SSE Stream<br/>text/event-stream"]
-    
+
     Client -->|"HTTP GET"| EventEndpoint
     EventEndpoint --> StreamSSE
     StreamSSE --> GlobalBus
@@ -371,7 +372,7 @@ graph TB
 The event stream implementation uses Hono's `streamSSE` helper:
 
 ```typescript
-.get("/global/event", 
+.get("/global/event",
   describeRoute({ ... }),
   async (c) => {
     return streamSSE(c, async (stream) => {
@@ -391,6 +392,7 @@ The event stream implementation uses Hono's `streamSSE` helper:
 ```
 
 Each event is sent with:
+
 - `event` field: The event type (e.g., `session.updated`)
 - `data` field: JSON-serialized event properties
 
@@ -405,13 +407,13 @@ graph LR
     Client["Client"]
     WSEndpoint["/pty/{ptyID}/connect"]
     WSUpgrade["upgradeWebSocket()"]
-    
+
     subgraph "PTY Session"
         PtyManager["Pty.get(ptyID)"]
         PtyWrite["pty.write()"]
         PtyOnData["pty.onData()"]
     end
-    
+
     Client -->|"Upgrade: websocket"| WSEndpoint
     WSEndpoint --> WSUpgrade
     WSUpgrade <-->|"Bidirectional"| PtyManager
@@ -420,6 +422,7 @@ graph LR
 ```
 
 The WebSocket connection allows bidirectional communication:
+
 - **Client → Server**: Terminal input (keystrokes, commands)
 - **Server → Client**: Terminal output (ANSI escape sequences, program output)
 
@@ -428,6 +431,7 @@ Sources: [packages/sdk/openapi.json:817-875]()
 ## OpenAPI Specification
 
 The complete API is documented in OpenAPI 3.1.1 format and available at:
+
 - **Specification**: [packages/sdk/openapi.json]()
 - **Interactive docs**: `GET /doc` endpoint (when server is running)
 
@@ -439,14 +443,14 @@ The OpenAPI spec is used to generate type-safe SDK clients:
 graph LR
     OpenAPI["openapi.json<br/>200+ endpoints"]
     Generator["@hey-api/openapi-ts"]
-    
+
     subgraph "Generated Code"
         TypesV1["packages/sdk/js/src/gen/<br/>types.gen.ts"]
         SDKV1["packages/sdk/js/src/gen/<br/>sdk.gen.ts"]
         TypesV2["packages/sdk/js/src/v2/gen/<br/>types.gen.ts"]
         SDKV2["packages/sdk/js/src/v2/gen/<br/>sdk.gen.ts"]
     end
-    
+
     OpenAPI --> Generator
     Generator --> TypesV1
     Generator --> SDKV1
@@ -475,52 +479,52 @@ Sources: [packages/opencode/src/server/server.ts:227-238](), [packages/sdk/opena
 
 ### Session Management
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/session` | `GET` | List sessions |
-| `/session` | `POST` | Create new session |
-| `/session/{sessionID}` | `GET` | Get session details |
-| `/session/{sessionID}` | `PATCH` | Update session (title, permissions) |
-| `/session/{sessionID}` | `DELETE` | Delete session and children |
-| `/session/{sessionID}/message` | `GET` | List messages in session |
-| `/session/{sessionID}/message` | `POST` | Add user message |
-| `/session/{sessionID}/message/{messageID}` | `DELETE` | Remove message |
-| `/session/{sessionID}/prompt` | `POST` | Send prompt and start AI loop |
-| `/session/{sessionID}/event` | `GET` | SSE stream of session events |
-| `/session/{sessionID}/interrupt` | `POST` | Cancel running AI operation |
-| `/session/{sessionID}/compact` | `POST` | Trigger manual compaction |
+| Endpoint                                   | Method   | Purpose                             |
+| ------------------------------------------ | -------- | ----------------------------------- |
+| `/session`                                 | `GET`    | List sessions                       |
+| `/session`                                 | `POST`   | Create new session                  |
+| `/session/{sessionID}`                     | `GET`    | Get session details                 |
+| `/session/{sessionID}`                     | `PATCH`  | Update session (title, permissions) |
+| `/session/{sessionID}`                     | `DELETE` | Delete session and children         |
+| `/session/{sessionID}/message`             | `GET`    | List messages in session            |
+| `/session/{sessionID}/message`             | `POST`   | Add user message                    |
+| `/session/{sessionID}/message/{messageID}` | `DELETE` | Remove message                      |
+| `/session/{sessionID}/prompt`              | `POST`   | Send prompt and start AI loop       |
+| `/session/{sessionID}/event`               | `GET`    | SSE stream of session events        |
+| `/session/{sessionID}/interrupt`           | `POST`   | Cancel running AI operation         |
+| `/session/{sessionID}/compact`             | `POST`   | Trigger manual compaction           |
 
 Sources: [packages/sdk/openapi.json:1329-1806]()
 
 ### Project Operations
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/project` | `GET` | List all projects |
-| `/project/current` | `GET` | Get current project |
-| `/project/{projectID}` | `PATCH` | Update project metadata |
-| `/project/git/init` | `POST` | Initialize git repository |
+| Endpoint               | Method  | Purpose                   |
+| ---------------------- | ------- | ------------------------- |
+| `/project`             | `GET`   | List all projects         |
+| `/project/current`     | `GET`   | Get current project       |
+| `/project/{projectID}` | `PATCH` | Update project metadata   |
+| `/project/git/init`    | `POST`  | Initialize git repository |
 
 Sources: [packages/sdk/openapi.json:258-489]()
 
 ### Configuration
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/config` | `GET` | Get merged configuration |
-| `/config` | `PATCH` | Update configuration |
-| `/config/providers` | `GET` | List configured providers and models |
+| Endpoint            | Method  | Purpose                              |
+| ------------------- | ------- | ------------------------------------ |
+| `/config`           | `GET`   | Get merged configuration             |
+| `/config`           | `PATCH` | Update configuration                 |
+| `/config/providers` | `GET`   | List configured providers and models |
 
 Sources: [packages/sdk/openapi.json:876-1033]()
 
 ### Provider & Model Discovery
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/provider` | `GET` | List all providers |
-| `/provider/{providerID}` | `GET` | Get provider details |
-| `/provider/{providerID}/model` | `GET` | List models for provider |
-| `/provider/{providerID}/model/{modelID}` | `GET` | Get specific model details |
+| Endpoint                                 | Method | Purpose                    |
+| ---------------------------------------- | ------ | -------------------------- |
+| `/provider`                              | `GET`  | List all providers         |
+| `/provider/{providerID}`                 | `GET`  | Get provider details       |
+| `/provider/{providerID}/model`           | `GET`  | List models for provider   |
+| `/provider/{providerID}/model/{modelID}` | `GET`  | Get specific model details |
 
 Sources: [packages/sdk/openapi.json:2105-2346]()
 
@@ -528,13 +532,13 @@ Sources: [packages/sdk/openapi.json:2105-2346]()
 
 The server can be configured via environment variables and CLI flags:
 
-| Variable/Flag | Purpose | Default |
-|---------------|---------|---------|
-| `--port` | HTTP server port | `4096` |
-| `--host` | Bind address | `localhost` |
-| `OPENCODE_SERVER_PASSWORD` | Enable basic auth | (disabled) |
-| `OPENCODE_SERVER_USERNAME` | Auth username | `opencode` |
-| CLI `--network` flags | Network interface selection | Auto-detect |
+| Variable/Flag              | Purpose                     | Default     |
+| -------------------------- | --------------------------- | ----------- |
+| `--port`                   | HTTP server port            | `4096`      |
+| `--host`                   | Bind address                | `localhost` |
+| `OPENCODE_SERVER_PASSWORD` | Enable basic auth           | (disabled)  |
+| `OPENCODE_SERVER_USERNAME` | Auth username               | `opencode`  |
+| CLI `--network` flags      | Network interface selection | Auto-detect |
 
 ### mDNS Discovery
 
@@ -542,10 +546,10 @@ When the server starts, it advertises itself via mDNS (Multicast DNS) for local 
 
 ```typescript
 await MDNS.advertise({
-  name: "opencode",
+  name: 'opencode',
   port,
-  type: "http",
-  protocol: "tcp"
+  type: 'http',
+  protocol: 'tcp',
 })
 ```
 
@@ -572,20 +576,20 @@ All errors are returned as JSON with the `NamedError` format:
 
 ### Common Error Types
 
-| Error Class | HTTP Status | Description |
-|-------------|-------------|-------------|
-| `NotFoundError` | 404 | Session, project, or resource not found |
-| `Provider.ModelNotFoundError` | 400 | AI model not found or unavailable |
-| `Session.BusyError` | 400 | Session already processing a request |
-| `Worktree.*` errors | 400 | Git worktree operation failures |
-| `NamedError.Unknown` | 500 | Unexpected errors with stack trace |
+| Error Class                   | HTTP Status | Description                             |
+| ----------------------------- | ----------- | --------------------------------------- |
+| `NotFoundError`               | 404         | Session, project, or resource not found |
+| `Provider.ModelNotFoundError` | 400         | AI model not found or unavailable       |
+| `Session.BusyError`           | 400         | Session already processing a request    |
+| `Worktree.*` errors           | 400         | Git worktree operation failures         |
+| `NamedError.Unknown`          | 500         | Unexpected errors with stack trace      |
 
 ### Error Handler Implementation
 
 ```typescript
 .onError((err, c) => {
   log.error("failed", { error: err })
-  
+
   if (err instanceof NamedError) {
     let status: ContentfulStatusCode
     if (err instanceof NotFoundError) status = 404
@@ -594,9 +598,9 @@ All errors are returned as JSON with the `NamedError` format:
     else status = 500
     return c.json(err.toObject(), { status })
   }
-  
+
   if (err instanceof HTTPException) return err.getResponse()
-  
+
   const message = err instanceof Error && err.stack ? err.stack : err.toString()
   return c.json(new NamedError.Unknown({ message }).toObject(), {
     status: 500
@@ -611,6 +615,7 @@ Sources: [packages/opencode/src/server/server.ts:65-82]()
 ### Authentication
 
 The server supports optional HTTP Basic Authentication. When `OPENCODE_SERVER_PASSWORD` is set:
+
 - All requests (except OPTIONS preflight) require valid credentials
 - Username defaults to "opencode" (configurable via `OPENCODE_SERVER_USERNAME`)
 - Authentication is checked before any other middleware
@@ -618,6 +623,7 @@ The server supports optional HTTP Basic Authentication. When `OPENCODE_SERVER_PA
 ### CORS Policy
 
 The CORS policy is strict by default:
+
 - Only allows `localhost`, `127.0.0.1`, Tauri, and `*.opencode.ai` origins
 - Custom origins can be added to the whitelist programmatically
 - Preflight requests are allowed to determine CORS headers
@@ -625,6 +631,7 @@ The CORS policy is strict by default:
 ### Directory Access Control
 
 While not enforced at the HTTP layer, the server relies on:
+
 - File system permissions for directory access
 - The `Instance.provide()` context to scope operations to a specific directory
 - Permission system (see [Tool System & Permissions](#2.5)) for tool execution

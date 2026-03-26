@@ -21,11 +21,10 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document provides an overview of OpenCode's integrations with development environments beyond its core CLI, TUI, Desktop, and Web interfaces. These integrations bring OpenCode's AI coding capabilities directly into popular IDEs and collaboration platforms, enabling developers to access OpenCode functionality within their existing workflows.
 
 OpenCode provides three primary external integrations:
+
 - **VS Code Extension** - Native extension for Visual Studio Code (see [VS Code Extension](#6.1))
 - **Zed Extension** - Integration via Agent Client Protocol for Zed editor (see [Zed Extension](#6.2))
 - **Slack Bot** - Conversational interface for team collaboration (see [Slack Integration](#6.3))
@@ -43,27 +42,27 @@ graph TB
         Zed["Zed Editor<br/>ACP Protocol"]
         Slack["Slack Bot<br/>packages/slack"]
     end
-    
+
     subgraph "Integration Layer"
         SDK["@opencode-ai/sdk<br/>packages/sdk/js"]
         ACP["@agentclientprotocol/sdk<br/>in opencode package"]
     end
-    
+
     subgraph "OpenCode Server"
         Server["OpenCode Server<br/>Hono HTTP API"]
         SessionMgmt["Session Management"]
         ToolExec["Tool Execution"]
     end
-    
+
     VSCode --> SDK
     Slack --> SDK
     Zed --> ACP
     ACP --> Server
     SDK --> Server
-    
+
     Server --> SessionMgmt
     Server --> ToolExec
-    
+
     style VSCode fill:#fff4e1
     style Zed fill:#fff4e1
     style Slack fill:#fff4e1
@@ -77,11 +76,11 @@ graph TB
 
 OpenCode's external integrations are distributed as separate packages in the monorepo:
 
-| Integration | Package Location | Package Name | Key Dependencies |
-|-------------|-----------------|--------------|------------------|
-| VS Code | `sdks/vscode/` | `opencode` (VS Code Marketplace) | None (standalone extension) |
-| Zed | `packages/opencode/` | N/A (embedded in core) | `@agentclientprotocol/sdk` |
-| Slack | `packages/slack/` | `@opencode-ai/slack` | `@slack/bolt`, `@opencode-ai/sdk` |
+| Integration | Package Location     | Package Name                     | Key Dependencies                  |
+| ----------- | -------------------- | -------------------------------- | --------------------------------- |
+| VS Code     | `sdks/vscode/`       | `opencode` (VS Code Marketplace) | None (standalone extension)       |
+| Zed         | `packages/opencode/` | N/A (embedded in core)           | `@agentclientprotocol/sdk`        |
+| Slack       | `packages/slack/`    | `@opencode-ai/slack`             | `@slack/bolt`, `@opencode-ai/sdk` |
 
 **Sources:** [sdks/vscode/package.json:2-6](), [packages/opencode/package.json:61](), [packages/slack/package.json:1-19]()
 
@@ -103,26 +102,26 @@ graph LR
         KeyBinding["Keyboard Shortcuts<br/>Cmd+Escape"]
         ContextMenu["Context Menu"]
     end
-    
+
     subgraph "Extension Commands"
         OpenTerminal["opencode.openTerminal"]
         OpenNewTerminal["opencode.openNewTerminal"]
         AddFilepath["opencode.addFilepathToTerminal"]
     end
-    
+
     subgraph "OpenCode Process"
         CLI["OpenCode CLI<br/>Terminal Process"]
         TUI["Terminal UI"]
     end
-    
+
     EditorButton --> OpenNewTerminal
     KeyBinding --> OpenTerminal
     ContextMenu --> AddFilepath
-    
+
     OpenTerminal --> CLI
     OpenNewTerminal --> CLI
     AddFilepath --> CLI
-    
+
     CLI --> TUI
 ```
 
@@ -132,11 +131,11 @@ graph LR
 
 The extension contributes three primary commands:
 
-| Command | Title | Keybinding | Purpose |
-|---------|-------|------------|---------|
-| `opencode.openTerminal` | Open opencode | `Cmd+Escape` | Opens OpenCode in existing terminal or creates new |
-| `opencode.openNewTerminal` | Open opencode in new tab | `Cmd+Shift+Escape` | Always creates new terminal tab |
-| `opencode.addFilepathToTerminal` | Add Filepath to Terminal | `Cmd+Alt+K` | Inserts current file path as @-mention |
+| Command                          | Title                    | Keybinding         | Purpose                                            |
+| -------------------------------- | ------------------------ | ------------------ | -------------------------------------------------- |
+| `opencode.openTerminal`          | Open opencode            | `Cmd+Escape`       | Opens OpenCode in existing terminal or creates new |
+| `opencode.openNewTerminal`       | Open opencode in new tab | `Cmd+Shift+Escape` | Always creates new terminal tab                    |
+| `opencode.addFilepathToTerminal` | Add Filepath to Terminal | `Cmd+Alt+K`        | Inserts current file path as @-mention             |
 
 **Sources:** [sdks/vscode/package.json:26-46](), [sdks/vscode/package.json:56-81]()
 
@@ -152,12 +151,12 @@ graph TB
         ZedUI["Zed Agent UI"]
         ZedACP["Zed ACP Client"]
     end
-    
+
     subgraph "OpenCode"
         ACPServer["ACP Server<br/>in opencode acp command"]
         CoreServer["OpenCode Core<br/>Session & Tools"]
     end
-    
+
     ZedUI --> ZedACP
     ZedACP -->|"JSON-RPC<br/>stdio"| ACPServer
     ACPServer --> CoreServer
@@ -180,22 +179,22 @@ graph LR
         DM["Direct Message"]
         SlashCmd["Slash Commands"]
     end
-    
+
     subgraph "Slack Bot"
         BoltApp["@slack/bolt App<br/>packages/slack"]
         EventHandler["Event Handlers"]
         SDK["@opencode-ai/sdk"]
     end
-    
+
     subgraph "OpenCode Backend"
         Server["OpenCode Server"]
         Sessions["Session Management"]
     end
-    
+
     Channel --> BoltApp
     DM --> BoltApp
     SlashCmd --> BoltApp
-    
+
     BoltApp --> EventHandler
     EventHandler --> SDK
     SDK --> Server
@@ -207,6 +206,7 @@ graph LR
 ### Key Capabilities
 
 The Slack bot enables:
+
 - **Session Management**: Create and resume OpenCode conversations in Slack threads
 - **Collaboration**: Share AI-assisted coding sessions with team members
 - **Notifications**: Receive updates on tool execution and agent progress
@@ -218,11 +218,11 @@ The Slack bot enables:
 
 Each integration uses a different deployment model suited to its platform:
 
-| Integration | Deployment Model | Distribution | Installation |
-|-------------|-----------------|--------------|-------------|
-| VS Code | Extension Package | VS Code Marketplace | `code --install-extension sst-dev.opencode` |
-| Zed | Binary + Config | Zed extension registry | Zed's extension manager |
-| Slack | Bot Application | Slack App Directory | OAuth installation flow |
+| Integration | Deployment Model  | Distribution           | Installation                                |
+| ----------- | ----------------- | ---------------------- | ------------------------------------------- |
+| VS Code     | Extension Package | VS Code Marketplace    | `code --install-extension sst-dev.opencode` |
+| Zed         | Binary + Config   | Zed extension registry | Zed's extension manager                     |
+| Slack       | Bot Application   | Slack App Directory    | OAuth installation flow                     |
 
 ### VS Code Distribution
 
@@ -253,23 +253,23 @@ graph TB
         ACPProto["JSON-RPC<br/>ACP Protocol"]
         SlackProto["HTTP + WebSocket<br/>Slack Events API"]
     end
-    
+
     subgraph "SDK Layer"
         NoSDK["No SDK<br/>Direct CLI invocation"]
         ACPImpl["@agentclientprotocol/sdk"]
         HTTPSDK["@opencode-ai/sdk<br/>HTTP Transport"]
     end
-    
+
     subgraph "Server Layer"
         CLIEntry["CLI Entrypoint"]
         ACPCmd["acp Command Handler"]
         HTTPServer["HTTP Server<br/>Hono"]
     end
-    
+
     VSCodeProto --> NoSDK
     ACPProto --> ACPImpl
     SlackProto --> HTTPSDK
-    
+
     NoSDK --> CLIEntry
     ACPImpl --> ACPCmd
     HTTPSDK --> HTTPServer

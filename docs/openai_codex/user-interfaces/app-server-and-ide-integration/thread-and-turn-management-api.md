@@ -21,8 +21,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the full lifecycle API for threads and turns exposed by the `codex-app-server` JSON-RPC 2.0 interface. It covers the request/response shapes for `thread/*` and `turn/*` methods, the notifications they emit, and how `CodexMessageProcessor` dispatches and handles them.
 
 For the overall app server architecture and initialization handshake, see [4.5.1](#4.5.1). For how emitted core `EventMsg` variants are translated into `ServerNotification` messages that clients receive during turns, see [4.5.3](#4.5.3). For config read/write endpoints, see [4.5.4](#4.5.4).
@@ -33,34 +31,34 @@ For the overall app server architecture and initialization handshake, see [4.5.1
 
 The app server exposes three primitive objects to clients:
 
-| Object | Description |
-|--------|-------------|
-| **Thread** | A persisted conversation between a user and the Codex agent. Backed by a JSONL rollout file on disk. |
-| **Turn** | One round-trip within a thread: a user message, model generation, and tool calls. |
+| Object                  | Description                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Thread**              | A persisted conversation between a user and the Codex agent. Backed by a JSONL rollout file on disk.          |
+| **Turn**                | One round-trip within a thread: a user message, model generation, and tool calls.                             |
 | **Item** (`ThreadItem`) | The individual pieces of a turn: user messages, agent messages, shell commands, file changes, reasoning, etc. |
 
 **Thread object fields:**
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `id` | `string` | Stable thread identifier (e.g., `thr_…`) |
-| `preview` | `string` | First user message text |
-| `model_provider` | `string` | Provider slug (e.g., `openai`) |
-| `created_at` / `updated_at` | `number` (Unix timestamp) | |
-| `status` | `ThreadStatus` | `notLoaded`, `idle`, `systemError`, or `active` |
-| `path` | `string \| null` | Absolute path to rollout file; `null` for ephemeral threads |
-| `cwd` | `string` | Working directory at thread creation |
-| `turns` | `Turn[]` | Populated when requested (e.g., via `includeTurns`) |
-| `agent_nickname` / `agent_role` | `string \| null` | Set for sub-agent threads spawned by `AgentControl` |
+| Field                           | Type                      | Notes                                                       |
+| ------------------------------- | ------------------------- | ----------------------------------------------------------- |
+| `id`                            | `string`                  | Stable thread identifier (e.g., `thr_…`)                    |
+| `preview`                       | `string`                  | First user message text                                     |
+| `model_provider`                | `string`                  | Provider slug (e.g., `openai`)                              |
+| `created_at` / `updated_at`     | `number` (Unix timestamp) |                                                             |
+| `status`                        | `ThreadStatus`            | `notLoaded`, `idle`, `systemError`, or `active`             |
+| `path`                          | `string \| null`          | Absolute path to rollout file; `null` for ephemeral threads |
+| `cwd`                           | `string`                  | Working directory at thread creation                        |
+| `turns`                         | `Turn[]`                  | Populated when requested (e.g., via `includeTurns`)         |
+| `agent_nickname` / `agent_role` | `string \| null`          | Set for sub-agent threads spawned by `AgentControl`         |
 
 **Turn object fields:**
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `id` | `string` | Stable turn identifier |
-| `status` | `TurnStatus` | `inProgress`, `completed`, or `interrupted` |
-| `items` | `ThreadItem[]` | Turn content items |
-| `error` | `TurnError \| null` | Set when the turn failed |
+| Field    | Type                | Notes                                       |
+| -------- | ------------------- | ------------------------------------------- |
+| `id`     | `string`            | Stable turn identifier                      |
+| `status` | `TurnStatus`        | `inProgress`, `completed`, or `interrupted` |
+| `items`  | `ThreadItem[]`      | Turn content items                          |
+| `error`  | `TurnError \| null` | Set when the turn failed                    |
 
 Sources: [codex-rs/app-server-protocol/src/protocol/v2.rs:1-100](), [codex-rs/app-server/README.md:51-68]()
 
@@ -77,10 +75,10 @@ graph TD
     Client["Client Connection"]
     MP["MessageProcessor::process_message"]
     CMP["CodexMessageProcessor::process_request"]
-    
+
     Client -->|"JSON-RPC Request"| MP
     MP -->|"ClientRequest enum"| CMP
-    
+
     subgraph "Thread Lifecycle Methods"
         TS["thread_start()<br/>(649-656)"]
         TR["thread_resume()<br/>(661-664)"]
@@ -89,26 +87,26 @@ graph TD
         TA["thread_archive()<br/>(669-672)"]
         TUA["thread_unarchive()<br/>(689-692)"]
     end
-    
+
     subgraph "Thread Discovery Methods"
         TL["thread_list()<br/>(708-711)"]
         TLL["thread_loaded_list()<br/>(712-715)"]
         TRD["thread_read()<br/>(716-719)"]
     end
-    
+
     subgraph "Thread Management"
         TSN["thread_set_name()<br/>(681-684)"]
         TMU["thread_metadata_update()<br/>(685-688)"]
         TCS["thread_compact_start()<br/>(693-696)"]
         TRB["thread_rollback()<br/>(704-707)"]
     end
-    
+
     subgraph "Turn Operations"
         TURN_S["turn_start()<br/>(756-763)"]
         TURN_ST["turn_steer()<br/>(764-767)"]
         TURN_I["turn_interrupt()<br/>(768-771)"]
     end
-    
+
     CMP -->|"ClientRequest::ThreadStart"| TS
     CMP -->|"ClientRequest::ThreadResume"| TR
     CMP -->|"ClientRequest::ThreadFork"| TF
@@ -139,40 +137,40 @@ graph LR
         W3["method: 'turn/start'"]
         W4["method: 'turn/interrupt'"]
     end
-    
+
     subgraph "ClientRequest Variants"
         CR1["ClientRequest::ThreadStart"]
         CR2["ClientRequest::ThreadResume"]
         CR3["ClientRequest::TurnStart"]
         CR4["ClientRequest::TurnInterrupt"]
     end
-    
+
     subgraph "Params Types (v2.rs)"
         P1["ThreadStartParams<br/>{model, cwd, approval_policy, ...}"]
         P2["ThreadResumeParams<br/>{thread_id, personality, ...}"]
         P3["TurnStartParams<br/>{thread_id, input, ...}"]
         P4["TurnInterruptParams<br/>{thread_id, turn_id}"]
     end
-    
+
     subgraph "Response Types (v2.rs)"
         R1["ThreadStartResponse<br/>{thread: Thread}"]
         R2["ThreadResumeResponse<br/>{thread: Thread}"]
         R3["TurnStartResponse<br/>{turn: Turn}"]
         R4["TurnInterruptResponse<br/>{}"]
     end
-    
+
     W1 --> CR1
     CR1 --> P1
     P1 --> R1
-    
+
     W2 --> CR2
     CR2 --> P2
     P2 --> R2
-    
+
     W3 --> CR3
     CR3 --> P3
     P3 --> R3
-    
+
     W4 --> CR4
     CR4 --> P4
     P4 --> R4
@@ -190,20 +188,21 @@ Creates a new thread and auto-subscribes the calling connection to its event str
 
 **Params (`ThreadStartParams`):**
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `model` | No | Model override for this thread |
-| `cwd` | No | Working directory |
-| `approval_policy` | No | `AskForApproval` variant |
-| `sandbox` / `sandbox_policy` | No | `SandboxMode` or detailed policy |
-| `personality` | No | `"friendly"`, `"pragmatic"`, or `"none"` |
-| `dynamic_tools` | No | `DynamicToolSpec[]` (requires experimental API) |
-| `persist_extended_history` | No | Persist richer `ThreadItem`s for non-lossy resume |
-| `ephemeral` | No | When `true`, thread is in-memory only; no rollout file |
+| Field                        | Required | Description                                            |
+| ---------------------------- | -------- | ------------------------------------------------------ |
+| `model`                      | No       | Model override for this thread                         |
+| `cwd`                        | No       | Working directory                                      |
+| `approval_policy`            | No       | `AskForApproval` variant                               |
+| `sandbox` / `sandbox_policy` | No       | `SandboxMode` or detailed policy                       |
+| `personality`                | No       | `"friendly"`, `"pragmatic"`, or `"none"`               |
+| `dynamic_tools`              | No       | `DynamicToolSpec[]` (requires experimental API)        |
+| `persist_extended_history`   | No       | Persist richer `ThreadItem`s for non-lossy resume      |
+| `ephemeral`                  | No       | When `true`, thread is in-memory only; no rollout file |
 
 **Response (`ThreadStartResponse`):** Returns `{ thread: Thread }`.
 
 **Side effects:**
+
 - Emits `thread/started` notification (`ThreadStartedNotification`) to all subscribers.
 - The returned `thread.status` reflects the thread's current state (typically `idle` immediately after creation).
 
@@ -229,15 +228,16 @@ Loads an existing thread from its persisted rollout and makes it available for n
 
 **Params (`ThreadResumeParams`):**
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `thread_id` | Yes | ID of the thread to resume |
-| `personality` | No | Override personality for subsequent turns |
-| `persist_extended_history` | No | Same semantics as in `thread/start` |
+| Field                      | Required | Description                               |
+| -------------------------- | -------- | ----------------------------------------- |
+| `thread_id`                | Yes      | ID of the thread to resume                |
+| `personality`              | No       | Override personality for subsequent turns |
+| `persist_extended_history` | No       | Same semantics as in `thread/start`       |
 
 **Response (`ThreadResumeResponse`):** Returns `{ thread: Thread }` with `thread.turns` populated from the rollout.
 
 **Constraints:**
+
 - Fails with an `invalid request` error if no rollout file exists for the thread ID (the thread must have had at least one user message to materialize the rollout).
 - Does **not** emit a `thread/started` notification.
 
@@ -251,14 +251,15 @@ Creates a new thread by copying the stored rollout history of an existing thread
 
 **Params (`ThreadForkParams`):**
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `thread_id` | Yes | ID of the source thread |
-| `persist_extended_history` | No | Same semantics as in `thread/start` |
+| Field                      | Required | Description                         |
+| -------------------------- | -------- | ----------------------------------- |
+| `thread_id`                | Yes      | ID of the source thread             |
+| `persist_extended_history` | No       | Same semantics as in `thread/start` |
 
 **Response (`ThreadForkResponse`):** Returns `{ thread: Thread }` with the new thread's ID.
 
 **Side effects:**
+
 - Emits `thread/started` for the new forked thread.
 - Source thread is unaffected.
 
@@ -308,13 +309,14 @@ Removes the calling connection's subscription from a thread's event stream.
 
 **`ThreadUnsubscribeStatus` values:**
 
-| Value | Meaning |
-|-------|---------|
-| `unsubscribed` | Connection was subscribed and is now removed |
+| Value           | Meaning                                      |
+| --------------- | -------------------------------------------- |
+| `unsubscribed`  | Connection was subscribed and is now removed |
 | `notSubscribed` | Connection was not subscribed to that thread |
-| `notLoaded` | Thread is not currently loaded in memory |
+| `notLoaded`     | Thread is not currently loaded in memory     |
 
 If this was the **last** subscriber, the server unloads the thread and emits:
+
 - `thread/closed` (`ThreadClosedNotification`)
 - `thread/status/changed` transitioning to `{ type: "notLoaded" }`
 
@@ -342,16 +344,16 @@ Pages through persisted rollouts on disk. Each returned `Thread` includes a `sta
 
 **`ThreadListParams`:**
 
-| Field | Description |
-|-------|-------------|
-| `cursor` | Opaque pagination cursor; omit for first page |
-| `limit` | Page size (server default: 25, max: 100) |
-| `sort_key` | `created_at` (default) or `updated_at` |
-| `model_providers` | Filter by provider slug(s) |
-| `source_kinds` | Filter by `ThreadSourceKind` (e.g., `cli`, `vscode`) |
-| `archived` | `true` to list archived threads only |
-| `cwd` | Filter by exact working directory path |
-| `search_term` | Case-sensitive substring match on thread title |
+| Field             | Description                                          |
+| ----------------- | ---------------------------------------------------- |
+| `cursor`          | Opaque pagination cursor; omit for first page        |
+| `limit`           | Page size (server default: 25, max: 100)             |
+| `sort_key`        | `created_at` (default) or `updated_at`               |
+| `model_providers` | Filter by provider slug(s)                           |
+| `source_kinds`    | Filter by `ThreadSourceKind` (e.g., `cli`, `vscode`) |
+| `archived`        | `true` to list archived threads only                 |
+| `cwd`             | Filter by exact working directory path               |
+| `search_term`     | Case-sensitive substring match on thread title       |
 
 **`ThreadListResponse`:** `{ data: Thread[], next_cursor: string | null }`
 
@@ -397,12 +399,13 @@ stateDiagram-v2
     Idle --> NotLoaded: "ThreadWatchManager::note_unsubscribe()<br/>(last subscriber)"
     Active --> NotLoaded: "last subscriber unsubscribes"
     SystemError --> NotLoaded: "last subscriber unsubscribes"
-    
+
     note right of Active: "ThreadStatus::Active {<br/>  active_flags: Vec<String><br/>}"
     note right of SystemError: "ThreadStatus::SystemError {<br/>  message: String<br/>}"
 ```
 
 **ThreadWatchManager tracking:**
+
 - Maintains a `HashMap<ThreadId, ThreadWatchState>` of loaded threads
 - Emits `thread/status/changed` via `OutgoingMessageSender` on transitions
 - `ThreadWatchActiveGuard` automatically clears active state on drop
@@ -423,6 +426,7 @@ Triggers manual history compaction for a thread. Returns `{}` immediately; progr
 **`ThreadCompactStartResponse`:** `{}`
 
 Clients should expect:
+
 - `item/started` with `item: { type: "contextCompaction" }`
 - `item/completed` with the same item ID
 
@@ -434,30 +438,30 @@ Submits user input to a thread and begins Codex generation. The turn is created 
 
 **Key `TurnStartParams` fields:**
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `thread_id` | Yes | Target thread |
-| `input` | Yes | `UserInput[]` — text, image URL, local image, skill, or mention items |
-| `cwd` | No | Override working directory for this turn |
-| `approval_policy` | No | `AskForApproval` override |
-| `sandbox_policy` | No | Detailed sandbox override |
-| `model` | No | Model override (persists to subsequent turns) |
-| `effort` | No | `ReasoningEffort` |
-| `summary` | No | `ReasoningSummary` |
-| `personality` | No | Personality override |
-| `output_schema` | No | JSON Schema to constrain the final assistant message (current turn only) |
-| `collaboration_mode` | No | `CollaborationMode` — pass `developer_instructions: null` to use built-in instructions |
-| `dynamic_tools` | No | `DynamicToolSpec[]` (experimental) |
+| Field                | Required | Description                                                                            |
+| -------------------- | -------- | -------------------------------------------------------------------------------------- |
+| `thread_id`          | Yes      | Target thread                                                                          |
+| `input`              | Yes      | `UserInput[]` — text, image URL, local image, skill, or mention items                  |
+| `cwd`                | No       | Override working directory for this turn                                               |
+| `approval_policy`    | No       | `AskForApproval` override                                                              |
+| `sandbox_policy`     | No       | Detailed sandbox override                                                              |
+| `model`              | No       | Model override (persists to subsequent turns)                                          |
+| `effort`             | No       | `ReasoningEffort`                                                                      |
+| `summary`            | No       | `ReasoningSummary`                                                                     |
+| `personality`        | No       | Personality override                                                                   |
+| `output_schema`      | No       | JSON Schema to constrain the final assistant message (current turn only)               |
+| `collaboration_mode` | No       | `CollaborationMode` — pass `developer_instructions: null` to use built-in instructions |
+| `dynamic_tools`      | No       | `DynamicToolSpec[]` (experimental)                                                     |
 
 **Input item types (`UserInput` discriminated union):**
 
-| `type` | Fields | Description |
-|--------|--------|-------------|
-| `text` | `text`, `text_elements` | Plain text with optional annotation ranges |
-| `image` | `url` | Remote image URL |
-| `local_image` | `path` | Absolute local file path |
-| `skill` | `name`, `path` | Explicit skill invocation |
-| `mention` | `name`, `path` | App mention (e.g., `app://connector-id`) |
+| `type`        | Fields                  | Description                                |
+| ------------- | ----------------------- | ------------------------------------------ |
+| `text`        | `text`, `text_elements` | Plain text with optional annotation ranges |
+| `image`       | `url`                   | Remote image URL                           |
+| `local_image` | `path`                  | Absolute local file path                   |
+| `skill`       | `name`, `path`          | Explicit skill invocation                  |
+| `mention`     | `name`, `path`          | App mention (e.g., `app://connector-id`)   |
 
 Text input is validated against `MAX_USER_INPUT_TEXT_CHARS` (defined in `codex-rs/protocol/src/user_input.rs`). Exceeding the limit returns error code `INPUT_TOO_LARGE_ERROR_CODE`.
 
@@ -489,11 +493,11 @@ Appends additional user input to an already in-flight turn without starting a ne
 
 **`TurnSteerParams`:**
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `thread_id` | Yes | Target thread |
-| `input` | Yes | `UserInput[]` — same shape as `turn/start` |
-| `expected_turn_id` | Yes | Must match the currently active turn's ID |
+| Field              | Required | Description                                |
+| ------------------ | -------- | ------------------------------------------ |
+| `thread_id`        | Yes      | Target thread                              |
+| `input`            | Yes      | `UserInput[]` — same shape as `turn/start` |
+| `expected_turn_id` | Yes      | Must match the currently active turn's ID  |
 
 **`TurnSteerResponse`:** `{ turn_id: string }` — returns the active turn ID that accepted the input.
 
@@ -540,28 +544,28 @@ Each connection to the app server can subscribe to multiple threads. Subscriptio
 graph TD
     TSM["ThreadStateManager<br/>(thread_state_manager.rs)"]
     TS["ThreadState<br/>(per-thread)"]
-    
+
     TSM -->|"Arc&lt;Mutex&lt;ThreadState&gt;&gt;"| TS
-    
+
     subgraph "ThreadState Fields"
         LCT["listener_command_tx:<br/>Sender&lt;ThreadListenerCommand&gt;"]
         TSummary["turn_summary:<br/>TurnSummary"]
         ActiveTurn["active_turn:<br/>Option&lt;Turn&gt;"]
         Subscribers["subscribers:<br/>HashSet&lt;ConnectionId&gt;"]
     end
-    
+
     TS --> LCT
     TS --> TSummary
     TS --> ActiveTurn
     TS --> Subscribers
-    
+
     subgraph "Operations"
         AddSub["add_subscriber(conn_id)"]
         RemSub["remove_subscriber(conn_id)"]
         UpdateTurn["update_active_turn(turn)"]
         Snapshot["active_turn_snapshot()"]
     end
-    
+
     TS --> AddSub
     TS --> RemSub
     TS --> UpdateTurn
@@ -585,19 +589,19 @@ Sources: [codex-rs/app-server/src/thread_state.rs:1-400](), [codex-rs/app-server
 
 The following table lists all notifications emitted by thread and turn operations. Notifications are sent via `OutgoingMessageSender` / `ThreadScopedOutgoingMessageSender` to all subscribed connections.
 
-| Notification Method | Struct | Emitted By | Trigger |
-|---------------------|--------|------------|---------|
-| `thread/started` | `ThreadStartedNotification` | `thread_start()`, `thread_fork()` | Thread created successfully |
-| `thread/closed` | `ThreadClosedNotification` | `ensure_conversation_listener()` | Last subscriber unsubscribes |
-| `thread/archived` | `ThreadArchivedNotification` | `thread_archive()` | Archive operation succeeds |
-| `thread/unarchived` | `ThreadUnarchivedNotification` | `thread_unarchive()` | Unarchive operation succeeds |
-| `thread/name/updated` | `ThreadNameUpdatedNotification` | `thread_set_name()` | Name update persisted |
-| `thread/status/changed` | (inline params) | `ThreadWatchManager` | Status transition detected |
-| `turn/started` | `TurnStartedNotification` | `apply_bespoke_event_handling()` | `EventMsg::TurnStarted` received |
-| `turn/completed` | `TurnCompletedNotification` | `handle_turn_complete()` | `EventMsg::TurnComplete` received |
-| `item/started` | `ItemStartedNotification` | `apply_bespoke_event_handling()` | `EventMsg` for new item |
-| `item/completed` | `ItemCompletedNotification` | `apply_bespoke_event_handling()` | Item finishes streaming |
-| `item/agentMessage/delta` | `AgentMessageDeltaNotification` | `apply_bespoke_event_handling()` | `EventMsg::AgentMessageDelta` |
+| Notification Method       | Struct                          | Emitted By                        | Trigger                           |
+| ------------------------- | ------------------------------- | --------------------------------- | --------------------------------- |
+| `thread/started`          | `ThreadStartedNotification`     | `thread_start()`, `thread_fork()` | Thread created successfully       |
+| `thread/closed`           | `ThreadClosedNotification`      | `ensure_conversation_listener()`  | Last subscriber unsubscribes      |
+| `thread/archived`         | `ThreadArchivedNotification`    | `thread_archive()`                | Archive operation succeeds        |
+| `thread/unarchived`       | `ThreadUnarchivedNotification`  | `thread_unarchive()`              | Unarchive operation succeeds      |
+| `thread/name/updated`     | `ThreadNameUpdatedNotification` | `thread_set_name()`               | Name update persisted             |
+| `thread/status/changed`   | (inline params)                 | `ThreadWatchManager`              | Status transition detected        |
+| `turn/started`            | `TurnStartedNotification`       | `apply_bespoke_event_handling()`  | `EventMsg::TurnStarted` received  |
+| `turn/completed`          | `TurnCompletedNotification`     | `handle_turn_complete()`          | `EventMsg::TurnComplete` received |
+| `item/started`            | `ItemStartedNotification`       | `apply_bespoke_event_handling()`  | `EventMsg` for new item           |
+| `item/completed`          | `ItemCompletedNotification`     | `apply_bespoke_event_handling()`  | Item finishes streaming           |
+| `item/agentMessage/delta` | `AgentMessageDeltaNotification` | `apply_bespoke_event_handling()`  | `EventMsg::AgentMessageDelta`     |
 
 Sources: [codex-rs/app-server/src/bespoke_event_handling.rs:186-700](), [codex-rs/app-server-protocol/src/protocol/common.rs:520-700]()
 
@@ -651,20 +655,20 @@ Both `thread/start` and `turn/start` accept `approval_policy` and sandbox fields
 
 **`AskForApproval` (wire, `kebab-case`):**
 
-| Wire value | Core variant | Description |
-|------------|-------------|-------------|
-| `untrusted` | `UnlessTrusted` | Prompt for untrusted commands |
-| `on-failure` | `OnFailure` | Prompt only if a command fails |
-| `on-request` | `OnRequest` | Prompt only when agent requests |
+| Wire value        | Core variant           | Description                                       |
+| ----------------- | ---------------------- | ------------------------------------------------- |
+| `untrusted`       | `UnlessTrusted`        | Prompt for untrusted commands                     |
+| `on-failure`      | `OnFailure`            | Prompt only if a command fails                    |
+| `on-request`      | `OnRequest`            | Prompt only when agent requests                   |
 | `reject` (object) | `Reject(RejectConfig)` | Silently reject approvals (configurable per type) |
-| `never` | `Never` | Never prompt; always allow |
+| `never`           | `Never`                | Never prompt; always allow                        |
 
 **`SandboxMode` (wire, `kebab-case`):**
 
-| Wire value | Core variant |
-|------------|-------------|
-| `read-only` | `ReadOnly` |
-| `workspace-write` | `WorkspaceWrite` |
+| Wire value           | Core variant       |
+| -------------------- | ------------------ |
+| `read-only`          | `ReadOnly`         |
+| `workspace-write`    | `WorkspaceWrite`   |
 | `danger-full-access` | `DangerFullAccess` |
 
 Conversion is handled by `AskForApproval::to_core()` and `SandboxMode::to_core()` in `v2.rs`.

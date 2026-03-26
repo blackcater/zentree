@@ -13,8 +13,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page covers the complete lifecycle of a session: creation, initialization, message flow, agent event processing, JSONL persistence, lazy loading, branching, sharing, and deletion. The central orchestrator is the `SessionManager` class in `apps/electron/src/main/sessions.ts`.
@@ -27,27 +25,27 @@ For the IPC channels used to trigger these operations, see [2.6](#2.6). For the 
 
 Three session representations exist at different layers of the stack:
 
-| Representation | Defined In | Purpose |
-|---|---|---|
-| `ManagedSession` | `apps/electron/src/main/sessions.ts:553` | Runtime state: agent instance, message queue, processing flags |
-| `StoredSession` | `packages/shared/src/sessions/storage.ts` | Persisted format, written to JSONL |
-| `Session` | `apps/electron/src/shared/types.ts:349` | Renderer-visible subset, transmitted over IPC |
-| `SessionHeader` | `packages/shared/src/sessions/jsonl.ts` | First JSONL line: pre-computed metadata for fast list loading |
+| Representation   | Defined In                                | Purpose                                                        |
+| ---------------- | ----------------------------------------- | -------------------------------------------------------------- |
+| `ManagedSession` | `apps/electron/src/main/sessions.ts:553`  | Runtime state: agent instance, message queue, processing flags |
+| `StoredSession`  | `packages/shared/src/sessions/storage.ts` | Persisted format, written to JSONL                             |
+| `Session`        | `apps/electron/src/shared/types.ts:349`   | Renderer-visible subset, transmitted over IPC                  |
+| `SessionHeader`  | `packages/shared/src/sessions/jsonl.ts`   | First JSONL line: pre-computed metadata for fast list loading  |
 
 **`ManagedSession`** ([`apps/electron/src/main/sessions.ts:553-697`]()) is the authoritative in-memory object. Persistent fields (`name`, `labels`, `permissionMode`, `model`, etc.) overlap with disk storage; runtime-only fields are never written to disk:
 
-| Field | Type | Notes |
-|---|---|---|
-| `agent` | `AgentInstance \| null` | Lazy-created on first `sendMessage()` |
-| `isProcessing` | `boolean` | `true` while agent turn is running |
-| `stopRequested` | `boolean?` | Set by `cancelProcessing()` to drain event loop gracefully |
-| `processingGeneration` | `number` | Monotonic counter; detects stale requests |
-| `messageQueue` | `Array<{...}>` | Messages queued while `isProcessing` is `true` |
-| `messagesLoaded` | `boolean` | `false` until messages are lazy-loaded from JSONL |
-| `streamingText` | `string` | Accumulates in-progress `text_delta` chunks |
-| `tokenRefreshManager` | `TokenRefreshManager` | Per-session OAuth token refresh with rate limiting |
-| `agentReady` | `Promise<void>?` | Resolved when agent instance is initialized |
-| `connectionLocked` | `boolean?` | Set after first agent creation; blocks connection changes |
+| Field                  | Type                    | Notes                                                      |
+| ---------------------- | ----------------------- | ---------------------------------------------------------- |
+| `agent`                | `AgentInstance \| null` | Lazy-created on first `sendMessage()`                      |
+| `isProcessing`         | `boolean`               | `true` while agent turn is running                         |
+| `stopRequested`        | `boolean?`              | Set by `cancelProcessing()` to drain event loop gracefully |
+| `processingGeneration` | `number`                | Monotonic counter; detects stale requests                  |
+| `messageQueue`         | `Array<{...}>`          | Messages queued while `isProcessing` is `true`             |
+| `messagesLoaded`       | `boolean`               | `false` until messages are lazy-loaded from JSONL          |
+| `streamingText`        | `string`                | Accumulates in-progress `text_delta` chunks                |
+| `tokenRefreshManager`  | `TokenRefreshManager`   | Per-session OAuth token refresh with rate limiting         |
+| `agentReady`           | `Promise<void>?`        | Resolved when agent instance is initialized                |
+| `connectionLocked`     | `boolean?`              | Set after first agent creation; blocks connection changes  |
 
 **`createManagedSession()`** ([`apps/electron/src/main/sessions.ts:704-734`]()) constructs a `ManagedSession` by spreading all fields from any session-like source (metadata, config, or stored session), so new persistent fields propagate automatically.
 
@@ -82,13 +80,13 @@ Sessions are stored at:
 
 **Session subdirectories** created alongside `session.jsonl`:
 
-| Directory | Contents |
-|---|---|
-| `attachments/` | File attachments (images, PDFs, Office docs) |
-| `plans/` | Plan markdown files (Safe Mode) |
-| `data/` | `transform_data` tool JSON output |
-| `long_responses/` | Summarized large tool results |
-| `downloads/` | Binary files from API responses |
+| Directory         | Contents                                     |
+| ----------------- | -------------------------------------------- |
+| `attachments/`    | File attachments (images, PDFs, Office docs) |
+| `plans/`          | Plan markdown files (Safe Mode)              |
+| `data/`           | `transform_data` tool JSON output            |
+| `long_responses/` | Summarized large tool results                |
+| `downloads/`      | Binary files from API responses              |
 
 **Diagram: JSONL write and read pipeline**
 
@@ -152,17 +150,17 @@ Sources: `packages/shared/src/sessions/jsonl.ts:1-270`, `packages/shared/src/ses
 
 **`CreateSessionOptions`** ([`apps/electron/src/shared/types.ts:436-468`]()) key fields:
 
-| Field | Effect |
-|---|---|
-| `name` | Pre-set name (AI-generated after first message if omitted) |
-| `permissionMode` | Override workspace default (`safe`/`ask`/`allow-all`) |
-| `workingDirectory` | Initial CWD for agent Bash commands |
-| `model` | Per-session model override |
-| `llmConnection` | LLM connection slug (locked after first message) |
-| `hidden` | Exclude from session list (e.g., mini edit sessions) |
-| `branchFromSessionId` + `branchFromMessageId` | Branch from a point in another session |
-| `enabledSourceSlugs` | Pre-select sources for this session |
-| `labels` | Initial label set |
+| Field                                         | Effect                                                     |
+| --------------------------------------------- | ---------------------------------------------------------- |
+| `name`                                        | Pre-set name (AI-generated after first message if omitted) |
+| `permissionMode`                              | Override workspace default (`safe`/`ask`/`allow-all`)      |
+| `workingDirectory`                            | Initial CWD for agent Bash commands                        |
+| `model`                                       | Per-session model override                                 |
+| `llmConnection`                               | LLM connection slug (locked after first message)           |
+| `hidden`                                      | Exclude from session list (e.g., mini edit sessions)       |
+| `branchFromSessionId` + `branchFromMessageId` | Branch from a point in another session                     |
+| `enabledSourceSlugs`                          | Pre-select sources for this session                        |
+| `labels`                                      | Initial label set                                          |
 
 Sources: `apps/electron/src/main/ipc.ts:297-302`, `packages/shared/src/sessions/storage.ts:177-238`, `apps/electron/src/shared/types.ts:436-468`
 
@@ -283,23 +281,23 @@ Sources: `apps/electron/src/main/sessions.ts:792-806`, `apps/electron/src/main/i
 
 The `SessionEvent` union type ([`apps/electron/src/shared/types.ts:481-533`]()) defines all events pushed from main to renderer over `IPC_CHANNELS.SESSION_EVENT`:
 
-| Event Type | Key Fields | Trigger |
-|---|---|---|
-| `user_message` | `message`, `status: accepted\|queued\|processing` | User message accepted |
-| `text_delta` | `delta`, `turnId` | Streaming text chunk |
-| `text_complete` | `text`, `isIntermediate`, `parentToolUseId`, `messageId` | Text block finalized |
-| `tool_start` | `toolName`, `toolUseId`, `toolInput`, `toolDisplayMeta` | Agent invokes tool |
-| `tool_result` | `toolUseId`, `result`, `isError` | Tool returns result |
-| `complete` | `tokenUsage`, `hasUnread` | Turn finishes |
-| `interrupted` | `message`, `queuedMessages` | Turn cancelled |
-| `permission_request` | `request: PermissionRequest` | Agent needs user approval |
-| `credential_request` | `request: CredentialRequest` | Source needs credentials |
-| `permission_mode_changed` | `permissionMode`, `previousPermissionMode` | Mode transition |
-| `status` | `message`, `statusType` | Agent status (e.g., `compacting`) |
-| `title_generated` | `title` | AI session name generated |
-| `error` / `typed_error` | `error` | Processing error |
-| `session_created` / `session_deleted` | `sessionId` | Multi-window sync |
-| `usage_update` | `tokenUsage.inputTokens`, `contextWindow` | Real-time context display |
+| Event Type                            | Key Fields                                               | Trigger                           |
+| ------------------------------------- | -------------------------------------------------------- | --------------------------------- |
+| `user_message`                        | `message`, `status: accepted\|queued\|processing`        | User message accepted             |
+| `text_delta`                          | `delta`, `turnId`                                        | Streaming text chunk              |
+| `text_complete`                       | `text`, `isIntermediate`, `parentToolUseId`, `messageId` | Text block finalized              |
+| `tool_start`                          | `toolName`, `toolUseId`, `toolInput`, `toolDisplayMeta`  | Agent invokes tool                |
+| `tool_result`                         | `toolUseId`, `result`, `isError`                         | Tool returns result               |
+| `complete`                            | `tokenUsage`, `hasUnread`                                | Turn finishes                     |
+| `interrupted`                         | `message`, `queuedMessages`                              | Turn cancelled                    |
+| `permission_request`                  | `request: PermissionRequest`                             | Agent needs user approval         |
+| `credential_request`                  | `request: CredentialRequest`                             | Source needs credentials          |
+| `permission_mode_changed`             | `permissionMode`, `previousPermissionMode`               | Mode transition                   |
+| `status`                              | `message`, `statusType`                                  | Agent status (e.g., `compacting`) |
+| `title_generated`                     | `title`                                                  | AI session name generated         |
+| `error` / `typed_error`               | `error`                                                  | Processing error                  |
+| `session_created` / `session_deleted` | `sessionId`                                              | Multi-window sync                 |
+| `usage_update`                        | `tokenUsage.inputTokens`, `contextWindow`                | Real-time context display         |
 
 Sources: `apps/electron/src/shared/types.ts:481-533`
 
@@ -324,19 +322,19 @@ Sources: `apps/electron/src/main/sessions.ts:828-832`, `apps/electron/src/shared
 
 All metadata changes flow through the `SESSION_COMMAND` IPC handler ([`apps/electron/src/main/ipc.ts:390-468`]()):
 
-| Command Type | `SessionManager` Method | Disk Effect |
-|---|---|---|
-| `flag` / `unflag` | `flagSession()` / `unflagSession()` | `isFlagged` in JSONL header |
-| `archive` / `unarchive` | `archiveSession()` / `unarchiveSession()` | `isArchived`, `archivedAt` |
-| `rename` | `renameSession()` | `name` in JSONL header |
-| `setSessionStatus` | `setSessionStatus()` | `sessionStatus` |
-| `setLabels` | `setSessionLabels()` | `labels[]` |
-| `setPermissionMode` | `setSessionPermissionMode()` | `permissionMode` |
-| `setThinkingLevel` | `setSessionThinkingLevel()` | `thinkingLevel` |
-| `setSources` | `setSessionSources()` | `enabledSourceSlugs` |
-| `updateWorkingDirectory` | `updateWorkingDirectory()` | `workingDirectory` |
-| `setConnection` | `setSessionConnection()` | `llmConnection` (locked after first message) |
-| `markRead` / `markUnread` | `markSessionRead()` / `markSessionUnread()` | `hasUnread`, `lastReadMessageId` |
+| Command Type              | `SessionManager` Method                     | Disk Effect                                  |
+| ------------------------- | ------------------------------------------- | -------------------------------------------- |
+| `flag` / `unflag`         | `flagSession()` / `unflagSession()`         | `isFlagged` in JSONL header                  |
+| `archive` / `unarchive`   | `archiveSession()` / `unarchiveSession()`   | `isArchived`, `archivedAt`                   |
+| `rename`                  | `renameSession()`                           | `name` in JSONL header                       |
+| `setSessionStatus`        | `setSessionStatus()`                        | `sessionStatus`                              |
+| `setLabels`               | `setSessionLabels()`                        | `labels[]`                                   |
+| `setPermissionMode`       | `setSessionPermissionMode()`                | `permissionMode`                             |
+| `setThinkingLevel`        | `setSessionThinkingLevel()`                 | `thinkingLevel`                              |
+| `setSources`              | `setSessionSources()`                       | `enabledSourceSlugs`                         |
+| `updateWorkingDirectory`  | `updateWorkingDirectory()`                  | `workingDirectory`                           |
+| `setConnection`           | `setSessionConnection()`                    | `llmConnection` (locked after first message) |
+| `markRead` / `markUnread` | `markSessionRead()` / `markSessionUnread()` | `hasUnread`, `lastReadMessageId`             |
 
 All methods call `updateSessionMetadata()` ([`packages/shared/src/sessions/storage.ts:524-567`]()) which does: `loadSession()` → mutate fields → `saveSession()`.
 
@@ -349,10 +347,12 @@ Sources: `apps/electron/src/main/ipc.ts:390-468`, `packages/shared/src/sessions/
 A branch creates a new session as a copy of a source session up to a specific message.
 
 **Creation inputs** via `CreateSessionOptions` ([`apps/electron/src/shared/types.ts:462-467`]()):
+
 - `branchFromSessionId` — source session
 - `branchFromMessageId` — copy messages up to and including this ID
 
 **Stored on `ManagedSession`** ([`apps/electron/src/main/sessions.ts:679-683`]()):
+
 - `branchFromMessageId`
 - `branchFromSdkSessionId` — SDK-level session ID for conversation continuity fork
 - `branchFromSessionPath` — source session's storage path for backends that need it
@@ -370,6 +370,7 @@ Sources: `apps/electron/src/main/sessions.ts:679-683`, `apps/electron/src/main/s
 Sessions can be shared to the web viewer application ([2.10](#2.10)).
 
 **Flow**:
+
 1. `SESSION_COMMAND { type: 'shareToViewer' }` → `sessionManager.shareToViewer(sessionId)`
 2. Full session transcript is uploaded to the viewer service.
 3. `sharedUrl` and `sharedId` are stored in `ManagedSession` and persisted via `updateSessionMetadata()`.

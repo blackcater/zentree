@@ -21,8 +21,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents common patterns for implementing chat API routes with TanStack AI. These patterns show how to structure API endpoints that use the `chat()` function, select provider adapters, configure tools, and handle streaming responses.
 
 For information about the core `chat()` function, see [chat() and generate() Functions](#3.1). For provider adapter details, see [AI Provider Adapters](#3.3).
@@ -58,7 +56,7 @@ graph TB
     FormatSSE["Format as SSE<br/>toServerSentEventsResponse(stream)"]
     ReturnResp["Return Response<br/>Content-Type: text/event-stream"]
     ErrorResp["Error Response<br/>JSON with error message"]
-    
+
     Request --> Parse
     Parse --> CheckKey
     CheckKey -->|Missing| ErrorResp
@@ -124,7 +122,7 @@ graph TB
     Lookup["Get config for provider<br/>adapterConfig[provider]()"]
     CreateOptions["createChatOptions()<br/>Returns typed adapter + options"]
     CallChat["chat({ ...options, messages, tools })"]
-    
+
     Request --> Extract
     Extract --> ConfigMap
     ConfigMap --> Lookup
@@ -146,29 +144,36 @@ type Provider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'grok'
 
 // Pre-define typed adapter configurations with full type inference
 const adapterConfig: Record<Provider, () => { adapter: AnyTextAdapter }> = {
-  anthropic: () => createChatOptions({
-    adapter: anthropicText((model || 'claude-sonnet-4-5') as 'claude-sonnet-4-5'),
-  }),
-  gemini: () => createChatOptions({
-    adapter: geminiText((model || 'gemini-2.5-flash') as 'gemini-2.5-flash'),
-    modelOptions: {
-      thinkingConfig: { includeThoughts: true, thinkingBudget: 100 }
-    }
-  }),
-  grok: () => createChatOptions({
-    adapter: grokText((model || 'grok-3') as 'grok-3'),
-    modelOptions: {}
-  }),
-  ollama: () => createChatOptions({
-    adapter: ollamaText((model || 'gpt-oss:120b') as 'gpt-oss:120b'),
-    modelOptions: { think: 'low', options: { top_k: 1 } },
-    temperature: 12
-  }),
-  openai: () => createChatOptions({
-    adapter: openaiText((model || 'gpt-4o') as 'gpt-4o'),
-    temperature: 2,
-    modelOptions: {}
-  })
+  anthropic: () =>
+    createChatOptions({
+      adapter: anthropicText(
+        (model || 'claude-sonnet-4-5') as 'claude-sonnet-4-5'
+      ),
+    }),
+  gemini: () =>
+    createChatOptions({
+      adapter: geminiText((model || 'gemini-2.5-flash') as 'gemini-2.5-flash'),
+      modelOptions: {
+        thinkingConfig: { includeThoughts: true, thinkingBudget: 100 },
+      },
+    }),
+  grok: () =>
+    createChatOptions({
+      adapter: grokText((model || 'grok-3') as 'grok-3'),
+      modelOptions: {},
+    }),
+  ollama: () =>
+    createChatOptions({
+      adapter: ollamaText((model || 'gpt-oss:120b') as 'gpt-oss:120b'),
+      modelOptions: { think: 'low', options: { top_k: 1 } },
+      temperature: 12,
+    }),
+  openai: () =>
+    createChatOptions({
+      adapter: openaiText((model || 'gpt-4o') as 'gpt-4o'),
+      temperature: 2,
+      modelOptions: {},
+    }),
 }
 
 // Get typed adapter options
@@ -176,6 +181,7 @@ const options = adapterConfig[provider]()
 ```
 
 This pattern provides:
+
 - **Type Safety** - `createChatOptions()` infers adapter-specific option types
 - **Centralization** - All provider configurations in one place
 - **Extensibility** - Easy to add new providers
@@ -187,13 +193,13 @@ Sources: [examples/ts-react-chat/src/routes/api.tanchat.ts:76-117]()
 
 Each provider adapter accepts different `modelOptions`. The type system enforces correct options for each provider:
 
-| Provider | Common Options | Provider-Specific Options |
-|----------|---------------|---------------------------|
-| OpenAI | `temperature`, `maxTokens`, `topP` | `reasoning.effort`, `tool_choice`, `stream_options` |
-| Anthropic | `temperature`, `maxTokens` | `thinking.budget_tokens`, `thinking.type` |
-| Gemini | `temperature`, `maxTokens`, `topP`, `topK` | `thinkingConfig`, `safetySettings`, `cachedContent` |
-| Ollama | `temperature`, `topP`, `topK` | `num_gpu`, `num_ctx`, `think` |
-| Grok | `temperature`, `maxTokens` | Standard text options |
+| Provider  | Common Options                             | Provider-Specific Options                           |
+| --------- | ------------------------------------------ | --------------------------------------------------- |
+| OpenAI    | `temperature`, `maxTokens`, `topP`         | `reasoning.effort`, `tool_choice`, `stream_options` |
+| Anthropic | `temperature`, `maxTokens`                 | `thinking.budget_tokens`, `thinking.type`           |
+| Gemini    | `temperature`, `maxTokens`, `topP`, `topK` | `thinkingConfig`, `safetySettings`, `cachedContent` |
+| Ollama    | `temperature`, `topP`, `topK`              | `num_gpu`, `num_ctx`, `think`                       |
+| Grok      | `temperature`, `maxTokens`                 | Standard text options                               |
 
 Sources: [packages/typescript/ai-gemini/src/model-meta.ts:1-998](), [docs/adapters/gemini.md:102-139](), [docs/adapters/openai.md:101-133](), [docs/adapters/anthropic.md:101-133](), [docs/adapters/ollama.md:120-137]()
 
@@ -212,7 +218,7 @@ graph TB
     ChatCall["chat({ adapter, messages,<br/>tools, systemPrompts })"]
     AutoExec["Auto-execute server tools<br/>Results added to conversation"]
     ClientEmit["Emit tool-input-available<br/>for client tools"]
-    
+
     ToolDef --> ServerImpl
     ToolDef --> ClientDef
     ServerImpl --> ToolsArray
@@ -245,10 +251,10 @@ const addToCartToolServer = addToCartToolDef.server((args) => ({
 const stream = chat({
   ...options,
   tools: [
-    getGuitars,                    // Server tool - executes on server
-    recommendGuitarToolDef,        // No .server() - client executes
-    addToCartToolServer,           // Server tool with implementation
-    addToWishListToolDef,          // Client tool definition
+    getGuitars, // Server tool - executes on server
+    recommendGuitarToolDef, // No .server() - client executes
+    addToCartToolServer, // Server tool with implementation
+    addToWishListToolDef, // Client tool definition
     getPersonalGuitarPreferenceToolDef, // Client tool definition
   ],
   systemPrompts: [SYSTEM_PROMPT],
@@ -260,6 +266,7 @@ const stream = chat({
 ```
 
 Key tool patterns:
+
 - **Server Tools** - Include `.server()` implementation for automatic execution
 - **Client Tools** - Pass definition only (no `.server()`) to signal client execution
 - **Mixed Arrays** - Combine both server and client tools in the same array
@@ -270,6 +277,7 @@ Sources: [examples/ts-react-chat/src/routes/api.tanchat.ts:46-52](), [examples/t
 ### Tool Execution Flow
 
 The `chat()` function automatically:
+
 1. Detects when the LLM calls a tool
 2. Checks if the tool has `.server()` implementation
 3. If yes: Executes the tool and adds result to conversation
@@ -315,6 +323,7 @@ const stream = chat({
 ```
 
 System prompts are particularly useful for:
+
 - **Tool Usage Instructions** - Guiding when and how to call tools
 - **Workflow Enforcement** - Specifying exact sequences of actions
 - **Constraints** - Limiting what the LLM should/shouldn't do
@@ -343,6 +352,7 @@ const stream = chat({
 ```
 
 The agent loop allows the LLM to:
+
 1. Call a tool
 2. Receive the tool's output
 3. Process the output and potentially call another tool
@@ -351,6 +361,7 @@ The agent loop allows the LLM to:
 Without `agentLoopStrategy`, tool execution stops after one round. The `maxIterations()` helper prevents infinite loops in multi-step tool workflows.
 
 Common values:
+
 - `maxIterations(1)` - Single tool call allowed
 - `maxIterations(5)` - Up to 5 sequential tool calls
 - `maxIterations(20)` - Complex multi-step workflows
@@ -369,18 +380,18 @@ Proper abort signal handling prevents resource leaks when clients disconnect:
 export async function POST({ request }) {
   // Capture request signal BEFORE reading body
   const requestSignal = request.signal
-  
+
   // Check if already aborted
   if (requestSignal.aborted) {
     return new Response(null, { status: 499 }) // Client Closed Request
   }
-  
+
   // Create abort controller for chat
   const abortController = new AbortController()
-  
+
   const body = await request.json()
   const { messages, data } = body
-  
+
   try {
     const stream = chat({
       adapter: openaiText('gpt-4o'),
@@ -389,7 +400,7 @@ export async function POST({ request }) {
       abortController, // Pass abort controller
       conversationId,
     })
-    
+
     // Pass abort controller to SSE response formatter
     return toServerSentEventsResponse(stream, { abortController })
   } catch (error: any) {
@@ -403,6 +414,7 @@ export async function POST({ request }) {
 ```
 
 Abort handling pattern:
+
 1. **Capture Signal Early** - Get `request.signal` before consuming the body
 2. **Check Initial State** - Return early if already aborted
 3. **Create Controller** - Make an `AbortController` for the chat stream
@@ -425,24 +437,24 @@ Robust error handling includes validation, API errors, and abort handling:
 
 export async function POST({ request }) {
   const requestSignal = request.signal
-  
+
   if (requestSignal.aborted) {
     return new Response(null, { status: 499 })
   }
-  
+
   const abortController = new AbortController()
   const body = await request.json()
   const { messages, data } = body
-  
+
   // Extract provider and model
   const provider: Provider = data?.provider || 'openai'
   const model: string = data?.model || 'gpt-4o'
   const conversationId: string | undefined = data?.conversationId
-  
+
   try {
     // Get typed adapter options
     const options = adapterConfig[provider]()
-    
+
     const stream = chat({
       ...options,
       tools: [...],
@@ -452,7 +464,7 @@ export async function POST({ request }) {
       abortController,
       conversationId,
     })
-    
+
     return toServerSentEventsResponse(stream, { abortController })
   } catch (error: any) {
     console.error('[API Route] Error in chat request:', {
@@ -465,12 +477,12 @@ export async function POST({ request }) {
       stack: error?.stack,
       error: error,
     })
-    
+
     // If request was aborted, return early (don't send error response)
     if (error.name === 'AbortError' || abortController.signal.aborted) {
       return new Response(null, { status: 499 })
     }
-    
+
     // Return JSON error for other failures
     return new Response(
       JSON.stringify({
@@ -486,6 +498,7 @@ export async function POST({ request }) {
 ```
 
 Error handling checklist:
+
 - ✓ Check `requestSignal.aborted` before processing
 - ✓ Create `AbortController` for the chat stream
 - ✓ Log detailed error information
@@ -500,11 +513,11 @@ Sources: [examples/ts-react-chat/src/routes/api.tanchat.ts:119-166]()
 
 The TypeScript SDK provides multiple response formatting utilities:
 
-| Function | Return Type | Protocol | Use Case |
-|----------|------------|----------|----------|
-| `toServerSentEventsResponse()` | `Response` | SSE | TanStack Start, Next.js, standard HTTP |
-| `toServerSentEventsStream()` | `ReadableStream<string>` | SSE | Custom streaming implementations |
-| `toHttpStream()` | `ReadableStream<Uint8Array>` | NDJSON | Alternative to SSE |
+| Function                       | Return Type                  | Protocol | Use Case                               |
+| ------------------------------ | ---------------------------- | -------- | -------------------------------------- |
+| `toServerSentEventsResponse()` | `Response`                   | SSE      | TanStack Start, Next.js, standard HTTP |
+| `toServerSentEventsStream()`   | `ReadableStream<string>`     | SSE      | Custom streaming implementations       |
+| `toHttpStream()`               | `ReadableStream<Uint8Array>` | NDJSON   | Alternative to SSE                     |
 
 All formatters accept an optional `{ abortController }` parameter for proper cleanup on client disconnection.
 
@@ -520,26 +533,26 @@ Validate incoming requests to ensure they contain required fields:
 export async function POST({ request }) {
   // Parse request body
   const body = await request.json()
-  
+
   // Destructure with defaults
-  const { 
-    messages,                              // Required: conversation history
-    data = {}                              // Optional: client metadata
+  const {
+    messages, // Required: conversation history
+    data = {}, // Optional: client metadata
   } = body
-  
+
   // Validate messages array
   if (!messages || !Array.isArray(messages)) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid messages array' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ error: 'Invalid messages array' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
-  
+
   // Extract optional parameters with defaults
   const provider: Provider = data?.provider || 'openai'
   const model: string = data?.model || getDefaultModel(provider)
   const conversationId: string | undefined = data?.conversationId
-  
+
   // Proceed with validated inputs
   const stream = chat({
     adapter: getAdapter(provider, model),
@@ -550,6 +563,7 @@ export async function POST({ request }) {
 ```
 
 Validation checklist:
+
 - Verify `messages` is an array
 - Provide defaults for optional parameters
 - Return 400 status for invalid requests
@@ -566,13 +580,13 @@ Different frameworks provide different patterns for implementing API routes, but
 
 ### Framework Comparison
 
-| Framework | Route Definition | Request Type | Response Helper |
-|-----------|-----------------|--------------|-----------------|
-| TanStack Start | `createFileRoute('/api/chat')` | `{ request: Request }` | `toServerSentEventsResponse()` |
-| Next.js | `export async function POST()` | `Request` | `toServerSentEventsResponse()` |
-| SvelteKit | `export async function POST()` | `RequestEvent` | `toServerSentEventsResponse()` |
-| Express | `app.post('/api/chat')` | `req: Request, res: Response` | Manual SSE writing |
-| Remix | `export async function action()` | `ActionFunctionArgs` | `toServerSentEventsResponse()` |
+| Framework      | Route Definition                 | Request Type                  | Response Helper                |
+| -------------- | -------------------------------- | ----------------------------- | ------------------------------ |
+| TanStack Start | `createFileRoute('/api/chat')`   | `{ request: Request }`        | `toServerSentEventsResponse()` |
+| Next.js        | `export async function POST()`   | `Request`                     | `toServerSentEventsResponse()` |
+| SvelteKit      | `export async function POST()`   | `RequestEvent`                | `toServerSentEventsResponse()` |
+| Express        | `app.post('/api/chat')`          | `req: Request, res: Response` | Manual SSE writing             |
+| Remix          | `export async function action()` | `ActionFunctionArgs`          | `toServerSentEventsResponse()` |
 
 All frameworks receive messages via POST body and return SSE streams. The core `chat()` invocation is identical across frameworks.
 
@@ -592,9 +606,9 @@ export const Route = createFileRoute('/api/chat')({
         const { messages, conversationId } = await request.json()
         const stream = chat({ adapter: openai(), messages, conversationId })
         return toServerSentEventsResponse(stream)
-      }
-    }
-  }
+      },
+    },
+  },
 })
 ```
 
@@ -612,7 +626,7 @@ export async function POST(request: Request) {
   const stream = chat({
     adapter: openaiText('gpt-4o'),
     messages,
-    conversationId
+    conversationId,
   })
   return toServerSentEventsResponse(stream)
 }
@@ -633,6 +647,7 @@ The server examples demonstrate various approaches to integrating TanStack AI on
 5. **Python FastAPI** - Python async implementation with native streaming
 
 All follow the same core pattern:
+
 1. Receive POST request with messages and options
 2. Call `chat()` (or equivalent) with provider adapter
 3. Format stream as SSE or HTTP stream

@@ -15,8 +15,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents two JavaScript execution systems in Codex:
 
 1. **Code Mode** (`exec` / `exec_wait` tools) – A yielding JavaScript execution environment that supports long-running scripts with yield/resume semantics and multi-session concurrency
@@ -30,10 +28,10 @@ Both systems run JavaScript with full access to Codex tools via nested tool call
 
 Both systems are controlled by feature flags:
 
-| Feature flag | Effect |
-|---|---|
-| `Feature::CodeMode` | Enables the `exec` custom tool and `exec_wait` function tool for yielding JavaScript execution |
-| `Feature::JsRepl` | Enables the `js_repl` and `js_repl_reset` tools with persistent Node.js kernel |
+| Feature flag               | Effect                                                                                                                                               |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Feature::CodeMode`        | Enables the `exec` custom tool and `exec_wait` function tool for yielding JavaScript execution                                                       |
+| `Feature::JsRepl`          | Enables the `js_repl` and `js_repl_reset` tools with persistent Node.js kernel                                                                       |
 | `Feature::JsReplToolsOnly` | When combined with `JsRepl`, blocks all direct model tool calls except `js_repl` / `js_repl_reset`; forces all other tools through `codex.tool(...)` |
 
 Config example:
@@ -54,6 +52,7 @@ Sources: [codex-rs/core/src/tools/spec.rs:11-15](), [codex-rs/core/src/tools/spe
 ### Purpose and Architecture
 
 Code Mode provides a **yielding execution model** for JavaScript that allows scripts to:
+
 - Run for extended periods and yield control back to the model
 - Maintain execution state across multiple turns
 - Run multiple concurrent sessions with independent cell IDs
@@ -81,7 +80,7 @@ with tools.* namespace"]
 (function tool, cell_id param)"]
     CodeModeWaitHandler["CodeModeWaitHandler::handle()"]
     ResumeCell["CodeModeService::wait_for_cell()"]
-    
+
     ExecCall --> CodeModeHandler
     CodeModeHandler --> ParsePragma
     ParsePragma --> GetService
@@ -102,10 +101,10 @@ Sources: [codex-rs/core/tests/suite/code_mode.rs:89-124](), [codex-rs/core/tests
 
 Code Mode uses two tool names defined as constants:
 
-| Constant | Value | Tool Type | Purpose |
-|---|---|---|---|
-| `PUBLIC_TOOL_NAME` | `"exec"` | Custom/Freeform | Execute JavaScript with optional yield |
-| `WAIT_TOOL_NAME` | `"exec_wait"` | Function | Resume, poll, or terminate a yielded cell |
+| Constant           | Value         | Tool Type       | Purpose                                   |
+| ------------------ | ------------- | --------------- | ----------------------------------------- |
+| `PUBLIC_TOOL_NAME` | `"exec"`      | Custom/Freeform | Execute JavaScript with optional yield    |
+| `WAIT_TOOL_NAME`   | `"exec_wait"` | Function        | Resume, poll, or terminate a yielded cell |
 
 The `exec` tool is registered via `ToolSpec::Freeform` with `FreeformToolFormat::CodeMode`, and `exec_wait` is registered as `ToolSpec::Function` with a JSON schema for `cell_id`, `yield_time_ms`, `max_tokens`, and `terminate` parameters.
 
@@ -117,11 +116,12 @@ Code Mode supports inline configuration via a pragma comment on the first line:
 
 ```javascript
 // @exec: {"max_output_tokens": 500, "yield_time_ms": 1000}
-text("Starting long-running task...");
-yield_control();
+text('Starting long-running task...')
+yield_control()
 ```
 
 The pragma prefix `// @exec:` is parsed in `parse_exec_pragma` to extract:
+
 - `max_output_tokens` – Maximum tokens to return in the final output (truncates if exceeded)
 - `yield_time_ms` – Timeout before auto-yielding (for scripts that don't explicitly call `yield_control()`)
 
@@ -138,7 +138,7 @@ sequenceDiagram
     participant Service as "CodeModeService"
     participant Cell as "ExecCell (V8 isolate)"
     participant WaitTool as "exec_wait tool (CodeModeWaitHandler)"
-    
+
     Model->>ExecTool: exec(code="text('phase 1'); yield_control(); text('phase 2');")
     ExecTool->>Service: execute_cell(code)
     Service->>Cell: spawn isolate, run until yield_control()
@@ -146,7 +146,7 @@ sequenceDiagram
     Service-->>ExecTool: Running(cell_id=123, output_items)
     ExecTool-->>Model: "Script running with cell ID 123\
 Output: phase 1"
-    
+
     Model->>WaitTool: exec_wait(cell_id=123, yield_time_ms=1000)
     WaitTool->>Service: wait_for_cell(cell_id=123)
     Service->>Cell: resume execution
@@ -162,13 +162,13 @@ Sources: [codex-rs/core/tests/suite/code_mode.rs:414-556]()
 
 The `CodeModeService` manages a collection of active execution cells. Each cell is identified by a numeric `cell_id` (auto-incremented counter) and tracks:
 
-| Field | Purpose |
-|---|---|
-| Cell ID | Unique identifier returned to the model for `exec_wait` calls |
-| V8 Isolate | JavaScript execution context with `tools.*` namespace |
-| Yielded State | Whether the cell is currently paused at `yield_control()` |
-| Output Buffer | Accumulated `text()` calls and tool call results |
-| Timeout | Per-exec `yield_time_ms` for auto-yield behavior |
+| Field         | Purpose                                                       |
+| ------------- | ------------------------------------------------------------- |
+| Cell ID       | Unique identifier returned to the model for `exec_wait` calls |
+| V8 Isolate    | JavaScript execution context with `tools.*` namespace         |
+| Yielded State | Whether the cell is currently paused at `yield_control()`     |
+| Output Buffer | Accumulated `text()` calls and tool call results              |
+| Timeout       | Per-exec `yield_time_ms` for auto-yield behavior              |
 
 Multiple cells can exist concurrently, allowing the model to start a new `exec` call while previous cells are yielded and waiting. The service maintains a `HashMap<cell_id, ExecCell>` to track active sessions.
 
@@ -192,6 +192,7 @@ sequenceDiagram
     participant Model
     participant Exec
     participant Service as "CodeModeService"
-    
+
     Model->>Exec: exec("text('A start'); yield_control(); text('A done');")
     Exec-->>Model: Running(cell_id=1, output=["A start\
+```

@@ -38,8 +38,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This guide provides essential information for contributors to the Codex project. It covers the workspace structure, toolchain requirements, build commands, and testing strategies needed to develop and contribute to the codebase effectively.
 
 For detailed testing workflows, see [Development Workflow and Testing](#8.1). For overall architecture, see [Architecture Overview](#1.1).
@@ -59,11 +57,11 @@ graph TD
     EC --> SM["sandbox_mode: Option&lt;SandboxMode&gt;"]
     EC --> NA["network_access: Option&lt;NetworkAccess&gt;"]
     EC --> SHELL["shell: Option&lt;Shell&gt;"]
-    
+
     SM --> DANGER["DangerFullAccess"]
-    SM --> RO["ReadOnly"] 
+    SM --> RO["ReadOnly"]
     SM --> WW["WorkspaceWrite"]
-    
+
     NA --> RESTRICTED["Restricted"]
     NA --> ENABLED["Enabled"]
 ```
@@ -79,13 +77,13 @@ sequenceDiagram
     participant Core as "Core Engine"
     participant EC as "EnvironmentContext"
     participant Model as "AI Model"
-    
+
     Core->>EC: "new(cwd, approval_policy, sandbox_policy, shell)"
     EC->>EC: "Map SandboxPolicy to SandboxMode/NetworkAccess"
     Core->>EC: "serialize_to_xml()"
     EC->>EC: "Generate XML with ENVIRONMENT_CONTEXT tags"
     EC->>Model: "XML Context in ResponseItem"
-    
+
     Note over EC,Model: "&lt;environment_context&gt;<br/>&nbsp;&nbsp;&lt;cwd&gt;...&lt;/cwd&gt;<br/>&nbsp;&nbsp;&lt;sandbox_mode&gt;...&lt;/sandbox_mode&gt;<br/>&lt;/environment_context&gt;"
 ```
 
@@ -97,12 +95,12 @@ Sources: [codex-rs/core/src/environment_context.rs:13-15](), [codex-rs/core/src/
 
 Environment context automatically maps `SandboxPolicy` configurations to appropriate `SandboxMode` and `NetworkAccess` settings:
 
-| SandboxPolicy | SandboxMode | NetworkAccess |
-|---------------|-------------|---------------|
-| `DangerFullAccess` | `DangerFullAccess` | `Enabled` |
-| `ReadOnly` | `ReadOnly` | `Restricted` |
-| `WorkspaceWrite{network_access: true}` | `WorkspaceWrite` | `Enabled` |
-| `WorkspaceWrite{network_access: false}` | `WorkspaceWrite` | `Restricted` |
+| SandboxPolicy                           | SandboxMode        | NetworkAccess |
+| --------------------------------------- | ------------------ | ------------- |
+| `DangerFullAccess`                      | `DangerFullAccess` | `Enabled`     |
+| `ReadOnly`                              | `ReadOnly`         | `Restricted`  |
+| `WorkspaceWrite{network_access: true}`  | `WorkspaceWrite`   | `Enabled`     |
+| `WorkspaceWrite{network_access: false}` | `WorkspaceWrite`   | `Restricted`  |
 
 Sources: [codex-rs/core/src/environment_context.rs:44-62]()
 
@@ -120,12 +118,12 @@ graph TD
         UPA --> PIA["plan: Vec&lt;PlanItemArg&gt;"]
         PIA --> STEP["step: String"]
         PIA --> STATUS["status: StepStatus"]
-        
+
         STATUS --> PENDING["pending"]
-        STATUS --> PROGRESS["in_progress"] 
+        STATUS --> PROGRESS["in_progress"]
         STATUS --> COMPLETE["completed"]
     end
-    
+
     subgraph "Event Flow"
         HUP --> SESSION["Session.send_event()"]
         SESSION --> EVENT["Event{msg: EventMsg::PlanUpdate}"]
@@ -144,14 +142,14 @@ flowchart TD
     SCHEMA["JsonSchema::Object"] --> PROPS["properties"]
     PROPS --> EXP["explanation: JsonSchema::String"]
     PROPS --> PLAN["plan: JsonSchema::Array"]
-    
+
     PLAN --> ITEMS["items: JsonSchema::Object"]
     ITEMS --> STEP_PROP["step: JsonSchema::String"]
     ITEMS --> STATUS_PROP["status: JsonSchema::String"]
-    
+
     SCHEMA --> REQ["required: [plan]"]
     ITEMS --> ITEMREQ["required: [step, status]"]
-    
+
     SCHEMA --> STRICT["strict: false"]
     SCHEMA --> ADDL["additional_properties: false"]
 ```
@@ -165,13 +163,13 @@ Sources: [codex-rs/core/src/plan_tool.rs:21-61]()
 ```mermaid
 sequenceDiagram
     participant Model as "AI Model"
-    participant Core as "Core Engine" 
+    participant Core as "Core Engine"
     participant Session as "Session"
     participant Client as "Client UI"
-    
+
     Model->>Core: "Function Call: update_plan"
     Core->>Core: "parse_update_plan_arguments()"
-    
+
     alt "Parse Success"
         Core->>Session: "send_event(EventMsg::PlanUpdate)"
         Session->>Client: "Plan Update Event"
@@ -200,7 +198,7 @@ graph TD
         LIB --> PLAN["plan_tool"]
         LIB --> PROTOCOL["protocol"]
     end
-    
+
     subgraph "External Dependencies"
         SERDE["serde + serde_json"]
         MCP_TYPES["mcp-types"]
@@ -208,7 +206,7 @@ graph TD
         UUID["uuid"]
         BASE64["base64"]
     end
-    
+
     CONFIG --> SERDE
     MODELS --> SERDE
     MCP --> MCP_TYPES
@@ -223,12 +221,12 @@ Sources: [codex-rs/protocol/src/lib.rs:1-7](), [codex-rs/protocol/Cargo.toml:13-
 
 The protocol crate uses `ts-rs` to generate TypeScript bindings, enabling seamless communication between the Rust core and Node.js implementations:
 
-| Feature | Purpose | Implementation |
-|---------|---------|----------------|
-| `serde` serialization | JSON message format | All protocol types derive `Serialize`/`Deserialize` |
-| `ts-rs` bindings | TypeScript compatibility | Generate `.d.ts` files for Node.js client |
-| `uuid` support | Message correlation | Unique identifiers for events and submissions |
-| `base64` encoding | Binary data transport | File content and binary message payloads |
+| Feature               | Purpose                  | Implementation                                      |
+| --------------------- | ------------------------ | --------------------------------------------------- |
+| `serde` serialization | JSON message format      | All protocol types derive `Serialize`/`Deserialize` |
+| `ts-rs` bindings      | TypeScript compatibility | Generate `.d.ts` files for Node.js client           |
+| `uuid` support        | Message correlation      | Unique identifiers for events and submissions       |
+| `base64` encoding     | Binary data transport    | File content and binary message payloads            |
 
 Sources: [codex-rs/protocol/Cargo.toml:23-24]()
 
@@ -243,17 +241,17 @@ graph LR
         CONFIG_TYPES["config_types::SandboxMode<br/>config_types::*"]
         MODEL_TYPES["models::ContentItem<br/>models::ResponseItem<br/>models::*"]
     end
-    
+
     subgraph "Core Implementation"
         CORE_PLAN["core::plan_tool"]
-        CORE_ENV["core::environment_context"] 
+        CORE_ENV["core::environment_context"]
         CORE_SESSION["core::Session"]
     end
-    
+
     PLAN_TYPES --> CORE_PLAN
     CONFIG_TYPES --> CORE_ENV
     MODEL_TYPES --> CORE_SESSION
-    
+
     PLAN_TYPES -.->|"pub use"| CORE_PLAN
 ```
 

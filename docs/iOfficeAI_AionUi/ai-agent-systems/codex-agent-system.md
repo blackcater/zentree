@@ -16,13 +16,12 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 The Codex Agent System provides integration with the Codex CLI (a code-editing AI agent) through a WebSocket-based JSON-RPC protocol. This system processes streaming events from Codex, manages tool executions (command execution, file patches, MCP tools, web search), and maintains session lifecycle. For information about the higher-level multi-agent architecture, see [AI Agent Systems](#4). For MCP server integration details, see [MCP Integration](#4.6).
 
 The Codex agent operates as one of five agent backends in AionUi, offering capabilities including:
+
 - Real-time streaming of agent messages and reasoning
 - Command execution with permission controls
 - File patch application and diff tracking
@@ -39,7 +38,7 @@ graph TB
     subgraph "CodexAgentManager"
         MANAGER["CodexAgentManager<br/>(orchestration)"]
     end
-    
+
     subgraph "Core Processing Layer"
         HANDLER["CodexEventHandler<br/>(event routing)"]
         MSGPROC["CodexMessageProcessor<br/>(streaming)"]
@@ -47,55 +46,55 @@ graph TB
         SESSION["CodexSessionManager<br/>(lifecycle)"]
         FILEOPS["CodexFileOperationHandler<br/>(file I/O)"]
     end
-    
+
     subgraph "Communication Layer"
         CONN["CodexConnection<br/>(WebSocket/JSON-RPC)"]
         EMITTER["ICodexMessageEmitter<br/>(message emission)"]
     end
-    
+
     subgraph "Type System"
         EVENTS["CodexEventMsg<br/>(union type)"]
         EVENTDATA["EventDataMap<br/>(type mappings)"]
         ERRORTYPES["CodexError<br/>(error types)"]
     end
-    
+
     subgraph "External Services"
         ERRORSERV["CodexErrorService<br/>(error handling)"]
         APPROVAL["ApprovalStore<br/>(permission cache)"]
         CRONDET["CronCommandDetector<br/>(cron detection)"]
     end
-    
+
     MANAGER --> HANDLER
     MANAGER --> SESSION
     MANAGER --> FILEOPS
     MANAGER --> EMITTER
-    
+
     HANDLER --> MSGPROC
     HANDLER --> TOOLHANDLER
     HANDLER --> EMITTER
-    
+
     MSGPROC --> EMITTER
     MSGPROC --> CRONDET
     TOOLHANDLER --> EMITTER
     TOOLHANDLER --> APPROVAL
-    
+
     HANDLER --> EVENTS
     MSGPROC --> ERRORSERV
-    
+
     CONN --> HANDLER
     EMITTER --> CONN
 ```
 
 **Component Roles**
 
-| Component | File | Primary Responsibility |
-|-----------|------|----------------------|
-| `CodexEventHandler` | [src/agent/codex/handlers/CodexEventHandler.ts]() | Routes incoming JSON-RPC events to specialized processors |
-| `CodexMessageProcessor` | [src/agent/codex/messaging/CodexMessageProcessor.ts]() | Handles streaming message deltas and reasoning updates |
-| `CodexToolHandlers` | [src/agent/codex/handlers/CodexToolHandlers.ts]() | Manages tool execution lifecycle (exec, patch, MCP, search) |
-| `CodexSessionManager` | [src/agent/codex/handlers/CodexSessionManager.ts]() | Controls session state machine and connection health |
-| `CodexFileOperationHandler` | [src/agent/codex/handlers/CodexFileOperationHandler.ts]() | Performs file system operations with preview updates |
-| `CodexErrorService` | [src/agent/codex/core/ErrorService.ts]() | Standardizes error codes and retry logic |
+| Component                   | File                                                      | Primary Responsibility                                      |
+| --------------------------- | --------------------------------------------------------- | ----------------------------------------------------------- |
+| `CodexEventHandler`         | [src/agent/codex/handlers/CodexEventHandler.ts]()         | Routes incoming JSON-RPC events to specialized processors   |
+| `CodexMessageProcessor`     | [src/agent/codex/messaging/CodexMessageProcessor.ts]()    | Handles streaming message deltas and reasoning updates      |
+| `CodexToolHandlers`         | [src/agent/codex/handlers/CodexToolHandlers.ts]()         | Manages tool execution lifecycle (exec, patch, MCP, search) |
+| `CodexSessionManager`       | [src/agent/codex/handlers/CodexSessionManager.ts]()       | Controls session state machine and connection health        |
+| `CodexFileOperationHandler` | [src/agent/codex/handlers/CodexFileOperationHandler.ts]() | Performs file system operations with preview updates        |
+| `CodexErrorService`         | [src/agent/codex/core/ErrorService.ts]()                  | Standardizes error codes and retry logic                    |
 
 Sources: [src/agent/codex/handlers/CodexEventHandler.ts:15-27](), [src/agent/codex/messaging/CodexMessageProcessor.ts:17-26](), [src/agent/codex/handlers/CodexToolHandlers.ts:23-38]()
 
@@ -108,13 +107,13 @@ graph LR
     subgraph "WebSocket Layer"
         WS["WebSocket<br/>JSON-RPC 2.0"]
     end
-    
+
     subgraph "Event Handler"
         ROUTE["handleEvent()<br/>(line 29)"]
         PROCESS["processCodexEvent()<br/>(line 33)"]
         TYPEGUARD["isMessageType()<br/>(type guards)"]
     end
-    
+
     subgraph "Message Routes"
         MSG_DELTA["agent_message_delta<br/>→ processMessageDelta()"]
         MSG_FINAL["agent_message<br/>→ processFinalMessage()"]
@@ -122,7 +121,7 @@ graph LR
         TASK_START["task_started<br/>→ processTaskStart()"]
         TASK_END["task_complete<br/>→ processTaskComplete()"]
     end
-    
+
     subgraph "Tool Routes"
         EXEC_BEGIN["exec_command_begin<br/>→ handleExecCommandBegin()"]
         EXEC_DELTA["exec_command_output_delta<br/>→ handleExecCommandOutputDelta()"]
@@ -134,22 +133,22 @@ graph LR
         WEB_BEGIN["web_search_begin<br/>→ handleWebSearchBegin()"]
         WEB_END["web_search_end<br/>→ handleWebSearchEnd()"]
     end
-    
+
     subgraph "Permission Routes"
         EXEC_PERM["exec_approval_request<br/>→ processExecApprovalRequest()"]
         PATCH_PERM["apply_patch_approval_request<br/>→ processApplyPatchRequest()"]
     end
-    
+
     WS --> ROUTE
     ROUTE --> PROCESS
     PROCESS --> TYPEGUARD
-    
+
     TYPEGUARD --> MSG_DELTA
     TYPEGUARD --> MSG_FINAL
     TYPEGUARD --> REASON
     TYPEGUARD --> TASK_START
     TYPEGUARD --> TASK_END
-    
+
     TYPEGUARD --> EXEC_BEGIN
     TYPEGUARD --> EXEC_DELTA
     TYPEGUARD --> EXEC_END
@@ -159,7 +158,7 @@ graph LR
     TYPEGUARD --> MCP_END
     TYPEGUARD --> WEB_BEGIN
     TYPEGUARD --> WEB_END
-    
+
     TYPEGUARD --> EXEC_PERM
     TYPEGUARD --> PATCH_PERM
 ```
@@ -172,15 +171,15 @@ The Codex agent uses a discriminated union type `CodexEventMsg` for type-safe ev
 
 **Core Event Categories**
 
-| Category | Event Types | Processing Strategy |
-|----------|-------------|---------------------|
-| **Session Lifecycle** | `session_configured`, `task_started`, `task_complete` | State transitions, metadata extraction |
-| **Message Streaming** | `agent_message_delta`, `agent_message`, `agent_reasoning_delta` | Delta accumulation, final persistence |
-| **Tool Execution** | `exec_command_begin/output_delta/end`, `patch_apply_begin/end` | Buffering, status tracking |
-| **MCP Tools** | `mcp_tool_call_begin`, `mcp_tool_call_end` | Navigation intercept, result formatting |
-| **Web Search** | `web_search_begin`, `web_search_end` | Query tracking, result aggregation |
-| **Permissions** | `exec_approval_request`, `apply_patch_approval_request` | ApprovalStore check, confirmation UI |
-| **Metadata** | `token_count`, `turn_diff`, `agent_reasoning_section_break` | Telemetry, diff display |
+| Category              | Event Types                                                     | Processing Strategy                     |
+| --------------------- | --------------------------------------------------------------- | --------------------------------------- |
+| **Session Lifecycle** | `session_configured`, `task_started`, `task_complete`           | State transitions, metadata extraction  |
+| **Message Streaming** | `agent_message_delta`, `agent_message`, `agent_reasoning_delta` | Delta accumulation, final persistence   |
+| **Tool Execution**    | `exec_command_begin/output_delta/end`, `patch_apply_begin/end`  | Buffering, status tracking              |
+| **MCP Tools**         | `mcp_tool_call_begin`, `mcp_tool_call_end`                      | Navigation intercept, result formatting |
+| **Web Search**        | `web_search_begin`, `web_search_end`                            | Query tracking, result aggregation      |
+| **Permissions**       | `exec_approval_request`, `apply_patch_approval_request`         | ApprovalStore check, confirmation UI    |
+| **Metadata**          | `token_count`, `turn_diff`, `agent_reasoning_section_break`     | Telemetry, diff display                 |
 
 **Event Filtering Strategy**
 
@@ -188,15 +187,17 @@ The handler implements selective event processing to reduce noise:
 
 ```typescript
 // High-frequency events are not logged (line 37-39)
-if (type !== 'agent_message_delta' && 
-    type !== 'agent_reasoning_delta' && 
-    type !== 'agent_reasoning') {
-  console.log(`[CodexEventHandler] event: ${type}`);
+if (
+  type !== 'agent_message_delta' &&
+  type !== 'agent_reasoning_delta' &&
+  type !== 'agent_reasoning'
+) {
+  console.log(`[CodexEventHandler] event: ${type}`)
 }
 
 // agent_reasoning is ignored - only deltas are processed (line 42-44)
 if (type === 'agent_reasoning') {
-  return;
+  return
 }
 ```
 
@@ -214,34 +215,34 @@ graph TB
         FINAL["agent_message<br/>→ processFinalMessage()"]
         COMPLETE["task_complete<br/>→ processTaskComplete()"]
     end
-    
+
     subgraph "Message State"
         LOADING["currentLoadingId<br/>(line 18)"]
         REASON_ID["reasoningMsgId<br/>(line 20)"]
         REASON_BUF["currentReason<br/>(line 21)"]
     end
-    
+
     subgraph "Delta Processing"
         EMIT_DELTA["emitAndPersistMessage()<br/>persist=false"]
         UI_DELTA["Frontend accumulates<br/>in memory"]
     end
-    
+
     subgraph "Final Processing"
         PERSIST_FINAL["persistMessage()<br/>to database"]
         CRON_CHECK["hasCronCommands()<br/>detection"]
         CRON_PROC["processCronInMessage()<br/>scheduling"]
     end
-    
+
     START --> LOADING
     START --> REASON_ID
-    
+
     DELTA --> EMIT_DELTA
     EMIT_DELTA --> UI_DELTA
-    
+
     FINAL --> PERSIST_FINAL
     FINAL --> CRON_CHECK
     CRON_CHECK --> CRON_PROC
-    
+
     COMPLETE --> LOADING
 ```
 
@@ -274,7 +275,7 @@ processMessageDelta(msg: Extract<CodexEventMsg, { type: 'agent_message_delta' }>
 processFinalMessage(msg: Extract<CodexEventMsg, { type: 'agent_message' }>) {
   // Final message: only persist to database, do NOT emit to frontend
   // Frontend has already shown the content via deltas
-  
+
   const transformedMessage: TMessage = {
     id: this.currentLoadingId || uuid(),
     msg_id: this.currentLoadingId,
@@ -285,7 +286,7 @@ processFinalMessage(msg: Extract<CodexEventMsg, { type: 'agent_message' }>) {
     status: 'finish', // Mark as finished for cron detection
     createdAt: Date.now(),
   };
-  
+
   this.messageEmitter.persistMessage(transformedMessage);
 }
 ```
@@ -306,24 +307,31 @@ The final message processing phase integrates with the cron system to detect sch
 
 ```typescript
 if (hasCronCommands(messageText)) {
-  const collectedResponses: string[] = [];
-  await processCronInMessage(this.conversation_id, 'codex', transformedMessage, (sysMsg) => {
-    collectedResponses.push(sysMsg);
-    // Also emit to frontend for display
-    ipcBridge.codexConversation.responseStream.emit({
-      type: 'system',
-      conversation_id: this.conversation_id,
-      msg_id: uuid(),
-      data: sysMsg,
-    });
-  });
-  
+  const collectedResponses: string[] = []
+  await processCronInMessage(
+    this.conversation_id,
+    'codex',
+    transformedMessage,
+    (sysMsg) => {
+      collectedResponses.push(sysMsg)
+      // Also emit to frontend for display
+      ipcBridge.codexConversation.responseStream.emit({
+        type: 'system',
+        conversation_id: this.conversation_id,
+        msg_id: uuid(),
+        data: sysMsg,
+      })
+    }
+  )
+
   // Send collected responses back to AI agent so it can continue
   if (collectedResponses.length > 0 && this.messageEmitter.sendMessageToAgent) {
     const feedbackMessage = `[System Response]\
-${collectedResponses.join('\
-')}`;
-    await this.messageEmitter.sendMessageToAgent(feedbackMessage);
+${collectedResponses.join(
+  '\
+'
+)}`
+    await this.messageEmitter.sendMessageToAgent(feedbackMessage)
   }
 }
 ```
@@ -345,12 +353,12 @@ stateDiagram-v2
     success --> [*]
     error --> [*]
     canceled --> [*]
-    
+
     note right of pending
         Confirmation required
         unless auto-approved
     end note
-    
+
     note right of executing
         Accumulate output
         in cmdBuffers Map
@@ -369,13 +377,13 @@ The command execution system implements a three-phase lifecycle with output buff
 handleExecCommandBegin(msg: Extract<CodexEventMsg, { type: 'exec_command_begin' }>) {
   const callId = msg.call_id;
   const cmd = Array.isArray(msg.command) ? msg.command.join(' ') : String(msg.command);
-  
+
   // Initialize buffer for output accumulation
   this.cmdBuffers.set(callId, { stdout: '', stderr: '', combined: '' });
-  
+
   // Mark as pending confirmation
   this.pendingConfirmations.add(callId);
-  
+
   // Emit CodexToolCall with subtype for UI rendering
   this.emitCodexToolCall(callId, {
     status: 'pending',
@@ -398,7 +406,7 @@ The handler decodes base64-encoded output chunks from Codex and accumulates them
 handleExecCommandOutputDelta(msg: Extract<CodexEventMsg, { type: 'exec_command_output_delta' }>) {
   const callId = msg.call_id;
   let chunk = msg.chunk;
-  
+
   // Handle base64-encoded chunks from Codex
   if (this.isValidBase64(chunk)) {
     try {
@@ -407,13 +415,13 @@ handleExecCommandOutputDelta(msg: Extract<CodexEventMsg, { type: 'exec_command_o
       // Use original string if decoding fails
     }
   }
-  
+
   const buf = this.cmdBuffers.get(callId) || { stdout: '', stderr: '', combined: '' };
   if (msg.stream === 'stderr') buf.stderr += chunk;
   else buf.stdout += chunk;
   buf.combined += chunk;
   this.cmdBuffers.set(callId, buf);
-  
+
   // Emit update with accumulated output
   this.emitCodexToolCall(callId, {
     status: 'executing',
@@ -443,18 +451,18 @@ File patch operations follow a similar lifecycle but include an additional auto-
 handlePatchApplyBegin(msg: Extract<CodexEventMsg, { type: 'patch_apply_begin' }>) {
   const callId = msg.call_id || uuid();
   const summary = this.summarizePatch(msg.changes);
-  
+
   // Cache both summary and raw changes
   this.patchBuffers.set(callId, summary);
   if (msg.changes && typeof msg.changes === 'object') {
     this.patchChanges.set(callId, msg.changes);
   }
-  
+
   // Set confirmation only if not auto-approved
   if (!msg.auto_approved) {
     this.pendingConfirmations.add(callId);
   }
-  
+
   // Emit tool call with appropriate status
   this.emitCodexToolCall(callId, {
     status: msg.auto_approved ? 'executing' : 'pending',
@@ -465,7 +473,7 @@ handlePatchApplyBegin(msg: Extract<CodexEventMsg, { type: 'patch_apply_begin' }>
     startTime: Date.now(),
     content: [{ type: 'output', output: summary }],
   });
-  
+
   // If auto-approved, immediately attempt to apply changes
   if (msg.auto_approved) {
     this.applyPatchChanges(callId);
@@ -492,7 +500,7 @@ handleMcpToolCallBegin(msg: Extract<CodexEventMsg, { type: 'mcp_tool_call_begin'
   const inv = msg.invocation || {};
   const toolName = String(inv.tool || inv.name || inv.method || 'unknown');
   const callId = (msg as unknown as { call_id?: string }).call_id || `mcp_${toolName}_${uuid()}`;
-  
+
   // Intercept chrome-devtools navigation tools using unified NavigationInterceptor
   const interceptionResult = NavigationInterceptor.intercept(
     {
@@ -502,12 +510,12 @@ handleMcpToolCallBegin(msg: Extract<CodexEventMsg, { type: 'mcp_tool_call_begin'
     },
     this.conversation_id
   );
-  
+
   if (interceptionResult.intercepted && interceptionResult.previewMessage) {
     // Emit preview_open message to trigger preview panel
     this.messageEmitter.emitAndPersistMessage(interceptionResult.previewMessage, false);
   }
-  
+
   // Continue normal tool call flow
   this.emitCodexToolCall(callId, {
     status: 'executing',
@@ -542,7 +550,7 @@ Turn diff events display file changes made during a conversation turn. These use
 handleTurnDiff(msg: Extract<CodexEventMsg, { type: 'turn_diff' }>) {
   // Generate unique call ID since turn_diff doesn't provide one
   const callId = `turn_diff_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-  
+
   this.emitCodexToolCall(callId, {
     status: 'success',
     kind: 'patch', // Use patch kind for diff display
@@ -573,11 +581,11 @@ stateDiagram-v2
     session_active --> error: Connection failure
     error --> connecting: reconnectSession()
     disconnected --> [*]
-    
+
     note right of connecting
         timeout: 30s default
     end note
-    
+
     note right of session_active
         sessionId generated
         hasActiveSession = true
@@ -594,10 +602,10 @@ The `CodexSessionManager` provides unified connection state management modeled a
 
 ```typescript
 export interface CodexSessionConfig {
-  conversation_id: string;
-  cliPath?: string;
-  workingDir: string;
-  timeout?: number; // 30s default
+  conversation_id: string
+  cliPath?: string
+  workingDir: string
+  timeout?: number // 30s default
 }
 ```
 
@@ -620,7 +628,7 @@ The session manager emits status updates using a global status message ID to pre
 
 ```typescript
 // Global status management, ensuring all Codex sessions share state
-const globalStatusMessageId: string = 'codex_status_global';
+const globalStatusMessageId: string = 'codex_status_global'
 ```
 
 [src/agent/codex/handlers/CodexSessionManager.ts:154-170]()
@@ -628,7 +636,7 @@ const globalStatusMessageId: string = 'codex_status_global';
 ```typescript
 private setStatus(status: CodexSessionStatus): void {
   this.status = status;
-  
+
   this.messageEmitter.emitAndPersistMessage({
     type: 'agent_status',
     conversation_id: this.config.conversation_id,
@@ -650,8 +658,8 @@ private setStatus(status: CodexSessionStatus): void {
 
 ```typescript
 checkSessionHealth(): boolean {
-  return this.isConnected && 
-         this.hasActiveSession && 
+  return this.isConnected &&
+         this.hasActiveSession &&
          this.status === 'session_active';
 }
 ```
@@ -678,11 +686,11 @@ The file operation handler supports three primary operations with streaming upda
 
 **Operation Type Matrix**
 
-| Operation | Methods | Preview Update | Database Persist |
-|-----------|---------|----------------|------------------|
-| **Write** | `fs/write_text_file`, `file_write` | `contentUpdate` event | Message with preview |
-| **Read** | `fs/read_text_file`, `file_read` | None | Message only |
-| **Delete** | `fs/delete_file`, `file_delete` | `contentUpdate` (delete) | Message only |
+| Operation  | Methods                            | Preview Update           | Database Persist     |
+| ---------- | ---------------------------------- | ------------------------ | -------------------- |
+| **Write**  | `fs/write_text_file`, `file_write` | `contentUpdate` event    | Message with preview |
+| **Read**   | `fs/read_text_file`, `file_read`   | None                     | Message only         |
+| **Delete** | `fs/delete_file`, `file_delete`    | `contentUpdate` (delete) | Message only         |
 
 ### File Write with Preview Streaming
 
@@ -694,14 +702,14 @@ File write operations emit real-time content updates to the preview panel via th
 private async handleFileWrite(operation: FileOperation): Promise<void> {
   const fullPath = this.resolveFilePath(operation.path);
   const content = operation.content || '';
-  
+
   // Ensure directory exists
   const dir = path.dirname(fullPath);
   await fs.mkdir(dir, { recursive: true });
-  
+
   // Write file
   await fs.writeFile(fullPath, content, 'utf-8');
-  
+
   // Send streaming content update to preview panel (for real-time updates)
   try {
     const eventData = {
@@ -711,12 +719,12 @@ private async handleFileWrite(operation: FileOperation): Promise<void> {
       relativePath: operation.path,
       operation: 'write' as const,
     };
-    
+
     ipcBridge.fileStream.contentUpdate.emit(eventData);
   } catch (error) {
     console.error('[CodexFileOperationHandler] ❌ Failed to emit file stream update:', error);
   }
-  
+
   // Send operation feedback message
   this.emitFileOperationMessage({
     method: 'fs/write_text_file',
@@ -735,7 +743,7 @@ The handler can apply multiple file changes atomically, used during patch applic
 ```typescript
 async applyBatchChanges(changes: Record<string, FileChange>): Promise<void> {
   const operations: Promise<void>[] = [];
-  
+
   for (const [filePath, change] of Object.entries(changes)) {
     if (typeof change === 'object' && change !== null) {
       const action = this.getChangeAction(change); // Handles both modern and legacy formats
@@ -749,7 +757,7 @@ async applyBatchChanges(changes: Record<string, FileChange>): Promise<void> {
       operations.push(this.handleFileOperation(operation).then((): void => void 0));
     }
   }
-  
+
   await Promise.all(operations);
 }
 ```
@@ -782,7 +790,7 @@ graph TB
         UNIFIED["handleUnifiedPermissionRequest()<br/>(line 161)"]
         DEDUP["Check pendingConfirmations<br/>prevent duplicates"]
     end
-    
+
     subgraph "ApprovalStore Check"
         STORE_CHECK["Check cached approval/rejection"]
         EXEC_CHECK["checkExecApproval(command, cwd)"]
@@ -790,32 +798,32 @@ graph TB
         EXEC_REJECT["checkExecRejection(command, cwd)"]
         PATCH_REJECT["checkPatchRejection(files)"]
     end
-    
+
     subgraph "Auto-Response"
         AUTO_APPROVE["autoConfirm('allow_always')"]
         AUTO_REJECT["autoConfirm('reject_always')"]
     end
-    
+
     subgraph "User Confirmation"
         CONFIRM_UI["addConfirmation()<br/>with options"]
         PERSIST["emitAndPersistMessage()<br/>codex_permission type"]
         OPTIONS["allow_once<br/>allow_always<br/>reject_always"]
     end
-    
+
     EVENT --> UNIFIED
     UNIFIED --> DEDUP
     DEDUP --> STORE_CHECK
-    
+
     STORE_CHECK --> EXEC_REJECT
     STORE_CHECK --> PATCH_REJECT
     EXEC_REJECT --> AUTO_REJECT
     PATCH_REJECT --> AUTO_REJECT
-    
+
     STORE_CHECK --> EXEC_CHECK
     STORE_CHECK --> PATCH_CHECK
     EXEC_CHECK --> AUTO_APPROVE
     PATCH_CHECK --> AUTO_APPROVE
-    
+
     STORE_CHECK --> CONFIRM_UI
     CONFIRM_UI --> PERSIST
     CONFIRM_UI --> OPTIONS
@@ -834,29 +842,29 @@ private processExecApprovalRequest(msg: Extract<CodexEventMsg, { type: 'exec_app
   const callId = msg.call_id || uuid();
   const command = msg.command;
   const cwd = msg.cwd;
-  
+
   // Store exec metadata for ApprovalStore
   this.toolHandlers.storeExecRequestMeta(unifiedRequestId, { command, cwd });
-  
+
   // Check ApprovalStore for cached rejection first
   if (this.messageEmitter.checkExecRejection?.(command, cwd)) {
     console.log(`[CodexEventHandler] exec auto-rejected by ApprovalStore: ${unifiedRequestId}`);
     this.messageEmitter.autoConfirm?.(unifiedRequestId, 'reject_always');
     return;
   }
-  
+
   // Check ApprovalStore for cached approval
   if (this.messageEmitter.checkExecApproval?.(command, cwd)) {
     console.log(`[CodexEventHandler] exec auto-approved by ApprovalStore: ${unifiedRequestId}`);
     this.messageEmitter.autoConfirm?.(unifiedRequestId, 'allow_always');
     return;
   }
-  
+
   // Need user confirmation - create options and add to confirmation queue
   const displayInfo = getPermissionDisplayInfo(PermissionType.COMMAND_EXECUTION);
   const options = createPermissionOptionsForType(PermissionType.COMMAND_EXECUTION);
   const description = msg.reason || `${displayInfo.icon} Codex wants to execute command: ${Array.isArray(msg.command) ? msg.command.join(' ') : msg.command}`;
-  
+
   this.messageEmitter.addConfirmation({
     title: displayInfo.titleKey,
     id: unifiedRequestId,
@@ -868,7 +876,7 @@ private processExecApprovalRequest(msg: Extract<CodexEventMsg, { type: 'exec_app
       value: opt.optionId,
     })),
   });
-  
+
   // Persist permission request for history
   this.messageEmitter.emitAndPersistMessage({
     type: 'codex_permission',
@@ -898,13 +906,13 @@ The patch approval flow extracts file paths from the `changes` object and checks
 
 The system supports multiple permission option types defined in [src/common/codex/types/permissionTypes.ts]():
 
-| Option ID | Behavior | Cache Behavior |
-|-----------|----------|----------------|
-| `allow_once` | Approve this single request | Not cached |
-| `allow_always` | Approve and cache for future | Cached in ApprovalStore |
-| `allow_always_tool` | Approve tool across sessions | Cached by tool name |
-| `allow_always_server` | Approve MCP server | Cached by server name |
-| `reject_always` | Reject and cache | Cached in ApprovalStore |
+| Option ID             | Behavior                     | Cache Behavior          |
+| --------------------- | ---------------------------- | ----------------------- |
+| `allow_once`          | Approve this single request  | Not cached              |
+| `allow_always`        | Approve and cache for future | Cached in ApprovalStore |
+| `allow_always_tool`   | Approve tool across sessions | Cached by tool name     |
+| `allow_always_server` | Approve MCP server           | Cached by server name   |
+| `reject_always`       | Reject and cache             | Cached in ApprovalStore |
 
 ### Deduplication Strategy
 
@@ -916,15 +924,15 @@ The handler maintains a `pendingConfirmations` Set to prevent duplicate permissi
 private handleUnifiedPermissionRequest(msg: ...) {
   const callId = msg.call_id || uuid();
   const unifiedRequestId = `permission_${callId}`;
-  
+
   // Check if we've already processed this call_id to avoid duplicates
   if (this.toolHandlers.getPendingConfirmations().has(unifiedRequestId)) {
     return;
   }
-  
+
   // Mark this request as being processed
   this.toolHandlers.getPendingConfirmations().add(unifiedRequestId);
-  
+
   // Route to appropriate handler based on event type
   if (msg.type === 'exec_approval_request') {
     this.processExecApprovalRequest(msg, unifiedRequestId);
@@ -946,13 +954,13 @@ The Codex agent uses a standardized error code system for consistent error handl
 
 [src/agent/codex/core/ErrorService.ts:1-97](), [src/common/codex/types/errorTypes.ts]()
 
-| Error Code | Category | Retryable | User Message Key |
-|------------|----------|-----------|------------------|
-| `NETWORK_TIMEOUT` | Network | Yes | `codex.network.network_timeout` |
-| `NETWORK_REFUSED` | Network | Yes | `codex.network.connection_refused` |
-| `CLOUDFLARE_BLOCKED` | Network | No | `codex.network.cloudflare_blocked` |
-| `NETWORK_UNKNOWN` | Network | Yes | `codex.network.unknown_error` |
-| `UNKNOWN_ERROR` | System | No | `codex.network.unknown_error` |
+| Error Code           | Category | Retryable | User Message Key                   |
+| -------------------- | -------- | --------- | ---------------------------------- |
+| `NETWORK_TIMEOUT`    | Network  | Yes       | `codex.network.network_timeout`    |
+| `NETWORK_REFUSED`    | Network  | Yes       | `codex.network.connection_refused` |
+| `CLOUDFLARE_BLOCKED` | Network  | No        | `codex.network.cloudflare_blocked` |
+| `NETWORK_UNKNOWN`    | Network  | Yes       | `codex.network.unknown_error`      |
+| `UNKNOWN_ERROR`      | System   | No        | `codex.network.unknown_error`      |
 
 ### Error Creation and Standardization
 
@@ -966,11 +974,11 @@ createError(code: string, message: string, options?: Partial<CodexError>): Codex
   error.code = code;
   error.timestamp = new Date();
   error.retryCount = 0;
-  
+
   if (options) {
     Object.assign(error, options);
   }
-  
+
   return error;
 }
 ```
@@ -982,29 +990,37 @@ The `fromNetworkError` utility function analyzes error messages to determine the
 [src/agent/codex/core/ErrorService.ts:52-83]()
 
 ```typescript
-export function fromNetworkError(originalError: string | Error, options: { source?: string; retryCount?: number } = {}): CodexError {
-  const errorMsg = typeof originalError === 'string' ? originalError : originalError.message;
-  const lowerMsg = errorMsg.toLowerCase();
-  
-  let code: string;
-  let userMessageKey: string;
-  
+export function fromNetworkError(
+  originalError: string | Error,
+  options: { source?: string; retryCount?: number } = {}
+): CodexError {
+  const errorMsg =
+    typeof originalError === 'string' ? originalError : originalError.message
+  const lowerMsg = errorMsg.toLowerCase()
+
+  let code: string
+  let userMessageKey: string
+
   if (lowerMsg.includes('403') && lowerMsg.includes('cloudflare')) {
-    code = ERROR_CODES.CLOUDFLARE_BLOCKED;
-    userMessageKey = 'codex.network.cloudflare_blocked';
+    code = ERROR_CODES.CLOUDFLARE_BLOCKED
+    userMessageKey = 'codex.network.cloudflare_blocked'
   } else if (lowerMsg.includes('timeout') || lowerMsg.includes('etimedout')) {
-    code = ERROR_CODES.NETWORK_TIMEOUT;
-    userMessageKey = 'codex.network.network_timeout';
-  } else if (lowerMsg.includes('connection refused') || lowerMsg.includes('econnrefused')) {
-    code = ERROR_CODES.NETWORK_REFUSED;
-    userMessageKey = 'codex.network.connection_refused';
+    code = ERROR_CODES.NETWORK_TIMEOUT
+    userMessageKey = 'codex.network.network_timeout'
+  } else if (
+    lowerMsg.includes('connection refused') ||
+    lowerMsg.includes('econnrefused')
+  ) {
+    code = ERROR_CODES.NETWORK_REFUSED
+    userMessageKey = 'codex.network.connection_refused'
   } else {
-    code = ERROR_CODES.UNKNOWN_ERROR;
-    userMessageKey = 'codex.network.unknown_error';
+    code = ERROR_CODES.UNKNOWN_ERROR
+    userMessageKey = 'codex.network.unknown_error'
   }
-  
+
   return globalErrorService.createError(code, errorMsg, {
-    originalError: typeof originalError === 'string' ? undefined : originalError,
+    originalError:
+      typeof originalError === 'string' ? undefined : originalError,
     userMessage: userMessageKey,
     retryCount: options.retryCount || 0,
     context: options.source,
@@ -1012,7 +1028,7 @@ export function fromNetworkError(originalError: string | Error, options: { sourc
       source: options.source,
       originalMessage: errorMsg,
     },
-  });
+  })
 }
 ```
 
@@ -1027,8 +1043,8 @@ shouldRetry(error: CodexError): boolean {
   if (!error.retryCount) {
     error.retryCount = 0;
   }
-  
-  return error.retryCount < this.maxRetries && 
+
+  return error.retryCount < this.maxRetries &&
          this.retryableErrors.has(error.code);
 }
 ```
@@ -1051,15 +1067,15 @@ processStreamError(message: string) {
       eventType: 'STREAM_ERROR',
     },
   });
-  
+
   // Process through error service for user-friendly message
   const processedError = globalErrorService.handleError(codexError);
   const errorHash = this.generateErrorHash(message);
-  
+
   // Detect message type: retry message vs final error message
   const isRetryMessage = message.includes('retrying');
   const isFinalError = !isRetryMessage && message.includes('error sending request');
-  
+
   let msgId: string;
   if (isRetryMessage) {
     // All retry messages use the same ID for merging
@@ -1071,11 +1087,11 @@ processStreamError(message: string) {
     // Other errors use unique ID
     msgId = `stream_error_${errorHash}`;
   }
-  
-  const errorData = processedError.code 
-    ? `ERROR_${processedError.code}: ${message}` 
+
+  const errorData = processedError.code
+    ? `ERROR_${processedError.code}: ${message}`
     : processedError.userMessage || message;
-  
+
   this.messageEmitter.emitAndPersistMessage({
     type: 'error',
     conversation_id: this.conversation_id,

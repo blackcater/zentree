@@ -36,8 +36,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the Skills System in `codex-core`: how skills are defined on disk, discovered at runtime, injected into model prompts, and how their sandbox permissions are compiled and enforced. It also covers the MCP dependency installation pipeline that triggers when a skill requires external MCP servers.
 
 For details about MCP servers themselves, see [MCP Connection Manager](#6.2). For how the TUI presents the skill picker overlay, see [Interactive Overlays and Popups](#4.1.5). For sandbox enforcement mechanics, see [Sandboxing Implementation](#5.6).
@@ -60,24 +58,24 @@ Skills are reusable instruction documents that a user can reference in a prompt 
 
 All core types live in [codex-rs/core/src/skills/model.rs]().
 
-| Type | Role |
-|---|---|
-| `SkillMetadata` | The fully parsed representation of one skill (name, description, path, scope, permissions, etc.) |
-| `SkillLoadOutcome` | The result of a scan: a list of `SkillMetadata`, errors, disabled paths, and implicit invocation indexes |
-| `SkillInterface` | Optional UI display fields (display name, icon paths, brand color, default prompt) |
-| `SkillDependencies` | List of `SkillToolDependency` entries declaring required MCP or other tool backends |
-| `SkillToolDependency` | One dependency entry: type, value, transport, command, URL |
-| `SkillPolicy` | Policy flags: currently `allow_implicit_invocation` |
-| `SkillError` | A parse failure with path and message |
+| Type                  | Role                                                                                                     |
+| --------------------- | -------------------------------------------------------------------------------------------------------- |
+| `SkillMetadata`       | The fully parsed representation of one skill (name, description, path, scope, permissions, etc.)         |
+| `SkillLoadOutcome`    | The result of a scan: a list of `SkillMetadata`, errors, disabled paths, and implicit invocation indexes |
+| `SkillInterface`      | Optional UI display fields (display name, icon paths, brand color, default prompt)                       |
+| `SkillDependencies`   | List of `SkillToolDependency` entries declaring required MCP or other tool backends                      |
+| `SkillToolDependency` | One dependency entry: type, value, transport, command, URL                                               |
+| `SkillPolicy`         | Policy flags: currently `allow_implicit_invocation`                                                      |
+| `SkillError`          | A parse failure with path and message                                                                    |
 
 `SkillScope` (from `codex-protocol`) controls priority during deduplication:
 
-| Scope | Meaning |
-|---|---|
-| `Repo` | Per-project (`.codex/skills/` or `.agents/skills/`) |
-| `User` | Per-user (`$CODEX_HOME/skills/` or `$HOME/.agents/skills/`) |
+| Scope    | Meaning                                                       |
+| -------- | ------------------------------------------------------------- |
+| `Repo`   | Per-project (`.codex/skills/` or `.agents/skills/`)           |
+| `User`   | Per-user (`$CODEX_HOME/skills/` or `$HOME/.agents/skills/`)   |
 | `System` | Embedded system skills cached in `$CODEX_HOME/skills/.system` |
-| `Admin` | System-wide (`/etc/codex/skills/`) |
+| `Admin`  | System-wide (`/etc/codex/skills/`)                            |
 
 Sources: [codex-rs/core/src/skills/model.rs:1-99]()
 
@@ -151,8 +149,8 @@ interface:
   display_name: My Skill
   short_description: Does something useful
   icon_small: assets/icon-small.png
-  brand_color: "#3A86FF"
-  default_prompt: "Use $my-skill to..."
+  brand_color: '#3A86FF'
+  default_prompt: 'Use $my-skill to...'
 
 dependencies:
   tools:
@@ -167,22 +165,22 @@ policy:
 permissions:
   file_system:
     read:
-      - "./data"
+      - './data'
     write:
-      - "./output"
+      - './output'
   network: true
 ```
 
 Field length limits enforced during parsing:
 
-| Field | Max Characters |
-|---|---|
-| `name` | 64 |
-| `description` | 1024 |
-| `short_description` | 1024 |
-| `default_prompt` | 1024 |
-| Dependency `type`/`transport` | 64 |
-| Dependency `value`/`description`/`command`/`url` | 1024 |
+| Field                                            | Max Characters |
+| ------------------------------------------------ | -------------- |
+| `name`                                           | 64             |
+| `description`                                    | 1024           |
+| `short_description`                              | 1024           |
+| `default_prompt`                                 | 1024           |
+| Dependency `type`/`transport`                    | 64             |
+| Dependency `value`/`description`/`command`/`url` | 1024           |
 
 Sources: [codex-rs/core/src/skills/loader.rs:105-122](), [codex-rs/core/src/skills/loader.rs:36-103]()
 
@@ -194,13 +192,13 @@ Sources: [codex-rs/core/src/skills/loader.rs:105-122](), [codex-rs/core/src/skil
 
 `skill_roots()` in [codex-rs/core/src/skills/loader.rs:190-201]() determines which filesystem directories to scan, based on the `ConfigLayerStack`. For each config layer:
 
-| Layer source | Root path added | Scope |
-|---|---|---|
-| `Project` (`.codex/`) | `<dot_codex>/skills/` | `Repo` |
-| `User` | `$CODEX_HOME/skills/` | `User` |
-| `User` | `$HOME/.agents/skills/` | `User` |
-| `User` | `$CODEX_HOME/skills/.system` | `System` |
-| `System` (`/etc/codex/`) | `/etc/codex/skills/` | `Admin` |
+| Layer source             | Root path added              | Scope    |
+| ------------------------ | ---------------------------- | -------- |
+| `Project` (`.codex/`)    | `<dot_codex>/skills/`        | `Repo`   |
+| `User`                   | `$CODEX_HOME/skills/`        | `User`   |
+| `User`                   | `$HOME/.agents/skills/`      | `User`   |
+| `User`                   | `$CODEX_HOME/skills/.system` | `System` |
+| `System` (`/etc/codex/`) | `/etc/codex/skills/`         | `Admin`  |
 
 Additionally, `repo_agents_skill_roots()` scans all directories between the project root and the current working directory for `.agents/skills/` subdirectories, adding each as `Repo` scope.
 
@@ -301,6 +299,7 @@ classDiagram
 `SkillsManager::new()` immediately calls `install_system_skills()` to ensure any bundled system skills are installed in the cache root.
 
 `finalize_skill_outcome()` [codex-rs/core/src/skills/manager.rs:223-233]() post-processes a raw `SkillLoadOutcome` by:
+
 1. Applying `disabled_paths_from_stack()` — reading the `[[skills.config]]` entries in `User` and `SessionFlags` layers.
 2. Building implicit invocation indexes via `build_implicit_skill_path_indexes()`.
 
@@ -320,6 +319,7 @@ When the user submits a turn, the core agent checks the user inputs for skill re
 2. **Text inputs** are scanned for `$skill-name` tokens and `[$skill-name](skill://path)` link syntax by `extract_tool_mentions()`.
 
 Resolution rules for plain-name mentions:
+
 - Name must match exactly one enabled skill (count check against `skill_name_counts`).
 - Name must not collide with any connector slug in `connector_slug_counts`.
 
@@ -373,11 +373,11 @@ Sources: [codex-rs/core/src/skills/invocation_utils.rs:1-231]()
 
 Skills can declare a `PermissionProfile` in `agents/openai.yaml`. When the zsh-fork shell escalation path intercepts an exec call and finds the program path under a skill's `scripts/` directory, `compile_permission_profile()` [codex-rs/core/src/skills/permissions.rs:39-95]() translates the profile to a `Permissions` struct used to construct a `SandboxPolicy`:
 
-| Declared permissions | Resulting `SandboxPolicy` |
-|---|---|
+| Declared permissions              | Resulting `SandboxPolicy`                                             |
+| --------------------------------- | --------------------------------------------------------------------- |
 | `file_system.write` paths present | `WorkspaceWrite { writable_roots, read_only_access, network_access }` |
-| Only `file_system.read` paths | `ReadOnly { access: Restricted { readable_roots } }` |
-| Neither (empty/absent) | `ReadOnly` with full-access reads (inherits turn sandbox) |
+| Only `file_system.read` paths     | `ReadOnly { access: Restricted { readable_roots } }`                  |
+| Neither (empty/absent)            | `ReadOnly` with full-access reads (inherits turn sandbox)             |
 
 The compiled `Permissions` always sets `approval_policy: AskForApproval::Never` (execution is already being approved at the skill level) and `allow_login_shell: true`.
 

@@ -33,8 +33,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents how agent tools are defined, registered, and executed in the opencode core (`packages/opencode`). It covers the `Tool.define` API, all built-in tools, the `ToolRegistry`, and the permission system that gates tool execution at runtime.
 
 For the agent loop that drives tool invocations, see [2.2](#2.2). For MCP-sourced tools from external servers, see [2.8](#2.8). For the LSP tools and formatters invoked after file writes, see [2.6](#2.6). For a reference of all permission types and their configuration syntax, see [9.2](#9.2).
@@ -46,6 +44,7 @@ For the agent loop that drives tool invocations, see [2.2](#2.2). For MCP-source
 All tools are created with `Tool.define`, exported from [packages/opencode/src/tool/tool.ts:49-89]().
 
 **Direct definition:**
+
 ```typescript
 Tool.define("edit", {
   description: DESCRIPTION,
@@ -55,6 +54,7 @@ Tool.define("edit", {
 ```
 
 **Async factory (for tools requiring initialization):**
+
 ```typescript
 Tool.define("bash", async () => {
   // e.g., load a WASM parser
@@ -76,17 +76,17 @@ Sources: [packages/opencode/src/tool/tool.ts:49-89](), [packages/opencode/src/to
 
 Every `execute` function receives a `Tool.Context<M>` [packages/opencode/src/tool/tool.ts:17-27]() as its second argument:
 
-| Member | Type | Purpose |
-|--------|------|---------|
-| `sessionID` | `SessionID` | Session this call belongs to |
-| `messageID` | `MessageID` | Parent assistant message ID |
-| `callID` | `string \| undefined` | Unique ID for this invocation |
-| `agent` | `string` | Name of the active agent |
-| `abort` | `AbortSignal` | Fires when the user cancels |
-| `messages` | `MessageV2.WithParts[]` | Full conversation history |
-| `extra` | `Record<string, any> \| undefined` | Optional context data (e.g., `bypassCwdCheck`) |
-| `metadata(input)` | `(input: { title?: string; metadata?: M }) => void` | Push live streaming metadata updates |
-| `ask(req)` | `(input: Omit<PermissionNext.Request, "id" \| "sessionID" \| "tool">) => Promise<void>` | Request a permission gate |
+| Member            | Type                                                                                    | Purpose                                        |
+| ----------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `sessionID`       | `SessionID`                                                                             | Session this call belongs to                   |
+| `messageID`       | `MessageID`                                                                             | Parent assistant message ID                    |
+| `callID`          | `string \| undefined`                                                                   | Unique ID for this invocation                  |
+| `agent`           | `string`                                                                                | Name of the active agent                       |
+| `abort`           | `AbortSignal`                                                                           | Fires when the user cancels                    |
+| `messages`        | `MessageV2.WithParts[]`                                                                 | Full conversation history                      |
+| `extra`           | `Record<string, any> \| undefined`                                                      | Optional context data (e.g., `bypassCwdCheck`) |
+| `metadata(input)` | `(input: { title?: string; metadata?: M }) => void`                                     | Push live streaming metadata updates           |
+| `ask(req)`        | `(input: Omit<PermissionNext.Request, "id" \| "sessionID" \| "tool">) => Promise<void>` | Request a permission gate                      |
 
 The `metadata` callback is used for incremental output during long operations. `BashTool` pushes stdout/stderr chunks to `metadata.output` while the subprocess runs [packages/opencode/src/tool/bash.ts:182-197](), showing live progress in the UI. The `extra` field allows callers to pass tool-specific options (e.g., `ReadTool` checks `ctx.extra?.bypassCwdCheck` [packages/opencode/src/tool/read.ts:41]()).
 
@@ -107,6 +107,7 @@ await FileTime.read(ctx.sessionID, filepath)
 ```
 
 Called by:
+
 - `ReadTool` after successfully reading a file [packages/opencode/src/tool/read.ts:217]()
 - `EditTool` after writing (to update the timestamp) [packages/opencode/src/tool/edit.ts:122]()
 - `WriteTool` after writing [packages/opencode/src/tool/write.ts:52]()
@@ -120,10 +121,12 @@ await FileTime.assert(ctx.sessionID, filepath)
 ```
 
 Throws if:
+
 - The file was never read in this session
 - The file's mtime, ctime, or size changed since the last read
 
 Called by:
+
 - `EditTool` before applying edits to existing files [packages/opencode/src/tool/edit.ts:88]()
 - `WriteTool` before overwriting existing files [packages/opencode/src/tool/write.ts:31]()
 
@@ -153,26 +156,26 @@ Sources: [packages/opencode/src/file/time.ts:46-115](), [packages/opencode/src/t
 
 The `ToolRegistry.tools()` function [packages/opencode/src/tool/registry.ts:132-173]() returns all available tools for a given model and agent. Tools are conditionally included based on flags and model IDs.
 
-| Tool | Export | Source File | Permission Key(s) |
-|------|--------|-------------|-------------------|
-| Invalid | `InvalidTool` | `tool/invalid.ts` | — |
-| Question | `QuestionTool` | `tool/question.ts` | `question` |
-| Bash | `BashTool` | `tool/bash.ts` | `bash`, `external_directory` |
-| Read | `ReadTool` | `tool/read.ts` | `read`, `external_directory` |
-| Glob | `GlobTool` | `tool/glob.ts` | `glob`, `external_directory` |
-| Grep | `GrepTool` | `tool/grep.ts` | `grep`, `external_directory` |
-| Edit | `EditTool` | `tool/edit.ts` | `edit`, `external_directory` |
-| Write | `WriteTool` | `tool/write.ts` | `edit` |
-| Task | `TaskTool` | `tool/task.ts` | `task` |
-| WebFetch | `WebFetchTool` | `tool/webfetch.ts` | `webfetch` |
-| TodoWrite | `TodoWriteTool` | `tool/todo.ts` | `todowrite` |
-| WebSearch | `WebSearchTool` | `tool/websearch.ts` | `websearch` |
-| CodeSearch | `CodeSearchTool` | `tool/codesearch.ts` | `codesearch` |
-| Skill | `SkillTool` | `tool/skill.ts` | `skill` |
-| ApplyPatch | `ApplyPatchTool` | `tool/apply_patch.ts` | `edit` |
-| Lsp | `LspTool` | `tool/lsp.ts` | `lsp` |
-| Batch | `BatchTool` | `tool/batch.ts` | `batch` |
-| PlanExit | `PlanExitTool` | `tool/plan.ts` | `plan_exit` |
+| Tool       | Export           | Source File           | Permission Key(s)            |
+| ---------- | ---------------- | --------------------- | ---------------------------- |
+| Invalid    | `InvalidTool`    | `tool/invalid.ts`     | —                            |
+| Question   | `QuestionTool`   | `tool/question.ts`    | `question`                   |
+| Bash       | `BashTool`       | `tool/bash.ts`        | `bash`, `external_directory` |
+| Read       | `ReadTool`       | `tool/read.ts`        | `read`, `external_directory` |
+| Glob       | `GlobTool`       | `tool/glob.ts`        | `glob`, `external_directory` |
+| Grep       | `GrepTool`       | `tool/grep.ts`        | `grep`, `external_directory` |
+| Edit       | `EditTool`       | `tool/edit.ts`        | `edit`, `external_directory` |
+| Write      | `WriteTool`      | `tool/write.ts`       | `edit`                       |
+| Task       | `TaskTool`       | `tool/task.ts`        | `task`                       |
+| WebFetch   | `WebFetchTool`   | `tool/webfetch.ts`    | `webfetch`                   |
+| TodoWrite  | `TodoWriteTool`  | `tool/todo.ts`        | `todowrite`                  |
+| WebSearch  | `WebSearchTool`  | `tool/websearch.ts`   | `websearch`                  |
+| CodeSearch | `CodeSearchTool` | `tool/codesearch.ts`  | `codesearch`                 |
+| Skill      | `SkillTool`      | `tool/skill.ts`       | `skill`                      |
+| ApplyPatch | `ApplyPatchTool` | `tool/apply_patch.ts` | `edit`                       |
+| Lsp        | `LspTool`        | `tool/lsp.ts`         | `lsp`                        |
+| Batch      | `BatchTool`      | `tool/batch.ts`       | `batch`                      |
+| PlanExit   | `PlanExitTool`   | `tool/plan.ts`        | `plan_exit`                  |
 
 **Conditional tool inclusion:**
 
@@ -239,7 +242,7 @@ Before spawning any subprocess, `BashTool` uses tree-sitter to parse the command
 
 2. **Command permission**: All command strings from the parsed AST are collected and passed to `ctx.ask` with `permission: "bash"` [packages/opencode/src/tool/bash.ts:154-160](). The `always` patterns use `BashArity.prefix(command).join(" ") + " *"` to match command prefixes (e.g., `"ls *"` for `"ls -la"`) [packages/opencode/src/tool/bash.ts:135]().
 
-The `workdir` parameter overrides the working directory (default: `Instance.directory`) [packages/opencode/src/tool/bash.ts:66-71](). Timeout defaults to 2 minutes [packages/opencode/src/tool/bash.ts:22]() but can be overridden per-call via the `timeout` parameter [packages/opencode/src/tool/bash.ts:65]()  or globally via `Flag.OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS`.
+The `workdir` parameter overrides the working directory (default: `Instance.directory`) [packages/opencode/src/tool/bash.ts:66-71](). Timeout defaults to 2 minutes [packages/opencode/src/tool/bash.ts:22]() but can be overridden per-call via the `timeout` parameter [packages/opencode/src/tool/bash.ts:65]() or globally via `Flag.OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS`.
 
 Before spawning, the shell environment is augmented via the `shell.env` plugin hook [packages/opencode/src/tool/bash.ts:162-166](), then the process is spawned using `Shell.acceptable()` [packages/opencode/src/tool/bash.ts:56]() and killed via `Shell.killTree()` on timeout or abort [packages/opencode/src/tool/bash.ts:207]().
 
@@ -319,7 +322,6 @@ Sources: [packages/opencode/src/tool/task.ts]()
 `TodoWriteTool` [packages/opencode/src/tool/todo.ts:6-31]() and `TodoReadTool` [packages/opencode/src/tool/todo.ts:33-53]() manage the session-scoped todo list:
 
 - **TodoWriteTool**: Accepts a `todos` array of `Todo.Info` objects, requests `todowrite` permission [packages/opencode/src/tool/todo.ts:12-17](), calls `Todo.update()` to persist the list [packages/opencode/src/tool/todo.ts:19-22](), and returns the updated todos in metadata. This triggers a `todo.updated` SSE event consumed by the UI.
-  
 - **TodoReadTool**: Requests `todoread` permission [packages/opencode/src/tool/todo.ts:37-42](), retrieves todos via `Todo.get(ctx.sessionID)` [packages/opencode/src/tool/todo.ts:44](), and returns them as JSON in the tool output.
 
 Both tools share `tool/todo.ts` but use separate permission keys to allow fine-grained control (e.g., an agent might be allowed to read todos but not write them).
@@ -354,35 +356,35 @@ graph TB
         PluginTools["Plugin Tools\
 Plugin.list()[*].tool"]
     end
-    
+
     subgraph ToolRegistry["ToolRegistry"]
         State["ToolRegistry.state()"]
         All["ToolRegistry.all()"]
         Tools["ToolRegistry.tools(model, agent)"]
     end
-    
+
     subgraph SessionPrompt["session/prompt.ts"]
         ResolveTools["resolveTools()"]
         MCPTools["MCP.resolveTools()"]
         LSPTools["LSP.tools()"]
         StructuredOutput["StructuredOutput (when format=json_schema)"]
     end
-    
+
     subgraph AISDK["AI SDK"]
         StreamText["streamText({ tools, ... })"]
     end
-    
+
     ConfigTools --> State
     PluginTools --> State
     State --> All
     BuiltIn --> All
     All --> Tools
-    
+
     Tools --> ResolveTools
     MCPTools --> ResolveTools
     LSPTools --> ResolveTools
     StructuredOutput --> ResolveTools
-    
+
     ResolveTools --> StreamText
 ```
 
@@ -400,15 +402,16 @@ The permission system gates tool execution at runtime using a pattern-based rule
 
 Every permission check resolves to one of three actions [packages/opencode/src/permission/next.ts]():
 
-| Action | Behavior |
-|--------|----------|
-| `allow` | Proceed immediately, no prompt |
-| `deny` | Throw immediately, tool call fails |
-| `ask` | Suspend the session, prompt the user interactively via SSE |
+| Action  | Behavior                                                   |
+| ------- | ---------------------------------------------------------- |
+| `allow` | Proceed immediately, no prompt                             |
+| `deny`  | Throw immediately, tool call fails                         |
+| `ask`   | Suspend the session, prompt the user interactively via SSE |
 
 ### Rule Format
 
 A `PermissionRule` is either:
+
 - A flat action string (`"allow"`, `"deny"`, `"ask"`)
 - A map of glob patterns to actions
 
@@ -419,7 +422,7 @@ Both forms are valid in `opencode.json`:
   "permission": {
     "bash": "deny",
     "read": {
-      "*":    "allow",
+      "*": "allow",
       "*.env": "ask"
     },
     "edit": "ask"
@@ -437,10 +440,10 @@ Inside `execute`, a tool calls `ctx.ask(req)` to request permission before perfo
 
 ```typescript
 await ctx.ask({
-  permission: "edit",                                      // permission key to check
-  patterns: [path.relative(Instance.worktree, filePath)],  // specific patterns for this call
-  always:   ["*"],                                         // broad pattern for "always allow"
-  metadata: { filepath: filePath, diff },                  // shown to user in prompt UI
+  permission: 'edit', // permission key to check
+  patterns: [path.relative(Instance.worktree, filePath)], // specific patterns for this call
+  always: ['*'], // broad pattern for "always allow"
+  metadata: { filepath: filePath, diff }, // shown to user in prompt UI
 })
 ```
 
@@ -474,26 +477,26 @@ graph TB
         DefaultsCode["Agent.state() defaults\
 e.g., '*': 'allow', 'doom_loop': 'ask'"]
     end
-    
+
     subgraph Layer2["2. Global Config"]
         GlobalConfig["opencode.json permission field\
 Config.Permission"]
     end
-    
+
     subgraph Layer3["3. Agent Config"]
         AgentConfig["opencode.json agent.{name}.permission\
 Config.Agent.permission"]
     end
-    
+
     subgraph Layer4["4. Session Runtime"]
         SessionPerms["Session.setPermission()\
 User grants during session"]
     end
-    
+
     subgraph Merge["PermissionNext.merge()"]
         FinalRuleset["Final Ruleset"]
     end
-    
+
     DefaultsCode --> FinalRuleset
     GlobalConfig --> FinalRuleset
     AgentConfig --> FinalRuleset
@@ -503,10 +506,10 @@ User grants during session"]
 **Example merge:**
 
 ```typescript
-const defaults = PermissionNext.fromConfig({ "*": "allow", "doom_loop": "ask" })
-const global = PermissionNext.fromConfig({ "bash": "deny" })
-const agentSpecific = PermissionNext.fromConfig({ "bash": { "git *": "allow" } })
-const session = PermissionNext.fromConfig({ "edit": { "*.env": "allow" } })
+const defaults = PermissionNext.fromConfig({ '*': 'allow', doom_loop: 'ask' })
+const global = PermissionNext.fromConfig({ bash: 'deny' })
+const agentSpecific = PermissionNext.fromConfig({ bash: { 'git *': 'allow' } })
+const session = PermissionNext.fromConfig({ edit: { '*.env': 'allow' } })
 
 const final = PermissionNext.merge(defaults, global, agentSpecific, session)
 // Result:
@@ -522,19 +525,19 @@ Sources: [packages/opencode/src/permission/next.ts](), [packages/opencode/src/ag
 
 The `build` agent (the default primary agent) is initialized with these defaults [packages/opencode/src/agent/agent.ts:77-92]():
 
-| Permission | Pattern | Action |
-|-----------|---------|--------|
-| `*` | `*` | `allow` |
-| `doom_loop` | `*` | `ask` |
-| `external_directory` | `*` | `ask` |
-| `external_directory` | `Truncate.GLOB` | `allow` |
+| Permission           | Pattern           | Action  |
+| -------------------- | ----------------- | ------- |
+| `*`                  | `*`               | `allow` |
+| `doom_loop`          | `*`               | `ask`   |
+| `external_directory` | `*`               | `ask`   |
+| `external_directory` | `Truncate.GLOB`   | `allow` |
 | `external_directory` | skill directories | `allow` |
-| `read` | `*.env` | `ask` |
-| `read` | `*.env.*` | `ask` |
-| `read` | `*.env.example` | `allow` |
-| `read` | `*` | `allow` |
-| `question` | `*` | `allow` |
-| `plan_enter` | `*` | `allow` |
+| `read`               | `*.env`           | `ask`   |
+| `read`               | `*.env.*`         | `ask`   |
+| `read`               | `*.env.example`   | `allow` |
+| `read`               | `*`               | `allow` |
+| `question`           | `*`               | `allow` |
+| `plan_enter`         | `*`               | `allow` |
 
 **Other agents:**
 
@@ -558,6 +561,7 @@ Sources: [packages/opencode/src/agent/agent.ts:52-252]()
 The `assertExternalDirectory(ctx, target?, options?)` function [packages/opencode/src/tool/external-directory.ts]() is called by file manipulation tools before any I/O:
 
 **Callers:**
+
 - `EditTool` [packages/opencode/src/tool/edit.ts:54]()
 - `WriteTool` [packages/opencode/src/tool/write.ts:27]()
 - `ReadTool` [packages/opencode/src/tool/read.ts:40]()

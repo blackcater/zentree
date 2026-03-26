@@ -21,8 +21,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the two core text generation functions in the AI SDK: `generateText` and `streamText`. These functions provide the foundation for all language model interactions in the SDK, handling both synchronous and streaming text generation with unified parameters and provider abstraction.
 
 For information about structured output generation, see [Output API](#2.2). For tool calling and multi-step agents, see [Tool Calling and Multi-Step Agents](#2.3). For observability features, see [Observability and Telemetry](#2.5).
@@ -41,33 +39,33 @@ graph TB
     subgraph "Application Layer"
         APP[Application Code]
     end
-    
+
     subgraph "Core Functions"
         GT[generateText]
         ST[streamText]
     end
-    
+
     subgraph "Provider Abstraction"
         LM[LanguageModelV3]
         DG[doGenerate]
         DS[doStream]
     end
-    
+
     subgraph "Provider Implementations"
         OPENAI[OpenAIChatLanguageModel]
         ANTHROPIC[AnthropicMessagesLanguageModel]
         GOOGLE[GoogleGenerativeAILanguageModel]
     end
-    
+
     APP -->|synchronous| GT
     APP -->|streaming| ST
-    
+
     GT --> DG
     ST --> DS
-    
+
     DG --> LM
     DS --> LM
-    
+
     LM --> OPENAI
     LM --> ANTHROPIC
     LM --> GOOGLE
@@ -79,25 +77,25 @@ graph TB
 
 Both `generateText` and `streamText` accept the same core parameter set, defined in their shared call options interface:
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `model` | `LanguageModelV3` | The language model instance to use for generation |
-| `prompt` | `string` or prompt array | The input prompt (simple string or complex message array) |
-| `system` | `string` or `SystemModelMessage[]` | System instructions for the model |
-| `messages` | `CoreMessage[]` | Message history for conversational contexts |
-| `tools` | `Record<string, CoreTool>` | Tool definitions for function calling |
-| `maxOutputTokens` | `number` | Maximum number of tokens to generate |
-| `temperature` | `number` | Controls randomness in generation (0.0-2.0) |
-| `topP` | `number` | Nucleus sampling parameter |
-| `topK` | `number` | Top-k sampling parameter |
-| `presencePenalty` | `number` | Reduces repetition of content |
-| `frequencyPenalty` | `number` | Reduces repetition of token sequences |
-| `stopSequences` | `string[]` | Sequences that halt generation |
-| `seed` | `number` | Deterministic generation seed |
-| `maxSteps` | `number` | Maximum tool execution steps |
-| `experimental_telemetry` | `TelemetrySettings` | Telemetry configuration |
-| `abortSignal` | `AbortSignal` | Cancellation signal |
-| `headers` | `Record<string, string>` | Custom HTTP headers |
+| Parameter                | Type                               | Description                                               |
+| ------------------------ | ---------------------------------- | --------------------------------------------------------- |
+| `model`                  | `LanguageModelV3`                  | The language model instance to use for generation         |
+| `prompt`                 | `string` or prompt array           | The input prompt (simple string or complex message array) |
+| `system`                 | `string` or `SystemModelMessage[]` | System instructions for the model                         |
+| `messages`               | `CoreMessage[]`                    | Message history for conversational contexts               |
+| `tools`                  | `Record<string, CoreTool>`         | Tool definitions for function calling                     |
+| `maxOutputTokens`        | `number`                           | Maximum number of tokens to generate                      |
+| `temperature`            | `number`                           | Controls randomness in generation (0.0-2.0)               |
+| `topP`                   | `number`                           | Nucleus sampling parameter                                |
+| `topK`                   | `number`                           | Top-k sampling parameter                                  |
+| `presencePenalty`        | `number`                           | Reduces repetition of content                             |
+| `frequencyPenalty`       | `number`                           | Reduces repetition of token sequences                     |
+| `stopSequences`          | `string[]`                         | Sequences that halt generation                            |
+| `seed`                   | `number`                           | Deterministic generation seed                             |
+| `maxSteps`               | `number`                           | Maximum tool execution steps                              |
+| `experimental_telemetry` | `TelemetrySettings`                | Telemetry configuration                                   |
+| `abortSignal`            | `AbortSignal`                      | Cancellation signal                                       |
+| `headers`                | `Record<string, string>`           | Custom HTTP headers                                       |
 
 **Sources**: [packages/ai/CHANGELOG.md:200-250](), [content/docs/03-ai-sdk-core/60-telemetry.mdx:1-100]()
 
@@ -114,30 +112,30 @@ graph LR
         TS[TransformStream]
         AIS[AsyncIterableStream]
     end
-    
+
     subgraph "Stream Transformations"
         RTT[runToolsTransformation]
         SS[smoothStream]
         UIMS[UIMessageStream]
     end
-    
+
     subgraph "Consumer APIs"
         TRS[textStream]
         FTS[fullStream]
         TO[toDataStreamResponse]
     end
-    
+
     ST --> PS
     PS --> DS
     DS --> TS
     TS --> RTT
     RTT --> SS
     SS --> AIS
-    
+
     AIS --> TRS
     AIS --> FTS
     AIS --> UIMS
-    
+
     UIMS --> TO
 ```
 
@@ -174,13 +172,13 @@ sequenceDiagram
     participant PS as prepareStep
     participant LM as LanguageModelV3
     participant Provider as OpenAI/Anthropic/etc
-    
+
     App->>GT: call with parameters
     GT->>PS: prepareStep(options)
     PS->>PS: convertToModelMessages()
     PS->>PS: validate messages
     PS->>PS: prepare tools
-    
+
     alt generateText
         PS->>LM: doGenerate(options)
         LM->>Provider: API request
@@ -231,7 +229,7 @@ graph TD
         STEP[stepTimeout ms]
         CHUNK[chunkTimeout ms]
     end
-    
+
     subgraph "Timeout Scope"
         GT[generateText]
         ST[streamText]
@@ -239,11 +237,11 @@ graph TD
         STDS[doStream call]
         CHUNK_READ[chunk read wait]
     end
-    
+
     TTO --> TOTAL
     TTO --> STEP
     TTO --> CHUNK
-    
+
     TOTAL -.applies to.-> GT
     TOTAL -.applies to.-> ST
     STEP -.applies to.-> GTDG
@@ -253,11 +251,11 @@ graph TD
 
 ### Timeout Types
 
-| Timeout | Scope | Throws When |
-|---------|-------|-------------|
-| `timeout` (overall) | Entire generation | Total time exceeds limit |
-| `stepTimeout` | Per LLM call step | Single step exceeds limit |
-| `chunkTimeout` | Per stream chunk | Time between chunks exceeds limit |
+| Timeout             | Scope             | Throws When                       |
+| ------------------- | ----------------- | --------------------------------- |
+| `timeout` (overall) | Entire generation | Total time exceeds limit          |
+| `stepTimeout`       | Per LLM call step | Single step exceeds limit         |
+| `chunkTimeout`      | Per stream chunk  | Time between chunks exceeds limit |
 
 ### Configuration
 
@@ -279,7 +277,9 @@ Timeouts are configured via the `timeout` parameter object:
 The SDK also accepts a direct millisecond number for backward compatibility, which sets the overall timeout:
 
 ```typescript
-{ timeout: 30000 }  // equivalent to { timeout: { total: 30000 } }
+{
+  timeout: 30000
+} // equivalent to { timeout: { total: 30000 } }
 ```
 
 **Sources**: [packages/ai/CHANGELOG.md:729-731](), [packages/ai/CHANGELOG.md:765-766](), [packages/ai/CHANGELOG.md:775-776](), [packages/ai/CHANGELOG.md:781-782](), [packages/ai/CHANGELOG.md:793-794]()
@@ -290,35 +290,35 @@ The SDK also accepts a direct millisecond number for backward compatibility, whi
 
 The `generateText` function returns a `GenerateTextResult` object containing:
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `text` | `string` | Complete generated text |
-| `toolCalls` | `ToolCall[]` | Tool calls made during generation |
-| `toolResults` | `ToolResult[]` | Results from executed tools |
-| `finishReason` | `FinishReason` | Reason generation stopped |
-| `usage` | `TokenUsage` | Token counts (prompt, completion, total) |
-| `rawResponse` | `RawResponse` | Provider-specific response metadata |
-| `response` | `ResponseMetadata` | Response ID, timestamp, model ID |
-| `warnings` | `Warning[]` | Model capability warnings |
-| `experimental_providerMetadata` | `ProviderMetadata` | Provider-specific metadata |
+| Property                        | Type               | Description                              |
+| ------------------------------- | ------------------ | ---------------------------------------- |
+| `text`                          | `string`           | Complete generated text                  |
+| `toolCalls`                     | `ToolCall[]`       | Tool calls made during generation        |
+| `toolResults`                   | `ToolResult[]`     | Results from executed tools              |
+| `finishReason`                  | `FinishReason`     | Reason generation stopped                |
+| `usage`                         | `TokenUsage`       | Token counts (prompt, completion, total) |
+| `rawResponse`                   | `RawResponse`      | Provider-specific response metadata      |
+| `response`                      | `ResponseMetadata` | Response ID, timestamp, model ID         |
+| `warnings`                      | `Warning[]`        | Model capability warnings                |
+| `experimental_providerMetadata` | `ProviderMetadata` | Provider-specific metadata               |
 
 ### StreamTextResult
 
 The `streamText` function returns a `StreamTextResult` object containing:
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `textStream` | `AsyncIterableStream<string>` | Stream of text deltas |
-| `fullStream` | `AsyncIterableStream<TextStreamPart>` | Stream of all chunk types |
-| `text` | `Promise<string>` | Promise resolving to complete text |
-| `toolCalls` | `Promise<ToolCall[]>` | Promise resolving to all tool calls |
-| `toolResults` | `Promise<ToolResult[]>` | Promise resolving to all tool results |
-| `usage` | `Promise<TokenUsage>` | Promise resolving to token usage |
-| `finishReason` | `Promise<FinishReason>` | Promise resolving to finish reason |
-| `response` | `ResponseMetadata` | Response metadata (available immediately) |
-| `warnings` | `Warning[]` | Model capability warnings |
-| `toDataStreamResponse()` | `Function` | Converts to HTTP streaming response |
-| `pipeDataStreamToResponse()` | `Function` | Pipes stream to HTTP response |
+| Property                     | Type                                  | Description                               |
+| ---------------------------- | ------------------------------------- | ----------------------------------------- |
+| `textStream`                 | `AsyncIterableStream<string>`         | Stream of text deltas                     |
+| `fullStream`                 | `AsyncIterableStream<TextStreamPart>` | Stream of all chunk types                 |
+| `text`                       | `Promise<string>`                     | Promise resolving to complete text        |
+| `toolCalls`                  | `Promise<ToolCall[]>`                 | Promise resolving to all tool calls       |
+| `toolResults`                | `Promise<ToolResult[]>`               | Promise resolving to all tool results     |
+| `usage`                      | `Promise<TokenUsage>`                 | Promise resolving to token usage          |
+| `finishReason`               | `Promise<FinishReason>`               | Promise resolving to finish reason        |
+| `response`                   | `ResponseMetadata`                    | Response metadata (available immediately) |
+| `warnings`                   | `Warning[]`                           | Model capability warnings                 |
+| `toDataStreamResponse()`     | `Function`                            | Converts to HTTP streaming response       |
+| `pipeDataStreamToResponse()` | `Function`                            | Pipes stream to HTTP response             |
 
 ### Stream Chunk Types
 
@@ -338,14 +338,14 @@ The `fullStream` emits typed chunks:
 
 Both functions throw specific error types for different failure modes:
 
-| Error Class | Thrown When |
-|-------------|-------------|
-| `AI_APICallError` | Provider API returns error response |
-| `AI_InvalidPromptError` | Prompt format is invalid |
-| `AI_InvalidModelResponseError` | Model response cannot be parsed |
-| `AI_NoObjectGeneratedError` | Object generation fails with structured output |
-| `AI_LoadSettingError` | Settings loading fails |
-| `AI_TimeoutError` | Any timeout is exceeded |
+| Error Class                    | Thrown When                                    |
+| ------------------------------ | ---------------------------------------------- |
+| `AI_APICallError`              | Provider API returns error response            |
+| `AI_InvalidPromptError`        | Prompt format is invalid                       |
+| `AI_InvalidModelResponseError` | Model response cannot be parsed                |
+| `AI_NoObjectGeneratedError`    | Object generation fails with structured output |
+| `AI_LoadSettingError`          | Settings loading fails                         |
+| `AI_TimeoutError`              | Any timeout is exceeded                        |
 
 The `AI_TimeoutError` includes a `cause` property indicating which timeout was exceeded (overall, step, or chunk).
 

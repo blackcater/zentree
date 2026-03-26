@@ -44,8 +44,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page summarizes the migration guides covering all major AI SDK version transitions from 3.x through 5.0, including the automated codemod tooling, data migration strategies for persisted messages, and the AI SDK 5 Migration MCP Server. For details on the release process that produces these versions, see [Release Process and Version Management](#6.3). For the package structure that changes between versions, see [Package Structure and Organization](#1.2).
 
 ---
@@ -54,17 +52,17 @@ This page summarizes the migration guides covering all major AI SDK version tran
 
 The migration guide documents are located in [content/docs/08-migration-guides/]() and cover the following upgrade paths:
 
-| Source Version | Target Version | Breaking Changes | Codemods Available | Guide File |
-|---|---|---|---|---|
-| 3.0 | 3.1 | Legacy providers → AI SDK Core, `render` → `streamUI` | No | `39-migration-guide-3-1.mdx` |
-| 3.1 | 3.2 | `StreamingReactResponse` removed, UI framework packages separated | No | `38-migration-guide-3-2.mdx` |
-| 3.2 | 3.3 | None | No | `37-migration-guide-3-3.mdx` |
-| 3.3 | 3.4 | None | No | `36-migration-guide-3-4.mdx` |
-| 3.4 | 4.0 | Significant (see below) | Yes (`npx @ai-sdk/codemod v4`) | `29-migration-guide-4-0.mdx` |
-| 4.0 | 4.1 | None | No | `28-migration-guide-4-1.mdx` |
-| 4.1 | 4.2 | Message parts redesign | No | `27-migration-guide-4-2.mdx` |
-| 4.x | 5.0 | Significant (see below) | Yes (`npx @ai-sdk/codemod v5`) | `26-migration-guide-5-0.mdx` |
-| 4.x | 5.0 (data) | Persisted message schema | Manual | `25-migration-guide-5-0-data.mdx` |
+| Source Version | Target Version | Breaking Changes                                                  | Codemods Available             | Guide File                        |
+| -------------- | -------------- | ----------------------------------------------------------------- | ------------------------------ | --------------------------------- |
+| 3.0            | 3.1            | Legacy providers → AI SDK Core, `render` → `streamUI`             | No                             | `39-migration-guide-3-1.mdx`      |
+| 3.1            | 3.2            | `StreamingReactResponse` removed, UI framework packages separated | No                             | `38-migration-guide-3-2.mdx`      |
+| 3.2            | 3.3            | None                                                              | No                             | `37-migration-guide-3-3.mdx`      |
+| 3.3            | 3.4            | None                                                              | No                             | `36-migration-guide-3-4.mdx`      |
+| 3.4            | 4.0            | Significant (see below)                                           | Yes (`npx @ai-sdk/codemod v4`) | `29-migration-guide-4-0.mdx`      |
+| 4.0            | 4.1            | None                                                              | No                             | `28-migration-guide-4-1.mdx`      |
+| 4.1            | 4.2            | Message parts redesign                                            | No                             | `27-migration-guide-4-2.mdx`      |
+| 4.x            | 5.0            | Significant (see below)                                           | Yes (`npx @ai-sdk/codemod v5`) | `26-migration-guide-5-0.mdx`      |
+| 4.x            | 5.0 (data)     | Persisted message schema                                          | Manual                         | `25-migration-guide-5-0-data.mdx` |
 
 **Diagram: SDK version progression**
 
@@ -150,11 +148,11 @@ Sources: [content/docs/08-migration-guides/26-migration-guide-5-0.mdx:72-115](),
 
 ### Package Versions
 
-| Package | Target Version |
-|---|---|
-| `ai` | `4.0.*` |
-| `@ai-sdk/provider-utils` | `2.0.*` |
-| `@ai-sdk/*` providers | `1.0.*` |
+| Package                  | Target Version |
+| ------------------------ | -------------- |
+| `ai`                     | `4.0.*`        |
+| `@ai-sdk/provider-utils` | `2.0.*`        |
+| `@ai-sdk/*` providers    | `1.0.*`        |
 
 ### Core API Changes
 
@@ -253,13 +251,13 @@ Version 5.0 is the largest breaking release. The recommended migration process i
 
 ### Package Versions
 
-| Package | Required Version |
-|---|---|
-| `ai` | `5.0.0` |
-| `@ai-sdk/provider` | `2.0.0` |
-| `@ai-sdk/provider-utils` | `3.0.0` |
-| `@ai-sdk/*` providers | `2.0.0` |
-| `zod` | `4.1.8` or later (required peer dependency) |
+| Package                  | Required Version                            |
+| ------------------------ | ------------------------------------------- |
+| `ai`                     | `5.0.0`                                     |
+| `@ai-sdk/provider`       | `2.0.0`                                     |
+| `@ai-sdk/provider-utils` | `3.0.0`                                     |
+| `@ai-sdk/*` providers    | `2.0.0`                                     |
+| `zod`                    | `4.1.8` or later (required peer dependency) |
 
 > **Zod Requirement:** Upgrading to Zod 4.1.8+ is required to avoid TypeScript performance issues. If upgrading Zod is not immediately possible, set `moduleResolution: "nodenext"` in `tsconfig.json`. See [content/docs/09-troubleshooting/12-typescript-performance-zod.mdx]().
 
@@ -307,35 +305,35 @@ Sources: [content/docs/08-migration-guides/26-migration-guide-5-0.mdx:141-190]()
 
 The `UIMessage` type (previously `Message`) replaces the flat `.content` property with a `parts` array. This is now the single source of truth for message content.
 
-| 4.x Property | 5.0 Equivalent |
-|---|---|
-| `message.content` (string) | `{ type: 'text', text: '...' }` part in `message.parts` |
-| `message.reasoning` (string) | `{ type: 'reasoning', text: '...' }` part |
-| `message.toolInvocations` array | `tool-${toolName}` typed parts |
-| `data` role | Custom `data-*` parts via `createUIMessageStream` |
-| `part.reasoning` on reasoning parts | `part.text` on reasoning parts |
+| 4.x Property                        | 5.0 Equivalent                                          |
+| ----------------------------------- | ------------------------------------------------------- |
+| `message.content` (string)          | `{ type: 'text', text: '...' }` part in `message.parts` |
+| `message.reasoning` (string)        | `{ type: 'reasoning', text: '...' }` part               |
+| `message.toolInvocations` array     | `tool-${toolName}` typed parts                          |
+| `data` role                         | Custom `data-*` parts via `createUIMessageStream`       |
+| `part.reasoning` on reasoning parts | `part.text` on reasoning parts                          |
 
 ### Tool Definition Changes
 
-| 4.x | 5.0 |
-|---|---|
-| `tool({ parameters: z.object({...}) })` | `tool({ inputSchema: z.object({...}) })` |
-| `toolCall.args` | `toolCall.input` |
-| `toolResult.result` | `toolResult.output` |
-| `experimental_toToolResultContent` | `toModelOutput` |
+| 4.x                                      | 5.0                                         |
+| ---------------------------------------- | ------------------------------------------- |
+| `tool({ parameters: z.object({...}) })`  | `tool({ inputSchema: z.object({...}) })`    |
+| `toolCall.args`                          | `toolCall.input`                            |
+| `toolResult.result`                      | `toolResult.output`                         |
+| `experimental_toToolResultContent`       | `toModelOutput`                             |
 | `ToolExecutionError` thrown as exception | `tool-error` content part in `result.steps` |
-| `toolCallStreaming: true` option | Removed; always enabled by default |
+| `toolCallStreaming: true` option         | Removed; always enabled by default          |
 
 ### Tool UI Part State Changes
 
 Tool UI parts use new state names in 5.0:
 
-| 4.x State | 5.0 State | Meaning |
-|---|---|---|
-| `partial-call` | `input-streaming` | Tool input being streamed |
-| `call` | `input-available` | Tool input complete, ready to execute |
-| `result` | `output-available` | Tool execution successful |
-| *(not present)* | `output-error` | Tool execution failed |
+| 4.x State       | 5.0 State          | Meaning                               |
+| --------------- | ------------------ | ------------------------------------- |
+| `partial-call`  | `input-streaming`  | Tool input being streamed             |
+| `call`          | `input-available`  | Tool input complete, ready to execute |
+| `result`        | `output-available` | Tool execution successful             |
+| _(not present)_ | `output-error`     | Tool execution failed                 |
 
 The generic `tool-invocation` part type is replaced with `tool-${toolName}` typed parts. Helper functions `isToolUIPart` and `getToolName` are exported from `ai` for catch-all rendering patterns.
 
@@ -364,23 +362,23 @@ generateText({
 
 ### Reasoning Property Changes
 
-| 4.x | 5.0 | Location |
-|---|---|---|
-| `result.reasoning` | `result.reasoningText` | `generateText` / `streamText` result |
-| `result.reasoningDetails` | `result.reasoning` | `generateText` / `streamText` result |
-| `step.reasoning` | `step.reasoningText` | Per-step access |
+| 4.x                       | 5.0                    | Location                             |
+| ------------------------- | ---------------------- | ------------------------------------ |
+| `result.reasoning`        | `result.reasoningText` | `generateText` / `streamText` result |
+| `result.reasoningDetails` | `result.reasoning`     | `generateText` / `streamText` result |
+| `step.reasoning`          | `step.reasoningText`   | Per-step access                      |
 
 ### Streaming and Data API Changes
 
 `StreamData`, `createDataStreamResponse`, `writeMessageAnnotation`, and `writeData` are all removed. The replacement is `createUIMessageStream` with a `writer` API.
 
-| 4.x | 5.0 |
-|---|---|
-| `new StreamData()` + `.append()` | `createUIMessageStream({ execute({ writer }) {...} })` |
-| `dataStream.writeData(...)` | `writer.write({ type: 'data-*', id, data })` |
-| `dataStream.writeMessageAnnotation(...)` | `writer.write({ type: 'data-*', id, data })` |
-| `result.mergeIntoDataStream(dataStream)` | `writer.merge(result.toUIMessageStream())` |
-| `createDataStreamResponse(...)` | `createUIMessageStreamResponse({ stream })` |
+| 4.x                                      | 5.0                                                    |
+| ---------------------------------------- | ------------------------------------------------------ |
+| `new StreamData()` + `.append()`         | `createUIMessageStream({ execute({ writer }) {...} })` |
+| `dataStream.writeData(...)`              | `writer.write({ type: 'data-*', id, data })`           |
+| `dataStream.writeMessageAnnotation(...)` | `writer.write({ type: 'data-*', id, data })`           |
+| `result.mergeIntoDataStream(dataStream)` | `writer.merge(result.toUIMessageStream())`             |
+| `createDataStreamResponse(...)`          | `createUIMessageStreamResponse({ stream })`            |
 
 ### Other Core Changes
 
@@ -392,13 +390,13 @@ generateText({
 
 ### `useChat` Changes
 
-| 4.x | 5.0 |
-|---|---|
-| `initialMessages` option | `messages` option |
-| `maxSteps` option | Server-side `stopWhen` + client-side `sendAutomaticallyWhen` |
-| `append(message)` | `sendMessage(message)` |
-| Shared state via same `id` | `chat-store` (`createChatStore`) |
-| Managed `input` state | Removed; manage externally |
+| 4.x                        | 5.0                                                          |
+| -------------------------- | ------------------------------------------------------------ |
+| `initialMessages` option   | `messages` option                                            |
+| `maxSteps` option          | Server-side `stopWhen` + client-side `sendAutomaticallyWhen` |
+| `append(message)`          | `sendMessage(message)`                                       |
+| Shared state via same `id` | `chat-store` (`createChatStore`)                             |
+| Managed `input` state      | Removed; manage externally                                   |
 
 Sources: [content/docs/08-migration-guides/26-migration-guide-5-0.mdx]()
 
@@ -465,20 +463,20 @@ The conversion layer consists of two functions defined in a shared module (e.g. 
 The state mapping between v4 and v5 tool states is:
 
 | v4 `ToolInvocation.state` | v5 `ToolUIPart.state` |
-|---|---|
-| `partial-call` | `input-streaming` |
-| `call` | `input-available` |
-| `result` | `output-available` |
+| ------------------------- | --------------------- |
+| `partial-call`            | `input-streaming`     |
+| `call`                    | `input-available`     |
+| `result`                  | `output-available`    |
 
 Key structural conversions handled by `convertV4MessageToV5`:
 
-| v4 field | v5 part type |
-|---|---|
-| `toolInvocation` part / `toolInvocations` array | `tool-${toolName}` part |
-| `reasoning` part (with `.reasoning` property) | `reasoning` part (with `.text` property) |
-| `source` part | `source-url` part |
-| `file` part (with `.mimeType`, `.data`) | `file` part (with `.mediaType`, `.url`) |
-| `role: 'data'` message | `data-custom` part |
+| v4 field                                        | v5 part type                             |
+| ----------------------------------------------- | ---------------------------------------- |
+| `toolInvocation` part / `toolInvocations` array | `tool-${toolName}` part                  |
+| `reasoning` part (with `.reasoning` property)   | `reasoning` part (with `.text` property) |
+| `source` part                                   | `source-url` part                        |
+| `file` part (with `.mimeType`, `.data`)         | `file` part (with `.mediaType`, `.url`)  |
+| `role: 'data'` message                          | `data-custom` part                       |
 
 See [content/docs/08-migration-guides/25-migration-guide-5-0-data.mdx:100-320]() for the full conversion function implementations.
 

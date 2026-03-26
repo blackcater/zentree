@@ -27,8 +27,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the CLI entrypoint, command routing system, bootstrap process, and command implementations. It covers how OpenCode starts, parses arguments, initializes the project instance, and dispatches to various command handlers.
 
 For information about the TUI application itself (UI components, rendering), see [Terminal User Interface (TUI)](#3.1). For the HTTP server started by `serve` and `web` commands, see [HTTP Server & REST API](#2.6). For configuration loading and hierarchy, see [Configuration System](#2.2).
@@ -48,22 +46,22 @@ graph TB
     Middleware["Middleware pipeline"]
     Commands["Command registry"]
     ErrorHandler["Error handler"]
-    
+
     Entry --> Yargs
     Yargs --> Middleware
     Middleware --> Commands
     Commands --> ErrorHandler
-    
+
     Middleware --> LogInit["Log.init()"]
     Middleware --> Migration["Database migration"]
-    
+
     Commands --> RunCommand["RunCommand"]
     Commands --> TuiThread["TuiThreadCommand"]
     Commands --> Serve["ServeCommand"]
     Commands --> Auth["AuthCommand"]
     Commands --> Mcp["McpCommand"]
     Commands --> Other["...other commands"]
-    
+
     ErrorHandler --> FormatError["FormatError()"]
     ErrorHandler --> Exit["process.exit()"]
 ```
@@ -74,13 +72,13 @@ graph TB
 
 The yargs parser is configured at [packages/opencode/src/index.ts:54-61]() with:
 
-| Configuration | Value | Purpose |
-|---------------|-------|---------|
-| `scriptName` | `"opencode"` | Command name in help output |
-| `wrap` | `100` | Terminal width for help text |
-| `parserConfiguration` | `{ "populate--": true }` | Enables `--` argument separator |
-| `help` / `--help` / `-h` | Enabled | Show help message |
-| `version` / `--version` / `-v` | `Installation.VERSION` | Show version number |
+| Configuration                  | Value                    | Purpose                         |
+| ------------------------------ | ------------------------ | ------------------------------- |
+| `scriptName`                   | `"opencode"`             | Command name in help output     |
+| `wrap`                         | `100`                    | Terminal width for help text    |
+| `parserConfiguration`          | `{ "populate--": true }` | Enables `--` argument separator |
+| `help` / `--help` / `-h`       | Enabled                  | Show help message               |
+| `version` / `--version` / `-v` | `Installation.VERSION`   | Show version number             |
 
 **Sources:** [packages/opencode/src/index.ts:54-61]()
 
@@ -88,10 +86,10 @@ The yargs parser is configured at [packages/opencode/src/index.ts:54-61]() with:
 
 Two global options are available for all commands:
 
-| Option | Type | Choices | Description |
-|--------|------|---------|-------------|
-| `--print-logs` | boolean | - | Print logs to stderr |
-| `--log-level` | string | DEBUG, INFO, WARN, ERROR | Set logging verbosity |
+| Option         | Type    | Choices                  | Description           |
+| -------------- | ------- | ------------------------ | --------------------- |
+| `--print-logs` | boolean | -                        | Print logs to stderr  |
+| `--log-level`  | string  | DEBUG, INFO, WARN, ERROR | Set logging verbosity |
 
 **Sources:** [packages/opencode/src/index.ts:62-70]()
 
@@ -109,7 +107,7 @@ graph LR
     CheckDB["Check for opencode.db"]
     Migrate["Run JsonMigration.run()"]
     Continue["Execute command"]
-    
+
     Start --> LogInit
     LogInit --> EnvVars
     EnvVars --> CheckDB
@@ -149,7 +147,7 @@ Commands are registered using the `.command()` method at [packages/opencode/src/
 ```mermaid
 graph TB
     CLI["yargs CLI"]
-    
+
     CLI --> Default["TuiThreadCommand<br/>$0 [project]<br/>(default)"]
     CLI --> Run["RunCommand<br/>run [message..]"]
     CLI --> Serve["ServeCommand<br/>serve"]
@@ -160,14 +158,14 @@ graph TB
     CLI --> Mcp["McpCommand<br/>mcp [command]"]
     CLI --> Session["SessionCommand<br/>session [command]"]
     CLI --> Other["...others"]
-    
+
     Auth --> AuthLogin["auth login"]
     Auth --> AuthList["auth list"]
     Auth --> AuthLogout["auth logout"]
-    
+
     Agent --> AgentCreate["agent create"]
     Agent --> AgentList["agent list"]
-    
+
     Mcp --> McpAdd["mcp add"]
     Mcp --> McpList["mcp list"]
     Mcp --> McpAuth["mcp auth"]
@@ -179,12 +177,12 @@ graph TB
 
 All commands follow the `cmd()` helper pattern defined at [packages/opencode/src/cli/cmd/cmd.ts](). Each command exports an object with:
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `command` | string | Command name and positional arguments |
-| `describe` | string | Help text description |
-| `builder` | function | Yargs builder for options |
-| `handler` | async function | Command implementation |
+| Property   | Type           | Description                           |
+| ---------- | -------------- | ------------------------------------- |
+| `command`  | string         | Command name and positional arguments |
+| `describe` | string         | Help text description                 |
+| `builder`  | function       | Yargs builder for options             |
+| `handler`  | async function | Command implementation                |
 
 **Sources:** [packages/opencode/src/cli/cmd/run.ts:221-664](), [packages/opencode/src/cli/cmd/serve.ts:9-24]()
 
@@ -202,7 +200,7 @@ sequenceDiagram
     participant Init as InstanceBootstrap
     participant Callback as Command Logic
     participant Dispose as Instance.dispose()
-    
+
     Cmd->>Bootstrap: bootstrap(directory, callback)
     Bootstrap->>Instance: Instance.provide()
     Instance->>Init: InstanceBootstrap()
@@ -245,6 +243,7 @@ export async function bootstrap<T>(directory: string, cb: () => Promise<T>) {
 ### What InstanceBootstrap Does
 
 The `InstanceBootstrap` function (referenced in [Configuration System](#2.2)) performs:
+
 - Configuration loading from all layers
 - Plugin initialization
 - MCP server connection
@@ -261,18 +260,21 @@ The `InstanceBootstrap` function (referenced in [Configuration System](#2.2)) pe
 ### Interactive Commands
 
 **TuiThreadCommand** [packages/opencode/src/cli/cmd/tui/thread.ts:62-220]()
+
 - Default command when no command specified
 - Starts the TUI in a worker thread
 - Supports `--continue`, `--session`, `--fork`, `--model`, `--agent` options
 - Uses worker architecture for clean process separation
 
 **AttachCommand** [packages/opencode/src/index.ts:133]()
+
 - Attaches TUI to an already running OpenCode server
 - Allows TUI to connect to `serve` or `web` backend
 
 ### Non-Interactive Execution
 
 **RunCommand** [packages/opencode/src/cli/cmd/run.ts:221-664]()
+
 - Executes a prompt without interactive TUI
 - Supports `--format json` for programmatic output
 - Can `--attach` to running server to avoid cold starts
@@ -282,45 +284,48 @@ The `InstanceBootstrap` function (referenced in [Configuration System](#2.2)) pe
 ### Server Commands
 
 **ServeCommand** [packages/opencode/src/cli/cmd/serve.ts:9-24]()
+
 - Starts headless HTTP server
 - No browser opening
 - Supports `--port`, `--hostname`, `--mdns`, `--cors`
 
 **WebCommand** [packages/opencode/src/cli/cmd/web.ts:31-81]()
+
 - Starts HTTP server and opens web browser
 - Shows local and network access URLs
 - Same network options as `serve`
 
 **AcpCommand** [packages/opencode/src/cli/cmd/acp.ts:12-70]()
+
 - Starts Agent Client Protocol server
 - Communicates via stdin/stdout using nd-JSON
 - Sets `OPENCODE_CLIENT=acp` environment variable
 
 ### Management Commands
 
-| Command | Subcommands | Purpose |
-|---------|-------------|---------|
-| `auth` | login, list, logout | Provider authentication |
-| `agent` | create, list | Custom agent management |
-| `mcp` | add, list, auth, logout, debug | MCP server configuration |
-| `models` | - | List available models |
-| `session` | list | Session management |
-| `stats` | - | Usage statistics |
+| Command   | Subcommands                    | Purpose                  |
+| --------- | ------------------------------ | ------------------------ |
+| `auth`    | login, list, logout            | Provider authentication  |
+| `agent`   | create, list                   | Custom agent management  |
+| `mcp`     | add, list, auth, logout, debug | MCP server configuration |
+| `models`  | -                              | List available models    |
+| `session` | list                           | Session management       |
+| `stats`   | -                              | Usage statistics         |
 
 **Sources:** [packages/opencode/src/index.ts:130-150]()
 
 ### Utility Commands
 
-| Command | Purpose |
-|---------|---------|
-| `export` | Export session as JSON |
-| `import` | Import session from JSON or share URL |
-| `github` | GitHub integration management |
-| `pr` | Pull request operations |
-| `debug` | Debug information |
-| `db` | Database operations |
-| `upgrade` | Update to latest version |
-| `uninstall` | Remove OpenCode |
+| Command     | Purpose                               |
+| ----------- | ------------------------------------- |
+| `export`    | Export session as JSON                |
+| `import`    | Import session from JSON or share URL |
+| `github`    | GitHub integration management         |
+| `pr`        | Pull request operations               |
+| `debug`     | Debug information                     |
+| `db`        | Database operations                   |
+| `upgrade`   | Update to latest version              |
+| `uninstall` | Remove OpenCode                       |
 
 **Sources:** [packages/opencode/src/index.ts:136-150]()
 
@@ -338,22 +343,22 @@ graph TB
         RpcClient["Rpc.client"]
         TuiApp["tui() application"]
     end
-    
+
     subgraph "Worker Thread"
         WorkerEntry["worker.ts entry point"]
         RpcServer["Rpc.listen()"]
         ServerApp["Server.App()"]
         EventStream["Event subscription"]
     end
-    
+
     CLI --> Worker
     Worker --> RpcClient
     RpcClient -->|"RPC calls"| RpcServer
     RpcServer --> ServerApp
-    
+
     CLI --> TuiApp
     TuiApp -->|"fetch via RPC"| RpcClient
-    
+
     EventStream -->|"Rpc.emit('event')"| RpcClient
     RpcClient -->|"Events"| TuiApp
 ```
@@ -367,10 +372,10 @@ The TUI worker is spawned at [packages/opencode/src/cli/cmd/tui/thread.ts:126-13
 ```typescript
 const worker = new Worker(file, {
   env: Object.fromEntries(
-    Object.entries(process.env).filter((entry): entry is [string, string] => 
-      entry[1] !== undefined
+    Object.entries(process.env).filter(
+      (entry): entry is [string, string] => entry[1] !== undefined
     )
-  )
+  ),
 })
 ```
 
@@ -378,13 +383,13 @@ const worker = new Worker(file, {
 
 The worker exposes these RPC methods at [packages/opencode/src/cli/cmd/tui/worker.ts:100-144]():
 
-| Method | Parameters | Purpose |
-|--------|------------|---------|
-| `fetch` | `{ url, method, headers, body }` | Proxy HTTP requests to `Server.App()` |
-| `server` | `{ port, hostname, mdns, cors }` | Start external HTTP server |
-| `checkUpgrade` | `{ directory }` | Check for available updates |
-| `reload` | - | Reset config and dispose instances |
-| `shutdown` | - | Clean shutdown of worker |
+| Method         | Parameters                       | Purpose                               |
+| -------------- | -------------------------------- | ------------------------------------- |
+| `fetch`        | `{ url, method, headers, body }` | Proxy HTTP requests to `Server.App()` |
+| `server`       | `{ port, hostname, mdns, cors }` | Start external HTTP server            |
+| `checkUpgrade` | `{ directory }`                  | Check for available updates           |
+| `reload`       | -                                | Reset config and dispose instances    |
+| `shutdown`     | -                                | Clean shutdown of worker              |
 
 **Sources:** [packages/opencode/src/cli/cmd/tui/worker.ts:100-144]()
 
@@ -393,12 +398,14 @@ The worker exposes these RPC methods at [packages/opencode/src/cli/cmd/tui/worke
 The TUI can use two transport modes:
 
 **Internal Transport** (default)
+
 - `fetch`: RPC-proxied requests to worker
 - `events`: RPC-forwarded event stream
 - No network exposure
 - Faster startup
 
 **External Transport** (`--port`, `--hostname`, or `--mdns` flags)
+
 - `url`: Actual HTTP URL
 - `fetch`: Standard HTTP fetch
 - `events`: Server-sent events
@@ -419,31 +426,31 @@ graph TB
     Config["Config from opencode.json"]
     Args["CLI arguments"]
     Resolved["Resolved network options"]
-    
+
     Config --> Port["server.port"]
     Config --> Host["server.hostname"]
     Config --> MDNS["server.mdns"]
     Config --> Domain["server.mdnsDomain"]
     Config --> CORS["server.cors[]"]
-    
+
     Args --> ArgPort["--port"]
     Args --> ArgHost["--hostname"]
     Args --> ArgMDNS["--mdns"]
     Args --> ArgDomain["--mdns-domain"]
     Args --> ArgCORS["--cors"]
-    
+
     ArgPort -->|"Override"| Resolved
     Port -->|"Default"| Resolved
-    
+
     ArgHost -->|"Override"| Resolved
     Host -->|"Default"| Resolved
-    
+
     ArgMDNS -->|"Override"| Resolved
     MDNS -->|"Default"| Resolved
-    
+
     ArgDomain -->|"Override"| Resolved
     Domain -->|"Default"| Resolved
-    
+
     ArgCORS -->|"Merge"| Resolved
     CORS -->|"Merge"| Resolved
 ```
@@ -461,13 +468,13 @@ The `resolveNetworkOptions()` function at [packages/opencode/src/cli/network.ts:
 
 ### Network Configuration Table
 
-| Option | Config Key | CLI Flag | Default | Description |
-|--------|-----------|----------|---------|-------------|
-| Port | `server.port` | `--port` | `0` (random) | TCP port to bind |
-| Hostname | `server.hostname` | `--hostname` | `127.0.0.1` | Network interface to bind |
-| mDNS | `server.mdns` | `--mdns` | `false` | Enable Bonjour/mDNS discovery |
-| mDNS Domain | `server.mdnsDomain` | `--mdns-domain` | `opencode.local` | Advertised mDNS hostname |
-| CORS | `server.cors[]` | `--cors` (array) | `[]` | Additional CORS origins |
+| Option      | Config Key          | CLI Flag         | Default          | Description                   |
+| ----------- | ------------------- | ---------------- | ---------------- | ----------------------------- |
+| Port        | `server.port`       | `--port`         | `0` (random)     | TCP port to bind              |
+| Hostname    | `server.hostname`   | `--hostname`     | `127.0.0.1`      | Network interface to bind     |
+| mDNS        | `server.mdns`       | `--mdns`         | `false`          | Enable Bonjour/mDNS discovery |
+| mDNS Domain | `server.mdnsDomain` | `--mdns-domain`  | `opencode.local` | Advertised mDNS hostname      |
+| CORS        | `server.cors[]`     | `--cors` (array) | `[]`             | Additional CORS origins       |
 
 **Sources:** [packages/opencode/src/cli/network.ts:4-31]()
 
@@ -482,26 +489,26 @@ The `Flag` namespace at [packages/opencode/src/flag/flag.ts:11-117]() provides t
 ```mermaid
 graph TB
     Flags["Flag namespace"]
-    
+
     Flags --> Config["Configuration"]
     Flags --> Feature["Feature toggles"]
     Flags --> Server["Server settings"]
     Flags --> Experimental["Experimental features"]
-    
+
     Config --> OPENCODE_CONFIG
     Config --> OPENCODE_CONFIG_DIR
     Config --> OPENCODE_CONFIG_CONTENT
     Config --> OPENCODE_TUI_CONFIG
-    
+
     Feature --> OPENCODE_AUTO_SHARE
     Feature --> OPENCODE_DISABLE_AUTOUPDATE
     Feature --> OPENCODE_DISABLE_PRUNE
     Feature --> OPENCODE_DISABLE_DEFAULT_PLUGINS
-    
+
     Server --> OPENCODE_SERVER_PASSWORD
     Server --> OPENCODE_SERVER_USERNAME
     Server --> OPENCODE_CLIENT
-    
+
     Experimental --> OPENCODE_EXPERIMENTAL
     Experimental --> OPENCODE_EXPERIMENTAL_LSP_TOOL
     Experimental --> OPENCODE_EXPERIMENTAL_PLAN_MODE
@@ -513,12 +520,12 @@ graph TB
 
 Some flags use dynamic property getters to allow runtime modification:
 
-| Flag | Getter Location | Reason for Dynamic Evaluation |
-|------|-----------------|-------------------------------|
-| `OPENCODE_DISABLE_PROJECT_CONFIG` | [packages/opencode/src/flag/flag.ts:77-83]() | External tools set at runtime |
-| `OPENCODE_TUI_CONFIG` | [packages/opencode/src/flag/flag.ts:88-94]() | Tests override at runtime |
-| `OPENCODE_CONFIG_DIR` | [packages/opencode/src/flag/flag.ts:99-105]() | External tools set at runtime |
-| `OPENCODE_CLIENT` | [packages/opencode/src/flag/flag.ts:110-116]() | Commands override at runtime |
+| Flag                              | Getter Location                                | Reason for Dynamic Evaluation |
+| --------------------------------- | ---------------------------------------------- | ----------------------------- |
+| `OPENCODE_DISABLE_PROJECT_CONFIG` | [packages/opencode/src/flag/flag.ts:77-83]()   | External tools set at runtime |
+| `OPENCODE_TUI_CONFIG`             | [packages/opencode/src/flag/flag.ts:88-94]()   | Tests override at runtime     |
+| `OPENCODE_CONFIG_DIR`             | [packages/opencode/src/flag/flag.ts:99-105]()  | External tools set at runtime |
+| `OPENCODE_CLIENT`                 | [packages/opencode/src/flag/flag.ts:110-116]() | Commands override at runtime  |
 
 **Sources:** [packages/opencode/src/flag/flag.ts:74-117]()
 
@@ -528,12 +535,12 @@ Some flags use dynamic property getters to allow runtime modification:
 // From packages/opencode/src/flag/flag.ts
 function truthy(key: string): boolean {
   const value = process.env[key]?.toLowerCase()
-  return value === "true" || value === "1"
+  return value === 'true' || value === '1'
 }
 
 function falsy(key: string): boolean {
   const value = process.env[key]?.toLowerCase()
-  return value === "false" || value === "0"
+  return value === 'false' || value === '0'
 }
 ```
 
@@ -558,16 +565,16 @@ graph TB
     Format["FormatError(e)"]
     Output["UI.error() or stderr"]
     Exit["process.exit(1)"]
-    
+
     Parse --> Catch
     Catch --> NamedError
     Catch --> Error
     Catch --> ResolveError
-    
+
     NamedError --> Log
     Error --> Log
     ResolveError --> Log
-    
+
     Log --> Format
     Format -->|"Formatted"| Output
     Format -->|"Undefined"| Output
@@ -622,7 +629,7 @@ sequenceDiagram
     participant Session as session()
     participant Execute as execute()
     participant Events as Event stream
-    
+
     User->>Handler: opencode run "message"
     Handler->>Handler: Parse arguments
     Handler->>Bootstrap: bootstrap(cwd, callback)
@@ -630,7 +637,7 @@ sequenceDiagram
     SDK->>Session: Create or continue session
     Session->>Execute: execute(sdk)
     Execute->>Events: sdk.event.subscribe()
-    
+
     par Event Loop
         Events->>Execute: message.part.updated
         Execute->>User: Display tool execution
@@ -639,7 +646,7 @@ sequenceDiagram
         SDK->>SDK: AI generates response
         SDK->>Events: Emit events
     end
-    
+
     Events->>Execute: session.status = idle
     Execute-->>Handler: Complete
     Handler-->>User: Exit
@@ -688,11 +695,11 @@ sequenceDiagram
 
 The entrypoint registers process event handlers:
 
-| Signal/Event | Location | Action |
-|--------------|----------|--------|
-| `unhandledRejection` | [packages/opencode/src/index.ts:37-41]() | Log error |
-| `uncaughtException` | [packages/opencode/src/index.ts:43-47]() | Log error |
-| `SIGHUP` | [packages/opencode/src/index.ts:49-52]() | `process.exit()` to prevent orphans |
+| Signal/Event         | Location                                 | Action                              |
+| -------------------- | ---------------------------------------- | ----------------------------------- |
+| `unhandledRejection` | [packages/opencode/src/index.ts:37-41]() | Log error                           |
+| `uncaughtException`  | [packages/opencode/src/index.ts:43-47]() | Log error                           |
+| `SIGHUP`             | [packages/opencode/src/index.ts:49-52]() | `process.exit()` to prevent orphans |
 
 **Sources:** [packages/opencode/src/index.ts:37-52]()
 
@@ -715,7 +722,7 @@ graph TB
     Disable["win32DisableProcessedInput()"]
     Worker["Spawn Worker"]
     Cleanup["unguard()"]
-    
+
     Start --> Guard
     Guard --> Disable
     Note1["Prevents OS from killing<br/>process group on Ctrl+C"]

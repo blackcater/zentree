@@ -49,8 +49,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 Agents are the execution runtime responsible for processing user messages, invoking LLM providers, executing tools, and generating responses. The agent system manages the complete lifecycle from message receipt through tool execution, context management, and response delivery.
 
 For information about how agents are invoked from messaging channels, see [Message Flow Architecture](#2.4). For tool policy enforcement, see [Tools System](#3.4). For configuration of agent behavior, see [Agent Configuration](#2.3.1).
@@ -68,52 +66,52 @@ graph TB
         runAgentTurnWithFallback["runAgentTurnWithFallback<br/>(agent-runner-execution.ts)"]
         runWithModelFallback["runWithModelFallback<br/>(model-fallback.ts)"]
     end
-    
+
     subgraph "Embedded Runtime Layer"
         runEmbeddedPiAgent["runEmbeddedPiAgent<br/>(pi-embedded-runner/run.ts)"]
         runEmbeddedAttempt["runEmbeddedAttempt<br/>(run/attempt.ts)"]
         createAgentSession["createAgentSession<br/>(pi-coding-agent)"]
     end
-    
+
     subgraph "Tool Execution Layer"
         createOpenClawCodingTools["createOpenClawCodingTools<br/>(pi-tools.ts)"]
         execTool["execTool<br/>(bash-tools.exec.ts)"]
         processTool["processTool<br/>(bash-tools.process.ts)"]
         messagingTools["message, sessions_send,<br/>subagents, etc."]
     end
-    
+
     subgraph "Context Management"
         buildEmbeddedSystemPrompt["buildEmbeddedSystemPrompt<br/>(system-prompt.ts)"]
         resolveBootstrapContextForRun["resolveBootstrapContextForRun<br/>(bootstrap-files.ts)"]
         compactEmbeddedPiSession["compactEmbeddedPiSession<br/>(compact.ts)"]
     end
-    
+
     subgraph "Session State"
         SessionManager["SessionManager<br/>(pi-coding-agent)"]
         SessionFile["session.jsonl<br/>(JSONL transcript)"]
         SessionEntry["SessionEntry<br/>(sessions.ts)"]
     end
-    
+
     runReplyAgent --> runAgentTurnWithFallback
     runAgentTurnWithFallback --> runWithModelFallback
     runWithModelFallback --> runEmbeddedPiAgent
     runEmbeddedPiAgent --> runEmbeddedAttempt
     runEmbeddedAttempt --> createAgentSession
-    
+
     runEmbeddedAttempt --> buildEmbeddedSystemPrompt
     runEmbeddedAttempt --> resolveBootstrapContextForRun
     runEmbeddedAttempt --> createOpenClawCodingTools
-    
+
     createOpenClawCodingTools --> execTool
     createOpenClawCodingTools --> processTool
     createOpenClawCodingTools --> messagingTools
-    
+
     createAgentSession --> SessionManager
     SessionManager --> SessionFile
-    
+
     runEmbeddedAttempt --> compactEmbeddedPiSession
     compactEmbeddedPiSession --> SessionManager
-    
+
     SessionEntry --> SessionFile
 ```
 
@@ -134,54 +132,54 @@ graph LR
         parseReplyDirectives["parseReplyDirectives<br/>(reply-directives.ts)"]
         resolveModelFromPayload["resolveModel<br/>(run/model.ts)"]
     end
-    
+
     subgraph "Context Assembly"
         buildEmbeddedSystemPrompt2["buildEmbeddedSystemPrompt"]
         resolveBootstrapContextForRun2["resolveBootstrapContextForRun"]
         resolveSkillsPromptForRun["resolveSkillsPromptForRun"]
         createOpenClawCodingTools2["createOpenClawCodingTools"]
     end
-    
+
     subgraph "Execution"
         prepareSessionManagerForRun["prepareSessionManagerForRun"]
         createAgentSession2["createAgentSession"]
         streamFn["streamFn<br/>(provider API)"]
         subscribeEmbeddedPiSession["subscribeEmbeddedPiSession"]
     end
-    
+
     subgraph "Tool Loop"
         ToolCallParsing["Tool Call Parsing"]
         ToolPolicyCheck["Policy Check"]
         ToolDispatch["Tool Dispatch"]
         ToolResult["Tool Result"]
     end
-    
+
     subgraph "Output Stage"
         buildEmbeddedRunPayloads["buildEmbeddedRunPayloads"]
         normalizeStreamingText["Text Normalization"]
         blockReplyPipeline["Block Reply Pipeline"]
         DeliveryDispatch["Delivery Dispatch"]
     end
-    
+
     InboundMessage --> parseReplyDirectives
     parseReplyDirectives --> resolveModelFromPayload
-    
+
     resolveModelFromPayload --> buildEmbeddedSystemPrompt2
     buildEmbeddedSystemPrompt2 --> resolveBootstrapContextForRun2
     resolveBootstrapContextForRun2 --> resolveSkillsPromptForRun
     resolveSkillsPromptForRun --> createOpenClawCodingTools2
-    
+
     createOpenClawCodingTools2 --> prepareSessionManagerForRun
     prepareSessionManagerForRun --> createAgentSession2
     createAgentSession2 --> streamFn
     streamFn --> subscribeEmbeddedPiSession
-    
+
     subscribeEmbeddedPiSession --> ToolCallParsing
     ToolCallParsing --> ToolPolicyCheck
     ToolPolicyCheck --> ToolDispatch
     ToolDispatch --> ToolResult
     ToolResult --> streamFn
-    
+
     subscribeEmbeddedPiSession --> buildEmbeddedRunPayloads
     buildEmbeddedRunPayloads --> normalizeStreamingText
     normalizeStreamingText --> blockReplyPipeline
@@ -192,14 +190,14 @@ graph LR
 
 ### Key Functions
 
-| Function | Location | Purpose |
-|----------|----------|---------|
-| `runEmbeddedPiAgent` | [pi-embedded-runner/run.ts:256]() | Top-level agent execution with retry/fallback |
-| `runEmbeddedAttempt` | [run/attempt.ts:139]() | Single execution attempt with full context assembly |
-| `prepareSessionManagerForRun` | [session-manager-init.ts]() | Initialize/repair session file and load history |
-| `createAgentSession` | `pi-coding-agent` | Create live agent session with tools/messages |
-| `subscribeEmbeddedPiSession` | [pi-embedded-subscribe.ts:34]() | Subscribe to stream events and emit payloads |
-| `buildEmbeddedRunPayloads` | [run/payloads.ts]() | Convert assistant messages to reply payloads |
+| Function                      | Location                          | Purpose                                             |
+| ----------------------------- | --------------------------------- | --------------------------------------------------- |
+| `runEmbeddedPiAgent`          | [pi-embedded-runner/run.ts:256]() | Top-level agent execution with retry/fallback       |
+| `runEmbeddedAttempt`          | [run/attempt.ts:139]()            | Single execution attempt with full context assembly |
+| `prepareSessionManagerForRun` | [session-manager-init.ts]()       | Initialize/repair session file and load history     |
+| `createAgentSession`          | `pi-coding-agent`                 | Create live agent session with tools/messages       |
+| `subscribeEmbeddedPiSession`  | [pi-embedded-subscribe.ts:34]()   | Subscribe to stream events and emit payloads        |
+| `buildEmbeddedRunPayloads`    | [run/payloads.ts]()               | Convert assistant messages to reply payloads        |
 
 **Sources:** [src/agents/pi-embedded-runner/run.ts:256-1255](), [src/agents/pi-embedded-runner/run/attempt.ts:139-1500]()
 
@@ -221,31 +219,31 @@ graph TB
         RuntimeInfo["Runtime Metadata<br/>(date, time, sandbox info)"]
         ExtraSystemPrompt["extraSystemPrompt<br/>(group/subagent context)"]
     end
-    
+
     subgraph "Prompt Modes"
         FullMode["full mode<br/>(default)"]
         MinimalMode["minimal mode<br/>(subagents)"]
         NoneMode["none mode<br/>(basic identity only)"]
     end
-    
+
     subgraph "Assembly"
         buildAgentSystemPrompt2["buildAgentSystemPrompt<br/>(system-prompt.ts)"]
         buildToolSummaryMap["buildToolSummaryMap"]
         resolveBootstrapMaxChars["resolveBootstrapMaxChars"]
         buildBootstrapTruncationReportMeta["buildBootstrapTruncationReportMeta"]
     end
-    
+
     ToolsSection --> buildAgentSystemPrompt2
     SafetySection --> buildAgentSystemPrompt2
     SkillsSection --> buildAgentSystemPrompt2
     BootstrapFiles --> buildAgentSystemPrompt2
     RuntimeInfo --> buildAgentSystemPrompt2
     ExtraSystemPrompt --> buildAgentSystemPrompt2
-    
+
     buildAgentSystemPrompt2 --> FullMode
     buildAgentSystemPrompt2 --> MinimalMode
     buildAgentSystemPrompt2 --> NoneMode
-    
+
     buildToolSummaryMap --> buildAgentSystemPrompt2
     resolveBootstrapMaxChars --> buildBootstrapTruncationReportMeta
     buildBootstrapTruncationReportMeta --> buildAgentSystemPrompt2
@@ -276,11 +274,11 @@ The system prompt includes the following sections (in order):
 
 ### Prompt Modes
 
-| Mode | Use Case | Sections Included |
-|------|----------|-------------------|
-| `full` | Primary agent sessions | All sections |
-| `minimal` | Subagent sessions | Tooling, Safety, Skills, Workspace, Sandbox, Subagent Context |
-| `none` | Minimal agent identity | Single identity line only |
+| Mode      | Use Case               | Sections Included                                             |
+| --------- | ---------------------- | ------------------------------------------------------------- |
+| `full`    | Primary agent sessions | All sections                                                  |
+| `minimal` | Subagent sessions      | Tooling, Safety, Skills, Workspace, Sandbox, Subagent Context |
+| `none`    | Minimal agent identity | Single identity line only                                     |
 
 **Sources:** [src/agents/system-prompt.ts:12-17]()
 
@@ -302,13 +300,13 @@ graph TB
         execTool2["execTool"]
         processTool2["processTool"]
     end
-    
+
     subgraph "Sandbox Tools"
         createSandboxedReadTool["createSandboxedReadTool"]
         createSandboxedWriteTool["createSandboxedWriteTool"]
         createSandboxedEditTool["createSandboxedEditTool"]
     end
-    
+
     subgraph "OpenClaw Tools"
         createOpenClawTools["createOpenClawTools<br/>(openclaw-tools.ts)"]
         messageTool["message"]
@@ -317,43 +315,43 @@ graph TB
         cronTool["cron"]
         gatewayTool["gateway"]
     end
-    
+
     subgraph "Tool Wrappers"
         wrapToolWorkspaceRootGuard["wrapToolWorkspaceRootGuard"]
         wrapToolWithAbortSignal["wrapToolWithAbortSignal"]
         wrapToolWithBeforeToolCallHook["wrapToolWithBeforeToolCallHook"]
         normalizeToolParameters["normalizeToolParameters"]
     end
-    
+
     subgraph "Policy Pipeline"
         resolveEffectiveToolPolicy["resolveEffectiveToolPolicy"]
         applyToolPolicyPipeline["applyToolPolicyPipeline"]
         applyOwnerOnlyToolPolicy["applyOwnerOnlyToolPolicy"]
     end
-    
+
     codingTools --> readTool
     codingTools --> writeTool
     codingTools --> editTool
-    
+
     readTool --> createSandboxedReadTool
     writeTool --> createSandboxedWriteTool
     editTool --> createSandboxedEditTool
-    
+
     execTool2 --> createOpenClawCodingTools
     processTool2 --> createOpenClawCodingTools
     createSandboxedReadTool --> createOpenClawCodingTools
     createSandboxedWriteTool --> createOpenClawCodingTools
-    
+
     createOpenClawTools --> messageTool
     createOpenClawTools --> sessionsSendTool
     createOpenClawTools --> subagentsTool
     createOpenClawTools --> cronTool
-    
+
     createOpenClawCodingTools --> wrapToolWorkspaceRootGuard
     wrapToolWorkspaceRootGuard --> wrapToolWithBeforeToolCallHook
     wrapToolWithBeforeToolCallHook --> wrapToolWithAbortSignal
     wrapToolWithAbortSignal --> normalizeToolParameters
-    
+
     normalizeToolParameters --> resolveEffectiveToolPolicy
     resolveEffectiveToolPolicy --> applyToolPolicyPipeline
     applyToolPolicyPipeline --> applyOwnerOnlyToolPolicy
@@ -361,22 +359,22 @@ graph TB
 
 ### Tool Categories
 
-| Category | Tools | Purpose |
-|----------|-------|---------|
-| **File I/O** | `read`, `write`, `edit`, `apply_patch` | Workspace file operations |
-| **Search** | `grep`, `find`, `ls` | File/directory discovery |
-| **Execution** | `exec`, `process` | Shell command execution and background job management |
-| **Web** | `web_search`, `web_fetch` | External data retrieval |
-| **Browser** | `browser` | Headless browser control |
-| **Canvas** | `canvas` | Canvas presentation/evaluation |
-| **Nodes** | `nodes` | Paired device management |
-| **Cron** | `cron` | Scheduled job creation |
-| **Messaging** | `message`, `sessions_send`, `sessions_list` | Cross-session communication |
-| **Subagents** | `sessions_spawn`, `subagents` | Subagent lifecycle management |
-| **Gateway** | `gateway` | Gateway control (config, updates, restart) |
-| **Memory** | `memory_search`, `memory_get` | Memory system queries |
-| **Agents** | `agents_list`, `session_status` | Agent introspection |
-| **Image** | `image` | Image analysis |
+| Category      | Tools                                       | Purpose                                               |
+| ------------- | ------------------------------------------- | ----------------------------------------------------- |
+| **File I/O**  | `read`, `write`, `edit`, `apply_patch`      | Workspace file operations                             |
+| **Search**    | `grep`, `find`, `ls`                        | File/directory discovery                              |
+| **Execution** | `exec`, `process`                           | Shell command execution and background job management |
+| **Web**       | `web_search`, `web_fetch`                   | External data retrieval                               |
+| **Browser**   | `browser`                                   | Headless browser control                              |
+| **Canvas**    | `canvas`                                    | Canvas presentation/evaluation                        |
+| **Nodes**     | `nodes`                                     | Paired device management                              |
+| **Cron**      | `cron`                                      | Scheduled job creation                                |
+| **Messaging** | `message`, `sessions_send`, `sessions_list` | Cross-session communication                           |
+| **Subagents** | `sessions_spawn`, `subagents`               | Subagent lifecycle management                         |
+| **Gateway**   | `gateway`                                   | Gateway control (config, updates, restart)            |
+| **Memory**    | `memory_search`, `memory_get`               | Memory system queries                                 |
+| **Agents**    | `agents_list`, `session_status`             | Agent introspection                                   |
+| **Image**     | `image`                                     | Image analysis                                        |
 
 **Sources:** [src/agents/pi-tools.ts:198-618](), [src/agents/openclaw-tools.ts]()
 
@@ -413,29 +411,29 @@ graph LR
         SessionStore["sessions.json<br/>(session metadata)"]
         SessionFile2["session-{id}.jsonl<br/>(message history)"]
     end
-    
+
     subgraph "Session Manager"
         SessionManager2["SessionManager<br/>(pi-coding-agent)"]
         fileEntries["fileEntries<br/>(JSONL array)"]
         byId["byId<br/>(message index)"]
         leafId["leafId<br/>(last message id)"]
     end
-    
+
     subgraph "Compaction"
         evaluateCompactionTrigger["Evaluate Trigger<br/>(token threshold)"]
         compactEmbeddedPiSession2["compactEmbeddedPiSession"]
         summaryTurn["Summary Turn<br/>(LLM summarization)"]
         persistCompacted["Persist Compacted History"]
     end
-    
+
     SessionEntry2 --> SessionStore
     SessionEntry2 --> SessionFile2
-    
+
     SessionFile2 --> SessionManager2
     SessionManager2 --> fileEntries
     SessionManager2 --> byId
     SessionManager2 --> leafId
-    
+
     SessionManager2 --> evaluateCompactionTrigger
     evaluateCompactionTrigger --> compactEmbeddedPiSession2
     compactEmbeddedPiSession2 --> summaryTurn
@@ -469,26 +467,26 @@ sequenceDiagram
     participant Compact as compactEmbeddedPiSession
     participant Model as LLM Provider
     participant Memory as Memory Index
-    
+
     Agent->>Session: Estimate context size
     Session->>Agent: promptTokens > threshold
     Agent->>Compact: Trigger compaction
-    
+
     Compact->>Session: Load full history
     Session-->>Compact: messages[]
-    
+
     Compact->>Compact: Select compactable messages
     Compact->>Model: Summarize (isolated turn)
     Model-->>Compact: Summary text
-    
+
     Compact->>Session: Replace messages with summary
     Session-->>Compact: Updated history
-    
+
     alt Memory flush enabled
         Compact->>Memory: Flush summary to MEMORY.md
         Memory-->>Compact: Index updated
     end
-    
+
     Compact-->>Agent: Compaction complete
     Agent->>Agent: Resume with reduced context
 ```
@@ -524,39 +522,39 @@ graph TB
         GlobalDefault["Global Default<br/>(agents.defaults.model)"]
         Hardcoded["Hardcoded Default<br/>(anthropic/claude-3-5-sonnet-20241022)"]
     end
-    
+
     subgraph "Model Registry"
         ModelsJson["models.json"]
         ModelCatalog["loadModelCatalog"]
         resolveModel["resolveModel"]
     end
-    
+
     subgraph "Auth Resolution"
         AuthProfileStore["auth-profiles.json"]
         resolveAuthProfileOrder["resolveAuthProfileOrder"]
         getApiKeyForModel["getApiKeyForModel"]
     end
-    
+
     subgraph "Fallback Chain"
         runWithModelFallback2["runWithModelFallback"]
         FallbackConfig["modelFallbacks<br/>(config)"]
         FallbackAttempt["Attempt with fallback model"]
         FailoverError["FailoverError<br/>(reason classification)"]
     end
-    
+
     PayloadOverride --> resolveModel
     SessionOverride --> resolveModel
     AgentDefault --> resolveModel
     GlobalDefault --> resolveModel
     Hardcoded --> resolveModel
-    
+
     ModelsJson --> ModelCatalog
     ModelCatalog --> resolveModel
-    
+
     resolveModel --> AuthProfileStore
     AuthProfileStore --> resolveAuthProfileOrder
     resolveAuthProfileOrder --> getApiKeyForModel
-    
+
     getApiKeyForModel --> runWithModelFallback2
     runWithModelFallback2 --> FallbackConfig
     FallbackConfig --> FallbackAttempt
@@ -591,15 +589,12 @@ Fallback is triggered when the provider returns:
 
 ```json5
 {
-  "agents": {
-    "defaults": {
-      "model": "anthropic/claude-3-5-sonnet-20241022",
-      "modelFallbacks": [
-        "google/gemini-2.0-flash-exp",
-        "openai/gpt-4o"
-      ]
-    }
-  }
+  agents: {
+    defaults: {
+      model: 'anthropic/claude-3-5-sonnet-20241022',
+      modelFallbacks: ['google/gemini-2.0-flash-exp', 'openai/gpt-4o'],
+    },
+  },
 }
 ```
 
@@ -628,21 +623,21 @@ Each agent session maintains isolated state, including:
 ```mermaid
 graph LR
     SessionKey["Session Key"]
-    
+
     subgraph "Formats"
         AgentSession["agent:{agentId}:{binding}"]
         CronSession["agent:{agentId}:cron:{jobId}"]
         SubagentSession["agent:{agentId}:subagent:{parent}:{index}"]
     end
-    
+
     SessionKey --> AgentSession
     SessionKey --> CronSession
     SessionKey --> SubagentSession
-    
+
     AgentSession --> SessionId["Session ID<br/>(UUID)"]
     CronSession --> SessionId
     SubagentSession --> SessionId
-    
+
     SessionId --> SessionFile["session-{id}.jsonl"]
     SessionId --> SessionEntry["SessionEntry<br/>(metadata)"]
 ```
@@ -684,18 +679,18 @@ graph TB
         reasoning_delta["reasoning_delta<br/>(thinking block chunk)"]
         reasoning_end["reasoning_end<br/>(thinking complete)"]
     end
-    
+
     subgraph "Callbacks"
         onBlockReply["onBlockReply<br/>(partial text delivery)"]
         onToolResult["onToolResult<br/>(tool output delivery)"]
         onReasoningStream["onReasoningStream<br/>(thinking stream)"]
     end
-    
+
     text_delta --> onBlockReply
     text_end --> onBlockReply
-    
+
     toolresult_end --> onToolResult
-    
+
     reasoning_delta --> onReasoningStream
     reasoning_end --> onReasoningStream
 ```
@@ -724,16 +719,16 @@ When `agents.defaults.blockReply.chunking.enabled` is true, assistant text is ch
 
 ## Key Configuration Options
 
-| Option | Path | Default | Purpose |
-|--------|------|---------|---------|
-| **Model** | `agents.defaults.model` | `anthropic/claude-3-5-sonnet-20241022` | Default model for all agents |
-| **Fallbacks** | `agents.defaults.modelFallbacks` | `[]` | Fallback models on error |
-| **Context Tokens** | `agents.defaults.contextTokens` | Model default | Override context window size |
-| **Compaction Threshold** | `agents.defaults.compaction.threshold` | `0.6` | Trigger compaction at 60% context usage |
-| **Memory Flush** | `agents.defaults.compaction.memoryFlush.enabled` | `false` | Write compaction summaries to MEMORY.md |
-| **Workspace** | `agents.defaults.workspace` | `~/.openclaw/workspace` | Default workspace directory |
-| **Prompt Mode** | (runtime param) | `full` | `full` / `minimal` / `none` |
-| **Thinking Level** | `agents.defaults.thinking` | `off` | `off` / `on` / `reasoning` / `stream` |
-| **Verbose** | `agents.defaults.verbose` | `off` | `off` / `on` / `full` |
+| Option                   | Path                                             | Default                                | Purpose                                 |
+| ------------------------ | ------------------------------------------------ | -------------------------------------- | --------------------------------------- |
+| **Model**                | `agents.defaults.model`                          | `anthropic/claude-3-5-sonnet-20241022` | Default model for all agents            |
+| **Fallbacks**            | `agents.defaults.modelFallbacks`                 | `[]`                                   | Fallback models on error                |
+| **Context Tokens**       | `agents.defaults.contextTokens`                  | Model default                          | Override context window size            |
+| **Compaction Threshold** | `agents.defaults.compaction.threshold`           | `0.6`                                  | Trigger compaction at 60% context usage |
+| **Memory Flush**         | `agents.defaults.compaction.memoryFlush.enabled` | `false`                                | Write compaction summaries to MEMORY.md |
+| **Workspace**            | `agents.defaults.workspace`                      | `~/.openclaw/workspace`                | Default workspace directory             |
+| **Prompt Mode**          | (runtime param)                                  | `full`                                 | `full` / `minimal` / `none`             |
+| **Thinking Level**       | `agents.defaults.thinking`                       | `off`                                  | `off` / `on` / `reasoning` / `stream`   |
+| **Verbose**              | `agents.defaults.verbose`                        | `off`                                  | `off` / `on` / `full`                   |
 
 **Sources:** [src/config/types.agents.ts](), [src/agents/defaults.ts]()

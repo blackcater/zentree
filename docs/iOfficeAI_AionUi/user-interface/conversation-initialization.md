@@ -21,8 +21,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page documents the conversation initialization flow in AionUi, from agent selection on the Guid page through IPC-based creation to conversation rendering. It covers:
@@ -61,7 +59,7 @@ graph TB
     DB["SQLite Database<br/>conversations table"]
     NAV["Navigate to<br/>/conversation/:id"]
     RENDER["ChatConversation<br/>Type Dispatcher"]
-    
+
     USER --> GUID
     GUID --> SELECT
     SELECT --> WORKSPACE
@@ -95,13 +93,13 @@ The Guid page (`/guid`) serves as the entry point for creating new conversations
 
 AionUi supports five agent types, each with distinct capabilities:
 
-| Agent Type | Key | Description | Workspace Support |
-|------------|-----|-------------|-------------------|
-| Gemini | `gemini` | Google Gemini/Vertex AI with built-in tools | ✓ |
-| ACP | `acp` | Multi-backend CLI protocol (Claude, Qwen, etc.) | ✓ |
-| Codex | `codex` | Legacy Codex agent (deprecated, use ACP) | ✓ |
-| OpenClaw Gateway | `openclaw-gateway` | Gateway-based agent with runtime validation | ✓ |
-| Nanobot | `nanobot` | Simplified agent with minimal configuration | ✓ |
+| Agent Type       | Key                | Description                                     | Workspace Support |
+| ---------------- | ------------------ | ----------------------------------------------- | ----------------- |
+| Gemini           | `gemini`           | Google Gemini/Vertex AI with built-in tools     | ✓                 |
+| ACP              | `acp`              | Multi-backend CLI protocol (Claude, Qwen, etc.) | ✓                 |
+| Codex            | `codex`            | Legacy Codex agent (deprecated, use ACP)        | ✓                 |
+| OpenClaw Gateway | `openclaw-gateway` | Gateway-based agent with runtime validation     | ✓                 |
+| Nanobot          | `nanobot`          | Simplified agent with minimal configuration     | ✓                 |
 
 The agent type selection determines which factory function is invoked during initialization and which conversation UI component will render the session.
 
@@ -125,7 +123,7 @@ graph LR
     TAG4["web_search"]
     TAG5["image_generation"]
     TAG6["reasoning"]
-    
+
     PROVIDER --> CAPS
     CAPS --> TAG1
     CAPS --> TAG2
@@ -137,16 +135,16 @@ graph LR
 
 **Capability Types:**
 
-| Type | Description | Usage |
-|------|-------------|-------|
-| `text` | Basic text conversation | Primary chat capability |
-| `vision` | Image input support | Required for file uploads with images |
-| `function_calling` | Tool execution support | Required for workspace operations |
-| `web_search` | Web search integration | Optional search enhancement |
-| `image_generation` | Image creation capability | Used by image generation tool |
-| `reasoning` | Advanced reasoning models (O1) | Extended thinking capability |
-| `embedding` / `rerank` | Embedding/reranking models | Not used for primary chat |
-| `excludeFromPrimary` | Exclude from main model selection | Utility models only |
+| Type                   | Description                       | Usage                                 |
+| ---------------------- | --------------------------------- | ------------------------------------- |
+| `text`                 | Basic text conversation           | Primary chat capability               |
+| `vision`               | Image input support               | Required for file uploads with images |
+| `function_calling`     | Tool execution support            | Required for workspace operations     |
+| `web_search`           | Web search integration            | Optional search enhancement           |
+| `image_generation`     | Image creation capability         | Used by image generation tool         |
+| `reasoning`            | Advanced reasoning models (O1)    | Extended thinking capability          |
+| `embedding` / `rerank` | Embedding/reranking models        | Not used for primary chat             |
+| `excludeFromPrimary`   | Exclude from main model selection | Utility models only                   |
 
 The Guid page filters models based on required capabilities. For example, agents that need tool execution filter for models with `function_calling` capability.
 
@@ -160,10 +158,10 @@ The Guid page filters models based on required capabilities. For example, agents
 
 Conversations can use either a default auto-generated workspace or a user-specified custom directory:
 
-| Configuration | `workspace` | `customWorkspace` | Description |
-|--------------|-------------|-------------------|-------------|
-| Default | `${workDir}/${backend}-temp-${timestamp}` | `false` | Auto-generated temporary directory |
-| Custom | User-provided path | `true` | User-selected existing directory |
+| Configuration | `workspace`                               | `customWorkspace` | Description                        |
+| ------------- | ----------------------------------------- | ----------------- | ---------------------------------- |
+| Default       | `${workDir}/${backend}-temp-${timestamp}` | `false`           | Auto-generated temporary directory |
+| Custom        | User-provided path                        | `true`            | User-selected existing directory   |
 
 The workspace directory is created during initialization but **files are not copied** at this stage. File copying is deferred to the first `sendMessage` call to avoid duplicating files.
 
@@ -180,7 +178,7 @@ graph TD
     MKDIR["fs.mkdir(workspace, recursive)"]
     NORMALIZE["path.resolve(workspace)"]
     RETURN["Return { workspace, customWorkspace }"]
-    
+
     START --> CHECK
     CHECK -->|Yes| CUSTOM
     CHECK -->|No| DEFAULT
@@ -206,7 +204,7 @@ graph TB
     TYPE["type: 'gemini' | 'acp' | 'codex'<br/>| 'openclaw-gateway' | 'nanobot'"]
     MODEL["model: TProviderWithModel"]
     EXTRA["extra: object"]
-    
+
     WORKSPACE["workspace?: string"]
     CUSTOM["customWorkspace?: boolean"]
     FILES["defaultFiles?: string[]"]
@@ -218,7 +216,7 @@ graph TB
     MODE["sessionMode?: string"]
     MODELID["currentModelId?: string"]
     HEALTH["isHealthCheck?: boolean"]
-    
+
     PARAMS --> TYPE
     PARAMS --> MODEL
     PARAMS --> EXTRA
@@ -237,17 +235,17 @@ graph TB
 
 **Key Fields:**
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `type` | Union string literal | Determines which agent factory function to invoke |
-| `model` | `TProviderWithModel` | Selected model configuration (Gemini only; ACP uses dynamic selection) |
-| `extra.workspace` | `string` | Workspace directory path |
-| `extra.backend` | `AcpBackendAll` | ACP backend identifier (claude, qwen, etc.) |
-| `extra.enabledSkills` | `string[]` | Skills to load from `skills/` directory |
-| `extra.presetAssistantId` | `string` | Preset assistant ID for UI display |
-| `extra.sessionMode` | `string` | Initial session mode (e.g., 'code', 'chat') |
-| `extra.currentModelId` | `string` | Pre-selected ACP model ID from cached model list |
-| `extra.isHealthCheck` | `boolean` | Marks temporary health-check conversations |
+| Field                     | Type                 | Purpose                                                                |
+| ------------------------- | -------------------- | ---------------------------------------------------------------------- |
+| `type`                    | Union string literal | Determines which agent factory function to invoke                      |
+| `model`                   | `TProviderWithModel` | Selected model configuration (Gemini only; ACP uses dynamic selection) |
+| `extra.workspace`         | `string`             | Workspace directory path                                               |
+| `extra.backend`           | `AcpBackendAll`      | ACP backend identifier (claude, qwen, etc.)                            |
+| `extra.enabledSkills`     | `string[]`           | Skills to load from `skills/` directory                                |
+| `extra.presetAssistantId` | `string`             | Preset assistant ID for UI display                                     |
+| `extra.sessionMode`       | `string`             | Initial session mode (e.g., 'code', 'chat')                            |
+| `extra.currentModelId`    | `string`             | Pre-selected ACP model ID from cached model list                       |
+| `extra.isHealthCheck`     | `boolean`            | Marks temporary health-check conversations                             |
 
 **Sources:** [src/common/ipcBridge.ts:483-531]()
 
@@ -260,6 +258,7 @@ conversation.create: bridge.buildProvider<TChatConversation, ICreateConversation
 ```
 
 **Flow:**
+
 1. Renderer invokes `ipcBridge.conversation.create.invoke(params)`
 2. Main process receives parameters and validates type
 3. Main process dispatches to appropriate factory function based on `params.type`
@@ -287,7 +286,7 @@ graph TD
     CODEX["createCodexAgent()<br/>src/process/initAgent.ts:106"]
     OPENCLAW["createOpenClawAgent()<br/>src/process/initAgent.ts:154"]
     NANOBOT["createNanobotAgent()<br/>src/process/initAgent.ts:136"]
-    
+
     IPC --> TYPE
     TYPE -->|'gemini'| GEMINI
     TYPE -->|'acp'| ACP
@@ -301,6 +300,7 @@ graph TD
 ### Gemini Agent Initialization
 
 **Function Signature:**
+
 ```typescript
 createGeminiAgent(
   model: TProviderWithModel,
@@ -319,19 +319,20 @@ createGeminiAgent(
 
 **Gemini-Specific Fields:**
 
-| Field | Purpose |
-|-------|---------|
+| Field                   | Purpose                                             |
+| ----------------------- | --------------------------------------------------- |
 | `extra.webSearchEngine` | Search engine configuration ('google' or 'default') |
-| `extra.contextFileName` | Name of context file for preset agents |
-| `extra.presetRules` | System rules injected at initialization |
-| `extra.contextContent` | Backward-compatible alias for presetRules |
-| `extra.sessionMode` | Initial session mode from Guid page mode selector |
+| `extra.contextFileName` | Name of context file for preset agents              |
+| `extra.presetRules`     | System rules injected at initialization             |
+| `extra.contextContent`  | Backward-compatible alias for presetRules           |
+| `extra.sessionMode`     | Initial session mode from Guid page mode selector   |
 
 **Sources:** [src/process/initAgent.ts:40-71]()
 
 ### ACP Agent Initialization
 
 **Function Signature:**
+
 ```typescript
 createAcpAgent(
   options: ICreateConversationParams
@@ -340,15 +341,15 @@ createAcpAgent(
 
 **ACP-Specific Fields:**
 
-| Field | Purpose |
-|-------|---------|
-| `extra.backend` | ACP backend identifier (claude, qwen, deepseek, etc.) |
-| `extra.cliPath` | Path to CLI executable (optional) |
-| `extra.agentName` | Custom agent name for display |
-| `extra.customAgentId` | UUID for identifying specific custom agent |
-| `extra.presetContext` | Preset rules/prompts from smart assistant |
-| `extra.sessionMode` | Initial session mode selected on Guid page |
-| `extra.currentModelId` | Pre-selected model ID from cached model list |
+| Field                  | Purpose                                               |
+| ---------------------- | ----------------------------------------------------- |
+| `extra.backend`        | ACP backend identifier (claude, qwen, deepseek, etc.) |
+| `extra.cliPath`        | Path to CLI executable (optional)                     |
+| `extra.agentName`      | Custom agent name for display                         |
+| `extra.customAgentId`  | UUID for identifying specific custom agent            |
+| `extra.presetContext`  | Preset rules/prompts from smart assistant             |
+| `extra.sessionMode`    | Initial session mode selected on Guid page            |
+| `extra.currentModelId` | Pre-selected model ID from cached model list          |
 
 **Note:** ACP conversations do **not** store a `model` field. Model selection is dynamic and managed via `AcpModelSelector` component during runtime.
 
@@ -357,6 +358,7 @@ createAcpAgent(
 ### OpenClaw Agent Initialization
 
 **Function Signature:**
+
 ```typescript
 createOpenClawAgent(
   options: ICreateConversationParams
@@ -365,13 +367,13 @@ createOpenClawAgent(
 
 **OpenClaw-Specific Fields:**
 
-| Field | Purpose |
-|-------|---------|
-| `extra.backend` | Backend identifier |
-| `extra.agentName` | Agent name |
-| `extra.gateway.cliPath` | Path to OpenClaw CLI |
-| `extra.runtimeValidation` | Snapshot for post-switch strong checks |
-| `extra.runtimeValidation.expectedIdentityHash` | Computed workspace identity hash |
+| Field                                          | Purpose                                |
+| ---------------------------------------------- | -------------------------------------- |
+| `extra.backend`                                | Backend identifier                     |
+| `extra.agentName`                              | Agent name                             |
+| `extra.gateway.cliPath`                        | Path to OpenClaw CLI                   |
+| `extra.runtimeValidation`                      | Snapshot for post-switch strong checks |
+| `extra.runtimeValidation.expectedIdentityHash` | Computed workspace identity hash       |
 
 OpenClaw uses runtime validation to detect workspace or agent switches during a session.
 
@@ -391,7 +393,7 @@ graph TD
     CODEX["type: 'codex'<br/>NO model field<br/>extra.cliPath<br/>extra.sandboxMode<br/>extra.codexModel"]
     OPENCLAW["type: 'openclaw-gateway'<br/>NO model field<br/>extra.gateway<br/>extra.runtimeValidation"]
     NANOBOT["type: 'nanobot'<br/>NO model field<br/>extra.workspace<br/>extra.enabledSkills"]
-    
+
     CONV --> GEMINI
     CONV --> ACP
     CONV --> CODEX
@@ -428,15 +430,15 @@ After the factory function creates the `TChatConversation` object, it is persist
 
 **Schema (simplified):**
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | TEXT | UUID generated by `uuid()` function |
-| `type` | TEXT | Agent type discriminator |
-| `name` | TEXT | Conversation display name (defaults to workspace path) |
-| `extra` | TEXT | JSON-serialized extra configuration |
-| `model` | TEXT | JSON-serialized model config (Gemini only) |
-| `created_at` | INTEGER | Creation timestamp |
-| `updated_at` | INTEGER | Last modification timestamp |
+| Column       | Type    | Description                                            |
+| ------------ | ------- | ------------------------------------------------------ |
+| `id`         | TEXT    | UUID generated by `uuid()` function                    |
+| `type`       | TEXT    | Agent type discriminator                               |
+| `name`       | TEXT    | Conversation display name (defaults to workspace path) |
+| `extra`      | TEXT    | JSON-serialized extra configuration                    |
+| `model`      | TEXT    | JSON-serialized model config (Gemini only)             |
+| `created_at` | INTEGER | Creation timestamp                                     |
+| `updated_at` | INTEGER | Last modification timestamp                            |
 
 The conversation is inserted with initial `created_at` and `updated_at` timestamps set to `Date.now()`.
 
@@ -466,27 +468,27 @@ The router matches this route and renders the `Conversation` component, which lo
 
 ### Gemini Initialization
 
-| Parameter | Default | Purpose |
-|-----------|---------|---------|
-| `webSearchEngine` | `undefined` | 'google' or 'default' search provider |
+| Parameter         | Default     | Purpose                                 |
+| ----------------- | ----------- | --------------------------------------- |
+| `webSearchEngine` | `undefined` | 'google' or 'default' search provider   |
 | `contextFileName` | `undefined` | Context file name for preset assistants |
-| `presetRules` | `undefined` | System rules for initialization |
-| `sessionMode` | `undefined` | Initial mode (e.g., 'code', 'chat') |
-| `enabledSkills` | `[]` | Skills to load from skills directory |
+| `presetRules`     | `undefined` | System rules for initialization         |
+| `sessionMode`     | `undefined` | Initial mode (e.g., 'code', 'chat')     |
+| `enabledSkills`   | `[]`        | Skills to load from skills directory    |
 
 **Sources:** [src/process/initAgent.ts:40-71]()
 
 ### ACP Initialization
 
-| Parameter | Default | Purpose |
-|-----------|---------|---------|
-| `backend` | (required) | CLI backend (claude, qwen, deepseek, etc.) |
-| `cliPath` | `undefined` | Custom CLI executable path |
-| `agentName` | `undefined` | Display name for custom agents |
-| `customAgentId` | `undefined` | UUID for preset assistant identification |
-| `presetContext` | `undefined` | System instructions from smart assistant |
-| `sessionMode` | `undefined` | Initial mode from Guid page selector |
-| `currentModelId` | `undefined` | Pre-selected model from cached model list |
+| Parameter        | Default     | Purpose                                    |
+| ---------------- | ----------- | ------------------------------------------ |
+| `backend`        | (required)  | CLI backend (claude, qwen, deepseek, etc.) |
+| `cliPath`        | `undefined` | Custom CLI executable path                 |
+| `agentName`      | `undefined` | Display name for custom agents             |
+| `customAgentId`  | `undefined` | UUID for preset assistant identification   |
+| `presetContext`  | `undefined` | System instructions from smart assistant   |
+| `sessionMode`    | `undefined` | Initial mode from Guid page selector       |
+| `currentModelId` | `undefined` | Pre-selected model from cached model list  |
 
 **Sources:** [src/process/initAgent.ts:73-103]()
 
@@ -494,23 +496,23 @@ The router matches this route and renders the `Conversation` component, which lo
 
 **Note:** New Codex conversations use the ACP protocol via `createAcpAgent`. This function is kept for existing sessions.
 
-| Parameter | Default | Purpose |
-|-----------|---------|---------|
-| `cliPath` | `undefined` | Path to Codex CLI |
+| Parameter     | Default             | Purpose                                                          |
+| ------------- | ------------------- | ---------------------------------------------------------------- |
+| `cliPath`     | `undefined`         | Path to Codex CLI                                                |
 | `sandboxMode` | `'workspace-write'` | Permission mode (read-only, workspace-write, danger-full-access) |
-| `codexModel` | `undefined` | User-selected Codex model from Guid page |
+| `codexModel`  | `undefined`         | User-selected Codex model from Guid page                         |
 
 **Sources:** [src/process/initAgent.ts:106-134]()
 
 ### OpenClaw Initialization
 
-| Parameter | Default | Purpose |
-|-----------|---------|---------|
-| `backend` | `undefined` | Backend identifier |
-| `agentName` | `undefined` | Agent name |
-| `gateway.cliPath` | `undefined` | Path to OpenClaw CLI |
-| `runtimeValidation.expectedIdentityHash` | (computed) | SHA-256 hash of workspace for validation |
-| `runtimeValidation.switchedAt` | `Date.now()` | Timestamp for tracking switches |
+| Parameter                                | Default      | Purpose                                  |
+| ---------------------------------------- | ------------ | ---------------------------------------- |
+| `backend`                                | `undefined`  | Backend identifier                       |
+| `agentName`                              | `undefined`  | Agent name                               |
+| `gateway.cliPath`                        | `undefined`  | Path to OpenClaw CLI                     |
+| `runtimeValidation.expectedIdentityHash` | (computed)   | SHA-256 hash of workspace for validation |
+| `runtimeValidation.switchedAt`           | `Date.now()` | Timestamp for tracking switches          |
 
 **Sources:** [src/process/initAgent.ts:154-188]()
 
@@ -518,10 +520,10 @@ The router matches this route and renders the `Conversation` component, which lo
 
 Nanobot has minimal configuration:
 
-| Parameter | Default | Purpose |
-|-----------|---------|---------|
-| `workspace` | (generated) | Workspace directory |
-| `enabledSkills` | `[]` | Skills to load |
+| Parameter           | Default     | Purpose             |
+| ------------------- | ----------- | ------------------- |
+| `workspace`         | (generated) | Workspace directory |
+| `enabledSkills`     | `[]`        | Skills to load      |
 | `presetAssistantId` | `undefined` | Preset assistant ID |
 
 **Sources:** [src/process/initAgent.ts:136-152]()

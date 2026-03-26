@@ -12,8 +12,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the agent layer in `packages/shared/src/agent/`: the `BaseAgent` abstraction, the concrete backend implementations (`ClaudeAgent`, `CraftAgent`/Pi, `CopilotAgent`), LLM provider routing, the `PreToolUse` check pipeline, and the `call_llm` secondary-LLM tool. For how the Electron main process creates and manages agent instances per session, see [Session Lifecycle](#2.7). For how external MCP sources and REST API sources are connected and routed to agents, see [External Service Integration](#2.4).
 
 ---
@@ -86,15 +84,15 @@ Sources: [packages/shared/src/agent/base-agent.ts:1-170](), [packages/shared/src
 
 **Core modules initialised by BaseAgent**
 
-| Module | Class | Purpose |
-|--------|-------|---------|
-| Permission evaluation | `PermissionManager` | Evaluates tool permissions, manages `PermissionMode`, tracks command whitelists |
-| Source state tracking | `SourceManager` | Tracks which sources are active, formats source context for prompts |
-| Prompt construction | `PromptBuilder` | Builds context blocks prepended to each user message |
-| Path normalization | `PathProcessor` | Expands `~`, resolves relative paths |
-| Token accounting | `UsageTracker` | Tracks input/output token counts, fires `onUsageUpdate` |
-| Skill prerequisites | `PrerequisiteManager` | Blocks source tool calls until `guide.md` files are read |
-| File watching | `ConfigWatcherManager` | Watches workspace config files and hot-reloads changes |
+| Module                | Class                  | Purpose                                                                         |
+| --------------------- | ---------------------- | ------------------------------------------------------------------------------- |
+| Permission evaluation | `PermissionManager`    | Evaluates tool permissions, manages `PermissionMode`, tracks command whitelists |
+| Source state tracking | `SourceManager`        | Tracks which sources are active, formats source context for prompts             |
+| Prompt construction   | `PromptBuilder`        | Builds context blocks prepended to each user message                            |
+| Path normalization    | `PathProcessor`        | Expands `~`, resolves relative paths                                            |
+| Token accounting      | `UsageTracker`         | Tracks input/output token counts, fires `onUsageUpdate`                         |
+| Skill prerequisites   | `PrerequisiteManager`  | Blocks source tool calls until `guide.md` files are read                        |
+| File watching         | `ConfigWatcherManager` | Watches workspace config files and hot-reloads changes                          |
 
 Sources: [packages/shared/src/agent/base-agent.ts:218-270]()
 
@@ -117,16 +115,16 @@ Sources: [packages/shared/src/agent/base-agent.ts:929-953]()
 
 **Key callbacks on `BaseAgent`** (wired by `SessionManager` in the Electron main process):
 
-| Callback | Fired when |
-|----------|-----------|
-| `onPermissionRequest` | A tool needs user approval |
-| `onPlanSubmitted` | Agent calls `SubmitPlan` session tool |
-| `onAuthRequest` | A source needs authentication |
-| `onSourceChange` | Config watcher detects source file change |
-| `onSourcesListChange` | Source list changes (add/remove) |
-| `onPermissionModeChange` | User cycles through `safe` / `ask` / `allow-all` |
-| `onUsageUpdate` | Token counts updated |
-| `onSpawnSession` | Agent requests a new sub-session via `spawn_session` |
+| Callback                 | Fired when                                           |
+| ------------------------ | ---------------------------------------------------- |
+| `onPermissionRequest`    | A tool needs user approval                           |
+| `onPlanSubmitted`        | Agent calls `SubmitPlan` session tool                |
+| `onAuthRequest`          | A source needs authentication                        |
+| `onSourceChange`         | Config watcher detects source file change            |
+| `onSourcesListChange`    | Source list changes (add/remove)                     |
+| `onPermissionModeChange` | User cycles through `safe` / `ask` / `allow-all`     |
+| `onUsageUpdate`          | Token counts updated                                 |
+| `onSpawnSession`         | Agent requests a new sub-session via `spawn_session` |
 
 ---
 
@@ -184,10 +182,10 @@ Sources: [packages/shared/src/agent/claude-agent.ts:288-322](), [packages/shared
 
 These backends power non-Anthropic providers:
 
-| Backend | Providers |
-|---------|-----------|
+| Backend               | Providers                                                    |
+| --------------------- | ------------------------------------------------------------ |
 | `CraftAgent` (Pi SDK) | Google AI Studio, ChatGPT Plus (Codex OAuth), OpenAI API key |
-| `CopilotAgent` | GitHub Copilot OAuth (device code flow) |
+| `CopilotAgent`        | GitHub Copilot OAuth (device code flow)                      |
 
 Both extend `BaseAgent` and implement the same `chatImpl()` / `queryLlm()` / `runMiniCompletion()` contract. Because they use external MCP server subprocesses (via `bridge-mcp-server`), they rely on `handleSessionMcpToolCompletion()` (inherited from `BaseAgent`) to detect when session-scoped tools like `SubmitPlan` complete and fire the appropriate callbacks. `ClaudeAgent` does not need this because its session tools run in-process via the SDK.
 
@@ -243,15 +241,15 @@ Non-Claude backends implement the same logical checks via their own PreToolUse i
 
 **`PreToolUseCheckResult` types and their effects**
 
-| Result type | SDK hook response | Effect |
-|-------------|------------------|--------|
-| `allow` | `{ continue: true }` | Tool proceeds; optional steer message injected as `additionalContext` |
-| `modify` | `{ continue: true, updatedInput }` | Tool proceeds with modified input (e.g. path substitution) |
-| `block` | `{ continue: false, decision: 'block', reason }` | Tool is blocked; model receives explanation |
-| `prompt` | Async: waits for `onPermissionRequest` callback | User shown permission dialog; result awaited |
-| `source_activation_needed` | Async: calls `onSourceActivationRequest` | Auto-activates inactive source or blocks with explanation |
-| `call_llm_intercept` | `{ continue: true }` | Passes through; tool runs in-process via SDK |
-| `spawn_session_intercept` | `{ continue: true }` | Passes through; session spawned via `onSpawnSession` |
+| Result type                | SDK hook response                                | Effect                                                                |
+| -------------------------- | ------------------------------------------------ | --------------------------------------------------------------------- |
+| `allow`                    | `{ continue: true }`                             | Tool proceeds; optional steer message injected as `additionalContext` |
+| `modify`                   | `{ continue: true, updatedInput }`               | Tool proceeds with modified input (e.g. path substitution)            |
+| `block`                    | `{ continue: false, decision: 'block', reason }` | Tool is blocked; model receives explanation                           |
+| `prompt`                   | Async: waits for `onPermissionRequest` callback  | User shown permission dialog; result awaited                          |
+| `source_activation_needed` | Async: calls `onSourceActivationRequest`         | Auto-activates inactive source or blocks with explanation             |
+| `call_llm_intercept`       | `{ continue: true }`                             | Passes through; tool runs in-process via SDK                          |
+| `spawn_session_intercept`  | `{ continue: true }`                             | Passes through; session spawned via `onSpawnSession`                  |
 
 Sources: [packages/shared/src/agent/claude-agent.ts:826-1063]()
 
@@ -295,6 +293,7 @@ Sources: [packages/shared/src/agent/claude-agent.ts:839-884]()
 `call_llm` is a session-scoped tool that lets the main agent invoke a secondary, lighter LLM call without polluting the main context window. It is created by `createLLMTool()` in [packages/shared/src/agent/llm-tool.ts]() and registered as part of the `session` MCP server that every `ClaudeAgent` session receives.
 
 **Primary use cases:**
+
 - Cost optimization — use a smaller model (e.g., `haiku`) for summarization or classification
 - Structured output — native JSON schema compliance
 - Parallel processing — multiple `call_llm` calls in one turn execute simultaneously
@@ -302,16 +301,16 @@ Sources: [packages/shared/src/agent/claude-agent.ts:839-884]()
 
 ### Tool Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `prompt` | `string` | Instructions for the secondary LLM |
-| `attachments` | `Array<string \| { path, startLine?, endLine? }>` | File paths to load (up to 20, 2 MB total) |
-| `model` | `string` | Model ID or short name (e.g., `"haiku"`) |
-| `systemPrompt` | `string` | Optional system prompt |
-| `maxTokens` | `number` | 1–64000, defaults to 4096 |
-| `temperature` | `number` | 0–1 sampling temperature |
-| `outputFormat` | `enum` | Predefined schema: `summary`, `classification`, `extraction`, `analysis`, `comparison`, `validation` |
-| `outputSchema` | `object` | Custom JSON Schema for structured output |
+| Parameter      | Type                                              | Description                                                                                          |
+| -------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `prompt`       | `string`                                          | Instructions for the secondary LLM                                                                   |
+| `attachments`  | `Array<string \| { path, startLine?, endLine? }>` | File paths to load (up to 20, 2 MB total)                                                            |
+| `model`        | `string`                                          | Model ID or short name (e.g., `"haiku"`)                                                             |
+| `systemPrompt` | `string`                                          | Optional system prompt                                                                               |
+| `maxTokens`    | `number`                                          | 1–64000, defaults to 4096                                                                            |
+| `temperature`  | `number`                                          | 0–1 sampling temperature                                                                             |
+| `outputFormat` | `enum`                                            | Predefined schema: `summary`, `classification`, `extraction`, `analysis`, `comparison`, `validation` |
+| `outputSchema` | `object`                                          | Custom JSON Schema for structured output                                                             |
 
 Sources: [packages/shared/src/agent/llm-tool.ts:557-718]()
 
@@ -357,13 +356,13 @@ Sources: [packages/shared/src/agent/llm-tool.ts:176-249](), [packages/shared/src
 
 `processAttachment()` in [packages/shared/src/agent/llm-tool.ts:340-520]() handles all file ingestion:
 
-| Limit | Value |
-|-------|-------|
-| Max lines per file | 2,000 |
-| Max bytes per file | 500 KB |
-| Max attachments per call | 20 |
-| Max total content | 2 MB |
-| Max image size | 5 MB |
+| Limit                    | Value  |
+| ------------------------ | ------ |
+| Max lines per file       | 2,000  |
+| Max bytes per file       | 500 KB |
+| Max attachments per call | 20     |
+| Max total content        | 2 MB   |
+| Max image size           | 5 MB   |
 
 For files exceeding the line limit, the function returns an actionable error message that includes a breakdown of the file's four quarters (imports, exports, functions, config patterns) to help the model choose a useful line range.
 
@@ -373,14 +372,14 @@ Sources: [packages/shared/src/agent/llm-tool.ts:84-93](), [packages/shared/src/a
 
 `OUTPUT_FORMATS` in [packages/shared/src/agent/llm-tool.ts:99-153]() provides six ready-made JSON schemas:
 
-| Format | Required fields |
-|--------|----------------|
-| `summary` | `summary`, `key_points` |
-| `classification` | `category`, `confidence`, `reasoning` |
-| `extraction` | `items`, `count` |
-| `analysis` | `findings` |
-| `comparison` | `similarities`, `differences`, `verdict` |
-| `validation` | `valid`, `errors`, `warnings` |
+| Format           | Required fields                          |
+| ---------------- | ---------------------------------------- |
+| `summary`        | `summary`, `key_points`                  |
+| `classification` | `category`, `confidence`, `reasoning`    |
+| `extraction`     | `items`, `count`                         |
+| `analysis`       | `findings`                               |
+| `comparison`     | `similarities`, `differences`, `verdict` |
+| `validation`     | `valid`, `errors`, `warnings`            |
 
 When an `outputFormat` or `outputSchema` is supplied, the schema JSON is appended to the system prompt with an instruction to return only valid JSON. This works for all backends without requiring native structured output support.
 
@@ -392,12 +391,12 @@ Any agent can run in "mini agent" mode, activated by setting `systemPromptPreset
 
 **Mini agent vs normal agent comparison**
 
-| Aspect | Normal agent | Mini agent |
-|--------|-------------|-----------|
-| System prompt | Claude Code preset + workspace context | Lean custom prompt via `getMiniAgentSystemPrompt()` |
-| Tools (Claude) | Full Claude Code toolset | `['Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash']` |
-| MCP servers (Claude) | `session` + `craft-agents-docs` + all source proxies | `session` only |
-| `maxThinkingTokens` | Per thinking level | `0` (disabled) |
+| Aspect               | Normal agent                                         | Mini agent                                          |
+| -------------------- | ---------------------------------------------------- | --------------------------------------------------- |
+| System prompt        | Claude Code preset + workspace context               | Lean custom prompt via `getMiniAgentSystemPrompt()` |
+| Tools (Claude)       | Full Claude Code toolset                             | `['Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash']` |
+| MCP servers (Claude) | `session` + `craft-agents-docs` + all source proxies | `session` only                                      |
+| `maxThinkingTokens`  | Per thinking level                                   | `0` (disabled)                                      |
 
 `getMiniAgentConfig()` in `BaseAgent` returns the centralised `MiniAgentConfig` object that each backend reads to apply these constraints. This avoids duplicated detection logic across Claude, Codex, and Copilot implementations.
 
@@ -409,11 +408,11 @@ Sources: [packages/shared/src/agent/base-agent.ts:131-136](), [packages/shared/s
 
 `ClaudeAgent` supports configurable extended thinking for Claude models via `ThinkingLevel`. The level is stored in `BaseAgent._thinkingLevel` and applied per-message.
 
-| Level | Behaviour |
-|-------|-----------|
-| `none` | Thinking disabled (`maxThinkingTokens: 0`) |
-| `think` | Default — moderate thinking budget |
-| `max` | Maximum budget; also activated for single-turn override via `setUltrathinkOverride(true)` |
+| Level   | Behaviour                                                                                 |
+| ------- | ----------------------------------------------------------------------------------------- |
+| `none`  | Thinking disabled (`maxThinkingTokens: 0`)                                                |
+| `think` | Default — moderate thinking budget                                                        |
+| `max`   | Maximum budget; also activated for single-turn override via `setUltrathinkOverride(true)` |
 
 Non-Claude models (routed through OpenRouter/Ollama via a custom base URL) receive `maxThinkingTokens: 0` regardless of level, because extended thinking is Anthropic-specific.
 

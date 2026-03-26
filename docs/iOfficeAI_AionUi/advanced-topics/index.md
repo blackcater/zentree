@@ -18,8 +18,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers advanced architectural patterns, optimization techniques, and specialized resilience features implemented in AionUi. These systems address production challenges including API rate limits, network unreliability, build environment instability, and user interaction complexity. The topics documented here represent cross-cutting concerns that span multiple agent types and operational modes.
 
 For basic agent architecture and communication patterns, see [AI Agent Systems](#4). For build configuration fundamentals, see [Build & Deployment](#11).
@@ -30,13 +28,14 @@ For basic agent architecture and communication patterns, see [AI Agent Systems](
 
 AionUi implements four primary categories of advanced patterns:
 
-| System | Purpose | Key Components |
-|--------|---------|----------------|
-| **API Key Rotation** | Automatic failover across multiple API keys to handle rate limits | `ApiKeyManager`, fallback handler |
-| **Build Retry Mechanism** | Automatic retry of failed builds with exponential backoff | GitHub Actions workflow, notarization retry |
-| **Stream Resilience** | Detection and recovery from invalid/stale streaming connections | `StreamMonitor`, `globalToolCallGuard` |
-| **Permission System** | User approval flow for tool execution with timeout handling | `CoreToolScheduler`, `GeminiApprovalStore`, `AcpApprovalStore` |
-| **Think Tag Filtering** | Strip `` and `<thinking>…</thinking>` blocks
+| System                    | Purpose                                                           | Key Components                                                 |
+| ------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------- |
+| **API Key Rotation**      | Automatic failover across multiple API keys to handle rate limits | `ApiKeyManager`, fallback handler                              |
+| **Build Retry Mechanism** | Automatic retry of failed builds with exponential backoff         | GitHub Actions workflow, notarization retry                    |
+| **Stream Resilience**     | Detection and recovery from invalid/stale streaming connections   | `StreamMonitor`, `globalToolCallGuard`                         |
+| **Permission System**     | User approval flow for tool execution with timeout handling       | `CoreToolScheduler`, `GeminiApprovalStore`, `AcpApprovalStore` |
+| **Think Tag Filtering**   | Strip ``and`<thinking>…</thinking>` blocks                        |
+
 2. Handle MiniMax M2.5–style orphaned closing tags: content before the first `</think>` is treated as hidden reasoning and removed entirely
 3. Remove any remaining orphaned opening or closing tags
 4. Collapse excess newlines and trim whitespace
@@ -84,13 +83,13 @@ before first-line extraction"]
     end
 ```
 
-| Location | Function | Scope |
-|----------|----------|-------|
-| `processGeminiStreamEvents` | Per-chunk, inline | Gemini streaming only |
-| `GeminiAgentManager.filterThinkTagsFromMessage` | Before IPC emit | All Gemini messages |
-| `AcpAgentManager.filterThinkTagsFromMessage` | Before IPC emit | All ACP messages |
-| `filterMessageContent` (renderer) | At render time | Historical messages saved before filter existed |
-| `useAutoTitle.checkAndUpdateTitle` | Before title extraction | Conversation auto-naming |
+| Location                                        | Function                | Scope                                           |
+| ----------------------------------------------- | ----------------------- | ----------------------------------------------- |
+| `processGeminiStreamEvents`                     | Per-chunk, inline       | Gemini streaming only                           |
+| `GeminiAgentManager.filterThinkTagsFromMessage` | Before IPC emit         | All Gemini messages                             |
+| `AcpAgentManager.filterThinkTagsFromMessage`    | Before IPC emit         | All ACP messages                                |
+| `filterMessageContent` (renderer)               | At render time          | Historical messages saved before filter existed |
+| `useAutoTitle.checkAndUpdateTitle`              | Before title extraction | Conversation auto-naming                        |
 
 Sources: [src/agent/gemini/utils.ts:104-148](), [src/process/task/GeminiAgentManager.ts:554-556](), [src/process/task/AcpAgentManager.ts:215-219](), [src/renderer/hooks/useAutoTitle.ts:14-22](), [src/renderer/utils/thinkTagFilter.ts:63-81]()
 
@@ -106,6 +105,7 @@ Sources: [src/agent/gemini/utils.ts:104-148](), [src/process/task/ThinkTagDetect
 ---
 
 ## Permission & Confirmation System
+
 - **Fail-fast validation** with graceful degradation
 - **Automatic retry** with configurable limits
 - **State tracking** to prevent duplicate operations
@@ -132,14 +132,14 @@ sequenceDiagram
     GeminiAgent->>ApiKeyManager: new ApiKeyManager(apiKeys, authType)
     ApiKeyManager->>ApiKeyManager: parseKeys() → key array
     ApiKeyManager->>ApiKeyManager: validateKeys() → filter invalid
-    
+
     Note over GeminiAgent,GeminiAPI: Normal Request Flow
     Config->>GeminiAPI: sendMessage()
     GeminiAPI-->>Config: 429 Rate Limit Error
-    
+
     Config->>FallbackHandler: onError(429)
     FallbackHandler->>ApiKeyManager: rotateKey()
-    
+
     alt Has More Keys
         ApiKeyManager->>ApiKeyManager: selectNextKey()
         ApiKeyManager->>ApiKeyManager: updateProcessEnv(newKey)
@@ -160,13 +160,13 @@ sequenceDiagram
 
 The `ApiKeyManager` class maintains:
 
-| State Field | Type | Purpose |
-|------------|------|---------|
-| `keys` | `string[]` | Parsed and validated API keys |
-| `currentIndex` | `number` | Active key index |
-| `blacklistedKeys` | `Set<string>` | Keys marked as invalid/exhausted |
-| `authType` | `AuthType` | Determines which env var to update |
-| `envKey` | `string` | Environment variable name for current auth type |
+| State Field       | Type          | Purpose                                         |
+| ----------------- | ------------- | ----------------------------------------------- |
+| `keys`            | `string[]`    | Parsed and validated API keys                   |
+| `currentIndex`    | `number`      | Active key index                                |
+| `blacklistedKeys` | `Set<string>` | Keys marked as invalid/exhausted                |
+| `authType`        | `AuthType`    | Determines which env var to update              |
+| `envKey`          | `string`      | Environment variable name for current auth type |
 
 The rotation algorithm implements round-robin selection with blacklist filtering:
 
@@ -190,9 +190,9 @@ private initializeMultiKeySupport(): void {
 '))) {
     return; // Single key or no key
   }
-  
-  if (this.authType === AuthType.USE_OPENAI || 
-      this.authType === AuthType.USE_GEMINI || 
+
+  if (this.authType === AuthType.USE_OPENAI ||
+      this.authType === AuthType.USE_GEMINI ||
       this.authType === AuthType.USE_ANTHROPIC) {
     this.apiKeyManager = new ApiKeyManager(apiKey, this.authType);
   }
@@ -223,48 +223,48 @@ graph TB
         Trigger[Push to main/dev]
         CodeQuality[code-quality job]
         BuildMatrix[build job matrix]
-        
+
         subgraph "Build Job (per platform)"
             Setup[Setup: Node.js + Python]
             NativeRebuild[Rebuild Native Modules]
             ForgePackage[electron-forge package]
             BuilderDist[electron-builder dist]
-            
+
             subgraph "Retry Wrapper (macOS only)"
                 RetryAction[nick-fields/retry@v3]
                 Attempt1[Attempt 1: 80 min timeout]
                 Wait[Wait 5 min]
                 Attempt2[Attempt 2: 80 min timeout]
             end
-            
+
             AfterSign[afterSign.js: Notarization]
         end
-        
+
         AutoRetry[auto-retry-workflow job]
         CreateTag[create-tag job]
         Release[release job]
     end
-    
+
     Trigger --> CodeQuality
     CodeQuality --> BuildMatrix
-    
+
     BuildMatrix --> Setup
     Setup --> NativeRebuild
     NativeRebuild --> ForgePackage
     ForgePackage --> BuilderDist
-    
+
     BuilderDist --> RetryAction
     RetryAction --> Attempt1
     Attempt1 -->|Timeout/Fail| Wait
     Wait --> Attempt2
     Attempt1 -->|Success| AfterSign
     Attempt2 --> AfterSign
-    
+
     AfterSign -->|Success| CreateTag
     AfterSign -->|Failure| AutoRetry
-    
+
     AutoRetry -->|Sleep 1 hour| Trigger
-    
+
     CreateTag --> Release
 ```
 
@@ -296,12 +296,12 @@ The GitHub Actions workflow uses the `nick-fields/retry@v3` action with platform
 
 **Key retry parameters:**
 
-| Parameter | Value | Rationale |
-|-----------|-------|-----------|
-| `timeout_minutes` | 80 | Apple notarization can take 30-60 minutes |
-| `max_attempts` | 2 | Balance between reliability and CI time |
-| `retry_wait_seconds` | 300 | 5 minutes for Apple services to stabilize |
-| `continue_on_error` | macOS only | Windows/Linux failures are fatal |
+| Parameter            | Value      | Rationale                                 |
+| -------------------- | ---------- | ----------------------------------------- |
+| `timeout_minutes`    | 80         | Apple notarization can take 30-60 minutes |
+| `max_attempts`       | 2          | Balance between reliability and CI time   |
+| `retry_wait_seconds` | 300        | 5 minutes for Apple services to stabilize |
+| `continue_on_error`  | macOS only | Windows/Linux failures are fatal          |
 
 **Sources:** [.github/workflows/build-and-release.yml:310-330]()
 
@@ -332,7 +332,7 @@ auto-retry-workflow:
   steps:
     - name: Wait before retry (1 hour for Apple notarization)
       run: sleep 3600
-    
+
     - name: Trigger workflow rerun
       run: |
         curl -X POST \
@@ -341,6 +341,7 @@ auto-retry-workflow:
 ```
 
 This pattern handles Apple's "first-time notarization can take days" behavior by:
+
 - Waiting 1 hour for Apple backend processing
 - Re-running entire workflow (not just failed jobs)
 - Only triggering once (`github.run_attempt == 1`)
@@ -362,18 +363,18 @@ graph TB
     subgraph "Stream Processing Layer"
         handleMessage[GeminiAgent.handleMessage]
         processEvents[processGeminiStreamEvents]
-        
+
         subgraph "Monitoring"
             StreamMonitor[StreamMonitor instance]
             HeartbeatTimer[Heartbeat Timer]
             StateTracker[Connection State]
         end
-        
+
         subgraph "Protection"
             globalToolCallGuard[globalToolCallGuard singleton]
             ProtectedCalls[Map: callId → timestamp]
         end
-        
+
         subgraph "Event Types"
             Content[Content events]
             ToolRequest[ToolCallRequest events]
@@ -381,28 +382,28 @@ graph TB
             Finished[Finished events]
         end
     end
-    
+
     subgraph "Retry Logic"
         InvalidDetected{Invalid Stream?}
         RetryCount{retryCount < 2?}
         WaitDelay[Wait 1 second]
         Resubmit[Resubmit query]
     end
-    
+
     handleMessage --> processEvents
     processEvents --> StreamMonitor
-    
+
     StreamMonitor --> HeartbeatTimer
     StreamMonitor --> StateTracker
-    
+
     processEvents --> Content
     processEvents --> ToolRequest
     processEvents --> InvalidStream
     processEvents --> Finished
-    
+
     ToolRequest --> globalToolCallGuard
     globalToolCallGuard --> ProtectedCalls
-    
+
     InvalidStream --> InvalidDetected
     InvalidDetected -->|Yes| RetryCount
     RetryCount -->|Yes| WaitDelay
@@ -420,12 +421,12 @@ The `StreamMonitor` class tracks connection health with configurable thresholds:
 ```typescript
 // Configuration from src/agent/gemini/cli/streamResilience.ts
 export const DEFAULT_STREAM_RESILIENCE_CONFIG: StreamResilienceConfig = {
-  heartbeatTimeoutMs: 90000,        // 90 seconds
-  maxInvalidStreamRetries: 2,       // Max retry attempts
-  invalidStreamRetryDelayMs: 1000,  // 1 second delay
+  heartbeatTimeoutMs: 90000, // 90 seconds
+  maxInvalidStreamRetries: 2, // Max retry attempts
+  invalidStreamRetryDelayMs: 1000, // 1 second delay
   enableHeartbeatMonitoring: true,
   enableInvalidStreamDetection: true,
-};
+}
 ```
 
 The monitor operates in three states:
@@ -452,22 +453,22 @@ The `globalToolCallGuard` singleton prevents tool call cancellation during strea
 
 ```typescript
 class ToolCallGuard {
-  private protectedCalls: Map<string, number> = new Map();
-  
+  private protectedCalls: Map<string, number> = new Map()
+
   protect(callId: string): void {
-    this.protectedCalls.set(callId, Date.now());
+    this.protectedCalls.set(callId, Date.now())
   }
-  
+
   unprotect(callId: string): void {
-    this.protectedCalls.delete(callId);
+    this.protectedCalls.delete(callId)
   }
-  
+
   isProtected(callId: string): boolean {
-    return this.protectedCalls.has(callId);
+    return this.protectedCalls.has(callId)
   }
 }
 
-export const globalToolCallGuard = new ToolCallGuard();
+export const globalToolCallGuard = new ToolCallGuard()
 ```
 
 Tool calls are protected immediately when requested:
@@ -475,14 +476,15 @@ Tool calls are protected immediately when requested:
 ```typescript
 // From handleMessage in GeminiAgent
 if (data.type === 'tool_call_request') {
-  const toolRequest = data.data as ToolCallRequestInfo;
-  toolCallRequests.push(toolRequest);
-  globalToolCallGuard.protect(toolRequest.callId); // Immediate protection
-  return;
+  const toolRequest = data.data as ToolCallRequestInfo
+  toolCallRequests.push(toolRequest)
+  globalToolCallGuard.protect(toolRequest.callId) // Immediate protection
+  return
 }
 ```
 
 This prevents race conditions where:
+
 1. Stream emits tool call request
 2. Stream fails/retries before tool execution begins
 3. Tool execution proceeds with protected call ID
@@ -497,38 +499,51 @@ The `InvalidStream` event indicates the model returned empty or malformed respon
 ```typescript
 // From handleMessage
 if (data.type === ('invalid_stream' as string)) {
-  invalidStreamDetected = true;
-  const eventData = data.data as { message: string; retryable: boolean };
-  
-  if (eventData.retryable && 
-      retryCount < MAX_INVALID_STREAM_RETRIES && 
-      query && 
-      !abortController.signal.aborted) {
-    
+  invalidStreamDetected = true
+  const eventData = data.data as { message: string; retryable: boolean }
+
+  if (
+    eventData.retryable &&
+    retryCount < MAX_INVALID_STREAM_RETRIES &&
+    query &&
+    !abortController.signal.aborted
+  ) {
     this.onStreamEvent({
       type: 'info',
       data: `Stream interrupted, retrying... (${retryCount + 1}/${MAX_INVALID_STREAM_RETRIES})`,
       msg_id,
-    });
+    })
   }
-  return;
+  return
 }
 
 // After stream completes
-if (invalidStreamDetected && 
-    retryCount < MAX_INVALID_STREAM_RETRIES && 
-    query && 
-    !abortController.signal.aborted) {
-  
-  await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-  
-  const prompt_id = this.config.getSessionId() + '########' + getPromptCount();
-  const newStream = this.geminiClient.sendMessageStream(query, abortController.signal, prompt_id);
-  return this.handleMessage(newStream, msg_id, abortController, query, retryCount + 1);
+if (
+  invalidStreamDetected &&
+  retryCount < MAX_INVALID_STREAM_RETRIES &&
+  query &&
+  !abortController.signal.aborted
+) {
+  await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
+
+  const prompt_id = this.config.getSessionId() + '########' + getPromptCount()
+  const newStream = this.geminiClient.sendMessageStream(
+    query,
+    abortController.signal,
+    prompt_id
+  )
+  return this.handleMessage(
+    newStream,
+    msg_id,
+    abortController,
+    query,
+    retryCount + 1
+  )
 }
 ```
 
 **Retry parameters:**
+
 - `MAX_INVALID_STREAM_RETRIES = 2`
 - `RETRY_DELAY_MS = 1000`
 
@@ -556,10 +571,10 @@ sequenceDiagram
     Note over GeminiAgent,Tool: Stream Processing
     GeminiAgent->>GeminiAgent: handleMessage(stream)
     GeminiAgent->>CoreToolScheduler: schedule(toolCallRequests)
-    
+
     CoreToolScheduler->>CoreToolScheduler: Queue tool calls
     CoreToolScheduler->>CoreToolScheduler: Check approval mode
-    
+
     alt YOLO Mode
         CoreToolScheduler->>Tool: execute() immediately
         Tool-->>CoreToolScheduler: result
@@ -568,12 +583,12 @@ sequenceDiagram
         GeminiAgent->>IPC: responseStream.emit(tool_group)
         IPC->>ChatLayout: Display tool cards
         ChatLayout->>User: Show confirmation UI
-        
+
         User->>ChatLayout: Click approve/reject
         ChatLayout->>IPC: conversation.confirmToolCall.invoke()
         IPC->>GeminiAgent: confirmToolCall(callId, approved)
         GeminiAgent->>CoreToolScheduler: confirmToolCall(callId, approved)
-        
+
         alt Approved
             CoreToolScheduler->>Tool: execute()
             Tool-->>CoreToolScheduler: result
@@ -581,7 +596,7 @@ sequenceDiagram
             CoreToolScheduler->>CoreToolScheduler: Mark as cancelled
         end
     end
-    
+
     CoreToolScheduler->>GeminiAgent: onAllToolCallsComplete(results)
     GeminiAgent->>GeminiAgent: handleCompletedTools()
     GeminiAgent->>GeminiAgent: submitQuery(response)
@@ -597,36 +612,36 @@ The `CoreToolScheduler` is initialized in `GeminiAgent.initToolScheduler()` with
 this.scheduler = new CoreToolScheduler({
   onAllToolCallsComplete: async (completedToolCalls: CompletedToolCall[]) => {
     // Refresh memory after tool execution
-    await refreshServerHierarchicalMemory(this.config);
-    
+    await refreshServerHierarchicalMemory(this.config)
+
     // Build continuation message with tool results
     const response = handleCompletedTools(
-      completedToolCalls, 
-      this.geminiClient, 
+      completedToolCalls,
+      this.geminiClient,
       refreshMemory
-    );
-    
+    )
+
     if (response.length > 0) {
       // Submit tool results back to model
       this.submitQuery(response, msg_id, abortController, {
         isContinuation: true,
         prompt_id: toolCalls[0].request.prompt_id,
-      });
+      })
     }
   },
-  
+
   onToolCallsUpdate: (updatedCoreToolCalls: ToolCall[]) => {
     // Transform core tool calls to UI display format
-    const display = mapToDisplay(toolCalls);
+    const display = mapToDisplay(toolCalls)
     this.onStreamEvent({
       type: 'tool_group',
       data: display.tools,
       msg_id: this.activeMsgId,
-    });
+    })
   },
-  
+
   config: this.config,
-});
+})
 ```
 
 **Sources:** [src/agent/gemini/index.ts:309-380]()
@@ -637,11 +652,12 @@ The `TrackedToolCall` type extends `aioncli-core`'s `ToolCall` with UI state:
 
 ```typescript
 interface TrackedToolCall extends ToolCall {
-  responseSubmittedToGemini: boolean;
+  responseSubmittedToGemini: boolean
 }
 ```
 
 Tool calls progress through states:
+
 - `pending`: Awaiting user confirmation
 - `approved`: User confirmed, execution in progress
 - `success`: Completed successfully
@@ -652,10 +668,10 @@ The `mapToDisplay()` function transforms tool calls for UI rendering:
 
 ```typescript
 export function mapToDisplay(toolCalls: TrackedToolCall[]): {
-  tools: DisplayToolCall[];
+  tools: DisplayToolCall[]
 } {
   return {
-    tools: toolCalls.map(tc => ({
+    tools: toolCalls.map((tc) => ({
       callId: tc.request.callId,
       name: tc.request.name,
       args: tc.request.args,
@@ -663,8 +679,8 @@ export function mapToDisplay(toolCalls: TrackedToolCall[]): {
       result: tc.response?.result,
       error: tc.response?.error,
       // ... UI-specific fields
-    }))
-  };
+    })),
+  }
 }
 ```
 
@@ -677,14 +693,14 @@ The UI sends confirmation decisions through the IPC bridge:
 ```typescript
 // From initBridge.ts
 ipcBridge.conversation.confirmToolCall.provider(async (callId, approved) => {
-  const task = WorkerManage.getTaskByConversationId(conversationId);
-  if (!task) return;
-  
-  const agent = task.worker.agent;
+  const task = WorkerManage.getTaskByConversationId(conversationId)
+  if (!task) return
+
+  const agent = task.worker.agent
   if ('confirmToolCall' in agent) {
-    agent.confirmToolCall(callId, approved);
+    agent.confirmToolCall(callId, approved)
   }
-});
+})
 ```
 
 The agent delegates to the scheduler:
@@ -731,11 +747,11 @@ show UI"]
 ProceedAlwaysTool/ProceedAlwaysServer/Cancel)"]
 ```
 
-| Mode | Auto-Approves | Requires Manual Confirmation |
-|------|--------------|------------------------------|
-| `default` | Nothing | All tool operations |
+| Mode       | Auto-Approves                           | Requires Manual Confirmation       |
+| ---------- | --------------------------------------- | ---------------------------------- |
+| `default`  | Nothing                                 | All tool operations                |
 | `autoEdit` | `edit` (file writes) and `info` (reads) | `exec` (shell commands), MCP tools |
-| `yolo` | Everything | Nothing |
+| `yolo`     | Everything                              | Nothing                            |
 
 Sources: [src/process/task/GeminiAgentManager.ts:449-468](), [src/process/task/GeminiAgentManager.ts:470-510]()
 
@@ -807,11 +823,17 @@ Retry mechanisms store minimal state and use closure-captured parameters:
 // Stream retry captures original query
 if (invalidStreamDetected && retryCount < MAX_RETRIES) {
   const newStream = this.geminiClient.sendMessageStream(
-    query,  // Original query captured in closure
+    query, // Original query captured in closure
     abortController.signal,
     prompt_id
-  );
-  return this.handleMessage(newStream, msg_id, abortController, query, retryCount + 1);
+  )
+  return this.handleMessage(
+    newStream,
+    msg_id,
+    abortController,
+    query,
+    retryCount + 1
+  )
 }
 ```
 
@@ -823,14 +845,14 @@ This prevents state corruption from concurrent retries and simplifies cleanup.
 
 All systems provide fallback behavior when advanced features fail:
 
-| System | Degradation Path |
-|--------|------------------|
-| API Key Rotation | Return to single-key behavior if parsing fails |
-| Build Retry | Mark build as warning, allow workflow to continue |
-| ACP Connection Resilience | Fall back to online npm resolution if offline cache is stale |
-| Stream Resilience | Disable monitoring if timer allocation fails |
-| Think Tag Filtering | Pass content through unmodified if regex fails |
-| Confirmation System | Fall back to `default` mode if session mode cannot be applied |
+| System                    | Degradation Path                                              |
+| ------------------------- | ------------------------------------------------------------- |
+| API Key Rotation          | Return to single-key behavior if parsing fails                |
+| Build Retry               | Mark build as warning, allow workflow to continue             |
+| ACP Connection Resilience | Fall back to online npm resolution if offline cache is stale  |
+| Stream Resilience         | Disable monitoring if timer allocation fails                  |
+| Think Tag Filtering       | Pass content through unmodified if regex fails                |
+| Confirmation System       | Fall back to `default` mode if session mode cannot be applied |
 
 This ensures core functionality remains operational even when advanced features encounter errors.
 

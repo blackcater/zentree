@@ -30,8 +30,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document provides an overview of the headless UI component packages that render chat interfaces. TanStack AI provides three framework-specific UI libraries: `@tanstack/ai-react-ui`, `@tanstack/ai-solid-ui`, and `@tanstack/ai-vue-ui`. These packages provide pre-built components for rendering message parts, processing markdown with syntax highlighting, and handling specialized content like thinking indicators. All three packages share a common markdown processing pipeline based on rehype and remark plugins.
 
 For framework-specific component details, see [React UI Components](#7.1), [Solid UI Components](#7.2), and [Vue UI Components](#7.3). For the shared markdown processing architecture, see [Markdown Processing Pipeline](#7.4). For framework integration hooks and state management, see [Framework Integrations](#6).
@@ -40,11 +38,11 @@ For framework-specific component details, see [React UI Components](#7.1), [Soli
 
 TanStack AI provides three UI component packages that sit atop the framework integration layer:
 
-| Package | Framework | Markdown Renderer | Rehype/Remark Plugins |
-|---------|-----------|-------------------|----------------------|
-| `@tanstack/ai-react-ui` | React | `react-markdown` | `rehype-highlight`, `rehype-raw`, `rehype-sanitize`, `remark-gfm` |
-| `@tanstack/ai-solid-ui` | SolidJS | `solid-markdown` | `rehype-highlight`, `rehype-raw`, `rehype-sanitize`, `remark-gfm` |
-| `@tanstack/ai-vue-ui` | Vue 3 | `@crazydos/vue-markdown` | `rehype-highlight`, `rehype-raw`, `rehype-sanitize`, `remark-gfm` |
+| Package                 | Framework | Markdown Renderer        | Rehype/Remark Plugins                                             |
+| ----------------------- | --------- | ------------------------ | ----------------------------------------------------------------- |
+| `@tanstack/ai-react-ui` | React     | `react-markdown`         | `rehype-highlight`, `rehype-raw`, `rehype-sanitize`, `remark-gfm` |
+| `@tanstack/ai-solid-ui` | SolidJS   | `solid-markdown`         | `rehype-highlight`, `rehype-raw`, `rehype-sanitize`, `remark-gfm` |
+| `@tanstack/ai-vue-ui`   | Vue 3     | `@crazydos/vue-markdown` | `rehype-highlight`, `rehype-raw`, `rehype-sanitize`, `remark-gfm` |
 
 All three packages follow the "headless" component pattern, providing minimal default styling and focusing on rendering logic rather than visual design. Applications style components using their own CSS frameworks (Tailwind, CSS Modules, styled-components, etc.).
 
@@ -59,23 +57,23 @@ graph TB
     subgraph "Application"
         APP["Application Code"]
     end
-    
+
     subgraph "UI Component Libraries"
         REACT_UI["@tanstack/ai-react-ui"]
         SOLID_UI["@tanstack/ai-solid-ui"]
         VUE_UI["@tanstack/ai-vue-ui"]
     end
-    
+
     subgraph "Framework Integrations"
         REACT_HOOK["@tanstack/ai-react<br/>useChat hook"]
         SOLID_HOOK["@tanstack/ai-solid<br/>useChat primitive"]
         VUE_HOOK["@tanstack/ai-vue<br/>useChat composable"]
     end
-    
+
     subgraph "Client State Management"
         CLIENT["@tanstack/ai-client<br/>ChatClient, UIMessage, MessagePart types"]
     end
-    
+
     subgraph "Markdown Processing (Shared Pipeline)"
         REACT_MD["react-markdown"]
         SOLID_MD["solid-markdown"]
@@ -83,27 +81,27 @@ graph TB
         REHYPE["rehype-highlight<br/>rehype-raw<br/>rehype-sanitize"]
         REMARK["remark-gfm"]
     end
-    
+
     APP --> REACT_UI
     APP --> SOLID_UI
     APP --> VUE_UI
-    
+
     REACT_UI --> REACT_HOOK
     SOLID_UI --> SOLID_HOOK
     VUE_UI --> VUE_HOOK
-    
+
     REACT_UI -.types.-> CLIENT
     SOLID_UI -.types.-> CLIENT
     VUE_UI -.types.-> CLIENT
-    
+
     REACT_HOOK --> CLIENT
     SOLID_HOOK --> CLIENT
     VUE_HOOK --> CLIENT
-    
+
     REACT_UI --> REACT_MD
     SOLID_UI --> SOLID_MD
     VUE_UI --> VUE_MD
-    
+
     REACT_MD --> REHYPE
     REACT_MD --> REMARK
     SOLID_MD --> REHYPE
@@ -115,6 +113,7 @@ graph TB
 **Sources:** [packages/typescript/ai-react-ui/package.json:37-49](), [packages/typescript/ai-solid-ui/package.json:39-52](), [packages/typescript/ai-vue-ui/package.json:37-48]()
 
 Each UI component package depends on:
+
 - **Framework integration package** (`@tanstack/ai-react`, `@tanstack/ai-solid`, or `@tanstack/ai-vue`) - provides the `useChat` hook/primitive/composable for accessing chat state
 - **Client package** (`@tanstack/ai-client`) - provides type definitions for `UIMessage` and `MessagePart` types
 - **Framework-specific markdown renderer** (`react-markdown`, `solid-markdown`, or `@crazydos/vue-markdown`) - renders formatted text content
@@ -136,12 +135,14 @@ This approach allows applications to maintain complete control over visual desig
 ## When to Use Pre-Built vs Custom Components
 
 **Use Pre-Built UI Components When:**
+
 - Rendering markdown content with syntax highlighting
 - Displaying thinking/reasoning content from models like Claude or OpenAI o1
 - Need standard collapsible UI for extended thinking
 - Want consistent markdown processing across your application
 
 **Build Custom Components When:**
+
 - Rendering tool calls with specialized visualizations (charts, maps, cards)
 - Implementing approval UI for tools with `needsApproval: true`
 - Displaying tool results with domain-specific formatting
@@ -158,26 +159,26 @@ The UI components render `UIMessage` objects containing arrays of `MessagePart` 
 ```mermaid
 graph TB
     UIMessage["UIMessage<br/>{id, role, parts[], createdAt}"]
-    
+
     subgraph "MessagePart Union Types"
         TEXT["TextPart<br/>{type: 'text', content: string}"]
         THINKING["ThinkingPart<br/>{type: 'thinking', content: string}"]
         TOOL_CALL["ToolCallPart<br/>{type: 'tool-call', name, state, input, output}"]
         TOOL_RESULT["ToolResultPart<br/>{type: 'tool-result', toolCallId, content}"]
     end
-    
+
     subgraph "Rendering Strategies"
         MARKDOWN["Markdown Renderer<br/>react-markdown + rehype/remark"]
         THINKING_COMP["ThinkingPart Component<br/>(pre-built, collapsible)"]
         CUSTOM_TOOL["Custom Tool Components<br/>(application-defined)"]
         SKIP["Hidden/Skipped<br/>(displayed via tool call)"]
     end
-    
+
     UIMessage --> TEXT
     UIMessage --> THINKING
     UIMessage --> TOOL_CALL
     UIMessage --> TOOL_RESULT
-    
+
     TEXT --> MARKDOWN
     THINKING --> THINKING_COMP
     TOOL_CALL --> CUSTOM_TOOL
@@ -195,15 +196,17 @@ Applications iterate through `message.parts` and route to the appropriate render
 All three UI packages export a `ThinkingPart` component for rendering extended thinking/reasoning content from models like Claude (with extended thinking) and OpenAI o1/o3 series.
 
 **Component Interface (TypeScript):**
+
 ```typescript
 interface ThinkingPartProps {
-  content: string        // The thinking/reasoning text
-  isComplete: boolean    // Whether thinking is finished
-  className?: string     // Optional CSS classes for styling
+  content: string // The thinking/reasoning text
+  isComplete: boolean // Whether thinking is finished
+  className?: string // Optional CSS classes for styling
 }
 ```
 
 **Features:**
+
 - Collapsible UI to hide verbose reasoning by default
 - Visual indicator differentiating in-progress vs. complete thinking
 - Framework-appropriate reactivity (React state, Solid signals, Vue refs)
@@ -212,9 +215,7 @@ interface ThinkingPartProps {
 The `isComplete` prop is typically computed by checking if a `TextPart` follows the thinking part in the message:
 
 ```typescript
-const isComplete = message.parts
-  .slice(index + 1)
-  .some((p) => p.type === 'text')
+const isComplete = message.parts.slice(index + 1).some((p) => p.type === 'text')
 ```
 
 See [React UI Components](#7.1), [Solid UI Components](#7.2), and [Vue UI Components](#7.3) for framework-specific usage examples.
@@ -226,6 +227,7 @@ See [React UI Components](#7.1), [Solid UI Components](#7.2), and [Vue UI Compon
 All three UI packages provide the same markdown processing pipeline through their dependencies. Applications use the framework-specific markdown renderer with the included rehype/remark plugins:
 
 **Pipeline Components:**
+
 - **remark-gfm** - GitHub Flavored Markdown (tables, task lists, strikethrough)
 - **rehype-highlight** - Syntax highlighting for code blocks
 - **rehype-raw** - Parse raw HTML in markdown
@@ -251,7 +253,7 @@ sequenceDiagram
     participant Hook as "useChat/useChat/useChat"
     participant Client as "ChatClient"
     participant Stream as "StreamProcessor"
-    
+
     Stream->>Client: "ToolCallPart<br/>{state: 'approval-requested'}"
     Client->>Hook: "Update messages"
     Hook->>App: "Render approval UI"
@@ -294,6 +296,7 @@ This pattern allows different tools to have completely different UI representati
 ## Package Structure and Exports
 
 All three UI component packages export:
+
 1. **ThinkingPart** component - For rendering thinking/reasoning content
 2. **TypeScript types** - Component prop interfaces and type definitions
 3. **Transitive dependencies** - Markdown renderers and rehype/remark plugins
@@ -307,25 +310,25 @@ graph TB
         REACT_EXP["dist/esm/index.js<br/>ThinkingPart<br/>Types"]
         REACT_DEPS["react-markdown<br/>+ rehype/remark plugins"]
     end
-    
+
     subgraph "@tanstack/ai-solid-ui"
         SOLID_PKG["Package"]
         SOLID_EXP["src/index.ts (dev)<br/>dist/index.js (prod)<br/>ThinkingPart<br/>Types"]
         SOLID_DEPS["solid-markdown<br/>+ rehype/remark plugins"]
     end
-    
+
     subgraph "@tanstack/ai-vue-ui"
         VUE_PKG["Package"]
         VUE_EXP["dist/esm/index.js<br/>ThinkingPart<br/>Types"]
         VUE_DEPS["@crazydos/vue-markdown<br/>+ rehype/remark plugins"]
     end
-    
+
     REACT_PKG --> REACT_EXP
     REACT_PKG -.bundles.-> REACT_DEPS
-    
+
     SOLID_PKG --> SOLID_EXP
     SOLID_PKG -.bundles.-> SOLID_DEPS
-    
+
     VUE_PKG --> VUE_EXP
     VUE_PKG -.bundles.-> VUE_DEPS
 ```
@@ -334,11 +337,11 @@ graph TB
 
 ### Module Resolution
 
-| Package | Build Tool | Entry Point | Module Type |
-|---------|-----------|-------------|-------------|
-| `@tanstack/ai-react-ui` | Vite | `dist/esm/index.js` | ES modules only |
-| `@tanstack/ai-solid-ui` | Vite | `src/index.ts` (dev), `dist/index.js` (prod) | ES modules with Solid export condition |
-| `@tanstack/ai-vue-ui` | Vite | `dist/esm/index.js` | ES modules only |
+| Package                 | Build Tool | Entry Point                                  | Module Type                            |
+| ----------------------- | ---------- | -------------------------------------------- | -------------------------------------- |
+| `@tanstack/ai-react-ui` | Vite       | `dist/esm/index.js`                          | ES modules only                        |
+| `@tanstack/ai-solid-ui` | Vite       | `src/index.ts` (dev), `dist/index.js` (prod) | ES modules with Solid export condition |
+| `@tanstack/ai-vue-ui`   | Vite       | `dist/esm/index.js`                          | ES modules only                        |
 
 All packages use `"type": "module"` and provide ES module exports only. The Solid package additionally provides a `solid` export condition for optimal tree-shaking in Solid applications.
 
@@ -357,7 +360,7 @@ graph TB
         SOLID["useChat()<br/>(Solid)"]
         VUE["useChat()<br/>(Vue)"]
     end
-    
+
     subgraph "Provided State"
         MESSAGES["messages: UIMessage[]"]
         LOADING["isLoading: boolean"]
@@ -365,47 +368,47 @@ graph TB
         SEND["sendMessage(content)"]
         APPROVAL["addToolApprovalResponse({id, approved})"]
     end
-    
+
     subgraph "Application Rendering Loop"
         MAP["messages.map(message =>"]
         PARTS["message.parts.map(part =>"]
         DISCRIMINATE["switch (part.type)"]
     end
-    
+
     subgraph "Component Selection"
         THINKING["ThinkingPart<br/>(pre-built)"]
         MARKDOWN["Markdown Renderer<br/>(pre-built deps)"]
         CUSTOM["Custom Components<br/>(application-defined)"]
     end
-    
+
     REACT --> MESSAGES
     SOLID --> MESSAGES
     VUE --> MESSAGES
-    
+
     REACT --> LOADING
     SOLID --> LOADING
     VUE --> LOADING
-    
+
     REACT --> ERROR
     SOLID --> ERROR
     VUE --> ERROR
-    
+
     REACT --> SEND
     SOLID --> SEND
     VUE --> SEND
-    
+
     REACT --> APPROVAL
     SOLID --> APPROVAL
     VUE --> APPROVAL
-    
+
     MESSAGES --> MAP
     MAP --> PARTS
     PARTS --> DISCRIMINATE
-    
+
     DISCRIMINATE --> THINKING
     DISCRIMINATE --> MARKDOWN
     DISCRIMINATE --> CUSTOM
-    
+
     CUSTOM -.callbacks.-> APPROVAL
     CUSTOM -.callbacks.-> SEND
 ```
@@ -418,14 +421,15 @@ The framework hooks provide `messages` (array of `UIMessage` with typed `parts`)
 
 The UI packages follow the headless pattern and provide no default styles. Applications control visual design through:
 
-| Approach | Method | Example |
-|----------|--------|---------|
-| CSS Classes | Pass `className` prop | `className="p-4 bg-gray-800 rounded"` |
-| CSS Modules | Import and apply | `className={styles.thinkingPart}` |
-| CSS-in-JS | styled-components, emotion | `styled(ThinkingPart)` |
-| Tailwind CSS | Utility classes | `className="p-4 border rounded-lg"` |
+| Approach     | Method                     | Example                               |
+| ------------ | -------------------------- | ------------------------------------- |
+| CSS Classes  | Pass `className` prop      | `className="p-4 bg-gray-800 rounded"` |
+| CSS Modules  | Import and apply           | `className={styles.thinkingPart}`     |
+| CSS-in-JS    | styled-components, emotion | `styled(ThinkingPart)`                |
+| Tailwind CSS | Utility classes            | `className="p-4 border rounded-lg"`   |
 
 **Example Customization:**
+
 ```typescript
 <ThinkingPart
   content={part.content}
@@ -445,6 +449,7 @@ While the UI component libraries provide rendering utilities, applications imple
 ### Message Container
 
 Applications typically implement containers with:
+
 - **Role differentiation** - Visual distinction between user and assistant messages
 - **Auto-scroll** - Scroll to latest message as conversation grows
 - **Loading states** - Show indicators during streaming
@@ -457,6 +462,7 @@ These patterns are implemented in application code, not the UI component librari
 ### Input Handling
 
 Applications implement input forms with:
+
 - Text areas or input fields for user messages
 - Submit handlers that call `sendMessage()` from framework hooks
 - Loading state management to disable input during streaming
@@ -469,6 +475,7 @@ These patterns are shown in the framework-specific example applications document
 ## Relationship to Other Packages
 
 For detailed information about specific packages and subsystems:
+
 - React-specific components and patterns: [React UI Components](#7.1)
 - Solid-specific components and patterns: [Solid UI Components](#7.2)
 - Markdown processing pipeline details: [Markdown Processing Pipeline](#7.3)

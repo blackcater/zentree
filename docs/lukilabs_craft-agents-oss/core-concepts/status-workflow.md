@@ -10,8 +10,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers the dynamic session status system in Craft Agents: how statuses are defined per workspace, how they drive session workflow, and how status changes trigger automations. For how sessions themselves are created and persisted, see [Sessions (4.2)](#4.2). For the automation system that reacts to status changes, see [Hooks & Automation (4.9)](#4.9).
 
 ---
@@ -64,12 +62,12 @@ Craft Agents ships with a four-step default workflow. Each status is an ordered 
 
 **Default status sequence:**
 
-| Position | Status Name   | Typical Meaning                              |
-|----------|---------------|----------------------------------------------|
-| 1        | Todo          | Work has not started                         |
-| 2        | In Progress   | Agent or user is actively working on it      |
-| 3        | Needs Review  | Work done; awaiting human review             |
-| 4        | Done          | Fully complete                               |
+| Position | Status Name  | Typical Meaning                         |
+| -------- | ------------ | --------------------------------------- |
+| 1        | Todo         | Work has not started                    |
+| 2        | In Progress  | Agent or user is actively working on it |
+| 3        | Needs Review | Work done; awaiting human review        |
+| 4        | Done         | Fully complete                          |
 
 This sequence is the default, not a hard constraint. Workspaces can define any set of statuses and any ordering.
 
@@ -142,6 +140,7 @@ Every session record includes a status field. When a session is created, it is a
 The `packages/shared/src/sessions/` module, exported via `@craft-agent/shared/sessions` ([packages/shared/package.json:29]()), handles reading and writing this status field alongside the rest of session metadata.
 
 Status transitions are available to:
+
 - **The user** — manually via the session list or session detail UI.
 - **The agent** — programmatically using session-scoped tools. See [Session-Scoped Tools (8.5)](#8.5).
 
@@ -200,9 +199,9 @@ Sources: [README.md:329-355](), [README.md:351-353]()
 
 Statuses and labels serve distinct purposes:
 
-| Concept | Scope         | Purpose                              | Automation Event         |
-|---------|---------------|--------------------------------------|--------------------------|
-| Status  | One per session | Ordered workflow position           | `SessionStatusChange`    |
+| Concept | Scope            | Purpose                              | Automation Event          |
+| ------- | ---------------- | ------------------------------------ | ------------------------- |
+| Status  | One per session  | Ordered workflow position            | `SessionStatusChange`     |
 | Label   | Many per session | Free-form tagging and categorization | `LabelAdd`, `LabelRemove` |
 
 A session has exactly one status at any time but can have multiple labels. Labels are documented in [Labels (4.7)](#4.7).

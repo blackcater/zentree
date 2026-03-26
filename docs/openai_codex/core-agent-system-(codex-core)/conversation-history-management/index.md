@@ -25,11 +25,9 @@ The following files were used as context for generating this wiki page:
 - [codex-rs/core/tests/suite/compact_resume_fork.rs](codex-rs/core/tests/suite/compact_resume_fork.rs)
 - [codex-rs/core/tests/suite/prompt_caching.rs](codex-rs/core/tests/suite/prompt_caching.rs)
 - [codex-rs/core/tests/suite/review.rs](codex-rs/core/tests/suite/review.rs)
-- [codex-rs/tui/src/chatwidget/snapshots/codex_tui__chatwidget__tests__image_generation_call_history_snapshot.snap](codex-rs/tui/src/chatwidget/snapshots/codex_tui__chatwidget__tests__image_generation_call_history_snapshot.snap)
+- [codex-rs/tui/src/chatwidget/snapshots/codex_tui**chatwidget**tests\_\_image_generation_call_history_snapshot.snap](codex-rs/tui/src/chatwidget/snapshots/codex_tui__chatwidget__tests__image_generation_call_history_snapshot.snap)
 
 </details>
-
-
 
 This document describes how Codex maintains and manipulates the conversation history that forms the model's context window. It covers the `ContextManager` data structure, item recording and normalization, token estimation, and history lifecycle management.
 
@@ -62,21 +60,21 @@ graph TB
         TokenInfo["token_info: Option&lt;TokenUsageInfo&gt;<br/>API-reported usage"]
         RefContext["reference_context_item:<br/>Option&lt;TurnContextItem&gt;<br/>Baseline for settings diffs"]
     end
-    
+
     subgraph "Core Operations"
         Record["record_items()<br/>Add items with truncation"]
         Normalize["normalize_history()<br/>Ensure invariants"]
         ForPrompt["for_prompt()<br/>Prepare for API"]
         Estimate["estimate_token_count()<br/>Local estimation"]
     end
-    
+
     subgraph "Modification Operations"
         RemoveFirst["remove_first_item()"]
         RemoveLast["remove_last_item()"]
         Replace["replace()"]
         DropTurns["drop_last_n_user_turns()"]
     end
-    
+
     Items --> Record
     Items --> Normalize
     Items --> ForPrompt
@@ -85,17 +83,17 @@ graph TB
     Items --> RemoveLast
     Items --> Replace
     Items --> DropTurns
-    
+
     TokenInfo --> Estimate
     RefContext -.-> "Used for<br/>settings diffing"
 ```
 
 **ContextManager Fields**
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `items` | `Vec<ResponseItem>` | Ordered history from oldest to newest |
-| `token_info` | `Option<TokenUsageInfo>` | Last API-reported token usage |
+| Field                    | Type                      | Purpose                                 |
+| ------------------------ | ------------------------- | --------------------------------------- |
+| `items`                  | `Vec<ResponseItem>`       | Ordered history from oldest to newest   |
+| `token_info`             | `Option<TokenUsageInfo>`  | Last API-reported token usage           |
 | `reference_context_item` | `Option<TurnContextItem>` | Baseline for detecting settings changes |
 
 The `items` vector maintains chronological order. Items at index 0 are oldest; items at the end are most recent. This ordering is preserved across all operations.
@@ -114,7 +112,7 @@ sequenceDiagram
     participant ContextManager
     participant TruncationPolicy
     participant Normalize
-    
+
     Session->>ContextManager: record_items(items, policy)
     loop For each item
         ContextManager->>ContextManager: Filter non-API items
@@ -132,6 +130,7 @@ sequenceDiagram
 ### Item Filtering
 
 Only items that contribute to model context are recorded:
+
 - Messages with roles `"user"`, `"assistant"`, `"developer"`
 - Function calls and outputs
 - Custom tool calls and outputs
@@ -147,9 +146,9 @@ System messages and `ResponseItem::Other` are filtered out.
 
 The `TruncationPolicy` enum controls how large content is truncated:
 
-| Policy | Description |
-|--------|-------------|
-| `TruncationPolicy::Bytes(n)` | Limit content to `n` bytes |
+| Policy                        | Description                               |
+| ----------------------------- | ----------------------------------------- |
+| `TruncationPolicy::Bytes(n)`  | Limit content to `n` bytes                |
 | `TruncationPolicy::Tokens(n)` | Limit content to approximately `n` tokens |
 
 Tool outputs (`FunctionCallOutput`, `CustomToolCallOutput`) are truncated during recording to prevent excessive context usage. Messages are stored as-is but may be truncated during compaction.
@@ -165,16 +164,16 @@ Before history is sent to the model API, `normalize_history` enforces several in
 ```mermaid
 graph TB
     Input["Raw items vector"]
-    
+
     subgraph "Normalization Steps"
         Step1["ensure_call_outputs_present()<br/>Inject synthetic outputs<br/>for orphaned calls"]
         Step2["remove_orphan_outputs()<br/>Drop outputs without<br/>corresponding calls"]
         Step3["rewrite_image_generation_calls<br/>Convert image_gen to<br/>stateless messages"]
         Step4["strip_images_when_unsupported<br/>Remove images if model<br/>lacks image support"]
     end
-    
+
     Output["Normalized items vector"]
-    
+
     Input --> Step1
     Step1 --> Step2
     Step2 --> Step3
@@ -210,13 +209,14 @@ graph LR
     Normalize["normalize_history()<br/>(enforce invariants)"]
     Filter["Filter out<br/>GhostSnapshot items"]
     Return["Return final vector"]
-    
+
     Clone --> Normalize
     Normalize --> Filter
     Filter --> Return
 ```
 
 **Key transformations:**
+
 1. Normalization runs (described above)
 2. `GhostSnapshot` items are filtered out (they support `/undo` but are not model-visible)
 3. The resulting vector is consumed (the method takes `self` by value)
@@ -240,7 +240,7 @@ graph TB
         ContextWindow["model_context_window: i64<br/>Model capacity"]
         Full["is_full: bool<br/>Whether context is full"]
     end
-    
+
     subgraph "TokenUsage Fields"
         Input["input_tokens"]
         Cached["cached_input_tokens"]
@@ -248,7 +248,7 @@ graph TB
         Reasoning["reasoning_output_tokens"]
         Total["total_tokens"]
     end
-    
+
     LastUsage --> Input
     LastUsage --> Cached
     LastUsage --> Output
@@ -290,11 +290,11 @@ This 4-bytes-per-token ratio is a conservative approximation. For structured ite
 
 ### Removing Items
 
-| Method | Description |
-|--------|-------------|
-| `remove_first_item()` | Remove oldest item; also remove its paired call/output counterpart |
-| `remove_last_item()` | Remove newest item; also remove its paired call/output counterpart |
-| `drop_last_n_user_turns(u32)` | Remove the last N user messages and all items after each |
+| Method                        | Description                                                        |
+| ----------------------------- | ------------------------------------------------------------------ |
+| `remove_first_item()`         | Remove oldest item; also remove its paired call/output counterpart |
+| `remove_last_item()`          | Remove newest item; also remove its paired call/output counterpart |
+| `drop_last_n_user_turns(u32)` | Remove the last N user messages and all items after each           |
 
 These operations maintain call/output pairing by explicitly removing corresponding entries.
 
@@ -331,22 +331,22 @@ graph TB
     Session["Session struct"]
     SessionState["SessionState<br/>(Mutex)"]
     ContextManager["ContextManager"]
-    
+
     Session -->|owns| SessionState
     SessionState -->|contains| ContextManager
-    
+
     subgraph "Session History Methods"
         RecordItems["record_conversation_items()"]
         CloneHistory["clone_history()"]
         ReplaceCompacted["replace_compacted_history()"]
         RecordIntoHistory["record_into_history()"]
     end
-    
+
     Session -.-> RecordItems
     Session -.-> CloneHistory
     Session -.-> ReplaceCompacted
     Session -.-> RecordIntoHistory
-    
+
     RecordItems -->|locks state| ContextManager
     CloneHistory -->|locks state| ContextManager
     ReplaceCompacted -->|locks state| ContextManager
@@ -398,7 +398,7 @@ sequenceDiagram
     participant Session
     participant ContextManager
     participant UI
-    
+
     ModelAPI->>Session: ResponseEvent::Completed<br/>{token_usage}
     Session->>ContextManager: update_token_info(usage)
     ContextManager->>ContextManager: Merge into TokenUsageInfo
@@ -410,6 +410,7 @@ sequenceDiagram
 After each API response completes, the `Session` calls `update_token_info` with the `TokenUsage` from the response. The `ContextManager` merges this with the existing `TokenUsageInfo`, creating a cumulative view of token consumption across the session.
 
 The `get_total_token_usage` method is then called to compute the current total, which accounts for:
+
 - The last API response's reported usage
 - Estimated tokens for reasoning items (if server doesn't include them)
 - Estimated tokens for locally-added items since the last API response
@@ -426,7 +427,7 @@ sequenceDiagram
     participant Session
     participant History as ContextManager
     participant ModelAPI
-    
+
     User->>Session: Submit UserInput
     Session->>History: record_items([user_message])
     Session->>History: clone_history()

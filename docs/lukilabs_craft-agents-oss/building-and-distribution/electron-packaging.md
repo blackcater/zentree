@@ -11,8 +11,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document details the Electron Builder configuration and packaging process for creating distributable installers of the Craft Agents desktop application. It covers the multi-stage build pipeline, asset management, and the packaging workflow that transforms compiled code into platform-specific installers (DMG for macOS, installers for Windows, AppImage/deb for Linux).
@@ -61,13 +59,13 @@ The main process is compiled using esbuild with Node.js as the target platform, 
 
 ### Build Configuration
 
-| Configuration | Value | Purpose |
-|---------------|-------|---------|
-| Input | `src/main/index.ts` | Main process entry point |
-| Output | `dist/main.cjs` | Bundled CommonJS file |
-| Platform | `node` | Node.js runtime targeting |
-| Format | `cjs` | CommonJS module format |
-| External | `electron` | Electron runtime exclusion |
+| Configuration | Value               | Purpose                    |
+| ------------- | ------------------- | -------------------------- |
+| Input         | `src/main/index.ts` | Main process entry point   |
+| Output        | `dist/main.cjs`     | Bundled CommonJS file      |
+| Platform      | `node`              | Node.js runtime targeting  |
+| Format        | `cjs`               | CommonJS module format     |
+| External      | `electron`          | Electron runtime exclusion |
 
 ### Environment Variable Injection
 
@@ -93,36 +91,36 @@ The Unix build script sources `.env` from the repository root, while the Windows
 
 The preload script establishes the context bridge between main and renderer processes, providing the `window.electronAPI` interface with security-isolated IPC channels.
 
-| Configuration | Value |
-|---------------|-------|
-| Input | `src/preload/index.ts` |
-| Output | `dist/preload.cjs` |
-| Platform | `node` |
-| Format | `cjs` |
-| External | `electron` |
+| Configuration | Value                  |
+| ------------- | ---------------------- |
+| Input         | `src/preload/index.ts` |
+| Output        | `dist/preload.cjs`     |
+| Platform      | `node`                 |
+| Format        | `cjs`                  |
+| External      | `electron`             |
 
 ### Browser Toolbar Preload
 
 A second preload script supports the in-app browser toolbar.
 
-| Configuration | Value |
-|---------------|-------|
-| Input | `src/preload/browser-toolbar.ts` |
-| Output | `dist/browser-toolbar-preload.cjs` |
-| Platform | `node` |
-| Format | `cjs` |
-| External | `electron` |
+| Configuration | Value                              |
+| ------------- | ---------------------------------- |
+| Input         | `src/preload/browser-toolbar.ts`   |
+| Output        | `dist/browser-toolbar-preload.cjs` |
+| Platform      | `node`                             |
+| Format        | `cjs`                              |
+| External      | `electron`                         |
 
 ### Network Interceptor
 
 The unified network interceptor is bundled separately. It intercepts network requests to inject API error capture and MCP schema information.
 
-| Configuration | Value |
-|---------------|-------|
-| Input | `packages/shared/src/unified-network-interceptor.ts` |
-| Output | `dist/interceptor.cjs` |
-| Platform | `node` |
-| Format | `cjs` |
+| Configuration | Value                                                |
+| ------------- | ---------------------------------------------------- |
+| Input         | `packages/shared/src/unified-network-interceptor.ts` |
+| Output        | `dist/interceptor.cjs`                               |
+| Platform      | `node`                                               |
+| Format        | `cjs`                                                |
 
 Note: Several companion source files from `packages/shared/src/` (`interceptor-common.ts`, `feature-flags.ts`, `interceptor-request-utils.ts`) are also listed directly in the `electron-builder.yml` `files` array so they are available at runtime inside the packaged app.
 
@@ -166,23 +164,23 @@ graph TB
         ToolIcons["src/assets/tool-icons/"]
         Other["Other static assets"]
     end
-    
+
     subgraph "copy-assets.ts"
         CopyDocs["Copy documentation"]
         CopyThemes["Copy theme definitions"]
         CopyIcons["Copy tool icons"]
         CopyOther["Copy static assets"]
     end
-    
+
     subgraph "Destination"
         DistAssets["dist/assets/"]
     end
-    
+
     Docs --> CopyDocs
     Themes --> CopyThemes
     ToolIcons --> CopyIcons
     Other --> CopyOther
-    
+
     CopyDocs --> DistAssets
     CopyThemes --> DistAssets
     CopyIcons --> DistAssets
@@ -237,6 +235,7 @@ bun run dist:win
 ```
 
 The script produces:
+
 - NSIS-based installer (`.exe`)
 - Auto-update configuration
 - Uninstaller
@@ -252,17 +251,17 @@ All packaging behavior is controlled by `apps/electron/electron-builder.yml`.
 
 ### Top-Level Metadata
 
-| Field | Value | Notes |
-|-------|-------|-------|
-| `appId` | `com.lukilabs.craft-agent` | Bundle ID / registry key |
-| `productName` | `Craft Agents` | Display name in OS UI |
-| `electronVersion` | `39.2.7` | Pinned Electron version |
-| `directories.output` | `release` | Platform installers land here |
-| `directories.buildResources` | `resources` | Icons, DMG background, entitlements |
-| `asar` | `false` | ASAR archive disabled to avoid decompression overhead |
-| `afterPack` | `scripts/afterPack.cjs` | Post-pack hook for macOS 26+ Liquid Glass icon |
-| `publish.provider` | `generic` | electron-updater update source |
-| `publish.url` | `https://agents.craft.do/electron/latest` | Update manifest URL |
+| Field                        | Value                                     | Notes                                                 |
+| ---------------------------- | ----------------------------------------- | ----------------------------------------------------- |
+| `appId`                      | `com.lukilabs.craft-agent`                | Bundle ID / registry key                              |
+| `productName`                | `Craft Agents`                            | Display name in OS UI                                 |
+| `electronVersion`            | `39.2.7`                                  | Pinned Electron version                               |
+| `directories.output`         | `release`                                 | Platform installers land here                         |
+| `directories.buildResources` | `resources`                               | Icons, DMG background, entitlements                   |
+| `asar`                       | `false`                                   | ASAR archive disabled to avoid decompression overhead |
+| `afterPack`                  | `scripts/afterPack.cjs`                   | Post-pack hook for macOS 26+ Liquid Glass icon        |
+| `publish.provider`           | `generic`                                 | electron-updater update source                        |
+| `publish.url`                | `https://agents.craft.do/electron/latest` | Update manifest URL                                   |
 
 Sources: [apps/electron/electron-builder.yml:1-79]()
 
@@ -270,21 +269,21 @@ Sources: [apps/electron/electron-builder.yml:1-79]()
 
 The `files` array in `electron-builder.yml` controls what ends up inside the packaged app. `node_modules` is explicitly excluded at the top level; the Claude Agent SDK is handled separately via `extraResources`.
 
-| Glob pattern | What it includes |
-|---|---|
-| `dist/**/*` (minus `dist/renderer/src/**`, `**/*.map`) | All compiled bundles and renderer assets |
-| `package.json` | App entry point metadata |
-| `resources/bridge-mcp-server/**/*` | Bundled Bridge MCP server for Codex sessions |
-| `resources/session-mcp-server/**/*` | Bundled Session MCP server for Codex sessions |
-| `resources/pi-agent-server/**/*` | Pi agent server subprocess |
-| `packages/shared/src/unified-network-interceptor.ts` et al. | Runtime interceptor source files |
-| `resources/scripts/**/*` | Python CLI tool scripts |
-| `resources/bin/markitdown`, `resources/bin/pdf-tool`, etc. | Unix and Windows shell wrappers for CLI tools |
-| `resources/bin/darwin-arm64/**/*` … `resources/bin/linux-x64/**/*` | Platform-specific `uv` binaries |
-| `vendor/bun/**/*` | Bundled Bun runtime (platform-specific) |
-| `vendor/codex/**/*` | Bundled Codex binary (platform-specific) |
-| `vendor/copilot/**/*` | Bundled Copilot CLI binary (platform-specific) |
-| `!node_modules/**/*` | Excludes all of node_modules |
+| Glob pattern                                                       | What it includes                               |
+| ------------------------------------------------------------------ | ---------------------------------------------- |
+| `dist/**/*` (minus `dist/renderer/src/**`, `**/*.map`)             | All compiled bundles and renderer assets       |
+| `package.json`                                                     | App entry point metadata                       |
+| `resources/bridge-mcp-server/**/*`                                 | Bundled Bridge MCP server for Codex sessions   |
+| `resources/session-mcp-server/**/*`                                | Bundled Session MCP server for Codex sessions  |
+| `resources/pi-agent-server/**/*`                                   | Pi agent server subprocess                     |
+| `packages/shared/src/unified-network-interceptor.ts` et al.        | Runtime interceptor source files               |
+| `resources/scripts/**/*`                                           | Python CLI tool scripts                        |
+| `resources/bin/markitdown`, `resources/bin/pdf-tool`, etc.         | Unix and Windows shell wrappers for CLI tools  |
+| `resources/bin/darwin-arm64/**/*` … `resources/bin/linux-x64/**/*` | Platform-specific `uv` binaries                |
+| `vendor/bun/**/*`                                                  | Bundled Bun runtime (platform-specific)        |
+| `vendor/codex/**/*`                                                | Bundled Codex binary (platform-specific)       |
+| `vendor/copilot/**/*`                                              | Bundled Copilot CLI binary (platform-specific) |
+| `!node_modules/**/*`                                               | Excludes all of node_modules                   |
 
 Sources: [apps/electron/electron-builder.yml:14-62]()
 
@@ -344,12 +343,12 @@ Sources: [apps/electron/electron-builder.yml:160-186]()
 
 All platforms use predictable artifact names (`Craft-Agent-${arch}.${ext}`) rather than version-stamped names, which simplifies update manifests.
 
-| Platform | Target | Arch | Artifact |
-|---|---|---|---|
-| macOS | `dmg` | arm64, x64 | `Craft-Agent-arm64.dmg`, `Craft-Agent-x64.dmg` |
-| macOS | `zip` | arm64, x64 | `Craft-Agent-arm64.zip`, `Craft-Agent-x64.zip` |
-| Windows | `nsis` | x64 | `Craft-Agent-x64.exe` |
-| Linux | `AppImage` | x64 | `Craft-Agent-x64.AppImage` |
+| Platform | Target     | Arch       | Artifact                                       |
+| -------- | ---------- | ---------- | ---------------------------------------------- |
+| macOS    | `dmg`      | arm64, x64 | `Craft-Agent-arm64.dmg`, `Craft-Agent-x64.dmg` |
+| macOS    | `zip`      | arm64, x64 | `Craft-Agent-arm64.zip`, `Craft-Agent-x64.zip` |
+| Windows  | `nsis`     | x64        | `Craft-Agent-x64.exe`                          |
+| Linux    | `AppImage` | x64        | `Craft-Agent-x64.AppImage`                     |
 
 The `zip` target on macOS produces the archive consumed by `electron-updater` for delta updates (see page 6.3).
 
@@ -357,13 +356,13 @@ Sources: [apps/electron/electron-builder.yml:81-219]()
 
 ### macOS Configuration
 
-| Field | Value | Purpose |
-|---|---|---|
-| `category` | `public.app-category.productivity` | App Store category |
-| `hardenedRuntime` | `true` | Required for notarization |
-| `gatekeeperAssess` | `false` | Skip local Gatekeeper check during build |
-| `entitlements` | `build/entitlements.mac.plist` | Sandbox permissions |
-| `extendInfo.CFBundleIconName` | `AppIcon` | macOS 26+ Liquid Glass icon lookup |
+| Field                         | Value                              | Purpose                                  |
+| ----------------------------- | ---------------------------------- | ---------------------------------------- |
+| `category`                    | `public.app-category.productivity` | App Store category                       |
+| `hardenedRuntime`             | `true`                             | Required for notarization                |
+| `gatekeeperAssess`            | `false`                            | Skip local Gatekeeper check during build |
+| `entitlements`                | `build/entitlements.mac.plist`     | Sandbox permissions                      |
+| `extendInfo.CFBundleIconName` | `AppIcon`                          | macOS 26+ Liquid Glass icon lookup       |
 
 The `afterPack` hook (`scripts/afterPack.cjs`) runs `actool` to compile an `Assets.car` containing the Liquid Glass icon, which macOS 26+ uses for the Dock and other system UI surfaces.
 
@@ -371,12 +370,12 @@ Sources: [apps/electron/electron-builder.yml:81-122]()
 
 ### DMG Layout
 
-| Field | Value |
-|---|---|
+| Field        | Value                                                  |
+| ------------ | ------------------------------------------------------ |
 | `background` | `resources/dmg-background.tiff` (multi-res 1x+2x TIFF) |
-| `icon` | `resources/icon.icns` |
-| `iconSize` | `80` |
-| `window` | 540 × 380 |
+| `icon`       | `resources/icon.icns`                                  |
+| `iconSize`   | `80`                                                   |
+| `window`     | 540 × 380                                              |
 
 The contents array positions the app icon at (130, 200) and an `/Applications` folder alias at (410, 200).
 
@@ -384,11 +383,11 @@ Sources: [apps/electron/electron-builder.yml:124-143]()
 
 ### NSIS (Windows Installer) Configuration
 
-| Field | Value | Notes |
-|---|---|---|
-| `oneClick` | `true` | Silent install without wizard |
-| `perMachine` | `false` | Installs to `%LOCALAPPDATA%\Programs\` |
-| `deleteAppDataOnUninstall` | `true` | Cleans up user data on uninstall |
+| Field                      | Value   | Notes                                  |
+| -------------------------- | ------- | -------------------------------------- |
+| `oneClick`                 | `true`  | Silent install without wizard          |
+| `perMachine`               | `false` | Installs to `%LOCALAPPDATA%\Programs\` |
+| `deleteAppDataOnUninstall` | `true`  | Cleans up user data on uninstall       |
 
 `perMachine: false` is required because Bun subprocesses cannot read/write files under `Program Files` without elevated permissions.
 
@@ -454,6 +453,7 @@ This points to the compiled main process bundle, not the source TypeScript file.
 ### Dependencies vs DevDependencies
 
 All runtime dependencies are listed in `dependencies`, including:
+
 - **Workspace packages**: `@craft-agent/core`, `@craft-agent/shared`, `@craft-agent/ui`
 - **Electron utilities**: `electron-log`, `electron-updater`
 - **React ecosystem**: `react`, `react-dom`, UI component libraries
@@ -490,6 +490,7 @@ dist/
 Distribution scripts produce platform-specific installers in the `release/` directory (configured via `directories.output` in `electron-builder.yml`):
 
 **macOS:**
+
 ```
 release/
 ├── Craft-Agent-arm64.dmg
@@ -501,6 +502,7 @@ release/
 ```
 
 **Windows:**
+
 ```
 release/
 ├── Craft-Agent-x64.exe            # NSIS one-click installer
@@ -509,6 +511,7 @@ release/
 ```
 
 **Linux:**
+
 ```
 release/
 ├── Craft-Agent-x64.AppImage
@@ -528,7 +531,7 @@ The complete build workflow executes all stages in sequence. The Windows variant
 ```mermaid
 graph TB
     Start["bun run build"]
-    
+
     Lint["lint\
 (eslint src/)"]
     BuildMain["build:main\
@@ -545,21 +548,21 @@ vite build → dist/renderer/"]
 scripts/copy-assets.ts"]
     ValidateAssets["build:validate\
 scripts/validate-assets.ts"]
-    
+
     Success["dist/ ready for electron . or packaging"]
     Fail["Build Failed"]
-    
+
     Start --> Lint
     Lint -->|"pass"| BuildMain
     Lint -->|"fail"| Fail
-    
+
     BuildMain --> BuildPreload
     BuildPreload --> BuildPreloadToolbar
     BuildPreloadToolbar --> BuildInterceptor
     BuildInterceptor --> BuildRenderer
     BuildRenderer --> CopyAssets
     CopyAssets --> ValidateAssets
-    
+
     ValidateAssets -->|"pass"| Success
     ValidateAssets -->|"fail"| Fail
 ```
@@ -587,21 +590,23 @@ Distribution builds extend the base build with Electron Builder packaging:
 
 The build system supports two modes:
 
-| Mode | Command | Optimizations | Source Maps |
-|------|---------|---------------|-------------|
-| Development | `bun run dev` | Minimal | Full inline |
-| Production | `bun run build` | Full minification | External files |
+| Mode        | Command         | Optimizations     | Source Maps    |
+| ----------- | --------------- | ----------------- | -------------- |
+| Development | `bun run dev`   | Minimal           | Full inline    |
+| Production  | `bun run build` | Full minification | External files |
 
 Development builds prioritize build speed and debugging, while production builds optimize for file size and performance.
 
 ### Platform-Specific Environment Handling
 
 **Unix (macOS/Linux):**
+
 - Sources `.env` file for environment variables
 - Uses bash scripts for distribution
 - Supports credential injection via shell escaping
 
 **Windows:**
+
 - Uses separate `build:main:win` script
 - PowerShell scripts for distribution
 - Skips credential injection to avoid escaping issues

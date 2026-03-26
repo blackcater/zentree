@@ -24,8 +24,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes the `vanilla-chat` example application, which demonstrates framework-agnostic usage of TanStack AI's client library. Unlike the framework-specific examples (see [Full-Stack Chat Examples](#10.1)), this example uses `@tanstack/ai-client` directly with manual DOM manipulation, illustrating the core client APIs without framework abstractions.
@@ -42,37 +40,37 @@ For information about the `ChatClient` class itself, see [ChatClient](#4.1). For
 graph TB
     subgraph "vanilla-chat Example"
         PKG["package.json<br/>Type: module<br/>Port: 3001"]
-        
+
         MAIN["index.html<br/>Entry point<br/>DOM structure"]
-        
+
         JS["main.js / app.js<br/>ChatClient instantiation<br/>Event handlers<br/>DOM manipulation"]
-        
+
         STYLE["styles.css<br/>UI styling"]
-        
+
         SERVER["server.js<br/>Express API<br/>chat() endpoint<br/>SSE streaming"]
     end
-    
+
     subgraph "Dependencies"
         CLIENT["@tanstack/ai-client<br/>ChatClient class<br/>fetchServerSentEvents<br/>Connection adapters"]
-        
+
         VITE["Vite<br/>Dev server<br/>Build tool"]
     end
-    
+
     subgraph "Client Runtime"
         BROWSER["Browser Environment<br/>Native DOM APIs<br/>fetch() / EventSource"]
     end
-    
+
     PKG --> CLIENT
     PKG --> VITE
-    
+
     MAIN --> JS
     MAIN --> STYLE
-    
+
     JS --> CLIENT
     JS --> BROWSER
-    
+
     SERVER --> EXPRESS["express package"]
-    
+
     style PKG fill:#e1f5ff
     style CLIENT fill:#ffe1e1
     style BROWSER fill:#fff4e1
@@ -80,15 +78,15 @@ graph TB
 
 **Project Characteristics:**
 
-| Aspect | Details |
-|--------|---------|
-| Framework | None (Vanilla JavaScript) |
-| Core Dependency | `@tanstack/ai-client` only |
-| Build Tool | Vite |
-| Development Port | 3001 |
-| Module Type | ES Module (type: "module") |
-| State Management | Manual via `ChatClient` |
-| DOM Updates | Manual via native APIs |
+| Aspect           | Details                    |
+| ---------------- | -------------------------- |
+| Framework        | None (Vanilla JavaScript)  |
+| Core Dependency  | `@tanstack/ai-client` only |
+| Build Tool       | Vite                       |
+| Development Port | 3001                       |
+| Module Type      | ES Module (type: "module") |
+| State Management | Manual via `ChatClient`    |
+| DOM Updates      | Manual via native APIs     |
 
 **Sources:** [examples/vanilla-chat/package.json:1-18]()
 
@@ -102,26 +100,26 @@ The vanilla example demonstrates the minimal implementation pattern for TanStack
 graph LR
     subgraph "Browser (Client-Side)"
         HTML["index.html<br/>Message list<br/>Input form<br/>Send button"]
-        
+
         JS["JavaScript Module<br/>import ChatClient<br/>from @tanstack/ai-client"]
-        
+
         CLIENT_INST["ChatClient Instance<br/>conversationId<br/>messages array<br/>isStreaming state"]
-        
+
         DOM_HANDLERS["DOM Event Handlers<br/>form.onsubmit<br/>message rendering<br/>scroll management"]
     end
-    
+
     subgraph "Server"
         API["Express API Route<br/>POST /api/chat"]
-        
+
         CHAT_FN["chat() function<br/>Adapter selection<br/>Tool configuration"]
-        
+
         SSE["SSE Response<br/>toServerSentEventsResponse"]
     end
-    
+
     HTML --> JS
     JS --> CLIENT_INST
     CLIENT_INST --> DOM_HANDLERS
-    
+
     DOM_HANDLERS -->|"sendMessage()"| CLIENT_INST
     CLIENT_INST -->|"POST with conversationId"| API
     API --> CHAT_FN
@@ -129,7 +127,7 @@ graph LR
     SSE -->|"StreamChunk events"| CLIENT_INST
     CLIENT_INST -->|"Update messages"| DOM_HANDLERS
     DOM_HANDLERS -->|"Render to DOM"| HTML
-    
+
     style CLIENT_INST fill:#e1f5ff
     style CHAT_FN fill:#ffe1e1
 ```
@@ -158,42 +156,42 @@ sequenceDiagram
     participant Client as "ChatClient Instance<br/>(client variable)"
     participant Server as "Express Server<br/>POST /api/chat"
     participant Stream as "SSE Stream<br/>(fetchServerSentEvents)"
-    
+
     User->>DOM: Type message & click send
     DOM->>Handler: form submit event
     Handler->>Handler: event.preventDefault()
     Handler->>Client: client.sendMessage(text)
-    
+
     Client->>Client: Add user message to messages[]
     Client->>Handler: Callback: update DOM
     Handler->>DOM: Append user message to list
-    
+
     Client->>Server: POST /api/chat<br/>{conversationId, messages}
-    
+
     Server->>Stream: chat() → StreamChunk iterator
-    
+
     loop Streaming Response
         Stream-->>Client: StreamChunk event
-        
+
         alt ContentStreamChunk
             Client->>Client: Update message.parts[]
             Client->>Handler: Callback: update DOM
             Handler->>DOM: Update message text
         end
-        
+
         alt ToolCallStreamChunk
             Client->>Client: Add tool call to parts[]
             Client->>Handler: Callback: update DOM
             Handler->>DOM: Show tool execution
         end
-        
+
         alt DoneStreamChunk
             Client->>Client: Mark streaming complete
             Client->>Handler: Callback: final update
             Handler->>DOM: Enable input field
         end
     end
-    
+
     Handler->>DOM: Scroll to bottom
 ```
 
@@ -226,27 +224,27 @@ const client = new ChatClient({
   onStreamingUpdate: (messages) => {
     // Manual DOM update
     renderMessages(messages)
-  }
+  },
 })
 ```
 
 **Key ChatClient Configuration:**
 
-| Parameter | Purpose | Vanilla Example Usage |
-|-----------|---------|----------------------|
-| `connectionAdapter` | Specifies transport mechanism | `fetchServerSentEvents` for SSE |
-| `endpoint` | Server API route | `/api/chat` (relative URL) |
-| `conversationId` | Unique conversation identifier | `crypto.randomUUID()` generated client-side |
-| `onStreamingUpdate` | Callback for state changes | Manual `renderMessages()` function |
-| `onToolCall` | Handle client-side tools | Optional, for client tools (see [Client-Side Tools](#4.3)) |
-| `onError` | Handle errors | Optional error display function |
+| Parameter           | Purpose                        | Vanilla Example Usage                                      |
+| ------------------- | ------------------------------ | ---------------------------------------------------------- |
+| `connectionAdapter` | Specifies transport mechanism  | `fetchServerSentEvents` for SSE                            |
+| `endpoint`          | Server API route               | `/api/chat` (relative URL)                                 |
+| `conversationId`    | Unique conversation identifier | `crypto.randomUUID()` generated client-side                |
+| `onStreamingUpdate` | Callback for state changes     | Manual `renderMessages()` function                         |
+| `onToolCall`        | Handle client-side tools       | Optional, for client tools (see [Client-Side Tools](#4.3)) |
+| `onError`           | Handle errors                  | Optional error display function                            |
 
 **Comparison to Framework Hooks:**
 
 ```javascript
 // Framework version (React)
 const { messages, sendMessage } = useChat({
-  endpoint: '/api/chat'
+  endpoint: '/api/chat',
   // Framework handles: state management, re-rendering, lifecycle
 })
 
@@ -256,7 +254,7 @@ const client = new ChatClient({
   onStreamingUpdate: (messages) => {
     // Manual: update DOM, manage state, handle lifecycle
     updateMessageListDOM(messages)
-  }
+  },
 })
 ```
 
@@ -275,13 +273,13 @@ Without a framework, the vanilla example must manually implement patterns that f
 function renderMessages(messages) {
   const messageList = document.getElementById('message-list')
   messageList.innerHTML = '' // Clear existing
-  
-  messages.forEach(message => {
+
+  messages.forEach((message) => {
     const messageEl = document.createElement('div')
     messageEl.className = `message message-${message.role}`
-    
+
     // Render each part of the message
-    message.parts.forEach(part => {
+    message.parts.forEach((part) => {
       if (part.type === 'text') {
         const textEl = document.createElement('p')
         textEl.textContent = part.text
@@ -293,10 +291,10 @@ function renderMessages(messages) {
         messageEl.appendChild(toolEl)
       }
     })
-    
+
     messageList.appendChild(messageEl)
   })
-  
+
   // Auto-scroll
   messageList.scrollTop = messageList.scrollHeight
 }
@@ -312,14 +310,14 @@ const sendButton = document.getElementById('send-button')
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault()
-  
+
   const message = input.value.trim()
   if (!message) return
-  
+
   // Disable input during streaming
   input.disabled = true
   sendButton.disabled = true
-  
+
   try {
     await client.sendMessage(message)
     input.value = '' // Clear input
@@ -345,7 +343,7 @@ function setLoading(loading) {
   isLoading = loading
   const spinner = document.getElementById('loading-spinner')
   spinner.style.display = loading ? 'block' : 'none'
-  
+
   const input = document.getElementById('message-input')
   const button = document.getElementById('send-button')
   input.disabled = loading
@@ -362,7 +360,7 @@ const client = new ChatClient({
   onError: (error) => {
     setLoading(false)
     showError(error)
-  }
+  },
 })
 ```
 
@@ -377,14 +375,11 @@ The vanilla example explicitly uses `fetchServerSentEvents` for SSE connections:
 ### Basic Connection Setup
 
 ```javascript
-import { 
-  ChatClient, 
-  fetchServerSentEvents 
-} from '@tanstack/ai-client'
+import { ChatClient, fetchServerSentEvents } from '@tanstack/ai-client'
 
 const client = new ChatClient({
   connectionAdapter: fetchServerSentEvents,
-  endpoint: '/api/chat'
+  endpoint: '/api/chat',
 })
 ```
 
@@ -393,14 +388,11 @@ const client = new ChatClient({
 For simpler server setups without SSE support:
 
 ```javascript
-import { 
-  ChatClient, 
-  fetchHttpStream 
-} from '@tanstack/ai-client'
+import { ChatClient, fetchHttpStream } from '@tanstack/ai-client'
 
 const client = new ChatClient({
   connectionAdapter: fetchHttpStream,
-  endpoint: '/api/chat'
+  endpoint: '/api/chat',
 })
 ```
 
@@ -416,23 +408,23 @@ function customConnectionAdapter(endpoint, options) {
     onError: (error) => {
       console.error('Connection error, retrying...', error)
       // Implement retry logic
-    }
+    },
   })
 }
 
 const client = new ChatClient({
   connectionAdapter: customConnectionAdapter,
-  endpoint: '/api/chat'
+  endpoint: '/api/chat',
 })
 ```
 
 **Connection Adapter Comparison:**
 
-| Adapter | Transport | Use Case | Vanilla Example |
-|---------|-----------|----------|-----------------|
-| `fetchServerSentEvents` | SSE (text/event-stream) | Standard streaming, auto-reconnect | Primary choice |
-| `fetchHttpStream` | HTTP Stream (NDJSON) | Simple servers, no SSE support | Alternative |
-| Custom | User-defined | Special requirements (auth, retry, proxy) | Demonstrates extensibility |
+| Adapter                 | Transport               | Use Case                                  | Vanilla Example            |
+| ----------------------- | ----------------------- | ----------------------------------------- | -------------------------- |
+| `fetchServerSentEvents` | SSE (text/event-stream) | Standard streaming, auto-reconnect        | Primary choice             |
+| `fetchHttpStream`       | HTTP Stream (NDJSON)    | Simple servers, no SSE support            | Alternative                |
+| Custom                  | User-defined            | Special requirements (auth, retry, proxy) | Demonstrates extensibility |
 
 **Sources:** [packages/typescript/ai-client/package.json:1-53](), Connection adapter patterns
 
@@ -453,33 +445,33 @@ app.use(express.json())
 
 app.post('/api/chat', async (req, res) => {
   const { messages, conversationId } = req.body
-  
+
   const stream = await chat({
     adapter: openaiText({
       apiKey: process.env.OPENAI_API_KEY,
-      model: 'gpt-4'
+      model: 'gpt-4',
     }),
     messages,
     conversationId,
-    systemPrompts: [
-      'You are a helpful assistant.'
-    ]
+    systemPrompts: ['You are a helpful assistant.'],
   })
-  
+
   // Stream as SSE
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
   res.setHeader('Connection', 'keep-alive')
-  
+
   for await (const chunk of stream) {
     res.write(`data: ${JSON.stringify(chunk)}\
 \
 `)
   }
-  
-  res.write('data: [DONE]\
+
+  res.write(
+    'data: [DONE]\
 \
-')
+'
+  )
   res.end()
 })
 
@@ -499,18 +491,18 @@ app.listen(3001)
 
 ## Comparison Table: Vanilla vs Framework Examples
 
-| Aspect | Vanilla Example | Framework Examples (React/Vue/Solid) |
-|--------|----------------|--------------------------------------|
-| **Client Dependency** | `@tanstack/ai-client` only | `@tanstack/ai-react`, `@tanstack/ai-vue`, etc. |
-| **State Management** | Manual via callbacks | Automatic via hooks/composables/primitives |
-| **DOM Updates** | Manual `createElement`, `appendChild` | Automatic via VDOM/reactive system |
-| **Type Safety** | Basic (TypeScript types available) | Full (types flow through framework) |
-| **Code Complexity** | More verbose, more boilerplate | Concise, framework handles patterns |
-| **Bundle Size** | Smaller (no framework) | Larger (includes framework) |
-| **Learning Curve** | Lower (standard JavaScript) | Higher (requires framework knowledge) |
-| **Use Case** | Simple UIs, educational, embedded widgets | Full applications with complex UIs |
-| **Server Code** | Identical | Identical |
-| **Streaming Protocol** | Identical (`StreamChunk` types) | Identical (`StreamChunk` types) |
+| Aspect                 | Vanilla Example                           | Framework Examples (React/Vue/Solid)           |
+| ---------------------- | ----------------------------------------- | ---------------------------------------------- |
+| **Client Dependency**  | `@tanstack/ai-client` only                | `@tanstack/ai-react`, `@tanstack/ai-vue`, etc. |
+| **State Management**   | Manual via callbacks                      | Automatic via hooks/composables/primitives     |
+| **DOM Updates**        | Manual `createElement`, `appendChild`     | Automatic via VDOM/reactive system             |
+| **Type Safety**        | Basic (TypeScript types available)        | Full (types flow through framework)            |
+| **Code Complexity**    | More verbose, more boilerplate            | Concise, framework handles patterns            |
+| **Bundle Size**        | Smaller (no framework)                    | Larger (includes framework)                    |
+| **Learning Curve**     | Lower (standard JavaScript)               | Higher (requires framework knowledge)          |
+| **Use Case**           | Simple UIs, educational, embedded widgets | Full applications with complex UIs             |
+| **Server Code**        | Identical                                 | Identical                                      |
+| **Streaming Protocol** | Identical (`StreamChunk` types)           | Identical (`StreamChunk` types)                |
 
 **Sources:** [examples/vanilla-chat/package.json:1-18](), [examples/ts-vue-chat/package.json:1-40](), [examples/ts-svelte-chat/package.json:1-41]()
 
@@ -537,12 +529,12 @@ pnpm preview
 
 ### Project Scripts
 
-| Script | Command | Purpose |
-|--------|---------|---------|
-| `dev` | `vite --port 3001` | Start Vite dev server |
-| `start` | `vite --port 3001` | Alias for dev |
-| `build` | `vite build` | Build for production |
-| `preview` | `vite preview` | Preview production build |
+| Script    | Command            | Purpose                  |
+| --------- | ------------------ | ------------------------ |
+| `dev`     | `vite --port 3001` | Start Vite dev server    |
+| `start`   | `vite --port 3001` | Alias for dev            |
+| `build`   | `vite build`       | Build for production     |
+| `preview` | `vite preview`     | Preview production build |
 
 ### Vite Configuration
 
@@ -558,10 +550,10 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
-        changeOrigin: true
-      }
-    }
-  }
+        changeOrigin: true,
+      },
+    },
+  },
 })
 ```
 
@@ -613,7 +605,7 @@ import { ChatClient, fetchServerSentEvents } from '@tanstack/ai-client'
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   const chatContainer = document.getElementById('ai-chat-widget')
-  
+
   if (chatContainer) {
     initializeAIChat(chatContainer)
   }
@@ -624,13 +616,13 @@ function initializeAIChat(container) {
   const messageList = document.createElement('div')
   messageList.id = 'messages'
   messageList.className = 'chat-messages'
-  
+
   const form = document.createElement('form')
   // ... build form
-  
+
   container.appendChild(messageList)
   container.appendChild(form)
-  
+
   // Initialize ChatClient
   const client = new ChatClient({
     endpoint: '/api/chat',
@@ -638,9 +630,9 @@ function initializeAIChat(container) {
     conversationId: crypto.randomUUID(),
     onStreamingUpdate: (messages) => {
       renderMessages(messageList, messages)
-    }
+    },
   })
-  
+
   // Attach event handlers
   form.addEventListener('submit', (e) => {
     e.preventDefault()
@@ -660,10 +652,10 @@ function destroyChat(client, container) {
   if (client.isStreaming()) {
     client.stop()
   }
-  
+
   // Remove DOM elements
   container.innerHTML = ''
-  
+
   // Clear references
   client = null
 }
@@ -684,6 +676,7 @@ The `vanilla-chat` example serves as the foundation for understanding TanStack A
 5. **Educational Value**: Clear illustration of what frameworks handle automatically
 
 This example is particularly valuable for:
+
 - Understanding the core client library's capabilities
 - Learning what framework integrations abstract away
 - Building lightweight, embedded AI chat functionality

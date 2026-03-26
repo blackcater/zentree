@@ -28,8 +28,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the GitHub Actions `publish` workflow that builds, versions, and distributes every opencode artifact. It covers version determination, CLI compilation, Tauri desktop compilation, code signing, and publishing to npm, Docker Hub (GHCR), GitHub Releases, AUR, and Homebrew.
 
 For information on Nix-based reproducible builds, see [8.2](#8.2). For the desktop app's Rust/Tauri structure, see [3.3](#3.3).
@@ -83,14 +81,14 @@ Sources: [.github/workflows/publish.yml:33-311]()
 
 ### Triggers
 
-| Trigger | Channel | Version Format |
-|---|---|---|
-| Push to `dev` | `dev` (preview) | `0.0.0-dev-YYYYMMDDTHHMM` |
-| Push to `beta` | `beta` (preview) | `0.0.0-beta-YYYYMMDDTHHMM` |
-| Push to `snapshot-*` | branch name (preview) | `0.0.0-<branch>-YYYYMMDDTHHMM` |
-| Push to `ci` | `ci` (preview) | `0.0.0-ci-YYYYMMDDTHHMM` |
-| `workflow_dispatch` with `bump` | `latest` | semver increment of latest npm version |
-| `workflow_dispatch` with `version` | `latest` | exact override string |
+| Trigger                            | Channel               | Version Format                         |
+| ---------------------------------- | --------------------- | -------------------------------------- |
+| Push to `dev`                      | `dev` (preview)       | `0.0.0-dev-YYYYMMDDTHHMM`              |
+| Push to `beta`                     | `beta` (preview)      | `0.0.0-beta-YYYYMMDDTHHMM`             |
+| Push to `snapshot-*`               | branch name (preview) | `0.0.0-<branch>-YYYYMMDDTHHMM`         |
+| Push to `ci`                       | `ci` (preview)        | `0.0.0-ci-YYYYMMDDTHHMM`               |
+| `workflow_dispatch` with `bump`    | `latest`              | semver increment of latest npm version |
+| `workflow_dispatch` with `version` | `latest`              | exact override string                  |
 
 Sources: [.github/workflows/publish.yml:4-27](), [packages/script/src/index.ts:25-47]()
 
@@ -139,24 +137,24 @@ Sources: [script/version.ts:1-35]()
 
 `script/changelog.ts` generates human-readable release notes automatically.
 
-| Function | Purpose |
-|---|---|
-| `getLatestRelease()` | Fetches the most recent published (non-draft) GitHub release tag |
-| `getCommits()` | Lists commits between two refs touching relevant packages; filters `ignore:`, `test:`, `chore:`, `ci:`, `release:` prefixes |
-| `filterRevertedCommits()` | Removes commit/revert pairs from the list |
-| `generateChangelog()` | Sends each commit message to the opencode agent for summarization (batches of 10) |
-| `getContributors()` | Identifies non-team contributors for attribution |
-| `buildNotes()` | Orchestrates the above; returns `string[]` of markdown lines |
+| Function                  | Purpose                                                                                                                     |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `getLatestRelease()`      | Fetches the most recent published (non-draft) GitHub release tag                                                            |
+| `getCommits()`            | Lists commits between two refs touching relevant packages; filters `ignore:`, `test:`, `chore:`, `ci:`, `release:` prefixes |
+| `filterRevertedCommits()` | Removes commit/revert pairs from the list                                                                                   |
+| `generateChangelog()`     | Sends each commit message to the opencode agent for summarization (batches of 10)                                           |
+| `getContributors()`       | Identifies non-team contributors for attribution                                                                            |
+| `buildNotes()`            | Orchestrates the above; returns `string[]` of markdown lines                                                                |
 
 Commits are classified into sections by the package path they touch:
 
-| Package path prefix | Section |
-|---|---|
-| `packages/opencode/src/cli/cmd/` | TUI |
-| `packages/opencode/` | Core |
-| `packages/desktop/src-tauri/` | Desktop |
-| `packages/desktop/`, `packages/app/` | Desktop |
-| `packages/sdk/`, `packages/plugin/` | SDK |
+| Package path prefix                    | Section    |
+| -------------------------------------- | ---------- |
+| `packages/opencode/src/cli/cmd/`       | TUI        |
+| `packages/opencode/`                   | Core       |
+| `packages/desktop/src-tauri/`          | Desktop    |
+| `packages/desktop/`, `packages/app/`   | Desktop    |
+| `packages/sdk/`, `packages/plugin/`    | SDK        |
 | `packages/extensions/`, `sdks/vscode/` | Extensions |
 
 Sources: [script/changelog.ts:1-306]()
@@ -169,19 +167,19 @@ The `build-cli` job runs `packages/opencode/script/build.ts` on a single Ubuntu 
 
 ### Build Targets
 
-| Target Name | OS | Arch | ABI | AVX2 |
-|---|---|---|---|---|
-| `opencode-linux-arm64` | linux | arm64 | glibc | ✓ |
-| `opencode-linux-x64` | linux | x64 | glibc | ✓ |
-| `opencode-linux-x64-baseline` | linux | x64 | glibc | ✗ |
-| `opencode-linux-arm64-musl` | linux | arm64 | musl | ✓ |
-| `opencode-linux-x64-musl` | linux | x64 | musl | ✓ |
-| `opencode-linux-x64-baseline-musl` | linux | x64 | musl | ✗ |
-| `opencode-darwin-arm64` | macOS | arm64 | — | ✓ |
-| `opencode-darwin-x64` | macOS | x64 | — | ✓ |
-| `opencode-darwin-x64-baseline` | macOS | x64 | — | ✗ |
-| `opencode-windows-x64` | Windows | x64 | — | ✓ |
-| `opencode-windows-x64-baseline` | Windows | x64 | — | ✗ |
+| Target Name                        | OS      | Arch  | ABI   | AVX2 |
+| ---------------------------------- | ------- | ----- | ----- | ---- |
+| `opencode-linux-arm64`             | linux   | arm64 | glibc | ✓    |
+| `opencode-linux-x64`               | linux   | x64   | glibc | ✓    |
+| `opencode-linux-x64-baseline`      | linux   | x64   | glibc | ✗    |
+| `opencode-linux-arm64-musl`        | linux   | arm64 | musl  | ✓    |
+| `opencode-linux-x64-musl`          | linux   | x64   | musl  | ✓    |
+| `opencode-linux-x64-baseline-musl` | linux   | x64   | musl  | ✗    |
+| `opencode-darwin-arm64`            | macOS   | arm64 | —     | ✓    |
+| `opencode-darwin-x64`              | macOS   | x64   | —     | ✓    |
+| `opencode-darwin-x64-baseline`     | macOS   | x64   | —     | ✗    |
+| `opencode-windows-x64`             | Windows | x64   | —     | ✓    |
+| `opencode-windows-x64-baseline`    | Windows | x64   | —     | ✗    |
 
 Sources: [packages/opencode/script/build.ts:63-120]()
 
@@ -193,6 +191,7 @@ Before compilation, `build.ts` performs two pre-build steps:
 2. **Migration loading**: Reads all SQL migration files from `migration/` and serializes them into the binary via the `OPENCODE_MIGRATIONS` define.
 
 Each binary is compiled with:
+
 - `OPENCODE_VERSION`, `OPENCODE_CHANNEL`, `OPENCODE_LIBC`, `OPENCODE_MIGRATIONS` baked in as defines
 - Entry points: `src/index.ts`, the `@opentui/core` parser worker, and the TUI worker
 - `autoloadBunfig: false`, `autoloadDotenv: false` (no runtime config loading)
@@ -263,19 +262,20 @@ Sources: [.github/workflows/publish.yml:106-242](), [packages/desktop/scripts/pr
 
 `prepare.ts` downloads the `opencode-cli` artifact from the current run and places the correct binary into `src-tauri/sidecars/` before Tauri bundles it. The mapping between Rust targets and CLI binary names is defined in `SIDECAR_BINARIES` in `packages/desktop/scripts/utils.ts`:
 
-| Rust Target | CLI Binary | Archive Format |
-|---|---|---|
-| `aarch64-apple-darwin` | `opencode-darwin-arm64` | `.zip` |
-| `x86_64-apple-darwin` | `opencode-darwin-x64-baseline` | `.zip` |
-| `x86_64-pc-windows-msvc` | `opencode-windows-x64-baseline` | `.zip` |
-| `x86_64-unknown-linux-gnu` | `opencode-linux-x64-baseline` | `.tar.gz` |
-| `aarch64-unknown-linux-gnu` | `opencode-linux-arm64` | `.tar.gz` |
+| Rust Target                 | CLI Binary                      | Archive Format |
+| --------------------------- | ------------------------------- | -------------- |
+| `aarch64-apple-darwin`      | `opencode-darwin-arm64`         | `.zip`         |
+| `x86_64-apple-darwin`       | `opencode-darwin-x64-baseline`  | `.zip`         |
+| `x86_64-pc-windows-msvc`    | `opencode-windows-x64-baseline` | `.zip`         |
+| `x86_64-unknown-linux-gnu`  | `opencode-linux-x64-baseline`   | `.tar.gz`      |
+| `aarch64-unknown-linux-gnu` | `opencode-linux-arm64`          | `.tar.gz`      |
 
 Sources: [packages/desktop/scripts/utils.ts:3-29]()
 
 ### Tauri Updater (`latest.json`)
 
 After the Tauri builds are complete, `packages/desktop/scripts/finalize-latest-json.ts` is run during the `publish` job. It:
+
 1. Fetches the draft release's existing `latest.json`
 2. Fetches `.sig` files for each platform artifact
 3. Assembles a complete `platforms` map with `url` and `signature` per target
@@ -374,6 +374,7 @@ Sources: [packages/opencode/script/publish.ts:52-56](), [packages/opencode/Docke
 ### AUR (Arch Linux)
 
 For non-preview releases only, `packages/opencode/script/publish.ts` generates a `PKGBUILD` for the `opencode-bin` AUR package. The script:
+
 1. Computes `sha256sum` of the Linux x64 and arm64 `.tar.gz` archives
 2. Writes a new `PKGBUILD` pointing to the GitHub Release download URLs
 3. Runs `makepkg --printsrcinfo` to generate `.SRCINFO`
@@ -409,15 +410,15 @@ Sources: [install:1-460]()
 
 ## Secrets & Environment Variables Reference
 
-| Secret / Variable | Used By | Purpose |
-|---|---|---|
-| `OPENCODE_APP_ID` / `OPENCODE_APP_SECRET` | All jobs | GitHub App credentials for the `setup-git-committer` action |
-| `OPENCODE_API_KEY` | `version` job | OpenCode API key for changelog AI summarization |
-| `APPLE_CERTIFICATE` / `APPLE_CERTIFICATE_PASSWORD` | `build-tauri` (macOS) | P12 code signing certificate |
-| `APPLE_API_ISSUER` / `APPLE_API_KEY` / `APPLE_API_KEY_PATH` | `build-tauri` (macOS) | Apple notarization credentials |
-| `TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | `build-tauri` (all) | Tauri updater signature key |
-| `AUR_KEY` | `publish` | SSH private key for AUR pushes |
-| `GITHUB_TOKEN` / `GH_TOKEN` | `publish` | GitHub API access for release management and Homebrew tap push |
-| `NPM_CONFIG_PROVENANCE` | `publish` | Set to `false` to disable npm provenance |
+| Secret / Variable                                                  | Used By               | Purpose                                                        |
+| ------------------------------------------------------------------ | --------------------- | -------------------------------------------------------------- |
+| `OPENCODE_APP_ID` / `OPENCODE_APP_SECRET`                          | All jobs              | GitHub App credentials for the `setup-git-committer` action    |
+| `OPENCODE_API_KEY`                                                 | `version` job         | OpenCode API key for changelog AI summarization                |
+| `APPLE_CERTIFICATE` / `APPLE_CERTIFICATE_PASSWORD`                 | `build-tauri` (macOS) | P12 code signing certificate                                   |
+| `APPLE_API_ISSUER` / `APPLE_API_KEY` / `APPLE_API_KEY_PATH`        | `build-tauri` (macOS) | Apple notarization credentials                                 |
+| `TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | `build-tauri` (all)   | Tauri updater signature key                                    |
+| `AUR_KEY`                                                          | `publish`             | SSH private key for AUR pushes                                 |
+| `GITHUB_TOKEN` / `GH_TOKEN`                                        | `publish`             | GitHub API access for release management and Homebrew tap push |
+| `NPM_CONFIG_PROVENANCE`                                            | `publish`             | Set to `false` to disable npm provenance                       |
 
 Sources: [.github/workflows/publish.yml:248-311]()

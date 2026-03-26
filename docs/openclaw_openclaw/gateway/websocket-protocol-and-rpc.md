@@ -27,8 +27,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Gateway's WebSocket protocol (v3) defines the communication contract between clients (CLI, Control UI, native apps, channel plugins) and the Gateway server. This page documents the protocol's frame structure, RPC method registry, event broadcasting, authorization model, and cross-platform schema generation.
 
 For Gateway configuration and lifecycle management, see [Configuration System](#2.3). For authentication mechanisms beyond protocol-level authorization, see [Authentication & Authorization](#2.2).
@@ -49,11 +47,11 @@ graph TB
     RequestFrame["RequestFrame<br/>type: 'req'"]
     ResponseFrame["ResponseFrame<br/>type: 'res'"]
     EventFrame["EventFrame<br/>type: 'event'"]
-    
+
     GatewayFrame --> RequestFrame
     GatewayFrame --> ResponseFrame
     GatewayFrame --> EventFrame
-    
+
     RequestFrame --> ReqFields["id: string<br/>method: string<br/>params: object?"]
     ResponseFrame --> ResFields["id: string<br/>ok: boolean<br/>payload: any?<br/>error: ErrorShape?"]
     EventFrame --> EvtFields["event: string<br/>payload: any?<br/>seq: number?<br/>stateVersion: object?"]
@@ -65,11 +63,11 @@ graph TB
 
 Client-initiated RPC calls. Each request must include a unique `id` for correlation with the corresponding response.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | `"req"` | Frame discriminator |
-| `id` | `string` | Unique request identifier (UUID recommended) |
-| `method` | `string` | RPC method name (e.g., `"agent"`, `"config.get"`) |
+| Field    | Type      | Description                                       |
+| -------- | --------- | ------------------------------------------------- |
+| `type`   | `"req"`   | Frame discriminator                               |
+| `id`     | `string`  | Unique request identifier (UUID recommended)      |
+| `method` | `string`  | RPC method name (e.g., `"agent"`, `"config.get"`) |
 | `params` | `object?` | Method-specific parameters (validated per-method) |
 
 **Sources:** [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:119-143]()
@@ -78,23 +76,23 @@ Client-initiated RPC calls. Each request must include a unique `id` for correlat
 
 Server responses to client requests. The `id` matches the originating request.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | `"res"` | Frame discriminator |
-| `id` | `string` | Request correlation ID |
-| `ok` | `boolean` | Success/failure indicator |
-| `payload` | `any?` | Method result (present when `ok=true`) |
-| `error` | `ErrorShape?` | Error details (present when `ok=false`) |
+| Field     | Type          | Description                             |
+| --------- | ------------- | --------------------------------------- |
+| `type`    | `"res"`       | Frame discriminator                     |
+| `id`      | `string`      | Request correlation ID                  |
+| `ok`      | `boolean`     | Success/failure indicator               |
+| `payload` | `any?`        | Method result (present when `ok=true`)  |
+| `error`   | `ErrorShape?` | Error details (present when `ok=false`) |
 
 **ErrorShape Structure:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `code` | `string` | Error code (see [Error Codes](#error-codes)) |
-| `message` | `string` | Human-readable error message |
-| `details` | `any?` | Additional error context |
-| `retryable` | `boolean?` | Whether client should retry |
-| `retryAfterMs` | `number?` | Milliseconds to wait before retry |
+| Field          | Type       | Description                                  |
+| -------------- | ---------- | -------------------------------------------- |
+| `code`         | `string`   | Error code (see [Error Codes](#error-codes)) |
+| `message`      | `string`   | Human-readable error message                 |
+| `details`      | `any?`     | Additional error context                     |
+| `retryable`    | `boolean?` | Whether client should retry                  |
+| `retryAfterMs` | `number?`  | Milliseconds to wait before retry            |
 
 **Sources:** [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:145-173](), [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:343-371]()
 
@@ -102,13 +100,13 @@ Server responses to client requests. The `id` matches the originating request.
 
 Server-initiated broadcasts (no request correlation). Clients subscribe to events via the connection handshake.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | `"event"` | Frame discriminator |
-| `event` | `string` | Event name (e.g., `"agent"`, `"presence"`) |
-| `payload` | `any?` | Event-specific data |
-| `seq` | `number?` | Event sequence number |
-| `stateVersion` | `object?` | State version metadata |
+| Field          | Type      | Description                                |
+| -------------- | --------- | ------------------------------------------ |
+| `type`         | `"event"` | Frame discriminator                        |
+| `event`        | `string`  | Event name (e.g., `"agent"`, `"presence"`) |
+| `payload`      | `any?`    | Event-specific data                        |
+| `seq`          | `number?` | Event sequence number                      |
+| `stateVersion` | `object?` | State version metadata                     |
 
 **Sources:** [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:175-203]()
 
@@ -124,18 +122,18 @@ Clients initiate a connection by sending a `ConnectParams` frame. The Gateway re
 sequenceDiagram
     participant Client
     participant Gateway as "Gateway Server"
-    
+
     Client->>Gateway: "WebSocket Connect"
     Gateway-->>Client: "WebSocket Open"
-    
+
     Client->>Gateway: "ConnectParams<br/>{minProtocol: 3, maxProtocol: 3,<br/>role: 'operator', scopes: [...],<br/>auth: {...}, device: {...}}"
-    
+
     Gateway->>Gateway: "Validate protocol version"
     Gateway->>Gateway: "Authorize role & scopes"
     Gateway->>Gateway: "Build snapshot (presence, health)"
-    
+
     Gateway-->>Client: "HelloOk<br/>{type: 'hello',<br/>protocol: 3,<br/>server: {...},<br/>snapshot: {...},<br/>policy: {...}}"
-    
+
     Note over Client,Gateway: "Connection established<br/>Client can send requests<br/>Server can send events"
 ```
 
@@ -143,44 +141,44 @@ sequenceDiagram
 
 ### ConnectParams
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `minProtocol` | `number` | Yes | Minimum supported protocol version |
-| `maxProtocol` | `number` | Yes | Maximum supported protocol version |
-| `client` | `object` | Yes | Client metadata (name, version, platform) |
-| `role` | `string?` | No | Connection role: `"operator"` or `"node"` (default: `"operator"`) |
-| `scopes` | `string[]?` | No | Operator scopes (see [Authorization](#authorization-system)) |
-| `auth` | `object?` | No | Authentication credentials (token/password) |
-| `device` | `object?` | No | Device pairing information (for nodes) |
-| `caps` | `string[]?` | No | Client capabilities |
-| `commands` | `string[]?` | No | Supported node commands (for role=node) |
+| Field         | Type        | Required | Description                                                       |
+| ------------- | ----------- | -------- | ----------------------------------------------------------------- |
+| `minProtocol` | `number`    | Yes      | Minimum supported protocol version                                |
+| `maxProtocol` | `number`    | Yes      | Maximum supported protocol version                                |
+| `client`      | `object`    | Yes      | Client metadata (name, version, platform)                         |
+| `role`        | `string?`   | No       | Connection role: `"operator"` or `"node"` (default: `"operator"`) |
+| `scopes`      | `string[]?` | No       | Operator scopes (see [Authorization](#authorization-system))      |
+| `auth`        | `object?`   | No       | Authentication credentials (token/password)                       |
+| `device`      | `object?`   | No       | Device pairing information (for nodes)                            |
+| `caps`        | `string[]?` | No       | Client capabilities                                               |
+| `commands`    | `string[]?` | No       | Supported node commands (for role=node)                           |
 
 **Sources:** [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:15-75]()
 
 ### HelloOk
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | `"hello"` | Response discriminator |
-| `protocol` | `number` | Negotiated protocol version |
-| `server` | `object` | Server metadata (version, platform, instanceId) |
-| `features` | `object` | Enabled features |
-| `snapshot` | `Snapshot` | Current system state |
-| `canvasHostUrl` | `string?` | Canvas host URL (if canvas feature enabled) |
-| `auth` | `object?` | Authentication status |
-| `policy` | `object` | Authorization policy |
+| Field           | Type       | Description                                     |
+| --------------- | ---------- | ----------------------------------------------- |
+| `type`          | `"hello"`  | Response discriminator                          |
+| `protocol`      | `number`   | Negotiated protocol version                     |
+| `server`        | `object`   | Server metadata (version, platform, instanceId) |
+| `features`      | `object`   | Enabled features                                |
+| `snapshot`      | `Snapshot` | Current system state                            |
+| `canvasHostUrl` | `string?`  | Canvas host URL (if canvas feature enabled)     |
+| `auth`          | `object?`  | Authentication status                           |
+| `policy`        | `object`   | Authorization policy                            |
 
 **Snapshot Structure:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `presence` | `PresenceEntry[]` | Connected clients/nodes |
-| `health` | `object` | System health metrics |
-| `stateVersion` | `StateVersion` | State version counters |
-| `uptimeMs` | `number` | Gateway uptime in milliseconds |
-| `configPath` | `string?` | Configuration file path |
-| `authMode` | `string?` | Authentication mode |
-| `updateAvailable` | `object?` | Update availability info |
+| Field             | Type              | Description                    |
+| ----------------- | ----------------- | ------------------------------ |
+| `presence`        | `PresenceEntry[]` | Connected clients/nodes        |
+| `health`          | `object`          | System health metrics          |
+| `stateVersion`    | `StateVersion`    | State version counters         |
+| `uptimeMs`        | `number`          | Gateway uptime in milliseconds |
+| `configPath`      | `string?`         | Configuration file path        |
+| `authMode`        | `string?`         | Authentication mode            |
+| `updateAvailable` | `object?`         | Update availability info       |
 
 **Sources:** [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:77-117](), [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:297-341]()
 
@@ -204,13 +202,13 @@ graph TB
         SkillsMethods["Skills & Tools<br/>skills.status, skills.install,<br/>tools.catalog, models.list"]
         ExecMethods["Execution Control<br/>exec.approvals.*, send,<br/>agent, agent.wait, wake"]
     end
-    
+
     subgraph "Channel Plugin Methods"
         ChannelMethods["Channel-Specific Methods<br/>Injected by channel plugins<br/>via gatewayMethods export"]
     end
-    
+
     Registry["listGatewayMethods()<br/>100+ methods"]
-    
+
     Registry --> HealthMethods
     Registry --> ConfigMethods
     Registry --> AgentMethods
@@ -229,35 +227,42 @@ graph TB
 The `BASE_METHODS` array defines core Gateway methods, with additional methods contributed by channel plugins:
 
 **Configuration & System:**
+
 - `config.get`, `config.set`, `config.apply`, `config.patch`
 - `config.schema`, `config.schema.lookup`
 - `health`, `status`, `update.run`
 - `wizard.start`, `wizard.next`, `wizard.cancel`, `wizard.status`
 
 **Agents & Sessions:**
+
 - `agents.list`, `agents.create`, `agents.update`, `agents.delete`
 - `agents.files.list`, `agents.files.get`, `agents.files.set`
 - `sessions.list`, `sessions.patch`, `sessions.reset`, `sessions.delete`
 - `agent`, `agent.identity.get`, `agent.wait`
 
 **Skills & Tools:**
+
 - `skills.status`, `skills.bins`, `skills.install`, `skills.update`
 - `tools.catalog`, `models.list`
 
 **Cron & Automation:**
+
 - `cron.list`, `cron.status`, `cron.add`, `cron.update`, `cron.remove`, `cron.run`, `cron.runs`
 
 **Nodes & Devices:**
+
 - `node.pair.request`, `node.pair.approve`, `node.pair.reject`, `node.pair.verify`
 - `node.list`, `node.describe`, `node.invoke`, `node.rename`
 - `node.pending.drain`, `node.pending.enqueue`, `node.pending.ack`
 - `device.pair.list`, `device.pair.approve`, `device.pair.reject`, `device.pair.remove`
 
 **Messaging & Channels:**
+
 - `send`, `channels.status`, `channels.logout`
 - `talk.mode`, `talk.config`
 
 **Execution & Approvals:**
+
 - `exec.approvals.get`, `exec.approvals.set`
 - `exec.approval.request`, `exec.approval.resolve`
 - `wake`, `voicewake.get`, `voicewake.set`
@@ -271,7 +276,7 @@ Handlers are registered in `coreGatewayHandlers` by merging category-specific ha
 ```mermaid
 graph LR
     coreGatewayHandlers["coreGatewayHandlers<br/>(GatewayRequestHandlers)"]
-    
+
     connectHandlers["connectHandlers"]
     configHandlers["configHandlers"]
     agentsHandlers["agentsHandlers"]
@@ -279,7 +284,7 @@ graph LR
     cronHandlers["cronHandlers"]
     nodeHandlers["nodeHandlers"]
     skillsHandlers["skillsHandlers"]
-    
+
     coreGatewayHandlers --> connectHandlers
     coreGatewayHandlers --> configHandlers
     coreGatewayHandlers --> agentsHandlers
@@ -287,11 +292,11 @@ graph LR
     coreGatewayHandlers --> cronHandlers
     coreGatewayHandlers --> nodeHandlers
     coreGatewayHandlers --> skillsHandlers
-    
+
     handleGatewayRequest["handleGatewayRequest()"]
     authorizeGatewayMethod["authorizeGatewayMethod()"]
     handler["handler(req, respond, context)"]
-    
+
     handleGatewayRequest --> authorizeGatewayMethod
     authorizeGatewayMethod --> handler
     handler --> coreGatewayHandlers
@@ -305,9 +310,9 @@ Each method's parameters are validated using AJV against pre-compiled JSON schem
 
 ```typescript
 // Example: Agent RPC method validation
-validateAgentParams(req.params); // Compiled from AgentParamsSchema
-validateSessionsListParams(req.params); // Compiled from SessionsListParamsSchema
-validateConfigApplyParams(req.params); // Compiled from ConfigApplyParamsSchema
+validateAgentParams(req.params) // Compiled from AgentParamsSchema
+validateSessionsListParams(req.params) // Compiled from SessionsListParamsSchema
+validateConfigApplyParams(req.params) // Compiled from ConfigApplyParamsSchema
 ```
 
 Validation errors are formatted and returned as `ErrorShape` with code `INVALID_REQUEST`:
@@ -325,7 +330,7 @@ The Gateway broadcasts events to all connected clients (or filtered subsets base
 ```mermaid
 graph TB
     Events["GATEWAY_EVENTS<br/>(14 event types)"]
-    
+
     ConnectionEvents["Connection<br/>connect.challenge"]
     AgentEvents["Agent Execution<br/>agent, chat"]
     SystemEvents["System State<br/>presence, health,<br/>tick, shutdown"]
@@ -337,7 +342,7 @@ graph TB
     TalkEvents["Talk Mode<br/>talk.mode"]
     HeartbeatEvents["Heartbeat<br/>heartbeat"]
     UpdateEvents["Update Available<br/>update.available"]
-    
+
     Events --> ConnectionEvents
     Events --> AgentEvents
     Events --> SystemEvents
@@ -355,27 +360,27 @@ graph TB
 
 ### Event Descriptions
 
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `connect.challenge` | `object` | Authentication challenge during connection |
-| `agent` | `AgentEvent` | Agent execution progress (tool calls, text deltas) |
-| `chat` | `ChatEvent` | WebChat-specific agent events |
-| `presence` | `PresenceEntry[]` | Connected client/node presence updates |
-| `health` | `object` | System health metric changes |
-| `tick` | `TickEvent` | Periodic heartbeat (every 5s by default) |
-| `shutdown` | `ShutdownEvent` | Gateway shutdown signal |
-| `heartbeat` | `object` | Client heartbeat acknowledgment |
-| `cron` | `object` | Cron job execution events |
-| `node.pair.requested` | `object` | Node pairing request received |
-| `node.pair.resolved` | `object` | Node pairing approved/rejected |
-| `node.invoke.request` | `NodeInvokeRequestEvent` | Operator invoking node command |
-| `device.pair.requested` | `object` | Device pairing request received |
-| `device.pair.resolved` | `object` | Device pairing approved/rejected |
-| `exec.approval.requested` | `object` | Exec tool requires operator approval |
-| `exec.approval.resolved` | `object` | Exec approval granted/denied |
-| `voicewake.changed` | `object` | Voice wake configuration changed |
-| `talk.mode` | `object` | Talk mode activated/deactivated |
-| `update.available` | `object` | Gateway update available |
+| Event                     | Payload                  | Description                                        |
+| ------------------------- | ------------------------ | -------------------------------------------------- |
+| `connect.challenge`       | `object`                 | Authentication challenge during connection         |
+| `agent`                   | `AgentEvent`             | Agent execution progress (tool calls, text deltas) |
+| `chat`                    | `ChatEvent`              | WebChat-specific agent events                      |
+| `presence`                | `PresenceEntry[]`        | Connected client/node presence updates             |
+| `health`                  | `object`                 | System health metric changes                       |
+| `tick`                    | `TickEvent`              | Periodic heartbeat (every 5s by default)           |
+| `shutdown`                | `ShutdownEvent`          | Gateway shutdown signal                            |
+| `heartbeat`               | `object`                 | Client heartbeat acknowledgment                    |
+| `cron`                    | `object`                 | Cron job execution events                          |
+| `node.pair.requested`     | `object`                 | Node pairing request received                      |
+| `node.pair.resolved`      | `object`                 | Node pairing approved/rejected                     |
+| `node.invoke.request`     | `NodeInvokeRequestEvent` | Operator invoking node command                     |
+| `device.pair.requested`   | `object`                 | Device pairing request received                    |
+| `device.pair.resolved`    | `object`                 | Device pairing approved/rejected                   |
+| `exec.approval.requested` | `object`                 | Exec tool requires operator approval               |
+| `exec.approval.resolved`  | `object`                 | Exec approval granted/denied                       |
+| `voicewake.changed`       | `object`                 | Voice wake configuration changed                   |
+| `talk.mode`               | `object`                 | Talk mode activated/deactivated                    |
+| `update.available`        | `object`                 | Gateway update available                           |
 
 **Sources:** [src/gateway/server-methods-list.ts:113-133](), [src/gateway/protocol/schema/frames.ts:1-200]()
 
@@ -392,14 +397,14 @@ graph TB
     Roles["Connection Roles"]
     Operator["operator (default)<br/>Human/CLI/UI clients"]
     Node["node<br/>Mobile apps, paired devices"]
-    
+
     Roles --> Operator
     Roles --> Node
-    
+
     OperatorScopes["Operator Scopes<br/>operator.admin<br/>operator.read<br/>operator.write<br/>operator.approvals<br/>operator.pairing"]
-    
+
     NodeMethods["Node-Only Methods<br/>node.invoke.result<br/>node.event<br/>node.pending.drain<br/>node.pending.pull<br/>node.pending.ack<br/>skills.bins<br/>node.canvas.capability.refresh"]
-    
+
     Operator --> OperatorScopes
     Node --> NodeMethods
 ```
@@ -410,13 +415,13 @@ graph TB
 
 Default role for human operators, CLI clients, and Control UI. Requires scope-based authorization:
 
-| Scope | Description | Example Methods |
-|-------|-------------|-----------------|
-| `operator.admin` | Full administrative access | `config.apply`, `wizard.start`, `update.run`, `agents.create` |
-| `operator.read` | Read-only access | `config.get`, `sessions.list`, `agents.list`, `health` |
-| `operator.write` | Write operations | `send`, `agent`, `chat.send`, `wake` |
-| `operator.approvals` | Execution approval management | `exec.approval.request`, `exec.approval.resolve` |
-| `operator.pairing` | Device/node pairing management | `node.pair.approve`, `device.pair.approve` |
+| Scope                | Description                    | Example Methods                                               |
+| -------------------- | ------------------------------ | ------------------------------------------------------------- |
+| `operator.admin`     | Full administrative access     | `config.apply`, `wizard.start`, `update.run`, `agents.create` |
+| `operator.read`      | Read-only access               | `config.get`, `sessions.list`, `agents.list`, `health`        |
+| `operator.write`     | Write operations               | `send`, `agent`, `chat.send`, `wake`                          |
+| `operator.approvals` | Execution approval management  | `exec.approval.request`, `exec.approval.resolve`              |
+| `operator.pairing`   | Device/node pairing management | `node.pair.approve`, `device.pair.approve`                    |
 
 **Default CLI Scopes:** `CLI_DEFAULT_OPERATOR_SCOPES` includes all five scopes.
 
@@ -443,12 +448,12 @@ Method authorization follows a strict precedence:
 ```mermaid
 graph TB
     AuthCheck["authorizeGatewayMethod()"]
-    
+
     CheckRole["Check role validity<br/>(operator or node)"]
     CheckNodeRole["Is role = node?"]
     CheckAdminScope["Has operator.admin scope?"]
     CheckRequiredScope["Has required scope<br/>for method?"]
-    
+
     AuthCheck --> CheckRole
     CheckRole --> CheckNodeRole
     CheckNodeRole -->|Yes| AllowNode["Allow<br/>(node role bypasses scopes)"]
@@ -457,11 +462,11 @@ graph TB
     CheckAdminScope -->|No| CheckRequiredScope
     CheckRequiredScope -->|Yes| AllowScope["Allow"]
     CheckRequiredScope -->|No| DenyScope["Deny<br/>(return missing scope error)"]
-    
+
     ResolveScope["resolveRequiredOperatorScopeForMethod()"]
     ExplicitMap["METHOD_SCOPE_BY_NAME<br/>(explicit mappings)"]
     AdminPrefixes["ADMIN_METHOD_PREFIXES<br/>exec.approvals.*<br/>config.*<br/>wizard.*<br/>update.*"]
-    
+
     ResolveScope --> ExplicitMap
     ExplicitMap -->|Not found| AdminPrefixes
     AdminPrefixes -->|Not found| DefaultDeny["Default: operator.admin"]
@@ -471,18 +476,18 @@ graph TB
 
 ### Scope Assignment Examples
 
-| Method | Required Scope | Rationale |
-|--------|----------------|-----------|
-| `health` | `operator.read` | Non-sensitive diagnostics |
-| `sessions.list` | `operator.read` | Read-only session enumeration |
-| `send` | `operator.write` | Sends messages via agent |
-| `agent` | `operator.write` | Invokes agent execution |
-| `config.apply` | `operator.admin` | Modifies system configuration |
-| `agents.delete` | `operator.admin` | Destructive agent operation |
+| Method                  | Required Scope       | Rationale                      |
+| ----------------------- | -------------------- | ------------------------------ |
+| `health`                | `operator.read`      | Non-sensitive diagnostics      |
+| `sessions.list`         | `operator.read`      | Read-only session enumeration  |
+| `send`                  | `operator.write`     | Sends messages via agent       |
+| `agent`                 | `operator.write`     | Invokes agent execution        |
+| `config.apply`          | `operator.admin`     | Modifies system configuration  |
+| `agents.delete`         | `operator.admin`     | Destructive agent operation    |
 | `exec.approval.resolve` | `operator.approvals` | Grants/denies exec permissions |
-| `node.pair.approve` | `operator.pairing` | Approves device pairing |
-| `wizard.start` | `operator.admin` | Admin-only prefix match |
-| `update.run` | `operator.admin` | Admin-only prefix match |
+| `node.pair.approve`     | `operator.pairing`   | Approves device pairing        |
+| `wizard.start`          | `operator.admin`     | Admin-only prefix match        |
+| `update.run`            | `operator.admin`     | Admin-only prefix match        |
 
 **Sources:** [src/gateway/method-scopes.ts:32-153]()
 
@@ -522,11 +527,11 @@ graph LR
     GenScript["scripts/protocol-gen-swift.ts<br/>Code generator"]
     SwiftMacOS["apps/macos/Sources/<br/>OpenClawProtocol/<br/>GatewayModels.swift"]
     SwiftShared["apps/shared/OpenClawKit/<br/>Sources/OpenClawProtocol/<br/>GatewayModels.swift"]
-    
+
     TSSchemas --> GenScript
     GenScript --> SwiftMacOS
     GenScript --> SwiftShared
-    
+
     Validation["JSON Schema Validation<br/>(AJV compiler)"]
     TSSchemas --> Validation
 ```
@@ -537,47 +542,49 @@ graph LR
 
 The generator maps TypeScript/JSON Schema types to Swift types with Codable conformance:
 
-| TypeScript/JSON Schema | Swift Type |
-|------------------------|------------|
-| `string` | `String` |
-| `number` (integer) | `Int` |
-| `number` (float) | `Double` |
-| `boolean` | `Bool` |
-| `array` | `[ElementType]` |
-| `object` (typed properties) | Custom `struct` |
-| `object` (dynamic) | `[String: AnyCodable]` |
-| `anyOf` / `oneOf` | `AnyCodable` |
-| Optional field | `Type?` (Swift Optional) |
+| TypeScript/JSON Schema      | Swift Type               |
+| --------------------------- | ------------------------ |
+| `string`                    | `String`                 |
+| `number` (integer)          | `Int`                    |
+| `number` (float)            | `Double`                 |
+| `boolean`                   | `Bool`                   |
+| `array`                     | `[ElementType]`          |
+| `object` (typed properties) | Custom `struct`          |
+| `object` (dynamic)          | `[String: AnyCodable]`   |
+| `anyOf` / `oneOf`           | `AnyCodable`             |
+| Optional field              | `Type?` (Swift Optional) |
 
 **Sources:** [scripts/protocol-gen-swift.ts:84-111]()
 
 ### Generated Struct Example
 
 TypeScript schema:
+
 ```typescript
 export const RequestFrameSchema = Type.Object({
-  type: Type.Literal("req"),
+  type: Type.Literal('req'),
   id: Type.String(),
   method: Type.String(),
-  params: Type.Optional(Type.Any())
-});
+  params: Type.Optional(Type.Any()),
+})
 ```
 
 Generated Swift struct:
+
 ```swift
 public struct RequestFrame: Codable, Sendable {
     public let type: String
     public let id: String
     public let method: String
     public let params: AnyCodable?
-    
+
     public init(type: String, id: String, method: String, params: AnyCodable?) {
         self.type = type
         self.id = id
         self.method = method
         self.params = params
     }
-    
+
     private enum CodingKeys: String, CodingKey {
         case type
         case id
@@ -614,7 +621,7 @@ public enum GatewayFrame: Codable, Sendable {
     case res(ResponseFrame)
     case event(EventFrame)
     case unknown(type: String, raw: [String: AnyCodable])
-    
+
     public init(from decoder: Decoder) throws {
         let typeContainer = try decoder.container(keyedBy: CodingKeys.self)
         let type = try typeContainer.decode(String.self, forKey: .type)
@@ -645,9 +652,9 @@ public enum GatewayFrame: Codable, Sendable {
 All request parameters are validated using pre-compiled AJV validators before handler execution:
 
 ```typescript
-export const validateAgentParams = ajv.compile(AgentParamsSchema);
-export const validateConfigApplyParams = ajv.compile(ConfigApplyParamsSchema);
-export const validateSessionsListParams = ajv.compile(SessionsListParamsSchema);
+export const validateAgentParams = ajv.compile(AgentParamsSchema)
+export const validateConfigApplyParams = ajv.compile(ConfigApplyParamsSchema)
+export const validateSessionsListParams = ajv.compile(SessionsListParamsSchema)
 // ... 40+ compiled validators
 ```
 
@@ -676,15 +683,15 @@ sequenceDiagram
     participant Auth as "authorizeGatewayMethod()"
     participant RateLimit as "consumeControlPlaneWriteBudget()"
     participant Handler as "handler(req, respond)"
-    
+
     Client->>GW: "RequestFrame"
     GW->>Auth: "Check role & scopes"
-    
+
     alt Authorization Failed
         Auth-->>GW: "ErrorShape(INVALID_REQUEST)"
         GW-->>Client: "ResponseFrame(ok=false)"
     end
-    
+
     alt Control Plane Write Method
         GW->>RateLimit: "Check rate limit (3/60s)"
         alt Rate Limited
@@ -692,15 +699,15 @@ sequenceDiagram
             GW-->>Client: "ResponseFrame(ok=false,<br/>error: UNAVAILABLE,<br/>retryAfterMs: 45000)"
         end
     end
-    
+
     GW->>Handler: "Invoke with params"
     Handler->>Handler: "Validate params (AJV)"
-    
+
     alt Validation Failed
         Handler-->>GW: "formatValidationErrors()"
         GW-->>Client: "ResponseFrame(ok=false,<br/>error: INVALID_REQUEST)"
     end
-    
+
     Handler->>Handler: "Execute method logic"
     Handler-->>GW: "respond(ok=true, payload)"
     GW-->>Client: "ResponseFrame(ok=true, payload)"
@@ -714,10 +721,10 @@ Control plane write methods (`config.apply`, `config.patch`, `update.run`) are r
 
 ```typescript
 const CONTROL_PLANE_WRITE_METHODS = new Set([
-  "config.apply",
-  "config.patch", 
-  "update.run"
-]);
+  'config.apply',
+  'config.patch',
+  'update.run',
+])
 ```
 
 When rate limit is exceeded, the response includes `retryAfterMs` in the error details.
@@ -745,6 +752,7 @@ If no compatible version exists, the connection is rejected with an error.
 ---
 
 **Page Sources:**
+
 - [src/gateway/protocol/schema.ts:1-19]()
 - [src/gateway/protocol/index.ts:1-673]()
 - [src/gateway/protocol/schema/frames.ts:1-200]()

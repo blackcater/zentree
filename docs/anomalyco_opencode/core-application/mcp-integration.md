@@ -60,8 +60,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents how OpenCode connects to Model Context Protocol (MCP) servers, how server configuration works, how OAuth-based authentication flows are handled, and how tools, prompts, and resources from MCP servers are surfaced to agents and users. For background on the overall tool system and how MCP tools are registered alongside built-in tools, see [2.5](). For plugin-defined tools, see [2.9]().
 
 ---
@@ -152,18 +150,25 @@ OpenCode supports two MCP server connection types, defined by Zod schemas in the
 | `scope` | `string` | OAuth scopes to request |
 
 **Local server example:**
+
 ```json
 {
   "mcp": {
     "filesystem": {
       "type": "local",
-      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+      "command": [
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/tmp"
+      ]
     }
   }
 }
 ```
 
 **Remote server example with OAuth:**
+
 ```json
 {
   "mcp": {
@@ -337,13 +342,13 @@ sequenceDiagram
 
 `McpAuth` (in [packages/opencode/src/mcp/auth.ts]()) persists OAuth state to `$XDG_DATA_HOME/opencode/mcp-auth.json`. Each entry (`McpAuth.Entry`) contains:
 
-| Field | Type | Purpose |
-|---|---|---|
-| `tokens` | `McpAuth.Tokens` | Access/refresh tokens with expiry |
-| `clientInfo` | `McpAuth.ClientInfo` | Dynamically registered client ID/secret |
-| `codeVerifier` | `string` | PKCE code verifier |
-| `oauthState` | `string` | OAuth state parameter |
-| `serverUrl` | `string` | Server URL (used to detect URL changes) |
+| Field          | Type                 | Purpose                                 |
+| -------------- | -------------------- | --------------------------------------- |
+| `tokens`       | `McpAuth.Tokens`     | Access/refresh tokens with expiry       |
+| `clientInfo`   | `McpAuth.ClientInfo` | Dynamically registered client ID/secret |
+| `codeVerifier` | `string`             | PKCE code verifier                      |
+| `oauthState`   | `string`             | OAuth state parameter                   |
+| `serverUrl`    | `string`             | Server URL (used to detect URL changes) |
 
 `McpAuth.getForUrl` validates that stored credentials are for the same URL; if the URL has changed, it returns `undefined` so re-authentication is triggered.
 
@@ -359,16 +364,17 @@ Sources: MCP OAuth implementation and authentication storage
 
 The `mcp` CLI subcommand (`packages/opencode/src/cli/cmd/mcp.ts`) provides subcommands for managing MCP servers outside of the TUI.
 
-| Subcommand | Alias | Description |
-|---|---|---|
-| `mcp list` | `mcp ls` | Lists all configured servers and their connection status |
-| `mcp auth [name]` | — | Runs the OAuth flow for a named remote server |
-| `mcp auth list` | — | Lists OAuth authentication status per server |
-| `mcp logout [name]` | — | Deletes stored OAuth tokens for a server |
-| `mcp debug [name]` | — | Connects to an MCP server and lists available tools for debugging |
-| `mcp add` | — | Interactively adds a new server entry to `opencode.json` |
+| Subcommand          | Alias    | Description                                                       |
+| ------------------- | -------- | ----------------------------------------------------------------- |
+| `mcp list`          | `mcp ls` | Lists all configured servers and their connection status          |
+| `mcp auth [name]`   | —        | Runs the OAuth flow for a named remote server                     |
+| `mcp auth list`     | —        | Lists OAuth authentication status per server                      |
+| `mcp logout [name]` | —        | Deletes stored OAuth tokens for a server                          |
+| `mcp debug [name]`  | —        | Connects to an MCP server and lists available tools for debugging |
+| `mcp add`           | —        | Interactively adds a new server entry to `opencode.json`          |
 
 `mcp auth` flow:
+
 1. Reads OAuth-capable servers from config
 2. Prompts the user to select one (if `[name]` not provided)
 3. Calls `MCP.startAuth(name)` → opens the browser to the authorization URL
@@ -387,14 +393,14 @@ Sources: MCP CLI command implementation
 
 Beyond initial connection, several runtime operations are available:
 
-| Function | Description |
-|---|---|
-| `MCP.add(name, mcp)` | Connect a new server or reconnect an existing one by name |
-| `MCP.disable(name)` | Close and mark a server as disabled |
-| `MCP.enable(name)` | Re-enable a disabled server and reconnect |
-| `MCP.refresh(name)` | Close and reopen the connection for a server |
-| `MCP.status()` | Return `Record<string, MCP.Status>` for all configured servers |
-| `MCP.hasStoredTokens(name)` | Check if OAuth tokens are persisted for a server |
+| Function                    | Description                                                    |
+| --------------------------- | -------------------------------------------------------------- |
+| `MCP.add(name, mcp)`        | Connect a new server or reconnect an existing one by name      |
+| `MCP.disable(name)`         | Close and mark a server as disabled                            |
+| `MCP.enable(name)`          | Re-enable a disabled server and reconnect                      |
+| `MCP.refresh(name)`         | Close and reopen the connection for a server                   |
+| `MCP.status()`              | Return `Record<string, MCP.Status>` for all configured servers |
+| `MCP.hasStoredTokens(name)` | Check if OAuth tokens are persisted for a server               |
 
 `MCP.add` closes any existing client for the same name before replacing it, to prevent connection leaks.
 
@@ -408,13 +414,13 @@ Sources: MCP runtime operation handlers
 
 The TUI sidebar displays an MCP section when at least one server is configured. Servers are sorted alphabetically, with each entry showing a status indicator and label:
 
-| Status | Color | Label |
-|---|---|---|
-| `connected` | `theme.success` | Connected |
-| `failed` | `theme.error` | Error message |
-| `disabled` | `theme.textMuted` | Disabled |
-| `needs_auth` | `theme.warning` | Needs auth |
-| `needs_client_registration` | `theme.error` | Needs client ID |
+| Status                      | Color             | Label           |
+| --------------------------- | ----------------- | --------------- |
+| `connected`                 | `theme.success`   | Connected       |
+| `failed`                    | `theme.error`     | Error message   |
+| `disabled`                  | `theme.textMuted` | Disabled        |
+| `needs_auth`                | `theme.warning`   | Needs auth      |
+| `needs_client_registration` | `theme.error`     | Needs client ID |
 
 When multiple servers are present, the section is collapsible. The collapsed header displays counts: `(N active, M errors)`.
 

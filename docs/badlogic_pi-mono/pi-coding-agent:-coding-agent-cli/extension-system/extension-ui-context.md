@@ -15,8 +15,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page documents the **Extension UI Context** (`ExtensionUIContext`), which provides extensions with methods to interact with users through dialogs, notifications, widgets, and custom UI components. The UI context is available to all extension event handlers and tool execution functions via the `ctx.ui` property.
@@ -30,17 +28,17 @@ Sources: [packages/coding-agent/docs/extensions.md:680-686](), [packages/coding-
 Extensions receive an `ExtensionContext` object in all event handlers, tool execution functions, and command handlers. The UI context is accessible via the `ctx.ui` property:
 
 ```typescript
-pi.on("session_start", async (_event, ctx) => {
-  ctx.ui.notify("Extension loaded!", "info");
-});
+pi.on('session_start', async (_event, ctx) => {
+  ctx.ui.notify('Extension loaded!', 'info')
+})
 
 pi.registerTool({
-  name: "greet",
+  name: 'greet',
   async execute(toolCallId, params, signal, onUpdate, ctx) {
-    const name = await ctx.ui.input("Enter name", "John");
-    return { content: [{ type: "text", text: `Hello, ${name}!` }] };
+    const name = await ctx.ui.input('Enter name', 'John')
+    return { content: [{ type: 'text', text: `Hello, ${name}!` }] }
   },
-});
+})
 ```
 
 The `ctx.hasUI` boolean indicates whether interactive UI is available. This is `false` in print mode (`-p`) and `true` in interactive and RPC modes.
@@ -65,42 +63,42 @@ graph TB
         INotify["Notification Methods<br/>• notify()<br/>• setStatus()<br/>• setWorkingMessage()"]
         IWidget["Widget Methods<br/>• setWidget()<br/>• setFooter()<br/>• setHeader()"]
         ICustom["Custom UI<br/>• custom()"]
-        
+
         IDialog --> ITui
         INotify --> ITui
         IWidget --> ITui
         ICustom --> ITui
     end
-    
+
     subgraph RPCMode["RPC Mode (JSON Protocol)"]
         RProtocol["JSON stdin/stdout"]
         RDialog["Dialog Methods<br/>• Emit extension_ui_request<br/>• Wait for extension_ui_response"]
         RNotify["Notification Methods<br/>• Emit extension_ui_request<br/>• Fire-and-forget"]
         RWidget["Widget Methods<br/>• String arrays only<br/>• No component factories"]
         RCustom["Custom UI<br/>• Not supported"]
-        
+
         RDialog --> RProtocol
         RNotify --> RProtocol
         RWidget --> RProtocol
         RCustom -.->|no-op| RProtocol
     end
-    
+
     subgraph PrintMode["Print Mode (Headless)"]
         PNoOp["noOpUIContext"]
         PDialog["Dialog Methods<br/>• Return defaults<br/>• No interaction"]
         PNotify["Notification Methods<br/>• No-op"]
         PWidget["Widget Methods<br/>• No-op"]
-        
+
         PDialog --> PNoOp
         PNotify --> PNoOp
         PWidget --> PNoOp
     end
-    
+
     ExtContext["ctx.ui: ExtensionUIContext"]
     ExtContext --> InteractiveMode
     ExtContext --> RPCMode
     ExtContext --> PrintMode
-    
+
     style ExtContext fill:#f9f9f9,stroke:#333,stroke-width:2px
 ```
 
@@ -112,34 +110,33 @@ Sources: [packages/coding-agent/src/modes/rpc/rpc-mode.ts:120-274](), [packages/
 
 Dialog methods present UI to the user and wait for a response. All dialog methods support optional `ExtensionUIDialogOptions` for signal-based cancellation and timeout:
 
-| Method | Purpose | Returns |
-|--------|---------|---------|
-| `select(title, options, opts?)` | Show a selector list | `Promise<string \| undefined>` |
-| `confirm(title, message, opts?)` | Show yes/no confirmation | `Promise<boolean>` |
-| `input(title, placeholder?, opts?)` | Show text input | `Promise<string \| undefined>` |
-| `editor(title, prefill?)` | Show multi-line editor | `Promise<string \| undefined>` |
+| Method                              | Purpose                  | Returns                        |
+| ----------------------------------- | ------------------------ | ------------------------------ |
+| `select(title, options, opts?)`     | Show a selector list     | `Promise<string \| undefined>` |
+| `confirm(title, message, opts?)`    | Show yes/no confirmation | `Promise<boolean>`             |
+| `input(title, placeholder?, opts?)` | Show text input          | `Promise<string \| undefined>` |
+| `editor(title, prefill?)`           | Show multi-line editor   | `Promise<string \| undefined>` |
 
 **ExtensionUIDialogOptions**:
+
 - `signal?: AbortSignal` - Programmatically dismiss the dialog
 - `timeout?: number` - Auto-dismiss after milliseconds with countdown display
 
 ```typescript
 // Confirmation with timeout
 const ok = await ctx.ui.confirm(
-  "Dangerous Operation", 
-  "Delete all files?",
-  { timeout: 10000 }  // 10 second countdown
-);
+  'Dangerous Operation',
+  'Delete all files?',
+  { timeout: 10000 } // 10 second countdown
+)
 
 // Selection with abort signal
-const controller = new AbortController();
-setTimeout(() => controller.abort(), 5000);
+const controller = new AbortController()
+setTimeout(() => controller.abort(), 5000)
 
-const choice = await ctx.ui.select(
-  "Choose action",
-  ["option1", "option2"],
-  { signal: controller.signal }
-);
+const choice = await ctx.ui.select('Choose action', ['option1', 'option2'], {
+  signal: controller.signal,
+})
 ```
 
 **Interactive Mode**: Uses TUI overlays with keyboard navigation.
@@ -154,22 +151,22 @@ Sources: [packages/coding-agent/src/core/extensions/types.ts:109-116](), [packag
 
 Notification methods provide feedback without waiting for user response:
 
-| Method | Purpose | Behavior |
-|--------|---------|----------|
-| `notify(message, type?)` | Show notification | Fire-and-forget message (type: `"info"`, `"warning"`, `"error"`) |
-| `setStatus(key, text?)` | Set footer status text | Pass `undefined` to clear status |
-| `setWorkingMessage(message?)` | Set loading message | Call with no argument to restore default |
+| Method                        | Purpose                | Behavior                                                         |
+| ----------------------------- | ---------------------- | ---------------------------------------------------------------- |
+| `notify(message, type?)`      | Show notification      | Fire-and-forget message (type: `"info"`, `"warning"`, `"error"`) |
+| `setStatus(key, text?)`       | Set footer status text | Pass `undefined` to clear status                                 |
+| `setWorkingMessage(message?)` | Set loading message    | Call with no argument to restore default                         |
 
 ```typescript
-pi.on("tool_call", async (event, ctx) => {
-  ctx.ui.setStatus("my-ext", "Processing...");
-  ctx.ui.setWorkingMessage("Custom loading message");
-  
+pi.on('tool_call', async (event, ctx) => {
+  ctx.ui.setStatus('my-ext', 'Processing...')
+  ctx.ui.setWorkingMessage('Custom loading message')
+
   // ... do work ...
-  
-  ctx.ui.setStatus("my-ext", undefined);  // Clear status
-  ctx.ui.notify("Operation complete", "success");
-});
+
+  ctx.ui.setStatus('my-ext', undefined) // Clear status
+  ctx.ui.notify('Operation complete', 'success')
+})
 ```
 
 **Interactive Mode**: Updates TUI footer and displays notifications.
@@ -186,16 +183,22 @@ Widgets display custom content above or below the editor. Extensions can registe
 
 ```typescript
 // String array widget
-ctx.ui.setWidget("my-widget", ["Line 1", "Line 2"], { placement: "aboveEditor" });
+ctx.ui.setWidget('my-widget', ['Line 1', 'Line 2'], {
+  placement: 'aboveEditor',
+})
 
 // Component factory widget (interactive mode only)
-ctx.ui.setWidget("my-component", (tui, theme) => {
-  const component = new MyCustomComponent(tui, theme);
-  return component;
-}, { placement: "belowEditor" });
+ctx.ui.setWidget(
+  'my-component',
+  (tui, theme) => {
+    const component = new MyCustomComponent(tui, theme)
+    return component
+  },
+  { placement: 'belowEditor' }
+)
 
 // Clear widget
-ctx.ui.setWidget("my-widget", undefined);
+ctx.ui.setWidget('my-widget', undefined)
 ```
 
 **WidgetPlacement**: `"aboveEditor"` (default) or `"belowEditor"`
@@ -212,27 +215,27 @@ Sources: [packages/coding-agent/src/core/extensions/types.ts:129-135](), [packag
 
 Extensions can programmatically control the input editor:
 
-| Method | Purpose | Mode Support |
-|--------|---------|--------------|
-| `setEditorText(text)` | Replace editor content | Interactive, RPC (emits request) |
-| `getEditorText()` | Read editor content | Interactive only (RPC returns `""`) |
-| `pasteToEditor(text)` | Paste with collapse handling | Interactive (RPC falls back to `setEditorText`) |
-| `setEditorComponent(factory?)` | Replace editor component | Interactive only |
+| Method                         | Purpose                      | Mode Support                                    |
+| ------------------------------ | ---------------------------- | ----------------------------------------------- |
+| `setEditorText(text)`          | Replace editor content       | Interactive, RPC (emits request)                |
+| `getEditorText()`              | Read editor content          | Interactive only (RPC returns `""`)             |
+| `pasteToEditor(text)`          | Paste with collapse handling | Interactive (RPC falls back to `setEditorText`) |
+| `setEditorComponent(factory?)` | Replace editor component     | Interactive only                                |
 
 ```typescript
 // Set text
-ctx.ui.setEditorText("/skill:refactor");
+ctx.ui.setEditorText('/skill:refactor')
 
 // Read text
-const current = ctx.ui.getEditorText();
+const current = ctx.ui.getEditorText()
 
 // Custom editor component (interactive mode only)
 ctx.ui.setEditorComponent((tui, theme, keybindings) => {
-  return new CustomEditor(tui, theme, keybindings);
-});
+  return new CustomEditor(tui, theme, keybindings)
+})
 
 // Restore default editor
-ctx.ui.setEditorComponent(undefined);
+ctx.ui.setEditorComponent(undefined)
 ```
 
 **Custom Editor Components**: Must implement `EditorComponent` interface. Can extend `CustomEditor` base class from `@mariozechner/pi-coding-agent` to inherit app-level keybinding support.
@@ -250,29 +253,33 @@ Sources: [packages/coding-agent/src/core/extensions/types.ts:173-219](), [packag
 The `custom()` method allows extensions to show arbitrary TUI components with keyboard focus:
 
 ```typescript
-const result = await ctx.ui.custom<string>((tui, theme, keybindings, done) => {
-  // Factory receives:
-  // - tui: TUI instance
-  // - theme: Current theme
-  // - keybindings: KeybindingsManager for app actions
-  // - done: Callback to complete with result
-  
-  const component = new MyInteractiveComponent(tui, theme);
-  component.onComplete = (value) => done(value);
-  
-  return component;
-}, {
-  overlay: true,  // Show as overlay
-  overlayOptions: { align: "center", valign: "middle" },
-  onHandle: (handle) => {
-    // Control overlay visibility
-    handle.show();
-    handle.hide();
+const result = await ctx.ui.custom<string>(
+  (tui, theme, keybindings, done) => {
+    // Factory receives:
+    // - tui: TUI instance
+    // - theme: Current theme
+    // - keybindings: KeybindingsManager for app actions
+    // - done: Callback to complete with result
+
+    const component = new MyInteractiveComponent(tui, theme)
+    component.onComplete = (value) => done(value)
+
+    return component
+  },
+  {
+    overlay: true, // Show as overlay
+    overlayOptions: { align: 'center', valign: 'middle' },
+    onHandle: (handle) => {
+      // Control overlay visibility
+      handle.show()
+      handle.hide()
+    },
   }
-});
+)
 ```
 
 **Options**:
+
 - `overlay?: boolean` - Show as overlay (default: full screen)
 - `overlayOptions?: OverlayOptions | (() => OverlayOptions)` - Positioning/sizing (static or dynamic)
 - `onHandle?: (handle: OverlayHandle) => void` - Receive overlay control handle
@@ -295,26 +302,27 @@ Extensions can customize global UI elements:
 // Custom footer
 ctx.ui.setFooter((tui, theme, footerData) => {
   // footerData provides git branch and extension statuses
-  const branch = footerData.getGitBranch();
-  const statuses = footerData.getExtensionStatuses();
-  
-  return new MyFooterComponent(tui, theme, branch, statuses);
-});
+  const branch = footerData.getGitBranch()
+  const statuses = footerData.getExtensionStatuses()
+
+  return new MyFooterComponent(tui, theme, branch, statuses)
+})
 
 // Custom header (shown at startup)
 ctx.ui.setHeader((tui, theme) => {
-  return new MyHeaderComponent(tui, theme);
-});
+  return new MyHeaderComponent(tui, theme)
+})
 
 // Terminal title
-ctx.ui.setTitle("My Custom Title");
+ctx.ui.setTitle('My Custom Title')
 
 // Restore defaults
-ctx.ui.setFooter(undefined);
-ctx.ui.setHeader(undefined);
+ctx.ui.setFooter(undefined)
+ctx.ui.setHeader(undefined)
 ```
 
 **Footer Data Provider**: The footer factory receives a `ReadonlyFooterDataProvider` with methods:
+
 - `getGitBranch(): string | undefined` - Current git branch
 - `getExtensionStatuses(): Record<string, string>` - Statuses set by `setStatus()`
 
@@ -335,26 +343,28 @@ Extensions can capture raw terminal input before it reaches the editor:
 ```typescript
 const unsubscribe = ctx.ui.onTerminalInput((data: string) => {
   // data: raw terminal input string
-  
-  if (data === "\x1b") {  // Escape key
+
+  if (data === '\x1b') {
+    // Escape key
     // Handle custom escape behavior
-    return { consume: true };  // Prevent default handling
+    return { consume: true } // Prevent default handling
   }
-  
-  if (data === "!") {
+
+  if (data === '!') {
     // Transform input
-    return { consume: true, data: "?" };
+    return { consume: true, data: '?' }
   }
-  
+
   // Pass through
-  return undefined;
-});
+  return undefined
+})
 
 // Later: unsubscribe
-unsubscribe();
+unsubscribe()
 ```
 
 **Return Values**:
+
 - `undefined` - Pass through to default handling
 - `{ consume: true }` - Consume input, prevent default handling
 - `{ consume: true, data: string }` - Transform input
@@ -373,24 +383,24 @@ Extensions can read and switch themes:
 
 ```typescript
 // Get current theme
-const theme = ctx.ui.theme;
-console.log(theme.colors.primary);
+const theme = ctx.ui.theme
+console.log(theme.colors.primary)
 
 // List all themes
-const themes = ctx.ui.getAllThemes();
+const themes = ctx.ui.getAllThemes()
 // Returns: [{ name: "default", path: "/path/to/theme.json" }, ...]
 
 // Load theme by name (without switching)
-const darkTheme = ctx.ui.getTheme("dark");
+const darkTheme = ctx.ui.getTheme('dark')
 
 // Switch theme
-const result = ctx.ui.setTheme("dark");
+const result = ctx.ui.setTheme('dark')
 if (!result.success) {
-  console.error(result.error);
+  console.error(result.error)
 }
 
 // Switch theme by object
-ctx.ui.setTheme(customThemeObject);
+ctx.ui.setTheme(customThemeObject)
 ```
 
 The `theme` property provides the current `Theme` object with color definitions, markdown theme, and styling information. Extensions can use this for custom rendering.
@@ -409,11 +419,11 @@ Extensions can control whether tool execution output is expanded or collapsed:
 
 ```typescript
 // Check current state
-const expanded = ctx.ui.getToolsExpanded();
+const expanded = ctx.ui.getToolsExpanded()
 
 // Set expansion state
-ctx.ui.setToolsExpanded(true);   // Expand all tool outputs
-ctx.ui.setToolsExpanded(false);  // Collapse all tool outputs
+ctx.ui.setToolsExpanded(true) // Expand all tool outputs
+ctx.ui.setToolsExpanded(false) // Collapse all tool outputs
 ```
 
 This affects the display of tool execution results in the chat history.
@@ -433,54 +443,54 @@ graph TB
     ExtensionContext["ExtensionContext<br/>(event handlers)"]
     ExtensionCommandContext["ExtensionCommandContext<br/>(command handlers)"]
     ExtensionUIContext["ExtensionUIContext<br/>(ctx.ui)"]
-    
+
     ExtensionContext -->|"ui: ExtensionUIContext"| ExtensionUIContext
     ExtensionContext -->|"hasUI: boolean"| HasUI["hasUI flag"]
     ExtensionCommandContext -->|"extends"| ExtensionContext
-    
+
     subgraph DialogMethods["Dialog Methods"]
         Select["select(title, options, opts?)"]
         Confirm["confirm(title, message, opts?)"]
         Input["input(title, placeholder?, opts?)"]
         Editor["editor(title, prefill?)"]
     end
-    
+
     subgraph NotificationMethods["Notification Methods"]
         Notify["notify(message, type?)"]
         SetStatus["setStatus(key, text?)"]
         SetWorkingMessage["setWorkingMessage(message?)"]
     end
-    
+
     subgraph WidgetMethods["Widget Methods"]
         SetWidget["setWidget(key, content, opts?)"]
         SetFooter["setFooter(factory?)"]
         SetHeader["setHeader(factory?)"]
     end
-    
+
     subgraph EditorMethods["Editor Control"]
         SetEditorText["setEditorText(text)"]
         GetEditorText["getEditorText()"]
         PasteToEditor["pasteToEditor(text)"]
         SetEditorComponent["setEditorComponent(factory?)"]
     end
-    
+
     subgraph CustomUI["Custom UI"]
         Custom["custom<T>(factory, options?)"]
         OnTerminalInput["onTerminalInput(handler)"]
     end
-    
+
     subgraph ThemeMethods["Theme Access"]
         ThemeProp["theme: Theme"]
         GetAllThemes["getAllThemes()"]
         GetTheme["getTheme(name)"]
         SetTheme["setTheme(theme)"]
     end
-    
+
     subgraph ToolMethods["Tool Control"]
         GetToolsExpanded["getToolsExpanded()"]
         SetToolsExpanded["setToolsExpanded(expanded)"]
     end
-    
+
     ExtensionUIContext --> DialogMethods
     ExtensionUIContext --> NotificationMethods
     ExtensionUIContext --> WidgetMethods
@@ -488,13 +498,14 @@ graph TB
     ExtensionUIContext --> CustomUI
     ExtensionUIContext --> ThemeMethods
     ExtensionUIContext --> ToolMethods
-    
+
     style ExtensionUIContext fill:#f9f9f9,stroke:#333,stroke-width:3px
 ```
 
 **Type Definition Hierarchy**
 
 The complete `ExtensionUIContext` interface is defined in [packages/coding-agent/src/core/extensions/types.ts:103-238](). Implementations:
+
 - Interactive: Inline within [packages/coding-agent/src/modes/interactive/mode.ts]()
 - RPC: [packages/coding-agent/src/modes/rpc/rpc-mode.ts:120-274]()
 - Print: [packages/coding-agent/src/core/extensions/runner.ts:170-196]() (`noOpUIContext`)
@@ -510,38 +521,38 @@ graph LR
         RPC["RPC Mode<br/>runRpcMode function"]
         Print["Print Mode<br/>runPrintMode function"]
     end
-    
+
     subgraph BindExtensions["AgentSession.bindExtensions()"]
         BindConfig["ExtensionBindConfig<br/>• uiContext<br/>• commandContextActions<br/>• shutdownHandler<br/>• onError"]
     end
-    
+
     subgraph UIImplementations["UI Context Implementations"]
         InteractiveUI["Full TUI<br/>• Direct TUI access<br/>• Overlays<br/>• Components"]
         RpcUI["JSON Protocol<br/>• Request/response<br/>• Fire-and-forget<br/>• String-only widgets"]
         PrintUI["No-op<br/>• Default returns<br/>• No interaction"]
     end
-    
+
     subgraph ExtensionRunner["ExtensionRunner"]
         SetUIContext["setUIContext(uiContext?)"]
         CreateContext["createContext()"]
         CreateCommandContext["createCommandContext()"]
     end
-    
+
     Interactive -->|"creates"| InteractiveUI
     RPC -->|"creates"| RpcUI
     Print -->|"uses"| PrintUI
-    
+
     InteractiveUI --> BindConfig
     RpcUI --> BindConfig
     PrintUI --> BindConfig
-    
+
     BindConfig -->|"calls"| SetUIContext
     SetUIContext --> ExtensionRunner
-    
+
     CreateContext -->|"returns ctx.ui"| InteractiveUI
     CreateContext -->|"returns ctx.ui"| RpcUI
     CreateContext -->|"returns ctx.ui"| PrintUI
-    
+
     style BindConfig fill:#f9f9f9,stroke:#333,stroke-width:2px
 ```
 

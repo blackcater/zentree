@@ -37,11 +37,10 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Control UI is a web-based dashboard for managing OpenClaw agents, sessions, skills, and configuration. It runs as a single-page application that connects to the Gateway server via WebSocket RPC. This page covers the overall architecture, authentication flow, Gateway connection mechanism, and main navigation structure.
 
 For details on specific management interfaces, see:
+
 - Agent management: [Agent Management](#7.2)
 - Skills management: [Skills Management](#7.3)
 
@@ -50,6 +49,7 @@ For details on specific management interfaces, see:
 ## Architecture Overview
 
 The Control UI follows a **view-controller** architecture where:
+
 - **Views** render UI using Lit templates ([ui/src/ui/views/]())
 - **Controllers** manage state and business logic ([ui/src/ui/controllers/]())
 - **Gateway client** handles WebSocket RPC communication ([ui/src/ui/gateway.ts]())
@@ -61,13 +61,13 @@ graph TB
         LoginGate["Login Gate<br/>(login-gate.ts)"]
         AppViewState["App View State<br/>(app-view-state.ts)"]
         GatewayClient["Gateway Browser Client<br/>(gateway.ts)"]
-        
+
         subgraph "Views"
             ChatView["Chat View<br/>(chat.ts)"]
             AgentsView["Agents View<br/>(agents.ts)"]
             SkillsView["Skills View<br/>(skills.ts)"]
         end
-        
+
         subgraph "Controllers"
             AgentsCtrl["Agents Controller<br/>(controllers/agents.ts)"]
             ChatCtrl["Chat Controller<br/>(controllers/chat.ts)"]
@@ -75,26 +75,26 @@ graph TB
             NodesCtrl["Nodes Controller<br/>(controllers/nodes.ts)"]
         end
     end
-    
+
     subgraph "Gateway Server"
         WSServer["WebSocket Server<br/>ws://127.0.0.1:18789"]
         RPCMethods["RPC Methods<br/>agents.list, sessions.list, etc."]
     end
-    
+
     LoginGate --> |"credentials"| GatewayClient
     GatewayClient --> |"WebSocket RPC"| WSServer
     WSServer --> RPCMethods
-    
+
     AppViewState --> GatewayClient
     AppViewState --> ChatView
     AppViewState --> AgentsView
     AppViewState --> SkillsView
-    
+
     AgentsCtrl --> |"loadAgents()"| GatewayClient
     ChatCtrl --> |"sendMessage()"| GatewayClient
     SkillsCtrl --> |"loadSkills()"| GatewayClient
     NodesCtrl --> |"loadNodes()"| GatewayClient
-    
+
     GatewayClient --> |"state updates"| AppViewState
 ```
 
@@ -104,13 +104,13 @@ graph TB
 
 ## Technology Stack
 
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| **Rendering** | Lit | Declarative UI templates with reactive updates |
-| **State Management** | Observable pattern | Centralized app state in `AppViewState` |
-| **Networking** | WebSocket | Real-time RPC communication with Gateway |
-| **Styling** | CSS custom properties | Theme system with dark/light modes |
-| **Build** | Vitest config | Test infrastructure for UI components |
+| Component            | Technology            | Purpose                                        |
+| -------------------- | --------------------- | ---------------------------------------------- |
+| **Rendering**        | Lit                   | Declarative UI templates with reactive updates |
+| **State Management** | Observable pattern    | Centralized app state in `AppViewState`        |
+| **Networking**       | WebSocket             | Real-time RPC communication with Gateway       |
+| **Styling**          | CSS custom properties | Theme system with dark/light modes             |
+| **Build**            | Vitest config         | Test infrastructure for UI components          |
 
 The UI uses **Lit's html template literals** for rendering and **reactive properties** for state updates. No heavyweight framework is required.
 
@@ -121,6 +121,7 @@ The UI uses **Lit's html template literals** for rendering and **reactive proper
 ## Application Bootstrap and Entry Point
 
 The Control UI can be served via:
+
 1. **Gateway's built-in HTTP server** at `/` (default mode)
 2. **Standalone development server** for local UI development
 3. **Base path mounting** (e.g., `/openclaw/` for reverse proxy deployments)
@@ -129,8 +130,8 @@ The application resolves its **base path** dynamically and ensures all asset ref
 
 ```typescript
 // Example from login-gate.ts
-const basePath = normalizeBasePath(state.basePath ?? "");
-const faviconSrc = agentLogoUrl(basePath);
+const basePath = normalizeBasePath(state.basePath ?? '')
+const faviconSrc = agentLogoUrl(basePath)
 // Result: "/openclaw/favicon.svg" when mounted at /openclaw/
 ```
 
@@ -143,6 +144,7 @@ const faviconSrc = agentLogoUrl(basePath);
 ### Login Gate UI
 
 Before connecting to the Gateway, users must provide:
+
 - **Gateway URL** (WebSocket endpoint, e.g., `ws://127.0.0.1:18789`)
 - **Token** (value of `OPENCLAW_GATEWAY_TOKEN`) or **Password** (plaintext auth)
 
@@ -155,7 +157,7 @@ sequenceDiagram
     participant AppViewState as "App View State<br/>(app-view-state.ts)"
     participant GatewayClient as "Gateway Client<br/>(gateway.ts)"
     participant Gateway as "Gateway Server<br/>ws://127.0.0.1:18789"
-    
+
     User->>LoginGate: Enter gatewayUrl, token/password
     LoginGate->>AppViewState: applySettings(settings)
     User->>LoginGate: Click Connect
@@ -173,11 +175,11 @@ sequenceDiagram
 
 The login gate renders a form with three fields:
 
-| Field | Type | Storage | Purpose |
-|-------|------|---------|---------|
-| Gateway URL | `input` | `settings.gatewayUrl` | WebSocket endpoint |
-| Token | `password` | `settings.token` | `OPENCLAW_GATEWAY_TOKEN` value |
-| Password | `password` | `state.password` | Alternative plaintext auth |
+| Field       | Type       | Storage               | Purpose                        |
+| ----------- | ---------- | --------------------- | ------------------------------ |
+| Gateway URL | `input`    | `settings.gatewayUrl` | WebSocket endpoint             |
+| Token       | `password` | `settings.token`      | `OPENCLAW_GATEWAY_TOKEN` value |
+| Password    | `password` | `state.password`      | Alternative plaintext auth     |
 
 Toggle buttons allow users to reveal token/password values during entry.
 
@@ -189,3 +191,4 @@ The `AppViewState.applySettings()` method writes credentials and preferences to 
 
 ```typescript
 applySettings(next: AppViewState["settings\
+```

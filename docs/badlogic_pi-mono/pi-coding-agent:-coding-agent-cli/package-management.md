@@ -20,8 +20,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the Pi Package system: how to install, remove, and update packages containing extensions, skills, prompt templates, and themes. It covers package sources (npm, git, local), the `pi` manifest in `package.json`, and the `DefaultPackageManager` that handles package lifecycle operations.
 
 For extension loading and execution, see page [4.4](). For settings configuration, see page [4.6](). For how resources are loaded after packages are resolved, see the relevant resource-specific pages ([4.4]() for extensions, [4.8]() for skills/prompts, [4.9]() for themes).
@@ -42,11 +40,11 @@ Sources: [packages/coding-agent/README.md:327-329](), [packages/coding-agent/doc
 
 Packages can be installed from three source types. Each source type has different installation behavior and pinning semantics.
 
-| Type | Syntax Examples | Install Location | Pinning |
-|---|---|---|---|
-| **npm** | `npm:@scope/pkg`<br/>`npm:@scope/pkg@1.2.3` | Global: `npm install -g`<br/>Project: `.pi/npm/` | Pinned if version specified |
-| **git** | `git:github.com/user/repo`<br/>`git:github.com/user/repo@v1`<br/>`https://github.com/user/repo`<br/>`ssh://git@github.com/user/repo` | Global: `~/.pi/agent/git/<host>/<path>`<br/>Project: `.pi/git/<host>/<path>`<br/>Temporary: `$TMPDIR/pi-extensions/git-<host>/<hash>/<path>` | Pinned if ref specified |
-| **local** | `/abs/path`<br/>`./rel/path` | Referenced in place (not copied) | Never pinned |
+| Type      | Syntax Examples                                                                                                                      | Install Location                                                                                                                             | Pinning                     |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| **npm**   | `npm:@scope/pkg`<br/>`npm:@scope/pkg@1.2.3`                                                                                          | Global: `npm install -g`<br/>Project: `.pi/npm/`                                                                                             | Pinned if version specified |
+| **git**   | `git:github.com/user/repo`<br/>`git:github.com/user/repo@v1`<br/>`https://github.com/user/repo`<br/>`ssh://git@github.com/user/repo` | Global: `~/.pi/agent/git/<host>/<path>`<br/>Project: `.pi/git/<host>/<path>`<br/>Temporary: `$TMPDIR/pi-extensions/git-<host>/<hash>/<path>` | Pinned if ref specified     |
+| **local** | `/abs/path`<br/>`./rel/path`                                                                                                         | Referenced in place (not copied)                                                                                                             | Never pinned                |
 
 **Pinning**: Sources with a version (`@1.2.3`) or ref (`@v1`, `@main`, `@abc123`) are considered **pinned** and are skipped by `pi update`. Unpinned sources always pull the latest version.
 
@@ -65,32 +63,32 @@ flowchart TD
     update["pi update [source]"]
     list["pi list"]
     config["pi config"]
-    
+
     parseSource["parseSource()\
 classify npm/git/local"]
     scope{"--local flag?"}
-    
+
     install --> parseSource
     parseSource --> scope
-    
+
     scope -->|global| installGlobal["Install to:\
 ~/.pi/agent/git/<br/>npm install -g"]
     scope -->|project| installProject["Install to:\
 .pi/git/ or .pi/npm/"]
-    
+
     installGlobal --> addSettings["Add to settings.json"]
     installProject --> addSettings
-    
+
     remove --> removeFiles["Remove installed files"]
     removeFiles --> removeSettings["Remove from settings.json"]
-    
+
     update --> checkPinned{"Pinned?"}
     checkPinned -->|no| pullLatest["npm update / git pull"]
     checkPinned -->|yes| skip["Skip (pinned)"]
-    
+
     list --> readSettings["Read user & project settings"]
     readSettings --> display["Display installed packages"]
-    
+
     config --> loadResources["Load all resources"]
     loadResources --> tui["Interactive TUI:\
 enable/disable per resource"]
@@ -107,6 +105,7 @@ pi install <source> [-l]
 Installs a package from npm, git, or local path. The `-l`/`--local` flag installs to the current project (`.pi/`) instead of globally (`~/.pi/agent/`).
 
 **Examples**:
+
 ```bash
 pi install npm:@foo/pi-tools
 pi install npm:@foo/pi-tools@1.2.3      # pinned version
@@ -177,9 +176,9 @@ Packages declare their contents in `package.json` under the `"pi"` key. The `PiM
   "keywords": ["pi-package"],
   "pi": {
     "extensions": ["./extensions"],
-    "skills":     ["./skills"],
-    "prompts":    ["./prompts"],
-    "themes":     ["./themes"]
+    "skills": ["./skills"],
+    "prompts": ["./prompts"],
+    "themes": ["./themes"]
   }
 }
 ```
@@ -253,11 +252,11 @@ Sources: [packages/coding-agent/src/core/package-manager.ts:728-780](), [package
 
 Packages can be installed in three scopes, each with a distinct settings file and installation directory.
 
-| Scope | Settings File | Install Directory |
-|---|---|---|
-| **user** | `~/.pi/agent/settings.json` | `~/.pi/agent/git/`<br/>`npm install -g` |
-| **project** | `<cwd>/.pi/settings.json` | `<cwd>/.pi/git/`<br/>`<cwd>/.pi/npm/` |
-| **temporary** | (in-memory, CLI flags) | `$TMPDIR/pi-extensions/` |
+| Scope         | Settings File               | Install Directory                       |
+| ------------- | --------------------------- | --------------------------------------- |
+| **user**      | `~/.pi/agent/settings.json` | `~/.pi/agent/git/`<br/>`npm install -g` |
+| **project**   | `<cwd>/.pi/settings.json`   | `<cwd>/.pi/git/`<br/>`<cwd>/.pi/npm/`   |
+| **temporary** | (in-memory, CLI flags)      | `$TMPDIR/pi-extensions/`                |
 
 When the same package appears in both user and project settings, `dedupePackages()` keeps only the project entry. **Package identity** is computed by `getPackageIdentity()`:
 
@@ -282,7 +281,7 @@ flowchart TD
     pkg["Package directory\
 (no pi manifest)"]
     scan["Scan for convention directories"]
-    
+
     extDir["extensions/\
 look for *.ts, *.js"]
     skillDir["skills/\
@@ -291,7 +290,7 @@ look for SKILL.md"]
 look for *.md"]
     themeDir["themes/\
 look for *.json"]
-    
+
     subpkg{"Subdirectory has\
 package.json\
 with pi.extensions?"}
@@ -300,13 +299,13 @@ with pi.extensions?"}
 index.js exists?"}
     useIndex["Use index file"]
     useAll["Use all *.ts/*.js files"]
-    
+
     pkg --> scan
     scan --> extDir
     scan --> skillDir
     scan --> promptDir
     scan --> themeDir
-    
+
     extDir --> subpkg
     subpkg -->|yes| useManifest
     subpkg -->|no| checkIndex
@@ -318,12 +317,12 @@ Sources: [packages/coding-agent/src/core/package-manager.ts:293-404](), [package
 
 ### Discovery Rules by Resource Type
 
-| Resource Type | File Patterns | Notes |
-|---|---|---|
-| **extensions** | `*.ts`, `*.js` in `extensions/` | Subdirectories with `package.json` can define `pi.extensions`; otherwise looks for `index.ts`/`index.js`; otherwise collects all `.ts`/`.js` files |
-| **skills** | `SKILL.md` in subdirectories of `skills/`, or `*.md` in root | Skills require a `SKILL.md` file in their own subdirectory |
-| **prompts** | `*.md` in `prompts/` | Markdown files become `/command` templates |
-| **themes** | `*.json` in `themes/` | JSON theme definitions |
+| Resource Type  | File Patterns                                                | Notes                                                                                                                                              |
+| -------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **extensions** | `*.ts`, `*.js` in `extensions/`                              | Subdirectories with `package.json` can define `pi.extensions`; otherwise looks for `index.ts`/`index.js`; otherwise collects all `.ts`/`.js` files |
+| **skills**     | `SKILL.md` in subdirectories of `skills/`, or `*.md` in root | Skills require a `SKILL.md` file in their own subdirectory                                                                                         |
+| **prompts**    | `*.md` in `prompts/`                                         | Markdown files become `/command` templates                                                                                                         |
+| **themes**     | `*.json` in `themes/`                                        | JSON theme definitions                                                                                                                             |
 
 Ignore files (`.gitignore`, `.ignore`, `.fdignore`) are respected during recursive collection. The `.pi/` directory itself is never excluded, even if a parent `.gitignore` contains `.pi`.
 
@@ -343,14 +342,15 @@ Packages in `settings.json` can be specified as strings (the source) or as objec
 
 ### Pattern Syntax
 
-| Prefix | Meaning | Example |
-|---|---|---|
-| *(none)* | Include matching paths (glob) | `"extensions/*.ts"` |
-| `!pattern` | Exclude matching paths (glob) | `"!extensions/legacy.ts"` |
-| `+path` | Force-include exact path (overrides exclusions) | `"+extensions/special.ts"` |
-| `-path` | Force-exclude exact path (overrides force-includes) | `"-extensions/broken.ts"` |
+| Prefix     | Meaning                                             | Example                    |
+| ---------- | --------------------------------------------------- | -------------------------- |
+| _(none)_   | Include matching paths (glob)                       | `"extensions/*.ts"`        |
+| `!pattern` | Exclude matching paths (glob)                       | `"!extensions/legacy.ts"`  |
+| `+path`    | Force-include exact path (overrides exclusions)     | `"+extensions/special.ts"` |
+| `-path`    | Force-exclude exact path (overrides force-includes) | `"-extensions/broken.ts"`  |
 
 **Evaluation order** in `applyPatterns()`:
+
 1. Apply include patterns (or start with all discovered paths if no includes specified).
 2. Apply `!` exclude patterns.
 3. Apply `+` force-include patterns (override excludes).
@@ -410,10 +410,12 @@ Packages are tracked in `settings.json` under the `"packages"` key. The `Setting
 ```
 
 Each entry can be:
+
 - A **string** (the source) — loads all resources from the package.
 - An **object** with `source` and optional filter arrays — applies patterns to narrow resources.
 
 Settings precedence:
+
 - Project settings (`.pi/settings.json`) override user settings (`~/.pi/agent/settings.json`) for the same package.
 - CLI flags (`--extension`, `--skill`, etc.) are temporary and not persisted to settings.
 
@@ -435,10 +437,10 @@ Sources: [packages/coding-agent/src/core/package-manager.ts:14-18](), [packages/
 
 ```typescript
 interface ProgressEvent {
-  type:   "start" | "progress" | "complete" | "error";
-  action: "install" | "remove" | "update" | "clone" | "pull";
-  source: string;
-  message?: string;
+  type: 'start' | 'progress' | 'complete' | 'error'
+  action: 'install' | 'remove' | 'update' | 'clone' | 'pull'
+  source: string
+  message?: string
 }
 ```
 

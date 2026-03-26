@@ -22,8 +22,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Settings Interface provides a comprehensive UI for configuring AionUi's AI model providers, authentication methods, and system preferences. It consists of multiple specialized settings pages organized around configuration domains, with sophisticated features like automatic protocol detection, multi-platform model management, and OAuth integration.
 
 For information about how settings data is persisted, see [Configuration System](#8.1). For details on the model provider architecture used by agents, see [Model Configuration & API Management](#4.7).
@@ -43,19 +41,19 @@ graph TB
         ROUTES -->|"/system"| SYSTEM["SystemSettings<br/>Preferences"]
         ROUTES -->|"/about"| ABOUT["About<br/>App Info"]
     end
-    
+
     subgraph "Page Pattern"
         GEMINI --> WRAPPER1["SettingsPageWrapper"]
         MODELS --> WRAPPER2["SettingsPageWrapper<br/>max-w-1100px"]
         SYSTEM --> WRAPPER3["SettingsPageWrapper"]
         ABOUT --> WRAPPER4["SettingsPageWrapper<br/>max-w-640px"]
-        
+
         WRAPPER1 --> GCONTENT["GeminiModalContent"]
         WRAPPER2 --> MCONTENT["ModelModalContent"]
         WRAPPER3 --> SCONTENT["SystemModalContent"]
         WRAPPER4 --> ACONTENT["AboutModalContent"]
     end
-    
+
     subgraph "Configuration Targets"
         GCONTENT -->|saves to| GCONFIG["ConfigStorage<br/>gemini.oauth<br/>gemini.apiKey"]
         MCONTENT -->|saves to| MCONFIG["ConfigStorage<br/>model.config<br/>IProvider[]"]
@@ -72,14 +70,15 @@ Each settings page follows this consistent structure:
 ```tsx
 const SettingsPage: React.FC = () => {
   return (
-    <SettingsPageWrapper contentClassName='optional-max-width'>
+    <SettingsPageWrapper contentClassName="optional-max-width">
       <SettingsModalContent />
     </SettingsPageWrapper>
-  );
-};
+  )
+}
 ```
 
 The wrapper provides:
+
 - Consistent page layout and spacing
 - Optional content width constraints via `contentClassName`
 - Theme-aware styling
@@ -108,7 +107,7 @@ graph LR
         CHOOSE --> SUBMIT["Create IProvider"]
         SUBMIT --> SAVE["Save to ConfigStorage<br/>ipcBridge.mode.saveModelConfig"]
     end
-    
+
     subgraph "Edit Provider Flow"
         EDIT["User clicks Edit"]
         EDIT --> EDITMODAL["EditModeModal"]
@@ -116,7 +115,7 @@ graph LR
         MODIFY --> UPDATE["Update IProvider"]
         UPDATE --> SAVE
     end
-    
+
     subgraph "Add Model Flow"
         ADDMODEL["User clicks<br/>Add Model to Provider"]
         ADDMODEL --> ADDMODALM["AddModelModal"]
@@ -137,23 +136,23 @@ The `AddPlatformModal` is the primary interface for adding new model providers. 
 
 The modal presents a dropdown populated from `MODEL_PLATFORMS`, which includes 20+ platforms organized by category:
 
-| Category | Platforms |
-|----------|-----------|
-| **Official** | Gemini, Gemini Vertex AI, OpenAI, Anthropic, AWS Bedrock |
-| **Aggregators** | New API (multi-model gateway) |
+| Category              | Platforms                                                                         |
+| --------------------- | --------------------------------------------------------------------------------- |
+| **Official**          | Gemini, Gemini Vertex AI, OpenAI, Anthropic, AWS Bedrock                          |
+| **Aggregators**       | New API (multi-model gateway)                                                     |
 | **Chinese Platforms** | Dashscope, Qwen, Moonshot, Zhipu, xAI, Baidu Qianfan, Tencent Hunyuan, and 7 more |
-| **Local** | Custom (user-provided baseUrl) |
+| **Local**             | Custom (user-provided baseUrl)                                                    |
 
 Each platform configuration includes:
 
 ```typescript
 interface PlatformConfig {
-  name: string;           // Display name
-  value: string;          // Form value identifier
-  logo: string | null;    // Provider logo
-  platform: PlatformType; // 'gemini' | 'anthropic' | 'custom' | 'new-api' | 'bedrock'
-  baseUrl?: string;       // Preset base URL (if applicable)
-  i18nKey?: string;       // Translation key
+  name: string // Display name
+  value: string // Form value identifier
+  logo: string | null // Provider logo
+  platform: PlatformType // 'gemini' | 'anthropic' | 'custom' | 'new-api' | 'bedrock'
+  baseUrl?: string // Preset base URL (if applicable)
+  i18nKey?: string // Translation key
 }
 ```
 
@@ -164,16 +163,19 @@ interface PlatformConfig {
 The modal dynamically adjusts its form fields based on the selected platform:
 
 **Standard Platforms (OpenAI-compatible):**
+
 - Base URL (editable for custom proxies)
 - API Key (supports multi-key via `ApiKeyEditorModal`)
 - Model selection
 
 **Gemini:**
+
 - Optional custom base URL (defaults to `https://generativelanguage.googleapis.com`)
 - API Key (AIza... format)
 - Model selection
 
 **AWS Bedrock:**
+
 - Authentication method: Access Key or AWS Profile
 - Region selection (8 regions available)
 - Access Key ID and Secret Access Key (if using access key auth)
@@ -181,6 +183,7 @@ The modal dynamically adjusts its form fields based on the selected platform:
 - Model selection fetches dynamically using AWS SDK
 
 **New API Gateway:**
+
 - Base URL (required)
 - API Key
 - Model selection
@@ -199,21 +202,21 @@ graph TB
     DEBOUNCE --> CHECK{"Enable Detection?"}
     CHECK -->|isCustom OR<br/>isNonOfficialBaseUrl| DETECT["useProtocolDetection"]
     CHECK -->|official platform| SKIP["Skip Detection"]
-    
+
     DETECT --> GUESS["Smart Prediction<br/>guessProtocolFromUrl<br/>guessProtocolFromKey"]
     GUESS --> TEST["Test Protocols<br/>in Priority Order"]
-    
+
     TEST --> GEMINI["Test Gemini<br/>/v1beta/models"]
     TEST --> OPENAI["Test OpenAI<br/>/v1/models"]
     TEST --> ANTHROPIC["Test Anthropic<br/>/v1/messages"]
-    
+
     GEMINI --> RESULT{"Detection Result"}
     OPENAI --> RESULT
     ANTHROPIC --> RESULT
-    
+
     RESULT -->|success| SUGGEST["Display Suggestion<br/>ProtocolDetectionStatus"]
     RESULT -->|fail| ERROR["Show Error"]
-    
+
     SUGGEST --> SWITCH["User Can Switch Platform<br/>handleSwitchPlatform"]
 ```
 
@@ -246,26 +249,26 @@ The modal fetches available models through the `useModeModeList` hook, which inv
 
 ```typescript
 const modelListState = useModeModeList(
-  platform,           // 'gemini' | 'anthropic' | 'custom' | etc.
-  actualBaseUrl,      // normalized base URL
-  apiKey,             // API key (first key if multiple)
-  true,               // enable auto-retry
-  bedrockConfig       // Bedrock-specific config (if applicable)
-);
+  platform, // 'gemini' | 'anthropic' | 'custom' | etc.
+  actualBaseUrl, // normalized base URL
+  apiKey, // API key (first key if multiple)
+  true, // enable auto-retry
+  bedrockConfig // Bedrock-specific config (if applicable)
+)
 ```
 
 The bridge implementation handles platform-specific model fetching:
 
-| Platform | Endpoint | Special Handling |
-|----------|----------|------------------|
-| **Gemini** | `/v1beta/models?key={apiKey}` | Falls back to default list on error |
-| **Vertex AI** | N/A | Returns hardcoded model list |
-| **Anthropic** | `/v1/models` with `x-api-key` header | Falls back to default list |
-| **Bedrock** | AWS SDK `ListInferenceProfilesCommand` | Filters Claude models only |
-| **OpenAI-compatible** | `/v1/models` with Bearer auth | Auto-fixes missing `/v1` path |
-| **MiniMax** | N/A | Returns hardcoded list (no API endpoint) |
-| **Dashscope Coding** | Validates via `/chat/completions` probe | Returns hardcoded list |
-| **New API** | `/v1/models` (standard OpenAI endpoint) | Ensures `/v1` suffix |
+| Platform              | Endpoint                                | Special Handling                         |
+| --------------------- | --------------------------------------- | ---------------------------------------- |
+| **Gemini**            | `/v1beta/models?key={apiKey}`           | Falls back to default list on error      |
+| **Vertex AI**         | N/A                                     | Returns hardcoded model list             |
+| **Anthropic**         | `/v1/models` with `x-api-key` header    | Falls back to default list               |
+| **Bedrock**           | AWS SDK `ListInferenceProfilesCommand`  | Filters Claude models only               |
+| **OpenAI-compatible** | `/v1/models` with Bearer auth           | Auto-fixes missing `/v1` path            |
+| **MiniMax**           | N/A                                     | Returns hardcoded list (no API endpoint) |
+| **Dashscope Coding**  | Validates via `/chat/completions` probe | Returns hardcoded list                   |
+| **New API**           | `/v1/models` (standard OpenAI endpoint) | Ensures `/v1` suffix                     |
 
 **Sources:** [src/process/bridge/modelBridge.ts:64-426]()
 
@@ -280,6 +283,7 @@ const keys = apiKey.split(/[,\
 ```
 
 The `ApiKeyEditorModal` provides a dedicated interface for managing multiple keys with:
+
 - Multi-line text area for key entry
 - Per-key validation via `onTestKey` callback
 - Visual feedback on key validity
@@ -320,9 +324,9 @@ When a provider already exists, users can add additional models through `AddMode
 The modal uses `detectNewApiProtocol` to auto-suggest the protocol based on model name:
 
 ```typescript
-if (name.startsWith('claude')) return 'anthropic';
-if (name.startsWith('gemini')) return 'gemini';
-return 'openai'; // default
+if (name.startsWith('claude')) return 'anthropic'
+if (name.startsWith('gemini')) return 'gemini'
+return 'openai' // default
 ```
 
 **Sources:** [src/renderer/pages/settings/components/AddModelModal.tsx:10-93](), [src/renderer/config/modelPlatforms.ts:125-131]()
@@ -342,37 +346,37 @@ graph TB
         HOOK --> DEBOUNCE["Debounce 1000ms"]
         DEBOUNCE --> INVOKE["ipcBridge.mode.detectProtocol.invoke"]
     end
-    
+
     subgraph "Main Process - Protocol Detector"
         INVOKE --> NORMALIZE["normalizeBaseUrl<br/>removeApiPathSuffix"]
         NORMALIZE --> CANDIDATES["buildBaseUrlCandidates<br/>[original, stripped]"]
         CANDIDATES --> PARSE["parseApiKeys<br/>split by comma/newline"]
-        
+
         PARSE --> PREDICT["Smart Prediction"]
         PREDICT --> URLGUESS["guessProtocolFromUrl<br/>PROTOCOL_SIGNATURES.urlPatterns"]
         PREDICT --> KEYGUESS["guessProtocolFromKey<br/>PROTOCOL_SIGNATURES.keyPattern"]
-        
+
         URLGUESS --> ORDER["Determine Test Order<br/>[preferred, guessed, remaining]"]
         KEYGUESS --> ORDER
-        
+
         ORDER --> TESTLOOP["For each protocol"]
         TESTLOOP --> TESTPROTO["testProtocol<br/>with timeout"]
         TESTPROTO --> GEMINITEST["testGeminiProtocol<br/>/v1beta/models, /v1/models"]
         TESTPROTO --> OPENAITEST["testOpenAIProtocol<br/>/models, /v1/models"]
         TESTPROTO --> ANTHROPICTEST["testAnthropicProtocol<br/>/v1/messages POST"]
-        
+
         GEMINITEST --> SUCCESS{"Success?"}
         OPENAITEST --> SUCCESS
         ANTHROPICTEST --> SUCCESS
-        
+
         SUCCESS -->|yes| MULTIKEY["testMultipleKeys<br/>(if enabled)"]
         SUCCESS -->|no| NEXT["Try next protocol"]
         NEXT --> TESTLOOP
-        
+
         MULTIKEY --> SUGGESTION["generateSuggestion"]
         SUGGESTION --> RESPONSE["ProtocolDetectionResponse"]
     end
-    
+
     subgraph "UI - ProtocolDetectionStatus"
         RESPONSE --> DISPLAY["Display Result"]
         DISPLAY --> SHOWSUGGESTION["Show switch_platform<br/>suggestion"]
@@ -471,14 +475,14 @@ Note: Anthropic doesn't provide a `/models` endpoint, so detection uses a minima
 
 The system assigns confidence scores based on the detection method:
 
-| Confidence | Meaning | Example |
-|------------|---------|---------|
-| **95** | Successful API call with model list | GET `/v1/models` returns valid data |
-| **90** | Successful API call without model list | Anthropic `/messages` returns 400 with valid error format |
-| **80** | API confirms protocol but key is invalid | Gemini returns API key error in expected format |
-| **75** | Endpoint confirms protocol via error response | OpenAI-style error response from probe |
-| **70** | Auth error confirms protocol | 401 Unauthorized with protocol-specific format |
-| **0** | Detection failed | No endpoint responded successfully |
+| Confidence | Meaning                                       | Example                                                   |
+| ---------- | --------------------------------------------- | --------------------------------------------------------- |
+| **95**     | Successful API call with model list           | GET `/v1/models` returns valid data                       |
+| **90**     | Successful API call without model list        | Anthropic `/messages` returns 400 with valid error format |
+| **80**     | API confirms protocol but key is invalid      | Gemini returns API key error in expected format           |
+| **75**     | Endpoint confirms protocol via error response | OpenAI-style error response from probe                    |
+| **70**     | Auth error confirms protocol                  | 401 Unauthorized with protocol-specific format            |
+| **0**      | Detection failed                              | No endpoint responded successfully                        |
 
 **Sources:** [src/process/bridge/modelBridge.ts:672-815]()
 
@@ -488,16 +492,16 @@ When `testAllKeys: true` is enabled, the detector validates all keys in the inpu
 
 ```typescript
 interface MultiKeyTestResult {
-  total: number;      // Total key count
-  valid: number;      // Number of valid keys
-  invalid: number;    // Number of invalid keys
+  total: number // Total key count
+  valid: number // Number of valid keys
+  invalid: number // Number of invalid keys
   details: Array<{
-    index: number;
-    maskedKey: string;  // "AIza...xyz9" format
-    valid: boolean;
-    error?: string;
-    latency?: number;
-  }>;
+    index: number
+    maskedKey: string // "AIza...xyz9" format
+    valid: boolean
+    error?: string
+    latency?: number
+  }>
 }
 ```
 
@@ -548,8 +552,8 @@ Persists the provider array to `ConfigStorage`:
 
 ```typescript
 ipcBridge.mode.saveModelConfig.provider((models: IProvider[]) => {
-  return ProcessConfig.set('model.config', models);
-});
+  return ProcessConfig.set('model.config', models)
+})
 ```
 
 **Sources:** [src/process/bridge/modelBridge.ts:428-436]()
@@ -560,15 +564,15 @@ Retrieves the provider array with automatic migration from old `IModel` format:
 
 ```typescript
 ipcBridge.mode.getModelConfig.provider(() => {
-  return ProcessConfig.get('model.config').then(data => {
+  return ProcessConfig.get('model.config').then((data) => {
     // Migrate: selectedModel → useModel
-    return data.map(v => ({
+    return data.map((v) => ({
       ...v,
       useModel: v.useModel || v.selectedModel,
-      id: v.id || uuid()
-    }));
-  });
-});
+      id: v.id || uuid(),
+    }))
+  })
+})
 ```
 
 **Sources:** [src/process/bridge/modelBridge.ts:438-469]()
@@ -580,7 +584,7 @@ Executes protocol detection with full configuration:
 ```typescript
 ipcBridge.mode.detectProtocol.provider((request: ProtocolDetectionRequest) => {
   // Returns: { success, data: ProtocolDetectionResponse }
-});
+})
 ```
 
 **Sources:** [src/process/bridge/modelBridge.ts:472-589]()
@@ -593,24 +597,26 @@ The `IProvider` interface represents a configured model provider:
 
 ```typescript
 interface IProvider {
-  id: string;                    // UUID
-  platform: PlatformType;        // 'gemini' | 'anthropic' | 'custom' | etc.
-  name: string;                  // Display name
-  baseUrl: string;               // API endpoint (empty for Bedrock)
-  apiKey: string;                // API key or multi-key string (empty for Bedrock)
-  model: string[];               // Available/selected models
-  bedrockConfig?: {              // AWS Bedrock configuration
-    authMethod: 'accessKey' | 'profile';
-    region: string;
-    accessKeyId?: string;
-    secretAccessKey?: string;
-    profile?: string;
-  };
-  modelProtocols?: {             // New API per-model protocols
-    [modelName: string]: 'openai' | 'gemini' | 'anthropic';
-  };
-  capabilities?: string[];       // Model capabilities (future use)
-  contextLimit?: number;         // Token limit (future use)
+  id: string // UUID
+  platform: PlatformType // 'gemini' | 'anthropic' | 'custom' | etc.
+  name: string // Display name
+  baseUrl: string // API endpoint (empty for Bedrock)
+  apiKey: string // API key or multi-key string (empty for Bedrock)
+  model: string[] // Available/selected models
+  bedrockConfig?: {
+    // AWS Bedrock configuration
+    authMethod: 'accessKey' | 'profile'
+    region: string
+    accessKeyId?: string
+    secretAccessKey?: string
+    profile?: string
+  }
+  modelProtocols?: {
+    // New API per-model protocols
+    [modelName: string]: 'openai' | 'gemini' | 'anthropic'
+  }
+  capabilities?: string[] // Model capabilities (future use)
+  contextLimit?: number // Token limit (future use)
 }
 ```
 
@@ -657,13 +663,13 @@ graph LR
         ADD["AddPlatformModal"]
         ADD --> SAVE["Save IProvider<br/>to ConfigStorage"]
     end
-    
+
     subgraph "Conversation Creation"
         GUID["Guid Page<br/>Agent Selection"]
         GUID --> SELECT["User selects<br/>provider + model"]
         SELECT --> CREATE["createConversation<br/>with extra.model"]
     end
-    
+
     subgraph "Agent Initialization"
         CREATE --> BUILD["WorkerManage.buildConversation"]
         BUILD --> MANAGER["GeminiAgentManager<br/>AcpAgentManager<br/>CodexAgentManager"]

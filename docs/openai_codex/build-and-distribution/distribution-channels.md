@@ -23,8 +23,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes how Codex binaries and packages are distributed to end users after being built by the release pipeline. It covers the four primary distribution channels (GitHub Releases, npm Registry, Homebrew Cask, and DotSlash), how artifacts are staged and published to each channel, and the installation methods available to users.
@@ -44,43 +42,43 @@ graph TB
         COMPRESS["Compress artifacts<br/>.zst + .tar.gz + .zip"]
         UPLOAD["Upload to GitHub<br/>actions/upload-artifact"]
     end
-    
+
     subgraph "Release Orchestration"
         RELEASE_JOB["release job<br/>rust-release.yml:374-521"]
         DOWNLOAD["Download all artifacts<br/>actions/download-artifact"]
         STAGE_NPM["Stage npm packages<br/>stage_npm_packages.py"]
     end
-    
+
     subgraph "Distribution Channels"
         GITHUB_RELEASE["GitHub Releases<br/>softprops/action-gh-release"]
         NPM_PUBLISH["npm Registry<br/>publish-npm job"]
         DOTSLASH_PUBLISH["DotSlash<br/>facebook/dotslash-publish-release"]
         HOMEBREW["Homebrew Cask<br/>(external)"]
     end
-    
+
     subgraph "End Users"
         MANUAL["Manual download<br/>+ PATH setup"]
         NPM_INSTALL["npm install -g<br/>@openai/codex"]
         BREW_INSTALL["brew install --cask<br/>codex"]
         DOTSLASH_USER["DotSlash-based<br/>workflows"]
     end
-    
+
     BUILD --> COMPRESS
     COMPRESS --> UPLOAD
     UPLOAD --> DOWNLOAD
     DOWNLOAD --> RELEASE_JOB
     RELEASE_JOB --> STAGE_NPM
-    
+
     RELEASE_JOB --> GITHUB_RELEASE
     STAGE_NPM --> NPM_PUBLISH
     RELEASE_JOB --> DOTSLASH_PUBLISH
     GITHUB_RELEASE -.->|External| HOMEBREW
-    
+
     GITHUB_RELEASE --> MANUAL
     NPM_PUBLISH --> NPM_INSTALL
     HOMEBREW --> BREW_INSTALL
     DOTSLASH_PUBLISH --> DOTSLASH_USER
-    
+
     MANUAL --> USER["User's System"]
     NPM_INSTALL --> USER
     BREW_INSTALL --> USER
@@ -106,7 +104,7 @@ graph LR
     BUILD["build + build-windows<br/>Build all targets"]
     DOWNLOAD["Download artifacts<br/>actions/download-artifact"]
     CREATE["Create GitHub Release<br/>softprops/action-gh-release"]
-    
+
     TAG --> VALIDATE
     VALIDATE --> BUILD
     BUILD --> DOWNLOAD
@@ -114,6 +112,7 @@ graph LR
 ```
 
 The release includes:
+
 - All platform-specific binaries (compressed as `.zst`, `.tar.gz`, and `.zip`)
 - Signature files (`.sigstore` for Linux binaries)
 - DMG images for macOS
@@ -125,16 +124,16 @@ Sources: [.github/workflows/rust-release.yml:491-501](), [.github/workflows/rust
 
 Artifacts are organized by target triple in the `dist/` directory before upload:
 
-| Target | Files | Compression Formats |
-|--------|-------|---------------------|
-| `aarch64-apple-darwin` | `codex-aarch64-apple-darwin`, `codex-responses-api-proxy-aarch64-apple-darwin`, `codex-aarch64-apple-darwin.dmg` | `.zst`, `.tar.gz` |
-| `x86_64-apple-darwin` | `codex-x86_64-apple-darwin`, `codex-responses-api-proxy-x86_64-apple-darwin`, `codex-x86_64-apple-darwin.dmg` | `.zst`, `.tar.gz` |
-| `x86_64-unknown-linux-musl` | `codex-x86_64-unknown-linux-musl`, `codex-responses-api-proxy-x86_64-unknown-linux-musl`, `*.sigstore` | `.zst`, `.tar.gz` |
-| `aarch64-unknown-linux-musl` | `codex-aarch64-unknown-linux-musl`, `codex-responses-api-proxy-aarch64-unknown-linux-musl`, `*.sigstore` | `.zst`, `.tar.gz` |
-| `x86_64-unknown-linux-gnu` | `codex-x86_64-unknown-linux-gnu`, `codex-responses-api-proxy-x86_64-unknown-linux-gnu`, `*.sigstore` | `.zst`, `.tar.gz` |
-| `aarch64-unknown-linux-gnu` | `codex-aarch64-unknown-linux-gnu`, `codex-responses-api-proxy-aarch64-unknown-linux-gnu`, `*.sigstore` | `.zst`, `.tar.gz` |
-| `x86_64-pc-windows-msvc` | `codex-x86_64-pc-windows-msvc.exe`, `codex-responses-api-proxy-x86_64-pc-windows-msvc.exe`, sandbox helpers | `.zst`, `.tar.gz`, `.zip` |
-| `aarch64-pc-windows-msvc` | `codex-aarch64-pc-windows-msvc.exe`, `codex-responses-api-proxy-aarch64-pc-windows-msvc.exe`, sandbox helpers | `.zst`, `.tar.gz`, `.zip` |
+| Target                       | Files                                                                                                            | Compression Formats       |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `aarch64-apple-darwin`       | `codex-aarch64-apple-darwin`, `codex-responses-api-proxy-aarch64-apple-darwin`, `codex-aarch64-apple-darwin.dmg` | `.zst`, `.tar.gz`         |
+| `x86_64-apple-darwin`        | `codex-x86_64-apple-darwin`, `codex-responses-api-proxy-x86_64-apple-darwin`, `codex-x86_64-apple-darwin.dmg`    | `.zst`, `.tar.gz`         |
+| `x86_64-unknown-linux-musl`  | `codex-x86_64-unknown-linux-musl`, `codex-responses-api-proxy-x86_64-unknown-linux-musl`, `*.sigstore`           | `.zst`, `.tar.gz`         |
+| `aarch64-unknown-linux-musl` | `codex-aarch64-unknown-linux-musl`, `codex-responses-api-proxy-aarch64-unknown-linux-musl`, `*.sigstore`         | `.zst`, `.tar.gz`         |
+| `x86_64-unknown-linux-gnu`   | `codex-x86_64-unknown-linux-gnu`, `codex-responses-api-proxy-x86_64-unknown-linux-gnu`, `*.sigstore`             | `.zst`, `.tar.gz`         |
+| `aarch64-unknown-linux-gnu`  | `codex-aarch64-unknown-linux-gnu`, `codex-responses-api-proxy-aarch64-unknown-linux-gnu`, `*.sigstore`           | `.zst`, `.tar.gz`         |
+| `x86_64-pc-windows-msvc`     | `codex-x86_64-pc-windows-msvc.exe`, `codex-responses-api-proxy-x86_64-pc-windows-msvc.exe`, sandbox helpers      | `.zst`, `.tar.gz`, `.zip` |
+| `aarch64-pc-windows-msvc`    | `codex-aarch64-pc-windows-msvc.exe`, `codex-responses-api-proxy-aarch64-pc-windows-msvc.exe`, sandbox helpers    | `.zst`, `.tar.gz`, `.zip` |
 
 Sources: [.github/workflows/rust-release.yml:296-312](), [.github/workflows/rust-release-windows.yml:184-194]()
 
@@ -179,7 +178,7 @@ graph TB
         PROXY["@openai/codex-responses-api-proxy<br/>Proxy binary"]
         SDK["@openai/codex-sdk<br/>TypeScript SDK"]
     end
-    
+
     MAIN -.->|optionalDependencies| LINUX_X64
     MAIN -.->|optionalDependencies| LINUX_ARM
     MAIN -.->|optionalDependencies| DARWIN_X64
@@ -212,7 +211,7 @@ graph TB
     UPDATE_NPM["Update npm to latest<br/>≥11.5.1 for OIDC"]
     DOWNLOAD["Download npm tarballs<br/>from GitHub Release"]
     PUBLISH["npm publish with OIDC<br/>No NODE_AUTH_TOKEN needed"]
-    
+
     CONDITION --> SETUP
     SETUP --> UPDATE_NPM
     UPDATE_NPM --> DOWNLOAD
@@ -220,6 +219,7 @@ graph TB
 ```
 
 **Version-based publishing:**
+
 - Stable versions (e.g., `1.0.0`) → publish to `latest` tag
 - Alpha versions (e.g., `1.0.0-alpha.1`) → publish to `alpha` tag
 - Other version formats → skip publishing
@@ -240,13 +240,13 @@ Sources: [.github/workflows/rust-release.yml:531-545]()
 
 Platform-specific packages use composite tags to enable version + platform targeting:
 
-| Package | Version | npm Tag |
-|---------|---------|---------|
-| `@openai/codex` | `1.0.0` | `latest` |
-| `@openai/codex-npm-linux-x64` | `1.0.0` | `linux-x64` |
-| `@openai/codex-npm-darwin-arm64` | `1.0.0` | `darwin-arm64` |
-| `@openai/codex` | `1.0.0-alpha.1` | `alpha` |
-| `@openai/codex-npm-linux-x64` | `1.0.0-alpha.1` | `alpha-linux-x64` |
+| Package                          | Version         | npm Tag           |
+| -------------------------------- | --------------- | ----------------- |
+| `@openai/codex`                  | `1.0.0`         | `latest`          |
+| `@openai/codex-npm-linux-x64`    | `1.0.0`         | `linux-x64`       |
+| `@openai/codex-npm-darwin-arm64` | `1.0.0`         | `darwin-arm64`    |
+| `@openai/codex`                  | `1.0.0-alpha.1` | `alpha`           |
+| `@openai/codex-npm-linux-x64`    | `1.0.0-alpha.1` | `alpha-linux-x64` |
 
 Sources: [.github/workflows/rust-release.yml:589-606]()
 
@@ -265,6 +265,7 @@ Homebrew is the de facto package manager for macOS. Codex is distributed as a Ho
 ### Homebrew Formula
 
 The Homebrew cask formula is maintained externally in the Homebrew Cask repository. It references:
+
 - GitHub Release URLs for DMG downloads
 - SHA256 checksums for verification
 - Installation instructions (copy binaries to appropriate locations)
@@ -300,7 +301,7 @@ graph TB
     PUBLISH["facebook/dotslash-publish-release<br/>GitHub Action"]
     RELEASE["GitHub Release<br/>Artifacts"]
     DOTSLASH_JSON["Generated DotSlash files<br/>Per platform + version"]
-    
+
     CONFIG --> PUBLISH
     RELEASE --> PUBLISH
     PUBLISH --> DOTSLASH_JSON
@@ -312,6 +313,7 @@ Sources: [.github/workflows/rust-release.yml:502-507]()
 ### DotSlash Publish Action
 
 The `facebook/dotslash-publish-release` action:
+
 1. Reads platform configurations from `.github/dotslash-config.json`
 2. Downloads artifacts from the GitHub Release
 3. Generates platform-specific DotSlash files
@@ -334,11 +336,13 @@ npm install -g @openai/codex
 ```
 
 **How it works:**
+
 1. npm installs the platform-agnostic `@openai/codex` package
 2. The package's `optionalDependencies` cause npm to fetch the appropriate platform-specific package
 3. Post-install scripts ensure the `codex` binary is available in `PATH`
 
 **Advantages:**
+
 - Cross-platform
 - Familiar for JavaScript/TypeScript developers
 - Handles updates via `npm update -g @openai/codex`
@@ -353,12 +357,14 @@ brew install --cask codex
 ```
 
 **How it works:**
+
 1. Homebrew downloads the DMG from GitHub Releases
 2. Verifies SHA256 checksum
 3. Mounts the DMG and copies binaries to `/usr/local/bin/` (or appropriate Homebrew prefix)
 4. Updates symlinks
 
 **Advantages:**
+
 - Native macOS integration
 - Automatic updates via `brew upgrade`
 - Familiar to macOS developers
@@ -378,6 +384,7 @@ Users can manually download binaries from the [latest GitHub Release](https://gi
    - Windows ARM64: `codex-aarch64-pc-windows-msvc.zip`
 
 2. Extract the archive:
+
    ```bash
    tar -xzf codex-*.tar.gz  # Linux/macOS
    # or
@@ -385,6 +392,7 @@ Users can manually download binaries from the [latest GitHub Release](https://gi
    ```
 
 3. Rename the binary (optional):
+
    ```bash
    mv codex-<target> codex
    ```
@@ -417,14 +425,15 @@ The release pipeline includes version-based conditional logic to control which r
 
 ### Version Formats
 
-| Version Format | Example | Published to npm? | npm Tag |
-|----------------|---------|-------------------|---------|
-| Stable | `1.0.0` | ✅ Yes | `latest` |
-| Alpha | `1.0.0-alpha.1` | ✅ Yes | `alpha` |
-| Beta | `1.0.0-beta.1` | ❌ No | N/A |
-| Other | `1.0.0-rc.1` | ❌ No | N/A |
+| Version Format | Example         | Published to npm? | npm Tag  |
+| -------------- | --------------- | ----------------- | -------- |
+| Stable         | `1.0.0`         | ✅ Yes            | `latest` |
+| Alpha          | `1.0.0-alpha.1` | ✅ Yes            | `alpha`  |
+| Beta           | `1.0.0-beta.1`  | ❌ No             | N/A      |
+| Other          | `1.0.0-rc.1`    | ❌ No             | N/A      |
 
 **Rationale:**
+
 - Stable versions are production-ready and should be widely available
 - Alpha versions are published for early testers but marked with the `alpha` tag
 - Beta and other pre-release formats are distributed only via GitHub Releases
@@ -441,7 +450,7 @@ graph LR
     VALIDATE["tag-check job<br/>Validate format"]
     EXTRACT["Extract version<br/>Remove 'rust-v' prefix"]
     CHECK["Determine npm publish<br/>should_publish_npm"]
-    
+
     TAG --> VALIDATE
     VALIDATE --> EXTRACT
     EXTRACT --> CHECK
@@ -471,13 +480,14 @@ graph TB
     BUILD["Build Rust binaries<br/>+ Bash + Zsh variants"]
     PACKAGE["Package npm module<br/>With vendor/ payloads"]
     PUBLISH["Publish to npm<br/>@openai/codex-shell-tool-mcp"]
-    
+
     TRIGGER --> BUILD
     BUILD --> PACKAGE
     PACKAGE --> PUBLISH
 ```
 
 This workflow:
+
 1. Builds `codex-exec-mcp-server` and `codex-execve-wrapper` for multiple targets
 2. Builds patched Bash and Zsh binaries with exec-wrapper support
 3. Packages everything into a single npm module with platform-specific vendor directories
@@ -489,12 +499,12 @@ Sources: [.github/workflows/rust-release.yml:365-372](), [.github/workflows/shel
 
 ## Distribution Channel Comparison
 
-| Channel | Platforms | Update Method | Target Audience |
-|---------|-----------|---------------|-----------------|
-| **GitHub Releases** | All | Manual download | Advanced users, CI/CD, custom integrations |
-| **npm Registry** | All | `npm update -g` | JavaScript/TypeScript developers, cross-platform teams |
-| **Homebrew Cask** | macOS | `brew upgrade` | macOS developers |
-| **DotSlash** | All | Automatic via DotSlash | Teams wanting version-controlled binaries |
+| Channel             | Platforms | Update Method          | Target Audience                                        |
+| ------------------- | --------- | ---------------------- | ------------------------------------------------------ |
+| **GitHub Releases** | All       | Manual download        | Advanced users, CI/CD, custom integrations             |
+| **npm Registry**    | All       | `npm update -g`        | JavaScript/TypeScript developers, cross-platform teams |
+| **Homebrew Cask**   | macOS     | `brew upgrade`         | macOS developers                                       |
+| **DotSlash**        | All       | Automatic via DotSlash | Teams wanting version-controlled binaries              |
 
 Sources: [README.md:1-61]()
 

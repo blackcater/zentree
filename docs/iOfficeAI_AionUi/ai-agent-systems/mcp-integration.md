@@ -29,8 +29,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes the Model Context Protocol (MCP) server integration system in AionUi. MCP enables AI agents to access external tools and resources through a standardized protocol. The integration supports four transport types (stdio, SSE, HTTP, streamable_http), OAuth authentication for remote servers, and configuration management across multiple sources.
@@ -60,33 +58,34 @@ graph TB
         SERVER -->|timestamps| CREATED["createdAt: number"]
         SERVER -->|timestamps| UPDATED["updatedAt: number"]
     end
-    
+
     subgraph "Transport Types - Discriminated Union"
         TRANSPORT -->|type: stdio| STDIO["IMcpServerTransportStdio"]
         TRANSPORT -->|type: sse| SSE["IMcpServerTransportSSE"]
         TRANSPORT -->|type: http| HTTP["IMcpServerTransportHTTP"]
         TRANSPORT -->|type: streamable_http| STREAMABLE["IMcpServerTransportStreamableHTTP"]
     end
-    
+
     subgraph "Stdio Transport"
         STDIO -->|required| CMD["command: string"]
         STDIO -->|optional| ARGS["args?: string[]"]
         STDIO -->|optional| ENV["env?: Record<string,string>"]
     end
-    
+
     subgraph "Remote Transports"
         SSE -->|required| SSE_URL["url: string"]
         SSE -->|optional| SSE_HDR["headers?: Record<string,string>"]
-        
+
         HTTP -->|required| HTTP_URL["url: string"]
         HTTP -->|optional| HTTP_HDR["headers?: Record<string,string>"]
-        
+
         STREAMABLE -->|required| STREAM_URL["url: string"]
         STREAMABLE -->|optional| STREAM_HDR["headers?: Record<string,string>"]
     end
 ```
 
 **Sources:**
+
 - [src/common/storage.ts:390-438]()
 
 ---
@@ -97,12 +96,12 @@ The system supports four transport mechanisms for MCP server communication, each
 
 ### Transport Type Comparison
 
-| Transport Type | Use Case | Connection Model | Authentication |
-|---------------|----------|------------------|----------------|
-| `stdio` | Local CLI tools via process spawning | Child process with stdin/stdout | Environment variables |
-| `sse` | Remote servers with server-sent events | HTTP long-polling | Headers + OAuth |
-| `http` | Remote REST-style endpoints | Request-response | Headers + OAuth |
-| `streamable_http` | Remote streaming responses | HTTP streaming | Headers + OAuth |
+| Transport Type    | Use Case                               | Connection Model                | Authentication        |
+| ----------------- | -------------------------------------- | ------------------------------- | --------------------- |
+| `stdio`           | Local CLI tools via process spawning   | Child process with stdin/stdout | Environment variables |
+| `sse`             | Remote servers with server-sent events | HTTP long-polling               | Headers + OAuth       |
+| `http`            | Remote REST-style endpoints            | Request-response                | Headers + OAuth       |
+| `streamable_http` | Remote streaming responses             | HTTP streaming                  | Headers + OAuth       |
 
 ### Transport Selection Flow
 
@@ -110,27 +109,27 @@ The system supports four transport mechanisms for MCP server communication, each
 graph TD
     START["MCP Server Configuration"]
     START --> CHECK_TYPE{"transport.type?"}
-    
+
     CHECK_TYPE -->|stdio| STDIO_HANDLER["StdioTransportHandler"]
     CHECK_TYPE -->|sse| SSE_HANDLER["SSETransportHandler"]
     CHECK_TYPE -->|http| HTTP_HANDLER["HTTPTransportHandler"]
     CHECK_TYPE -->|streamable_http| STREAM_HANDLER["StreamableHTTPHandler"]
-    
+
     STDIO_HANDLER --> SPAWN["spawn process with<br/>command + args"]
     SPAWN --> PIPE["communicate via<br/>stdin/stdout pipes"]
-    
+
     SSE_HANDLER --> SSE_CONN["establish SSE connection<br/>to url"]
     SSE_CONN --> SSE_AUTH{"needs auth?"}
     SSE_AUTH -->|yes| OAUTH_CHECK["McpOAuthService<br/>.checkOAuthStatus"]
     SSE_AUTH -->|no| SSE_STREAM["stream events"]
     OAUTH_CHECK -->|authenticated| SSE_STREAM
     OAUTH_CHECK -->|not authenticated| LOGIN["McpOAuthService<br/>.loginMcpOAuth"]
-    
+
     HTTP_HANDLER --> HTTP_REQ["send HTTP request<br/>with headers"]
     HTTP_REQ --> HTTP_AUTH{"401 response?"}
     HTTP_AUTH -->|yes| OAUTH_CHECK
     HTTP_AUTH -->|no| HTTP_RESP["parse response"]
-    
+
     STREAM_HANDLER --> STREAM_CONN["establish streaming<br/>HTTP connection"]
     STREAM_CONN --> STREAM_AUTH{"needs auth?"}
     STREAM_AUTH -->|yes| OAUTH_CHECK
@@ -138,6 +137,7 @@ graph TD
 ```
 
 **Sources:**
+
 - [src/common/storage.ts:390-418]()
 - [src/process/services/mcpServices/McpOAuthService.ts:46-100]()
 
@@ -157,29 +157,29 @@ graph TB
         SERVICE -->|manages| STORAGE["MCPOAuthTokenStorage<br/>from aioncli-core"]
         SERVICE -->|emits| EVENTS["EventEmitter<br/>OAUTH_DISPLAY_MESSAGE_EVENT"]
     end
-    
+
     subgraph "OAuth Status Check Flow"
         CHECK_START["checkOAuthStatus(server)"]
         CHECK_START --> VALIDATE_TRANSPORT{"transport is<br/>http or sse?"}
         VALIDATE_TRANSPORT -->|no| SKIP["return authenticated:true"]
         VALIDATE_TRANSPORT -->|yes| FETCH_SERVER["fetch(server.url)"]
-        
+
         FETCH_SERVER --> CHECK_401{"status === 401?"}
         CHECK_401 -->|no| SUCCESS["return authenticated:true"]
         CHECK_401 -->|yes| CHECK_WWW["check WWW-Authenticate<br/>header"]
-        
+
         CHECK_WWW --> LOAD_CREDS["tokenStorage.getCredentials<br/>(server.name)"]
         LOAD_CREDS --> HAS_TOKEN{"has valid token?"}
         HAS_TOKEN -->|yes| EXPIRED["return authenticated:true<br/>needsLogin:false"]
         HAS_TOKEN -->|no| NEED_LOGIN["return authenticated:false<br/>needsLogin:true"]
     end
-    
+
     subgraph "OAuth Login Flow"
         LOGIN_START["loginMcpOAuth(server, config)"]
         LOGIN_START --> PARSE_WWW["parse WWW-Authenticate<br/>for OAuth params"]
         PARSE_WWW --> BUILD_CONFIG["build MCPOAuthConfig<br/>authUrl, tokenUrl, etc"]
         BUILD_CONFIG --> INITIATE["oauthProvider.initiateOAuth<br/>(serverName, config)"]
-        
+
         INITIATE --> OPEN_BROWSER["open browser for<br/>user authorization"]
         OPEN_BROWSER --> CALLBACK["receive callback with<br/>authorization code"]
         CALLBACK --> EXCHANGE["exchange code for<br/>access token"]
@@ -190,6 +190,7 @@ graph TB
 **Implementation Details:**
 
 The `McpOAuthService` constructor initializes both storage and provider:
+
 ```
 constructor() {
   this.tokenStorage = new MCPOAuthTokenStorage();
@@ -199,6 +200,7 @@ constructor() {
 ```
 
 **Sources:**
+
 - [src/process/services/mcpServices/McpOAuthService.ts:1-179]()
 - [src/common/ipcBridge.ts:279-283]()
 
@@ -217,23 +219,23 @@ graph LR
         SOURCE_2["2. extension.mcpServers<br/>(from GeminiCLIExtension[])"]
         SOURCE_3["3. uiMcpServers<br/>(from ConfigStorage)"]
     end
-    
+
     SOURCE_1 --> MERGE["mergeMcpServers()<br/>in loadCliConfig"]
     SOURCE_2 --> MERGE
     SOURCE_3 --> MERGE
-    
+
     MERGE --> FILTER{"settings has<br/>allowMCPServers or<br/>excludeMCPServers?"}
-    
+
     FILTER -->|allowMCPServers| WHITELIST["filter to keep only<br/>allowed server names"]
     FILTER -->|excludeMCPServers| BLACKLIST["filter to remove<br/>excluded server names"]
     FILTER -->|no filters| PASS["keep all servers"]
-    
+
     WHITELIST --> FINAL["mcpServersConfig<br/>Record<string,unknown>"]
     BLACKLIST --> FINAL
     PASS --> FINAL
-    
+
     FINAL --> CONFIG["new Config({<br/>mcpServers: mcpServersConfig<br/>})"]
-    
+
     subgraph "Extension Processing"
         EXT["extension.mcpServers"]
         EXT --> CHECK_DUP{"key already<br/>exists?"}
@@ -245,6 +247,7 @@ graph LR
 **Merge Function Implementation:**
 
 The `mergeMcpServers` function at [src/agent/gemini/cli/config.ts:339-369]() implements the precedence logic:
+
 1. Start with `settings.mcpServers`
 2. Add servers from each extension (skip if key exists)
 3. Override with `uiMcpServers` (highest precedence)
@@ -252,11 +255,13 @@ The `mergeMcpServers` function at [src/agent/gemini/cli/config.ts:339-369]() imp
 **Filtering Logic:**
 
 The configuration applies allow/exclude filters at [src/agent/gemini/cli/config.ts:175-189]():
+
 - `allowMCPServers`: whitelist specific server names
 - `excludeMCPServers`: blacklist specific server names
 - If both are present, allowlist takes precedence
 
 **Sources:**
+
 - [src/agent/gemini/cli/config.ts:70-336]()
 - [src/agent/gemini/cli/config.ts:339-379]()
 
@@ -276,30 +281,30 @@ graph TB
         LOAD_CONFIG --> CREATE_CONFIG["new Config({<br/>mcpServers: mcpServersConfig<br/>})"]
         CREATE_CONFIG --> CONFIG_INIT["await config.initialize()"]
     end
-    
+
     subgraph "aioncli-core MCP System"
         CONFIG_INIT --> DISCOVER["Config discovers MCP<br/>servers and tools"]
         DISCOVER --> REGISTER["register MCP tools<br/>in CoreToolScheduler"]
     end
-    
+
     subgraph "Tool Execution Flow"
         USER_MSG["user sends message"]
         USER_MSG --> MODEL_RESP["model returns<br/>ToolCallRequestInfo"]
         MODEL_RESP --> CHECK_MCP{"tool name has<br/>MCP prefix?"}
         CHECK_MCP -->|yes| MCP_INVOKE["CoreToolScheduler<br/>invokes MCP tool"]
         CHECK_MCP -->|no| BUILTIN["execute built-in tool"]
-        
+
         MCP_INVOKE --> MCP_SERVER["connect to MCP server<br/>via transport"]
         MCP_SERVER --> EXEC_TOOL["execute tool on<br/>remote server"]
         EXEC_TOOL --> RETURN["return result to model"]
     end
-    
+
     subgraph "Custom Tool Registration"
         TOOL_CONFIG["ConversationToolConfig<br/>.registerCustomTools()"]
         TOOL_CONFIG --> WEB_SEARCH["register WebSearchTool<br/>(gemini_web_search)"]
         TOOL_CONFIG --> WEB_FETCH["register WebFetchTool<br/>(aionui_web_fetch)"]
     end
-    
+
     REGISTER --> TOOL_CONFIG
 ```
 
@@ -310,6 +315,7 @@ graph TB
 3. **Custom Tools:** Registered via `ConversationToolConfig` at [src/agent/gemini/index.ts:393]()
 
 **Sources:**
+
 - [src/agent/gemini/index.ts:118-396]()
 - [src/agent/gemini/cli/config.ts:222-281]()
 
@@ -321,26 +327,26 @@ graph TB
         EVENT["CodexJsonRpcEvent<br/>{method:'codex/event'}"]
         EVENT --> HANDLER["CodexEventHandler<br/>.handleEvent()"]
         HANDLER --> CHECK_TYPE{"msg.type?"}
-        
+
         CHECK_TYPE -->|mcp_tool_call_begin| BEGIN["handleMcpToolCallBegin()"]
         CHECK_TYPE -->|mcp_tool_call_end| END["handleMcpToolCallEnd()"]
-        
+
         BEGIN --> INTERCEPT["NavigationInterceptor<br/>.intercept()"]
         INTERCEPT --> NAV_CHECK{"is navigation tool?"}
         NAV_CHECK -->|yes| PREVIEW["emit preview_open<br/>event"]
         NAV_CHECK -->|no| EMIT_BEGIN["emit CodexToolCall<br/>status:executing"]
-        
+
         END --> FORMAT_RESULT["format tool result<br/>check for errors"]
         FORMAT_RESULT --> EMIT_END["emit CodexToolCall<br/>status:success/error"]
     end
-    
+
     subgraph "MCP Tool Event Data"
         BEGIN_DATA["McpToolCallBeginData"]
         BEGIN_DATA -->|contains| INVOCATION["invocation: McpInvocation"]
         INVOCATION --> TOOL_NAME["tool: string"]
         INVOCATION --> SERVER_NAME["server: string"]
         INVOCATION --> ARGS["arguments: Record<>"]
-        
+
         END_DATA["McpToolCallEndData"]
         END_DATA --> RESULT["result: unknown"]
         END_DATA --> ERROR["error?: string"]
@@ -350,6 +356,7 @@ graph TB
 **Codex Event Handling:**
 
 The `CodexEventHandler` processes MCP tool events at [src/agent/codex/handlers/CodexEventHandler.ts:129-138]():
+
 - `mcp_tool_call_begin`: Tool invocation starts
 - `mcp_tool_call_end`: Tool execution completes
 
@@ -358,6 +365,7 @@ The `CodexEventHandler` processes MCP tool events at [src/agent/codex/handlers/C
 Chrome DevTools navigation tools are intercepted at [src/agent/codex/handlers/CodexToolHandlers.ts:198-212]() to emit `preview_open` events for URL display.
 
 **Sources:**
+
 - [src/agent/codex/handlers/CodexEventHandler.ts:1-350]()
 - [src/agent/codex/handlers/CodexToolHandlers.ts:187-262]()
 - [src/common/codex/types/eventData.ts:42-43]()
@@ -374,30 +382,30 @@ The IPC bridge provides a comprehensive API for MCP server management accessible
 graph TB
     subgraph "mcpService IPC Providers"
         API["mcpService namespace"]
-        
+
         API --> GET["getAgentMcpConfigs<br/>Array<{backend,name,cliPath}>"]
         GET --> RETURN_CONFIGS["returns Array<{<br/>source:McpSource<br/>servers:IMcpServer[]<br/>}>"]
-        
+
         API --> TEST["testMcpConnection<br/>IMcpServer"]
         TEST --> RETURN_TEST["returns {<br/>success:boolean<br/>tools?:Array<>  <br/>needsAuth?:boolean<br/>error?:string<br/>}"]
-        
+
         API --> SYNC["syncMcpToAgents<br/>{mcpServers,agents}"]
         SYNC --> RETURN_SYNC["returns {<br/>success:boolean<br/>results:Array<>  <br/>}"]
-        
+
         API --> REMOVE["removeMcpFromAgents<br/>{mcpServerName,agents}"]
         REMOVE --> RETURN_REMOVE["returns {<br/>success:boolean<br/>results:Array<>  <br/>}"]
     end
-    
+
     subgraph "OAuth Management API"
         API --> CHECK_OAUTH["checkOAuthStatus<br/>IMcpServer"]
         CHECK_OAUTH --> OAUTH_STATUS["returns {<br/>isAuthenticated:boolean<br/>needsLogin:boolean<br/>error?:string<br/>}"]
-        
+
         API --> LOGIN_OAUTH["loginMcpOAuth<br/>{server,config}"]
         LOGIN_OAUTH --> LOGIN_RESULT["returns {<br/>success:boolean<br/>error?:string<br/>}"]
-        
+
         API --> LOGOUT_OAUTH["logoutMcpOAuth<br/>serverName:string"]
         LOGOUT_OAUTH --> LOGOUT_RESULT["returns IBridgeResponse"]
-        
+
         API --> GET_AUTH["getAuthenticatedServers<br/>void"]
         GET_AUTH --> AUTH_LIST["returns string[]<br/>(server names)"]
     end
@@ -413,19 +421,20 @@ const testResult = await ipcBridge.mcpService.testMcpConnection({
   enabled: true,
   transport: { type: 'http', url: 'http://localhost:8000' },
   createdAt: Date.now(),
-  updatedAt: Date.now()
-});
+  updatedAt: Date.now(),
+})
 
 if (testResult.data?.needsAuth) {
   // Initiate OAuth login
   await ipcBridge.mcpService.loginMcpOAuth({
     server: mcpServer,
-    config: oauthConfig
-  });
+    config: oauthConfig,
+  })
 }
 ```
 
 **Sources:**
+
 - [src/common/ipcBridge.ts:273-284]()
 
 ---
@@ -439,28 +448,28 @@ MCP servers have a defined lifecycle from configuration through connection testi
 ```mermaid
 stateDiagram-v2
     [*] --> Created: User adds server<br/>via UI or config
-    
+
     Created --> Testing: testMcpConnection()<br/>invoked
-    
+
     Testing --> NeedsAuth: status=401<br/>WWW-Authenticate header
     Testing --> Connected: status=200<br/>tools discovered
     Testing --> Error: connection failed
-    
+
     NeedsAuth --> OAuthPending: loginMcpOAuth()<br/>initiated
     OAuthPending --> Connected: OAuth success<br/>token stored
     OAuthPending --> Error: OAuth failed
-    
+
     Connected --> Enabled: user enables<br/>in settings
     Enabled --> Active: agent initialized<br/>tools registered
-    
+
     Active --> Executing: tool invocation<br/>received
     Executing --> Active: tool execution<br/>completed
-    
+
     Active --> Disconnected: connection lost<br/>or server stopped
     Disconnected --> Testing: reconnection<br/>attempt
-    
+
     Error --> Testing: user retries<br/>connection
-    
+
     Connected --> Disabled: user disables<br/>in settings
     Disabled --> Testing: user re-enables<br/>server
 ```
@@ -468,16 +477,19 @@ stateDiagram-v2
 **Lifecycle Properties:**
 
 The `IMcpServer.status` field tracks connection state at [src/common/storage.ts:427]():
+
 - `connected`: Server is reachable and tools are available
 - `disconnected`: Server was connected but is now offline
 - `error`: Connection attempt failed
 - `testing`: Connection test in progress
 
 The `IMcpServer.enabled` field controls installation state at [src/common/storage.ts:424]():
+
 - `true`: Server is installed to CLI agents
 - `false`: Server is configured but not installed
 
 **Sources:**
+
 - [src/common/storage.ts:420-432]()
 - [src/process/services/mcpServices/McpOAuthService.ts:46-100]()
 
@@ -497,17 +509,17 @@ graph TB
         STORAGE --> INSTALL_STATUS["mcp.agentInstallStatus<br/>Record<string,string[]>"]
         STORAGE --> AGENT_CONFIGS["agent configs<br/>(gemini, acp, codex)"]
     end
-    
+
     subgraph "IMcpServer Persistence"
         MCP_CONFIG --> SERVER_LIST["Array of server configs"]
         SERVER_LIST --> INDIVIDUAL["Each server has:<br/>- id, name, description<br/>- transport config<br/>- enabled status<br/>- originalJson"]
     end
-    
+
     subgraph "Install Status Tracking"
         INSTALL_STATUS --> AGENT_MAP["Maps server name to<br/>agent backend list"]
         AGENT_MAP --> EXAMPLE["e.g. {<br/>'my-server': ['claude','qwen']<br/>}"]
     end
-    
+
     subgraph "UI Configuration Source"
         UI["Settings UI<br/>MCP Management"]
         UI --> SAVE["ipcBridge.mode<br/>.saveModelConfig()"]
@@ -529,5 +541,6 @@ graph TB
 4. Each agent reads from its own config source during initialization
 
 **Sources:**
+
 - [src/common/storage.ts:19-118]()
 - [src/common/ipcBridge.ts:277-278]()

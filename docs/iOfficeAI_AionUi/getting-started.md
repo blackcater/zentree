@@ -23,8 +23,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This guide walks you through installing AionUi, completing the initial setup, and creating your first AI-powered conversation. By the end, you'll understand how to select agents, configure models, and start working with AI on your local machine.
 
 **Scope**: This page covers installation, first-time configuration, and basic conversation creation. For advanced topics like WebUI remote access, see [WebUI Server Architecture](#3.5); for MCP tool integration, see [MCP Integration](#4.6); for detailed model configuration, see [Model Configuration & API Management](#4.7).
@@ -35,12 +33,12 @@ This guide walks you through installing AionUi, completing the initial setup, an
 
 Before installing AionUi, verify your system meets these minimum requirements:
 
-| Component | Requirement |
-|-----------|-------------|
+| Component            | Requirement                                                                 |
+| -------------------- | --------------------------------------------------------------------------- |
 | **Operating System** | macOS 10.15+, Windows 10+, or Linux (Ubuntu 18.04+, Debian 10+, Fedora 32+) |
-| **Memory** | 4GB RAM minimum (8GB recommended) |
-| **Storage** | 500MB available disk space |
-| **Runtime** | Node.js 22+ (for development builds) |
+| **Memory**           | 4GB RAM minimum (8GB recommended)                                           |
+| **Storage**          | 500MB available disk space                                                  |
+| **Runtime**          | Node.js 22+ (for development builds)                                        |
 
 **Sources**: [readme.md:483-489](), [package.json:7-8]()
 
@@ -55,14 +53,14 @@ AionUi provides platform-specific installers through GitHub Releases. The build 
 ```mermaid
 graph LR
     Release["GitHub Release<br/>github.com/iOfficeAI/AionUi/releases"]
-    
+
     Release -->|macOS| DMG["DMG Archive<br/>AionUi-{version}-darwin-{arch}.dmg"]
     Release -->|macOS| ZIP_MAC["ZIP Archive<br/>AionUi-{version}-darwin-{arch}.zip"]
     Release -->|Windows| NSIS["NSIS Installer<br/>AionUi-{version}-win-{arch}.exe"]
     Release -->|Windows| ZIP_WIN["ZIP Archive<br/>AionUi-{version}-win-{arch}.zip"]
     Release -->|Linux| DEB["Debian Package<br/>AionUi-{version}-linux-{arch}.deb"]
     Release -->|Linux| APPIMAGE["AppImage<br/>AionUi-{version}-linux-{arch}.AppImage"]
-    
+
     DMG --> MAC_INSTALL["Install to /Applications"]
     NSIS --> WIN_INSTALL["Install to Program Files"]
     DEB --> LINUX_INSTALL["Install to /usr/local"]
@@ -72,6 +70,7 @@ graph LR
 **Installation by Platform**:
 
 #### macOS
+
 ```bash
 # Option 1: Homebrew (recommended)
 brew install aionui
@@ -82,9 +81,10 @@ brew install aionui
 # 3. Drag AionUi.app to Applications folder
 ```
 
-The DMG is code-signed and notarized using Apple's developer certificate. The notarization process is configured in [.github/workflows/_build-reusable.yml]() with timeout tolerance for CI environments.
+The DMG is code-signed and notarized using Apple's developer certificate. The notarization process is configured in [.github/workflows/\_build-reusable.yml]() with timeout tolerance for CI environments.
 
 #### Windows
+
 ```bash
 # Option 1: NSIS Installer (recommended)
 # 1. Download .exe from releases
@@ -100,6 +100,7 @@ The DMG is code-signed and notarized using Apple's developer certificate. The no
 The NSIS installer includes architecture detection to prevent mismatched installations. The detection script is located at [resources/windows-installer-x64.nsh]() for x64 and [resources/windows-installer-arm64.nsh]() for ARM64.
 
 #### Linux
+
 ```bash
 # Debian/Ubuntu (DEB package)
 sudo dpkg -i AionUi-*.deb
@@ -125,19 +126,19 @@ graph TD
     Launch["Application Launch<br/>src/index.ts"]
     Launch --> InitStorage["Initialize Storage<br/>ConfigStorage<br/>ChatStorage<br/>EnvStorage"]
     InitStorage --> CheckAuth["Check Authentication<br/>authService"]
-    
+
     CheckAuth -->|Authenticated| LoadConfig["Load Configuration<br/>agent.config<br/>assistant.*.defaultModel"]
     CheckAuth -->|Not Authenticated| ShowAuth["Show Auth UI<br/>Login Options"]
-    
+
     ShowAuth --> GoogleAuth["Google OAuth<br/>USE_GEMINI/LOGIN_WITH_GOOGLE"]
     ShowAuth --> APIKeyAuth["API Key Input<br/>Any Provider"]
-    
+
     GoogleAuth --> StoreTokens["Store OAuth Tokens<br/>ConfigStorage"]
     APIKeyAuth --> ValidateKey["Validate API Key<br/>Test Request"]
-    
+
     StoreTokens --> LoadConfig
     ValidateKey --> LoadConfig
-    
+
     LoadConfig --> InitBridge["Initialize IPC Bridge<br/>ipcBridge.providers<br/>ipcBridge.emitters"]
     InitBridge --> ShowGuid["Navigate to Guid Page<br/>/guid route"]
     ShowGuid --> Ready["Ready for<br/>Conversation Creation"]
@@ -147,11 +148,11 @@ graph TD
 
 AionUi supports three authentication approaches:
 
-| Method | Use Case | Configuration Storage |
-|--------|----------|----------------------|
-| **Google OAuth** | Free Gemini access via Google AI | OAuth tokens in `ConfigStorage` |
-| **Google Vertex AI** | Enterprise Gemini via GCP | Service account credentials |
-| **API Key** | Any supported platform | Provider-specific keys in `ConfigStorage` |
+| Method               | Use Case                         | Configuration Storage                     |
+| -------------------- | -------------------------------- | ----------------------------------------- |
+| **Google OAuth**     | Free Gemini access via Google AI | OAuth tokens in `ConfigStorage`           |
+| **Google Vertex AI** | Enterprise Gemini via GCP        | Service account credentials               |
+| **API Key**          | Any supported platform           | Provider-specific keys in `ConfigStorage` |
 
 The authentication state is managed by `authService` and persisted in the configuration storage system built by `buildStorage()` factory function.
 
@@ -169,19 +170,19 @@ Before creating a conversation, you need to configure at least one model provide
 graph TB
     SettingsUI["Settings UI<br/>src/renderer/pages/settings/ModeSettings.tsx"]
     SettingsUI -->|User clicks Add| AddModal["AddPlatformModal<br/>Platform Selection"]
-    
+
     AddModal --> DetectProtocol["protocolDetector<br/>Auto-identify API Type"]
     DetectProtocol --> URLMatch["URL Pattern Match<br/>gemini.googleapis.com<br/>api.openai.com<br/>api.anthropic.com"]
     DetectProtocol --> KeyMatch["API Key Format<br/>AIza...<br/>sk-...<br/>sk-ant-..."]
     DetectProtocol --> Probe["API Probe<br/>/v1/models<br/>/v1/messages"]
-    
+
     URLMatch --> SuggestPlatform["Suggest Platform<br/>platform switch"]
     KeyMatch --> SuggestPlatform
     Probe --> SuggestPlatform
-    
+
     SuggestPlatform --> FetchModels["fetchModelList<br/>Retrieve Available Models"]
     FetchModels --> SaveConfig["Save to ConfigStorage<br/>agent.config<br/>IProvider[]"]
-    
+
     SaveConfig --> ValidateCapabilities["Tag Model Capabilities<br/>text, vision, function_calling<br/>image_generation, web_search"]
 ```
 
@@ -189,7 +190,7 @@ graph TB
 
 1. **Open Settings**: Navigate to Settings → Mode Settings
 2. **Add Platform**: Click "Add Platform" button
-3. **Platform Detection**: 
+3. **Platform Detection**:
    - Enter API endpoint URL or select from presets
    - Paste API key
    - System auto-detects protocol (OpenAI-compatible, Anthropic, Gemini, etc.)
@@ -204,13 +205,13 @@ graph TB
 
 **Example Provider Configurations**:
 
-| Platform | Base URL | Key Format | Capabilities Auto-Detected |
-|----------|----------|------------|---------------------------|
-| **Gemini** | `https://generativelanguage.googleapis.com` | `AIzaSy...` | Yes, from model metadata |
-| **OpenAI** | `https://api.openai.com` | `sk-proj-...` | Yes, from `/v1/models` |
-| **Anthropic** | `https://api.anthropic.com` | `sk-ant-...` | Yes, from `/v1/messages` |
-| **Ollama** | `http://localhost:11434` | None (local) | Yes, from `/api/tags` |
-| **NewAPI** | Custom gateway URL | Gateway key | Yes, proxied from upstream |
+| Platform      | Base URL                                    | Key Format    | Capabilities Auto-Detected |
+| ------------- | ------------------------------------------- | ------------- | -------------------------- |
+| **Gemini**    | `https://generativelanguage.googleapis.com` | `AIzaSy...`   | Yes, from model metadata   |
+| **OpenAI**    | `https://api.openai.com`                    | `sk-proj-...` | Yes, from `/v1/models`     |
+| **Anthropic** | `https://api.anthropic.com`                 | `sk-ant-...`  | Yes, from `/v1/messages`   |
+| **Ollama**    | `http://localhost:11434`                    | None (local)  | Yes, from `/api/tags`      |
+| **NewAPI**    | Custom gateway URL                          | Gateway key   | Yes, proxied from upstream |
 
 The provider configuration is persisted in `ConfigStorage` under the `agent.config` key and hot-reloaded by active agents without requiring restart.
 
@@ -227,25 +228,25 @@ Conversations in AionUi start from the Guid page (`/guid` route), which acts as 
 ```mermaid
 graph TD
     GuidPage["Guid Page<br/>/guid route<br/>src/renderer/pages/guid"]
-    
+
     GuidPage --> LoadProviders["Load Providers<br/>ConfigStorage.getProviders"]
     LoadProviders --> FilterCapabilities["Filter by Capabilities<br/>ModelCapability[]"]
-    
+
     FilterCapabilities --> BuiltInAgent["Built-in Agent<br/>GeminiAgent<br/>aioncli-core"]
     FilterCapabilities --> ACPAgent["ACP Agents<br/>AcpAgent<br/>CLI Detection"]
     FilterCapabilities --> CodexAgent["Codex Agent<br/>CodexAgent<br/>WebSocket/Gateway"]
     FilterCapabilities --> OpenClawAgent["OpenClaw Agent<br/>OpenClawAgent<br/>HTTP/WebSocket"]
     FilterCapabilities --> NanobotAgent["Nanobot Agent<br/>NanobotAgent<br/>Simplified"]
-    
+
     BuiltInAgent --> SelectModel["User Selects Model<br/>TProviderWithModel"]
     ACPAgent --> SelectModel
     CodexAgent --> SelectModel
     OpenClawAgent --> SelectModel
     NanobotAgent --> SelectModel
-    
+
     SelectModel --> ConfigureWorkspace["Configure Workspace<br/>Select Directory"]
     ConfigureWorkspace --> CreateConv["IPC: conversation.create<br/>ipcBridge.invoke"]
-    
+
     CreateConv --> InitManager["Initialize Agent Manager<br/>GeminiAgentManager<br/>AcpAgentManager<br/>CodexAgentManager<br/>etc."]
     InitManager --> InitDB["Create Database Record<br/>ConversationManageWithDB<br/>conversations table"]
     InitDB --> Navigate["Navigate to Conversation<br/>/conversation/:id"]
@@ -266,6 +267,7 @@ graph TD
 4. **Configure Workspace** (optional): Select a local directory for agent file operations
 
 5. **Create Conversation**: Click create button, which triggers:
+
    ```typescript
    // IPC call from renderer to main process
    ipcBridge.invoke('conversation.create', {
@@ -273,8 +275,8 @@ graph TD
      extra: {
        platform: 'gemini',
        model: 'gemini-2.0-flash-exp',
-       workspacePath: '/Users/username/projects'
-     }
+       workspacePath: '/Users/username/projects',
+     },
    })
    ```
 
@@ -290,13 +292,13 @@ graph TD
 
 AionUi uses a discriminated union type `TChatConversation` to represent different conversation types:
 
-| Type | Agent Manager | Connection Handler | Protocol |
-|------|---------------|-------------------|----------|
-| `gemini` | `GeminiAgentManager` | `GeminiClient` | HTTP REST (Google AI / Vertex AI) |
-| `acp` | `AcpAgentManager` | `AcpConnection` | JSON-RPC over stdio |
-| `codex` | `CodexAgentManager` | `CodexConnection` | WebSocket |
-| `openclaw-gateway` | `OpenClawAgentManager` | `OpenClawConnection` | HTTP/WebSocket |
-| `nanobot` | `NanobotAgentManager` | N/A (built-in) | Direct |
+| Type               | Agent Manager          | Connection Handler   | Protocol                          |
+| ------------------ | ---------------------- | -------------------- | --------------------------------- |
+| `gemini`           | `GeminiAgentManager`   | `GeminiClient`       | HTTP REST (Google AI / Vertex AI) |
+| `acp`              | `AcpAgentManager`      | `AcpConnection`      | JSON-RPC over stdio               |
+| `codex`            | `CodexAgentManager`    | `CodexConnection`    | WebSocket                         |
+| `openclaw-gateway` | `OpenClawAgentManager` | `OpenClawConnection` | HTTP/WebSocket                    |
+| `nanobot`          | `NanobotAgentManager`  | N/A (built-in)       | Direct                            |
 
 Each type includes a `type` discriminator field and an `extra` field containing type-specific configuration (model, platform, workspace, etc.).
 
@@ -317,29 +319,29 @@ graph TD
     ChatLayout --> SendBox["SendBox Component<br/>Agent-Specific Impl"]
     ChatLayout --> WorkspacePanel["Workspace Panel<br/>File Tree"]
     ChatLayout --> PreviewPanel["Preview Panel<br/>File Viewer"]
-    
+
     SendBox --> UserInput["User Types Message<br/>+ Optional File Attachments"]
     UserInput --> InvokeIPC["IPC: conversation.sendMessage<br/>ipcBridge.invoke"]
-    
+
     InvokeIPC --> AgentManager["Route to Agent Manager<br/>GeminiAgentManager.sendMessage<br/>AcpAgentManager.sendMessage<br/>etc."]
-    
+
     AgentManager --> AddUserMsg["Add User Message to DB<br/>ConversationManageWithDB<br/>addMessage()"]
     AgentManager --> InitAgent["Get/Create Agent Instance<br/>Map<conversation_id, Agent>"]
-    
+
     InitAgent --> StreamResponse["Agent Streams Response<br/>responseStream events"]
     StreamResponse --> Buffer["Message Queue<br/>2-second debounce"]
     Buffer --> BatchWrite["Batch DB Write<br/>addOrUpdateMessage()"]
-    
+
     StreamResponse --> UpdateUI["Real-time UI Update<br/>IPC: responseStream listener"]
     UpdateUI --> MessageList
-    
+
     StreamResponse --> ToolCall["Tool Execution<br/>File ops, web search, etc."]
     ToolCall --> Approval["Check ApprovalStore<br/>Session-level cache"]
     Approval -->|Cached| Execute["Execute Tool"]
     Approval -->|Not Cached| ConfirmUI["Show Confirmation UI<br/>allow_once, allow_always"]
     ConfirmUI --> CacheDecision["Update ApprovalStore"]
     CacheDecision --> Execute
-    
+
     Execute --> FileOps["File Operations<br/>FileOperationHandler"]
     FileOps --> WorkspacePanel
     FileOps --> PreviewPanelUpdate["Stream to Preview<br/>fileStream.contentUpdate"]
@@ -350,12 +352,13 @@ graph TD
 
 1. **User Input**: Type message in `SendBox`, optionally attach files via drag-and-drop or file selector
 
-2. **IPC Invocation**: 
+2. **IPC Invocation**:
+
    ```typescript
    await ipcBridge.invoke('conversation.sendMessage', {
      conversationId: 'uuid',
      message: 'Write a Python script to analyze CSV data',
-     files: [{ path: '/path/to/data.csv', uploadFile: File }]
+     files: [{ path: '/path/to/data.csv', uploadFile: File }],
    })
    ```
 
@@ -364,6 +367,7 @@ graph TD
 4. **Immediate DB Write**: User message is immediately persisted to `messages` table for durability
 
 5. **Agent Processing**: Agent processes message and begins streaming response events:
+
    ```typescript
    // Event types emitted by agents
    { type: 'text', text: 'Let me analyze that...' }
@@ -401,15 +405,16 @@ graph TD
 
 AionUi operates in three distinct modes, selectable at startup via command-line flags:
 
-| Mode | Launch Command | Use Case | Main Window |
-|------|----------------|----------|-------------|
-| **Desktop** | `npm start` or app icon | Standard desktop usage | BrowserWindow with system tray |
-| **WebUI** | `npm run webui` | Remote access via browser | Express server on configurable port |
-| **CLI** | `npm run resetpass` | Password reset utility | Headless (exits after operation) |
+| Mode        | Launch Command          | Use Case                  | Main Window                         |
+| ----------- | ----------------------- | ------------------------- | ----------------------------------- |
+| **Desktop** | `npm start` or app icon | Standard desktop usage    | BrowserWindow with system tray      |
+| **WebUI**   | `npm run webui`         | Remote access via browser | Express server on configurable port |
+| **CLI**     | `npm run resetpass`     | Password reset utility    | Headless (exits after operation)    |
 
 **Desktop Mode** (default): Full Electron application with native window management, system tray integration, and deep linking support via `aionui://` protocol.
 
 **WebUI Mode**: Runs Express server for browser-based access from remote devices. Supports:
+
 - LAN access: `http://localhost:3000`
 - Remote access: Via port forwarding or reverse proxy
 - QR code login for mobile devices

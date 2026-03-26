@@ -25,8 +25,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page demonstrates practical patterns for configuring and using different AI providers in TanStack AI applications. Examples cover OpenAI, Anthropic, Gemini, Ollama, and Grok with various configuration scenarios including API key management, model selection, provider-specific options, and runtime provider switching.
 
 For implementing complete API routes that use these configurations, see [API Route Implementation Patterns](#10.2). For understanding the adapter architecture itself, see [AI Provider Adapters](#3.3).
@@ -40,19 +38,19 @@ graph TB
         EXPLICIT["Explicit API Keys<br/>───────<br/>createOpenaiChat(apiKey)<br/>createAnthropicChat(apiKey)<br/>createGeminiChat(apiKey)"]
         FACTORY["Factory Functions<br/>───────<br/>openaiText(model)<br/>anthropicText(model)<br/>geminiText(model)<br/>ollamaText(model)"]
     end
-    
+
     subgraph "Adapter Creation"
         BASIC["Basic Adapter<br/>───────<br/>const adapter = openaiText('gpt-4o')"]
         TYPED["Typed with createChatOptions<br/>───────<br/>const options = createChatOptions({<br/>  adapter: geminiText('gemini-2.5-pro'),<br/>  modelOptions: {...}<br/>})"]
         RUNTIME["Runtime Selection<br/>───────<br/>const adapterConfig: Record<Provider, ...><br/>const options = adapterConfig[provider]()"]
     end
-    
+
     subgraph "Model Configuration"
         MODEL_SELECT["Model Selection<br/>───────<br/>openaiText('gpt-4o')<br/>anthropicText('claude-sonnet-4-5')<br/>geminiText('gemini-2.5-pro')"]
         MODEL_OPTS["Provider Options<br/>───────<br/>modelOptions: {<br/>  temperature, maxTokens,<br/>  reasoning, thinking,<br/>  thinkingConfig<br/>}"]
         COMMON_OPTS["Common Options<br/>───────<br/>temperature, topP,<br/>maxTokens,<br/>systemPrompts, tools"]
     end
-    
+
     ENV --> FACTORY
     EXPLICIT --> FACTORY
     FACTORY --> BASIC
@@ -79,7 +77,7 @@ import { openaiText } from '@tanstack/ai-openai'
 // Reads OPENAI_API_KEY from environment
 const stream = chat({
   adapter: openaiText('gpt-4o'),
-  messages: [{ role: 'user', content: 'Hello!' }]
+  messages: [{ role: 'user', content: 'Hello!' }],
 })
 ```
 
@@ -90,12 +88,12 @@ import { createOpenaiChat } from '@tanstack/ai-openai'
 
 const adapter = createOpenaiChat(process.env.OPENAI_API_KEY!, {
   organization: 'org-...', // Optional
-  baseURL: 'https://api.openai.com/v1' // Optional
+  baseURL: 'https://api.openai.com/v1', // Optional
 })
 
 const stream = chat({
   adapter: adapter('gpt-4o'),
-  messages: [{ role: 'user', content: 'Hello!' }]
+  messages: [{ role: 'user', content: 'Hello!' }],
 })
 ```
 
@@ -110,7 +108,7 @@ import { anthropicText } from '@tanstack/ai-anthropic'
 
 const stream = chat({
   adapter: anthropicText('claude-sonnet-4-5'),
-  messages: [{ role: 'user', content: 'Hello!' }]
+  messages: [{ role: 'user', content: 'Hello!' }],
 })
 ```
 
@@ -120,12 +118,12 @@ Using explicit API key:
 import { createAnthropicChat } from '@tanstack/ai-anthropic'
 
 const adapter = createAnthropicChat(process.env.ANTHROPIC_API_KEY!, {
-  baseURL: 'https://api.anthropic.com' // Optional
+  baseURL: 'https://api.anthropic.com', // Optional
 })
 
 const stream = chat({
   adapter: adapter('claude-sonnet-4-5'),
-  messages: [{ role: 'user', content: 'Hello!' }]
+  messages: [{ role: 'user', content: 'Hello!' }],
 })
 ```
 
@@ -140,7 +138,7 @@ import { geminiText } from '@tanstack/ai-gemini'
 
 const stream = chat({
   adapter: geminiText('gemini-2.5-pro'),
-  messages: [{ role: 'user', content: 'Hello!' }]
+  messages: [{ role: 'user', content: 'Hello!' }],
 })
 ```
 
@@ -149,13 +147,17 @@ Using explicit API key:
 ```typescript
 import { createGeminiChat } from '@tanstack/ai-gemini'
 
-const adapter = createGeminiChat('gemini-2.5-pro', process.env.GEMINI_API_KEY!, {
-  baseURL: 'https://generativelanguage.googleapis.com/v1beta' // Optional
-})
+const adapter = createGeminiChat(
+  'gemini-2.5-pro',
+  process.env.GEMINI_API_KEY!,
+  {
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta', // Optional
+  }
+)
 
 const stream = chat({
   adapter,
-  messages: [{ role: 'user', content: 'Hello!' }]
+  messages: [{ role: 'user', content: 'Hello!' }],
 })
 ```
 
@@ -171,7 +173,7 @@ import { ollamaText } from '@tanstack/ai-ollama'
 // Default localhost
 const stream = chat({
   adapter: ollamaText('llama3'),
-  messages: [{ role: 'user', content: 'Hello!' }]
+  messages: [{ role: 'user', content: 'Hello!' }],
 })
 ```
 
@@ -184,7 +186,7 @@ const adapter = createOllamaChat('http://your-server:11434')
 
 const stream = chat({
   adapter: adapter('llama3'),
-  messages: [{ role: 'user', content: 'Hello!' }]
+  messages: [{ role: 'user', content: 'Hello!' }],
 })
 ```
 
@@ -197,7 +199,7 @@ import { grokText } from '@tanstack/ai-grok'
 
 const stream = chat({
   adapter: grokText('grok-3'),
-  messages: [{ role: 'user', content: 'Hello!' }]
+  messages: [{ role: 'user', content: 'Hello!' }],
 })
 ```
 
@@ -210,7 +212,7 @@ const stream = chat({
 ```typescript
 const stream = chat({
   adapter: openaiText('gpt-4o'),
-  messages
+  messages,
 })
 ```
 
@@ -234,21 +236,37 @@ export const MODEL_OPTIONS: Array<ModelOption> = [
   { provider: 'openai', model: 'gpt-4o', label: 'OpenAI - GPT-4o' },
   { provider: 'openai', model: 'gpt-4o-mini', label: 'OpenAI - GPT-4o Mini' },
   { provider: 'openai', model: 'gpt-5', label: 'OpenAI - GPT-5' },
-  
+
   // Anthropic
-  { provider: 'anthropic', model: 'claude-sonnet-4-5', label: 'Anthropic - Claude Sonnet 4.5' },
-  { provider: 'anthropic', model: 'claude-opus-4-5', label: 'Anthropic - Claude Opus 4.5' },
-  
+  {
+    provider: 'anthropic',
+    model: 'claude-sonnet-4-5',
+    label: 'Anthropic - Claude Sonnet 4.5',
+  },
+  {
+    provider: 'anthropic',
+    model: 'claude-opus-4-5',
+    label: 'Anthropic - Claude Opus 4.5',
+  },
+
   // Gemini
-  { provider: 'gemini', model: 'gemini-2.5-flash', label: 'Gemini 2.5 - Flash' },
-  { provider: 'gemini', model: 'gemini-2.0-flash', label: 'Gemini 2.0 - Flash' },
-  
+  {
+    provider: 'gemini',
+    model: 'gemini-2.5-flash',
+    label: 'Gemini 2.5 - Flash',
+  },
+  {
+    provider: 'gemini',
+    model: 'gemini-2.0-flash',
+    label: 'Gemini 2.0 - Flash',
+  },
+
   // Ollama
   { provider: 'ollama', model: 'llama3', label: 'Ollama - Llama 3' },
   { provider: 'ollama', model: 'mistral', label: 'Ollama - Mistral' },
-  
+
   // Grok
-  { provider: 'grok', model: 'grok-3', label: 'Grok - Grok 3' }
+  { provider: 'grok', model: 'grok-3', label: 'Grok - Grok 3' },
 ]
 ```
 
@@ -278,13 +296,13 @@ const GEMINI_2_5_PRO = {
       'search_grounding',
       'structured_output',
       'thinking',
-      'url_context'
-    ]
+      'url_context',
+    ],
   },
   pricing: {
     input: { normal: 2.5 },
-    output: { normal: 15 }
-  }
+    output: { normal: 15 },
+  },
 }
 ```
 
@@ -297,25 +315,25 @@ const GEMINI_2_5_PRO = {
 ```mermaid
 graph TB
     REQUEST["Request Data<br/>───────<br/>{messages, data: {provider, model}}"] --> EXTRACT["Extract Provider & Model<br/>───────<br/>const provider = data?.provider || 'openai'<br/>const model = data?.model || 'gpt-4o'"]
-    
+
     EXTRACT --> MAP["adapterConfig Map<br/>───────<br/>Record<Provider, () => {...}>"]
-    
+
     MAP --> OPENAI["openai: () => createChatOptions({<br/>  adapter: openaiText(model),<br/>  modelOptions: {...}<br/>})"]
-    
+
     MAP --> ANTHROPIC["anthropic: () => createChatOptions({<br/>  adapter: anthropicText(model),<br/>  modelOptions: {...}<br/>})"]
-    
+
     MAP --> GEMINI["gemini: () => createChatOptions({<br/>  adapter: geminiText(model),<br/>  modelOptions: {thinkingConfig}<br/>})"]
-    
+
     MAP --> OLLAMA["ollama: () => createChatOptions({<br/>  adapter: ollamaText(model),<br/>  modelOptions: {think, options}<br/>})"]
-    
+
     MAP --> GROK["grok: () => createChatOptions({<br/>  adapter: grokText(model)<br/>})"]
-    
+
     OPENAI --> SELECT["options = adapterConfig[provider]()"]
     ANTHROPIC --> SELECT
     GEMINI --> SELECT
     OLLAMA --> SELECT
     GROK --> SELECT
-    
+
     SELECT --> CHAT["chat({<br/>  ...options,<br/>  tools, systemPrompts, messages<br/>})"]
 ```
 
@@ -328,16 +346,16 @@ type Provider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'grok'
 
 export async function POST({ request }) {
   const { messages, data } = await request.json()
-  
+
   const provider: Provider = data?.provider || 'openai'
   const model: string = data?.model || 'gpt-4o'
-  
+
   // Type-safe adapter configuration map
   const adapterConfig: Record<Provider, () => { adapter: AnyTextAdapter }> = {
     anthropic: () => createChatOptions({
       adapter: anthropicText(model as 'claude-sonnet-4-5')
     }),
-    
+
     gemini: () => createChatOptions({
       adapter: geminiText(model as 'gemini-2.5-flash'),
       modelOptions: {
@@ -347,37 +365,37 @@ export async function POST({ request }) {
         }
       }
     }),
-    
+
     ollama: () => createChatOptions({
       adapter: ollamaText(model as 'llama3'),
-      modelOptions: { 
+      modelOptions: {
         think: 'low',
         options: { top_k: 1 }
       }
     }),
-    
+
     openai: () => createChatOptions({
       adapter: openaiText(model as 'gpt-4o'),
       temperature: 2,
       modelOptions: {}
     }),
-    
+
     grok: () => createChatOptions({
       adapter: grokText(model as 'grok-3'),
       modelOptions: {}
     })
   }
-  
+
   // Get typed options for selected provider
   const options = adapterConfig[provider]()
-  
+
   const stream = chat({
     ...options,
     tools: [...],
     systemPrompts: [...],
     messages
   })
-  
+
   return toServerSentEventsResponse(stream)
 }
 ```
@@ -392,18 +410,18 @@ export async function POST({ request }) {
 graph TB
     subgraph "OpenAI Provider Options"
         BASE["Base Options<br/>───────<br/>background, conversation,<br/>previous_response_id,<br/>service_tier, store"]
-        
+
         REASONING["Reasoning Options<br/>───────<br/>reasoning: {<br/>  effort: 'medium',<br/>  summary: 'detailed'<br/>}"]
-        
+
         STRUCTURED["Structured Output<br/>───────<br/>text: {<br/>  type: 'json_object',<br/>  json_schema: {...}<br/>}"]
-        
+
         TOOLS["Tools Options<br/>───────<br/>max_tool_calls,<br/>parallel_tool_calls,<br/>tool_choice"]
-        
+
         STREAM["Streaming Options<br/>───────<br/>stream_options: {<br/>  include_obfuscation<br/>}"]
-        
+
         META["Metadata Options<br/>───────<br/>metadata: {<br/>  key: value (max 16)<br/>}"]
     end
-    
+
     BASE --> COMBINED["Combined Options<br/>───────<br/>ExternalTextProviderOptions"]
     REASONING --> COMBINED
     STRUCTURED --> COMBINED
@@ -423,29 +441,29 @@ modelOptions: {
     effort: 'medium', // 'none' | 'minimal' | 'low' | 'medium' | 'high'
     summary: 'detailed' // 'auto' | 'detailed'
   },
-  
+
   // Structured output
   text: {
     type: 'json_object',
     json_schema: {...}
   },
-  
+
   // Tools
   max_tool_calls: 10,
   parallel_tool_calls: true,
   tool_choice: 'auto',
-  
+
   // Streaming
   stream_options: {
     include_obfuscation: false
   },
-  
+
   // Metadata (max 16 KV pairs)
   metadata: {
     user_id: 'user123',
     session_id: 'session456'
   },
-  
+
   // Other options
   background: false,
   service_tier: 'auto',
@@ -463,20 +481,20 @@ modelOptions: {
 graph TB
     subgraph "Gemini Provider Options"
         THINKING["Thinking Options<br/>───────<br/>thinkingConfig: {<br/>  includeThoughts: true,<br/>  thinkingBudget: 100,<br/>  thinkingLevel: 'LEVEL_2'<br/>}"]
-        
+
         SAFETY["Safety Options<br/>───────<br/>safetySettings: [<br/>  {category, threshold}<br/>]"]
-        
+
         COMMON["Common Options<br/>───────<br/>stopSequences,<br/>responseModalities,<br/>candidateCount, topK,<br/>seed, presencePenalty"]
-        
+
         STRUCTURED["Structured Output<br/>───────<br/>responseMimeType: 'application/json',<br/>responseSchema: {...},<br/>responseJsonSchema: {...}"]
-        
+
         CACHE["Caching<br/>───────<br/>cachedContent:<br/>'cachedContents/...'"]
-        
+
         SPEECH["Speech Config<br/>───────<br/>speechConfig: {<br/>  voiceConfig,<br/>  languageCode<br/>}"]
-        
+
         IMAGE["Image Config<br/>───────<br/>imageConfig: {<br/>  aspectRatio: '1:1'<br/>}"]
     end
-    
+
     THINKING --> COMBINED["Combined Options<br/>───────<br/>ExternalTextProviderOptions"]
     SAFETY --> COMBINED
     COMMON --> COMBINED
@@ -498,7 +516,7 @@ modelOptions: {
     thinkingBudget: 100, // Max thinking tokens
     thinkingLevel: 'LEVEL_2' // Advanced models only
   },
-  
+
   // Safety settings
   safetySettings: [
     {
@@ -506,15 +524,15 @@ modelOptions: {
       threshold: 'BLOCK_LOW_AND_ABOVE'
     }
   ],
-  
+
   // Structured output
   responseMimeType: 'application/json',
   responseSchema: {...}, // Gemini Schema format
   responseJsonSchema: {...}, // JSON Schema format
-  
+
   // Caching
   cachedContent: 'cachedContents/weather-context',
-  
+
   // Common options
   stopSequences: ['<done>', '###'],
   responseModalities: ['TEXT', 'IMAGE'],
@@ -525,7 +543,7 @@ modelOptions: {
   frequencyPenalty: 0.4,
   responseLogprobs: true,
   logprobs: 3,
-  
+
   // Speech generation
   speechConfig: {
     voiceConfig: {
@@ -535,7 +553,7 @@ modelOptions: {
     },
     languageCode: 'en-US'
   },
-  
+
   // Image generation
   imageConfig: {
     aspectRatio: '16:9'
@@ -556,10 +574,10 @@ modelOptions: {
     type: 'enabled',
     budget_tokens: 2048 // Max thinking tokens
   },
-  
+
   // Note: max_tokens must be > budget_tokens
   max_tokens: 4096,
-  
+
   // Other options
   temperature: 0.7,
   top_p: 0.9,
@@ -580,12 +598,12 @@ messages: [
         content: 'Context to cache',
         metadata: {
           cache_control: {
-            type: 'ephemeral'
-          }
-        }
-      }
-    ]
-  }
+            type: 'ephemeral',
+          },
+        },
+      },
+    ],
+  },
 ]
 ```
 
@@ -599,24 +617,24 @@ Key Ollama options:
 modelOptions: {
   // Thinking
   think: 'low', // Provider-specific thinking control
-  
+
   // Sampling
   temperature: 0.7,
   top_p: 0.9,
   top_k: 40,
   min_p: 0.05,
-  
+
   // Generation
   num_predict: 1000, // Max tokens
   repeat_penalty: 1.1,
   repeat_last_n: 64,
-  
+
   // Performance
   num_ctx: 4096, // Context window
   num_batch: 512,
   num_gpu: -1, // -1 = auto
   num_thread: 0, // 0 = auto
-  
+
   // Options nested object
   options: {
     top_k: 1,
@@ -635,21 +653,21 @@ All providers support these common options:
 const stream = chat({
   adapter: openaiText('gpt-4o'),
   messages,
-  
+
   // Common across all providers
   temperature: 0.7,
   topP: 0.9,
   maxTokens: 2048,
-  
+
   systemPrompts: ['You are a helpful assistant'],
-  
+
   tools: [weatherTool, searchTool],
-  
+
   agentLoopStrategy: maxIterations(20),
-  
+
   conversationId: 'conv-123',
-  
-  abortController: new AbortController()
+
+  abortController: new AbortController(),
 })
 ```
 
@@ -672,16 +690,16 @@ const options = createChatOptions({
     // ✅ TypeScript knows thinkingConfig is valid
     thinkingConfig: {
       includeThoughts: true,
-      thinkingBudget: 100
+      thinkingBudget: 100,
     },
     // ❌ TypeScript would error on invalid options
-  }
+  },
 })
 
 const stream = chat({
   ...options,
   messages,
-  tools
+  tools,
 })
 ```
 
@@ -698,9 +716,9 @@ const gemini3Options = createChatOptions({
   modelOptions: {
     thinkingConfig: {
       includeThoughts: true,
-      thinkingLevel: 'LEVEL_2' // ✅ Supported
-    }
-  }
+      thinkingLevel: 'LEVEL_2', // ✅ Supported
+    },
+  },
 })
 
 // Gemini 2.5 Pro only supports thinkingBudget
@@ -709,10 +727,10 @@ const gemini25Options = createChatOptions({
   modelOptions: {
     thinkingConfig: {
       includeThoughts: true,
-      thinkingBudget: 100 // ✅ Supported
+      thinkingBudget: 100, // ✅ Supported
       // thinkingLevel: 'LEVEL_2' // ❌ Would error
-    }
-  }
+    },
+  },
 })
 ```
 
@@ -722,13 +740,13 @@ const gemini25Options = createChatOptions({
 
 Standard environment variables by provider:
 
-| Provider | Environment Variable | Default/Format |
-|----------|---------------------|----------------|
-| OpenAI | `OPENAI_API_KEY` | `sk-...` |
-| Anthropic | `ANTHROPIC_API_KEY` | `sk-ant-...` |
-| Gemini | `GEMINI_API_KEY` or `GOOGLE_API_KEY` | Google API key |
-| Ollama | `OLLAMA_HOST` | `http://localhost:11434` |
-| Grok | `GROK_API_KEY` | Grok API key |
+| Provider  | Environment Variable                 | Default/Format           |
+| --------- | ------------------------------------ | ------------------------ |
+| OpenAI    | `OPENAI_API_KEY`                     | `sk-...`                 |
+| Anthropic | `ANTHROPIC_API_KEY`                  | `sk-ant-...`             |
+| Gemini    | `GEMINI_API_KEY` or `GOOGLE_API_KEY` | Google API key           |
+| Ollama    | `OLLAMA_HOST`                        | `http://localhost:11434` |
+| Grok      | `GROK_API_KEY`                       | Grok API key             |
 
 **Sources:** [docs/getting-started/quick-start.md:209-221](), [docs/adapters/ollama.md:234-238]()
 
@@ -739,17 +757,17 @@ All providers support custom base URLs for proxy/gateway scenarios:
 ```typescript
 // OpenAI with custom endpoint
 const openaiAdapter = createOpenaiChat(apiKey, {
-  baseURL: 'https://your-proxy.com/v1'
+  baseURL: 'https://your-proxy.com/v1',
 })
 
 // Anthropic with custom endpoint
 const anthropicAdapter = createAnthropicChat(apiKey, {
-  baseURL: 'https://your-proxy.com'
+  baseURL: 'https://your-proxy.com',
 })
 
 // Gemini with custom endpoint
 const geminiAdapter = createGeminiChat('gemini-2.5-pro', apiKey, {
-  baseURL: 'https://your-proxy.com/v1beta'
+  baseURL: 'https://your-proxy.com/v1beta',
 })
 
 // Ollama with custom host
@@ -779,9 +797,9 @@ const getGuitarsTool = {
   execute: async () => {
     return [
       { id: '1', name: 'Guitar 1' },
-      { id: '2', name: 'Guitar 2' }
+      { id: '2', name: 'Guitar 2' },
     ]
-  }
+  },
 }
 
 // Stream and verify tool call

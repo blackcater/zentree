@@ -14,8 +14,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 Session-scoped tools are specialized tools that are created per-session with session-specific state and callbacks. Each session receives its own isolated instance of these tools, allowing them to maintain context and coordinate with the session's lifecycle events.
 
 This document covers the 12 built-in session-scoped tools, their architecture, and integration patterns. For information about tools provided by external sources, see [External Service Integration](#2.4). For general agent system architecture, see [Agent System](#2.3).
@@ -28,13 +26,13 @@ Session-scoped tools provide specialized capabilities that require access to ses
 
 ### Tool Categories
 
-| Category | Tools | Purpose |
-|----------|-------|---------|
-| **Configuration & Validation** | `config_validate`, `skill_validate`, `mermaid_validate` | Validate configuration files before they take effect |
-| **Source Management** | `source_test` | Test source connectivity and authentication status |
-| **Authentication** | `source_oauth_trigger`, `source_google_oauth_trigger`, `source_slack_oauth_trigger`, `source_microsoft_oauth_trigger`, `source_credential_prompt` | Trigger OAuth flows and credential input |
-| **Data Transformation** | `transform_data` | Execute scripts to transform large datasets for display |
-| **Plan Management** | `SubmitPlan` | Submit plans for user review with automatic execution pause |
+| Category                       | Tools                                                                                                                                             | Purpose                                                     |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| **Configuration & Validation** | `config_validate`, `skill_validate`, `mermaid_validate`                                                                                           | Validate configuration files before they take effect        |
+| **Source Management**          | `source_test`                                                                                                                                     | Test source connectivity and authentication status          |
+| **Authentication**             | `source_oauth_trigger`, `source_google_oauth_trigger`, `source_slack_oauth_trigger`, `source_microsoft_oauth_trigger`, `source_credential_prompt` | Trigger OAuth flows and credential input                    |
+| **Data Transformation**        | `transform_data`                                                                                                                                  | Execute scripts to transform large datasets for display     |
+| **Plan Management**            | `SubmitPlan`                                                                                                                                      | Submit plans for user review with automatic execution pause |
 
 **Sources:** [packages/shared/src/agent/session-scoped-tools.ts:1-22]()
 
@@ -49,31 +47,31 @@ graph TB
     subgraph "Factory Pattern"
         getSessionScopedTools["getSessionScopedTools()"]
         Cache["sessionScopedToolsCache<br/>Map&lt;cacheKey, McpServer&gt;"]
-        
+
         getSessionScopedTools -->|"check cache"| Cache
         Cache -->|"cache miss"| CreateTools["Create new tool instances"]
         Cache -->|"cache hit"| Return["Return cached McpServer"]
         CreateTools -->|"cache result"| Cache
     end
-    
+
     subgraph "Tool Creation"
         CreateContext["createClaudeContext()"]
         RegisterCallbacks["Register session callbacks"]
         WrapHandlers["Wrap handlers from<br/>@craft-agent/session-tools-core"]
         CreateMcpServer["createSdkMcpServer()"]
-        
+
         CreateTools --> CreateContext
         CreateContext --> RegisterCallbacks
         RegisterCallbacks --> WrapHandlers
         WrapHandlers --> CreateMcpServer
     end
-    
+
     subgraph "Callback Registry"
         CallbackRegistry["sessionScopedToolCallbackRegistry<br/>Map&lt;sessionId, callbacks&gt;"]
-        
+
         RegisterCallbacks --> CallbackRegistry
     end
-    
+
     style Cache fill:#f9f9f9
     style CallbackRegistry fill:#f9f9f9
 ```
@@ -94,42 +92,42 @@ graph LR
         SessionManager["SessionManager"]
         Register["registerSessionScopedToolCallbacks()"]
         Registry["sessionScopedToolCallbackRegistry"]
-        
+
         SessionManager -->|"on agent create"| Register
         Register --> Registry
     end
-    
+
     subgraph "Invocation Phase"
         ToolExecution["Tool execution"]
         GetCallbacks["getSessionScopedToolCallbacks()"]
         InvokeCallback["Invoke callback"]
-        
+
         ToolExecution --> GetCallbacks
         GetCallbacks --> Registry
         Registry --> InvokeCallback
     end
-    
+
     subgraph "Cleanup Phase"
         SessionClose["Session closes"]
         Unregister["unregisterSessionScopedToolCallbacks()"]
         CleanupTools["cleanupSessionScopedTools()"]
-        
+
         SessionClose --> Unregister
         SessionClose --> CleanupTools
         Unregister --> Registry
         CleanupTools --> Cache["sessionScopedToolsCache"]
     end
-    
+
     style Registry fill:#f9f9f9
     style Cache fill:#f9f9f9
 ```
 
 **Callbacks Interface:**
 
-| Callback | Signature | Trigger |
-|----------|-----------|---------|
-| `onPlanSubmitted` | `(planPath: string) => void` | `SubmitPlan` tool completes successfully |
-| `onAuthRequest` | `(request: AuthRequest) => void` | Any OAuth or credential prompt tool is invoked |
+| Callback          | Signature                        | Trigger                                        |
+| ----------------- | -------------------------------- | ---------------------------------------------- |
+| `onPlanSubmitted` | `(planPath: string) => void`     | `SubmitPlan` tool completes successfully       |
+| `onAuthRequest`   | `(request: AuthRequest) => void` | Any OAuth or credential prompt tool is invoked |
 
 **Sources:** [packages/shared/src/agent/session-scoped-tools.ts:72-116]()
 
@@ -144,6 +142,7 @@ graph LR
 Validates Craft Agent configuration files with structured error reporting.
 
 **Schema:**
+
 ```typescript
 {
   target: 'config' | 'sources' | 'statuses' | 'preferences' | 'permissions' | 'hooks' | 'tool-icons' | 'all',
@@ -153,18 +152,19 @@ Validates Craft Agent configuration files with structured error reporting.
 
 **Validation Targets:**
 
-| Target | File Path | Validates |
-|--------|-----------|-----------|
-| `config` | `~/.craft-agent/config.json` | Workspaces, model settings, LLM connections |
-| `sources` | `~/.craft-agent/workspaces/{workspace}/sources/*/config.json` | All source configurations |
-| `statuses` | `~/.craft-agent/workspaces/{workspace}/statuses/config.json` | Status workflow definitions |
-| `preferences` | `~/.craft-agent/preferences.json` | User preference schema |
-| `permissions` | `permissions.json` | Permission mode settings |
-| `hooks` | `hooks.json` | Hook definitions and matchers |
-| `tool-icons` | `~/.craft-agent/tool-icons/tool-icons.json` | Custom tool icon mappings |
-| `all` | Multiple | All configuration files |
+| Target        | File Path                                                     | Validates                                   |
+| ------------- | ------------------------------------------------------------- | ------------------------------------------- |
+| `config`      | `~/.craft-agent/config.json`                                  | Workspaces, model settings, LLM connections |
+| `sources`     | `~/.craft-agent/workspaces/{workspace}/sources/*/config.json` | All source configurations                   |
+| `statuses`    | `~/.craft-agent/workspaces/{workspace}/statuses/config.json`  | Status workflow definitions                 |
+| `preferences` | `~/.craft-agent/preferences.json`                             | User preference schema                      |
+| `permissions` | `permissions.json`                                            | Permission mode settings                    |
+| `hooks`       | `hooks.json`                                                  | Hook definitions and matchers               |
+| `tool-icons`  | `~/.craft-agent/tool-icons/tool-icons.json`                   | Custom tool icon mappings                   |
+| `all`         | Multiple                                                      | All configuration files                     |
 
 **Use Cases:**
+
 - Validate configuration after editing via Write tool
 - Check for errors before configuration reload
 - Verify source configuration completeness
@@ -178,6 +178,7 @@ Validates Craft Agent configuration files with structured error reporting.
 Validates skill `SKILL.md` files for correct structure and metadata.
 
 **Schema:**
+
 ```typescript
 {
   skillSlug: string
@@ -186,13 +187,13 @@ Validates skill `SKILL.md` files for correct structure and metadata.
 
 **Validation Checks:**
 
-| Check | Requirement |
-|-------|-------------|
-| Slug format | Lowercase alphanumeric with hyphens only |
-| File existence | `SKILL.md` must exist and be readable |
+| Check            | Requirement                                                  |
+| ---------------- | ------------------------------------------------------------ |
+| Slug format      | Lowercase alphanumeric with hyphens only                     |
+| File existence   | `SKILL.md` must exist and be readable                        |
 | YAML frontmatter | Must contain valid YAML with `name` and `description` fields |
-| Content | Non-empty content after frontmatter |
-| Icon format | If present, must be `svg`, `png`, or `jpg` |
+| Content          | Non-empty content after frontmatter                          |
+| Icon format      | If present, must be `svg`, `png`, or `jpg`                   |
 
 **Sources:** [packages/shared/src/agent/session-scoped-tools.ts:210-212](), [packages/shared/src/agent/session-scoped-tools.ts:280-289]()
 
@@ -203,6 +204,7 @@ Validates skill `SKILL.md` files for correct structure and metadata.
 Validates Mermaid diagram syntax before outputting to the user.
 
 **Schema:**
+
 ```typescript
 {
   code: string,
@@ -211,10 +213,12 @@ Validates Mermaid diagram syntax before outputting to the user.
 ```
 
 **Parameters:**
+
 - `code`: The complete Mermaid diagram code
 - `render`: If `true`, attempts to render the diagram to catch layout errors
 
 **Use Cases:**
+
 - Validate complex diagrams with many nodes/relationships
 - Debug syntax errors before presenting to user
 - Verify diagram type compatibility
@@ -230,6 +234,7 @@ Validates Mermaid diagram syntax before outputting to the user.
 Comprehensive source validation and connectivity testing.
 
 **Schema:**
+
 ```typescript
 {
   sourceSlug: string
@@ -247,7 +252,7 @@ graph TB
     ConnectionTest["4. Connection Test<br/>Test if source is reachable"]
     AuthStatus["5. Auth Status<br/>Check if source is authenticated"]
     Result["Return validation report"]
-    
+
     Invoke --> SchemaValidation
     SchemaValidation --> IconHandling
     IconHandling --> CompletenessCheck
@@ -257,6 +262,7 @@ graph TB
 ```
 
 **Output Format:**
+
 - ✓ Success indicators for passed checks
 - ✗ Error messages with specific failure details
 - ⚠ Warnings for optional fields (guide.md, icon, tagline)
@@ -272,14 +278,15 @@ graph TB
 
 Four specialized OAuth tools for different authentication flows:
 
-| Tool | OAuth Flow | Supported Services |
-|------|------------|-------------------|
-| `source_oauth_trigger` | OAuth 2.0 + PKCE | MCP servers with OAuth support |
-| `source_google_oauth_trigger` | Google OAuth | Gmail, Calendar, Drive |
-| `source_slack_oauth_trigger` | Slack OAuth | Slack workspaces |
-| `source_microsoft_oauth_trigger` | Microsoft OAuth | Outlook, Calendar, OneDrive, Teams, SharePoint |
+| Tool                             | OAuth Flow       | Supported Services                             |
+| -------------------------------- | ---------------- | ---------------------------------------------- |
+| `source_oauth_trigger`           | OAuth 2.0 + PKCE | MCP servers with OAuth support                 |
+| `source_google_oauth_trigger`    | Google OAuth     | Gmail, Calendar, Drive                         |
+| `source_slack_oauth_trigger`     | Slack OAuth      | Slack workspaces                               |
+| `source_microsoft_oauth_trigger` | Microsoft OAuth  | Outlook, Calendar, OneDrive, Teams, SharePoint |
 
 **Common Schema:**
+
 ```typescript
 {
   sourceSlug: string
@@ -295,7 +302,7 @@ sequenceDiagram
     participant Callbacks as "Session Callbacks"
     participant UI as "UI Layer"
     participant Browser as "Browser Window"
-    
+
     Agent->>Tool: Call oauth_trigger(sourceSlug)
     Tool->>Callbacks: onAuthRequest(request)
     Callbacks->>UI: Show OAuth modal
@@ -304,7 +311,7 @@ sequenceDiagram
     Browser->>UI: Return OAuth code
     UI->>Tool: Complete OAuth exchange
     Tool-->>Agent: Success + pause execution
-    
+
     Note over Agent: Execution paused<br/>until user completes OAuth
 ```
 
@@ -319,6 +326,7 @@ sequenceDiagram
 Prompts the user to enter credentials for non-OAuth authentication.
 
 **Schema:**
+
 ```typescript
 {
   sourceSlug: string,
@@ -337,15 +345,16 @@ Prompts the user to enter credentials for non-OAuth authentication.
 
 **Authentication Modes:**
 
-| Mode | UI Presentation | Use Case |
-|------|-----------------|----------|
-| `bearer` | Single token field | Bearer tokens, API keys |
-| `basic` | Username + Password fields | Basic HTTP authentication |
-| `header` | API key field with custom header name | Custom header-based auth (e.g., `X-API-Key`) |
-| `query` | API key field | Query parameter authentication |
-| `multi-header` | Multiple header fields | Multi-key authentication (e.g., Datadog with API Key + App Key) |
+| Mode           | UI Presentation                       | Use Case                                                        |
+| -------------- | ------------------------------------- | --------------------------------------------------------------- |
+| `bearer`       | Single token field                    | Bearer tokens, API keys                                         |
+| `basic`        | Username + Password fields            | Basic HTTP authentication                                       |
+| `header`       | API key field with custom header name | Custom header-based auth (e.g., `X-API-Key`)                    |
+| `query`        | API key field                         | Query parameter authentication                                  |
+| `multi-header` | Multiple header fields                | Multi-key authentication (e.g., Datadog with API Key + App Key) |
 
 **Custom Labels Example:**
+
 ```typescript
 {
   sourceSlug: 'github',
@@ -366,6 +375,7 @@ Prompts the user to enter credentials for non-OAuth authentication.
 Executes scripts to transform large datasets for structured display in datatable/spreadsheet blocks.
 
 **Schema:**
+
 ```typescript
 {
   language: 'python3' | 'node' | 'bun',
@@ -385,18 +395,18 @@ graph TB
     ScriptExec["Script execution<br/>(subprocess isolation)"]
     OutputJSON["Output JSON file<br/>written to data/ dir"]
     DatatableBlock["Datatable block with<br/>src: 'data/output.json'"]
-    
+
     LargeDataset --> WriteScript
     WriteScript --> CallTransform
     CallTransform --> ScriptExec
     ScriptExec --> OutputJSON
     OutputJSON --> DatatableBlock
-    
+
     subgraph "Security Isolation"
         StripEnvVars["Strip API keys<br/>from environment"]
         PathValidation["Validate paths<br/>prevent traversal"]
         Timeout["30-second timeout"]
-        
+
         ScriptExec --> StripEnvVars
         ScriptExec --> PathValidation
         ScriptExec --> Timeout
@@ -406,6 +416,7 @@ graph TB
 **Script Conventions:**
 
 **Python:**
+
 ```python
 import sys
 import json
@@ -427,25 +438,27 @@ with open(output_path, 'w') as f:
 ```
 
 **Node/Bun:**
+
 ```javascript
-import { writeFileSync } from 'fs';
+import { writeFileSync } from 'fs'
 
 // Input files: process.argv.slice(2, -1)
 // Output file: process.argv.at(-1)
-const inputFiles = process.argv.slice(2, -1);
-const outputPath = process.argv.at(-1);
+const inputFiles = process.argv.slice(2, -1)
+const outputPath = process.argv.at(-1)
 
 // Transform data
 const result = {
   title: 'My Data',
   columns: ['Col1', 'Col2'],
-  rows: [['val1', 'val2']]
-};
+  rows: [['val1', 'val2']],
+}
 
-writeFileSync(outputPath, JSON.stringify(result));
+writeFileSync(outputPath, JSON.stringify(result))
 ```
 
 **Path Validation:**
+
 - Input files must be within session directory
 - Output file must be within `data/` subdirectory
 - Path traversal attempts (e.g., `../../`) are rejected
@@ -461,6 +474,7 @@ writeFileSync(outputPath, JSON.stringify(result));
 Submits a plan file for user review with automatic execution pause.
 
 **Schema:**
+
 ```typescript
 {
   planPath: string
@@ -477,26 +491,28 @@ sequenceDiagram
     participant Callbacks as "Session Callbacks"
     participant UI as "Plan Review UI"
     participant User
-    
+
     Agent->>Write: Write plan to markdown file
     Write-->>Agent: Plan written to path
     Agent->>Submit: SubmitPlan(planPath)
     Submit->>Callbacks: onPlanSubmitted(planPath)
     Callbacks->>UI: Display plan in formatted view
     UI->>User: Show plan with Accept/Modify/Reject
-    
+
     Note over Agent,User: Execution automatically paused
-    
+
     User->>UI: Accept/Modify/Reject
     UI-->>Agent: Resume conversation
 ```
 
 **Plan Storage:**
+
 - Plans are written to `~/.craft-agent/workspaces/{workspace}/sessions/{sessionId}/plans/`
 - Each plan file is tracked via `sessionPlanFilePaths` map
 - Retrieved via `getLastPlanFilePath(sessionId)` after submission
 
 **Important:** After calling `SubmitPlan`:
+
 1. Execution is **automatically paused**
 2. No further tool calls or text output will be processed
 3. The conversation resumes when the user responds
@@ -513,22 +529,23 @@ The `transform_data` tool strips sensitive environment variables before spawning
 
 **Blocked Environment Variables:**
 
-| Variable | Purpose |
-|----------|---------|
-| `ANTHROPIC_API_KEY` | Anthropic API authentication |
-| `CLAUDE_CODE_OAUTH_TOKEN` | Claude OAuth token |
-| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` | AWS credentials |
-| `GITHUB_TOKEN`, `GH_TOKEN` | GitHub authentication |
-| `OPENAI_API_KEY` | OpenAI API authentication |
-| `GOOGLE_API_KEY` | Google API authentication |
-| `STRIPE_SECRET_KEY` | Stripe API secret |
-| `NPM_TOKEN` | npm registry authentication |
+| Variable                                                          | Purpose                      |
+| ----------------------------------------------------------------- | ---------------------------- |
+| `ANTHROPIC_API_KEY`                                               | Anthropic API authentication |
+| `CLAUDE_CODE_OAUTH_TOKEN`                                         | Claude OAuth token           |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` | AWS credentials              |
+| `GITHUB_TOKEN`, `GH_TOKEN`                                        | GitHub authentication        |
+| `OPENAI_API_KEY`                                                  | OpenAI API authentication    |
+| `GOOGLE_API_KEY`                                                  | Google API authentication    |
+| `STRIPE_SECRET_KEY`                                               | Stripe API secret            |
+| `NPM_TOKEN`                                                       | npm registry authentication  |
 
 **Implementation:**
+
 ```typescript
-const env = { ...process.env };
+const env = { ...process.env }
 for (const key of BLOCKED_ENV_VARS) {
-  delete env[key];
+  delete env[key]
 }
 ```
 
@@ -542,18 +559,19 @@ All file operations validate paths to prevent directory traversal attacks.
 
 **Validation Rules:**
 
-| Validation | Example Blocked Path | Reason |
-|------------|---------------------|--------|
-| Must be within session dir | `../../etc/passwd` | Directory traversal |
+| Validation                      | Example Blocked Path                  | Reason               |
+| ------------------------------- | ------------------------------------- | -------------------- |
+| Must be within session dir      | `../../etc/passwd`                    | Directory traversal  |
 | Must be within data/ for output | `../sessions/other-session/data.json` | Cross-session access |
-| Must exist for input files | `nonexistent.txt` | File not found |
-| Must use normalized paths | `/path/./to/../file` | Ambiguous paths |
+| Must exist for input files      | `nonexistent.txt`                     | File not found       |
+| Must use normalized paths       | `/path/./to/../file`                  | Ambiguous paths      |
 
 **Implementation Pattern:**
+
 ```typescript
-const resolvedPath = resolve(sessionDir, inputFile);
+const resolvedPath = resolve(sessionDir, inputFile)
 if (!resolvedPath.startsWith(normalize(sessionDir))) {
-  return { isError: true, content: 'Path validation failed' };
+  return { isError: true, content: 'Path validation failed' }
 }
 ```
 
@@ -567,21 +585,22 @@ Scripts executed via `transform_data` run in isolated subprocesses with strict l
 
 **Isolation Properties:**
 
-| Property | Value | Purpose |
-|----------|-------|---------|
-| Timeout | 30 seconds | Prevent infinite loops |
-| Working directory | Session `data/` directory | Limit filesystem scope |
-| Stdio | `stdin`: ignored, `stdout`/`stderr`: captured | No interactive input |
-| Environment | Sanitized (API keys removed) | Prevent credential leakage |
+| Property          | Value                                         | Purpose                    |
+| ----------------- | --------------------------------------------- | -------------------------- |
+| Timeout           | 30 seconds                                    | Prevent infinite loops     |
+| Working directory | Session `data/` directory                     | Limit filesystem scope     |
+| Stdio             | `stdin`: ignored, `stdout`/`stderr`: captured | No interactive input       |
+| Environment       | Sanitized (API keys removed)                  | Prevent credential leakage |
 
 **Subprocess Spawn Configuration:**
+
 ```typescript
 spawn(cmd, spawnArgs, {
   cwd: dataDir,
   env: sanitizedEnv,
   stdio: ['ignore', 'pipe', 'pipe'],
-  timeout: TRANSFORM_DATA_TIMEOUT_MS
-});
+  timeout: TRANSFORM_DATA_TIMEOUT_MS,
+})
 ```
 
 **Sources:** [packages/shared/src/agent/session-scoped-tools.ts:398](), [packages/shared/src/agent/session-scoped-tools.ts:462-469]()
@@ -602,7 +621,7 @@ graph TB
     CreateNew["Create new tool instances"]
     ReturnCached["Return cached tools"]
     RegisterCB["registerSessionScopedToolCallbacks()"]
-    
+
     SessionCreate --> RegisterCB
     FirstMessage --> GetOrCreateAgent
     GetOrCreateAgent --> GetTools
@@ -610,13 +629,14 @@ graph TB
     CacheCheck -->|"No"| CreateNew
     CacheCheck -->|"Yes"| ReturnCached
     CreateNew --> Cache["Cache tools"]
-    
+
     style Cache fill:#f9f9f9
 ```
 
 **Cache Key:** `${sessionId}::${workspaceRootPath}`
 
 This ensures:
+
 - Tools are created once per session-workspace pair
 - Multiple agents for the same session share tool instances
 - Workspace-specific state is isolated
@@ -633,15 +653,15 @@ graph LR
     UnregCB["unregisterSessionScopedToolCallbacks()"]
     CleanupTools["cleanupSessionScopedTools()"]
     ClearPlan["clearPlanFileState()"]
-    
+
     SessionClose --> UnregCB
     SessionClose --> CleanupTools
     SessionClose --> ClearPlan
-    
+
     UnregCB --> CBRegistry["sessionScopedToolCallbackRegistry"]
     CleanupTools --> ToolCache["sessionScopedToolsCache"]
     ClearPlan --> PlanCache["sessionPlanFilePaths"]
-    
+
     style CBRegistry fill:#f9f9f9
     style ToolCache fill:#f9f9f9
     style PlanCache fill:#f9f9f9
@@ -649,11 +669,11 @@ graph LR
 
 **Cleanup Functions:**
 
-| Function | Clears | Purpose |
-|----------|--------|---------|
-| `unregisterSessionScopedToolCallbacks()` | Callback registry | Remove event listeners |
-| `cleanupSessionScopedTools()` | Tool cache | Free MCP server instances |
-| `clearPlanFileState()` | Plan file paths | Remove plan tracking state |
+| Function                                 | Clears            | Purpose                    |
+| ---------------------------------------- | ----------------- | -------------------------- |
+| `unregisterSessionScopedToolCallbacks()` | Callback registry | Remove event listeners     |
+| `cleanupSessionScopedTools()`            | Tool cache        | Free MCP server instances  |
+| `clearPlanFileState()`                   | Plan file paths   | Remove plan tracking state |
 
 **Sources:** [packages/shared/src/agent/session-scoped-tools.ts:106-109](), [packages/shared/src/agent/session-scoped-tools.ts:189-191](), [packages/shared/src/agent/session-scoped-tools.ts:142-144]()
 
@@ -672,7 +692,7 @@ graph LR
     SDKTool["Claude SDK tool()"]
     ConvertResult["convertResult()"]
     SDKFormat["SDK format<br/>{content: [{type: 'text', text: string}]}"]
-    
+
     SharedHandler --> Adapter
     Adapter --> ConvertResult
     ConvertResult --> SDKFormat
@@ -680,16 +700,21 @@ graph LR
 ```
 
 **Result Conversion:**
+
 ```typescript
 function convertResult(result: ToolResult) {
   return {
-    content: result.content.map(c => ({ type: 'text' as const, text: c.text })),
-    ...(result.isError ? { isError: true } : {})
-  };
+    content: result.content.map((c) => ({
+      type: 'text' as const,
+      text: c.text,
+    })),
+    ...(result.isError ? { isError: true } : {}),
+  }
 }
 ```
 
 This pattern allows:
+
 - Core tool logic to be shared across SDK backends
 - Easy migration to new SDK versions
 - Consistent error handling across all tools
@@ -710,26 +735,27 @@ const ctx = createClaudeContext({
   workspacePath: workspaceRootPath,
   workspaceId: workspaceId || basename(workspaceRootPath) || '',
   onPlanSubmitted: (planPath: string) => {
-    setLastPlanFilePath(sessionId, planPath);
-    callbacks?.onPlanSubmitted?.(planPath);
+    setLastPlanFilePath(sessionId, planPath)
+    callbacks?.onPlanSubmitted?.(planPath)
   },
   onAuthRequest: (request: AuthRequest) => {
-    callbacks?.onAuthRequest?.(request);
-  }
-});
+    callbacks?.onAuthRequest?.(request)
+  },
+})
 ```
 
 **Context Properties:**
 
-| Property | Type | Usage |
-|----------|------|-------|
-| `sessionId` | `string` | Identify session for storage operations |
-| `workspacePath` | `string` | Resolve workspace-relative file paths |
-| `workspaceId` | `string` | Look up workspace configuration |
-| `onPlanSubmitted` | Callback | Notify UI when plan is submitted |
-| `onAuthRequest` | Callback | Trigger authentication UI |
+| Property          | Type     | Usage                                   |
+| ----------------- | -------- | --------------------------------------- |
+| `sessionId`       | `string` | Identify session for storage operations |
+| `workspacePath`   | `string` | Resolve workspace-relative file paths   |
+| `workspaceId`     | `string` | Look up workspace configuration         |
+| `onPlanSubmitted` | Callback | Notify UI when plan is submitted        |
+| `onAuthRequest`   | Callback | Trigger authentication UI               |
 
 The context is passed to all shared handlers, providing access to:
+
 - Configuration file paths
 - Storage directories
 - Credential management

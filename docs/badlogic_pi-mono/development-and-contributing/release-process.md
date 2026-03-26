@@ -14,8 +14,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the versioning strategy, changelog management, and automated release workflow for the pi-mono repository. For information about contributing code changes, see [Contribution Workflow](#9.2). For details on development practices, see [Development Guidelines & Git Rules](#9.1).
 
 ## Lockstep Versioning Strategy
@@ -27,7 +25,7 @@ All packages in the monorepo share a single version number in the format `0.X.Y`
 ```mermaid
 graph TB
     Version["Monorepo Version<br/>e.g., 0.58.3"]
-    
+
     AI["@mariozechner/pi-ai<br/>packages/ai/CHANGELOG.md<br/>packages/ai/package.json"]
     Agent["@mariozechner/pi-agent-core<br/>packages/agent/CHANGELOG.md<br/>packages/agent/package.json"]
     TUI["@mariozechner/pi-tui<br/>packages/tui/CHANGELOG.md<br/>packages/tui/package.json"]
@@ -35,7 +33,7 @@ graph TB
     Mom["@mariozechner/pi-mom<br/>packages/mom/CHANGELOG.md<br/>packages/mom/package.json"]
     WebUI["@mariozechner/pi-web-ui<br/>packages/web-ui/CHANGELOG.md<br/>packages/web-ui/package.json"]
     Pods["@mariozechner/pi-pods<br/>packages/pods/CHANGELOG.md<br/>packages/pods/package.json"]
-    
+
     Version --> AI
     Version --> Agent
     Version --> TUI
@@ -43,7 +41,7 @@ graph TB
     Version --> Mom
     Version --> WebUI
     Version --> Pods
-    
+
     Coding -.depends on.-> AI
     Coding -.depends on.-> Agent
     Coding -.depends on.-> TUI
@@ -63,10 +61,10 @@ Sources: [packages/coding-agent/CHANGELOG.md:1-8](), [packages/ai/CHANGELOG.md:1
 
 The repository uses a `0.X.Y` versioning scheme that differs from traditional semantic versioning:
 
-| Version Component | Use Case | Examples |
-|-------------------|----------|----------|
-| `0.X.*` (minor) | New features, breaking changes, major updates | `0.57.0` → `0.58.0` |
-| `0.*.Y` (patch) | Bug fixes, small features, documentation | `0.58.1` → `0.58.2` |
+| Version Component | Use Case                                      | Examples            |
+| ----------------- | --------------------------------------------- | ------------------- |
+| `0.X.*` (minor)   | New features, breaking changes, major updates | `0.57.0` → `0.58.0` |
+| `0.*.Y` (patch)   | Bug fixes, small features, documentation      | `0.58.1` → `0.58.2` |
 
 **Pre-1.0 Status**: The repository remains in `0.x` versioning, indicating the API is still evolving. Breaking changes are introduced in minor version bumps (e.g., `0.56.0` → `0.57.0`), not major versions. When breaking changes occur, they are documented in a `### Breaking Changes` section in the CHANGELOG.
 
@@ -80,15 +78,15 @@ Sources: [packages/coding-agent/CHANGELOG.md:5-47](), [packages/ai/CHANGELOG.md:
 
 Each package maintains its own changelog in a dedicated file:
 
-| Package | CHANGELOG Path |
-|---------|----------------|
-| `@mariozechner/pi-ai` | `packages/ai/CHANGELOG.md` |
-| `@mariozechner/pi-agent-core` | `packages/agent/CHANGELOG.md` |
-| `@mariozechner/pi-tui` | `packages/tui/CHANGELOG.md` |
+| Package                         | CHANGELOG Path                       |
+| ------------------------------- | ------------------------------------ |
+| `@mariozechner/pi-ai`           | `packages/ai/CHANGELOG.md`           |
+| `@mariozechner/pi-agent-core`   | `packages/agent/CHANGELOG.md`        |
+| `@mariozechner/pi-tui`          | `packages/tui/CHANGELOG.md`          |
 | `@mariozechner/pi-coding-agent` | `packages/coding-agent/CHANGELOG.md` |
-| `@mariozechner/pi-mom` | `packages/mom/CHANGELOG.md` |
-| `@mariozechner/pi-web-ui` | `packages/web-ui/CHANGELOG.md` |
-| `@mariozechner/pi-pods` | `packages/pods/CHANGELOG.md` |
+| `@mariozechner/pi-mom`          | `packages/mom/CHANGELOG.md`          |
+| `@mariozechner/pi-web-ui`       | `packages/web-ui/CHANGELOG.md`       |
+| `@mariozechner/pi-pods`         | `packages/pods/CHANGELOG.md`         |
 
 These files follow a consistent format across all packages but contain package-specific changes.
 
@@ -104,23 +102,28 @@ Each `CHANGELOG.md` follows this structure:
 ## [0.58.3] - 2026-03-15
 
 ### Added
+
 - New feature description
 
 ### Fixed
+
 - Bug fix description ([#2044](https://github.com/badlogic/pi-mono/issues/2044))
 - External contribution ([#2154](https://github.com/badlogic/pi-mono/pull/2154) by [@contributor](https://github.com/contributor))
 
 ## [0.58.2] - 2026-03-15
 
 ### Fixed
+
 - Previous release fixes
 
 ## [0.58.1] - 2026-03-14
 
 ### Added
+
 - Feature added in this version
 
 ### Fixed
+
 - Bug fixes from this version
 ```
 
@@ -129,24 +132,24 @@ Each `CHANGELOG.md` follows this structure:
 ```mermaid
 graph TD
     File["CHANGELOG.md"]
-    
+
     Header["# Changelog"]
     Unreleased["## [Unreleased]<br/>(Always present, may be empty)"]
-    
+
     Version1["## [0.58.3] - 2026-03-15"]
     Version2["## [0.58.2] - 2026-03-15"]
     Version3["## [0.58.1] - 2026-03-14"]
-    
+
     Subsection1["### Section (Breaking Changes, New Features,<br/>Added, Changed, Fixed, Removed)"]
     Entry1["- Change description ([#issue/PR](url))"]
     Entry2["- Change with attribution ([#PR](url) by [@user](url))"]
-    
+
     File --> Header
     File --> Unreleased
     File --> Version1
     File --> Version2
     File --> Version3
-    
+
     Version1 --> Subsection1
     Subsection1 --> Entry1
     Subsection1 --> Entry2
@@ -162,6 +165,7 @@ graph TD
 ## [0.58.2] - 2026-03-15
 
 ### Fixed
+
 - Actual changes here
 ```
 
@@ -189,11 +193,11 @@ Sources: [packages/coding-agent/CHANGELOG.md:1-50](), [packages/ai/CHANGELOG.md:
 
 ### Attribution Patterns
 
-| Change Source | Format | Example |
-|---------------|--------|---------|
-| Internal (from issues) | `Description ([#issue](url))` | `Fixed fuzzy edit matching ([#2044](https://github.com/badlogic/pi-mono/issues/2044))` |
-| External (from PRs) | `Description ([#pr](url) by [@user](url))` | `Improved selector layouts ([#2154](https://github.com/badlogic/pi-mono/pull/2154) by [@markusylisiurunen](https://github.com/markusylisiurunen))` |
-| Mixed (PR with issue reference) | `Description ([#issue](...)) or ([#pr](...) by [@user](...))` | Can reference both issue and PR |
+| Change Source                   | Format                                                        | Example                                                                                                                                            |
+| ------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Internal (from issues)          | `Description ([#issue](url))`                                 | `Fixed fuzzy edit matching ([#2044](https://github.com/badlogic/pi-mono/issues/2044))`                                                             |
+| External (from PRs)             | `Description ([#pr](url) by [@user](url))`                    | `Improved selector layouts ([#2154](https://github.com/badlogic/pi-mono/pull/2154) by [@markusylisiurunen](https://github.com/markusylisiurunen))` |
+| Mixed (PR with issue reference) | `Description ([#issue](...)) or ([#pr](...) by [@user](...))` | Can reference both issue and PR                                                                                                                    |
 
 **Issue vs PR Links**: Issues use `/issues/` in the URL path, PRs use `/pull/` in the URL path.
 
@@ -242,16 +246,16 @@ sequenceDiagram
     participant FS as File System
     participant Git as Git Repository
     participant NPM as NPM Registry
-    
+
     Dev->>Script: npm run release:patch
-    
+
     rect rgb(240, 240, 240)
         Note over Script,FS: Phase 1: Version Bump
         Script->>FS: Read all package.json files
         Script->>FS: Increment version in all packages
         Script->>FS: Write updated package.json files
     end
-    
+
     rect rgb(240, 240, 240)
         Note over Script,FS: Phase 2: CHANGELOG Finalization
         Script->>FS: Read all CHANGELOG.md files
@@ -259,7 +263,7 @@ sequenceDiagram
         Script->>FS: Add new empty [Unreleased] section
         Script->>FS: Write updated CHANGELOG.md files
     end
-    
+
     rect rgb(240, 240, 240)
         Note over Script,Git: Phase 3: Git Operations
         Script->>Git: git add package.json CHANGELOG.md files
@@ -268,7 +272,7 @@ sequenceDiagram
         Script->>Git: git push origin main
         Script->>Git: git push origin vX.Y.Z
     end
-    
+
     rect rgb(240, 240, 240)
         Note over Script,NPM: Phase 4: NPM Publication
         loop For each package
@@ -281,7 +285,7 @@ sequenceDiagram
             Script->>NPM: npm publish packages/pods
         end
     end
-    
+
     Dev->>Dev: Verify on NPM registry
 ```
 
@@ -298,12 +302,12 @@ sequenceDiagram
     participant Changes as "CHANGELOG.md files"
     participant Git as "Git Repository"
     participant NPM as "NPM Registry"
-    
+
     Note over Script,NPM: Phase 1: Version Bump
     Script->>PkgJSON: Read version from root package.json
     Script->>PkgJSON: Increment version (patch or minor)
     Script->>PkgJSON: Write new version to all packages/*/package.json
-    
+
     Note over Script,NPM: Phase 2: CHANGELOG Processing
     loop For each CHANGELOG.md
         Script->>Changes: Read packages/*/CHANGELOG.md
@@ -314,14 +318,14 @@ sequenceDiagram
         end
         Script->>Changes: Add new empty [Unreleased] section at top
     end
-    
+
     Note over Script,NPM: Phase 3: Git Operations
     Script->>Git: git add package.json CHANGELOG.md files
     Script->>Git: git commit -m "Release 0.X.Y"
     Script->>Git: git tag v0.X.Y
     Script->>Git: git push origin main
     Script->>Git: git push origin v0.X.Y
-    
+
     Note over Script,NPM: Phase 4: NPM Publication
     loop For each package
         Script->>NPM: npm publish packages/ai
@@ -340,7 +344,7 @@ sequenceDiagram
 
 1. **Version bumping**: Updates `version` field in all `packages/*/package.json` files to maintain lockstep versioning.
 
-2. **CHANGELOG finalization**: 
+2. **CHANGELOG finalization**:
    - For packages with changes: Converts `## [Unreleased]` to `## [0.X.Y] - YYYY-MM-DD` with content
    - For packages without changes: Adds empty version entry `## [0.X.Y] - YYYY-MM-DD` (no content)
    - Adds a new empty `## [Unreleased]` section at the top of all CHANGELOGs
@@ -374,6 +378,7 @@ Each package's `package.json` includes versioning and dependency information:
 **Lockstep Version Synchronization**: All packages maintain the same version number. When version `0.58.3` is released, all seven packages receive this version in their `package.json` files simultaneously.
 
 **Internal Dependency Version Ranges**: Internal dependencies use caret ranges (`^0.X.Y`) to allow patch updates within the same minor version. This is safe in the 0.x versioning scheme because:
+
 - Patch releases (`0.58.1` → `0.58.2`) contain only bug fixes and minor features
 - Breaking changes require minor version bumps (`0.58.x` → `0.59.0`)
 - All packages are released together, so dependencies are always available
@@ -386,7 +391,7 @@ graph LR
     AI["@mariozechner/pi-ai<br/>version: 0.58.3"]
     Agent["@mariozechner/pi-agent-core<br/>version: 0.58.3"]
     TUI["@mariozechner/pi-tui<br/>version: 0.58.3"]
-    
+
     CodingAgent -->|"dependencies:<br/>^0.58.3"| AI
     CodingAgent -->|"dependencies:<br/>^0.58.3"| Agent
     CodingAgent -->|"dependencies:<br/>^0.58.3"| TUI
@@ -406,6 +411,7 @@ If the release script fails mid-process:
 2. **After Git push but before NPM publish**: Manually increment the version and run the script again. The Git tag will fail (already exists), but NPM publication will succeed.
 
 3. **After partial NPM publish**: Complete the remaining package publications manually:
+
    ```bash
    cd packages/<package-name>
    npm publish

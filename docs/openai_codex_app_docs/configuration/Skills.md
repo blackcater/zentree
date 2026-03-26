@@ -9,40 +9,40 @@ Skills use **progressive disclosure** to manage context efficiently: Codex start
 A skill is a directory with a `SKILL.md` file plus optional scripts and references. The `SKILL.md` file must include `name` and `description`.
 
 <FileTree
-  class="mt-4"
-  tree={[
-    {
-      name: "my-skill/",
-      open: true,
-      children: [
-        {
-          name: "SKILL.md",
-          comment: "Required: instructions + metadata",
-        },
-        {
-          name: "scripts/",
-          comment: "Optional: executable code",
-        },
-        {
-          name: "references/",
-          comment: "Optional: documentation",
-        },
-        {
-          name: "assets/",
-          comment: "Optional: templates, resources",
-        },
-        {
-          name: "agents/",
-          open: true,
-          children: [
-            {
-              name: "openai.yaml",
-              comment: "Optional: appearance and dependencies",
-            },
-          ],
-        },
-      ],
-    },
+class="mt-4"
+tree={[
+{
+name: "my-skill/",
+open: true,
+children: [
+{
+name: "SKILL.md",
+comment: "Required: instructions + metadata",
+},
+{
+name: "scripts/",
+comment: "Optional: executable code",
+},
+{
+name: "references/",
+comment: "Optional: documentation",
+},
+{
+name: "assets/",
+comment: "Optional: templates, resources",
+},
+{
+name: "agents/",
+open: true,
+children: [
+{
+name: "openai.yaml",
+comment: "Optional: appearance and dependencies",
+},
+],
+},
+],
+},
 
 ]}
 />
@@ -122,23 +122,23 @@ Add `agents/openai.yaml` to configure UI metadata in the [Codex app](https://dev
 
 ```yaml
 interface:
-  display_name: "Optional user-facing name"
-  short_description: "Optional user-facing description"
-  icon_small: "./assets/small-logo.svg"
-  icon_large: "./assets/large-logo.png"
-  brand_color: "#3B82F6"
-  default_prompt: "Optional surrounding prompt to use the skill with"
+  display_name: 'Optional user-facing name'
+  short_description: 'Optional user-facing description'
+  icon_small: './assets/small-logo.svg'
+  icon_large: './assets/large-logo.png'
+  brand_color: '#3B82F6'
+  default_prompt: 'Optional surrounding prompt to use the skill with'
 
 policy:
   allow_implicit_invocation: false
 
 dependencies:
   tools:
-    - type: "mcp"
-      value: "openaiDeveloperDocs"
-      description: "OpenAI Docs MCP server"
-      transport: "streamable_http"
-      url: "https://developers.openai.com/mcp"
+    - type: 'mcp'
+      value: 'openaiDeveloperDocs'
+      description: 'OpenAI Docs MCP server'
+      transport: 'streamable_http'
+      url: 'https://developers.openai.com/mcp'
 ```
 
 `allow_implicit_invocation` (default: `true`): When `false`, Codex won't implicitly invoke the skill based on user prompt; explicit `$skill` invocation still works.

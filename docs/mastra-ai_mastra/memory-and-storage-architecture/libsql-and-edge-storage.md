@@ -29,19 +29,17 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the LibSQL storage adapter and edge-compatible storage options in Mastra. LibSQL provides SQLite-compatible storage with edge runtime support, enabling deployment to Cloudflare Workers, Vercel Edge Functions, and other serverless environments. For general storage architecture concepts, see [Storage Domain Architecture](#7.3). For PostgreSQL-specific features, see [PostgreSQL Storage Provider](#7.4).
 
 ## LibSQL Overview
 
 LibSQL is a fork of SQLite designed for edge computing environments. Mastra provides two LibSQL-based adapters:
 
-| Adapter | Purpose | Edge Compatible | Use Case |
-|---------|---------|-----------------|----------|
-| `LibSQLStore` | Structured data storage (threads, messages, resources) | Yes | Conversation history, metadata |
-| `LibSQLVector` | Vector embeddings storage | Yes | Semantic search, RAG retrieval |
-| `InMemoryStore` | Ephemeral in-memory storage | Yes | Stateless workers, testing |
+| Adapter         | Purpose                                                | Edge Compatible | Use Case                       |
+| --------------- | ------------------------------------------------------ | --------------- | ------------------------------ |
+| `LibSQLStore`   | Structured data storage (threads, messages, resources) | Yes             | Conversation history, metadata |
+| `LibSQLVector`  | Vector embeddings storage                              | Yes             | Semantic search, RAG retrieval |
+| `InMemoryStore` | Ephemeral in-memory storage                            | Yes             | Stateless workers, testing     |
 
 **Sources:** [packages/memory/integration-tests/src/with-libsql-storage.test.ts:6-38]()
 
@@ -52,33 +50,33 @@ graph TB
     subgraph "Memory Layer"
         Memory["Memory class<br/>@mastra/memory"]
     end
-    
+
     subgraph "Storage Adapters"
         LibSQLStore["LibSQLStore<br/>@mastra/libsql"]
         LibSQLVector["LibSQLVector<br/>@mastra/libsql"]
         InMemoryStore["InMemoryStore<br/>@mastra/core/storage"]
     end
-    
+
     subgraph "Storage Backends"
         LocalFile["Local File<br/>file:path/to/db.db"]
         CloudflareD1["Cloudflare D1<br/>libsql://project.turso.io"]
         TursoCloud["Turso Cloud<br/>libsql://project.turso.tech"]
         MemoryBackend["In-Memory<br/>No persistence"]
     end
-    
+
     subgraph "Storage Interfaces"
         MemoryStorage["MemoryStorage interface<br/>threads, messages, resources"]
         MastraVector["MastraVector interface<br/>embeddings, similarity search"]
     end
-    
+
     Memory -->|"storage: MastraCompositeStore"| LibSQLStore
     Memory -->|"vector: MastraVector"| LibSQLVector
     Memory -->|"alternative storage"| InMemoryStore
-    
+
     LibSQLStore -.->|implements| MemoryStorage
     LibSQLVector -.->|implements| MastraVector
     InMemoryStore -.->|implements| MemoryStorage
-    
+
     LibSQLStore --> LocalFile
     LibSQLStore --> CloudflareD1
     LibSQLStore --> TursoCloud
@@ -96,15 +94,15 @@ graph TB
 `LibSQLStore` stores structured conversation data in a SQLite-compatible database file. This is the simplest configuration for local development and edge deployments with persistent storage.
 
 ```typescript
-import { LibSQLStore } from '@mastra/libsql';
-import { Memory } from '@mastra/memory';
+import { LibSQLStore } from '@mastra/libsql'
+import { Memory } from '@mastra/memory'
 
 const memory = new Memory({
   storage: new LibSQLStore({
-    url: 'file:./mastra.db',  // Local file path
-    id: 'my-libsql-store',    // Unique identifier
+    url: 'file:./mastra.db', // Local file path
+    id: 'my-libsql-store', // Unique identifier
   }),
-});
+})
 ```
 
 ### Turso Cloud Storage
@@ -118,18 +116,18 @@ const memory = new Memory({
     authToken: process.env.TURSO_AUTH_TOKEN,
     id: 'turso-store',
   }),
-});
+})
 ```
 
 ### Configuration Options
 
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `url` | `string` | Yes | Database URL (`file:path` or `libsql://host`) |
-| `authToken` | `string` | For remote | Authentication token for Turso/remote databases |
-| `id` | `string` | Yes | Unique identifier for this store instance |
-| `syncUrl` | `string` | No | URL for embedded replica sync |
-| `syncInterval` | `number` | No | Sync interval in milliseconds |
+| Option         | Type     | Required   | Description                                     |
+| -------------- | -------- | ---------- | ----------------------------------------------- |
+| `url`          | `string` | Yes        | Database URL (`file:path` or `libsql://host`)   |
+| `authToken`    | `string` | For remote | Authentication token for Turso/remote databases |
+| `id`           | `string` | Yes        | Unique identifier for this store instance       |
+| `syncUrl`      | `string` | No         | URL for embedded replica sync                   |
+| `syncInterval` | `number` | No         | Sync interval in milliseconds                   |
 
 **Sources:** [packages/memory/integration-tests/src/with-libsql-storage.test.ts:28-31](), [packages/memory/integration-tests/src/worker/generic-memory-worker.ts:48-50]()
 
@@ -140,8 +138,8 @@ const memory = new Memory({
 `LibSQLVector` stores embeddings for semantic recall. It supports the same URL formats as `LibSQLStore` but manages vector-specific operations like similarity search.
 
 ```typescript
-import { LibSQLVector } from '@mastra/libsql';
-import { fastembed } from '@mastra/fastembed';
+import { LibSQLVector } from '@mastra/libsql'
+import { fastembed } from '@mastra/fastembed'
 
 const memory = new Memory({
   storage: new LibSQLStore({
@@ -149,7 +147,7 @@ const memory = new Memory({
     id: 'storage',
   }),
   vector: new LibSQLVector({
-    url: 'file:./vectors.db',  // Can be same or separate file
+    url: 'file:./vectors.db', // Can be same or separate file
     id: 'vector-store',
   }),
   embedder: fastembed,
@@ -159,7 +157,7 @@ const memory = new Memory({
       messageRange: 2,
     },
   },
-});
+})
 ```
 
 ### Index Management
@@ -173,7 +171,7 @@ graph LR
         Dimension --> IndexName["memory_messages_1536"]
         DefaultDim["Default: 1536"] -.-> DefaultIndex["memory_messages"]
     end
-    
+
     subgraph "Vector Operations"
         Upsert["vector.upsert()"] -->|"vectors + metadata"| IndexName
         Query["vector.query()"] -->|"queryVector, topK, filter"| IndexName
@@ -190,16 +188,16 @@ graph LR
 For stateless edge workers or testing, `InMemoryStore` provides ephemeral storage without persistence:
 
 ```typescript
-import { InMemoryStore } from '@mastra/core/storage';
+import { InMemoryStore } from '@mastra/core/storage'
 
 const memory = new Memory({
   storage: new InMemoryStore(),
   // No vector or embedder for stateless workers
   options: {
     lastMessages: 10,
-    semanticRecall: false,  // Disabled for in-memory
+    semanticRecall: false, // Disabled for in-memory
   },
-});
+})
 ```
 
 ### Ephemeral Storage Characteristics
@@ -214,25 +212,27 @@ graph TB
         Response --> Terminate["Worker termination"]
         Terminate --> Lost["Data lost"]
     end
-    
+
     subgraph "Data Persistence Patterns"
         Stateless["Stateless agents<br/>No memory persistence"]
         SessionBased["Session-based<br/>External session storage"]
         Hybrid["Hybrid<br/>Memory + external DB"]
     end
-    
+
     Runtime -.->|"suitable for"| Stateless
     Runtime -.->|"requires"| SessionBased
     Runtime -.->|"not suitable"| Hybrid
 ```
 
 **Use cases for `InMemoryStore`:**
+
 - Testing memory operations without database setup
 - Stateless request handlers where conversation history is passed explicitly
 - Edge workers with external session management
 - Short-lived workers processing single requests
 
 **Limitations:**
+
 - No persistence across requests
 - No semantic recall (requires vector storage)
 - Not suitable for multi-turn conversations
@@ -248,7 +248,7 @@ Cloudflare Workers can use D1 (SQLite) for structured storage and LibSQL for vec
 
 ```typescript
 // Cloudflare Workers configuration
-import { LibSQLStore, LibSQLVector } from '@mastra/libsql';
+import { LibSQLStore, LibSQLVector } from '@mastra/libsql'
 
 export default {
   async fetch(request, env, ctx) {
@@ -265,11 +265,11 @@ export default {
         id: 'cf-vector',
       }),
       embedder: 'openai/text-embedding-3-small',
-    });
-    
+    })
+
     // Handle request with memory
-  }
-};
+  },
+}
 ```
 
 ### Vercel Edge Functions
@@ -277,13 +277,13 @@ export default {
 Vercel Edge Functions support LibSQL with Turso for global edge deployments:
 
 ```typescript
-import type { NextRequest } from 'next/server';
-import { LibSQLStore, LibSQLVector } from '@mastra/libsql';
-import { Memory } from '@mastra/memory';
+import type { NextRequest } from 'next/server'
+import { LibSQLStore, LibSQLVector } from '@mastra/libsql'
+import { Memory } from '@mastra/memory'
 
 export const config = {
   runtime: 'edge',
-};
+}
 
 export default async function handler(req: NextRequest) {
   const memory = new Memory({
@@ -297,8 +297,8 @@ export default async function handler(req: NextRequest) {
       authToken: process.env.TURSO_AUTH_TOKEN!,
       id: 'vercel-edge-vector',
     }),
-  });
-  
+  })
+
   // Process request
 }
 ```
@@ -317,7 +317,7 @@ const memory = new Memory({
     url: 'file:./data/vectors.db',
     id: 'node-vector',
   }),
-});
+})
 ```
 
 **Sources:** [packages/memory/integration-tests/src/with-libsql-storage.test.ts:28-38](), [packages/memory/integration-tests/src/worker/generic-memory-worker.ts:46-51]()
@@ -336,14 +336,14 @@ graph TB
         Recall["memory.recall()"] --> ListMessages["List messages with pagination"]
         DeleteThread["memory.deleteThread()"] --> CleanupVectors["Delete associated vectors"]
     end
-    
+
     subgraph "LibSQLStore Methods"
         SaveThread --> StoreThread["store.saveThread()"]
         FilterWM --> StoreMessages["store.saveMessages()"]
         ListMessages --> QueryMessages["store.listMessages()"]
         CleanupVectors --> DeleteVecs["vector.deleteVectors()"]
     end
-    
+
     subgraph "Database Tables"
         StoreThread --> ThreadsTable["threads table<br/>id, resourceId, title, metadata"]
         StoreMessages --> MessagesTable["messages table<br/>id, threadId, role, content"]
@@ -362,12 +362,12 @@ sequenceDiagram
     participant Embedder
     participant LibSQLVector
     participant LibSQLStore
-    
+
     Agent->>Memory: saveMessages(messages)
     Memory->>Memory: Filter working memory tags
     Memory->>LibSQLStore: saveMessages(filtered)
     LibSQLStore-->>Memory: Saved messages
-    
+
     alt Semantic Recall Enabled
         loop For each message
             Memory->>Embedder: embed(message.content)
@@ -375,22 +375,23 @@ sequenceDiagram
             Memory->>LibSQLVector: upsert(vectors, metadata)
         end
     end
-    
+
     Agent->>Memory: recall(threadId, searchString)
-    
+
     alt Semantic Recall Query
         Memory->>Embedder: embed(searchString)
         Embedder-->>Memory: queryVector
         Memory->>LibSQLVector: query(vector, topK, filter)
         LibSQLVector-->>Memory: Similar message IDs
     end
-    
+
     Memory->>LibSQLStore: listMessages(include: messageIds)
     LibSQLStore-->>Memory: Messages with context
     Memory-->>Agent: Recalled messages
 ```
 
 **Key integration points:**
+
 - `memory.saveMessages()` automatically generates embeddings when `semanticRecall` is enabled
 - `memory.recall()` uses vector similarity search to retrieve relevant messages
 - `memory.deleteThread()` cleans up both structured data and vector embeddings
@@ -410,23 +411,23 @@ graph TB
         MainApp["Application"] --> SpawnWorker["Spawn worker threads"]
         SpawnWorker --> WorkerData["Pass storage config"]
     end
-    
+
     subgraph "Worker Thread 1"
         Worker1Init["Initialize LibSQLStore"] --> Worker1Memory["Create Memory instance"]
         Worker1Memory --> Worker1Process["Process messages"]
         Worker1Process --> Worker1Save["saveMessages()"]
     end
-    
+
     subgraph "Worker Thread 2"
         Worker2Init["Initialize LibSQLStore"] --> Worker2Memory["Create Memory instance"]
         Worker2Memory --> Worker2Process["Process messages"]
         Worker2Process --> Worker2Save["saveMessages()"]
     end
-    
+
     subgraph "Shared Database"
         LibSQLFile["file:./mastra.db<br/>SQLite file with WAL mode"]
     end
-    
+
     Worker1Save --> LibSQLFile
     Worker2Save --> LibSQLFile
 ```
@@ -438,41 +439,42 @@ Worker threads receive storage configuration from the main thread:
 ```typescript
 // Worker data structure
 interface WorkerData {
-  messages: MessageToProcess[];
-  storageType: 'libsql' | 'pg' | 'upstash';
+  messages: MessageToProcess[]
+  storageType: 'libsql' | 'pg' | 'upstash'
   storageConfig: {
-    url: string;
-    id: string;
-  };
+    url: string
+    id: string
+  }
   vectorConfig?: {
-    url: string;
-    id: string;
-  };
-  memoryOptions?: SharedMemoryConfig['options'];
+    url: string
+    id: string
+  }
+  memoryOptions?: SharedMemoryConfig['options']
 }
 
 // Worker initialization
-const { storageConfig, vectorConfig } = workerData;
+const { storageConfig, vectorConfig } = workerData
 
 const store = new LibSQLStore({
   url: storageConfig.url,
   id: 'worker-storage',
-});
+})
 
 const vector = new LibSQLVector({
   url: vectorConfig.url,
   id: 'worker-vector',
-});
+})
 
 const memory = new Memory({
   storage: store,
   vector: vector,
   embedder: mockEmbedder,
   options: memoryOptions,
-});
+})
 ```
 
 **Thread safety considerations:**
+
 - LibSQL uses SQLite's WAL (Write-Ahead Logging) mode for concurrent access
 - Each worker thread creates its own store/vector instances
 - Database-level locking prevents conflicts
@@ -487,16 +489,16 @@ const memory = new Memory({
 Integration tests use temporary databases for isolation:
 
 ```typescript
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
-let dbStoragePath: string;
+let dbStoragePath: string
 
 beforeAll(async () => {
   // Create temporary directory
-  dbStoragePath = await mkdtemp(join(tmpdir(), 'memory-test-'));
-  
+  dbStoragePath = await mkdtemp(join(tmpdir(), 'memory-test-'))
+
   memory = new Memory({
     storage: new LibSQLStore({
       url: `file:${join(dbStoragePath, 'test.db')}`,
@@ -514,13 +516,13 @@ beforeAll(async () => {
         messageRange: 2,
       },
     },
-  });
-});
+  })
+})
 
 afterAll(async () => {
   // Clean up temporary files
-  await rm(dbStoragePath, { recursive: true });
-});
+  await rm(dbStoragePath, { recursive: true })
+})
 ```
 
 ### Docker Compose for Comparison Testing
@@ -540,6 +542,7 @@ services:
 ```
 
 **Test coverage:**
+
 - Thread creation and retrieval
 - Message saving and recall
 - Semantic recall with vector search
@@ -554,14 +557,14 @@ services:
 
 ### LibSQL Performance Characteristics
 
-| Operation | Performance | Notes |
-|-----------|-------------|-------|
-| Local file reads | Very fast | SQLite's page cache |
-| Local file writes | Fast | WAL mode enables concurrent reads |
-| Turso Cloud reads | ~50-150ms | Global edge replication |
-| Turso Cloud writes | ~100-300ms | Primary region + replication |
-| Vector similarity search | Fast for < 100K vectors | Full scan with cosine similarity |
-| Concurrent workers | Good | WAL mode allows multiple readers |
+| Operation                | Performance             | Notes                             |
+| ------------------------ | ----------------------- | --------------------------------- |
+| Local file reads         | Very fast               | SQLite's page cache               |
+| Local file writes        | Fast                    | WAL mode enables concurrent reads |
+| Turso Cloud reads        | ~50-150ms               | Global edge replication           |
+| Turso Cloud writes       | ~100-300ms              | Primary region + replication      |
+| Vector similarity search | Fast for < 100K vectors | Full scan with cosine similarity  |
+| Concurrent workers       | Good                    | WAL mode allows multiple readers  |
 
 ### Limitations
 
@@ -588,7 +591,7 @@ When transitioning from stateless to stateful storage:
 const memory = new Memory({
   storage: new InMemoryStore(),
   options: { lastMessages: 10 },
-});
+})
 
 // After: Persistent storage
 const memory = new Memory({
@@ -603,12 +606,13 @@ const memory = new Memory({
   embedder: 'openai/text-embedding-3-small',
   options: {
     lastMessages: 10,
-    semanticRecall: {  // Now possible with vector storage
+    semanticRecall: {
+      // Now possible with vector storage
       topK: 5,
       messageRange: 2,
     },
   },
-});
+})
 ```
 
 ### From LibSQL to PostgreSQL
@@ -617,10 +621,10 @@ For scaling beyond LibSQL's vector limitations, migrate to PostgreSQL with pgvec
 
 ```typescript
 // Before: LibSQL
-import { LibSQLStore, LibSQLVector } from '@mastra/libsql';
+import { LibSQLStore, LibSQLVector } from '@mastra/libsql'
 
 // After: PostgreSQL
-import { PostgresStore, PgVector } from '@mastra/pg';
+import { PostgresStore, PgVector } from '@mastra/pg'
 
 const memory = new Memory({
   storage: new PostgresStore({
@@ -635,17 +639,19 @@ const memory = new Memory({
   options: {
     semanticRecall: {
       topK: 10,
-      indexConfig: {  // PostgreSQL-specific optimizations
+      indexConfig: {
+        // PostgreSQL-specific optimizations
         type: 'hnsw',
         metric: 'dotproduct',
         hnsw: { m: 16, efConstruction: 64 },
       },
     },
   },
-});
+})
 ```
 
 **Migration checklist:**
+
 1. Export threads and messages from LibSQL using `memory.listThreads()` and `memory.recall()`
 2. Initialize PostgreSQL schema using `PostgresStore.prototype.init()`
 3. Import threads using `memory.saveThread()` for each thread

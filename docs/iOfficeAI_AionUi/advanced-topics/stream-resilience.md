@@ -18,8 +18,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 Stream Resilience is the system responsible for detecting and automatically recovering from failures during AI model response streaming. It handles three critical failure modes: invalid model responses (empty streams, missing finish reasons), network connection interruptions (fetch failures, socket errors), and tool execution race conditions (premature cancellation).
@@ -40,51 +38,51 @@ graph TB
         HANDLE["handleMessage()"]
         PROCESS["processGeminiStreamEvents()"]
     end
-    
+
     subgraph "Detection Layer"
         MONITOR["StreamMonitor"]
         INVALID["Invalid Stream Detector"]
         NETWORK["Network Error Detector"]
-        
+
         MONITOR -->|"heartbeat timeout"| EVENT["StreamConnectionEvent"]
         INVALID -->|"empty response"| RETRY_CHECK["Retry Check"]
         NETWORK -->|"fetch failed"| EVENT
     end
-    
+
     subgraph "Protection Layer"
         GUARD["globalToolCallGuard"]
         PROTECT["protect(callId)"]
         UNPROTECT["unprotect(callId)"]
         COMPLETE["complete(callId)"]
         ISPROTECTED["isProtected(callId)"]
-        
+
         GUARD --> PROTECT
         GUARD --> UNPROTECT
         GUARD --> COMPLETE
         GUARD --> ISPROTECTED
     end
-    
+
     subgraph "Recovery Layer"
         RETRY_LOGIC["Retry Logic"]
         BACKOFF["Delay (1s)"]
         RESUBMIT["Re-send Message"]
-        
+
         RETRY_CHECK -->|"retryCount < 2"| RETRY_LOGIC
         RETRY_LOGIC --> BACKOFF
         BACKOFF --> RESUBMIT
         RESUBMIT --> SUBMIT
     end
-    
+
     SEND --> SUBMIT
     SUBMIT --> HANDLE
     HANDLE --> PROCESS
     PROCESS --> MONITOR
     PROCESS --> INVALID
     PROCESS --> NETWORK
-    
+
     HANDLE -->|"tool request"| PROTECT
     HANDLE -->|"error"| UNPROTECT
-    
+
     style GUARD fill:#f9f9f9
     style MONITOR fill:#f9f9f9
     style RETRY_LOGIC fill:#f9f9f9
@@ -112,11 +110,11 @@ sequenceDiagram
     participant Stream as "Message Stream"
     participant Process as "processGeminiStreamEvents"
     participant Handler as "handleMessage"
-    
+
     Agent->>Handler: submitQuery(query, msg_id)
     Handler->>Stream: geminiClient.sendMessageStream()
     Stream->>Process: ServerGeminiEventType events
-    
+
     alt Invalid Response Detected
         Stream->>Process: InvalidStream event
         Process->>Handler: {type: 'invalid_stream', data: {retryable: true}}
@@ -136,11 +134,11 @@ sequenceDiagram
 
 The retry mechanism is implemented in `GeminiAgent.handleMessage()` with the following parameters:
 
-| Parameter | Value | Purpose |
-|-----------|-------|---------|
-| `MAX_INVALID_STREAM_RETRIES` | `2` | Maximum retry attempts |
-| `RETRY_DELAY_MS` | `1000` | Delay between retries (milliseconds) |
-| `retryCount` | `0` (initial) | Current retry attempt counter |
+| Parameter                    | Value         | Purpose                              |
+| ---------------------------- | ------------- | ------------------------------------ |
+| `MAX_INVALID_STREAM_RETRIES` | `2`           | Maximum retry attempts               |
+| `RETRY_DELAY_MS`             | `1000`        | Delay between retries (milliseconds) |
+| `retryCount`                 | `0` (initial) | Current retry attempt counter        |
 
 The retry flow tracks state through closure variables:
 
@@ -171,7 +169,7 @@ this.onStreamEvent({
   type: 'info',
   data: `Stream interrupted, retrying... (${retryCount + 1}/${MAX_INVALID_STREAM_RETRIES})`,
   msg_id,
-});
+})
 ```
 
 After exhausting retries, a final error is shown:
@@ -182,7 +180,7 @@ this.onStreamEvent({
   type: 'error',
   data: 'Invalid response stream detected after multiple retries. Please try again.',
   msg_id,
-});
+})
 ```
 
 **Sources**: [src/agent/gemini/index.ts:527-575]()
@@ -212,20 +210,20 @@ stateDiagram-v2
     [*] --> Requested: Tool call requested
     Requested --> Protected: guard.protect(callId)
     Protected --> Executing: Scheduler starts execution
-    
+
     Executing --> Completed: Success
     Executing --> Failed: Error
     Executing --> CheckProtection: Stream interruption
-    
+
     CheckProtection --> StillProtected: guard.isProtected() = true
     CheckProtection --> Unprotected: guard.isProtected() = false
-    
+
     StillProtected --> Executing: Continue execution
     Unprotected --> Cancelled: Treat as cancelled
-    
+
     Completed --> Unprotected: guard.complete(callId)
     Failed --> Unprotected: guard.unprotect(callId)
-    
+
     Unprotected --> [*]
 ```
 
@@ -240,10 +238,10 @@ The protection lifecycle integrates with tool execution flow:
 ```typescript
 // Immediately protect tool call when requested (line 513-518)
 if (data.type === 'tool_call_request') {
-  const toolRequest = data.data as ToolCallRequestInfo;
-  toolCallRequests.push(toolRequest);
-  globalToolCallGuard.protect(toolRequest.callId);
-  return;
+  const toolRequest = data.data as ToolCallRequestInfo
+  toolCallRequests.push(toolRequest)
+  globalToolCallGuard.protect(toolRequest.callId)
+  return
 }
 ```
 
@@ -264,9 +262,9 @@ if (data.type === 'tool_call_request') {
 ```typescript
 // Mark tool as complete, remove protection (line 414-418)
 if (tc.status === 'success' || tc.status === 'error') {
-  globalToolCallGuard.complete(tc.request.callId);
+  globalToolCallGuard.complete(tc.request.callId)
 }
-return completedOrCancelledCall.response?.responseParts !== undefined;
+return completedOrCancelledCall.response?.responseParts !== undefined
 ```
 
 **4. Cancellation Check (handleCompletedTools)**
@@ -275,11 +273,11 @@ return completedOrCancelledCall.response?.responseParts !== undefined;
 // Check if tools were cancelled (excluding protected tools) (line 446-456)
 const allToolsCancelled = geminiTools.every((tc) => {
   if (globalToolCallGuard.isProtected(tc.request.callId)) {
-    console.debug(`[ToolCallGuard] Tool ${tc.request.callId} is protected`);
-    return false;
+    console.debug(`[ToolCallGuard] Tool ${tc.request.callId} is protected`)
+    return false
   }
-  return tc.status === 'cancelled';
-});
+  return tc.status === 'cancelled'
+})
 ```
 
 **Sources**: [src/agent/gemini/index.ts:513-604](), [src/agent/gemini/utils.ts:409-456]()
@@ -301,7 +299,7 @@ graph LR
         CHECK["monitor.isHeartbeatTimeout()"]
         FAIL["monitor.markFailed(reason)"]
         STOP["monitor.stop()"]
-        
+
         INIT --> START
         START --> RECORD
         RECORD --> CHECK
@@ -312,16 +310,16 @@ graph LR
         EVENT_FAILED --> STOP
         RECORD --> STOP
     end
-    
+
     subgraph "Integration Points"
         PROCESS["processGeminiStreamEvents"]
         FOR_AWAIT["for await (event of stream)"]
-        
+
         PROCESS --> INIT
         FOR_AWAIT --> RECORD
         FOR_AWAIT --> CHECK
     end
-    
+
     INIT --> PROCESS
 ```
 
@@ -334,17 +332,17 @@ The monitoring system uses configuration to tune heartbeat sensitivity:
 ```typescript
 // Default configuration from streamResilience module
 interface StreamResilienceConfig {
-  heartbeatTimeoutMs?: number;      // Max time between events before timeout
-  connectionStateTimeoutMs?: number; // Connection failure detection window
+  heartbeatTimeoutMs?: number // Max time between events before timeout
+  connectionStateTimeoutMs?: number // Connection failure detection window
 }
 ```
 
 Events are emitted through the callback mechanism:
 
-| Event Type | Trigger | Data |
-|------------|---------|------|
-| `heartbeat_timeout` | No events received within timeout window | `{ type, lastEventTime }` |
-| `state_change` | Connection state transitions | `{ type, state, reason? }` |
+| Event Type          | Trigger                                  | Data                       |
+| ------------------- | ---------------------------------------- | -------------------------- |
+| `heartbeat_timeout` | No events received within timeout window | `{ type, lastEventTime }`  |
+| `state_change`      | Connection state transitions             | `{ type, state, reason? }` |
 
 **Sources**: [src/agent/gemini/utils.ts:26-30](), [src/agent/gemini/utils.ts:72-82]()
 
@@ -354,15 +352,17 @@ The system classifies stream errors to determine appropriate recovery strategy:
 
 ```typescript
 // Network error detection (line 276-288)
-const errorMessage = error instanceof Error ? error.message : String(error);
-monitor.markFailed(errorMessage);
+const errorMessage = error instanceof Error ? error.message : String(error)
+monitor.markFailed(errorMessage)
 
-if (errorMessage.includes('fetch failed') || 
-    errorMessage.includes('network') || 
-    errorMessage.includes('timeout') ||
-    errorMessage.includes('ECONNRESET') || 
-    errorMessage.includes('socket hang up')) {
-  return StreamProcessingStatus.ConnectionLost;
+if (
+  errorMessage.includes('fetch failed') ||
+  errorMessage.includes('network') ||
+  errorMessage.includes('timeout') ||
+  errorMessage.includes('ECONNRESET') ||
+  errorMessage.includes('socket hang up')
+) {
+  return StreamProcessingStatus.ConnectionLost
 }
 ```
 
@@ -384,19 +384,21 @@ The monitoring system integrates with the main message handler through the `onCo
 // Connection event handler in handleMessage (line 492-506)
 const onConnectionEvent = (event: StreamConnectionEvent) => {
   if (event.type === 'heartbeat_timeout') {
-    console.warn(`[GeminiAgent] Stream heartbeat timeout at ${new Date(event.lastEventTime).toISOString()}`);
+    console.warn(
+      `[GeminiAgent] Stream heartbeat timeout at ${new Date(event.lastEventTime).toISOString()}`
+    )
     if (!heartbeatWarned) {
-      heartbeatWarned = true;
+      heartbeatWarned = true
     }
   } else if (event.type === 'state_change' && event.state === 'failed') {
-    console.error(`[GeminiAgent] Stream connection failed: ${event.reason}`);
+    console.error(`[GeminiAgent] Stream connection failed: ${event.reason}`)
     this.onStreamEvent({
       type: 'error',
       data: `Connection lost: ${event.reason}. Please try again.`,
       msg_id,
-    });
+    })
   }
-};
+}
 ```
 
 This callback is passed to `processGeminiStreamEvents` via `monitorOptions`:
@@ -406,7 +408,9 @@ This callback is passed to `processGeminiStreamEvents` via `monitorOptions`:
 return processGeminiStreamEvents(
   stream,
   this.config,
-  (data) => { /* event handler */ },
+  (data) => {
+    /* event handler */
+  },
   { onConnectionEvent }
 )
 ```
@@ -427,45 +431,45 @@ sequenceDiagram
     participant Stream as "geminiClient"
     participant Monitor as "StreamMonitor"
     participant Process as "processGeminiStreamEvents"
-    
+
     User->>Agent: send(message)
     Agent->>Stream: sendMessageStream(query)
     Agent->>Monitor: new StreamMonitor()
     Monitor->>Monitor: start()
-    
+
     Stream->>Process: Content events
     Process->>Monitor: recordEvent()
-    
+
     Stream->>Process: ToolCallRequest event
     Process->>Agent: tool_call_request
     Agent->>Guard: protect(callId)
     Guard-->>Agent: Protected
-    
+
     Stream->>Process: InvalidStream event
     Process->>Agent: {type: 'invalid_stream'}
     Agent->>Agent: Set invalidStreamDetected = true
-    
+
     Stream->>Process: Stream ends
     Process->>Monitor: stop()
     Process-->>Agent: Return from processGeminiStreamEvents
-    
+
     Agent->>Agent: Check invalidStreamDetected && retryCount < 2
     Agent->>User: Display "Retrying... (1/2)"
     Agent->>Agent: Wait 1000ms
-    
+
     Agent->>Stream: sendMessageStream(query) [retry 1]
     Agent->>Monitor: new StreamMonitor()
-    
+
     Stream->>Process: Content events
     Process->>Monitor: recordEvent()
-    
+
     Stream->>Process: Content/Finished
     Process->>Monitor: stop()
     Process-->>Agent: Success
-    
+
     Agent->>Guard: complete(callId)
     Guard-->>Agent: Unprotected
-    
+
     Agent->>User: Display response
 ```
 
@@ -481,23 +485,26 @@ The `WebFetchTool` implements its own timeout mechanism for network requests:
 
 ```typescript
 // Timeout configuration (line 13)
-const URL_FETCH_TIMEOUT_MS = 10000;
+const URL_FETCH_TIMEOUT_MS = 10000
 
 // Fetch with timeout implementation (line 16-31)
-async function fetchWithTimeout(url: string, timeout: number): Promise<Response> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-  
+async function fetchWithTimeout(
+  url: string,
+  timeout: number
+): Promise<Response> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeout)
+
   try {
-    const response = await fetch(url, { signal: controller.signal });
-    return response;
+    const response = await fetch(url, { signal: controller.signal })
+    return response
   } catch (error) {
     if (controller.signal.aborted) {
-      throw new Error(`Request timeout after ${timeout}ms`);
+      throw new Error(`Request timeout after ${timeout}ms`)
     }
-    throw error;
+    throw error
   } finally {
-    clearTimeout(timeoutId);
+    clearTimeout(timeoutId)
   }
 }
 ```
@@ -513,7 +520,7 @@ The system enriches error messages by checking for quota-related issues:
 private enrichErrorMessage(errorMessage: string): string {
   const reportMatch = errorMessage.match(/Full report available at:\s*(.+?\.json)/i);
   const lowerMessage = errorMessage.toLowerCase();
-  
+
   if (lowerMessage.includes('model_capacity_exhausted') ||
       lowerMessage.includes('no capacity available') ||
       lowerMessage.includes('resource_exhausted') ||
@@ -538,11 +545,12 @@ The error parsing system provides context-aware messages based on authentication
 The retry behavior is controlled by constants in `GeminiAgent.handleMessage()`:
 
 ```typescript
-const MAX_INVALID_STREAM_RETRIES = 2;  // Line 483
-const RETRY_DELAY_MS = 1000;           // Line 484
+const MAX_INVALID_STREAM_RETRIES = 2 // Line 483
+const RETRY_DELAY_MS = 1000 // Line 484
 ```
 
 To modify retry behavior:
+
 1. Adjust `MAX_INVALID_STREAM_RETRIES` for more/fewer attempts
 2. Adjust `RETRY_DELAY_MS` for shorter/longer backoff
 3. Consider exponential backoff for production use
@@ -554,8 +562,8 @@ The monitor configuration is passed via `StreamMonitorOptions`:
 ```typescript
 // Configuration interface (line 27-30)
 export interface StreamMonitorOptions {
-  config?: Partial<StreamResilienceConfig>;
-  onConnectionEvent?: (event: StreamConnectionEvent) => void;
+  config?: Partial<StreamResilienceConfig>
+  onConnectionEvent?: (event: StreamConnectionEvent) => void
 }
 ```
 
@@ -575,11 +583,12 @@ The system enables built-in retry for fetch errors in `aioncli-core`:
 // Enable retry on fetch errors (line 276-280 in config.ts)
 const config = new Config({
   // ... other options
-  retryFetchErrors: true,  // Handle "fetch failed sending request" errors
-});
+  retryFetchErrors: true, // Handle "fetch failed sending request" errors
+})
 ```
 
 This handles transient network errors caused by:
+
 - Network instability
 - Proxy configuration issues
 - Temporary DNS failures
@@ -598,16 +607,16 @@ const fallbackModelHandler = async (
   _fallbackModel: string,
   _error?: unknown
 ): Promise<FallbackIntent | null> => {
-  const agent = getCurrentGeminiAgent();
-  const apiKeyManager = agent?.getApiKeyManager();
-  
+  const agent = getCurrentGeminiAgent()
+  const apiKeyManager = agent?.getApiKeyManager()
+
   if (!apiKeyManager?.hasMultipleKeys()) {
-    return 'stop';  // Single key mode, stop retrying
+    return 'stop' // Single key mode, stop retrying
   }
-  
-  const hasMoreKeys = apiKeyManager.rotateKey();
-  return hasMoreKeys ? 'retry_once' : 'stop';
-};
+
+  const hasMoreKeys = apiKeyManager.rotateKey()
+  return hasMoreKeys ? 'retry_once' : 'stop'
+}
 ```
 
 This integrates with stream resilience by providing a recovery mechanism when quota limits are hit during streaming.
@@ -620,11 +629,11 @@ This integrates with stream resilience by providing a recovery mechanism when qu
 
 The Stream Resilience system provides three layers of protection:
 
-| Layer | Mechanism | Recovery Time |
-|-------|-----------|---------------|
-| Invalid Stream Detection | Automatic retry with exponential backoff | 1-2 seconds per retry |
-| Tool Call Protection | Guard registry prevents premature cancellation | Immediate (no retry needed) |
-| Heartbeat Monitoring | Connection state tracking and timeout detection | Configurable (default ~30s) |
+| Layer                    | Mechanism                                       | Recovery Time               |
+| ------------------------ | ----------------------------------------------- | --------------------------- |
+| Invalid Stream Detection | Automatic retry with exponential backoff        | 1-2 seconds per retry       |
+| Tool Call Protection     | Guard registry prevents premature cancellation  | Immediate (no retry needed) |
+| Heartbeat Monitoring     | Connection state tracking and timeout detection | Configurable (default ~30s) |
 
 These mechanisms work together to ensure reliable AI agent responses even in unstable network conditions or when models produce invalid outputs. The system prioritizes data integrity (protecting executing tools) while providing user feedback about retry attempts.
 

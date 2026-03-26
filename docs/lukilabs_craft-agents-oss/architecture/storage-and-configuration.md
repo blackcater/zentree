@@ -14,8 +14,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the file-based storage architecture for Craft Agents, including the directory structure, configuration hierarchy, session persistence, and credential encryption. All data is stored in the `~/.craft-agent/` directory using JSON and JSONL formats with AES-256-GCM encryption for sensitive credentials.
 
 For workspace management and creation, see [Workspaces](#4.1). For credential encryption internals and keychain integration, see [Credential Storage & Encryption](#7.2). For session lifecycle and state management, see [Session Lifecycle](#2.7).
@@ -74,22 +72,22 @@ Application-level configuration files control global settings that apply to all 
 
 The main application configuration file is managed by `loadStoredConfig()` and `saveConfig()` in `packages/shared/src/config/storage.ts`. It is the serialized form of the `StoredConfig` interface.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `llmConnections` | `LlmConnection[]` | Named LLM provider configurations (see section below) |
-| `defaultLlmConnection` | `string` | Slug of the global default connection for new sessions |
-| `workspaces` | `Workspace[]` | Array of workspace registrations |
-| `activeWorkspaceId` | `string \| null` | Currently active workspace ID |
-| `activeSessionId` | `string \| null` | Currently active session ID |
-| `notificationsEnabled` | `boolean` | Desktop notifications for task completion (default: `true`) |
-| `colorTheme` | `string` | Preset theme ID (e.g., `'dracula'`, `'nord'`) |
-| `dismissedUpdateVersion` | `string` | Version string skipped in auto-update notifications |
-| `autoCapitalisation` | `boolean` | Auto-capitalize first letter of input (default: `true`) |
-| `sendMessageKey` | `'enter' \| 'cmd-enter'` | Key binding to send messages (default: `'enter'`) |
-| `spellCheck` | `boolean` | Spell check in input field (default: `false`) |
-| `keepAwakeWhileRunning` | `boolean` | Prevent sleep during active sessions (default: `false`) |
-| `richToolDescriptions` | `boolean` | Add intent/display name metadata to tool calls (default: `true`) |
-| `gitBashPath` | `string` | Windows only: path to `bash.exe` for SDK subprocess |
+| Field                    | Type                     | Description                                                      |
+| ------------------------ | ------------------------ | ---------------------------------------------------------------- |
+| `llmConnections`         | `LlmConnection[]`        | Named LLM provider configurations (see section below)            |
+| `defaultLlmConnection`   | `string`                 | Slug of the global default connection for new sessions           |
+| `workspaces`             | `Workspace[]`            | Array of workspace registrations                                 |
+| `activeWorkspaceId`      | `string \| null`         | Currently active workspace ID                                    |
+| `activeSessionId`        | `string \| null`         | Currently active session ID                                      |
+| `notificationsEnabled`   | `boolean`                | Desktop notifications for task completion (default: `true`)      |
+| `colorTheme`             | `string`                 | Preset theme ID (e.g., `'dracula'`, `'nord'`)                    |
+| `dismissedUpdateVersion` | `string`                 | Version string skipped in auto-update notifications              |
+| `autoCapitalisation`     | `boolean`                | Auto-capitalize first letter of input (default: `true`)          |
+| `sendMessageKey`         | `'enter' \| 'cmd-enter'` | Key binding to send messages (default: `'enter'`)                |
+| `spellCheck`             | `boolean`                | Spell check in input field (default: `false`)                    |
+| `keepAwakeWhileRunning`  | `boolean`                | Prevent sleep during active sessions (default: `false`)          |
+| `richToolDescriptions`   | `boolean`                | Add intent/display name metadata to tool calls (default: `true`) |
+| `gitBashPath`            | `string`                 | Windows only: path to `bash.exe` for SDK subprocess              |
 
 **Workspace Entry Structure** (within `workspaces` array):
 
@@ -127,14 +125,14 @@ Sources: [packages/shared/src/config/llm-connections.ts:272-275](), [packages/sh
 
 User-level preferences that the agent can reference for personalization. Loaded by `loadPreferences()` in `config-watcher.ts`.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | `string` | User's display name |
-| `timezone` | `string` | User's timezone (e.g., `America/New_York`) |
-| `location` | `{ city?, region?, country? }` | User's location for context |
-| `language` | `string` | Preferred language for agent responses |
-| `notes` | `string` | Freeform notes injected into agent context |
-| `updatedAt` | `number` | Timestamp of last update |
+| Field       | Type                           | Description                                |
+| ----------- | ------------------------------ | ------------------------------------------ |
+| `name`      | `string`                       | User's display name                        |
+| `timezone`  | `string`                       | User's timezone (e.g., `America/New_York`) |
+| `location`  | `{ city?, region?, country? }` | User's location for context                |
+| `language`  | `string`                       | Preferred language for agent responses     |
+| `notes`     | `string`                       | Freeform notes injected into agent context |
+| `updatedAt` | `number`                       | Timestamp of last update                   |
 
 Sources: [apps/electron/src/main/lib/config-watcher.ts:71-82]()
 
@@ -162,44 +160,44 @@ LLM connections (`LlmConnection[]`) are the authoritative configuration for AI p
 
 Defined in `packages/shared/src/config/llm-connections.ts`:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `slug` | `string` | URL-safe unique identifier (e.g., `'anthropic-api'`) |
-| `name` | `string` | Display name shown in UI |
-| `providerType` | `LlmProviderType` | Backend implementation to use (see below) |
-| `authType` | `LlmAuthType` | Authentication mechanism |
-| `baseUrl` | `string` | Custom endpoint URL (required for `*_compat` providers) |
-| `models` | `ModelDefinition[] \| string[]` | Available models for this connection |
-| `defaultModel` | `string` | Default model ID |
-| `piAuthProvider` | `string` | Pi SDK provider name (e.g., `'github-copilot'`) |
-| `awsRegion` | `string` | AWS region for Bedrock connections |
-| `gcpProjectId` | `string` | GCP project ID for Vertex connections |
-| `createdAt` | `number` | Creation timestamp |
-| `lastUsedAt` | `number` | Last-used timestamp |
+| Field            | Type                            | Description                                             |
+| ---------------- | ------------------------------- | ------------------------------------------------------- |
+| `slug`           | `string`                        | URL-safe unique identifier (e.g., `'anthropic-api'`)    |
+| `name`           | `string`                        | Display name shown in UI                                |
+| `providerType`   | `LlmProviderType`               | Backend implementation to use (see below)               |
+| `authType`       | `LlmAuthType`                   | Authentication mechanism                                |
+| `baseUrl`        | `string`                        | Custom endpoint URL (required for `*_compat` providers) |
+| `models`         | `ModelDefinition[] \| string[]` | Available models for this connection                    |
+| `defaultModel`   | `string`                        | Default model ID                                        |
+| `piAuthProvider` | `string`                        | Pi SDK provider name (e.g., `'github-copilot'`)         |
+| `awsRegion`      | `string`                        | AWS region for Bedrock connections                      |
+| `gcpProjectId`   | `string`                        | GCP project ID for Vertex connections                   |
+| `createdAt`      | `number`                        | Creation timestamp                                      |
+| `lastUsedAt`     | `number`                        | Last-used timestamp                                     |
 
 ### Provider Types (`LlmProviderType`)
 
-| Value | Backend | Notes |
-|-------|---------|-------|
-| `anthropic` | Claude Agent SDK | Direct Anthropic API; supports `api_key` and `oauth` |
-| `anthropic_compat` | Claude Agent SDK | Custom Anthropic-compatible endpoint (OpenRouter, Ollama, etc.) |
-| `bedrock` | Claude Agent SDK | AWS Bedrock; supports `iam_credentials`, `bearer_token`, `environment` |
-| `vertex` | Claude Agent SDK | Google Vertex AI; supports `oauth`, `service_account_file`, `environment` |
-| `pi` | Pi SDK | Unified LLM API (20+ providers); supports `api_key`, `oauth`, `none` |
-| `pi_compat` | Pi SDK | Custom Pi-compatible endpoint |
+| Value              | Backend          | Notes                                                                     |
+| ------------------ | ---------------- | ------------------------------------------------------------------------- |
+| `anthropic`        | Claude Agent SDK | Direct Anthropic API; supports `api_key` and `oauth`                      |
+| `anthropic_compat` | Claude Agent SDK | Custom Anthropic-compatible endpoint (OpenRouter, Ollama, etc.)           |
+| `bedrock`          | Claude Agent SDK | AWS Bedrock; supports `iam_credentials`, `bearer_token`, `environment`    |
+| `vertex`           | Claude Agent SDK | Google Vertex AI; supports `oauth`, `service_account_file`, `environment` |
+| `pi`               | Pi SDK           | Unified LLM API (20+ providers); supports `api_key`, `oauth`, `none`      |
+| `pi_compat`        | Pi SDK           | Custom Pi-compatible endpoint                                             |
 
 ### Auth Types (`LlmAuthType`)
 
-| Value | UI Pattern | Credential Storage |
-|-------|-----------|-------------------|
-| `api_key` | Single API key field | `llm::{slug}::api_key` in `credentials.enc` |
-| `api_key_with_endpoint` | API key + endpoint URL | `llm::{slug}::api_key` in `credentials.enc` |
-| `oauth` | Browser OAuth flow | `llm::{slug}::oauth_token` in `credentials.enc` |
-| `bearer_token` | Single bearer token | `llm::{slug}::api_key` in `credentials.enc` |
-| `iam_credentials` | AWS access key + secret + region | `llm::{slug}::iam_credentials` in `credentials.enc` |
-| `service_account_file` | GCP JSON file upload | `llm::{slug}::service_account` in `credentials.enc` |
-| `environment` | Auto-detect from env vars | No storage needed |
-| `none` | No auth (local models) | No storage needed |
+| Value                   | UI Pattern                       | Credential Storage                                  |
+| ----------------------- | -------------------------------- | --------------------------------------------------- |
+| `api_key`               | Single API key field             | `llm::{slug}::api_key` in `credentials.enc`         |
+| `api_key_with_endpoint` | API key + endpoint URL           | `llm::{slug}::api_key` in `credentials.enc`         |
+| `oauth`                 | Browser OAuth flow               | `llm::{slug}::oauth_token` in `credentials.enc`     |
+| `bearer_token`          | Single bearer token              | `llm::{slug}::api_key` in `credentials.enc`         |
+| `iam_credentials`       | AWS access key + secret + region | `llm::{slug}::iam_credentials` in `credentials.enc` |
+| `service_account_file`  | GCP JSON file upload             | `llm::{slug}::service_account` in `credentials.enc` |
+| `environment`           | Auto-detect from env vars        | No storage needed                                   |
+| `none`                  | No auth (local models)           | No storage needed                                   |
 
 ### Connection Resolution
 
@@ -297,16 +295,16 @@ Sources: [README.md:293-311](), [apps/electron/src/main/lib/config-watcher.ts:34
 
 Workspace configuration defines defaults that apply to all sessions within the workspace. Loaded by `loadWorkspaceConfig()` and saved by `saveWorkspaceConfig()`.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | `string` | Workspace display name (single source of truth; not stored in global config.json) |
-| `id` | `string` | Workspace UUID |
-| `createdAt` | `number` | Creation timestamp |
-| `defaults.permissionMode` | `'safe' \| 'ask' \| 'allow-all'` | Default permission mode for new sessions |
-| `defaults.cyclablePermissionModes` | `array` | Modes available in Shift+Tab cycle |
-| `defaults.thinkingLevel` | `'off' \| 'think' \| 'max'` | Default extended thinking level |
-| `defaults.workingDirectory` | `string` | Default CWD for command execution |
-| `defaults.llmConnection` | `string` | Workspace-level default LLM connection slug |
+| Field                              | Type                             | Description                                                                       |
+| ---------------------------------- | -------------------------------- | --------------------------------------------------------------------------------- |
+| `name`                             | `string`                         | Workspace display name (single source of truth; not stored in global config.json) |
+| `id`                               | `string`                         | Workspace UUID                                                                    |
+| `createdAt`                        | `number`                         | Creation timestamp                                                                |
+| `defaults.permissionMode`          | `'safe' \| 'ask' \| 'allow-all'` | Default permission mode for new sessions                                          |
+| `defaults.cyclablePermissionModes` | `array`                          | Modes available in Shift+Tab cycle                                                |
+| `defaults.thinkingLevel`           | `'off' \| 'think' \| 'max'`      | Default extended thinking level                                                   |
+| `defaults.workingDirectory`        | `string`                         | Default CWD for command execution                                                 |
+| `defaults.llmConnection`           | `string`                         | Workspace-level default LLM connection slug                                       |
 
 Sessions inherit workspace defaults at creation time. See page [4.1]() for full workspace configuration details.
 
@@ -317,6 +315,7 @@ Sources: [packages/shared/src/config/storage.ts:434-462]()
 Contains one subdirectory per session: `sessions/{sessionId}/session.jsonl`. Each JSONL file stores the session's complete conversation history, with each line being a complete JSON object.
 
 **JSONL Format Benefits:**
+
 - **Append-only writes**: New events are appended without rewriting the entire file
 - **Streaming reads**: Events can be read line-by-line for efficient lazy loading
 - **Crash resilience**: Partial writes corrupt only the last line
@@ -332,12 +331,12 @@ Sources: [apps/electron/src/main/lib/config-watcher.ts:460-476]()
 
 Contains one subdirectory per source: `sources/{sourceSlug}/`. Each source directory contains:
 
-| File | Purpose |
-|------|---------|
-| `config.json` | Source type, connection parameters, auth, icon URL |
-| `guide.md` | Agent-readable documentation for the source |
-| `permissions.json` | Per-source tool permission overrides |
-| `icon.*` | Local icon file (downloaded from URL if specified in config) |
+| File               | Purpose                                                      |
+| ------------------ | ------------------------------------------------------------ |
+| `config.json`      | Source type, connection parameters, auth, icon URL           |
+| `guide.md`         | Agent-readable documentation for the source                  |
+| `permissions.json` | Per-source tool permission overrides                         |
+| `icon.*`           | Local icon file (downloaded from URL if specified in config) |
 
 Sources are loaded by `loadSource()` (single) and `loadWorkspaceSources()` (all). See page [4.3]() for source configuration details.
 
@@ -347,10 +346,10 @@ Sources: [apps/electron/src/main/lib/config-watcher.ts:378-401]()
 
 Contains one subdirectory per skill: `skills/{skillSlug}/`. Each skill directory contains:
 
-| File | Purpose |
-|------|---------|
+| File       | Purpose                                                                          |
+| ---------- | -------------------------------------------------------------------------------- |
 | `SKILL.md` | Skill instructions in markdown (injected into agent system prompt on `@mention`) |
-| `icon.*` | Local icon file (downloaded from URL if `icon:` metadata is set in `SKILL.md`) |
+| `icon.*`   | Local icon file (downloaded from URL if `icon:` metadata is set in `SKILL.md`)   |
 
 Loaded by `loadSkill()` (single) and `loadAllSkills()` (all). See page [4.4]() for the skill system.
 
@@ -371,7 +370,6 @@ Workspace-level event-driven automation config (version 2 schema). Watched by `C
 ### permissions.json (Workspace)
 
 Workspace-level permission rules file. Per-source permission overrides live at `sources/{slug}/permissions.json`. All permission files are managed through `permissionsConfigCache`. See page [4.5]().
-
 
 ---
 
@@ -435,12 +433,12 @@ Sources: [packages/shared/src/config/storage.ts:186-195](), [packages/shared/src
 
 In-progress message text is persisted per session in `~/.craft-agent/drafts.json` (a `DraftsData` object: `{ drafts: Record<string, string>, updatedAt: number }`). This allows users to resume typing after an app restart. Drafts are keyed by session ID and cleared when a message is sent.
 
-| Function | Purpose |
-|----------|---------|
-| `getSessionDraft(sessionId)` | Retrieve draft for a session |
-| `setSessionDraft(sessionId, text)` | Save draft text (empty string clears) |
-| `deleteSessionDraft(sessionId)` | Remove draft entry |
-| `getAllSessionDrafts()` | Get all drafts as a `Record<string, string>` |
+| Function                           | Purpose                                      |
+| ---------------------------------- | -------------------------------------------- |
+| `getSessionDraft(sessionId)`       | Retrieve draft for a session                 |
+| `setSessionDraft(sessionId, text)` | Save draft text (empty string clears)        |
+| `deleteSessionDraft(sessionId)`    | Remove draft entry                           |
+| `getAllSessionDrafts()`            | Get all drafts as a `Record<string, string>` |
 
 Sources: [packages/shared/src/config/storage.ts:803-871]()
 
@@ -452,25 +450,25 @@ Sources: [packages/shared/src/config/storage.ts:803-871]()
 
 **Files Watched:**
 
-| Path | Event | Callback |
-|------|-------|----------|
-| `~/.craft-agent/config.json` | change | `onConfigChange` |
-| `~/.craft-agent/preferences.json` | change | `onPreferencesChange` |
-| `~/.craft-agent/theme.json` | change | `onAppThemeChange` |
-| `~/.craft-agent/themes/*.json` | add/change/delete | `onPresetThemeChange`, `onPresetThemesListChange` |
-| `~/.craft-agent/permissions/default.json` | change | `onDefaultPermissionsChange` |
-| `{workspaceDir}/sources/{slug}/config.json` | change | `onSourceChange` |
-| `{workspaceDir}/sources/{slug}/guide.md` | change | `onSourceGuideChange` |
-| `{workspaceDir}/sources/{slug}/permissions.json` | change | `onSourcePermissionsChange` |
-| `{workspaceDir}/sources/` (dir-level) | add/remove | `onSourcesListChange` |
-| `{workspaceDir}/skills/{slug}/SKILL.md` | change | `onSkillChange` |
-| `{workspaceDir}/skills/` (dir-level) | add/remove | `onSkillsListChange` |
-| `{workspaceDir}/statuses/config.json` | change | `onStatusConfigChange` |
-| `{workspaceDir}/statuses/icons/*` | change | `onStatusIconChange` |
-| `{workspaceDir}/labels/config.json` | change | `onLabelConfigChange` |
-| `{workspaceDir}/automations.json` | change | `onAutomationsConfigChange` |
-| `{workspaceDir}/permissions.json` | change | `onWorkspacePermissionsChange` |
-| `{workspaceDir}/sessions/{id}/session.jsonl` | change | `onSessionMetadataChange` |
+| Path                                             | Event             | Callback                                          |
+| ------------------------------------------------ | ----------------- | ------------------------------------------------- |
+| `~/.craft-agent/config.json`                     | change            | `onConfigChange`                                  |
+| `~/.craft-agent/preferences.json`                | change            | `onPreferencesChange`                             |
+| `~/.craft-agent/theme.json`                      | change            | `onAppThemeChange`                                |
+| `~/.craft-agent/themes/*.json`                   | add/change/delete | `onPresetThemeChange`, `onPresetThemesListChange` |
+| `~/.craft-agent/permissions/default.json`        | change            | `onDefaultPermissionsChange`                      |
+| `{workspaceDir}/sources/{slug}/config.json`      | change            | `onSourceChange`                                  |
+| `{workspaceDir}/sources/{slug}/guide.md`         | change            | `onSourceGuideChange`                             |
+| `{workspaceDir}/sources/{slug}/permissions.json` | change            | `onSourcePermissionsChange`                       |
+| `{workspaceDir}/sources/` (dir-level)            | add/remove        | `onSourcesListChange`                             |
+| `{workspaceDir}/skills/{slug}/SKILL.md`          | change            | `onSkillChange`                                   |
+| `{workspaceDir}/skills/` (dir-level)             | add/remove        | `onSkillsListChange`                              |
+| `{workspaceDir}/statuses/config.json`            | change            | `onStatusConfigChange`                            |
+| `{workspaceDir}/statuses/icons/*`                | change            | `onStatusIconChange`                              |
+| `{workspaceDir}/labels/config.json`              | change            | `onLabelConfigChange`                             |
+| `{workspaceDir}/automations.json`                | change            | `onAutomationsConfigChange`                       |
+| `{workspaceDir}/permissions.json`                | change            | `onWorkspacePermissionsChange`                    |
+| `{workspaceDir}/sessions/{id}/session.jsonl`     | change            | `onSessionMetadataChange`                         |
 
 **Debouncing:** All events are debounced with a 100 ms delay (`DEBOUNCE_MS`) to coalesce rapid successive writes.
 
@@ -528,7 +526,7 @@ graph TD
     ValidJSON["JSON.parse() succeeds?"]
     Reset["writeFileSync('{}')"]
     Done["SDK subprocess can start"]
-    
+
     Start --> Check
     Check --> FileExists
     FileExists -->|"No"| Reset

@@ -29,8 +29,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 The `@tanstack/ai-react-ui` package provides pre-built React components for rendering AI chat interfaces. It is designed as a lightweight UI layer on top of `@tanstack/ai-react`, offering components for displaying specific message parts like thinking/reasoning content, along with a markdown processing pipeline for rendering text content.
@@ -49,30 +47,30 @@ graph TB
         UIMessage["UIMessage<br/>{id, role, parts, createdAt}"]
         MessagePart["MessagePart Union<br/>TextPart | ToolCallPart<br/>ThinkingPart | ToolResultPart"]
     end
-    
+
     subgraph "@tanstack/ai-react"
         useChat["useChat()<br/>Returns: {messages, sendMessage, ...}"]
     end
-    
+
     subgraph "@tanstack/ai-react-ui"
         ThinkingPart["ThinkingPart<br/>Component"]
         MarkdownDeps["Markdown Pipeline<br/>react-markdown<br/>rehype-* plugins<br/>remark-gfm"]
     end
-    
+
     subgraph "Application Layer"
         CustomUI["Custom Components<br/>ChatMessage<br/>MessageContainer<br/>InputArea"]
         ReactMarkdown["ReactMarkdown<br/>render text parts"]
     end
-    
+
     UIMessage --> MessagePart
     useChat --> UIMessage
-    
+
     MessagePart --> ThinkingPart
     MessagePart --> CustomUI
     MessagePart --> ReactMarkdown
-    
+
     MarkdownDeps --> ReactMarkdown
-    
+
     style UIMessage fill:#e1f5ff,stroke:#1971c2
     style useChat fill:#4dabf7,stroke:#1971c2
     style ThinkingPart fill:#51cf66,stroke:#2f9e44
@@ -84,15 +82,16 @@ graph TB
 
 The package has a minimal dependency footprint, relying primarily on markdown processing libraries:
 
-| Dependency | Purpose |
-|------------|---------|
-| `react-markdown` | Core markdown-to-React rendering |
-| `rehype-highlight` | Syntax highlighting for code blocks |
-| `rehype-raw` | Support for raw HTML in markdown |
-| `rehype-sanitize` | Sanitize HTML to prevent XSS |
-| `remark-gfm` | GitHub Flavored Markdown support (tables, strikethrough, etc.) |
+| Dependency         | Purpose                                                        |
+| ------------------ | -------------------------------------------------------------- |
+| `react-markdown`   | Core markdown-to-React rendering                               |
+| `rehype-highlight` | Syntax highlighting for code blocks                            |
+| `rehype-raw`       | Support for raw HTML in markdown                               |
+| `rehype-sanitize`  | Sanitize HTML to prevent XSS                                   |
+| `remark-gfm`       | GitHub Flavored Markdown support (tables, strikethrough, etc.) |
 
 **Peer Dependencies:**
+
 - `@tanstack/ai-client` - Message type definitions (`UIMessage`, `MessagePart`)
 - `@tanstack/ai-react` - React integration layer (`useChat` hook)
 - `react` ^18.0.0 || ^19.0.0
@@ -111,14 +110,14 @@ graph LR
         Parts["parts: MessagePart[]"]
         Message --> Parts
     end
-    
+
     subgraph "Part Types"
         TextPart["TextPart<br/>{type: 'text'<br/>content: string}"]
         ThinkingPart_Type["ThinkingPart<br/>{type: 'thinking'<br/>content: string}"]
         ToolCallPart["ToolCallPart<br/>{type: 'tool-call'<br/>name, state, input, output}"]
         ToolResultPart["ToolResultPart<br/>{type: 'tool-result'<br/>content, toolCallId}"]
     end
-    
+
     subgraph "Rendering Strategy"
         MapParts["parts.map((part, index) => ...)"]
         TypeSwitch["switch (part.type)"]
@@ -127,15 +126,15 @@ graph LR
         RenderToolCall["Custom tool UI"]
         RenderToolResult["Custom result UI"]
     end
-    
+
     Parts --> MapParts
     MapParts --> TypeSwitch
-    
+
     TypeSwitch --> TextPart
     TypeSwitch --> ThinkingPart_Type
     TypeSwitch --> ToolCallPart
     TypeSwitch --> ToolResultPart
-    
+
     TextPart --> RenderText
     ThinkingPart_Type --> RenderThinking
     ToolCallPart --> RenderToolCall
@@ -149,16 +148,16 @@ graph LR
   if (part.type === 'thinking') {
     return <ThinkingPart content={part.content} isComplete={...} />
   }
-  
+
   if (part.type === 'text' && part.content) {
     return <ReactMarkdown>{part.content}</ReactMarkdown>
   }
-  
+
   if (part.type === 'tool-call') {
     // Custom rendering based on tool name, state, etc.
     return <CustomToolUI part={part} />
   }
-  
+
   return null
 })}
 ```
@@ -173,9 +172,9 @@ The `ThinkingPart` component is the primary pre-built component exported by `@ta
 
 ```typescript
 interface ThinkingPartProps {
-  content: string          // The thinking/reasoning text
-  isComplete?: boolean     // Whether thinking is finished
-  className?: string       // CSS classes for styling
+  content: string // The thinking/reasoning text
+  isComplete?: boolean // Whether thinking is finished
+  className?: string // CSS classes for styling
 }
 ```
 
@@ -189,7 +188,7 @@ if (part.type === 'thinking') {
   const isComplete = message.parts
     .slice(index + 1)
     .some((p) => p.type === 'text')
-    
+
   return (
     <ThinkingPart
       content={part.content}
@@ -203,6 +202,7 @@ if (part.type === 'thinking') {
 ### Behavior Characteristics
 
 The component provides:
+
 - **Collapsible UI**: Thinking content can be toggled to avoid cluttering the chat interface
 - **Progressive Loading**: Updates incrementally as thinking chunks arrive during streaming
 - **Completion State**: Visual indicator when thinking transitions to final response
@@ -219,7 +219,7 @@ graph TD
     subgraph "Input"
         RawMarkdown["Raw Markdown String<br/>from TextPart.content"]
     end
-    
+
     subgraph "Processing Pipeline"
         ReactMarkdownLib["react-markdown<br/>Parse & render to React"]
         RemarkGFM["remark-gfm<br/>Parse GFM syntax<br/>(tables, strikethrough)"]
@@ -227,11 +227,11 @@ graph TD
         RehypeSanitize["rehype-sanitize<br/>Sanitize HTML<br/>(prevent XSS)"]
         RehypeHighlight["rehype-highlight<br/>Syntax highlight code<br/>(highlight.js)"]
     end
-    
+
     subgraph "Output"
         ReactElements["React Elements<br/>Safe, styled markup"]
     end
-    
+
     RawMarkdown --> ReactMarkdownLib
     ReactMarkdownLib --> RemarkGFM
     RemarkGFM --> RehypeRaw
@@ -279,48 +279,48 @@ The UI components integrate seamlessly with the `useChat` hook from `@tanstack/a
 graph TB
     subgraph "Hook Layer"
         useChat["useChat({<br/>  connection,<br/>  tools,<br/>  body<br/>})"]
-        
+
         Messages["messages: UIMessage[]"]
         SendMessage["sendMessage(content: string)"]
         IsLoading["isLoading: boolean"]
         Stop["stop()"]
         AddApproval["addToolApprovalResponse({id, approved})"]
     end
-    
+
     subgraph "UI Rendering"
         MessageList["Messages Component<br/>Iterate messages array"]
         MessageParts["Iterate message.parts"]
-        
+
         RenderText["ReactMarkdown<br/>for text parts"]
         RenderThinking["ThinkingPart<br/>for thinking parts"]
         RenderTools["Custom UI<br/>for tool-call parts"]
         RenderApproval["Approval UI<br/>for approval-requested state"]
     end
-    
+
     subgraph "User Interactions"
         Input["Input Component"]
         ApprovalButtons["Approve/Deny Buttons"]
         StopButton["Stop Button"]
     end
-    
+
     useChat --> Messages
     useChat --> SendMessage
     useChat --> IsLoading
     useChat --> Stop
     useChat --> AddApproval
-    
+
     Messages --> MessageList
     MessageList --> MessageParts
-    
+
     MessageParts --> RenderText
     MessageParts --> RenderThinking
     MessageParts --> RenderTools
     MessageParts --> RenderApproval
-    
+
     Input --> SendMessage
     ApprovalButtons --> AddApproval
     StopButton --> Stop
-    
+
     IsLoading --> Input
     IsLoading --> StopButton
 ```
@@ -342,7 +342,7 @@ return (
         <div key={message.id}>
           {/* Role indicator */}
           <div>{message.role === 'assistant' ? 'AI' : 'User'}</div>
-          
+
           {/* Render parts */}
           <div>
             {message.parts.map((part, index) => {
@@ -353,12 +353,12 @@ return (
                   .some((p) => p.type === 'text')
                 return <ThinkingPart content={part.content} isComplete={isComplete} />
               }
-              
+
               // Text content
               if (part.type === 'text') {
                 return <ReactMarkdown>{part.content}</ReactMarkdown>
               }
-              
+
               // Tool approval
               if (part.type === 'tool-call' && part.state === 'approval-requested') {
                 return (
@@ -375,14 +375,14 @@ return (
                   </div>
                 )
               }
-              
+
               return null
             })}
           </div>
         </div>
       ))}
     </div>
-    
+
     {/* Input */}
     <div>
       {isLoading && <button onClick={stop}>Stop</button>}
@@ -425,14 +425,14 @@ function ChatMessage({ message, addToolApprovalResponse }) {
     <div className={message.role === 'assistant' ? 'ai-message' : 'user-message'}>
       {/* Avatar */}
       <div className="avatar">{message.role === 'assistant' ? 'AI' : 'U'}</div>
-      
+
       {/* Message content */}
       <div className="content">
         {message.parts.map((part, index) => {
           // Render each part type...
         })}
       </div>
-      
+
       {/* Metadata */}
       <div className="timestamp">{message.createdAt.toLocaleString()}</div>
     </div>
@@ -443,6 +443,7 @@ function ChatMessage({ message, addToolApprovalResponse }) {
 ### Styling Approach
 
 The package provides **unstyled components** that accept `className` props for styling. Applications can use:
+
 - CSS modules
 - Tailwind CSS (as shown in examples)
 - Styled-components
@@ -460,15 +461,15 @@ import type { UIMessage, MessagePart, ToolCallPart } from '@tanstack/ai-client'
 message.parts.forEach((part: MessagePart) => {
   if (part.type === 'tool-call') {
     // TypeScript narrows to ToolCallPart
-    console.log(part.name)      // ✓ Type-safe access
-    console.log(part.state)     // ✓ Type-safe access
+    console.log(part.name) // ✓ Type-safe access
+    console.log(part.state) // ✓ Type-safe access
     console.log(part.arguments) // ✓ Type-safe access
-    console.log(part.output)    // ✓ Type-safe access
+    console.log(part.output) // ✓ Type-safe access
   }
-  
+
   if (part.type === 'text') {
     // TypeScript narrows to TextPart
-    console.log(part.content)   // ✓ Type-safe access
+    console.log(part.content) // ✓ Type-safe access
   }
 })
 ```
@@ -480,6 +481,7 @@ The `@tanstack/ai-client` package defines these types, ensuring consistency acro
 ## Package Exports
 
 The package exports:
+
 - `ThinkingPart` component
 - Type re-exports from `@tanstack/ai-client` (for convenience)
 - Markdown processing dependencies (implicitly via package.json)
@@ -491,16 +493,17 @@ The minimal export surface reflects the package's philosophy: provide specialize
 ## Comparison with Solid UI
 
 The Solid UI package (`@tanstack/ai-solid-ui`) follows the same architecture but uses SolidJS primitives:
+
 - Uses `solid-markdown` instead of `react-markdown`
 - Same rehype/remark plugin pipeline
 - Same message part rendering pattern
 - Same headless component philosophy
 
-| Feature | React UI | Solid UI |
-|---------|----------|----------|
-| Markdown Library | `react-markdown` | `solid-markdown` |
-| Thinking Component | `ThinkingPart` | `ThinkingPart` |
-| Reactivity Model | React state/effects | SolidJS signals |
-| Type Definitions | Shared from `@tanstack/ai-client` | Shared from `@tanstack/ai-client` |
+| Feature            | React UI                          | Solid UI                          |
+| ------------------ | --------------------------------- | --------------------------------- |
+| Markdown Library   | `react-markdown`                  | `solid-markdown`                  |
+| Thinking Component | `ThinkingPart`                    | `ThinkingPart`                    |
+| Reactivity Model   | React state/effects               | SolidJS signals                   |
+| Type Definitions   | Shared from `@tanstack/ai-client` | Shared from `@tanstack/ai-client` |
 
 **Sources:** [packages/typescript/ai-solid-ui/package.json:1-61](), [packages/typescript/ai-react-ui/package.json:1-58]()

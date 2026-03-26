@@ -12,8 +12,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers the overall security design of Craft Agents: how process isolation is enforced, how the IPC boundary restricts renderer capabilities, how file access is validated, and how subprocess environments are sanitized. For the specific encryption scheme used for stored credentials, see [Credential Storage & Encryption](#7.2). For file-access permission modes (safe/ask/allow-all), see [File Access Validation](#7.3).
 
 ---
@@ -22,12 +20,12 @@ This page covers the overall security design of Craft Agents: how process isolat
 
 The security model rests on four pillars:
 
-| Pillar | Mechanism |
-|---|---|
-| Process isolation | Electron renderer runs without Node.js access (`nodeIntegration: false`, `contextIsolation: true`) |
-| Least-privilege IPC | The renderer may only call an explicitly typed set of functions exposed via `contextBridge` |
-| Input validation | Every file path, session ID, URL, and attachment passes through validation before use |
-| Subprocess isolation | MCP stdio subprocesses inherit a filtered environment that excludes sensitive credentials |
+| Pillar               | Mechanism                                                                                          |
+| -------------------- | -------------------------------------------------------------------------------------------------- |
+| Process isolation    | Electron renderer runs without Node.js access (`nodeIntegration: false`, `contextIsolation: true`) |
+| Least-privilege IPC  | The renderer may only call an explicitly typed set of functions exposed via `contextBridge`        |
+| Input validation     | Every file path, session ID, URL, and attachment passes through validation before use              |
+| Subprocess isolation | MCP stdio subprocesses inherit a filtered environment that excludes sensitive credentials          |
 
 ---
 
@@ -79,14 +77,14 @@ All IPC channels are declared as constants in `IPC_CHANNELS` (`apps/electron/src
 
 **IPC Channel Categories**
 
-| Category | Example Channels | Handler Location |
-|---|---|---|
-| Session management | `sessions:sendMessage`, `sessions:cancel` | `ipc.ts` → `SessionManager` |
-| File operations | `file:read`, `file:storeAttachment` | `ipc.ts` (path-validated) |
-| Credential operations | `credentials:healthCheck`, `auth:logout` | `ipc.ts` → `CredentialManager` |
-| Shell operations | `shell:openUrl`, `shell:openFile` | `ipc.ts` (URL-validated) |
-| Onboarding / OAuth | `onboarding:startClaudeOAuth`, `copilot:startOAuth` | `onboarding.ts`, `ipc.ts` |
-| LLM connections | `LLM_Connection:list`, `LLM_Connection:test` | `ipc.ts` |
+| Category              | Example Channels                                    | Handler Location               |
+| --------------------- | --------------------------------------------------- | ------------------------------ |
+| Session management    | `sessions:sendMessage`, `sessions:cancel`           | `ipc.ts` → `SessionManager`    |
+| File operations       | `file:read`, `file:storeAttachment`                 | `ipc.ts` (path-validated)      |
+| Credential operations | `credentials:healthCheck`, `auth:logout`            | `ipc.ts` → `CredentialManager` |
+| Shell operations      | `shell:openUrl`, `shell:openFile`                   | `ipc.ts` (URL-validated)       |
+| Onboarding / OAuth    | `onboarding:startClaudeOAuth`, `copilot:startOAuth` | `onboarding.ts`, `ipc.ts`      |
+| LLM connections       | `LLM_Connection:list`, `LLM_Connection:test`        | `ipc.ts`                       |
 
 The renderer never calls `ipcRenderer` directly. Everything is wrapped in `window.electronAPI`, which is declared as the `ElectronAPI` interface. This keeps the IPC surface typed and auditable.
 
@@ -186,16 +184,16 @@ When Craft Agents spawns local MCP servers via stdio transport, the subprocess i
 
 **Blocked environment variables (not passed to MCP subprocesses):**
 
-| Variable | Reason |
-|---|---|
-| `ANTHROPIC_API_KEY` | App authentication key |
-| `CLAUDE_CODE_OAUTH_TOKEN` | App OAuth token |
-| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` | AWS credentials |
-| `GITHUB_TOKEN`, `GH_TOKEN` | GitHub credentials |
-| `OPENAI_API_KEY` | OpenAI credentials |
-| `GOOGLE_API_KEY` | Google credentials |
-| `STRIPE_SECRET_KEY` | Stripe credentials |
-| `NPM_TOKEN` | npm publish credentials |
+| Variable                                                          | Reason                  |
+| ----------------------------------------------------------------- | ----------------------- |
+| `ANTHROPIC_API_KEY`                                               | App authentication key  |
+| `CLAUDE_CODE_OAUTH_TOKEN`                                         | App OAuth token         |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` | AWS credentials         |
+| `GITHUB_TOKEN`, `GH_TOKEN`                                        | GitHub credentials      |
+| `OPENAI_API_KEY`                                                  | OpenAI credentials      |
+| `GOOGLE_API_KEY`                                                  | Google credentials      |
+| `STRIPE_SECRET_KEY`                                               | Stripe credentials      |
+| `NPM_TOKEN`                                                       | npm publish credentials |
 
 To explicitly pass an environment variable to a specific MCP server, the user must set it in the `env` field of the source config. Omission from that field means it will not be forwarded.
 

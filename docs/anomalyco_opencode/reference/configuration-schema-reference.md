@@ -47,8 +47,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page provides a complete reference for all OpenCode configuration options, including the structure of `opencode.json`, environment variables, and configuration precedence. For general usage and examples, see [Config](#2.2). For information about customizing agents and commands, see [Session & Agent System](#2.3).
 
 ---
@@ -66,14 +64,14 @@ flowchart TB
     Opencode["5. .opencode Directories<br/>ConfigPaths.directories()<br/>loadAgent/loadCommand/loadPlugin"]
     Inline["6. Inline Config<br/>process.env.OPENCODE_CONFIG_CONTENT<br/>Config.load()"]
     Managed["7. Managed Config<br/>Config.managedConfigDir()<br/>systemManagedConfigDir()"]
-    
+
     Remote --> Global
     Global --> Custom
     Custom --> Project
     Project --> Opencode
     Opencode --> Inline
     Inline --> Managed
-    
+
     Managed --> Result["Config.Info<br/>Final merged state"]
 ```
 
@@ -85,13 +83,14 @@ Sources: [packages/opencode/src/config/config.ts:78-266]()
 </thinking>
 
 <old_str>
+
 ### Platform-Specific Paths
 
-| Platform | Global Config | State/Data | Cache | Managed Config |
-|----------|--------------|------------|-------|----------------|
-| macOS | `~/.config/opencode/opencode.json` | `~/.local/share/opencode` | `~/.cache/opencode` | `/Library/Application Support/opencode` |
-| Linux | `~/.config/opencode/opencode.json` | `~/.local/share/opencode` | `~/.cache/opencode` | `/etc/opencode` |
-| Windows | `%LOCALAPPDATA%\opencode\opencode.json` | `%LOCALAPPDATA%\opencode` | `%LOCALAPPDATA%\opencode\Cache` | `C:\ProgramData\opencode` |
+| Platform | Global Config                           | State/Data                | Cache                           | Managed Config                          |
+| -------- | --------------------------------------- | ------------------------- | ------------------------------- | --------------------------------------- |
+| macOS    | `~/.config/opencode/opencode.json`      | `~/.local/share/opencode` | `~/.cache/opencode`             | `/Library/Application Support/opencode` |
+| Linux    | `~/.config/opencode/opencode.json`      | `~/.local/share/opencode` | `~/.cache/opencode`             | `/etc/opencode`                         |
+| Windows  | `%LOCALAPPDATA%\opencode\opencode.json` | `%LOCALAPPDATA%\opencode` | `%LOCALAPPDATA%\opencode\Cache` | `C:\ProgramData\opencode`               |
 
 ### Project Structure
 
@@ -111,15 +110,16 @@ Sources: [packages/opencode/src/config/config.ts:46-59](), [packages/opencode/sr
 </str>
 
 <new_str>
+
 ### Platform-Specific Paths
 
 Paths are determined by `Global.Path` and `Config.managedConfigDir()`:
 
-| Platform | Global Config | State/Data (`Global.Path.state`) | Cache (`Global.Path.cache`) | Managed Config |
-|----------|--------------|------------|-------|----------------|
-| macOS | `~/.config/opencode/opencode.json` | `~/.local/share/opencode` | `~/.cache/opencode` | `/Library/Application Support/opencode` |
-| Linux | `~/.config/opencode/opencode.json` | `~/.local/share/opencode` | `~/.cache/opencode` | `/etc/opencode` |
-| Windows | `%LOCALAPPDATA%\opencode\opencode.json` | `%LOCALAPPDATA%\opencode` | `%LOCALAPPDATA%\opencode\Cache` | `C:\ProgramData\opencode` |
+| Platform | Global Config                           | State/Data (`Global.Path.state`) | Cache (`Global.Path.cache`)     | Managed Config                          |
+| -------- | --------------------------------------- | -------------------------------- | ------------------------------- | --------------------------------------- |
+| macOS    | `~/.config/opencode/opencode.json`      | `~/.local/share/opencode`        | `~/.cache/opencode`             | `/Library/Application Support/opencode` |
+| Linux    | `~/.config/opencode/opencode.json`      | `~/.local/share/opencode`        | `~/.cache/opencode`             | `/etc/opencode`                         |
+| Windows  | `%LOCALAPPDATA%\opencode\opencode.json` | `%LOCALAPPDATA%\opencode`        | `%LOCALAPPDATA%\opencode\Cache` | `C:\ProgramData\opencode`               |
 
 The managed config directory is returned by `systemManagedConfigDir()` based on `process.platform` and can be overridden via `OPENCODE_TEST_MANAGED_CONFIG_DIR`.
 
@@ -146,11 +146,11 @@ Sources: [packages/opencode/src/config/config.ts:46-62](), [packages/opencode/sr
 
 ### Platform-Specific Paths
 
-| Platform | Global Config | State/Data | Cache | Managed Config |
-|----------|--------------|------------|-------|----------------|
-| macOS | `~/.config/opencode/opencode.json` | `~/.local/share/opencode` | `~/.cache/opencode` | `/Library/Application Support/opencode` |
-| Linux | `~/.config/opencode/opencode.json` | `~/.local/share/opencode` | `~/.cache/opencode` | `/etc/opencode` |
-| Windows | `%LOCALAPPDATA%\opencode\opencode.json` | `%LOCALAPPDATA%\opencode` | `%LOCALAPPDATA%\opencode\Cache` | `C:\ProgramData\opencode` |
+| Platform | Global Config                           | State/Data                | Cache                           | Managed Config                          |
+| -------- | --------------------------------------- | ------------------------- | ------------------------------- | --------------------------------------- |
+| macOS    | `~/.config/opencode/opencode.json`      | `~/.local/share/opencode` | `~/.cache/opencode`             | `/Library/Application Support/opencode` |
+| Linux    | `~/.config/opencode/opencode.json`      | `~/.local/share/opencode` | `~/.cache/opencode`             | `/etc/opencode`                         |
+| Windows  | `%LOCALAPPDATA%\opencode\opencode.json` | `%LOCALAPPDATA%\opencode` | `%LOCALAPPDATA%\opencode\Cache` | `C:\ProgramData\opencode`               |
 
 ### Project Structure
 
@@ -177,7 +177,7 @@ The root configuration object follows the `Config.Info` schema:
 ```mermaid
 graph LR
     Config["Config"]
-    
+
     Config --> Provider["provider<br/>Record<string, ProviderInfo>"]
     Config --> Agent["agent<br/>Record<string, Agent>"]
     Config --> Command["command<br/>Record<string, Command>"]
@@ -232,16 +232,16 @@ Provider credentials are stored separately in `Auth.all()` (`~/.local/share/open
 
 Each provider has a custom loader in `CUSTOM_LOADERS` object that processes options:
 
-| Provider | Key Options | Loader Function | Notes |
-|----------|-------------|-----------------|-------|
-| `anthropic` | `headers.anthropic-beta` | `CUSTOM_LOADERS.anthropic` | Beta headers for extended context |
-| `openai` | `baseURL`, `organization` | `CUSTOM_LOADERS.openai` | Uses `sdk.responses()` for GPT-5+ |
-| `azure` | `resourceName`, `useCompletionUrls` | `CUSTOM_LOADERS.azure` | `AZURE_RESOURCE_NAME` env var |
-| `amazon-bedrock` | `region`, `profile`, `endpoint` | `CUSTOM_LOADERS["amazon-bedrock"]` | Uses `fromNodeProviderChain()` |
-| `google-vertex` | `project`, `location` | `CUSTOM_LOADERS["google-vertex"]` | Requires `GoogleAuth` token |
-| `openrouter` | `headers.HTTP-Referer` | `CUSTOM_LOADERS.openrouter` | Sets `X-Title: opencode` |
-| `gitlab` | `instanceUrl`, `aiGatewayHeaders` | `CUSTOM_LOADERS.gitlab` | Uses `@gitlab/gitlab-ai-provider` |
-| `cloudflare-ai-gateway` | `accountId`, `gateway` | `CUSTOM_LOADERS["cloudflare-ai-gateway"]` | Uses `ai-gateway-provider` |
+| Provider                | Key Options                         | Loader Function                           | Notes                             |
+| ----------------------- | ----------------------------------- | ----------------------------------------- | --------------------------------- |
+| `anthropic`             | `headers.anthropic-beta`            | `CUSTOM_LOADERS.anthropic`                | Beta headers for extended context |
+| `openai`                | `baseURL`, `organization`           | `CUSTOM_LOADERS.openai`                   | Uses `sdk.responses()` for GPT-5+ |
+| `azure`                 | `resourceName`, `useCompletionUrls` | `CUSTOM_LOADERS.azure`                    | `AZURE_RESOURCE_NAME` env var     |
+| `amazon-bedrock`        | `region`, `profile`, `endpoint`     | `CUSTOM_LOADERS["amazon-bedrock"]`        | Uses `fromNodeProviderChain()`    |
+| `google-vertex`         | `project`, `location`               | `CUSTOM_LOADERS["google-vertex"]`         | Requires `GoogleAuth` token       |
+| `openrouter`            | `headers.HTTP-Referer`              | `CUSTOM_LOADERS.openrouter`               | Sets `X-Title: opencode`          |
+| `gitlab`                | `instanceUrl`, `aiGatewayHeaders`   | `CUSTOM_LOADERS.gitlab`                   | Uses `@gitlab/gitlab-ai-provider` |
+| `cloudflare-ai-gateway` | `accountId`, `gateway`              | `CUSTOM_LOADERS["cloudflare-ai-gateway"]` | Uses `ai-gateway-provider`        |
 
 ### Example
 
@@ -304,24 +304,25 @@ Agents are defined under the `agent` key using the `Config.Agent` schema. The sc
 ```
 
 The `Config.Agent` schema includes a `.transform()` that:
+
 1. Migrates `maxSteps` → `steps`
 2. Converts `tools` → `permission` (legacy compatibility)
 3. Extracts unknown properties into `options`
 
 ### Agent Modes
 
-| Mode | Description | Usage |
-|------|-------------|-------|
-| `primary` | Default agent for sessions | Use Tab to switch |
-| `subagent` | Available via `@mention` | Specialized tasks |
-| `all` | Available everywhere | Both contexts |
+| Mode       | Description                | Usage             |
+| ---------- | -------------------------- | ----------------- |
+| `primary`  | Default agent for sessions | Use Tab to switch |
+| `subagent` | Available via `@mention`   | Specialized tasks |
+| `all`      | Available everywhere       | Both contexts     |
 
 ### Built-in Agents
 
-| Agent | Mode | Description |
-|-------|------|-------------|
-| `build` | primary | Full-access development agent |
-| `plan` | primary | Read-only analysis agent |
+| Agent     | Mode     | Description                          |
+| --------- | -------- | ------------------------------------ |
+| `build`   | primary  | Full-access development agent        |
+| `plan`    | primary  | Read-only analysis agent             |
 | `general` | subagent | Complex searches and multistep tasks |
 
 ### Example
@@ -374,6 +375,7 @@ Permissions are defined using `Config.Permission` which uses preprocessing and t
 ```
 
 The `Config.Permission` schema uses:
+
 - `permissionPreprocess()` - Captures original key order in `__originalKeys`
 - `permissionTransform()` - Rebuilds object in original order
 - `Config.PermissionAction` - Enum: `"ask"`, `"allow"`, `"deny"`
@@ -383,29 +385,29 @@ Permission evaluation is handled by `PermissionNext.evaluate()` which walks rule
 
 ### Permission Actions
 
-| Action | Behavior |
-|--------|----------|
+| Action  | Behavior                     |
+| ------- | ---------------------------- |
 | `allow` | Always permit without asking |
-| `deny` | Always reject |
-| `ask` | Prompt user for approval |
+| `deny`  | Always reject                |
+| `ask`   | Prompt user for approval     |
 
 ### Tool Permissions
 
-| Tool | Description | Default |
-|------|-------------|---------|
-| `read` | File reading | ask |
-| `edit` | File editing | ask |
-| `glob` | File pattern matching | allow |
-| `grep` | Content search | allow |
-| `list` | Directory listing | allow |
-| `bash` | Shell command execution | ask |
-| `task` | Subagent invocation | ask |
-| `external_directory` | Access outside project | ask |
-| `lsp` | Language server operations | allow |
-| `skill` | Skill execution | ask |
-| `webfetch` | HTTP requests | ask |
-| `websearch` | Web search | ask |
-| `codesearch` | Code search | ask |
+| Tool                 | Description                | Default |
+| -------------------- | -------------------------- | ------- |
+| `read`               | File reading               | ask     |
+| `edit`               | File editing               | ask     |
+| `glob`               | File pattern matching      | allow   |
+| `grep`               | Content search             | allow   |
+| `list`               | Directory listing          | allow   |
+| `bash`               | Shell command execution    | ask     |
+| `task`               | Subagent invocation        | ask     |
+| `external_directory` | Access outside project     | ask     |
+| `lsp`                | Language server operations | allow   |
+| `skill`              | Skill execution            | ask     |
+| `webfetch`           | HTTP requests              | ask     |
+| `websearch`          | Web search                 | ask     |
+| `codesearch`         | Code search                | ask     |
 
 ### Pattern Matching
 
@@ -415,9 +417,9 @@ Permissions support glob patterns for fine-grained control:
 {
   "permission": {
     "edit": {
-      "src/**/*.ts": "allow",      // Allow TypeScript edits
-      "*.config.js": "ask",         // Ask for config files
-      ".env*": "deny"               // Deny env files
+      "src/**/*.ts": "allow", // Allow TypeScript edits
+      "*.config.js": "ask", // Ask for config files
+      ".env*": "deny" // Deny env files
     },
     "bash": {
       "npm install": "allow",
@@ -434,7 +436,7 @@ Use `*` to set default for all tools:
 
 ```json
 {
-  "permission": "*"  // "allow", "deny", or "ask" for all tools
+  "permission": "*" // "allow", "deny", or "ask" for all tools
 }
 ```
 
@@ -492,7 +494,12 @@ Servers are initialized by `MCP.init()` which iterates config and spawns process
   "mcp": {
     "filesystem": {
       "type": "local",
-      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "/path/to/allowed"],
+      "command": [
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/path/to/allowed"
+      ],
       "enabled": true,
       "timeout": 10000
     },
@@ -552,7 +559,12 @@ Language Server Protocol (LSP) servers provide code intelligence.
     "typescript": {
       "command": "typescript-language-server",
       "args": ["--stdio"],
-      "languages": ["typescript", "javascript", "typescriptreact", "javascriptreact"],
+      "languages": [
+        "typescript",
+        "javascript",
+        "typescriptreact",
+        "javascriptreact"
+      ],
       "initialize": {
         "preferences": {
           "importModuleSpecifierPreference": "relative"
@@ -722,6 +734,7 @@ description: Database design and optimization
 You are an expert in database design, optimization, and query writing.
 
 Key responsibilities:
+
 - Design normalized schemas
 - Optimize query performance
 - Recommend appropriate indexes
@@ -732,13 +745,8 @@ Key responsibilities:
 ```json
 {
   "skills": {
-    "paths": [
-      "~/.opencode/skills",
-      "./custom-skills"
-    ],
-    "urls": [
-      "https://example.com/.well-known/skills/"
-    ]
+    "paths": ["~/.opencode/skills", "./custom-skills"],
+    "urls": ["https://example.com/.well-known/skills/"]
   }
 }
 ```
@@ -770,20 +778,20 @@ The leader key enables vim-style key sequences. Use `<leader>` in keybind defini
 {
   "keybinds": {
     "leader": "ctrl+x",
-    "session_new": "<leader>n"         // Triggers: ctrl+x then n
+    "session_new": "<leader>n" // Triggers: ctrl+x then n
   }
 }
 ```
 
 ### Available Actions
 
-| Category | Actions |
-|----------|---------|
-| **App** | `app_exit`, `editor_open`, `theme_list`, `sidebar_toggle`, `scrollbar_toggle`, `status_view` |
-| **Session** | `session_new`, `session_list`, `session_timeline`, `session_fork`, `session_rename`, `session_delete`, `session_export`, `session_share`, `session_unshare`, `session_interrupt`, `session_compact` |
+| Category     | Actions                                                                                                                                                                                             |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **App**      | `app_exit`, `editor_open`, `theme_list`, `sidebar_toggle`, `scrollbar_toggle`, `status_view`                                                                                                        |
+| **Session**  | `session_new`, `session_list`, `session_timeline`, `session_fork`, `session_rename`, `session_delete`, `session_export`, `session_share`, `session_unshare`, `session_interrupt`, `session_compact` |
 | **Messages** | `messages_page_up`, `messages_page_down`, `messages_line_up`, `messages_line_down`, `messages_first`, `messages_last`, `messages_copy`, `messages_undo`, `messages_redo`, `messages_toggle_conceal` |
-| **Model** | `model_list`, `model_cycle_recent`, `model_cycle_favorite`, `model_provider_list`, `model_favorite_toggle` |
-| **Command** | `command_list`, `agent_list` |
+| **Model**    | `model_list`, `model_cycle_recent`, `model_cycle_favorite`, `model_provider_list`, `model_favorite_toggle`                                                                                          |
+| **Command**  | `command_list`, `agent_list`                                                                                                                                                                        |
 
 ### Special Keys
 
@@ -829,6 +837,7 @@ Configure terminal user interface appearance and behavior.
 ### Theme Options
 
 Themes can be:
+
 - Built-in theme names: `"dark"`, `"light"`, `"terminal"`
 - File paths: `"~/.config/opencode/themes/custom.json"`
 - URLs: `"https://example.com/theme.json"`
@@ -869,10 +878,10 @@ Control session behavior and sharing.
 
 ### Sharing Options
 
-| Value | Behavior |
-|-------|----------|
-| `auto` | Auto-share new sessions |
-| `disabled` | Never share sessions |
+| Value      | Behavior                |
+| ---------- | ----------------------- |
+| `auto`     | Auto-share new sessions |
+| `disabled` | Never share sessions    |
 
 ### Compaction
 
@@ -915,11 +924,11 @@ Load custom plugins to extend OpenCode functionality.
 
 ### Plugin Formats
 
-| Format | Example |
-|--------|---------|
-| npm package | `"oh-my-opencode"` |
-| npm with version | `"oh-my-opencode@1.2.3"` |
-| Local file | `"file:///path/to/plugin.ts"` |
+| Format              | Example                                                 |
+| ------------------- | ------------------------------------------------------- |
+| npm package         | `"oh-my-opencode"`                                      |
+| npm with version    | `"oh-my-opencode@1.2.3"`                                |
+| Local file          | `"file:///path/to/plugin.ts"`                           |
 | .opencode directory | Automatically loaded from `.opencode/plugins/*.{ts,js}` |
 
 ### Plugin Loading Order
@@ -953,41 +962,41 @@ Environment variables are accessed via the `Flag` namespace and override configu
 
 ### Configuration Variables
 
-| Variable | Flag Constant | Purpose | Applied In |
-|----------|---------------|---------|------------|
-| `OPENCODE_CONFIG` | `Flag.OPENCODE_CONFIG` | Custom config file path | `Config.state():118-120` |
-| `OPENCODE_CONFIG_CONTENT` | `process.env.OPENCODE_CONFIG_CONTENT` | Inline config JSON | `Config.state():169-178` |
-| `OPENCODE_CONFIG_DIR` | `Flag.OPENCODE_CONFIG_DIR` | Custom .opencode directory | `Config.state():137-139` |
-| `OPENCODE_DISABLE_PROJECT_CONFIG` | `Flag.OPENCODE_DISABLE_PROJECT_CONFIG` | Ignore project config | `Config.state():124-128` |
-| `OPENCODE_DISABLE_DEFAULT_PLUGINS` | `Flag.OPENCODE_DISABLE_DEFAULT_PLUGINS` | Skip built-in plugins | Plugin loading |
+| Variable                           | Flag Constant                           | Purpose                    | Applied In               |
+| ---------------------------------- | --------------------------------------- | -------------------------- | ------------------------ |
+| `OPENCODE_CONFIG`                  | `Flag.OPENCODE_CONFIG`                  | Custom config file path    | `Config.state():118-120` |
+| `OPENCODE_CONFIG_CONTENT`          | `process.env.OPENCODE_CONFIG_CONTENT`   | Inline config JSON         | `Config.state():169-178` |
+| `OPENCODE_CONFIG_DIR`              | `Flag.OPENCODE_CONFIG_DIR`              | Custom .opencode directory | `Config.state():137-139` |
+| `OPENCODE_DISABLE_PROJECT_CONFIG`  | `Flag.OPENCODE_DISABLE_PROJECT_CONFIG`  | Ignore project config      | `Config.state():124-128` |
+| `OPENCODE_DISABLE_DEFAULT_PLUGINS` | `Flag.OPENCODE_DISABLE_DEFAULT_PLUGINS` | Skip built-in plugins      | Plugin loading           |
 
 ### Permission Variables
 
-| Variable | Flag Constant | Applied In |
-|----------|---------------|------------|
-| `OPENCODE_PERMISSION` | `Flag.OPENCODE_PERMISSION` | `Config.state():226-228` |
+| Variable                       | Flag Constant                       | Applied In               |
+| ------------------------------ | ----------------------------------- | ------------------------ |
+| `OPENCODE_PERMISSION`          | `Flag.OPENCODE_PERMISSION`          | `Config.state():226-228` |
 | `OPENCODE_DISABLE_AUTOCOMPACT` | `Flag.OPENCODE_DISABLE_AUTOCOMPACT` | `Config.state():252-254` |
-| `OPENCODE_DISABLE_PRUNE` | `Flag.OPENCODE_DISABLE_PRUNE` | `Config.state():255-257` |
+| `OPENCODE_DISABLE_PRUNE`       | `Flag.OPENCODE_DISABLE_PRUNE`       | `Config.state():255-257` |
 
 ### Server Variables
 
-| Variable | Flag Constant | Used In |
-|----------|---------------|---------|
+| Variable                   | Flag Constant                   | Used In                         |
+| -------------------------- | ------------------------------- | ------------------------------- |
 | `OPENCODE_SERVER_PASSWORD` | `Flag.OPENCODE_SERVER_PASSWORD` | `Server.createApp()` basic auth |
 | `OPENCODE_SERVER_USERNAME` | `Flag.OPENCODE_SERVER_USERNAME` | `Server.createApp()` basic auth |
 
 ### Feature Flags
 
-| Variable | Flag Constant | Purpose |
-|----------|---------------|---------|
-| `OPENCODE_AUTO_SHARE` | `Flag.OPENCODE_AUTO_SHARE` | `Session.createNext():330` auto-share |
-| `OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX` | `Flag.OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX` | `ProviderTransform.OUTPUT_TOKEN_MAX` |
-| `OPENCODE_STRICT_CONFIG_DEPS` | `Flag.OPENCODE_STRICT_CONFIG_DEPS` | `Config.installDependencies():310-322` |
+| Variable                                 | Flag Constant                                 | Purpose                                |
+| ---------------------------------------- | --------------------------------------------- | -------------------------------------- |
+| `OPENCODE_AUTO_SHARE`                    | `Flag.OPENCODE_AUTO_SHARE`                    | `Session.createNext():330` auto-share  |
+| `OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX` | `Flag.OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX` | `ProviderTransform.OUTPUT_TOKEN_MAX`   |
+| `OPENCODE_STRICT_CONFIG_DEPS`            | `Flag.OPENCODE_STRICT_CONFIG_DEPS`            | `Config.installDependencies():310-322` |
 
 ### Testing Variables
 
-| Variable | Used In |
-|----------|---------|
+| Variable                           | Used In                        |
+| ---------------------------------- | ------------------------------ |
 | `OPENCODE_TEST_MANAGED_CONFIG_DIR` | `Config.managedConfigDir():61` |
 
 Sources: [packages/opencode/src/flag/flag.ts:1-150](), [packages/opencode/src/config/config.ts:118-257]()
@@ -1001,7 +1010,7 @@ The `Config.state()` function (Instance.state wrapper) orchestrates loading thro
 ```mermaid
 flowchart TB
     Start["Config.state()<br/>Entry Point"]
-    
+
     Auth["Auth.all()<br/>Read auth.json<br/>Returns Record<string, AuthInfo>"]
     Remote["fetch() Remote Config<br/>Auth.wellknown entries<br/>Parse JSON response"]
     Global["Config.global()<br/>ConfigPaths.globalFiles()<br/>Config.loadFile()"]
@@ -1012,14 +1021,14 @@ flowchart TB
     Inline["Config.load()<br/>process.env.OPENCODE_CONFIG_CONTENT<br/>parseJsonc()"]
     Account["Account.config()<br/>active_org_id<br/>Fetch remote org config"]
     Managed["Config.managedConfigDir()<br/>systemManagedConfigDir()<br/>Config.loadFile()"]
-    
+
     Merge["mergeConfigConcatArrays()<br/>mergeDeep + array concat<br/>Deduplicate plugin/instructions"]
     Migrate["Migration Logic<br/>mode → agent.mode<br/>tools → permission"]
     Flags["Flag Overrides<br/>OPENCODE_PERMISSION<br/>OPENCODE_DISABLE_*"]
     Dedupe["deduplicatePlugins()<br/>Reverse, Set, Reverse<br/>Priority: latest wins"]
-    
+
     Result["Config.Info<br/>Returned by Config.get()"]
-    
+
     Start --> Auth
     Auth --> Remote
     Remote --> Global
@@ -1031,7 +1040,7 @@ flowchart TB
     Inline --> Account
     Account --> Managed
     Managed --> Merge
-    
+
     Merge --> Migrate
     Migrate --> Flags
     Flags --> Dedupe
@@ -1057,6 +1066,7 @@ flowchart TB
 ### Merge Strategy
 
 The `mergeConfigConcatArrays()` function uses `mergeDeep()` with special array handling:
+
 - **Objects**: Deep merge (later overwrites earlier)
 - **Arrays** (`plugin`, `instructions`): Concatenate, then deduplicate via `Array.from(new Set([...]))`
 - **Primitives**: Later value wins (standard `mergeDeep` behavior)

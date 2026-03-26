@@ -18,14 +18,12 @@ The following files were used as context for generating this wiki page:
 - [apps/api/src/env.ts](apps/api/src/env.ts)
 - [apps/api/src/proxy.ts](apps/api/src/proxy.ts)
 - [apps/api/src/trpc/context.ts](apps/api/src/trpc/context.ts)
-- [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx)
-- [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts)
+- [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx)
+- [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts)
 - [apps/web/src/trpc/react.tsx](apps/web/src/trpc/react.tsx)
 - [fly.toml](fly.toml)
 
 </details>
-
-
 
 ## Purpose and Scope
 
@@ -55,26 +53,26 @@ Sources: [.github/workflows/deploy-preview.yml:1-766](), [.github/workflows/depl
 
 The CI workflow [`ci.yml`](.github/workflows/ci.yml:1-133) runs four parallel jobs on every push to `main` and every pull request:
 
-| Job | Description | Command |
-|-----|-------------|---------|
-| **sherif** | Validates monorepo dependency consistency | `bunx sherif` |
-| **lint** | Runs ESLint across all packages | `bun run lint` |
-| **test** | Executes test suites | `bun run test` |
-| **typecheck** | Verifies TypeScript types | `bun run typecheck` |
-| **build** | Builds the Desktop app | `bun turbo run build --filter=@superset/desktop` |
+| Job           | Description                               | Command                                          |
+| ------------- | ----------------------------------------- | ------------------------------------------------ |
+| **sherif**    | Validates monorepo dependency consistency | `bunx sherif`                                    |
+| **lint**      | Runs ESLint across all packages           | `bun run lint`                                   |
+| **test**      | Executes test suites                      | `bun run test`                                   |
+| **typecheck** | Verifies TypeScript types                 | `bun run typecheck`                              |
+| **build**     | Builds the Desktop app                    | `bun turbo run build --filter=@superset/desktop` |
 
 All jobs use **Bun 1.3.6** as the package manager and runtime, with dependency caching via GitHub Actions cache. The Desktop build job validates that the Electron app can compile successfully.
 
 ```mermaid
 graph LR
     PR["Pull Request<br/>or Push to Main"]
-    
+
     PR --> Sherif["sherif job<br/>Dependency Check"]
     PR --> Lint["lint job<br/>ESLint"]
     PR --> Test["test job<br/>Test Suites"]
     PR --> Typecheck["typecheck job<br/>TypeScript"]
     PR --> Build["build job<br/>Desktop App"]
-    
+
     Sherif --> Pass["✅ All Checks Pass"]
     Lint --> Pass
     Test --> Pass
@@ -107,7 +105,7 @@ graph TB
         Docs["deploy-docs job<br/>Vercel"]
         Comment["post-final-comment job<br/>PR Comment"]
     end
-    
+
     subgraph "Preview Infrastructure"
         NeonBranch["Neon Branch<br/>github.head_ref"]
         ElectricApp["Electric Fly App<br/>superset-electric-pr-N"]
@@ -117,7 +115,7 @@ graph TB
         VercelAdmin["Admin Vercel<br/>admin-pr-N-superset.vercel.app"]
         VercelDocs["Docs Vercel<br/>docs-pr-N-superset.vercel.app"]
     end
-    
+
     PR --> Database
     Database --> Electric
     Database --> API
@@ -125,7 +123,7 @@ graph TB
     Database --> Marketing
     Database --> Admin
     Database --> Docs
-    
+
     Database --> NeonBranch
     Electric --> ElectricApp
     API --> VercelAPI
@@ -133,7 +131,7 @@ graph TB
     Marketing --> VercelMarketing
     Admin --> VercelAdmin
     Docs --> VercelDocs
-    
+
     Electric --> Comment
     API --> Comment
     Web --> Comment
@@ -168,15 +166,15 @@ sequenceDiagram
     participant GHA as GitHub Actions
     participant Neon as Neon API
     participant Drizzle as Drizzle Kit
-    
+
     GHA->>Neon: Create branch from main
     Note over Neon: Branch name: github.head_ref
     Neon-->>GHA: Return db_url_pooled + db_url + branch_id
-    
+
     GHA->>Drizzle: bun drizzle-kit check
     GHA->>Drizzle: bun drizzle-kit migrate
     Note over Drizzle: Apply schema to branch DB
-    
+
     GHA->>GHA: Save database-status.env artifact
     Note over GHA: Contains DATABASE_URL,<br/>DATABASE_URL_UNPOOLED,<br/>BRANCH_ID
 ```
@@ -186,6 +184,7 @@ The job uses the [`neondatabase/create-branch-action@v6`](.github/workflows/depl
 **Schema Validation and Migration**
 
 After branch creation, the workflow runs:
+
 - `bun drizzle-kit check` - Validates schema consistency
 - `bun drizzle-kit migrate` - Applies pending migrations
 
@@ -201,21 +200,21 @@ graph LR
     DatabaseJob --> DownloadArtifact["Download database-status.env"]
     DownloadArtifact --> ExtractURL["Extract DATABASE_URL_UNPOOLED"]
     ExtractURL --> FlyDeploy["Deploy to Fly.io"]
-    
+
     FlyDeploy --> FlyApp["Fly App<br/>superset-electric-pr-N<br/>Region: iad"]
     FlyApp --> Secrets["Set Secrets:<br/>DATABASE_URL<br/>ELECTRIC_SECRET"]
 ```
 
 The deployment uses [`superfly/fly-pr-review-apps@1.3.0`](.github/workflows/deploy-preview.yml:100) action with configuration from [`fly.toml`](fly.toml:1-33):
 
-| Configuration | Value |
-|---------------|-------|
-| **App Name** | `superset-electric-pr-{PR_NUMBER}` |
-| **Region** | `iad` (US East) |
-| **Image** | `electricsql/electric:1.4.13` |
-| **Memory** | 8192 MB |
-| **CPUs** | 4 (performance) |
-| **Health Check** | `GET /v1/health` every 10s |
+| Configuration    | Value                              |
+| ---------------- | ---------------------------------- |
+| **App Name**     | `superset-electric-pr-{PR_NUMBER}` |
+| **Region**       | `iad` (US East)                    |
+| **Image**        | `electricsql/electric:1.4.13`      |
+| **Memory**       | 8192 MB                            |
+| **CPUs**         | 4 (performance)                    |
+| **Health Check** | `GET /v1/health` every 10s         |
 
 Sources: [.github/workflows/deploy-preview.yml:80-123](), [fly.toml:1-33]()
 
@@ -226,6 +225,7 @@ Five separate jobs deploy Next.js applications to Vercel in parallel:
 **API Deployment** ([deploy-api](.github/workflows/deploy-preview.yml:125-285))
 
 The API deployment is the most complex, requiring 40+ environment variables including:
+
 - Database URLs (pooled and unpooled)
 - OAuth credentials (Google, GitHub, Linear, Slack)
 - Third-party API keys (Stripe, Anthropic, Resend, QStash)
@@ -241,6 +241,7 @@ vercel alias $VERCEL_URL $API_ALIAS --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
 **Web, Marketing, Admin, Docs Deployments**
 
 These follow the same pattern as API but with application-specific environment variables. Each deployment:
+
 1. Downloads database artifact (if needed)
 2. Installs Vercel CLI version `50.22.1`
 3. Pulls project configuration
@@ -261,7 +262,7 @@ graph TB
     DownloadArtifacts --> CheckStatus["Check each job result"]
     CheckStatus --> GenerateComment["Generate deployment table from template"]
     GenerateComment --> PostComment["Post/Update PR Comment"]
-    
+
     Template[".github/templates/preview-comment.md"]
     Template --> GenerateComment
 ```
@@ -293,24 +294,25 @@ Sources: [.github/workflows/deploy-preview.yml:9-11]()
 ### Production Deployment Flow
 
 The [`deploy-production.yml`](.github/workflows/deploy-production.yml:1-551) workflow triggers on:
+
 - Pushes to the `main` branch
 - Manual workflow dispatch
 
 ```mermaid
 graph TB
     Push["Push to main<br/>or Manual Trigger"]
-    
+
     Push --> DBMigrate["deploy-database job<br/>Run Migrations"]
-    
+
     DBMigrate --> API["deploy-api job"]
     DBMigrate --> Web["deploy-web job"]
     DBMigrate --> Marketing["deploy-marketing job"]
     DBMigrate --> Admin["deploy-admin job"]
     DBMigrate --> Docs["deploy-docs job"]
-    
+
     Push --> Electric["deploy-electric job"]
     Push --> ElectricProxy["deploy-electric-proxy job"]
-    
+
     subgraph "Production Infrastructure"
         NeonProd["Neon Production DB"]
         ElectricProd["Electric Fly App<br/>superset-electric"]
@@ -321,7 +323,7 @@ graph TB
         AdminProd["admin.superset.sh"]
         DocsProd["docs.superset.sh"]
     end
-    
+
     DBMigrate --> NeonProd
     API --> APIProd
     Web --> WebProd
@@ -334,13 +336,13 @@ graph TB
 
 **Key Differences from Preview Deployments**
 
-| Aspect | Preview | Production |
-|--------|---------|------------|
-| Database | New Neon branch | Production database (migrations only) |
-| Electric | New Fly app per PR | Persistent `superset-electric` app |
-| Vercel | Preview deployment | Production deployment with `--prod` flag |
-| Aliases | `*-pr-{N}-superset.vercel.app` | Production domains |
-| Cleanup | Automatic on PR close | Never cleaned up |
+| Aspect   | Preview                        | Production                               |
+| -------- | ------------------------------ | ---------------------------------------- |
+| Database | New Neon branch                | Production database (migrations only)    |
+| Electric | New Fly app per PR             | Persistent `superset-electric` app       |
+| Vercel   | Preview deployment             | Production deployment with `--prod` flag |
+| Aliases  | `*-pr-{N}-superset.vercel.app` | Production domains                       |
+| Cleanup  | Automatic on PR close          | Never cleaned up                         |
 
 Sources: [.github/workflows/deploy-production.yml:1-551]()
 
@@ -371,6 +373,7 @@ vercel deploy --prod --prebuilt --archive=tgz --token=$VERCEL_TOKEN [--env flags
 ```
 
 The `--prod` flag ensures the deployment:
+
 - Uses production environment variables
 - Deploys to the production domain (e.g., `api.superset.com`)
 - Does not create preview URLs
@@ -421,28 +424,28 @@ sequenceDiagram
     participant GHA as GitHub Actions
     participant Neon as Neon API
     participant Fly as Fly.io API
-    
+
     PR->>GHA: PR closed event
-    
+
     GHA->>Neon: Delete branch (github.event.pull_request.head.ref)
     Note over Neon: Uses neondatabase/delete-branch-action@v3
     Neon-->>GHA: ✅ Branch deleted
-    
+
     GHA->>Fly: Destroy app (superset-electric-pr-N)
     Note over Fly: flyctl apps destroy --yes
     Fly-->>GHA: ✅ App destroyed
-    
+
     GHA->>PR: Update cleanup comment
     Note over PR: Shows status of each cleanup operation
 ```
 
 **Cleanup Operations**
 
-| Resource | Action | Failure Handling |
-|----------|--------|------------------|
-| Neon Branch | `neondatabase/delete-branch-action@v3` | `continue-on-error: true` |
-| Electric Fly App | `flyctl apps destroy --yes` | `continue-on-error: true` |
-| Vercel Deployments | (Automatic by Vercel) | N/A |
+| Resource           | Action                                 | Failure Handling          |
+| ------------------ | -------------------------------------- | ------------------------- |
+| Neon Branch        | `neondatabase/delete-branch-action@v3` | `continue-on-error: true` |
+| Electric Fly App   | `flyctl apps destroy --yes`            | `continue-on-error: true` |
+| Vercel Deployments | (Automatic by Vercel)                  | N/A                       |
 
 Vercel automatically removes preview deployments when branches are deleted, so no explicit cleanup is needed. The workflow uses `continue-on-error: true` to ensure one failed cleanup doesn't block the others.
 
@@ -457,6 +460,7 @@ Sources: [.github/workflows/cleanup-preview.yml:1-48]()
 Secrets are stored in GitHub Secrets and injected into workflows via `${{ secrets.SECRET_NAME }}` syntax. Secrets are categorized by scope:
 
 **Authentication Secrets**
+
 - `BETTER_AUTH_SECRET` - Better Auth session encryption key
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` - Google OAuth
 - `GH_CLIENT_ID`, `GH_CLIENT_SECRET` - GitHub OAuth
@@ -465,6 +469,7 @@ Secrets are stored in GitHub Secrets and injected into workflows via `${{ secret
 - `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_SIGNING_SECRET` - Slack integration
 
 **Infrastructure Secrets**
+
 - `DATABASE_URL`, `DATABASE_URL_UNPOOLED` - Neon connection strings (production only)
 - `ELECTRIC_URL`, `ELECTRIC_SECRET` - ElectricSQL configuration
 - `ELECTRIC_SECRET_PREVIEW` - Electric secret for preview environments
@@ -473,6 +478,7 @@ Secrets are stored in GitHub Secrets and injected into workflows via `${{ secret
 - `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` - Cloudflare Workers
 
 **Third-Party API Keys**
+
 - `ANTHROPIC_API_KEY` - AI model access
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` - Payment processing
 - `RESEND_API_KEY` - Email delivery
@@ -481,6 +487,7 @@ Secrets are stored in GitHub Secrets and injected into workflows via `${{ secret
 - `TAVILY_API_KEY` - Search API
 
 **Observability Secrets**
+
 - `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` - Analytics
 - `POSTHOG_API_KEY`, `POSTHOG_PROJECT_ID` - Analytics server-side
 - `NEXT_PUBLIC_SENTRY_DSN_*` - Error tracking (per-app DSNs)
@@ -503,19 +510,19 @@ graph TB
         Admin["apps/admin<br/>VERCEL_ADMIN_PROJECT_ID<br/>admin.superset.sh"]
         Docs["apps/docs<br/>VERCEL_DOCS_PROJECT_ID<br/>docs.superset.sh"]
     end
-    
+
     subgraph "Fly.io"
         Electric["ElectricSQL 1.4.13<br/>superset-electric<br/>iad region"]
     end
-    
+
     subgraph "Cloudflare"
         Proxy["apps/electric-proxy<br/>Cloudflare Worker"]
     end
-    
+
     subgraph "Neon"
         DB["PostgreSQL<br/>Production Database"]
     end
-    
+
     API --> DB
     Web --> API
     Marketing --> API
@@ -527,16 +534,16 @@ graph TB
 
 **Component Repository Locations**
 
-| Component | Repository Path | Deployment Target |
-|-----------|----------------|-------------------|
-| API | `apps/api` | Vercel |
-| Web | `apps/web` | Vercel |
-| Marketing | `apps/marketing` | Vercel |
-| Admin | `apps/admin` | Vercel |
-| Docs | `apps/docs` | Vercel |
-| Electric Proxy | `apps/electric-proxy` | Cloudflare Workers |
-| ElectricSQL | N/A (uses official Docker image) | Fly.io |
-| Database | `packages/db` (schema/migrations only) | Neon PostgreSQL |
+| Component      | Repository Path                        | Deployment Target  |
+| -------------- | -------------------------------------- | ------------------ |
+| API            | `apps/api`                             | Vercel             |
+| Web            | `apps/web`                             | Vercel             |
+| Marketing      | `apps/marketing`                       | Vercel             |
+| Admin          | `apps/admin`                           | Vercel             |
+| Docs           | `apps/docs`                            | Vercel             |
+| Electric Proxy | `apps/electric-proxy`                  | Cloudflare Workers |
+| ElectricSQL    | N/A (uses official Docker image)       | Fly.io             |
+| Database       | `packages/db` (schema/migrations only) | Neon PostgreSQL    |
 
 Sources: [.github/workflows/deploy-production.yml:42-550](), [fly.toml:1-33]()
 
@@ -591,11 +598,11 @@ graph LR
     Desktop["Desktop App<br/>localhost:5173<br/>(dev mode)"]
     Web["Web App<br/>app.superset.com"]
     Admin["Admin App<br/>admin.superset.sh"]
-    
+
     Desktop --> Middleware["middleware.ts<br/>proxy()"]
     Web --> Middleware
     Admin --> Middleware
-    
+
     Middleware --> CORS["CORS Headers"]
     CORS --> ElectricProxy["Electric Proxy Route<br/>/api/electric"]
     CORS --> TRPCRoute["tRPC Route<br/>/api/trpc"]
@@ -604,6 +611,7 @@ graph LR
 **Allowed Origins**
 
 The proxy determines allowed origins from environment variables:
+
 - `NEXT_PUBLIC_WEB_URL`
 - `NEXT_PUBLIC_ADMIN_URL`
 - `NEXT_PUBLIC_DESKTOP_URL`
@@ -612,6 +620,7 @@ The proxy determines allowed origins from environment variables:
 **Exposed Headers for Electric Sync**
 
 The middleware exposes Electric-specific headers required for shape streaming:
+
 - `electric-offset`, `electric-handle`, `electric-schema`
 - `electric-cursor`, `electric-chunk-last-offset`
 - `electric-up-to-date`
@@ -632,13 +641,13 @@ sequenceDiagram
     participant Proxy as /api/electric proxy
     participant Auth as Better Auth
     participant ElectricServer as Electric Fly.io
-    
+
     Client->>Proxy: GET /api/electric?table=projects&organizationId=org123
     Note over Client,Proxy: Authorization: Bearer <jwt>
-    
+
     Proxy->>Auth: Verify JWT or session
     Auth-->>Proxy: Return userId + organizationIds[]
-    
+
     alt Not authenticated
         Proxy-->>Client: 401 Unauthorized
     else Not member of org
@@ -646,10 +655,10 @@ sequenceDiagram
     else Authorized
         Proxy->>Proxy: Build WHERE clause
         Note over Proxy: buildWhereClause(table, orgId, userId)
-        
+
         Proxy->>ElectricServer: Forward with WHERE filter
         Note over Proxy,ElectricServer: Add ?where=organization_id=$1&params[1]=org123
-        
+
         ElectricServer-->>Proxy: Shape stream
         Proxy-->>Client: Shape stream
     end
@@ -671,6 +680,7 @@ build(projects, projects.organizationId, organizationId)
 **Supported Tables**
 
 The proxy supports 20+ table types with organization-based filtering:
+
 - Application tables: `tasks`, `projects`, `workspaces`, `v2_*`
 - Auth tables: `auth.members`, `auth.organizations`, `auth.users`, `auth.invitations`
 - Integration tables: `integration_connections`, `github_repositories`
@@ -687,14 +697,14 @@ Sources: [apps/api/src/app/api/electric/[...path]/route.ts:1-104](), [apps/api/s
 The Desktop app configures Electric collections to connect through the API proxy:
 
 ```typescript
-const electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_URL}/v1/shape`;
+const electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_URL}/v1/shape`
 
 const electricHeaders = {
   Authorization: () => {
-    const token = getJwt();
-    return token ? `Bearer ${token}` : "";
+    const token = getJwt()
+    return token ? `Bearer ${token}` : ''
   },
-};
+}
 ```
 
 Collections use `electricCollectionOptions` with shape subscriptions:
@@ -706,7 +716,7 @@ createCollection(
     shapeOptions: {
       url: electricUrl,
       params: {
-        table: "projects",
+        table: 'projects',
         organizationId,
       },
       headers: electricHeaders,
@@ -719,7 +729,7 @@ createCollection(
 
 The `NEXT_PUBLIC_ELECTRIC_URL` environment variable points to the API proxy endpoint (`/api/electric`), not directly to Electric on Fly.io. This ensures all shape requests are authenticated and filtered by organization.
 
-Sources: [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:50-239]()
+Sources: [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:50-239]()
 
 ---
 
@@ -732,18 +742,18 @@ Preview deployments use GitHub Actions artifacts to share data between jobs:
 ```mermaid
 graph TB
     DatabaseJob["deploy-database"]
-    
+
     DatabaseJob --> SaveArtifact["Upload database-status.env"]
-    
+
     SaveArtifact --> APIJob["deploy-api<br/>Downloads artifact"]
     SaveArtifact --> WebJob["deploy-web<br/>Downloads artifact"]
     SaveArtifact --> AdminJob["deploy-admin<br/>Downloads artifact"]
     SaveArtifact --> ElectricJob["deploy-electric<br/>Downloads artifact"]
-    
+
     APIJob --> SaveAPIArtifact["Upload api-status.env"]
     WebJob --> SaveWebArtifact["Upload web-status.env"]
     ElectricJob --> SaveElectricArtifact["Upload electric-status.env"]
-    
+
     SaveAPIArtifact --> CommentJob["post-final-comment<br/>Downloads all artifacts"]
     SaveWebArtifact --> CommentJob
     SaveElectricArtifact --> CommentJob

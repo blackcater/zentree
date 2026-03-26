@@ -36,8 +36,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The `@tanstack/ai-client` package provides framework-agnostic, headless state management for AI chat interactions. It handles streaming connections, message state, client-side tool execution, and approval workflows without being tied to any specific UI framework.
 
 For server-side AI capabilities (adapters, tool definitions, streaming utilities), see [Core Library](#3). For framework-specific hooks that wrap this client, see [Framework Integrations](#6).
@@ -61,7 +59,7 @@ graph TB
         CORE["@tanstack/ai<br/>chat(), toolDefinition()"]
         ADAPTERS["AI Provider Adapters<br/>openaiText(), anthropicText()"]
     end
-    
+
     subgraph "Client Library Layer"
         CLIENT["@tanstack/ai-client"]
         CHATCLIENT["ChatClient class<br/>Message state management"]
@@ -69,36 +67,36 @@ graph TB
         CLIENTTOOLS["clientTools() helper<br/>Client tool execution"]
         TYPEINFER["Type Inference<br/>InferChatMessages<br/>InferSchemaType"]
     end
-    
+
     subgraph "Framework Integration Layer"
         REACT["@tanstack/ai-react<br/>useChat()"]
         SOLID["@tanstack/ai-solid<br/>useChat()"]
         VUE["@tanstack/ai-vue<br/>useChat()"]
         VANILLA["Vanilla JS<br/>Direct ChatClient usage"]
     end
-    
+
     subgraph "Application Layer"
         UI["UI Components<br/>Message rendering"]
     end
-    
+
     CORE -.provides.-> CLIENT
     ADAPTERS -.provides.-> CORE
-    
+
     CLIENT --> CHATCLIENT
     CLIENT --> CONNECTORS
     CLIENT --> CLIENTTOOLS
     CLIENT --> TYPEINFER
-    
+
     CHATCLIENT --> REACT
     CHATCLIENT --> SOLID
     CHATCLIENT --> VUE
     CHATCLIENT --> VANILLA
-    
+
     CONNECTORS --> REACT
     CONNECTORS --> SOLID
     CONNECTORS --> VUE
     CONNECTORS --> VANILLA
-    
+
     REACT --> UI
     SOLID --> UI
     VUE --> UI
@@ -108,6 +106,7 @@ graph TB
 **The Client Library as Middleware**
 
 The `@tanstack/ai-client` package acts as a framework-agnostic middleware that:
+
 1. Receives streaming chunks from server endpoints
 2. Maintains conversation state as structured `UIMessage` objects
 3. Executes client-side tools when requested
@@ -119,16 +118,16 @@ Sources: [docs/getting-started/overview.md:69-89](), [packages/typescript/ai-cli
 
 The `@tanstack/ai-client` package exports the following primary entities:
 
-| Export | Type | Purpose |
-|--------|------|---------|
-| `ChatClient` | Class | Core state management class |
-| `fetchServerSentEvents` | Function | SSE connection adapter factory |
-| `fetchHttpStream` | Function | HTTP stream connection adapter factory |
-| `stream` | Function | Custom connection adapter factory |
-| `clientTools` | Function | Type-safe tool array builder |
+| Export                    | Type     | Purpose                                    |
+| ------------------------- | -------- | ------------------------------------------ |
+| `ChatClient`              | Class    | Core state management class                |
+| `fetchServerSentEvents`   | Function | SSE connection adapter factory             |
+| `fetchHttpStream`         | Function | HTTP stream connection adapter factory     |
+| `stream`                  | Function | Custom connection adapter factory          |
+| `clientTools`             | Function | Type-safe tool array builder               |
 | `createChatClientOptions` | Function | Options object builder with type inference |
-| `InferChatMessages` | Type | Infer message types from chat options |
-| `InferSchemaType` | Type | Infer types from Zod/JSON schemas |
+| `InferChatMessages`       | Type     | Infer message types from chat options      |
+| `InferSchemaType`         | Type     | Infer types from Zod/JSON schemas          |
 
 Sources: [packages/typescript/ai-client/package.json:20-28](), [docs/guides/client-tools.md:119-154]()
 
@@ -149,21 +148,21 @@ graph LR
         CHUNK2["ToolCallStreamChunk"]
         CHUNK3["ToolResultStreamChunk"]
     end
-    
+
     subgraph "ChatClient State Processing"
         PROCESSOR["StreamProcessor<br/>Accumulate chunks<br/>Track tool call states"]
         MESSAGES["UIMessage[]<br/>Structured message array"]
     end
-    
+
     subgraph "Framework Consumption"
         HOOK["useChat()<br/>Reactive state wrapper"]
         COMPONENT["UI Component<br/>Render messages"]
     end
-    
+
     CHUNK1 --> PROCESSOR
     CHUNK2 --> PROCESSOR
     CHUNK3 --> PROCESSOR
-    
+
     PROCESSOR --> MESSAGES
     MESSAGES --> HOOK
     HOOK --> COMPONENT
@@ -187,21 +186,21 @@ graph TB
     subgraph "Connection Adapter Interface"
         ADAPTER["ConnectionAdapter<br/>(messages, data, signal) => AsyncIterable&lt;StreamChunk&gt;"]
     end
-    
+
     subgraph "Built-in Adapters"
         SSE["fetchServerSentEvents(url)<br/>Uses EventSource API<br/>Auto-reconnection"]
         HTTP["fetchHttpStream(url)<br/>NDJSON parsing<br/>Manual reconnection"]
         CUSTOM["stream(fn)<br/>Custom implementation"]
     end
-    
+
     subgraph "Server Endpoints"
         API["/api/chat endpoint<br/>Returns SSE or HTTP stream"]
     end
-    
+
     ADAPTER -.implemented by.-> SSE
     ADAPTER -.implemented by.-> HTTP
     ADAPTER -.implemented by.-> CUSTOM
-    
+
     SSE --> API
     HTTP --> API
     CUSTOM --> API
@@ -226,7 +225,7 @@ sequenceDiagram
     participant Client as "ChatClient"
     participant ToolImpl as "Client Tool Implementation<br/>updateUI.client()"
     participant UI as "UI Component"
-    
+
     Server->>SSE: tool-input-available chunk<br/>{toolName, input}
     SSE->>Client: Deserialize chunk
     Client->>Client: Find matching tool in clientTools()
@@ -240,6 +239,7 @@ sequenceDiagram
 **Automatic Execution**
 
 When `clientTools()` is used to define client tool implementations, the `ChatClient` automatically:
+
 1. Receives `tool-input-available` chunks from the server
 2. Matches the tool name to the local implementation
 3. Executes the tool with validated arguments
@@ -263,3 +263,4 @@ const updateUIDef = toolDefinition({
   inputSchema: z.object({
     message: z.string(),
     type: z.enum(["success", "error", "info\
+```

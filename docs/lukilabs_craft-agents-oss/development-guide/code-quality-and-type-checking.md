@@ -9,8 +9,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the type checking, linting, and testing infrastructure used to maintain code quality across the Craft Agents codebase. For information about building and packaging the application, see [Build System](#5.2). For information about working with packages and their dependencies, see [Working with Packages](#5.4).
 
 ## Overview
@@ -31,9 +29,9 @@ The project uses TypeScript 5.0+ with strict type checking enabled. Type checkin
 
 The root `package.json` defines two type checking scripts:
 
-| Script | Packages Checked | Notes |
-|--------|-----------------|-------|
-| `typecheck` | `packages/shared` | Quick check on the shared package only |
+| Script          | Packages Checked                                                  | Notes                                                  |
+| --------------- | ----------------------------------------------------------------- | ------------------------------------------------------ |
+| `typecheck`     | `packages/shared`                                                 | Quick check on the shared package only                 |
 | `typecheck:all` | `packages/core`, `packages/shared`, `packages/session-tools-core` | Full sequential check across all foundational packages |
 
 Both scripts invoke `tsc --noEmit`, which validates types without emitting output files.
@@ -62,6 +60,7 @@ Both `core` and `shared` packages declare AI SDKs as peer dependencies rather th
 ```
 
 This pattern ensures:
+
 - **Single version resolution**: Only one version of each SDK exists in the dependency tree
 - **Type consistency**: TypeScript sees the same SDK types across all packages
 - **Version flexibility**: Applications can control SDK versions without conflicts
@@ -121,12 +120,12 @@ The codebase uses ESLint with TypeScript-specific plugins to enforce code qualit
 
 ### Lint Scripts
 
-| Script | Target | Command |
-|--------|--------|---------|
-| `lint:electron` | `apps/electron` | `cd apps/electron && bun run lint` |
-| `lint:shared` | `packages/shared` | `npx eslint .` |
-| `lint:ui` | `packages/ui` | `npx eslint .` |
-| `lint` | All three | Runs `lint:electron`, `lint:shared`, and `lint:ui` sequentially |
+| Script          | Target            | Command                                                         |
+| --------------- | ----------------- | --------------------------------------------------------------- |
+| `lint:electron` | `apps/electron`   | `cd apps/electron && bun run lint`                              |
+| `lint:shared`   | `packages/shared` | `npx eslint .`                                                  |
+| `lint:ui`       | `packages/ui`     | `npx eslint .`                                                  |
+| `lint`          | All three         | Runs `lint:electron`, `lint:shared`, and `lint:ui` sequentially |
 
 Sources: [package.json:16-19]()
 
@@ -134,12 +133,12 @@ Sources: [package.json:16-19]()
 
 The following ESLint packages are installed at the root level and shared across all lint targets:
 
-| Package | Purpose |
-|---------|---------|
-| `@typescript-eslint/parser` | Parses TypeScript syntax for ESLint |
-| `@typescript-eslint/eslint-plugin` | TypeScript-specific linting rules |
-| `eslint-plugin-react` | React component best practices |
-| `eslint-plugin-react-hooks` | Enforces Rules of Hooks |
+| Package                            | Purpose                             |
+| ---------------------------------- | ----------------------------------- |
+| `@typescript-eslint/parser`        | Parses TypeScript syntax for ESLint |
+| `@typescript-eslint/eslint-plugin` | TypeScript-specific linting rules   |
+| `eslint-plugin-react`              | React component best practices      |
+| `eslint-plugin-react-hooks`        | Enforces Rules of Hooks             |
 
 Sources: [package.json:72-73](), [package.json:76-78]()
 
@@ -209,10 +208,10 @@ The project uses [Bun](https://bun.sh) as its test runner, providing fast execut
 
 ### Test Scripts
 
-| Location | Script | Command |
-|----------|--------|---------|
-| Root | `test` | `bun test` |
-| `packages/shared` | `test` | `bun test` |
+| Location          | Script       | Command            |
+| ----------------- | ------------ | ------------------ |
+| Root              | `test`       | `bun test`         |
+| `packages/shared` | `test`       | `bun test`         |
 | `packages/shared` | `test:watch` | `bun test --watch` |
 
 **Sources:** [package.json:13](), [packages/shared/package.json:11-12]()
@@ -251,6 +250,7 @@ Sources: [package.json:13](), [packages/shared/package.json:11-12]()
 ### Test File Patterns
 
 Bun automatically discovers test files matching these patterns:
+
 - `**/*.test.ts`
 - `**/*.spec.ts`
 - Files in `__tests__` directories
@@ -274,16 +274,16 @@ This re-runs tests automatically when source files change, providing rapid feedb
 
 The following table summarizes the complete set of quality checks and their scopes:
 
-| Script | Command | Scope |
-|--------|---------|-------|
-| `typecheck` | `bun run typecheck` | `packages/shared` |
-| `typecheck:all` | `bun run typecheck:all` | `packages/core` + `packages/shared` + `packages/session-tools-core` |
-| `lint:electron` | `bun run lint:electron` | `apps/electron` |
-| `lint:shared` | `bun run lint:shared` | `packages/shared` |
-| `lint:ui` | `bun run lint:ui` | `packages/ui` |
-| `lint` | `bun run lint` | All three lint targets |
-| `test` | `bun run test` | All test files in workspace |
-| Build type check | Via `esbuild` / Vite | Implicit during build |
+| Script           | Command                 | Scope                                                               |
+| ---------------- | ----------------------- | ------------------------------------------------------------------- |
+| `typecheck`      | `bun run typecheck`     | `packages/shared`                                                   |
+| `typecheck:all`  | `bun run typecheck:all` | `packages/core` + `packages/shared` + `packages/session-tools-core` |
+| `lint:electron`  | `bun run lint:electron` | `apps/electron`                                                     |
+| `lint:shared`    | `bun run lint:shared`   | `packages/shared`                                                   |
+| `lint:ui`        | `bun run lint:ui`       | `packages/ui`                                                       |
+| `lint`           | `bun run lint`          | All three lint targets                                              |
+| `test`           | `bun run test`          | All test files in workspace                                         |
+| Build type check | Via `esbuild` / Vite    | Implicit during build                                               |
 
 Sources: [package.json:13-19]()
 
@@ -298,36 +298,36 @@ graph TB
     subgraph "Root Installation"
         RootNodeModules["node_modules/<br/>@anthropic-ai/claude-agent-sdk@0.2.37<br/>@anthropic-ai/sdk@0.71.1<br/>@modelcontextprotocol/sdk@1.24.3"]
     end
-    
+
     subgraph "packages/core"
         CorePeerDeps["peerDependencies:<br/>@anthropic-ai/claude-agent-sdk: >=0.2.19<br/>@anthropic-ai/sdk: >=0.70.0<br/>@modelcontextprotocol/sdk: >=1.0.0"]
         CoreImports["import type {...} from '@anthropic-ai/sdk'"]
-        
+
         CorePeerDeps -.declares need for.-> RootNodeModules
         CoreImports -.resolves to.-> RootNodeModules
     end
-    
+
     subgraph "packages/shared"
         SharedPeerDeps["peerDependencies:<br/>(same versions)"]
         SharedImports["import type {...} from '@anthropic-ai/sdk'"]
-        
+
         SharedPeerDeps -.declares need for.-> RootNodeModules
         SharedImports -.resolves to.-> RootNodeModules
     end
-    
+
     subgraph "apps/electron"
         ElectronDeps["dependencies:<br/>@anthropic-ai/claude-agent-sdk<br/>@anthropic-ai/sdk<br/>@modelcontextprotocol/sdk"]
         ElectronImports["import type {...} from '@anthropic-ai/sdk'"]
-        
+
         ElectronDeps -->|"installs at root"| RootNodeModules
         ElectronImports -.resolves to.-> RootNodeModules
     end
-    
+
     TypeCheck["tsc --noEmit"]
     TypeCheck -->|"sees single version"| CoreImports
     TypeCheck -->|"sees single version"| SharedImports
     TypeCheck -->|"no conflicts"| ElectronImports
-    
+
     style RootNodeModules fill:#f0f0f0
     style TypeCheck fill:#e0e0e0
 ```
@@ -398,12 +398,12 @@ Sources: [package.json:13-19]()
 
 Type checking integrates with the build system differently for each application:
 
-| Application | Build Tool | Type Checking |
-|-------------|------------|---------------|
-| Electron (main) | esbuild | Build-time via esbuild |
-| Electron (renderer) | esbuild | Build-time via esbuild |
-| Viewer | Vite | Build-time via Vite |
-| Marketing | Vite | Build-time via Vite |
+| Application         | Build Tool | Type Checking          |
+| ------------------- | ---------- | ---------------------- |
+| Electron (main)     | esbuild    | Build-time via esbuild |
+| Electron (renderer) | esbuild    | Build-time via esbuild |
+| Viewer              | Vite       | Build-time via Vite    |
+| Marketing           | Vite       | Build-time via Vite    |
 
 All build tools perform type checking during the build process, ensuring that production builds are type-safe even if manual type checking is skipped.
 

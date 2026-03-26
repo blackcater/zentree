@@ -1,4 +1,5 @@
 import type { BrowserWindow, WebContents } from 'electron'
+
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 
 export namespace Rpc {
@@ -57,8 +58,16 @@ export interface RpcClient {
 	readonly clientId: string
 	readonly groupId?: string
 
-	call<T>(event: string, options?: RpcCallOptions, ...args: unknown[]): Promise<T>
-	stream<T>(event: string, options?: RpcCallOptions, ...args: unknown[]): Rpc.StreamResult<T>
+	call<T>(
+		event: string,
+		options?: RpcCallOptions,
+		...args: unknown[]
+	): Promise<T>
+	stream<T>(
+		event: string,
+		options?: RpcCallOptions,
+		...args: unknown[]
+	): Rpc.StreamResult<T>
 	onEvent(event: string, listener: (...args: unknown[]) => void): Rpc.CancelFn
 }
 

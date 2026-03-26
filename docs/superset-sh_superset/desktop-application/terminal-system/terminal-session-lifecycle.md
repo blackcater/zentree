@@ -25,8 +25,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the complete lifecycle of a terminal session in the daemon-based architecture, covering session creation, state transitions, PTY subprocess management, attachment/detachment semantics, termination, and cleanup. Sessions are keyed by `paneId` and persist across UI detachments, enabling seamless tab switching and cold restore after app restarts.
 
 For terminal UI components and rendering, see [Terminal UI Components](#2.8.3). For terminal host daemon architecture, see [Terminal Backend and Daemon](#2.8.4). For scrollback persistence and cold restore, see [Terminal Persistence and Cold Restore](#2.8.5).
@@ -55,13 +53,13 @@ sequenceDiagram
     participant Session as "Session (daemon)"
     participant PTY as "PTY Subprocess"
     participant Emulator as "HeadlessEmulator"
-    
+
     Renderer->>tRPC: createOrAttach({ paneId, workspaceId, cols, rows, cwd })
     tRPC->>tRPC: Resolve workspace, workspacePath, cwd
     tRPC->>tRPC: resolveTerminalThemeType()
-    
+
     tRPC->>Manager: terminal.createOrAttach(params)
-    
+
     alt Session exists and isAttachable
         Manager->>Session: Check isAttachable (isAlive && !isTerminating)
         Session-->>Manager: true
@@ -83,13 +81,13 @@ sequenceDiagram
         Session->>PTY: Send Spawn frame (shell, args, cwd, env)
         PTY-->>Session: Spawned frame (ptyPid)
         Session->>Session: ptyReadyResolve()
-        
+
         Manager->>Session: attach(socket)
         Session->>Emulator: getSnapshotAsync()
         Session-->>Manager: TerminalSnapshot
         Manager-->>tRPC: { isNew: true, snapshot, wasRecovered: false }
     end
-    
+
     tRPC-->>Renderer: SessionResult
 ```
 
@@ -104,30 +102,30 @@ Title: **Session State Machine**
 ```mermaid
 stateDiagram-v2
     [*] --> Spawning: "new Session(options)"
-    
+
     Spawning --> WaitingReady: "subprocess.on('exit') sets up handlers"
     WaitingReady --> Ready: "Spawned IPC frame received (ptyPid set)"
-    
+
     Ready --> Attachable: "isAlive=true, isTerminating=false"
-    
+
     Attachable --> Attached: "attach(socket)"
     Attached --> Attachable: "detach(socket)"
-    
+
     Attachable --> Terminating: "kill(signal) called"
     Terminating --> Dead: "PTY exit event"
-    
+
     Attachable --> Dead: "PTY crashes or exits naturally"
-    
+
     Ready --> Dead: "subprocess exits before attach"
-    
+
     Dead --> [*]: "dispose() called"
-    
+
     note right of Terminating
         terminatingAt timestamp set
         isTerminating=true
         isAttachable=false
     end note
-    
+
     note right of Dead
         isAlive=false
         exitCode set
@@ -136,6 +134,7 @@ stateDiagram-v2
 ```
 
 Sessions track three key boolean states:
+
 - `isAlive`: `subprocess !== null && exitCode === null`
 - `isTerminating`: `terminatingAt !== null` (kill called but not yet exited)
 - `isAttachable`: `isAlive && !isTerminating`
@@ -156,11 +155,11 @@ Title: **PTY Subprocess IPC Protocol**
 graph TB
     Session["Session (daemon)"] -->|"stdin frames"| Subprocess["PTY Subprocess"]
     Subprocess -->|"stdout frames"| Session
-    
+
     subgraph "Frame Structure (5-byte header)"
         Header["[type: 1 byte][length: 4 bytes LE][payload: N bytes]"]
     end
-    
+
     subgraph "IPC Message Types"
         Ready["Ready (0) - Subprocess initialized"]
         Spawn["Spawn (1) - { shell, args, cwd, cols, rows, env }"]
@@ -174,7 +173,7 @@ graph TB
         Error["Error (9) - error message"]
         Dispose["Dispose (10) - cleanup"]
     end
-    
+
     Session -->|Ready| Subprocess
     Session -->|Spawn| Subprocess
     Subprocess -->|Spawned| Session
@@ -203,22 +202,22 @@ graph TB
     PTYData["PTY Data IPC Frame"] --> EnqueueWrite["enqueueEmulatorWrite(data)"]
     EnqueueWrite --> Buffer["emulatorWriteQueue.push(data)"]
     Buffer --> Schedule["scheduleEmulatorWrite()"]
-    
+
     Schedule --> SetImmediate["setImmediate(processQueue)"]
-    
+
     SetImmediate --> CheckBudget{"Time budget\
 exhausted?"}
-    
+
     CheckBudget -->|"No, continue"| ProcessChunk["Process up to 8KB chunk"]
     ProcessChunk --> WriteEmulator["emulator.write(chunk)"]
     WriteEmulator --> UpdateProcessed["emulatorWriteProcessedItems++"]
     UpdateProcessed --> CheckBudget
-    
+
     CheckBudget -->|"Yes, reschedule"| SetImmediate
-    
+
     CheckBudget -->|"Queue empty"| ResolveWaiters["Resolve emulatorFlushWaiters"]
     ResolveWaiters --> CheckSnapshotWaiters["Resolve snapshotBoundaryWaiters"]
-    
+
     subgraph "Budget Calculation"
         HasClients{"attachedClients\
 .size > 0?"}
@@ -248,7 +247,7 @@ sequenceDiagram
     participant Client2 as "Client Socket 2"
     participant Session as "Session"
     participant Emulator as "HeadlessEmulator"
-    
+
     Client1->>Session: attach(socket)
     Session->>Session: attachedClients.set(socket, { attachedAt })
     Session->>Session: lastAttachedAt = new Date()
@@ -256,28 +255,28 @@ sequenceDiagram
     Session->>Emulator: getSnapshotAsync()
     Emulator-->>Session: TerminalSnapshot
     Session-->>Client1: Return snapshot
-    
+
     Note over Session: PTY data arrives
     Session->>Session: enqueueEmulatorWrite(data)
     Session->>Session: broadcastEvent('data', { type: 'data', data })
-    
+
     Session->>Client1: socket.write('{"type":"event","event":"data",...}\
 ')
-    
+
     Client2->>Session: attach(socket)
     Session->>Session: attachedClients.set(socket, { attachedAt })
     Session->>Emulator: flushToSnapshotBoundary(500ms)
     Session->>Emulator: getSnapshotAsync()
     Session-->>Client2: Return snapshot
-    
+
     Note over Session: More PTY data
     Session->>Session: broadcastEvent('data', { type: 'data', data })
     Session->>Client1: socket.write(message)
     Session->>Client2: socket.write(message)
-    
+
     Client1->>Session: detach(socket)
     Session->>Session: attachedClients.delete(socket)
-    
+
     Note over Session: PTY data after detach
     Session->>Session: broadcastEvent('data', { type: 'data', data })
     Session->>Client2: socket.write(message) (only Client2 now)
@@ -296,32 +295,32 @@ Title: **Socket Backpressure Flow**
 ```mermaid
 graph TB
     Broadcast["broadcastEvent(data)"] --> WriteSocket["socket.write(message)"]
-    
+
     WriteSocket --> CheckBuffer{"socket.write\
 returns false?"}
-    
+
     CheckBuffer -->|"Yes, buffer full"| LogWarn["console.warn('Client socket buffer full')"]
     LogWarn --> CheckPaused{"subprocess\
 stdout paused?"}
-    
+
     CheckPaused -->|"No"| PauseStdout["subprocessStdoutPaused = true"]
     PauseStdout --> CallPause["subprocess.stdout.pause()"]
-    
+
     CheckPaused -->|"Already paused"| TrackWaiting["clientSocketsWaitingForDrain.add(socket)"]
     CallPause --> TrackWaiting
-    
+
     TrackWaiting --> WaitDrain["socket.once('drain', callback)"]
-    
+
     WaitDrain --> Drained["Socket drained"]
     Drained --> RemoveWaiting["clientSocketsWaitingForDrain.delete(socket)"]
     RemoveWaiting --> CheckAllDrained{"All sockets\
 drained?"}
-    
+
     CheckAllDrained -->|"Yes"| ResumeStdout["subprocess.stdout.resume()"]
     CheckAllDrained -->|"No"| Continue["Continue paused"]
-    
+
     ResumeStdout --> BackpressureOff["subprocessStdoutPaused = false"]
-    
+
     CheckBuffer -->|"No, write succeeded"| Continue
 ```
 
@@ -335,10 +334,10 @@ This backpressure mechanism prevents the daemon from consuming unbounded memory 
 
 Sessions support two types of process signaling with different semantics:
 
-| Operation | Method | Effect | Use Case |
-|-----------|--------|--------|----------|
-| `signal` | `sendSignal(signal)` | Sends signal without marking as terminating | Ctrl+C (SIGINT) - process continues running |
-| `kill` | `kill(signal)` | Sets `terminatingAt`, sends signal, marks not attachable | User closes terminal - session will exit |
+| Operation | Method               | Effect                                                   | Use Case                                    |
+| --------- | -------------------- | -------------------------------------------------------- | ------------------------------------------- |
+| `signal`  | `sendSignal(signal)` | Sends signal without marking as terminating              | Ctrl+C (SIGINT) - process continues running |
+| `kill`    | `kill(signal)`       | Sets `terminatingAt`, sends signal, marks not attachable | User closes terminal - session will exit    |
 
 Title: **Kill Flow with Termination Tracking**
 
@@ -347,23 +346,23 @@ sequenceDiagram
     participant Client as "Client (tRPC)"
     participant Session as "Session"
     participant Subprocess as "PTY Subprocess"
-    
+
     Client->>Session: kill(signal='SIGTERM')
-    
+
     alt Already terminating
         Session->>Session: Check terminatingAt !== null
         Session-->>Client: Return (idempotent)
     else Not terminating
         Session->>Session: terminatingAt = Date.now()
         Session->>Session: isTerminating = true, isAttachable = false
-        
+
         alt Subprocess ready
             Session->>Subprocess: sendKillToSubprocess(signal)
             Subprocess->>Subprocess: pty.kill(signal)
         else Subprocess not ready
             Session->>Session: subprocess.kill(signal)
         end
-        
+
         Note over Subprocess: PTY process handles signal
         Subprocess->>Session: Exit IPC frame { exitCode, signal }
         Session->>Session: exitCode = exitCode
@@ -384,26 +383,27 @@ Title: **Session Exit and Resource Cleanup**
 ```mermaid
 graph TB
     PTYExit["PTY Exit Event"] --> HandleExit["handleSubprocessExit(exitCode)"]
-    
+
     HandleExit --> CheckExitCode{"exitCode already\
 set?"}
     CheckExitCode -->|"Yes, duplicate"| Skip["Skip (already handled)"]
     CheckExitCode -->|"No"| SetExitCode["exitCode = exitCode"]
-    
+
     SetExitCode --> Broadcast["broadcastEvent('exit', { exitCode })"]
     Broadcast --> CallCallback["onSessionExit?.(sessionId, exitCode)"]
     CallCallback --> ResolveReady["Resolve ptyReadyPromise if pending"]
     ResolveReady --> ResetState["resetProcessState()"]
-    
+
     ResetState --> ClearSubprocess["subprocess = null"]
     ClearSubprocess --> ClearDecoder["subprocessDecoder = null"]
     ClearDecoder --> ClearQueues["Clear stdin/emulator queues"]
     ClearQueues --> ResolveWaiters["Resolve all pending waiters"]
-    
+
     ResolveWaiters --> ClientsNotified["Clients receive exit event"]
 ```
 
 Exit handling includes several safety mechanisms:
+
 - **Duplicate exit prevention**: Only the first exit event is processed
 - **PTY ready resolution**: Ensures waiters don't hang if subprocess exits before spawning PTY
 - **Queue cleanup**: Clears all pending write queues and resolves waiters
@@ -426,12 +426,12 @@ sequenceDiagram
     participant Session as "Session (daemon)"
     participant Writer as "HistoryWriter"
     participant Disk as "~/.superset/terminal-history/{workspaceId}/{paneId}/"
-    
+
     Session->>Writer: new HistoryWriter(workspaceId, paneId, cwd, cols, rows)
     Session->>Writer: init(initialScrollback?)
-    
+
     Writer->>Disk: mkdir -p (with mode 0o700)
-    
+
     alt Has initial scrollback
         Writer->>Writer: Check size vs MAX_HISTORY_BYTES (5MB)
         alt Too large
@@ -443,14 +443,14 @@ sequenceDiagram
     else No initial scrollback
         Writer->>Disk: writeFile scrollback.bin (empty)
     end
-    
+
     Writer->>Disk: writeFile meta.json { cwd, cols, rows, startedAt }
     Writer->>Writer: Open append stream
-    
+
     Note over Session: PTY data events
     loop PTY Output
         Session->>Writer: write(data)
-        
+
         Writer->>Writer: Check bytesWritten + len < MAX_HISTORY_BYTES
         alt Under cap
             Writer->>Writer: stream.write(data, 'utf8')
@@ -462,7 +462,7 @@ sequenceDiagram
             Writer->>Writer: Drop write (log warning once)
         end
     end
-    
+
     Session->>Writer: close(exitCode?)
     Writer->>Writer: Flush pending writes (with timeout)
     Writer->>Writer: stream.end()
@@ -470,6 +470,7 @@ sequenceDiagram
 ```
 
 The writer maintains two files:
+
 - **scrollback.bin**: Raw PTY output (UTF-8), append-only during session, capped at 5MB
 - **meta.json**: Session metadata including `startedAt` and `endedAt` timestamps
 
@@ -481,10 +482,10 @@ Cold restore detection relies on `meta.json` existing without `endedAt` (unclean
 
 The `HistoryWriter` implements two safety mechanisms:
 
-| Mechanism | Trigger | Action | Purpose |
-|-----------|---------|--------|---------|
+| Mechanism              | Trigger                               | Action                               | Purpose                        |
+| ---------------------- | ------------------------------------- | ------------------------------------ | ------------------------------ |
 | **Backpressure queue** | Stream returns `false` from `write()` | Queue writes in memory (up to 256KB) | Respect filesystem write speed |
-| **Hard cap** | Total written > 5MB | Drop writes, log warning once | Prevent disk exhaustion |
+| **Hard cap**           | Total written > 5MB                   | Drop writes, log warning once        | Prevent disk exhaustion        |
 
 When the pending write queue exceeds 256KB (`MAX_PENDING_WRITE_BYTES`), additional writes are dropped until the stream drains. This prevents OOM when the disk is very slow or blocked.
 
@@ -503,12 +504,12 @@ sequenceDiagram
     participant Session as "Session"
     participant PortMgr as "PortManager"
     participant Scanner as "Port Scanner (lsof/netstat)"
-    
+
     Session->>PortMgr: upsertDaemonSession(paneId, workspaceId, pid=null)
     Note over Session: PTY subprocess spawns
     Session->>Session: Receive Spawned IPC frame
     Session->>PortMgr: upsertDaemonSession(paneId, workspaceId, ptyPid)
-    
+
     loop Every 2.5s
         PortMgr->>PortMgr: scanAllSessions()
         PortMgr->>PortMgr: Collect PIDs from daemon sessions
@@ -516,33 +517,34 @@ sequenceDiagram
         Scanner-->>PortMgr: [pid, child1Pid, child2Pid, ...]
         PortMgr->>Scanner: getListeningPortsForPids(allPids)
         Scanner-->>PortMgr: [{ port, pid, address, processName }]
-        
+
         PortMgr->>PortMgr: Group ports by paneId
         PortMgr->>PortMgr: Compare with previous scan
-        
+
         alt New port detected
             PortMgr->>PortMgr: ports.set(key, detectedPort)
             PortMgr->>PortMgr: emit('port:add', detectedPort)
         end
-        
+
         alt Port disappeared
             PortMgr->>PortMgr: ports.delete(key)
             PortMgr->>PortMgr: emit('port:remove', detectedPort)
         end
     end
-    
+
     Note over Session: PTY data contains port hint
     Session->>PortMgr: checkOutputForHint(data, paneId)
     alt Contains hint (e.g., "listening on port 3000")
         PortMgr->>PortMgr: scheduleHintScan(paneId)
         PortMgr->>PortMgr: setTimeout(scanPane, 500ms)
     end
-    
+
     Session->>PortMgr: unregisterDaemonSession(paneId)
     PortMgr->>PortMgr: Remove all ports for paneId
 ```
 
 The port manager uses two detection strategies:
+
 1. **Periodic scanning**: Every 2.5s, scan all registered session process trees via `lsof` (Unix) or `netstat` (Windows)
 2. **Hint-based scanning**: Parse output for patterns like "listening on port 3000" and scan 500ms later
 
@@ -556,14 +558,14 @@ Port scanning includes critical PID validation to prevent exposing unrelated sys
 
 ```typescript
 // In parseLsofOutput (port-scanner.ts)
-const pidSet = new Set(pids);
+const pidSet = new Set(pids)
 for (const line of lines) {
-  const pid = parseInt(columns[1], 10);
-  
+  const pid = parseInt(columns[1], 10)
+
   // CRITICAL: Verify PID is in requested set
   // lsof ignores -p filter when PIDs don't exist, returning ALL TCP listeners
-  if (!pidSet.has(pid)) continue;
-  
+  if (!pidSet.has(pid)) continue
+
   // ... parse port info
 }
 ```
@@ -585,25 +587,25 @@ graph TB
     Dispose["dispose() called"] --> CheckDisposed{"Already disposed?"}
     CheckDisposed -->|"Yes"| Return["Return immediately"]
     CheckDisposed -->|"No"| SetDisposed["disposed = true"]
-    
+
     SetDisposed --> CollectPIDs["collectProcessPids()"]
     CollectPIDs --> SubprocessPID["Add subprocess.pid if exists"]
     SubprocessPID --> PtyPID["Add ptyPid if exists"]
-    
+
     PtyPID --> SendDispose["sendDisposeToSubprocess()"]
     SendDispose --> ResetState["resetProcessState()"]
-    
+
     ResetState --> ClearSubprocess["subprocess = null"]
     ClearSubprocess --> ClearEmulator["emulator.dispose()"]
     ClearEmulator --> ClearClients["attachedClients.clear()"]
     ClearClients --> ClearWaiters["Resolve all waiters"]
-    
+
     ClearWaiters --> CheckPIDs{"PIDs to kill?"}
     CheckPIDs -->|"No"| Done["Done"]
     CheckPIDs -->|"Yes"| KillTrees["Promise.all(treeKillAsync(pid, SIGKILL))"]
-    
+
     KillTrees --> Done
-    
+
     subgraph "Why both subprocess.pid and ptyPid?"
         Note1["Subprocess PID: Node.js wrapper process"]
         Note2["PTY PID: Actual shell process"]
@@ -629,14 +631,14 @@ private resetProcessState(): void {
   this.subprocessStdinQueuedBytes = 0;
   this.subprocessStdinDrainArmed = false;
   this.subprocessStdoutPaused = false;
-  
+
   this.emulatorWriteQueue = [];
   this.emulatorWriteQueuedBytes = 0;
   this.emulatorWriteProcessedItems = 0;
   this.nextSnapshotBoundaryWaiterId = 1;
   this.emulatorWriteScheduled = false;
   this.resolveAllSnapshotBoundaryWaiters();
-  
+
   const waiters = this.emulatorFlushWaiters;
   this.emulatorFlushWaiters = [];
   for (const resolve of waiters) resolve();
@@ -657,22 +659,22 @@ The `useTerminalLifecycle` hook schedules a 50ms delayed detach on component unm
 // useEffect cleanup in useTerminalLifecycle
 return () => {
   const detachTimeout = setTimeout(() => {
-    detachRef.current({ paneId });
-    pendingDetaches.delete(paneId);
-    coldRestoreState.delete(paneId);
-  }, 50);
-  pendingDetaches.set(paneId, detachTimeout);
-};
+    detachRef.current({ paneId })
+    pendingDetaches.delete(paneId)
+    coldRestoreState.delete(paneId)
+  }, 50)
+  pendingDetaches.set(paneId, detachTimeout)
+}
 ```
 
 On mount, pending detaches are cancelled:
 
 ```typescript
 // useEffect mount in useTerminalLifecycle
-const pendingDetach = pendingDetaches.get(paneId);
+const pendingDetach = pendingDetaches.get(paneId)
 if (pendingDetach) {
-  clearTimeout(pendingDetach);
-  pendingDetaches.delete(paneId);
+  clearTimeout(pendingDetach)
+  pendingDetaches.delete(paneId)
 }
 ```
 
@@ -682,11 +684,11 @@ This 50ms delay prevents flickering when switching tabs rapidly. If the componen
 
 ### Kill vs Detach Semantics
 
-| Operation | Effect | Use Case |
-|-----------|--------|----------|
-| `detach` | Updates `lastActive`, keeps session alive | Tab/pane hidden but may return |
-| `kill` | Sends SIGTERM, waits for exit, removes session | User closes terminal permanently |
-| `signal` | Sends arbitrary signal (default SIGTERM) | Ctrl+C equivalent |
+| Operation | Effect                                         | Use Case                         |
+| --------- | ---------------------------------------------- | -------------------------------- |
+| `detach`  | Updates `lastActive`, keeps session alive      | Tab/pane hidden but may return   |
+| `kill`    | Sends SIGTERM, waits for exit, removes session | User closes terminal permanently |
+| `signal`  | Sends arbitrary signal (default SIGTERM)       | Ctrl+C equivalent                |
 
 The `detach` operation is purely metadata — it updates the session's `lastActive` timestamp but does not affect the running PTY process.
 
@@ -700,20 +702,20 @@ When closing a workspace, the system kills all associated terminal sessions:
 graph TB
     CloseWS["Close Workspace"] --> GetSessions["Filter sessions by workspaceId"]
     GetSessions --> KillBatch["killByWorkspaceId()"]
-    
+
     KillBatch --> ForEach["For each session"]
     ForEach --> SendSigterm["pty.kill('SIGTERM')"]
-    
+
     SendSigterm --> WaitExit["Wait for exit event"]
     WaitExit --> Timeout1{Exit in 2s?}
-    
+
     Timeout1 -->|Yes| Success["Cleanup complete"]
     Timeout1 -->|No| SendSigkill["pty.kill('SIGKILL')"]
-    
+
     SendSigkill --> Timeout2{Exit in 500ms?}
     Timeout2 -->|Yes| Success
     Timeout2 -->|No| ForceCleanup["Force: isAlive=false, delete session"]
-    
+
     ForceCleanup --> Success
 ```
 

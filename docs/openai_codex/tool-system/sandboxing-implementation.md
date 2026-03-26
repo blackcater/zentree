@@ -31,8 +31,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the implementation of Codex's sandboxing system, which provides platform-specific process isolation by wrapping commands with OS-specific sandbox mechanisms. The system transforms high-level `SandboxPolicy` specifications into platform-specific sandbox wrappers (Seatbelt on macOS, Landlock+seccomp on Linux, Restricted Token on Windows) or no sandboxing (`SandboxType::None`).
 
 For approval policy integration, see page 5.5. For the overall tool execution pipeline, see page 5.3.
@@ -58,7 +56,7 @@ graph TB
     SandboxType["SandboxType<br/>(None, MacosSeatbelt,<br/>LinuxSeccomp, WindowsRestrictedToken)"]
     Transform["transform()"]
     ExecEnv["ExecEnv"]
-    
+
     SandboxPolicy --> GetWritableRoots
     GetWritableRoots --> WritableRoot
     SandboxPolicy --> SandboxManager
@@ -83,19 +81,19 @@ graph TB
     ReadOnly["ReadOnly"]
     ExternalSandbox["ExternalSandbox<br/>{network_access}"]
     WorkspaceWrite["WorkspaceWrite<br/>{writable_roots,<br/>network_access,<br/>exclude_tmpdir_env_var,<br/>exclude_slash_tmp}"]
-    
+
     SandboxPolicy --> DangerFullAccess
     SandboxPolicy --> ReadOnly
     SandboxPolicy --> ExternalSandbox
     SandboxPolicy --> WorkspaceWrite
 ```
 
-| Variant | File Access | Network | Writable Roots |
-|---------|-------------|---------|----------------|
-| `DangerFullAccess` | Unrestricted | Enabled | N/A (no sandbox) |
-| `ReadOnly` | Read-only everywhere | Disabled | Empty |
-| `ExternalSandbox` | Full (assumes external sandbox) | Configurable | Empty |
-| `WorkspaceWrite` | Read everywhere, write in computed roots | Configurable | Computed via `get_writable_roots_with_cwd()` |
+| Variant            | File Access                              | Network      | Writable Roots                               |
+| ------------------ | ---------------------------------------- | ------------ | -------------------------------------------- |
+| `DangerFullAccess` | Unrestricted                             | Enabled      | N/A (no sandbox)                             |
+| `ReadOnly`         | Read-only everywhere                     | Disabled     | Empty                                        |
+| `ExternalSandbox`  | Full (assumes external sandbox)          | Configurable | Empty                                        |
+| `WorkspaceWrite`   | Read everywhere, write in computed roots | Configurable | Computed via `get_writable_roots_with_cwd()` |
 
 **Key Methods:**
 
@@ -119,35 +117,35 @@ graph TB
     Start["get_writable_roots_with_cwd(cwd)"]
     Start --> InitRoots["roots = writable_roots.clone()"]
     InitRoots --> AddCwd["roots.push(cwd)"]
-    
+
     AddCwd --> CheckSlashTmp{exclude_slash_tmp?}
     CheckSlashTmp -->|false| AddSlashTmp["roots.push('/tmp')<br/>(Unix only)"]
     CheckSlashTmp -->|true| CheckTmpdir
     AddSlashTmp --> CheckTmpdir
-    
+
     CheckTmpdir{exclude_tmpdir_env_var?}
     CheckTmpdir -->|false| AddTmpdir["roots.push($TMPDIR)<br/>(if set)"]
     CheckTmpdir -->|true| MapRoots
     AddTmpdir --> MapRoots
-    
+
     MapRoots["For each root:"]
     MapRoots --> ComputeSubpaths["Compute read_only_subpaths"]
-    
+
     ComputeSubpaths --> CheckGit{".git exists?"}
     CheckGit -->|dir| AddGitDir["subpaths.push(root/.git)"]
     CheckGit -->|file| ResolveGitdir["resolve_gitdir_from_file()"]
     CheckGit -->|no| CheckAgents
-    
+
     ResolveGitdir --> AddResolvedGit["subpaths.push(resolved_gitdir)"]
     AddResolvedGit --> AddGitFile["subpaths.push(root/.git)"]
     AddGitFile --> CheckAgents
     AddGitDir --> CheckAgents
-    
+
     CheckAgents{".agents or<br/>.codex exists?}
     CheckAgents -->|yes| AddCodexDirs["subpaths.push(root/.agents)<br/>subpaths.push(root/.codex)"]
     CheckAgents -->|no| BuildWritableRoot
     AddCodexDirs --> BuildWritableRoot
-    
+
     BuildWritableRoot["WritableRoot<br/>{root, read_only_subpaths}"]
     BuildWritableRoot --> Return["Vec<WritableRoot>"]
 ```
@@ -178,26 +176,26 @@ A critical security feature is preventing the agent from modifying `.git` direct
 graph TB
     Start["For each writable_root"]
     Start --> CheckPath["Check root/.git"]
-    
+
     CheckPath --> IsFile{".git is file?"}
     CheckPath --> IsDir{".git is dir?"}
     CheckPath --> NotExists["Does not exist"]
-    
+
     IsFile -->|yes| ReadPointer["Read 'gitdir:' pointer"]
     IsDir -->|yes| AddDir["read_only_subpaths.push<br/>(root/.git)"]
     NotExists --> Done
-    
+
     ReadPointer --> ParseGitdir["Parse gitdir path"]
     ParseGitdir --> ResolveGitdir["Resolve against root<br/>AbsolutePathBuf::resolve_path_against_base()"]
     ResolveGitdir --> AddResolved["read_only_subpaths.push<br/>(resolved_gitdir)"]
     AddResolved --> AddFile["read_only_subpaths.push<br/>(root/.git)"]
-    
+
     AddDir --> CheckOther
     AddFile --> CheckOther
-    
+
     CheckOther["Check .agents and .codex"]
     CheckOther --> AddOther["read_only_subpaths.push<br/>(root/.agents)<br/>(root/.codex)"]
-    
+
     AddOther --> Done["Return WritableRoot"]
 ```
 
@@ -263,28 +261,28 @@ Sources: [codex-rs/protocol/src/protocol.rs:433-457]()
 graph TB
     SandboxPermissions["SandboxPermissions<br/>{writable_roots,<br/>network_access}"]
     CreateArgs["create_seatbelt_command_args()"]
-    
+
     SandboxPermissions --> CreateArgs
     CreateArgs --> BuildProfile["Build SBPL profile string"]
-    
+
     BuildProfile --> AddBase["(version 1)<br/>(deny default)"]
     AddBase --> AddRead["(allow file-read*<br/>(subpath '/'))"]
     AddRead --> AddProcess["(allow process*)"]
     AddProcess --> CheckWrite{writable_roots<br/>empty?}
-    
+
     CheckWrite -->|no| AddWrite["For each root:<br/>(allow file-write*<br/>(subpath 'root'))<br/>(deny file-write*<br/>(subpath 'subpath'))"]
     CheckWrite -->|yes| AddTmp["(allow file-write*<br/>(subpath '/tmp'))"]
-    
+
     AddWrite --> CheckNetwork
     AddTmp --> CheckNetwork
-    
+
     CheckNetwork{network_access?}
     CheckNetwork -->|false| DenyNetwork["(deny network*)"]
     CheckNetwork -->|true| AllowNetwork["(allow network*)"]
-    
+
     DenyNetwork --> WrapCommand
     AllowNetwork --> WrapCommand
-    
+
     WrapCommand["Wrap command:<br/>['/usr/bin/sandbox-exec',<br/>'-p', profile,<br/>program, ...args]"]
 ```
 
@@ -318,26 +316,26 @@ graph TB
     SandboxType["SandboxType::LinuxSeccomp"]
     LandlockMod["codex_core::landlock module"]
     SeccompMod["seccompiler crate"]
-    
+
     SandboxType --> LandlockMod
     SandboxType --> SeccompMod
-    
+
     LandlockMod --> LandlockAPI["Landlock Ruleset<br/>landlock::Ruleset"]
     SeccompMod --> SeccompFilter["Seccomp Filter<br/>SeccompFilter"]
-    
+
     LandlockAPI --> FSRules["Filesystem Rules"]
     FSRules --> ReadRules["Read access:<br/>PathBeneath on root (/)"]
     FSRules --> WriteRules["Write access:<br/>PathBeneath on writable_roots"]
-    
+
     SeccompFilter --> Syscalls["System Call Filter"]
     Syscalls --> Allow["Allow: standard operations"]
     Syscalls --> Deny["Deny: dangerous syscalls<br/>(e.g., kernel module loading)"]
-    
+
     ReadRules --> Apply["Apply to process"]
     WriteRules --> Apply
     Allow --> Apply
     Deny --> Apply
-    
+
     Apply --> Exec["exec(target_command)"]
 ```
 
@@ -350,11 +348,11 @@ Landlock creates a filesystem ruleset that restricts what the process can access
 3. **Subpath Exclusions**: Remove write permissions for `read_only_subpaths` (e.g., `.git`)
 4. **Ruleset Application**: Call `landlock::Ruleset::restrict_self()` before exec
 
-| Landlock Access | Applied When |
-|----------------|--------------|
-| `AccessFs::ReadFile | ReadDir` | Always (entire filesystem) |
-| `AccessFs::WriteFile | MakeDir | RemoveFile | RemoveDir` | Only for `writable_roots` |
-| (no access) | For `read_only_subpaths` within writable roots |
+| Landlock Access      | Applied When                                   |
+| -------------------- | ---------------------------------------------- | -------------------------- | ---------- | ------------------------- |
+| `AccessFs::ReadFile  | ReadDir`                                       | Always (entire filesystem) |
+| `AccessFs::WriteFile | MakeDir                                        | RemoveFile                 | RemoveDir` | Only for `writable_roots` |
+| (no access)          | For `read_only_subpaths` within writable roots |
 
 **Seccomp System Call Filtering:**
 
@@ -393,17 +391,17 @@ graph TB
     SandboxType["SandboxType::WindowsRestrictedToken"]
     ExecEnv["ExecEnv"]
     Execute["execute_exec_env()"]
-    
+
     SandboxType --> ExecEnv
     ExecEnv --> Execute
-    
+
     Execute --> CheckType{sandbox type?}
     CheckType -->|WindowsRestrictedToken| CreateRestricted["CreateProcessAsUser<br/>with restricted token"]
     CheckType -->|None| NormalSpawn["Normal spawn"]
-    
+
     CreateRestricted --> StripPrivileges["Strip privileges:<br/>- SeDebugPrivilege<br/>- SeImpersonatePrivilege<br/>- etc."]
     StripPrivileges --> SpawnRestricted["Spawn process<br/>with restricted token"]
-    
+
     SpawnRestricted --> Process["Sandboxed Process"]
     NormalSpawn --> Process
 ```
@@ -443,23 +441,23 @@ pub enum SandboxType {
 ```mermaid
 graph TB
     GetPlatform["get_platform_sandbox(features)"]
-    
+
     GetPlatform --> CheckOS{Operating System?}
-    
+
     CheckOS -->|macOS| MacOS["SandboxType::MacosSeatbelt"]
     CheckOS -->|Linux| Linux["SandboxType::LinuxSeccomp"]
     CheckOS -->|Windows| CheckWindowsFeature{WindowsSandbox<br/>feature?}
     CheckOS -->|Other| None1["SandboxType::None"]
-    
+
     CheckWindowsFeature -->|enabled| Windows["SandboxType::WindowsRestrictedToken"]
     CheckWindowsFeature -->|disabled| None2["SandboxType::None"]
-    
+
     MacOS --> Return
     Linux --> Return
     Windows --> Return
     None1 --> Return
     None2 --> Return
-    
+
     Return["Return SandboxType"]
 ```
 
@@ -468,23 +466,23 @@ graph TB
 ```mermaid
 graph TB
     SelectInitial["select_initial(policy,<br/>sandboxable_pref,<br/>features)"]
-    
+
     SelectInitial --> CheckPref{sandboxable_pref?}
-    
+
     CheckPref -->|Forbid| None1["SandboxType::None"]
     CheckPref -->|Require| GetPlatform1["get_platform_sandbox(features)"]
     CheckPref -->|Auto| CheckPolicy{policy?}
-    
+
     CheckPolicy -->|DangerFullAccess| None2["SandboxType::None"]
     CheckPolicy -->|ExternalSandbox| None3["SandboxType::None"]
     CheckPolicy -->|ReadOnly<br/>WorkspaceWrite| GetPlatform2["get_platform_sandbox(features)"]
-    
+
     GetPlatform1 --> Return
     GetPlatform2 --> Return
     None1 --> Return
     None2 --> Return
     None3 --> Return
-    
+
     Return["Return SandboxType"]
 ```
 
@@ -508,61 +506,61 @@ The `SandboxManager::transform()` method converts a `CommandSpec` into an `ExecE
 graph TB
     CommandSpec["CommandSpec"]
     Transform["SandboxManager::transform(spec, type)"]
-    
+
     CommandSpec --> Transform
-    
+
     Transform --> SetEnv["Set environment variables"]
     SetEnv --> CheckNetwork{network_access<br/>disabled?}
     CheckNetwork -->|yes| AddNetEnv["env['CODEX_SANDBOX_NETWORK_DISABLED'] = '1'"]
     CheckNetwork -->|no| WrapSwitch
     AddNetEnv --> WrapSwitch
-    
+
     WrapSwitch{sandbox_type?}
-    
+
     WrapSwitch -->|None| Passthrough["command = [program, ...args]"]
     WrapSwitch -->|MacosSeatbelt| CallSeatbelt["create_seatbelt_command_args()"]
     WrapSwitch -->|LinuxSeccomp| CallLinux["create_linux_sandbox_command_args()"]
     WrapSwitch -->|WindowsRestrictedToken| Passthrough2["command = [program, ...args]<br/>(handled during spawn)"]
-    
+
     CallSeatbelt --> SeatbeltWrap["command = ['/usr/bin/sandbox-exec',<br/>'-p', profile, program, ...args]<br/>env['CODEX_SANDBOX'] = 'seatbelt'"]
     CallLinux --> LinuxWrap["command = [wrapper_path,<br/>...policy_args, '--',<br/>program, ...args]"]
-    
+
     Passthrough --> BuildExecEnv
     Passthrough2 --> BuildExecEnv
     SeatbeltWrap --> BuildExecEnv
     LinuxWrap --> BuildExecEnv
-    
+
     BuildExecEnv["ExecEnv {<br/>  command,<br/>  cwd,<br/>  env,<br/>  sandbox: sandbox_type,<br/>  permissions,<br/>  arg0<br/>}"]
 ```
 
 **`CommandSpec` Structure:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `program` | `String` | Executable name or path |
-| `args` | `Vec<String>` | Command arguments |
-| `cwd` | `PathBuf` | Working directory |
-| `env` | `HashMap<String, String>` | Environment variables |
-| `sandbox_permissions` | `SandboxPermissions` | Computed writable roots and network access |
-| `justification` | `Option<String>` | Optional execution reason |
+| Field                 | Type                      | Description                                |
+| --------------------- | ------------------------- | ------------------------------------------ |
+| `program`             | `String`                  | Executable name or path                    |
+| `args`                | `Vec<String>`             | Command arguments                          |
+| `cwd`                 | `PathBuf`                 | Working directory                          |
+| `env`                 | `HashMap<String, String>` | Environment variables                      |
+| `sandbox_permissions` | `SandboxPermissions`      | Computed writable roots and network access |
+| `justification`       | `Option<String>`          | Optional execution reason                  |
 
 **`SandboxPermissions` Structure:**
 
-| Field | Type | Description |
-|-------|------|-------------|
+| Field            | Type                | Description                                              |
+| ---------------- | ------------------- | -------------------------------------------------------- |
 | `writable_roots` | `Vec<WritableRoot>` | Directories that can be written, with read-only subpaths |
-| `network_access` | `bool` | Whether network access is allowed |
+| `network_access` | `bool`              | Whether network access is allowed                        |
 
 **`ExecEnv` Structure:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `command` | `Vec<String>` | Full command with sandbox wrapper (if applicable) |
-| `cwd` | `PathBuf` | Working directory |
-| `env` | `HashMap<String, String>` | Environment variables |
-| `sandbox` | `SandboxType` | Selected sandbox type |
-| `windows_sandbox_level` | `Option<WindowsSandboxLevel>` | Windows-specific sandbox level |
-| `arg0` | `Option<OsString>` | Override for process name (used by Linux sandbox) |
+| Field                   | Type                          | Description                                       |
+| ----------------------- | ----------------------------- | ------------------------------------------------- |
+| `command`               | `Vec<String>`                 | Full command with sandbox wrapper (if applicable) |
+| `cwd`                   | `PathBuf`                     | Working directory                                 |
+| `env`                   | `HashMap<String, String>`     | Environment variables                             |
+| `sandbox`               | `SandboxType`                 | Selected sandbox type                             |
+| `windows_sandbox_level` | `Option<WindowsSandboxLevel>` | Windows-specific sandbox level                    |
+| `arg0`                  | `Option<OsString>`            | Override for process name (used by Linux sandbox) |
 
 Sources: [codex-rs/protocol/src/protocol.rs:379-426]()
 
@@ -581,16 +579,16 @@ sequenceDiagram
     participant SandboxMgr as SandboxManager
     participant Exec as execute_exec_env()
     participant Spawn as Spawn Process
-    
+
     Tool->>Orchestrator: Execute tool
     Orchestrator->>SandboxMgr: select_initial()
     SandboxMgr-->>Orchestrator: SandboxType
-    
+
     Orchestrator->>SandboxMgr: transform(CommandSpec)
     SandboxMgr-->>Orchestrator: ExecEnv
-    
+
     Orchestrator->>Exec: execute_exec_env(ExecEnv)
-    
+
     alt Windows + RestrictedToken
         Exec->>Spawn: CreateProcessAsUser<br/>(restricted token)
     else macOS + MacosSeatbelt
@@ -600,13 +598,13 @@ sequenceDiagram
     else None
         Exec->>Spawn: spawn([program, args])
     end
-    
+
     Spawn-->>Exec: Process + output
     Exec-->>Orchestrator: ExecToolCallOutput
-    
+
     Orchestrator->>SandboxMgr: denied(sandbox, output)?
     SandboxMgr-->>Orchestrator: bool
-    
+
     alt Is denial + on-failure policy
         Orchestrator->>Tool: Escalate for approval
     else Normal execution
@@ -630,25 +628,25 @@ Title: **Sandbox Denial Detection Flow**
 graph TB
     ExecOutput["ExecToolCallOutput"]
     CheckDenied["sandbox_manager.denied()?"]
-    
+
     ExecOutput --> CheckDenied
-    
+
     CheckDenied --> AnalyzeExit{exit_code == 1?}
     AnalyzeExit -->|no| NotDenied["Return false"]
     AnalyzeExit -->|yes| AnalyzeStderr["Analyze stderr patterns"]
-    
+
     AnalyzeStderr --> CheckMacOS{macOS patterns?}
     AnalyzeStderr --> CheckLinux{Linux patterns?}
     AnalyzeStderr --> CheckWindows{Windows patterns?}
-    
+
     CheckMacOS -->|match| MacOSPatterns["'Operation not permitted'<br/>'Sandbox:'<br/>'sandbox-exec:'"]
     CheckLinux -->|match| LinuxPatterns["'Permission denied'<br/>'EACCES'<br/>'EPERM'<br/>'Landlock'"]
     CheckWindows -->|match| WindowsPatterns["'Access is denied'<br/>Win32 error codes"]
-    
+
     MacOSPatterns --> Denied["Return true"]
     LinuxPatterns --> Denied
     WindowsPatterns --> Denied
-    
+
     CheckMacOS -->|no match| NotDenied
     CheckLinux -->|no match| NotDenied
     CheckWindows -->|no match| NotDenied
@@ -656,11 +654,11 @@ graph TB
 
 **Detection Heuristics by Platform:**
 
-| Platform | Exit Code | stderr Patterns | Additional Checks |
-|----------|-----------|----------------|-------------------|
-| macOS Seatbelt | 1 or 126 | `"Operation not permitted"`, `"Sandbox:"`, `"sandbox-exec:"` | Check for Seatbelt-specific errors |
-| Linux Landlock | 1 | `"Permission denied"`, `"EACCES"`, `"EPERM"`, `"Landlock"` | Check for filesystem access errors |
-| Windows Token | 1 | `"Access is denied"`, Win32 error codes | Check for security token errors |
+| Platform       | Exit Code | stderr Patterns                                              | Additional Checks                  |
+| -------------- | --------- | ------------------------------------------------------------ | ---------------------------------- |
+| macOS Seatbelt | 1 or 126  | `"Operation not permitted"`, `"Sandbox:"`, `"sandbox-exec:"` | Check for Seatbelt-specific errors |
+| Linux Landlock | 1         | `"Permission denied"`, `"EACCES"`, `"EPERM"`, `"Landlock"`   | Check for filesystem access errors |
+| Windows Token  | 1         | `"Access is denied"`, Win32 error codes                      | Check for security token errors    |
 
 ### Retry and Escalation Flow
 
@@ -673,34 +671,34 @@ sequenceDiagram
     participant Sandbox as SandboxManager
     participant Exec as Execution Layer
     participant User as User Approval
-    
+
     Tool->>Orch: Execute tool call
     Orch->>Sandbox: select_initial(policy)
     Sandbox-->>Orch: SandboxType::LinuxSeccomp
-    
+
     Orch->>Sandbox: transform(CommandSpec)
     Sandbox-->>Orch: ExecEnv (sandboxed)
-    
+
     Orch->>Exec: execute(ExecEnv)
     Exec-->>Orch: ExecToolCallOutput (exit_code=1)
-    
+
     Orch->>Sandbox: denied(sandbox_type, output)?
     Sandbox-->>Orch: true
-    
+
     alt approval_policy == OnFailure
         Orch->>User: ExecApprovalRequestEvent
         Note over User: Show command + error + context
         User-->>Orch: ReviewDecision::Approved
-        
+
         Orch->>Sandbox: transform(CommandSpec, force_none=true)
         Sandbox-->>Orch: ExecEnv (no sandbox)
-        
+
         Orch->>Exec: execute(ExecEnv)
         Exec-->>Orch: ExecToolCallOutput (success)
     else approval_policy == Never
         Note over Orch: Return original failure
     end
-    
+
     Orch-->>Tool: ExecToolCallOutput
 ```
 
@@ -716,13 +714,13 @@ The retry mechanism activates when:
 
 When escalating to the user, the `ExecApprovalRequestEvent` includes:
 
-| Field | Description |
-|-------|-------------|
-| `command` | Full command that was executed |
-| `cwd` | Working directory |
-| `exit_code` | Exit code from failed execution |
-| `stderr` | Error output showing denial |
-| `sandbox_type` | Which sandbox caused the denial |
+| Field           | Description                     |
+| --------------- | ------------------------------- |
+| `command`       | Full command that was executed  |
+| `cwd`           | Working directory               |
+| `exit_code`     | Exit code from failed execution |
+| `stderr`        | Error output showing denial     |
+| `sandbox_type`  | Which sandbox caused the denial |
 | `justification` | Optional explanation from agent |
 
 **Re-execution Behavior:**
@@ -736,6 +734,7 @@ If user approves:
 5. **Do not** change session-level sandbox policy (next command still sandboxed)
 
 This temporary escalation approach ensures:
+
 - Security by default (most operations sandboxed)
 - User control (explicit approval required)
 - No permanent policy degradation (each command evaluated independently)
@@ -754,13 +753,13 @@ Sources: [codex-rs/core/src/tools/handlers/mod.rs:1-148](), [codex-rs/protocol/s
 
 The sandbox implementation uses environment variables for configuration and introspection:
 
-| Variable | Value | Purpose | Set By |
-|----------|-------|---------|--------|
-| `CODEX_SANDBOX` | `"seatbelt"` | Indicates macOS Seatbelt sandbox is active | `create_seatbelt_command_args()` |
-| `CODEX_SANDBOX_NETWORK_DISABLED` | `"1"` | Signals network access is disabled | `SandboxManager::transform()` (all platforms) |
-| `CODEX_CI` | `"1"` | Indicates execution in CI-like environment | Unified exec environment setup |
-| `NO_COLOR` | `"1"` | Disable color output | Unified exec environment setup |
-| `TERM` | `"dumb"` | Set terminal to dumb mode | Unified exec environment setup |
+| Variable                         | Value        | Purpose                                    | Set By                                        |
+| -------------------------------- | ------------ | ------------------------------------------ | --------------------------------------------- |
+| `CODEX_SANDBOX`                  | `"seatbelt"` | Indicates macOS Seatbelt sandbox is active | `create_seatbelt_command_args()`              |
+| `CODEX_SANDBOX_NETWORK_DISABLED` | `"1"`        | Signals network access is disabled         | `SandboxManager::transform()` (all platforms) |
+| `CODEX_CI`                       | `"1"`        | Indicates execution in CI-like environment | Unified exec environment setup                |
+| `NO_COLOR`                       | `"1"`        | Disable color output                       | Unified exec environment setup                |
+| `TERM`                           | `"dumb"`     | Set terminal to dumb mode                  | Unified exec environment setup                |
 
 **Unified Exec Environment:**
 
@@ -800,29 +799,29 @@ The sandboxing implementation is validated across multiple platforms in CI/CD:
 ```mermaid
 graph TB
     CI["rust-ci.yml"]
-    
+
     CI --> MacOS["macOS builds<br/>aarch64-apple-darwin<br/>x86_64-apple-darwin"]
     CI --> Linux["Linux builds<br/>x86_64-unknown-linux-gnu/musl<br/>aarch64-unknown-linux-gnu/musl"]
     CI --> Windows["Windows builds<br/>x86_64-pc-windows-msvc<br/>aarch64-pc-windows-msvc"]
-    
+
     MacOS --> SeatbeltTest["Test: Seatbelt sandbox"]
     Linux --> BwrapTest["Test: Vendored bubblewrap"]
     Windows --> TokenTest["Test: Restricted token"]
-    
+
     SeatbeltTest --> ClippyTest["cargo clippy"]
     BwrapTest --> ClippyTest
     TokenTest --> ClippyTest
-    
+
     ClippyTest --> NexTest["cargo nextest run"]
 ```
 
 **Build Requirements Per Platform:**
 
-| Platform | Dependencies | Purpose |
-|----------|--------------|---------|
-| Linux | `landlock` (Rust crate), `seccompiler` (Rust crate) | Landlock + seccomp filtering (kernel 5.13+) |
-| macOS | None (uses system Seatbelt via `sandbox-exec`) | N/A |
-| Windows | MSVC toolchain | Windows security token API |
+| Platform | Dependencies                                        | Purpose                                     |
+| -------- | --------------------------------------------------- | ------------------------------------------- |
+| Linux    | `landlock` (Rust crate), `seccompiler` (Rust crate) | Landlock + seccomp filtering (kernel 5.13+) |
+| macOS    | None (uses system Seatbelt via `sandbox-exec`)      | N/A                                         |
+| Windows  | MSVC toolchain                                      | Windows security token API                  |
 
 **Target Configuration:**
 
@@ -857,6 +856,7 @@ codex sandbox windows [--full-auto] -- COMMAND
 **`--full-auto` Flag:**
 
 Applies a preconfigured "safe automatic" policy for testing:
+
 - Sandbox mode: `workspace-write`
 - Approval policy: `never` (auto-approve within sandbox constraints)
 - Network: disabled
@@ -872,20 +872,20 @@ The `codex-rs/core/tests/suite/unified_exec.rs` test suite validates sandbox beh
 ```mermaid
 graph TB
     TestSuite["unified_exec.rs tests"]
-    
+
     TestSuite --> TestApplyPatch["unified_exec_intercepts_<br/>apply_patch_exec_command"]
     TestSuite --> TestBeginEvent["unified_exec_emits_<br/>exec_command_begin_event"]
     TestSuite --> TestWorkdir["unified_exec_resolves_<br/>relative_workdir"]
     TestSuite --> TestLifecycle["unified_exec_full_lifecycle_<br/>with_background_end_event"]
-    
+
     TestApplyPatch --> CheckSandbox{Skip if sandboxed?}
     TestBeginEvent --> CheckSandbox
     TestWorkdir --> CheckSandbox
     TestLifecycle --> CheckSandbox
-    
+
     CheckSandbox -->|skip_if_sandbox!| SkipTest["Skip test"]
     CheckSandbox -->|not sandboxed| RunTest["Run test"]
-    
+
     RunTest --> BuildRequest["Build ExecCommandRequest<br/>with SandboxPermissions"]
     BuildRequest --> Exec["Execute via unified_exec_manager"]
     Exec --> Validate["Validate output/events"]
@@ -895,11 +895,11 @@ The `skip_if_sandbox!()` macro conditionally skips tests when running inside a s
 
 **Example Command Transformations:**
 
-| Original | Transformed (WorkspaceWrite) | Platform |
-|----------|------------------------------|----------|
-| `/bin/ls /tmp` | `/usr/bin/sandbox-exec -p '<profile>' /bin/ls /tmp` | macOS |
-| `python3 script.py` | Landlock applied in-process before exec | Linux |
-| `cmd.exe /c dir` | Spawned with restricted security token | Windows |
+| Original            | Transformed (WorkspaceWrite)                        | Platform |
+| ------------------- | --------------------------------------------------- | -------- |
+| `/bin/ls /tmp`      | `/usr/bin/sandbox-exec -p '<profile>' /bin/ls /tmp` | macOS    |
+| `python3 script.py` | Landlock applied in-process before exec             | Linux    |
+| `cmd.exe /c dir`    | Spawned with restricted security token              | Windows  |
 
 **Note:** Unlike macOS which wraps with `sandbox-exec`, Linux's Landlock applies restrictions in the same process before calling `exec()`, so the command arguments remain unchanged.
 

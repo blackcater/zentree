@@ -34,11 +34,9 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the physical layout of the `vercel/ai` repository, the pnpm workspace configuration, package naming rules, the shared `tools/` directory, TypeScript project references, and the steps for adding new packages or examples.
 
-For information on the *build pipeline*, testing, and CI quality checks, see [Build, Test, and Quality Infrastructure](#6.2). For the changeset-based release process, see [Release Process and Version Management](#6.3).
+For information on the _build pipeline_, testing, and CI quality checks, see [Build, Test, and Quality Infrastructure](#6.2). For the changeset-based release process, see [Release Process and Version Management](#6.3).
 
 ---
 
@@ -87,11 +85,11 @@ packages:
 
 [.npmrc:1-4]()
 
-| Setting | Value | Effect |
-|---|---|---|
-| `auto-install-peers` | `true` | Peer dependencies are installed automatically |
-| `link-workspace-packages` | `true` | Local workspace packages are symlinked, not fetched from npm |
-| `public-hoist-pattern` | `*eslint*`, `*prettier*` | ESLint and Prettier are hoisted to the root `node_modules` |
+| Setting                   | Value                    | Effect                                                       |
+| ------------------------- | ------------------------ | ------------------------------------------------------------ |
+| `auto-install-peers`      | `true`                   | Peer dependencies are installed automatically                |
+| `link-workspace-packages` | `true`                   | Local workspace packages are symlinked, not fetched from npm |
+| `public-hoist-pattern`    | `*eslint*`, `*prettier*` | ESLint and Prettier are hoisted to the root `node_modules`   |
 
 The `link-workspace-packages = true` setting is what makes `workspace:*` version specifiers work: pnpm resolves them to the locally built package rather than the npm registry.
 
@@ -105,32 +103,32 @@ Every entry under `packages/` follows one of these naming patterns:
 
 **Workspace directory structure to npm package name mapping:**
 
-| Directory | npm package name | Category |
-|---|---|---|
-| `packages/ai` | `ai` | Core SDK |
-| `packages/provider` | `@ai-sdk/provider` | Provider specification interfaces |
-| `packages/provider-utils` | `@ai-sdk/provider-utils` | Shared HTTP/stream utilities |
-| `packages/gateway` | `@ai-sdk/gateway` | Vercel AI Gateway |
-| `packages/openai` | `@ai-sdk/openai` | Provider |
-| `packages/anthropic` | `@ai-sdk/anthropic` | Provider |
-| `packages/google` | `@ai-sdk/google` | Provider |
-| `packages/google-vertex` | `@ai-sdk/google-vertex` | Provider |
-| `packages/amazon-bedrock` | `@ai-sdk/amazon-bedrock` | Provider |
-| `packages/openai-compatible` | `@ai-sdk/openai-compatible` | Provider base class |
-| `packages/react` | `@ai-sdk/react` | UI integration |
-| `packages/vue` | `@ai-sdk/vue` | UI integration |
-| `packages/svelte` | `@ai-sdk/svelte` | UI integration |
-| `packages/angular` | `@ai-sdk/angular` | UI integration |
-| `packages/solid` | `@ai-sdk/solid` | UI integration |
-| `packages/rsc` | `@ai-sdk/rsc` | React Server Components |
-| `packages/langchain` | `@ai-sdk/langchain` | Adapter |
-| `packages/llamaindex` | `@ai-sdk/llamaindex` | Adapter |
-| `packages/mcp` | `@ai-sdk/mcp` | MCP integration |
-| `packages/valibot` | `@ai-sdk/valibot` | Schema adapter |
-| `packages/test-server` | `@ai-sdk/test-server` | Internal test utility (not published) |
-| `examples/*` | `@example/<name>` | Example apps (`private: true`) |
-| `tools/eslint-config` | `eslint-config-vercel-ai` | Shared linting config |
-| `tools/tsconfig` | `@vercel/ai-tsconfig` | Shared TypeScript config |
+| Directory                    | npm package name            | Category                              |
+| ---------------------------- | --------------------------- | ------------------------------------- |
+| `packages/ai`                | `ai`                        | Core SDK                              |
+| `packages/provider`          | `@ai-sdk/provider`          | Provider specification interfaces     |
+| `packages/provider-utils`    | `@ai-sdk/provider-utils`    | Shared HTTP/stream utilities          |
+| `packages/gateway`           | `@ai-sdk/gateway`           | Vercel AI Gateway                     |
+| `packages/openai`            | `@ai-sdk/openai`            | Provider                              |
+| `packages/anthropic`         | `@ai-sdk/anthropic`         | Provider                              |
+| `packages/google`            | `@ai-sdk/google`            | Provider                              |
+| `packages/google-vertex`     | `@ai-sdk/google-vertex`     | Provider                              |
+| `packages/amazon-bedrock`    | `@ai-sdk/amazon-bedrock`    | Provider                              |
+| `packages/openai-compatible` | `@ai-sdk/openai-compatible` | Provider base class                   |
+| `packages/react`             | `@ai-sdk/react`             | UI integration                        |
+| `packages/vue`               | `@ai-sdk/vue`               | UI integration                        |
+| `packages/svelte`            | `@ai-sdk/svelte`            | UI integration                        |
+| `packages/angular`           | `@ai-sdk/angular`           | UI integration                        |
+| `packages/solid`             | `@ai-sdk/solid`             | UI integration                        |
+| `packages/rsc`               | `@ai-sdk/rsc`               | React Server Components               |
+| `packages/langchain`         | `@ai-sdk/langchain`         | Adapter                               |
+| `packages/llamaindex`        | `@ai-sdk/llamaindex`        | Adapter                               |
+| `packages/mcp`               | `@ai-sdk/mcp`               | MCP integration                       |
+| `packages/valibot`           | `@ai-sdk/valibot`           | Schema adapter                        |
+| `packages/test-server`       | `@ai-sdk/test-server`       | Internal test utility (not published) |
+| `examples/*`                 | `@example/<name>`           | Example apps (`private: true`)        |
+| `tools/eslint-config`        | `eslint-config-vercel-ai`   | Shared linting config                 |
+| `tools/tsconfig`             | `@vercel/ai-tsconfig`       | Shared TypeScript config              |
 
 All packages under `@ai-sdk/*` and the `ai` package set `"publishConfig": { "access": "public" }` and are published to the public npm registry. All `@example/*` packages are `"private": true` and never published.
 
@@ -245,6 +243,7 @@ flowchart LR
 [tools/eslint-config/package.json:1-15]()
 
 Provides a shared ESLint configuration extending:
+
 - `eslint-config-next`
 - `eslint-config-prettier`
 - `eslint-config-turbo`
@@ -258,14 +257,14 @@ Referenced in `package.json` (root) as `"eslint-config-vercel-ai": "workspace:*"
 
 Provides `base.json` with the canonical TypeScript compiler options used across SDK packages:
 
-| Option | Value |
-|---|---|
-| `declaration` | `true` |
-| `declarationMap` | `true` |
-| `esModuleInterop` | `true` |
-| `isolatedModules` | `true` |
-| `module` | `ESNext` |
-| `composite` | `false` (base; packages override per build tsconfig) |
+| Option            | Value                                                |
+| ----------------- | ---------------------------------------------------- |
+| `declaration`     | `true`                                               |
+| `declarationMap`  | `true`                                               |
+| `esModuleInterop` | `true`                                               |
+| `isolatedModules` | `true`                                               |
+| `module`          | `ESNext`                                             |
+| `composite`       | `false` (base; packages override per build tsconfig) |
 
 Individual packages extend this in their own `tsconfig.json` and `tsconfig.build.json` files.
 
@@ -322,19 +321,19 @@ flowchart LR
 
 Every SDK package defines these npm scripts:
 
-| Script | Command | Purpose |
-|---|---|---|
-| `build` | `pnpm clean && tsup --tsconfig tsconfig.build.json` | Compile CJS + ESM + types |
-| `build:watch` | `pnpm clean && tsup --watch` | Incremental watch mode |
-| `clean` | `del-cli dist docs *.tsbuildinfo` | Remove build artifacts |
-| `lint` | `eslint "./**/*.ts*"` | Run ESLint |
-| `type-check` | `tsc --build` | TypeScript project reference type check |
-| `prettier-check` | `prettier --check "./**/*.ts*"` | Format check |
-| `test` | `pnpm test:node && pnpm test:edge` | Run both node and edge test suites |
-| `test:node` | `vitest --config vitest.node.config.js --run` | Node.js environment tests |
-| `test:edge` | `vitest --config vitest.edge.config.js --run` | Edge runtime tests |
-| `prepack` | `mkdir -p docs && cp ../../content/providers/.../*.mdx ./docs/` | Bundle docs before publishing |
-| `postpack` | `del-cli docs` | Remove docs after publishing |
+| Script           | Command                                                         | Purpose                                 |
+| ---------------- | --------------------------------------------------------------- | --------------------------------------- |
+| `build`          | `pnpm clean && tsup --tsconfig tsconfig.build.json`             | Compile CJS + ESM + types               |
+| `build:watch`    | `pnpm clean && tsup --watch`                                    | Incremental watch mode                  |
+| `clean`          | `del-cli dist docs *.tsbuildinfo`                               | Remove build artifacts                  |
+| `lint`           | `eslint "./**/*.ts*"`                                           | Run ESLint                              |
+| `type-check`     | `tsc --build`                                                   | TypeScript project reference type check |
+| `prettier-check` | `prettier --check "./**/*.ts*"`                                 | Format check                            |
+| `test`           | `pnpm test:node && pnpm test:edge`                              | Run both node and edge test suites      |
+| `test:node`      | `vitest --config vitest.node.config.js --run`                   | Node.js environment tests               |
+| `test:edge`      | `vitest --config vitest.edge.config.js --run`                   | Edge runtime tests                      |
+| `prepack`        | `mkdir -p docs && cp ../../content/providers/.../*.mdx ./docs/` | Bundle docs before publishing           |
+| `postpack`       | `del-cli docs`                                                  | Remove docs after publishing            |
 
 The `prepack`/`postpack` pair copies the relevant documentation MDX file from `content/` into the package's `docs/` folder for inclusion in the published tarball, then removes it afterward.
 
@@ -363,18 +362,18 @@ The root `package.json` defines all cross-package tasks via Turborepo. Turbo rea
 
 [package.json:4-23]()
 
-| Script | Turbo command | Scope |
-|---|---|---|
-| `build` | `turbo build --concurrency 16` | All workspaces |
-| `build:packages` | `turbo build --filter=@ai-sdk/* --filter=ai` | SDK packages only |
-| `build:examples` | `turbo build --filter=@example/*` | Example apps only |
-| `test` | `turbo test --concurrency 16 --filter=!@example/*` | All non-example packages |
-| `lint` | `turbo lint` | All workspaces |
-| `clean` | `turbo clean` | All workspaces |
-| `dev` | `turbo dev --cache=local:r,remote:r --concurrency 25` | All workspaces (with remote cache read) |
-| `publint` | `turbo publint` | All workspaces |
-| `ci:release` | `turbo clean && turbo build && changeset publish` | Release pipeline |
-| `ci:version` | `changeset version && cleanup script && pnpm install` | Version bump pipeline |
+| Script           | Turbo command                                         | Scope                                   |
+| ---------------- | ----------------------------------------------------- | --------------------------------------- |
+| `build`          | `turbo build --concurrency 16`                        | All workspaces                          |
+| `build:packages` | `turbo build --filter=@ai-sdk/* --filter=ai`          | SDK packages only                       |
+| `build:examples` | `turbo build --filter=@example/*`                     | Example apps only                       |
+| `test`           | `turbo test --concurrency 16 --filter=!@example/*`    | All non-example packages                |
+| `lint`           | `turbo lint`                                          | All workspaces                          |
+| `clean`          | `turbo clean`                                         | All workspaces                          |
+| `dev`            | `turbo dev --cache=local:r,remote:r --concurrency 25` | All workspaces (with remote cache read) |
+| `publint`        | `turbo publint`                                       | All workspaces                          |
+| `ci:release`     | `turbo clean && turbo build && changeset publish`     | Release pipeline                        |
+| `ci:version`     | `changeset version && cleanup script && pnpm install` | Version bump pipeline                   |
 
 The `--filter=!@example/*` flag on `test` excludes examples from the test run, since examples do not contain test suites.
 
@@ -418,9 +417,9 @@ Key conventions for examples:
 
 Contrast of internal vs. example dependency declarations:
 
-| Context | Specifier | Resolves to |
-|---|---|---|
-| `packages/google-vertex/package.json` | `"@ai-sdk/google": "workspace:*"` | Always the local package |
+| Context                                    | Specifier                           | Resolves to               |
+| ------------------------------------------ | ----------------------------------- | ------------------------- |
+| `packages/google-vertex/package.json`      | `"@ai-sdk/google": "workspace:*"`   | Always the local package  |
 | `examples/next-google-vertex/package.json` | `"@ai-sdk/google-vertex": "4.0.63"` | Local `link:` in lockfile |
 
 Sources: [examples/next-google-vertex/package.json:1-28](), [examples/express/package.json:1-22](), [examples/next-langchain/package.json:1-40](), [pnpm-lock.yaml:856-897]()

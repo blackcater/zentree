@@ -41,8 +41,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page provides an orientation to the three first-party user interfaces shipped with opencode: the **Terminal UI** (TUI), the **Web Application**, and the **Desktop Application**. All three communicate with the same backend HTTP server over the `@opencode-ai/sdk`. The page describes the purpose, technology, and package location of each interface and how they relate to one another.
 
 For detailed coverage of each interface, see the dedicated sub-pages:
@@ -58,11 +56,11 @@ For detailed coverage of each interface, see the dedicated sub-pages:
 
 ## At a Glance
 
-| Interface | Package path | Technology | Connects to backend via |
-|---|---|---|---|
-| Terminal UI (TUI) | `packages/opencode/src/cli/cmd/tui/` | `@opentui/solid` (terminal renderer, SolidJS) | In-process (same binary) or HTTP/SSE |
-| Web Application | `packages/app/` | SolidJS + `@solidjs/router` | HTTP/SSE via `@opencode-ai/sdk` |
-| Desktop Application | `packages/desktop/` | Tauri v2 + embedded web app | Sidecar spawns `opencode` process; web layer connects via HTTP/SSE |
+| Interface           | Package path                         | Technology                                    | Connects to backend via                                            |
+| ------------------- | ------------------------------------ | --------------------------------------------- | ------------------------------------------------------------------ |
+| Terminal UI (TUI)   | `packages/opencode/src/cli/cmd/tui/` | `@opentui/solid` (terminal renderer, SolidJS) | In-process (same binary) or HTTP/SSE                               |
+| Web Application     | `packages/app/`                      | SolidJS + `@solidjs/router`                   | HTTP/SSE via `@opencode-ai/sdk`                                    |
+| Desktop Application | `packages/desktop/`                  | Tauri v2 + embedded web app                   | Sidecar spawns `opencode` process; web layer connects via HTTP/SSE |
 
 ---
 
@@ -184,12 +182,12 @@ Sources: [packages/app/src/context/global-sync.tsx:54-80](), [packages/opencode/
 
 All UIs subscribe to Server-Sent Events from the opencode HTTP server. The `GlobalBus` emits events for message updates, tool executions, permission requests, and file changes. Each UI processes these events to update its reactive stores.
 
-| Event type | Purpose | Handled by |
-|---|---|---|
-| `message.created` | New message added to session | `GlobalSyncProvider`, `SyncProvider` |
-| `message.part.updated` | Tool execution progress or completion | `SyncProvider` |
-| `permission.asked` | Tool requires user approval | `PermissionProvider` (web/desktop), inline prompt (TUI) |
-| `worktree.ready` | Project initialization complete | `GlobalSyncProvider` |
+| Event type             | Purpose                               | Handled by                                              |
+| ---------------------- | ------------------------------------- | ------------------------------------------------------- |
+| `message.created`      | New message added to session          | `GlobalSyncProvider`, `SyncProvider`                    |
+| `message.part.updated` | Tool execution progress or completion | `SyncProvider`                                          |
+| `permission.asked`     | Tool requires user approval           | `PermissionProvider` (web/desktop), inline prompt (TUI) |
+| `worktree.ready`       | Project initialization complete       | `GlobalSyncProvider`                                    |
 
 Sources: [packages/app/src/context/global-sync.tsx:428-518](), [packages/opencode/src/cli/cmd/tui/routes/session/index.tsx:217-232]()
 
@@ -263,17 +261,17 @@ Sources: [packages/opencode/src/cli/cmd/tui/app.tsx:115-199](), [packages/openco
 
 **Key modules:**
 
-| Module | Path | Role |
-|---|---|---|
-| `tui()` | `src/cli/cmd/tui/app.tsx` | Entry point, provider tree, `render()` call with 60 FPS target |
-| `App` | `src/cli/cmd/tui/app.tsx` | Top-level component; route switching, terminal title updates |
-| `Home` | `src/cli/cmd/tui/routes/home` | Session list screen with fuzzy search |
-| `Session` | `src/cli/cmd/tui/routes/session/index.tsx` | Active session screen with scrollable message timeline |
-| `Prompt` | `src/cli/cmd/tui/component/prompt/index.tsx` | Multi-line `TextareaRenderable` with file/agent autocomplete |
+| Module         | Path                                                | Role                                                           |
+| -------------- | --------------------------------------------------- | -------------------------------------------------------------- |
+| `tui()`        | `src/cli/cmd/tui/app.tsx`                           | Entry point, provider tree, `render()` call with 60 FPS target |
+| `App`          | `src/cli/cmd/tui/app.tsx`                           | Top-level component; route switching, terminal title updates   |
+| `Home`         | `src/cli/cmd/tui/routes/home`                       | Session list screen with fuzzy search                          |
+| `Session`      | `src/cli/cmd/tui/routes/session/index.tsx`          | Active session screen with scrollable message timeline         |
+| `Prompt`       | `src/cli/cmd/tui/component/prompt/index.tsx`        | Multi-line `TextareaRenderable` with file/agent autocomplete   |
 | `Autocomplete` | `src/cli/cmd/tui/component/prompt/autocomplete.tsx` | `@` file/agent and `/` slash-command popover with fuzzy search |
-| `Sidebar` | `src/cli/cmd/tui/routes/session/sidebar.tsx` | Diffs, todos, MCP server status, cost/token metrics |
-| `Header` | `src/cli/cmd/tui/routes/session/header.tsx` | Session title, model indicator, agent color bar |
-| `Footer` | `src/cli/cmd/tui/routes/session/footer.tsx` | Status messages, interrupt prompt |
+| `Sidebar`      | `src/cli/cmd/tui/routes/session/sidebar.tsx`        | Diffs, todos, MCP server status, cost/token metrics            |
+| `Header`       | `src/cli/cmd/tui/routes/session/header.tsx`         | Session title, model indicator, agent color bar                |
+| `Footer`       | `src/cli/cmd/tui/routes/session/footer.tsx`         | Status messages, interrupt prompt                              |
 
 **Context providers in the TUI provider tree** (outermost → innermost):
 
@@ -336,16 +334,16 @@ Sources: [packages/app/src/pages/layout.tsx:94-599](), [packages/app/src/pages/s
 
 **Key modules:**
 
-| Module | Path | Role |
-|---|---|---|
-| `app.tsx` | `packages/app/src/app.tsx` | Root component, routing, all global providers |
-| `Layout` | `packages/app/src/pages/layout.tsx` | Persistent shell: sidebar, project list, workspace management, drag-and-drop reordering |
-| `Session` (page) | `packages/app/src/pages/session.tsx` | Session view: message timeline, review panel, terminal, prompt input |
-| `PromptInput` | `packages/app/src/components/prompt-input.tsx` | Rich text `contenteditable` with file/agent `@` mentions, `/` slash commands, image attachments |
-| `SessionHeader` | `packages/app/src/components/session/session-header.tsx` | Top bar with project name, file search, share button, open-in-editor menu |
-| `Titlebar` | `packages/app/src/components/titlebar.tsx` | Platform-aware title bar with back/forward navigation, traffic lights (macOS) |
-| `GlobalSync` | `packages/app/src/context/global-sync.tsx` | Global SSE event stream, multi-project state management, session prefetching |
-| `Layout` (context) | `packages/app/src/context/layout.tsx` | Sidebar/panel open state, tab management, panel widths, review diff style, workspace order |
+| Module             | Path                                                     | Role                                                                                            |
+| ------------------ | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `app.tsx`          | `packages/app/src/app.tsx`                               | Root component, routing, all global providers                                                   |
+| `Layout`           | `packages/app/src/pages/layout.tsx`                      | Persistent shell: sidebar, project list, workspace management, drag-and-drop reordering         |
+| `Session` (page)   | `packages/app/src/pages/session.tsx`                     | Session view: message timeline, review panel, terminal, prompt input                            |
+| `PromptInput`      | `packages/app/src/components/prompt-input.tsx`           | Rich text `contenteditable` with file/agent `@` mentions, `/` slash commands, image attachments |
+| `SessionHeader`    | `packages/app/src/components/session/session-header.tsx` | Top bar with project name, file search, share button, open-in-editor menu                       |
+| `Titlebar`         | `packages/app/src/components/titlebar.tsx`               | Platform-aware title bar with back/forward navigation, traffic lights (macOS)                   |
+| `GlobalSync`       | `packages/app/src/context/global-sync.tsx`               | Global SSE event stream, multi-project state management, session prefetching                    |
+| `Layout` (context) | `packages/app/src/context/layout.tsx`                    | Sidebar/panel open state, tab management, panel widths, review diff style, workspace order      |
 
 **Global context providers in the web app:**
 
@@ -479,21 +477,21 @@ The TypeScript entry point (`src/index.tsx`) implements the `Platform` interface
 
 **Tauri command surface (Rust → TypeScript bridge):**
 
-| Rust command | Purpose | Invoked by |
-|---|---|---|
-| `await_initialization` | Blocks until sidecar server is ready; streams `InitStep` progress | App bootstrap in `src/index.tsx` |
-| `kill_sidecar` | Kills the managed opencode sidecar process | Window close handler |
-| `open_path` | Opens a directory or file in the named application (VS Code, Finder, etc.) | `SessionHeader` "Open in..." menu |
-| `check_app_exists` | Checks whether an app (VS Code, Zed, etc.) is installed | `SessionHeader` menu item visibility |
-| `resolve_app_path` | Resolves app name to executable path (Windows) | `open_path` pre-check |
-| `install_cli` | Installs the opencode CLI to `~/.opencode/bin` and updates `$PATH` | Settings dialog |
-| `wsl_path` | Converts Windows↔Linux paths in WSL mode | File path resolution |
-| `get_display_backend` | Returns the Linux display backend (Wayland/auto) | Window decoration setup |
-| `show_in_folder` | Opens the system file manager at the given path | Context menu action |
-| `check_update` | Checks for app updates via Tauri's updater | Update polling timer |
-| `install_update` | Downloads and installs an app update | Update notification action |
-| `restart_app` | Restarts the desktop app | Post-update flow |
-| `send_notification` | Displays an OS-native notification | Permission/question alerts |
+| Rust command           | Purpose                                                                    | Invoked by                           |
+| ---------------------- | -------------------------------------------------------------------------- | ------------------------------------ |
+| `await_initialization` | Blocks until sidecar server is ready; streams `InitStep` progress          | App bootstrap in `src/index.tsx`     |
+| `kill_sidecar`         | Kills the managed opencode sidecar process                                 | Window close handler                 |
+| `open_path`            | Opens a directory or file in the named application (VS Code, Finder, etc.) | `SessionHeader` "Open in..." menu    |
+| `check_app_exists`     | Checks whether an app (VS Code, Zed, etc.) is installed                    | `SessionHeader` menu item visibility |
+| `resolve_app_path`     | Resolves app name to executable path (Windows)                             | `open_path` pre-check                |
+| `install_cli`          | Installs the opencode CLI to `~/.opencode/bin` and updates `$PATH`         | Settings dialog                      |
+| `wsl_path`             | Converts Windows↔Linux paths in WSL mode                                   | File path resolution                 |
+| `get_display_backend`  | Returns the Linux display backend (Wayland/auto)                           | Window decoration setup              |
+| `show_in_folder`       | Opens the system file manager at the given path                            | Context menu action                  |
+| `check_update`         | Checks for app updates via Tauri's updater                                 | Update polling timer                 |
+| `install_update`       | Downloads and installs an app update                                       | Update notification action           |
+| `restart_app`          | Restarts the desktop app                                                   | Post-update flow                     |
+| `send_notification`    | Displays an OS-native notification                                         | Permission/question alerts           |
 
 ### Platform Interface Implementation
 
@@ -502,16 +500,16 @@ The `Platform` interface defines methods that the web app calls to access platfo
 ```typescript
 // packages/desktop/src/index.tsx
 const platform: Platform = {
-  platform: "desktop",
-  os: await invoke("get_os"),
+  platform: 'desktop',
+  os: await invoke('get_os'),
   openPath: async (path, app) => {
-    await invoke("open_path", { path, openWith: app })
+    await invoke('open_path', { path, openWith: app })
   },
   checkAppExists: async (app) => {
-    return invoke("check_app_exists", { app })
+    return invoke('check_app_exists', { app })
   },
   notify: async (title, body, href) => {
-    await invoke("send_notification", { title, body, href })
+    await invoke('send_notification', { title, body, href })
   },
   // ... 10+ more methods
 }
@@ -560,11 +558,11 @@ packages/desktop"]
 
 Key shared modules and what each UI uses:
 
-| Shared module | TUI | Web App | Desktop |
-|---|---|---|---|
+| Shared module                                       | TUI                   | Web App                     | Desktop                      |
+| --------------------------------------------------- | --------------------- | --------------------------- | ---------------------------- |
 | `@opencode-ai/sdk` — typed HTTP client + SSE events | ✓ (via `SDKProvider`) | ✓ (via `GlobalSDKProvider`) | ✓ (through embedded web app) |
-| `@opencode-ai/ui` — SolidJS component library | — | ✓ | ✓ (through embedded web app) |
-| `@opencode-ai/util` — path, encoding, binary utils | ✓ | ✓ | ✓ |
+| `@opencode-ai/ui` — SolidJS component library       | —                     | ✓                           | ✓ (through embedded web app) |
+| `@opencode-ai/util` — path, encoding, binary utils  | ✓                     | ✓                           | ✓                            |
 
 The TUI has its own component system (built on `@opentui/core` primitives) and does not use `@opencode-ai/ui`, which is designed for DOM environments.
 

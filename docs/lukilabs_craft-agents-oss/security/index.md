@@ -11,11 +11,10 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page provides an overview of the security model in Craft Agents, covering the four primary protection areas: Electron process isolation, encrypted credential storage, file path validation, and subprocess/network controls.
 
 For deeper coverage of individual areas:
+
 - [Security Architecture](#7.1) — Electron sandbox design, IPC isolation, SSRF protections
 - [Credential Storage & Encryption](#7.2) — AES-256-GCM `credentials.enc`, `CredentialManager` internals, build-time secret injection
 - [File Access Validation](#7.3) — path traversal prevention logic and the agent permission system
@@ -26,11 +25,11 @@ For deeper coverage of individual areas:
 
 Craft Agents runs in Electron's three-process model. The renderer process is sandboxed with `nodeIntegration: false` and has no direct access to Node.js APIs. All security-sensitive operations — file I/O, credential access, subprocess spawning — live exclusively in the main process.
 
-| Process | Node.js Access | Role |
-|---------|---------------|------|
-| **Renderer** | None | React UI, user interaction |
-| **Preload** | Limited (`contextBridge` only) | Exposes `window.electronAPI` |
-| **Main** | Full | File I/O, credentials, agent/MCP spawning |
+| Process      | Node.js Access                 | Role                                      |
+| ------------ | ------------------------------ | ----------------------------------------- |
+| **Renderer** | None                           | React UI, user interaction                |
+| **Preload**  | Limited (`contextBridge` only) | Exposes `window.electronAPI`              |
+| **Main**     | Full                           | File I/O, credentials, agent/MCP spawning |
 
 The renderer interacts with the main process only through the named channels in `IPC_CHANNELS`, mediated by the typed `ElectronAPI` interface defined in `apps/electron/src/shared/types.ts`. The preload script bridges these two surfaces.
 
@@ -83,16 +82,16 @@ flowchart LR
 
 The main `CredentialManager` operations used across `ipc.ts`:
 
-| Method | Purpose |
-|--------|---------|
-| `setLlmApiKey(slug, key)` | Store an API key for a connection |
-| `setLlmOAuth(slug, tokens)` | Store OAuth tokens (access, refresh, id, expiresAt) |
-| `getLlmApiKey(slug)` | Retrieve API key (e.g., for settings pre-fill) |
-| `getLlmOAuth(slug)` | Retrieve OAuth tokens (e.g., to check expiry) |
-| `deleteLlmCredentials(slug)` | Remove all credentials for a connection slug |
-| `hasLlmCredentials(slug, authType)` | Check whether credentials exist |
-| `list()` | Enumerate all stored credential IDs |
-| `checkHealth()` | Validate the credential store is readable and uncorrupted |
+| Method                              | Purpose                                                   |
+| ----------------------------------- | --------------------------------------------------------- |
+| `setLlmApiKey(slug, key)`           | Store an API key for a connection                         |
+| `setLlmOAuth(slug, tokens)`         | Store OAuth tokens (access, refresh, id, expiresAt)       |
+| `getLlmApiKey(slug)`                | Retrieve API key (e.g., for settings pre-fill)            |
+| `getLlmOAuth(slug)`                 | Retrieve OAuth tokens (e.g., to check expiry)             |
+| `deleteLlmCredentials(slug)`        | Remove all credentials for a connection slug              |
+| `hasLlmCredentials(slug, authType)` | Check whether credentials exist                           |
+| `list()`                            | Enumerate all stored credential IDs                       |
+| `checkHealth()`                     | Validate the credential store is readable and uncorrupted |
 
 The `CREDENTIAL_HEALTH_CHECK` IPC handler calls `manager.checkHealth()` at app startup. This detects corruption or machine migration issues before the user sends a message.
 
@@ -137,17 +136,17 @@ flowchart TD
 
 The `sensitivePatterns` array in `validateFilePath()` blocks the following paths even when they are inside `homedir()`:
 
-| Pattern | Protected resource |
-|---------|-------------------|
-| `/\.ssh\//` | SSH private keys and config |
-| `/\.gnupg\//` | GPG key ring |
-| `/\.aws\/credentials/` | AWS access keys |
-| `/\.env$/` | Root `.env` files |
-| `/\.env\./` | `.env.local`, `.env.production`, etc. |
-| `/credentials\.json$/` | Google service account files |
-| `/secrets?\./i` | `secret.*`, `secrets.*` (case-insensitive) |
-| `/\.pem$/` | PEM certificates |
-| `/\.key$/` | Private key files |
+| Pattern                | Protected resource                         |
+| ---------------------- | ------------------------------------------ |
+| `/\.ssh\//`            | SSH private keys and config                |
+| `/\.gnupg\//`          | GPG key ring                               |
+| `/\.aws\/credentials/` | AWS access keys                            |
+| `/\.env$/`             | Root `.env` files                          |
+| `/\.env\./`            | `.env.local`, `.env.production`, etc.      |
+| `/credentials\.json$/` | Google service account files               |
+| `/secrets?\./i`        | `secret.*`, `secrets.*` (case-insensitive) |
+| `/\.pem$/`             | PEM certificates                           |
+| `/\.key$/`             | Private key files                          |
 
 `validateFilePath()` is invoked in these IPC handlers: `READ_FILE`, `READ_FILE_DATA_URL`, `READ_FILE_BINARY`, `READ_FILE_ATTACHMENT`, `OPEN_FILE`, `SHOW_IN_FOLDER`.
 
@@ -175,13 +174,13 @@ Sources: [apps/electron/src/main/ipc.ts:36-52](), [apps/electron/src/main/ipc.ts
 
 When a local MCP server (stdio transport) is spawned, the inherited process environment is filtered. The following variables are explicitly blocked to prevent credential leakage into the subprocess:
 
-| Category | Blocked Variables |
-|----------|------------------|
-| App auth | `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN` |
-| AWS | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` |
-| SCM | `GITHUB_TOKEN`, `GH_TOKEN` |
-| AI providers | `OPENAI_API_KEY`, `GOOGLE_API_KEY` |
-| Payments / packages | `STRIPE_SECRET_KEY`, `NPM_TOKEN` |
+| Category            | Blocked Variables                                                 |
+| ------------------- | ----------------------------------------------------------------- |
+| App auth            | `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`                    |
+| AWS                 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` |
+| SCM                 | `GITHUB_TOKEN`, `GH_TOKEN`                                        |
+| AI providers        | `OPENAI_API_KEY`, `GOOGLE_API_KEY`                                |
+| Payments / packages | `STRIPE_SECRET_KEY`, `NPM_TOKEN`                                  |
 
 If a specific MCP server legitimately needs one of these variables, it can be explicitly passed using the `env` field in the source's configuration file. This is a per-source opt-in, not inherited from the parent process by default.
 
@@ -208,16 +207,16 @@ Sources: [apps/electron/src/main/ipc.ts:1093-1119]()
 
 The table below maps IPC channels to the validation functions they invoke.
 
-| IPC Channel | Constant | Validation |
-|-------------|---------|-----------|
-| `READ_FILE` | `file:read` | `validateFilePath()` |
-| `READ_FILE_DATA_URL` | `file:readDataUrl` | `validateFilePath()` |
-| `READ_FILE_BINARY` | `file:readBinary` | `validateFilePath()` |
-| `READ_FILE_ATTACHMENT` | `file:readAttachment` | `validateFilePath()` |
-| `OPEN_FILE` | `shell:openFile` | `validateFilePath()` |
-| `SHOW_IN_FOLDER` | `shell:showInFolder` | `validateFilePath()` |
-| `STORE_ATTACHMENT` | `file:storeAttachment` | `validateSessionId()` + `sanitizeFilename()` |
-| `OPEN_URL` | `shell:openUrl` | Protocol allowlist |
-| `WORKSPACE_SETTINGS_UPDATE` | `workspaceSettings:update` | Key allowlist (`validKeys` array) |
+| IPC Channel                 | Constant                   | Validation                                   |
+| --------------------------- | -------------------------- | -------------------------------------------- |
+| `READ_FILE`                 | `file:read`                | `validateFilePath()`                         |
+| `READ_FILE_DATA_URL`        | `file:readDataUrl`         | `validateFilePath()`                         |
+| `READ_FILE_BINARY`          | `file:readBinary`          | `validateFilePath()`                         |
+| `READ_FILE_ATTACHMENT`      | `file:readAttachment`      | `validateFilePath()`                         |
+| `OPEN_FILE`                 | `shell:openFile`           | `validateFilePath()`                         |
+| `SHOW_IN_FOLDER`            | `shell:showInFolder`       | `validateFilePath()`                         |
+| `STORE_ATTACHMENT`          | `file:storeAttachment`     | `validateSessionId()` + `sanitizeFilename()` |
+| `OPEN_URL`                  | `shell:openUrl`            | Protocol allowlist                           |
+| `WORKSPACE_SETTINGS_UPDATE` | `workspaceSettings:update` | Key allowlist (`validKeys` array)            |
 
 Sources: [apps/electron/src/main/ipc.ts:487-549](), [apps/electron/src/main/ipc.ts:626-840](), [apps/electron/src/main/ipc.ts:1093-1119](), [apps/electron/src/main/ipc.ts:1557-1595]()

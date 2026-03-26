@@ -16,8 +16,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Overview
 
 The internationalization (i18n) system in AionUi provides multi-language support across the entire user interface, enabling users to interact with the application in their preferred language. The system uses `react-i18next` for React component integration and stores translations in structured JSON files. All UI text, including menus, dialogs, error messages, and tooltips, can be translated without code changes.
@@ -32,14 +30,14 @@ For information about custom CSS and theming (which is separate from language lo
 
 AionUi currently supports **6 languages** with complete UI translations:
 
-| Language | Locale Code | i18n JSON File | Arco ConfigProvider Locale |
-|----------|-------------|----------------|----------------------------|
-| English (US) | `en-US` | `src/renderer/i18n/locales/en-US.json` | `enUS` |
-| Simplified Chinese | `zh-CN` | `src/renderer/i18n/locales/zh-CN.json` | `zhCN` |
-| Traditional Chinese | `zh-TW` | `src/renderer/i18n/locales/zh-TW.json` | `zhTW` |
-| Japanese | `ja-JP` | `src/renderer/i18n/locales/ja-JP.json` | `jaJP` |
-| Korean | `ko-KR` | `src/renderer/i18n/locales/ko-KR.json` | `koKRComplete` (patched) |
-| Turkish | `tr-TR` | `src/renderer/i18n/locales/tr-TR.json` | *(not mapped)* |
+| Language            | Locale Code | i18n JSON File                         | Arco ConfigProvider Locale |
+| ------------------- | ----------- | -------------------------------------- | -------------------------- |
+| English (US)        | `en-US`     | `src/renderer/i18n/locales/en-US.json` | `enUS`                     |
+| Simplified Chinese  | `zh-CN`     | `src/renderer/i18n/locales/zh-CN.json` | `zhCN`                     |
+| Traditional Chinese | `zh-TW`     | `src/renderer/i18n/locales/zh-TW.json` | `zhTW`                     |
+| Japanese            | `ja-JP`     | `src/renderer/i18n/locales/ja-JP.json` | `jaJP`                     |
+| Korean              | `ko-KR`     | `src/renderer/i18n/locales/ko-KR.json` | `koKRComplete` (patched)   |
+| Turkish             | `tr-TR`     | `src/renderer/i18n/locales/tr-TR.json` | _(not mapped)_             |
 
 Each locale file contains identical key structures with translated values, ensuring consistent functionality across all languages. The Arco Design component library uses a separate locale object (imported from `@arco-design/web-react/es/locale/*`) which is mapped via the `ConfigProvider` wrapper.
 
@@ -101,18 +99,18 @@ graph TB
     JSON_jaJP --> I18nInstance
     JSON_koKR --> I18nInstance
     JSON_trTR --> I18nInstance
-    
+
     Arco_enUS --> ArcoLocalesMap
     Arco_zhCN --> ArcoLocalesMap
     Arco_zhTW --> ArcoLocalesMap
     Arco_jaJP --> ArcoLocalesMap
     Arco_koKR --> ArcoLocalesMap
-    
+
     I18nInstance -->|i18n.language| ArcoLocalesMap
     ArcoLocalesMap -->|arcoLocales[language]| ConfigProviderWrapper
     ConfigProviderWrapper --> AppProviders
     AppProviders --> UseTranslation
-    
+
     UseTranslation --> TFunction
     UseTranslation --> I18nObject
     TFunction --> GuidPage
@@ -211,18 +209,18 @@ Sources: [src/renderer/i18n/locales/en-US.json:1-900](), [src/renderer/i18n/loca
 
 ### Key Categories and Usage
 
-| Namespace | Purpose | Example Keys | Component Usage |
-|-----------|---------|--------------|-----------------|
-| `common` | Universal UI elements | `send`, `cancel`, `save`, `delete` | All components |
-| `conversation` | Chat and messaging | `welcome.title`, `history.today`, `workspace.title` | `GuidPage`, `MessageList`, `ChatConversation` |
-| `settings` | Configuration UI | `language`, `theme`, `assistants`, `mcp` | `SettingsModal` |
-| `preview` | File preview panel | `downloadFile`, `closePreview`, `word.title` | Preview components |
-| `update` | Software updates | `checking`, `availableTitle`, `downloadButton` | `UpdateModal` |
-| `agentMode` | Agent operation modes | `plan`, `yolo`, `autoEdit`, `bypass` | Agent mode selectors |
-| `messages` | In-conversation status/confirmation | `confirmation.yesAllowOnce`, `permissionRequest` | `ConversationChatConfirm` |
-| `acp` | ACP agent status and auth | `status.connecting`, `auth.failed` | ACP send boxes |
-| `codex` | Codex agent messages | `network.cloudflare_blocked`, `permissions.*` | Codex components |
-| `login` | WebUI login page | `username`, `password`, `errors.*` | WebUI login page |
+| Namespace      | Purpose                             | Example Keys                                        | Component Usage                               |
+| -------------- | ----------------------------------- | --------------------------------------------------- | --------------------------------------------- |
+| `common`       | Universal UI elements               | `send`, `cancel`, `save`, `delete`                  | All components                                |
+| `conversation` | Chat and messaging                  | `welcome.title`, `history.today`, `workspace.title` | `GuidPage`, `MessageList`, `ChatConversation` |
+| `settings`     | Configuration UI                    | `language`, `theme`, `assistants`, `mcp`            | `SettingsModal`                               |
+| `preview`      | File preview panel                  | `downloadFile`, `closePreview`, `word.title`        | Preview components                            |
+| `update`       | Software updates                    | `checking`, `availableTitle`, `downloadButton`      | `UpdateModal`                                 |
+| `agentMode`    | Agent operation modes               | `plan`, `yolo`, `autoEdit`, `bypass`                | Agent mode selectors                          |
+| `messages`     | In-conversation status/confirmation | `confirmation.yesAllowOnce`, `permissionRequest`    | `ConversationChatConfirm`                     |
+| `acp`          | ACP agent status and auth           | `status.connecting`, `auth.failed`                  | ACP send boxes                                |
+| `codex`        | Codex agent messages                | `network.cloudflare_blocked`, `permissions.*`       | Codex components                              |
+| `login`        | WebUI login page                    | `username`, `password`, `errors.*`                  | WebUI login page                              |
 
 Sources: [src/renderer/i18n/locales/en-US.json:1-400](), [src/renderer/i18n/locales/zh-CN.json:1-400](), [src/renderer/i18n/locales/ja-JP.json:1-167]()
 
@@ -236,20 +234,22 @@ Components access translations through the `useTranslation` hook provided by `re
 
 ```typescript
 // Basic usage pattern
-const { t, i18n } = useTranslation();
+const { t, i18n } = useTranslation()
 
 // Simple translation
-const sendLabel = t('common.send'); // Returns "Send" or "发送"
+const sendLabel = t('common.send') // Returns "Send" or "发送"
 
 // Translation with interpolation
-const greeting = t('conversation.chat.sendMessageTo', { model: 'gemini-2.5-pro' });
+const greeting = t('conversation.chat.sendMessageTo', {
+  model: 'gemini-2.5-pro',
+})
 // Returns "Send message to gemini-2.5-pro"
 
 // Translation with default value
-const label = t('custom.key', { defaultValue: 'Fallback Text' });
+const label = t('custom.key', { defaultValue: 'Fallback Text' })
 
 // Access current language
-const currentLang = i18n.language; // Returns "en-US", "zh-CN", etc.
+const currentLang = i18n.language // Returns "en-US", "zh-CN", etc.
 ```
 
 Sources: [src/renderer/i18n/locales/en-US.json:362-376]()
@@ -290,14 +290,14 @@ Sources: [src/renderer/i18n/locales/en-US.json:363](), [src/renderer/i18n/locale
 `GuidPage` uses `i18n.language` together with `resolveLocaleKey()` to determine which locale-specific assistant rules and skills files to load:
 
 ```typescript
-const { t, i18n } = useTranslation();
-const localeKey = resolveLocaleKey(i18n.language);
+const { t, i18n } = useTranslation()
+const localeKey = resolveLocaleKey(i18n.language)
 
 // Pass normalized locale to IPC bridge calls
 const rules = await ipcBridge.fs.readAssistantRule.invoke({
   assistantId: customAgentId,
   locale: localeKey, // e.g. "zh-CN"
-});
+})
 ```
 
 Sources: [src/common/ipcBridge.ts:134-135]()
@@ -310,15 +310,15 @@ Sources: [src/common/ipcBridge.ts:134-135]()
 
 The `resolveLocaleKey()` utility normalizes raw language codes (from `i18n.language` or OS detection) to the canonical locale identifiers used by the locale files:
 
-| Input | Output |
-|-------|--------|
-| `'en'` | `'en-US'` |
-| `'zh'` | `'zh-CN'` |
+| Input       | Output    |
+| ----------- | --------- |
+| `'en'`      | `'en-US'` |
+| `'zh'`      | `'zh-CN'` |
 | `'zh-Hans'` | `'zh-CN'` |
 | `'zh-Hant'` | `'zh-TW'` |
-| `'ja'` | `'ja-JP'` |
-| `'ko'` | `'ko-KR'` |
-| `'tr'` | `'tr-TR'` |
+| `'ja'`      | `'ja-JP'` |
+| `'ko'`      | `'ko-KR'` |
+| `'tr'`      | `'tr-TR'` |
 
 This ensures partial locale codes and alternative BCP-47 tags map to the filenames in `src/renderer/i18n/locales/`.
 
@@ -416,8 +416,8 @@ The selected language is stored in `ConfigStorage` (key `'language'`) via the `I
 ```typescript
 // src/common/storage.ts — IConfigStorageRefer (excerpt)
 export interface IConfigStorageRefer {
-  language: string; // e.g. "en-US", "zh-CN", "ja-JP"
-  theme: string;
+  language: string // e.g. "en-US", "zh-CN", "ja-JP"
+  theme: string
   // ...
 }
 ```
@@ -455,17 +455,16 @@ Sources: [src/common/ipcBridge.ts:131-140]()
 
 ### File Naming Convention
 
-| File Type | Pattern | Example |
-|-----------|---------|---------|
-| User-saved rules | `rules-<locale>.md` | `rules-zh-CN.md`, `rules-en-US.md` |
-| User-saved skills | `skills-<locale>.md` | `skills-ja-JP.md`, `skills-en-US.md` |
-| Built-in rules (via `readBuiltinRule`) | `<presetId>-rules-<locale>.md` | `cowork-rules-zh-CN.md` |
-| Built-in skills (via `readBuiltinSkill`) | `<presetId>-skills-<locale>.md` | `cowork-skills-en-US.md` |
+| File Type                                | Pattern                         | Example                              |
+| ---------------------------------------- | ------------------------------- | ------------------------------------ |
+| User-saved rules                         | `rules-<locale>.md`             | `rules-zh-CN.md`, `rules-en-US.md`   |
+| User-saved skills                        | `skills-<locale>.md`            | `skills-ja-JP.md`, `skills-en-US.md` |
+| Built-in rules (via `readBuiltinRule`)   | `<presetId>-rules-<locale>.md`  | `cowork-rules-zh-CN.md`              |
+| Built-in skills (via `readBuiltinSkill`) | `<presetId>-skills-<locale>.md` | `cowork-skills-en-US.md`             |
 
 Sources: [src/common/ipcBridge.ts:131-140]()
 
 ---
-
 
 ## Adding New Languages
 
@@ -514,41 +513,41 @@ Sources: [src/renderer/i18n/locales/en-US.json:1-50](), [src/common/ipcBridge.ts
 
 ### Common Keys (High Frequency)
 
-| Key | en-US | zh-CN | ja-JP |
-|-----|-------|-------|-------|
-| `common.send` | "Send" | "发送" | "送信" |
-| `common.cancel` | "Cancel" | "取消" | "キャンセル" |
-| `common.save` | "Save" | "保存" | "保存" |
-| `common.delete` | "Delete" | "删除" | "削除" |
+| Key              | en-US            | zh-CN       | ja-JP               |
+| ---------------- | ---------------- | ----------- | ------------------- |
+| `common.send`    | "Send"           | "发送"      | "送信"              |
+| `common.cancel`  | "Cancel"         | "取消"      | "キャンセル"        |
+| `common.save`    | "Save"           | "保存"      | "保存"              |
+| `common.delete`  | "Delete"         | "删除"      | "削除"              |
 | `common.loading` | "Please wait..." | "请稍候..." | "お待ちください..." |
-| `common.error` | "Error" | "错误" | "エラー" |
-| `common.success` | "Success" | "成功" | "成功" |
+| `common.error`   | "Error"          | "错误"      | "エラー"            |
+| `common.success` | "Success"        | "成功"      | "成功"              |
 
 Sources: [src/renderer/i18n/locales/en-US.json:14-66](), [src/renderer/i18n/locales/zh-CN.json:14-64](), [src/renderer/i18n/locales/ja-JP.json:168-217]()
 
 ### Conversation Keys
 
-| Key | en-US | zh-CN |
-|-----|-------|-------|
-| `conversation.welcome.title` | "Hi, what's your plan for today?" | "Hi，今天有什么安排？" |
-| `conversation.welcome.placeholder` | "Send a message, upload files..." | "发消息、上传文件..." |
-| `conversation.history.today` | "Today" | "今天" |
-| `conversation.workspace.title` | "Workspace" | "工作空间" |
-| `conversation.chat.sendMessageTo` | "Send message to {{model}}" | "发送消息到 {{model}}" |
+| Key                                | en-US                             | zh-CN                  |
+| ---------------------------------- | --------------------------------- | ---------------------- |
+| `conversation.welcome.title`       | "Hi, what's your plan for today?" | "Hi，今天有什么安排？" |
+| `conversation.welcome.placeholder` | "Send a message, upload files..." | "发消息、上传文件..."  |
+| `conversation.history.today`       | "Today"                           | "今天"                 |
+| `conversation.workspace.title`     | "Workspace"                       | "工作空间"             |
+| `conversation.chat.sendMessageTo`  | "Send message to {{model}}"       | "发送消息到 {{model}}" |
 
 Sources: [src/renderer/i18n/locales/en-US.json:226-364](), [src/renderer/i18n/locales/zh-CN.json:223-361]()
 
 ### Settings Keys
 
-| Key | en-US | zh-CN |
-|-----|-------|-------|
-| `settings.language` | "Language" | "语言" |
-| `settings.theme` | "Theme" | "主题" |
-| `settings.assistants` | "Assistants" | "助手" |
-| `settings.mcp` | "MCP Integration" | "MCP 集成" |
-| `settings.webui` | "Remote" | "远程连接" |
-| `settings.webui.enable` | "Enable WebUI" | "启用 WebUI" |
-| `settings.channels` | "Channels" | "频道" |
+| Key                     | en-US             | zh-CN        |
+| ----------------------- | ----------------- | ------------ |
+| `settings.language`     | "Language"        | "语言"       |
+| `settings.theme`        | "Theme"           | "主题"       |
+| `settings.assistants`   | "Assistants"      | "助手"       |
+| `settings.mcp`          | "MCP Integration" | "MCP 集成"   |
+| `settings.webui`        | "Remote"          | "远程连接"   |
+| `settings.webui.enable` | "Enable WebUI"    | "启用 WebUI" |
+| `settings.channels`     | "Channels"        | "频道"       |
 
 Sources: [src/renderer/i18n/locales/en-US.json:403-820](), [src/renderer/i18n/locales/zh-CN.json:400-860]()
 
@@ -618,10 +617,10 @@ The language preference is persisted in `ConfigStorage` under the key `language`
 
 ```typescript
 // Reading language setting
-const currentLanguage = await ConfigStorage.get('language'); // Returns "en-US", "zh-CN", etc.
+const currentLanguage = await ConfigStorage.get('language') // Returns "en-US", "zh-CN", etc.
 
 // Saving language setting
-await ConfigStorage.set('language', 'ja-JP');
+await ConfigStorage.set('language', 'ja-JP')
 ```
 
 **Sources:** [src/common/storage.ts:13-22](), [src/common/storage.ts:60]()
@@ -643,7 +642,7 @@ const arcoLocales: Record<string, typeof enUS> = {
 const Config: React.FC<PropsWithChildren> = ({ children }) => {
   const { i18n: { language } } = useTranslation();
   const arcoLocale = arcoLocales[language] ?? enUS;
-  
+
   return <ConfigProvider theme={{ primaryColor: '#4E5969' }} locale={arcoLocale}>
     {children}
   </ConfigProvider>;
@@ -661,9 +660,11 @@ Language changes triggered from the renderer invoke the `systemSettings.changeLa
 ```typescript
 // src/common/ipcBridge.ts (excerpt)
 export const systemSettings = {
-  changeLanguage: bridge.buildProvider<void, { language: string }>('system-settings:change-language'),
+  changeLanguage: bridge.buildProvider<void, { language: string }>(
+    'system-settings:change-language'
+  ),
   // ...
-};
+}
 ```
 
 The main process handler updates the renderer's i18n instance and persists the change to `ConfigStorage`.

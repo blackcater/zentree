@@ -30,8 +30,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 The StreamProcessor is the core state machine that transforms raw `StreamChunk` objects from AI providers into structured `UIMessage[]` arrays suitable for UI rendering. It maintains conversation state, tracks parallel tool call lifecycles, segments text content intelligently, and emits granular events for real-time UI updates.
@@ -52,28 +50,28 @@ graph TB
         SSE["SSE Stream<br/>(fetchServerSentEvents)"]
         HTTP["HTTP Stream<br/>(fetchHttpStream)"]
     end
-    
+
     subgraph Processor["StreamProcessor"]
         STATE["ProcessorState<br/>━━━━━━━━━━<br/>messages: UIMessage[]<br/>currentMessage: UIMessage<br/>toolCallsMap: Map"]
-        
+
         DISPATCHER["Chunk Dispatcher<br/>━━━━━━━━━━<br/>processChunk()"]
-        
+
         HANDLERS["Chunk Handlers<br/>━━━━━━━━━━<br/>handleContentChunk()<br/>handleToolCallChunk()<br/>handleToolResultChunk()<br/>handleThinkingChunk()<br/>handleApprovalChunk()"]
-        
+
         UPDATERS["Message Updaters<br/>━━━━━━━━━━<br/>updateTextPart()<br/>updateToolCallPart()<br/>updateToolResultPart()<br/>updateThinkingPart()"]
-        
+
         STRATEGY["Chunk Strategy<br/>━━━━━━━━━━<br/>ImmediateStrategy<br/>BatchedStrategy"]
     end
-    
+
     subgraph Output["Output Layer"]
         EVENTS["Event Emitters<br/>━━━━━━━━━━<br/>onMessagesChange<br/>onToolCall<br/>onApprovalRequest<br/>onTextUpdate"]
-        
+
         MESSAGES["UIMessage Array<br/>━━━━━━━━━━<br/>Full conversation state"]
     end
-    
+
     SSE --> DISPATCHER
     HTTP --> DISPATCHER
-    
+
     DISPATCHER --> HANDLERS
     HANDLERS --> UPDATERS
     UPDATERS --> STATE
@@ -100,19 +98,19 @@ The StreamProcessor maintains a `ProcessorState` object that serves as the singl
 interface ProcessorState {
   // Full conversation history
   messages: Array<UIMessage>
-  
+
   // Current assistant message being built
   currentMessage: UIMessage | null
-  
+
   // Track all tool calls across messages
   toolCallsMap: Map<string, InternalToolCallState>
-  
+
   // Accumulated content for current message
   accumulatedContent: string
-  
+
   // Whether stream has started
   hasStarted: boolean
-  
+
   // Error state
   error: Error | null
 }
@@ -129,7 +127,7 @@ interface InternalToolCallState {
   id: string
   name: string
   index: number
-  arguments: string  // JSON string (may be incomplete)
+  arguments: string // JSON string (may be incomplete)
   state: ToolCallState
   parsedArgs?: any
   output?: any
@@ -142,6 +140,7 @@ interface InternalToolCallState {
 ```
 
 **Tool Call State Transitions:**
+
 - `awaiting-input` → Tool call received, waiting for arguments
 - `input-streaming` → Partial arguments being accumulated
 - `input-complete` → All arguments received and parsed
@@ -157,25 +156,25 @@ interface InternalToolCallState {
 ```mermaid
 stateDiagram-v2
     [*] --> awaiting_input: "ToolCallStreamChunk received"
-    
+
     awaiting_input --> input_streaming: "Arguments start streaming"
     input_streaming --> input_streaming: "More argument chunks"
     input_streaming --> input_complete: "Arguments complete & valid JSON"
-    
+
     input_complete --> approval_requested: "needsApproval = true"
     input_complete --> executing: "Server tool (auto-execute)"
     input_complete --> tool_input_available: "Client tool (no server execute)"
-    
+
     approval_requested --> approval_responded: "addToolApprovalResponse called"
     approval_responded --> executing: "approved = true"
     approval_responded --> cancelled: "approved = false"
-    
+
     executing --> output_available: "Tool execution success"
     executing --> output_error: "Tool execution failed"
-    
+
     tool_input_available --> output_available: "Client returns result"
     tool_input_available --> output_error: "Client returns error"
-    
+
     output_available --> [*]
     output_error --> [*]
     cancelled --> [*]
@@ -193,13 +192,13 @@ This state machine governs the lifecycle of each tool call from initial detectio
 
 The StreamProcessor maintains a `Map<string, InternalToolCallState>` to track multiple tool calls simultaneously:
 
-| Capability | Implementation |
-|------------|---------------|
-| **Parallel Execution** | Each tool call has unique `id` and `index` |
-| **State Isolation** | States tracked independently in `toolCallsMap` |
-| **Argument Streaming** | Partial JSON accumulated per tool call |
-| **Order Preservation** | `index` field maintains call order for UI |
-| **Cross-Message Tracking** | Map persists across multiple messages |
+| Capability                 | Implementation                                 |
+| -------------------------- | ---------------------------------------------- |
+| **Parallel Execution**     | Each tool call has unique `id` and `index`     |
+| **State Isolation**        | States tracked independently in `toolCallsMap` |
+| **Argument Streaming**     | Partial JSON accumulated per tool call         |
+| **Order Preservation**     | `index` field maintains call order for UI      |
+| **Cross-Message Tracking** | Map persists across multiple messages          |
 
 ### Parallel Tool Call Example
 
@@ -209,21 +208,21 @@ sequenceDiagram
     participant Processor as "StreamProcessor"
     participant Map as "toolCallsMap"
     participant UI
-    
+
     LLM->>Processor: "ToolCallStreamChunk<br/>{id: 'call_1', name: 'getWeather', index: 0}"
     Processor->>Map: "Set call_1: {state: 'awaiting-input'}"
-    
+
     LLM->>Processor: "ToolCallStreamChunk<br/>{id: 'call_2', name: 'getTime', index: 1}"
     Processor->>Map: "Set call_2: {state: 'awaiting-input'}"
-    
+
     LLM->>Processor: "ToolCallStreamChunk<br/>{id: 'call_1', args: '{\"city\"...'}"
     Processor->>Map: "Update call_1: {state: 'input-streaming'}"
-    
+
     LLM->>Processor: "ToolCallStreamChunk<br/>{id: 'call_2', args: '{\"timezone\"...'}"
     Processor->>Map: "Update call_2: {state: 'input-streaming'}"
-    
+
     Note over Processor: "Both tool calls tracked<br/>independently in map"
-    
+
     Processor->>UI: "onToolCallStateChange('call_1', 'input-streaming')"
     Processor->>UI: "onToolCallStateChange('call_2', 'input-streaming')"
 ```
@@ -243,13 +242,13 @@ When tool calls interrupt content generation, the StreamProcessor segments text 
 ```mermaid
 graph LR
     START["Content Streaming"] --> CHECK{"Tool Call<br/>Received?"}
-    
+
     CHECK -->|"No"| APPEND["Append to<br/>current TextPart"]
-    
+
     CHECK -->|"Yes"| SEGMENT["Finalize current<br/>TextPart"]
     SEGMENT --> TOOL["Create ToolCallPart"]
     TOOL --> NEWTEXT["Create new TextPart<br/>for subsequent content"]
-    
+
     APPEND --> CHECK
     NEWTEXT --> CHECK
 ```
@@ -290,7 +289,7 @@ sequenceDiagram
     participant State as "ProcessorState"
     participant Events as "Event Emitters"
     participant UI
-    
+
     Stream->>Processor: "ContentStreamChunk"
     Processor->>Dispatcher: "Route by chunk.type"
     Dispatcher->>Handlers: "handleContentChunk()"
@@ -298,21 +297,21 @@ sequenceDiagram
     State->>Events: "Apply ChunkStrategy"
     Events->>UI: "onTextUpdate(messageId, content)"
     Events->>UI: "onMessagesChange(messages)"
-    
+
     Stream->>Processor: "ToolCallStreamChunk"
     Processor->>Dispatcher: "Route by chunk.type"
     Dispatcher->>Handlers: "handleToolCallChunk()"
     Handlers->>State: "updateToolCallPart()<br/>update toolCallsMap"
     State->>Events: "onToolCallStateChange()"
     Events->>UI: "onMessagesChange(messages)"
-    
+
     Stream->>Processor: "ApprovalRequestedStreamChunk"
     Processor->>Dispatcher: "Route by chunk.type"
     Dispatcher->>Handlers: "handleApprovalChunk()"
     Handlers->>State: "updateToolCallApproval()"
     State->>Events: "onApprovalRequest()"
     Events->>UI: "Show approval UI"
-    
+
     Stream->>Processor: "DoneStreamChunk"
     Processor->>Dispatcher: "Route by chunk.type"
     Dispatcher->>State: "Finalize message"
@@ -336,26 +335,26 @@ The StreamProcessor emits events through two interfaces:
 interface StreamProcessorEvents {
   // State events
   onMessagesChange?: (messages: Array<UIMessage>) => void
-  
+
   // Lifecycle events
   onStreamStart?: () => void
   onStreamEnd?: (message: UIMessage) => void
   onError?: (error: Error) => void
-  
+
   // Interaction events
   onToolCall?: (args: {
     toolCallId: string
     toolName: string
     input: any
   }) => void
-  
+
   onApprovalRequest?: (args: {
     toolCallId: string
     toolName: string
     input: any
     approvalId: string
   }) => void
-  
+
   // Granular events for optimization
   onTextUpdate?: (messageId: string, content: string) => void
   onToolCallStateChange?: (
@@ -372,14 +371,14 @@ interface StreamProcessorEvents {
 
 ### Event Emission Strategy
 
-| Event | When Emitted | Use Case |
-|-------|-------------|----------|
-| `onMessagesChange` | After any state mutation | Full re-render, complete state sync |
-| `onTextUpdate` | Per content chunk | Character-by-character streaming effect |
-| `onToolCallStateChange` | Tool call state transition | Update individual tool UI element |
-| `onThinkingUpdate` | Per thinking chunk | Display model reasoning process |
-| `onApprovalRequest` | Tool requires approval | Show approval dialog |
-| `onToolCall` | Client tool ready to execute | Trigger client-side tool execution |
+| Event                   | When Emitted                 | Use Case                                |
+| ----------------------- | ---------------------------- | --------------------------------------- |
+| `onMessagesChange`      | After any state mutation     | Full re-render, complete state sync     |
+| `onTextUpdate`          | Per content chunk            | Character-by-character streaming effect |
+| `onToolCallStateChange` | Tool call state transition   | Update individual tool UI element       |
+| `onThinkingUpdate`      | Per thinking chunk           | Display model reasoning process         |
+| `onApprovalRequest`     | Tool requires approval       | Show approval dialog                    |
+| `onToolCall`            | Client tool ready to execute | Trigger client-side tool execution      |
 
 **Sources:** [packages/typescript/ai/src/activities/chat/stream/processor.ts:46-131]()
 
@@ -396,9 +395,9 @@ Emits events immediately for every chunk, providing real-time character-by-chara
 ```typescript
 class ImmediateStrategy implements ChunkStrategy {
   shouldEmit(): boolean {
-    return true  // Emit on every chunk
+    return true // Emit on every chunk
   }
-  
+
   onChunk(content: string): void {
     // Emit immediately
   }
@@ -415,11 +414,11 @@ Batches multiple chunks before emitting, reducing event frequency:
 class BatchedStrategy implements ChunkStrategy {
   private buffer: string = ''
   private batchSize: number
-  
+
   shouldEmit(): boolean {
     return this.buffer.length >= this.batchSize
   }
-  
+
   onChunk(content: string): void {
     this.buffer += content
     if (this.shouldEmit()) {
@@ -451,29 +450,29 @@ const processor = new StreamProcessor({
     console.log('Messages updated:', messages)
     // Update UI state
   },
-  
+
   // Real-time text updates
   onTextUpdate: (messageId, content) => {
     // Stream character-by-character
   },
-  
+
   // Tool execution
   onToolCall: async ({ toolCallId, toolName, input }) => {
     // Execute client tool
     const result = await executeClientTool(toolName, input)
     processor.addToolResult(toolCallId, result)
   },
-  
+
   // Approval flow
   onApprovalRequest: ({ approvalId, toolName, input }) => {
     // Show approval UI
     showApprovalDialog(approvalId, toolName, input)
   },
-  
+
   // Error handling
   onError: (error) => {
     console.error('Stream error:', error)
-  }
+  },
 })
 
 // Process incoming chunks
@@ -495,25 +494,26 @@ The `useChat` hook uses StreamProcessor internally:
 // Inside @tanstack/ai-react
 function useChat(options) {
   const [messages, setMessages] = useState<UIMessage[]>([])
-  
-  const processor = useMemo(() => 
-    new StreamProcessor({
-      onMessagesChange: setMessages,
-      onToolCall: options.clientTools?.execute,
-      onApprovalRequest: (args) => {
-        // Store pending approval
-      }
-    }),
+
+  const processor = useMemo(
+    () =>
+      new StreamProcessor({
+        onMessagesChange: setMessages,
+        onToolCall: options.clientTools?.execute,
+        onApprovalRequest: (args) => {
+          // Store pending approval
+        },
+      }),
     []
   )
-  
+
   const sendMessage = async (content: string) => {
     const chunks = await options.connection(messages, {})
     for await (const chunk of chunks) {
       await processor.processChunk(chunk)
     }
   }
-  
+
   return { messages, sendMessage }
 }
 ```
@@ -531,18 +531,18 @@ The StreamProcessor handles incomplete JSON arguments during streaming:
 ```mermaid
 graph TB
     START["ToolCallStreamChunk<br/>args: '{'"] --> BUFFER["Accumulate in<br/>arguments string"]
-    
+
     BUFFER --> ATTEMPT["Attempt JSON.parse()"]
-    
+
     ATTEMPT --> VALID{"Valid JSON?"}
-    
+
     VALID -->|"Yes"| PARSE["Store parsed object<br/>state: input-complete"]
     VALID -->|"No"| CONTINUE["state: input-streaming<br/>wait for more chunks"]
-    
+
     CONTINUE --> BUFFER
-    
+
     PARSE --> VALIDATE["Validate against<br/>inputSchema (if Zod)"]
-    
+
     VALIDATE --> VALIDATED{"Valid?"}
     VALIDATED -->|"Yes"| READY["Ready for execution"]
     VALIDATED -->|"No"| ERROR["Log validation error<br/>state: input-complete<br/>(best effort)"]
@@ -575,12 +575,12 @@ const modelMessages = uiMessageToModelMessages(uiMessages)
 
 **Conversion Rules:**
 
-| UIMessage Part Type | ModelMessage Representation |
-|---------------------|----------------------------|
-| `TextPart` | Concatenated into `content` string |
-| `ToolCallPart` | Added to `toolCalls` array |
-| `ToolResultPart` | Separate message with `role: 'tool'` |
-| `ThinkingPart` | **Excluded** (not sent to model) |
+| UIMessage Part Type | ModelMessage Representation          |
+| ------------------- | ------------------------------------ |
+| `TextPart`          | Concatenated into `content` string   |
+| `ToolCallPart`      | Added to `toolCalls` array           |
+| `ToolResultPart`    | Separate message with `role: 'tool'` |
+| `ThinkingPart`      | **Excluded** (not sent to model)     |
 
 **Sources:** [packages/typescript/ai/src/activities/chat/messages.ts:1-100]()
 
@@ -600,7 +600,7 @@ interface ChunkRecording {
 // Record mode
 const recording: ChunkRecording = {
   chunks: [],
-  timestamp: Date.now()
+  timestamp: Date.now(),
 }
 
 processor.on('chunk', (chunk) => {
@@ -617,6 +617,7 @@ async function* replayChunks(recording: ChunkRecording) {
 ```
 
 **Use Cases:**
+
 - Unit testing complex tool call flows
 - Debugging approval workflows
 - Performance profiling
@@ -631,6 +632,7 @@ async function* replayChunks(recording: ChunkRecording) {
 The StreamProcessor is the central state machine for TanStack AI's streaming architecture:
 
 **Core Responsibilities:**
+
 1. **State Management** - Single source of truth for `UIMessage[]`
 2. **Tool Call Tracking** - Parallel execution with independent state machines
 3. **Text Segmentation** - Intelligent content splitting around tool calls
@@ -639,6 +641,7 @@ The StreamProcessor is the central state machine for TanStack AI's streaming arc
 6. **Strategy System** - Pluggable chunk emission strategies
 
 **Key Design Principles:**
+
 - **Immutable Updates** - State transitions create new message objects
 - **Event-Driven** - UI reacts to state changes via callbacks
 - **Type-Safe** - Full TypeScript inference from tool schemas

@@ -33,8 +33,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page documents the day-to-day development workflow for working with the Superset codebase: running development servers, hot reload behavior, code generation tasks, environment variable management, quality checks, and debugging techniques. For initial repository setup and dependency installation, see [Setup and Installation](#4.2). For building production artifacts and running tests in CI, see [Building and Testing](#4.4).
@@ -57,11 +55,13 @@ bun run dev
 This executes the `predev` hook before starting:
 
 [apps/desktop/package.json:20]()
+
 ```json
 "predev": "cross-env NODE_ENV=development bun run clean:dev && bun run generate:icons && cross-env NODE_ENV=development bun run scripts/clean-launch-services.ts && cross-env NODE_ENV=development bun run scripts/patch-dev-protocol.ts"
 ```
 
 **Predev steps:**
+
 1. **`clean:dev`**: Removes `node_modules/.dev` cache directory
 2. **`generate:icons`**: Generates file type icons from Material Icon Theme JSON
 3. **`clean-launch-services.ts`**: (macOS only) Clears Launch Services cache to register protocol handler
@@ -70,6 +70,7 @@ This executes the `predev` hook before starting:
 **Dev mode initialization:**
 
 [apps/desktop/src/main/index.ts:44-56]()
+
 ```typescript
 const IS_DEV = process.env.NODE_ENV === "development";
 
@@ -91,8 +92,9 @@ The desktop app name includes the Git worktree name in development, allowing mul
 **Dev server port configuration:**
 
 [electron.vite.config.ts:23-24]()
+
 ```typescript
-const DEV_SERVER_PORT = Number(process.env.DESKTOP_VITE_PORT);
+const DEV_SERVER_PORT = Number(process.env.DESKTOP_VITE_PORT)
 ```
 
 The renderer dev server port is configurable via `DESKTOP_VITE_PORT` environment variable (default from `.env`).
@@ -112,17 +114,18 @@ bun run dev
 This starts API, Web, Desktop, and the local Caddy reverse proxy via Turborepo:
 
 [package.json:19]()
+
 ```json
 "dev": "turbo run dev dev:caddy --filter=@superset/api --filter=@superset/web --filter=@superset/desktop --filter=electric-proxy --filter=//"
 ```
 
 **Individual app servers:**
 
-| Command | Apps Started |
-|---------|--------------|
-| `bun run dev:docs` | Documentation site only |
-| `bun run dev:marketing` | Marketing + Docs |
-| `bun run dev:all` | All apps in monorepo |
+| Command                 | Apps Started            |
+| ----------------------- | ----------------------- |
+| `bun run dev:docs`      | Documentation site only |
+| `bun run dev:marketing` | Marketing + Docs        |
+| `bun run dev:all`       | All apps in monorepo    |
 
 **Turbo caching:** Turborepo caches build and test outputs in `.turbo/` and `node_modules/.cache/turbo/`. Use `bun run clean:workspaces` to clear workspace-level caches.
 
@@ -135,11 +138,13 @@ This starts API, Web, Desktop, and the local Caddy reverse proxy via Turborepo:
 ### Electron-vite Watch Behavior
 
 [apps/desktop/package.json:21]()
+
 ```json
 "dev": "cross-env NODE_ENV=development electron-vite dev --watch"
 ```
 
 The `--watch` flag enables:
+
 - **Renderer process**: HMR (Hot Module Replacement) via Vite
 - **Main process**: Full restart on file changes
 - **Preload scripts**: Full restart on file changes
@@ -147,6 +152,7 @@ The `--watch` flag enables:
 ### Build Targets and Entry Points
 
 [electron.vite.config.ts:99-119]()
+
 ```typescript
 build: {
   rollupOptions: {
@@ -162,6 +168,7 @@ build: {
 ```
 
 Each entry point is built separately:
+
 - **`index`**: Main Electron process
 - **`terminal-host`**: Terminal daemon subprocess (persists across app restarts)
 - **`pty-subprocess`**: PTY shell process
@@ -173,16 +180,19 @@ Each entry point is built separately:
 ### What Triggers Rebuilds
 
 **Renderer rebuild:**
+
 - Any file in `src/renderer/`
 - Imported workspace packages (`@superset/ui`, `@superset/trpc`, etc.)
 - CSS/Tailwind changes
 
 **Main process restart:**
+
 - Any file in `src/main/`
 - Changes to `preload/` scripts
 - Environment variable changes (requires restart)
 
 **Full restart required:**
+
 - `package.json` dependency changes
 - Native module updates (`node-pty`, `better-sqlite3`)
 - `electron.vite.config.ts` changes
@@ -198,11 +208,13 @@ Each entry point is built separately:
 Material Icon Theme provides file icons as JSON mappings. These must be generated before building:
 
 [apps/desktop/package.json:19]()
+
 ```json
 "generate:icons": "bun run scripts/generate-file-icons.ts"
 ```
 
 This script:
+
 1. Reads icon definitions from `material-icon-theme` package
 2. Generates TypeScript constants mapping file extensions to icon names
 3. Outputs to `src/renderer/lib/file-icons.generated.ts`
@@ -214,6 +226,7 @@ This script:
 TanStack Router uses file-based routing with code generation:
 
 [apps/desktop/package.json:32-33]()
+
 ```json
 "generate:routes": "tsr generate",
 "pretypecheck": "bun run generate:icons && bun run generate:routes"
@@ -222,6 +235,7 @@ TanStack Router uses file-based routing with code generation:
 **Route configuration:**
 
 [electron.vite.config.ts:217-226]()
+
 ```typescript
 tanstackRouter({
   target: "react",
@@ -235,6 +249,7 @@ tanstackRouter({
 ```
 
 **File naming convention:**
+
 - `__root.tsx`: Root layout
 - `page.tsx`: Route component (leaf node)
 - `layout.tsx`: Layout wrapper (intermediate node)
@@ -262,11 +277,11 @@ graph TB
         MainEnv["env.main.ts<br/>process.env"]
         RendererEnv["env.renderer.ts<br/>Vite-injected literals"]
     end
-    
+
     EnvFile -->|"loaded by dotenv"| ViteDefine
     ViteDefine -->|"defines process.env.*"| MainEnv
     ViteDefine -->|"replaces at build time"| RendererEnv
-    
+
     MainEnv -->|"Node.js runtime"| MainProcess["Main Process<br/>(src/main/)"]
     RendererEnv -->|"bundled literals"| RendererProcess["Renderer Process<br/>(src/renderer/)"]
 ```
@@ -274,7 +289,9 @@ graph TB
 ### Main Process Environment
 
 [apps/desktop/src/main/env.main.ts:9-52]()
+
 ```typescript
 export const env = createEnv({
   server: {
     NODE_ENV: z.enum(["development", "production", "test\
+```

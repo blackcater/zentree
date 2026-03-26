@@ -21,8 +21,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the `exec` and `process` tools, which enable shell command execution and background job management within OpenClaw agents. The `exec` tool spawns shell commands with configurable timeout and backgrounding behavior, while the `process` tool manages long-running sessions through polling, stdin writes, and lifecycle control.
 
 For tool policy and filtering, see [Tools System](#3.4). For sandbox isolation of exec commands, see [Sandboxing](#7.2). For exec-related configuration fields, see [Configuration Reference](#2.3.1).
@@ -43,15 +41,15 @@ graph TB
     Sessions["runningSessions<br/>Map&lt;string, ProcessSession&gt;"]
     Finished["finishedSessions<br/>Map&lt;string, FinishedSession&gt;"]
     Sweeper["TTL Sweeper<br/>(setInterval)"]
-    
+
     ExecTool -->|"addSession()"| Registry
     ExecTool -->|"appendOutput()<br/>markExited()<br/>markBackgrounded()"| Registry
     ProcessTool -->|"getSession()<br/>drainSession()<br/>listRunningSessions()"| Registry
-    
+
     Registry --> Sessions
     Registry --> Finished
     Registry --> Sweeper
-    
+
     Sessions -->|"markExited() +<br/>backgrounded=true"| Finished
     Sweeper -->|"pruneFinishedSessions()<br/>(after jobTtlMs)"| Finished
 ```
@@ -66,16 +64,16 @@ The `exec` tool spawns shell commands via `child_process.spawn` with support for
 
 ### Parameters
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `command` | `string` | (required) | Shell command to execute |
-| `yieldMs` | `number` | `10000` (via config) | Auto-background after this duration (milliseconds) |
-| `background` | `boolean` | `false` | Immediately background the command |
-| `timeout` | `number` | `1800` (via config) | Kill process after timeout (seconds) |
-| `elevated` | `boolean` | `false` | Run on host (if elevated mode enabled and allowed) |
-| `pty` | `boolean` | `false` | Allocate a pseudo-TTY (for interactive CLIs) |
-| `workdir` | `string` | (agent workspace) | Working directory for execution |
-| `env` | `Record<string, string>` | (inherited + overrides) | Environment variables |
+| Parameter    | Type                     | Default                 | Description                                        |
+| ------------ | ------------------------ | ----------------------- | -------------------------------------------------- |
+| `command`    | `string`                 | (required)              | Shell command to execute                           |
+| `yieldMs`    | `number`                 | `10000` (via config)    | Auto-background after this duration (milliseconds) |
+| `background` | `boolean`                | `false`                 | Immediately background the command                 |
+| `timeout`    | `number`                 | `1800` (via config)     | Kill process after timeout (seconds)               |
+| `elevated`   | `boolean`                | `false`                 | Run on host (if elevated mode enabled and allowed) |
+| `pty`        | `boolean`                | `false`                 | Allocate a pseudo-TTY (for interactive CLIs)       |
+| `workdir`    | `string`                 | (agent workspace)       | Working directory for execution                    |
+| `env`        | `Record<string, string>` | (inherited + overrides) | Environment variables                              |
 
 **Sources:** [docs/gateway/background-process.md:14-31](), [src/agents/pi-tools.ts:394-428]()
 
@@ -91,6 +89,7 @@ The `exec` tool spawns shell commands via `child_process.spawn` with support for
 ### Return Formats
 
 **Foreground completion:**
+
 ```json
 {
   "status": "completed",
@@ -102,6 +101,7 @@ The `exec` tool spawns shell commands via `child_process.spawn` with support for
 ```
 
 **Backgrounded:**
+
 ```json
 {
   "status": "running",
@@ -121,15 +121,15 @@ The `process` tool manages backgrounded exec sessions through a set of actions. 
 
 ### Actions
 
-| Action | Parameters | Description |
-|--------|------------|-------------|
-| `list` | (none) | List running and finished sessions |
-| `poll` | `sessionId` | Drain new output since last poll; reports exit status if finished |
-| `log` | `sessionId`, `offset?`, `limit?` | Read aggregated output (line-based pagination) |
-| `write` | `sessionId`, `data`, `eof?` | Send data to stdin; optionally close stdin with `eof: true` |
-| `kill` | `sessionId` | Terminate a running session (SIGTERM, then SIGKILL) |
-| `clear` | `sessionId` | Remove a finished session from memory |
-| `remove` | `sessionId` | Kill if running, otherwise clear if finished |
+| Action   | Parameters                       | Description                                                       |
+| -------- | -------------------------------- | ----------------------------------------------------------------- |
+| `list`   | (none)                           | List running and finished sessions                                |
+| `poll`   | `sessionId`                      | Drain new output since last poll; reports exit status if finished |
+| `log`    | `sessionId`, `offset?`, `limit?` | Read aggregated output (line-based pagination)                    |
+| `write`  | `sessionId`, `data`, `eof?`      | Send data to stdin; optionally close stdin with `eof: true`       |
+| `kill`   | `sessionId`                      | Terminate a running session (SIGTERM, then SIGKILL)               |
+| `clear`  | `sessionId`                      | Remove a finished session from memory                             |
+| `remove` | `sessionId`                      | Kill if running, otherwise clear if finished                      |
 
 **Sources:** [docs/gateway/background-process.md:54-73](), [src/agents/bash-process-registry.ts:86-103]()
 
@@ -189,15 +189,15 @@ graph LR
         Running["runningSessions<br/>Map&lt;string, ProcessSession&gt;"]
         Finished["finishedSessions<br/>Map&lt;string, FinishedSession&gt;"]
     end
-    
+
     subgraph "ProcessSession Fields"
         PSFields["id: string<br/>command: string<br/>scopeKey?: string<br/>sessionKey?: string<br/>child?: ChildProcess<br/>stdin?: SessionStdin<br/>pid?: number<br/>startedAt: number<br/>maxOutputChars: number<br/>pendingStdout: string[]<br/>pendingStderr: string[]<br/>aggregated: string<br/>tail: string<br/>exitCode?: number | null<br/>exited: boolean<br/>truncated: boolean<br/>backgrounded: boolean"]
     end
-    
+
     subgraph "FinishedSession Fields"
         FSFields["id: string<br/>command: string<br/>scopeKey?: string<br/>startedAt: number<br/>endedAt: number<br/>status: ProcessStatus<br/>exitCode?: number | null<br/>aggregated: string<br/>tail: string<br/>truncated: boolean"]
     end
-    
+
     Running -.-> PSFields
     Finished -.-> FSFields
 ```
@@ -206,18 +206,18 @@ graph LR
 
 ### Key Functions
 
-| Function | Purpose |
-|----------|---------|
-| `addSession(session)` | Register a new running session |
-| `getSession(id)` | Retrieve a running session |
-| `getFinishedSession(id)` | Retrieve a finished session |
-| `deleteSession(id)` | Remove from both maps |
-| `appendOutput(session, stream, chunk)` | Append stdout/stderr with truncation |
-| `drainSession(session)` | Flush pending output buffers |
-| `markExited(session, exitCode, signal, status)` | Move to finished (if backgrounded) |
-| `markBackgrounded(session)` | Flag session as backgrounded |
-| `listRunningSessions()` | List all backgrounded running sessions |
-| `listFinishedSessions()` | List all finished sessions |
+| Function                                        | Purpose                                |
+| ----------------------------------------------- | -------------------------------------- |
+| `addSession(session)`                           | Register a new running session         |
+| `getSession(id)`                                | Retrieve a running session             |
+| `getFinishedSession(id)`                        | Retrieve a finished session            |
+| `deleteSession(id)`                             | Remove from both maps                  |
+| `appendOutput(session, stream, chunk)`          | Append stdout/stderr with truncation   |
+| `drainSession(session)`                         | Flush pending output buffers           |
+| `markExited(session, exitCode, signal, status)` | Move to finished (if backgrounded)     |
+| `markBackgrounded(session)`                     | Flag session as backgrounded           |
+| `listRunningSessions()`                         | List all backgrounded running sessions |
+| `listFinishedSessions()`                        | List all finished sessions             |
 
 **Sources:** [src/agents/bash-process-registry.ts:86-275]()
 
@@ -241,21 +241,21 @@ stateDiagram-v2
     [*] --> Spawned: "exec tool invoked"
     Spawned --> Foreground: "yieldMs not exceeded<br/>background=false"
     Spawned --> Backgrounded: "yieldMs exceeded<br/>OR background=true"
-    
+
     Foreground --> Completed: "exit code 0"
     Foreground --> Failed: "exit code non-0"
-    
+
     Backgrounded --> Running: "addSession()<br/>markBackgrounded()"
     Running --> Polling: "process poll called"
     Polling --> Running: "still running"
     Polling --> Exited: "exit detected"
-    
+
     Exited --> Finished: "markExited()<br/>(if backgrounded)"
     Finished --> Pruned: "after jobTtlMs"
-    
+
     Running --> Killed: "process kill"
     Killed --> Finished
-    
+
     Completed --> [*]
     Failed --> [*]
     Pruned --> [*]
@@ -292,16 +292,16 @@ The `scopeKey` field isolates process visibility. By default, it is set to `sess
 
 Exec and process behavior is controlled via `tools.exec.*` config fields, with agent-level overrides available:
 
-| Config Field | Type | Default | Description |
-|--------------|------|---------|-------------|
-| `tools.exec.backgroundMs` | `number` | `10000` | Default `yieldMs` for exec |
-| `tools.exec.timeoutSec` | `number` | `1800` | Default timeout (seconds) |
-| `tools.exec.cleanupMs` | `number` | `1800000` | Default TTL for finished sessions (milliseconds) |
-| `tools.exec.notifyOnExit` | `boolean` | `true` | Enqueue system event when backgrounded exec exits |
-| `tools.exec.notifyOnExitEmptySuccess` | `boolean` | `false` | Also notify for successful exits with no output |
-| `tools.exec.ask` | `string` or `object` | (undefined) | Approval policy for exec (`always`, `elevated`, `auto`, etc.) |
-| `tools.exec.host` | `boolean` | `false` | Allow host execution from sandbox |
-| `tools.exec.security` | `string` | (undefined) | Security mode (`safe-bins`, `allow-all`, etc.) |
+| Config Field                          | Type                 | Default     | Description                                                   |
+| ------------------------------------- | -------------------- | ----------- | ------------------------------------------------------------- |
+| `tools.exec.backgroundMs`             | `number`             | `10000`     | Default `yieldMs` for exec                                    |
+| `tools.exec.timeoutSec`               | `number`             | `1800`      | Default timeout (seconds)                                     |
+| `tools.exec.cleanupMs`                | `number`             | `1800000`   | Default TTL for finished sessions (milliseconds)              |
+| `tools.exec.notifyOnExit`             | `boolean`            | `true`      | Enqueue system event when backgrounded exec exits             |
+| `tools.exec.notifyOnExitEmptySuccess` | `boolean`            | `false`     | Also notify for successful exits with no output               |
+| `tools.exec.ask`                      | `string` or `object` | (undefined) | Approval policy for exec (`always`, `elevated`, `auto`, etc.) |
+| `tools.exec.host`                     | `boolean`            | `false`     | Allow host execution from sandbox                             |
+| `tools.exec.security`                 | `string`             | (undefined) | Security mode (`safe-bins`, `allow-all`, etc.)                |
 
 **Sources:** [src/agents/pi-tools.ts:132-159](), [docs/gateway/background-process.md:43-51]()
 
@@ -340,6 +340,7 @@ The prompt also warns against polling `subagents list` or `sessions_list` in tig
 When `tools.exec.notifyOnExit` is enabled (default), OpenClaw enqueues a system event when a backgrounded exec exits. This triggers a heartbeat request to the agent, allowing it to surface completion messages without polling.
 
 The notification includes:
+
 - Exit status (`completed`, `failed`, `killed`)
 - Exit code
 - Tail of output
@@ -378,6 +379,7 @@ This ensures consistent shutdown behavior across platforms.
 ```
 
 **Returns:**
+
 ```json
 {
   "status": "running",
@@ -400,6 +402,7 @@ This ensures consistent shutdown behavior across platforms.
 ```
 
 **Returns (while running):**
+
 ```json
 {
   "status": "running",
@@ -410,6 +413,7 @@ This ensures consistent shutdown behavior across platforms.
 ```
 
 **Returns (after exit):**
+
 ```json
 {
   "status": "completed",

@@ -10,8 +10,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers how to produce distributable builds of the Craft Agents Electron application — from compiling source into artifacts to packaging them for end-user delivery on macOS, Windows, and Linux. It focuses on the top-level scripts and the overall pipeline.
 
 For details specific to each platform, see [Platform-Specific Builds](#6.1). For the `electron-builder.yml` configuration and asset bundling details, see [Electron Packaging](#6.2). For the auto-update mechanism that consumes built artifacts, see [Self-Update System](#6.3). For the underlying Vite and esbuild compilation steps, see [Build System](#5.2).
@@ -83,10 +81,10 @@ Sources: [apps/electron/package.json:17-37]()
 
 The macOS/Linux `build:main` script injects OAuth credentials as compile-time constants via esbuild `--define` flags. The Windows variant (`build:main:win`) omits this because environment variables are injected differently in the PowerShell wrapper.
 
-| Script | OAuth Injection | Source |
-|---|---|---|
-| `build:main` | `source ../../.env` + `--define:process.env.*` | [apps/electron/package.json:18]() |
-| `build:main:win` | None (handled by `build-win.ps1`) | [apps/electron/package.json:19]() |
+| Script           | OAuth Injection                                | Source                            |
+| ---------------- | ---------------------------------------------- | --------------------------------- |
+| `build:main`     | `source ../../.env` + `--define:process.env.*` | [apps/electron/package.json:18]() |
+| `build:main:win` | None (handled by `build-win.ps1`)              | [apps/electron/package.json:19]() |
 
 Credentials injected at build time:
 
@@ -136,12 +134,12 @@ Sources: [apps/electron/package.json:32-34](), [apps/electron/electron-builder.y
 
 ### Platform Targets at a Glance
 
-| Platform | Script | Installer Format | Architecture | Output File |
-|---|---|---|---|---|
-| macOS (Apple Silicon) | `dist:mac` → `build-dmg.sh arm64` | DMG + ZIP | arm64 | `Craft-Agent-arm64.dmg` |
-| macOS (Intel) | `dist:mac:x64` → `build-dmg.sh x64` | DMG + ZIP | x64 | `Craft-Agent-x64.dmg` |
-| Windows | `dist:win` → `build-win.ps1` | NSIS (one-click) | x64 | `Craft-Agent-x64.exe` |
-| Linux | (direct electron-builder) | AppImage | x64 | `Craft-Agent-x64.AppImage` |
+| Platform              | Script                              | Installer Format | Architecture | Output File                |
+| --------------------- | ----------------------------------- | ---------------- | ------------ | -------------------------- |
+| macOS (Apple Silicon) | `dist:mac` → `build-dmg.sh arm64`   | DMG + ZIP        | arm64        | `Craft-Agent-arm64.dmg`    |
+| macOS (Intel)         | `dist:mac:x64` → `build-dmg.sh x64` | DMG + ZIP        | x64          | `Craft-Agent-x64.dmg`      |
+| Windows               | `dist:win` → `build-win.ps1`        | NSIS (one-click) | x64          | `Craft-Agent-x64.exe`      |
+| Linux                 | (direct electron-builder)           | AppImage         | x64          | `Craft-Agent-x64.AppImage` |
 
 Sources: [apps/electron/electron-builder.yml:81-219]()
 
@@ -151,15 +149,15 @@ Sources: [apps/electron/electron-builder.yml:81-219]()
 
 The build bundles several platform-native binaries into `vendor/` and `resources/bin/`. Each platform build excludes binaries for other platforms.
 
-| Binary | Location | Purpose |
-|---|---|---|
-| Bun runtime | `vendor/bun/` | JavaScript runtime for MCP servers |
-| Codex | `vendor/codex/` | Codex agent binary |
-| Copilot CLI | `vendor/copilot/` | GitHub Copilot CLI |
-| `uv` (Python) | `resources/bin/<platform>/` | Python package manager for tool scripts |
-| CLI wrappers | `resources/bin/` | Shell + `.cmd` wrappers for tool scripts |
-| MCP servers | `resources/bridge-mcp-server/`, `resources/session-mcp-server/` | Bundled MCP server processes |
-| Pi agent server | `resources/pi-agent-server/` | Pi SDK subprocess |
+| Binary          | Location                                                        | Purpose                                  |
+| --------------- | --------------------------------------------------------------- | ---------------------------------------- |
+| Bun runtime     | `vendor/bun/`                                                   | JavaScript runtime for MCP servers       |
+| Codex           | `vendor/codex/`                                                 | Codex agent binary                       |
+| Copilot CLI     | `vendor/copilot/`                                               | GitHub Copilot CLI                       |
+| `uv` (Python)   | `resources/bin/<platform>/`                                     | Python package manager for tool scripts  |
+| CLI wrappers    | `resources/bin/`                                                | Shell + `.cmd` wrappers for tool scripts |
+| MCP servers     | `resources/bridge-mcp-server/`, `resources/session-mcp-server/` | Bundled MCP server processes             |
+| Pi agent server | `resources/pi-agent-server/`                                    | Pi SDK subprocess                        |
 
 The `@anthropic-ai/claude-agent-sdk` package is included via `extraResources` on all platforms to work around the electron-builder automatic `node_modules` exclusion, with platform-specific ripgrep binary filtering applied per target.
 
@@ -171,15 +169,15 @@ Sources: [apps/electron/electron-builder.yml:14-68](), [apps/electron/electron-b
 
 These values from `electron-builder.yml` affect the installed application identity and update behavior:
 
-| Key | Value |
-|---|---|
-| `appId` | `com.lukilabs.craft-agent` |
-| `productName` | `Craft Agents` |
-| `electronVersion` | `39.2.7` |
-| `asar` | `false` (disabled to avoid decompression overhead) |
-| `output` directory | `release/` |
-| `publish.url` | `https://agents.craft.do/electron/latest` |
-| `nsis.perMachine` | `false` (installs to `%LOCALAPPDATA%\Programs\`) |
+| Key                | Value                                              |
+| ------------------ | -------------------------------------------------- |
+| `appId`            | `com.lukilabs.craft-agent`                         |
+| `productName`      | `Craft Agents`                                     |
+| `electronVersion`  | `39.2.7`                                           |
+| `asar`             | `false` (disabled to avoid decompression overhead) |
+| `output` directory | `release/`                                         |
+| `publish.url`      | `https://agents.craft.do/electron/latest`          |
+| `nsis.perMachine`  | `false` (installs to `%LOCALAPPDATA%\Programs\`)   |
 
 The `publish.url` is consumed by `electron-updater` at runtime to check for new releases. See [Self-Update System](#6.3) for details.
 

@@ -97,7 +97,7 @@ pip install --upgrade openai openai-agents python-dotenv
 ```
 
 Activating a virtual environment keeps the SDK dependencies isolated from the
-  rest of your system.
+rest of your system.
 
 ## Initialize Codex CLI as an MCP server
 

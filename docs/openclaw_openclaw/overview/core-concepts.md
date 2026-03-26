@@ -60,8 +60,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page explains the fundamental building blocks of OpenClaw: **Gateway**, **Agents**, **Sessions**, **Channels**, **Workspaces**, **Tools**, **Skills**, **Memory**, and **Configuration**. Understanding these concepts is essential before diving into system architecture or specific subsystems.
 
 For detailed architectural diagrams showing how these components interact, see [System Architecture](#1.3). For initial setup guidance, see [Getting Started](#1.1).
@@ -73,6 +71,7 @@ For detailed architectural diagrams showing how these components interact, see [
 The **Gateway** is the single WebSocket RPC server that coordinates all OpenClaw activity. It runs as a persistent service and exposes a control plane at `ws://127.0.0.1:18789` (default port).
 
 **Key responsibilities:**
+
 - Manages channel connections (WhatsApp, Telegram, Discord, etc.)
 - Routes inbound messages to appropriate agent sessions
 - Handles authentication and authorization
@@ -95,11 +94,13 @@ graph TB
 ```
 
 **Core Gateway files:**
+
 - [src/gateway/gateway.ts]() - Main Gateway service class
 - [src/gateway/rpc-server.ts]() - WebSocket RPC handler
 - [src/gateway/control-ui.ts]() - HTTP UI server
 
 **Gateway RPC methods:**
+
 - `agent.invoke` - Execute agent turn
 - `sessions.list` - Query sessions
 - `config.get` / `config.patch` - Configuration management
@@ -130,14 +131,14 @@ graph LR
 
 **Agent configuration schema:**
 
-| Field | Purpose | Default |
-|-------|---------|---------|
-| `agents.defaults.workspace` | Root directory for agent files | `~/.openclaw/workspace` |
-| `agents.defaults.model.primary` | Primary model ID | (none, must configure) |
-| `agents.defaults.model.fallbacks` | Fallback models on error | `[]` |
-| `agents.defaults.tools` | Tool allowlist/denylist | (all core tools) |
-| `agents.defaults.sandbox.mode` | Sandboxing: `off`, `non-main`, `all` | `off` |
-| `agents.list[]` | Per-agent overrides | (empty list) |
+| Field                             | Purpose                              | Default                 |
+| --------------------------------- | ------------------------------------ | ----------------------- |
+| `agents.defaults.workspace`       | Root directory for agent files       | `~/.openclaw/workspace` |
+| `agents.defaults.model.primary`   | Primary model ID                     | (none, must configure)  |
+| `agents.defaults.model.fallbacks` | Fallback models on error             | `[]`                    |
+| `agents.defaults.tools`           | Tool allowlist/denylist              | (all core tools)        |
+| `agents.defaults.sandbox.mode`    | Sandboxing: `off`, `non-main`, `all` | `off`                   |
+| `agents.list[]`                   | Per-agent overrides                  | (empty list)            |
 
 **Multi-agent routing:**
 
@@ -151,6 +152,7 @@ Agents can be isolated by channel, account, peer, or custom binding rules. The r
 6. **Default agent** - Agent with `default: true`
 
 **Agent implementation:**
+
 - [src/agents/agent-scope.ts]() - Agent resolution and workspace paths
 - [src/agents/pi-embedded-runner.ts]() - Embedded Pi Agent execution
 - [src/agents/agent-router.ts]() - Binding-based routing
@@ -170,6 +172,7 @@ agent:<agentId>:<channel>:<mode>:<peerId>[:<threadId>]
 ```
 
 Examples:
+
 - `agent:main:telegram:direct:123456789` - Direct message on Telegram
 - `agent:main:discord:guild:987654321:channel:555` - Discord channel
 - `agent:main:whatsapp:group:123@g.us` - WhatsApp group
@@ -195,11 +198,13 @@ stateDiagram-v2
 **Session storage:**
 
 Sessions are stored as JSONL files under `~/.openclaw/agents/<agentId>/sessions/`:
+
 - **Main session:** `main.jsonl` - Default direct message session
 - **Channel sessions:** `<channel>-<accountId>-<peerId>.jsonl`
 - **Group sessions:** `group-<channelId>.jsonl`
 
 Each JSONL line is a turn object:
+
 ```json
 {"role": "user", "content": "Hello", "timestamp": "2025-01-15T10:30:00Z"}
 {"role": "assistant", "content": "Hi there!", "timestamp": "2025-01-15T10:30:05Z"}
@@ -207,14 +212,15 @@ Each JSONL line is a turn object:
 
 **Session configuration:**
 
-| Field | Purpose | Default |
-|-------|---------|---------|
-| `session.dmScope` | DM isolation level | `main` |
-| `session.reset.mode` | Auto-reset trigger | `off` |
-| `session.reset.idleMinutes` | Idle time before reset | (disabled) |
-| `session.threadBindings.enabled` | Discord thread routing | `false` |
+| Field                            | Purpose                | Default    |
+| -------------------------------- | ---------------------- | ---------- |
+| `session.dmScope`                | DM isolation level     | `main`     |
+| `session.reset.mode`             | Auto-reset trigger     | `off`      |
+| `session.reset.idleMinutes`      | Idle time before reset | (disabled) |
+| `session.threadBindings.enabled` | Discord thread routing | `false`    |
 
 **Session scoping modes:**
+
 - `main` - Single shared session across all DMs
 - `per-peer` - One session per sender (channel-agnostic)
 - `per-channel-peer` - Isolate by both channel and sender
@@ -233,14 +239,14 @@ Each JSONL line is a turn object:
 ```mermaid
 graph TB
     Gateway["Gateway Control Plane"]
-    
+
     Gateway --> WhatsApp["WhatsApp<br/>Baileys Web<br/>channels.whatsapp"]
     Gateway --> Telegram["Telegram<br/>grammY Bot<br/>channels.telegram"]
     Gateway --> Discord["Discord<br/>discord.js<br/>channels.discord"]
     Gateway --> Slack["Slack<br/>Bolt Framework<br/>channels.slack"]
     Gateway --> Signal["Signal<br/>signal-cli<br/>channels.signal"]
     Gateway --> iMessage["iMessage<br/>imsg/BlueBubbles<br/>channels.imessage"]
-    
+
     WhatsApp --> Router["Agent Router"]
     Telegram --> Router
     Discord --> Router
@@ -253,12 +259,12 @@ graph TB
 
 All channels support DM and group policies:
 
-| Policy | Behavior |
-|--------|----------|
-| `pairing` (default) | Unknown senders get one-time pairing code |
-| `allowlist` | Only allow senders in `allowFrom` array |
-| `open` | Accept all DMs (requires `allowFrom: ["*"]`) |
-| `disabled` | Ignore all DMs |
+| Policy              | Behavior                                     |
+| ------------------- | -------------------------------------------- |
+| `pairing` (default) | Unknown senders get one-time pairing code    |
+| `allowlist`         | Only allow senders in `allowFrom` array      |
+| `open`              | Accept all DMs (requires `allowFrom: ["*"]`) |
+| `disabled`          | Ignore all DMs                               |
 
 **Channel configuration pattern:**
 
@@ -267,18 +273,19 @@ All channels support DM and group policies:
   channels: {
     telegram: {
       enabled: true,
-      botToken: "123:abc",
-      dmPolicy: "pairing",
-      allowFrom: ["tg:123456789"],
+      botToken: '123:abc',
+      dmPolicy: 'pairing',
+      allowFrom: ['tg:123456789'],
       groups: {
-        "*": { requireMention: true }
-      }
-    }
-  }
+        '*': { requireMention: true },
+      },
+    },
+  },
 }
 ```
 
 **Channel plugin architecture:**
+
 - [src/channels/registry.ts]() - Channel discovery and lifecycle
 - [src/channels/plugins/]() - Per-channel implementations
 - [src/channels/channel-manager.ts]() - Unified channel interface
@@ -320,12 +327,12 @@ graph TB
     LoadWorkspace --> AGENTS["Read AGENTS.md<br/>multi-agent rules"]
     LoadWorkspace --> TOOLS["Read TOOLS.md<br/>tool guidelines"]
     LoadWorkspace --> Skills["Scan skills/<br/>inject SKILL.md"]
-    
+
     SOUL --> Assemble["Assemble System Prompt"]
     AGENTS --> Assemble
     TOOLS --> Assemble
     Skills --> Assemble
-    
+
     Assemble --> Memory["Inject Memory Context<br/>memory/today.md<br/>memory/yesterday.md"]
     Memory --> LLM["Send to LLM"]
 ```
@@ -341,11 +348,11 @@ resolveAgentWorkspaceDir(config, agentId)
 
 **Workspace configuration:**
 
-| Field | Purpose | Default |
-|-------|---------|---------|
-| `agents.defaults.workspace` | Global workspace path | `~/.openclaw/workspace` |
-| `agents.list[].workspace` | Per-agent override | (inherits default) |
-| `agents.defaults.promptMode` | System prompt size | `full` |
+| Field                        | Purpose               | Default                 |
+| ---------------------------- | --------------------- | ----------------------- |
+| `agents.defaults.workspace`  | Global workspace path | `~/.openclaw/workspace` |
+| `agents.list[].workspace`    | Per-agent override    | (inherits default)      |
+| `agents.defaults.promptMode` | System prompt size    | `full`                  |
 
 **Sources:** [docs/concepts/agent-workspace.md](), [README.md:312-317](), [src/agents/agent-scope.ts:1-50]()
 
@@ -365,24 +372,24 @@ graph TB
     Agent --> Sessions["Session Tools"]
     Agent --> Network["Network Tools"]
     Agent --> Platform["Platform Tools"]
-    
+
     Exec --> exec["exec<br/>run bash commands"]
     Exec --> process["process<br/>background jobs"]
-    
+
     Files --> read["read<br/>read files"]
     Files --> write["write<br/>write files"]
     Files --> edit["edit<br/>patch files"]
-    
+
     Memory --> memory_search["memory_search<br/>semantic recall"]
     Memory --> memory_get["memory_get<br/>direct read"]
-    
+
     Sessions --> sessions_list["sessions_list<br/>discover sessions"]
     Sessions --> sessions_send["sessions_send<br/>message another session"]
     Sessions --> sessions_spawn["sessions_spawn<br/>create subagent"]
-    
+
     Network --> web_search["web_search<br/>Perplexity/Brave/etc."]
     Network --> browser["browser.*<br/>Chrome CDP control"]
-    
+
     Platform --> canvas["canvas.*<br/>macOS/iOS UI"]
     Platform --> nodes["nodes.*<br/>device actions"]
 ```
@@ -408,7 +415,7 @@ graph TB
     Provider -->|available| Group["Group/Channel Policy<br/>channels.*.groups[].tools"]
     Group -->|allowed| Sandbox["Sandbox Policy<br/>sandbox.tools"]
     Sandbox -->|allowed| Execute["Execute Tool"]
-    
+
     Gateway -->|denied| Reject["Reject: Gateway policy"]
     Agent -->|denied| Reject
     Provider -->|unavailable| Reject
@@ -423,16 +430,17 @@ graph TB
   agents: {
     defaults: {
       tools: {
-        allow: ["exec", "read", "write", "memory_search"],
-        deny: ["browser", "nodes"],
-        profile: "coding"  // preset: coding, messaging, research
-      }
-    }
-  }
+        allow: ['exec', 'read', 'write', 'memory_search'],
+        deny: ['browser', 'nodes'],
+        profile: 'coding', // preset: coding, messaging, research
+      },
+    },
+  },
 }
 ```
 
 **Tool implementation:**
+
 - [src/tools/]() - Core tool implementations
 - [src/tools/registry.ts]() - Tool discovery and registration
 - [src/agents/tool-policy.ts]() - Policy enforcement
@@ -452,11 +460,11 @@ graph TB
     Request["Agent needs skill"] --> Workspace["1. Workspace Skills<br/>~/.openclaw/workspace/skills/"]
     Workspace -->|not found| Managed["2. Managed Skills<br/>~/.openclaw/skills/"]
     Managed -->|not found| Bundled["3. Bundled Skills<br/>node_modules/@openclaw/*/skills/"]
-    
+
     Workspace --> Load["Load SKILL.md"]
     Managed --> Load
     Bundled --> Load
-    
+
     Load --> Filter["Apply Agent Filter<br/>agents.defaults.skills[]"]
     Filter --> Inject["Inject into System Prompt"]
 ```
@@ -478,13 +486,16 @@ git-backup/                    # skill-id
 # Git Backup
 
 ## Description
+
 Automated git backup with commit message generation.
 
 ## Tools
+
 - exec (backup.sh)
 - write (commit messages)
 
 ## Usage
+
 Ask me to "backup the workspace" or "commit changes".
 ```
 
@@ -494,22 +505,23 @@ Ask me to "backup the workspace" or "commit changes".
 {
   skills: {
     entries: {
-      "git-backup": {
+      'git-backup': {
         enabled: true,
-        apiKey: "optional-api-key",
-        env: { GIT_AUTHOR: "OpenClaw" }
-      }
-    }
+        apiKey: 'optional-api-key',
+        env: { GIT_AUTHOR: 'OpenClaw' },
+      },
+    },
   },
   agents: {
     defaults: {
-      skills: ["git-backup", "web-search"]  // allowlist
-    }
-  }
+      skills: ['git-backup', 'web-search'], // allowlist
+    },
+  },
 }
 ```
 
 **Skill management:**
+
 - [src/skills/manager.ts]() - Skill discovery and loading
 - [src/skills/skill-filter.ts]() - Agent-based filtering
 - CLI: `openclaw skills list`, `openclaw skills info <id>`
@@ -527,31 +539,31 @@ Ask me to "backup the workspace" or "commit changes".
 ```mermaid
 graph TB
     Agent["Agent Runtime"] --> Tools["Memory Tools"]
-    
+
     Tools --> memory_search["memory_search<br/>semantic query"]
     Tools --> memory_get["memory_get<br/>direct file read"]
     Tools --> write["write<br/>update memory files"]
-    
+
     memory_search --> Index["MemoryIndexManager<br/>SQLite + Vector Index"]
     Index --> VectorDB["chunks_vec table<br/>vec0 extension"]
     Index --> FTS["chunks_fts table<br/>FTS5 full-text"]
-    
+
     VectorDB --> Embeddings["Embedding Provider<br/>OpenAI/Gemini/local"]
-    
+
     memory_get --> FS["Filesystem"]
     write --> FS
-    
+
     FS --> Daily["memory/YYYY-MM-DD.md<br/>daily logs"]
     FS --> LongTerm["MEMORY.md<br/>curated knowledge"]
 ```
 
 **Memory file structure:**
 
-| File | Purpose | Loading |
-|------|---------|---------|
-| `MEMORY.md` | Curated long-term knowledge | Main session only |
-| `memory/YYYY-MM-DD.md` | Daily append-only logs | Today + yesterday |
-| `memory/*.md` | Additional memory files | Indexed but not auto-loaded |
+| File                   | Purpose                     | Loading                     |
+| ---------------------- | --------------------------- | --------------------------- |
+| `MEMORY.md`            | Curated long-term knowledge | Main session only           |
+| `memory/YYYY-MM-DD.md` | Daily append-only logs      | Today + yesterday           |
+| `memory/*.md`          | Additional memory files     | Indexed but not auto-loaded |
 
 **Memory search flow:**
 
@@ -563,12 +575,12 @@ sequenceDiagram
     participant Vector as Vector Search
     participant FTS as Full-Text Search
     participant Embeddings as Embedding Provider
-    
+
     Agent->>MemorySearch: memory_search("project deadlines")
     MemorySearch->>Manager: search(query, mode: hybrid)
     Manager->>Embeddings: embed(query)
     Embeddings-->>Manager: vector[1536]
-    
+
     par Vector Search
         Manager->>Vector: SELECT * FROM chunks_vec<br/>ORDER BY distance
         Vector-->>Manager: top 50 vector results
@@ -576,7 +588,7 @@ sequenceDiagram
         Manager->>FTS: SELECT * FROM chunks_fts<br/>WHERE chunks_fts MATCH ?
         FTS-->>Manager: top 50 FTS results
     end
-    
+
     Manager->>Manager: Merge results (RRF algorithm)
     Manager-->>MemorySearch: top 10 merged snippets
     MemorySearch-->>Agent: Formatted context
@@ -589,19 +601,20 @@ sequenceDiagram
   agents: {
     defaults: {
       memorySearch: {
-        backend: "builtin",  // or "qmd"
-        provider: "openai",  // openai, gemini, local, auto
-        model: "text-embedding-3-small",
+        backend: 'builtin', // or "qmd"
+        provider: 'openai', // openai, gemini, local, auto
+        model: 'text-embedding-3-small',
         enabled: true,
-        citations: "auto",
-        maxResults: 10
-      }
-    }
-  }
+        citations: 'auto',
+        maxResults: 10,
+      },
+    },
+  },
 }
 ```
 
 **Memory implementation:**
+
 - [src/memory/manager.ts]() - Core MemoryIndexManager class
 - [src/memory/embeddings.ts]() - Embedding provider abstraction
 - [src/memory/hybrid.ts]() - RRF (Reciprocal Rank Fusion) merging
@@ -623,45 +636,47 @@ graph TB
     Parse --> Validate["Zod Schema Validation<br/>OpenClawSchema"]
     Validate --> Normalize["Normalize Paths<br/>Resolve Secrets"]
     Normalize --> Compare["Detect Changes<br/>hot vs restart"]
-    
+
     Compare -->|hot-applicable| Apply["Apply Live Changes<br/>no restart"]
     Compare -->|needs restart| Restart["Auto Restart Gateway<br/>or log warning"]
-    
+
     Apply --> Runtime["Update Runtime State"]
     Restart --> Runtime
-    
+
     Validate -->|fails| Reject["Reject Invalid Config<br/>gateway refuses start"]
 ```
 
 **Configuration validation:**
 
 OpenClaw uses Zod for strict schema validation:
+
 - [src/config/zod-schema.ts]() - Root OpenClawSchema
 - [src/config/zod-schema.agents.ts]() - Agent configuration
 - [src/config/zod-schema.providers.ts]() - Channel configuration
 
 **Validation errors block Gateway startup:**
+
 ```bash
 $ openclaw gateway
 Error: Config validation failed:
   - agents.defaults.workspace: invalid path
   - channels.telegram.botToken: required field missing
-  
+
 Run 'openclaw doctor' to diagnose and repair.
 ```
 
 **Hot reload rules:**
 
 | Config Section | Hot Reload? | Restart Required? |
-|----------------|-------------|-------------------|
-| `agents.*` | ✅ Yes | ❌ No |
-| `channels.*` | ✅ Yes | ❌ No |
-| `tools.*` | ✅ Yes | ❌ No |
-| `skills.*` | ✅ Yes | ❌ No |
-| `gateway.port` | ❌ No | ✅ Yes |
-| `gateway.bind` | ❌ No | ✅ Yes |
-| `gateway.auth` | ❌ No | ✅ Yes |
-| `discovery.*` | ❌ No | ✅ Yes |
+| -------------- | ----------- | ----------------- |
+| `agents.*`     | ✅ Yes      | ❌ No             |
+| `channels.*`   | ✅ Yes      | ❌ No             |
+| `tools.*`      | ✅ Yes      | ❌ No             |
+| `skills.*`     | ✅ Yes      | ❌ No             |
+| `gateway.port` | ❌ No       | ✅ Yes            |
+| `gateway.bind` | ❌ No       | ✅ Yes            |
+| `gateway.auth` | ❌ No       | ✅ Yes            |
+| `discovery.*`  | ❌ No       | ✅ Yes            |
 
 **Configuration reload modes:**
 
@@ -669,14 +684,15 @@ Run 'openclaw doctor' to diagnose and repair.
 {
   gateway: {
     reload: {
-      mode: "hybrid",  // hot | restart | hybrid | off
-      debounceMs: 300
-    }
-  }
+      mode: 'hybrid', // hot | restart | hybrid | off
+      debounceMs: 300,
+    },
+  },
 }
 ```
 
 **Mode behaviors:**
+
 - `hot` - Apply safe changes only, log warning for restart-required
 - `restart` - Auto-restart on any change
 - `hybrid` (default) - Hot-apply when safe, auto-restart when needed
@@ -701,6 +717,7 @@ openclaw doctor
 **Configuration RPC methods:**
 
 The Gateway exposes WebSocket RPCs for remote configuration:
+
 - `config.get` - Read current config
 - `config.patch` - Merge partial update
 - `config.apply` - Full config replace
@@ -724,19 +741,19 @@ graph TB
         Agent --> Tools["Tool Execution"]
         Tools --> Response["Response Delivery"]
     end
-    
+
     subgraph "Configuration Layer"
         Config["openclaw.json<br/>~/.openclaw/"] -.->|defines| Gateway
         Config -.->|configures| Router
         Config -.->|sets policy| Tools
     end
-    
+
     subgraph "Storage Layer"
         Workspace["Workspace<br/>SOUL.md, AGENTS.md"] -.->|injected into| Agent
         Memory["Memory Files<br/>memory/*.md"] -.->|searched by| Agent
         Sessions["JSONL Transcripts<br/>session.jsonl"] -.->|loaded by| Session
     end
-    
+
     subgraph "Extension Layer"
         Channels["Channel Plugins"] -.->|send to| Gateway
         Skills["Skills<br/>SKILL.md"] -.->|provide tools to| Agent
@@ -745,14 +762,14 @@ graph TB
 
 **Key integration points:**
 
-| From | To | Via | Purpose |
-|------|-----|-----|---------|
-| Channels | Gateway | WebSocket RPC | Message delivery |
-| Gateway | Agent Router | Bindings | Route to correct agent |
-| Agent | Workspace | File I/O | Load prompt files |
-| Agent | Memory | `memory_search` | Semantic recall |
-| Agent | Tools | Policy check | Execute capabilities |
-| Agent | Sessions | JSONL write | Persist transcript |
-| Config | All subsystems | Hot reload | Apply settings |
+| From     | To             | Via             | Purpose                |
+| -------- | -------------- | --------------- | ---------------------- |
+| Channels | Gateway        | WebSocket RPC   | Message delivery       |
+| Gateway  | Agent Router   | Bindings        | Route to correct agent |
+| Agent    | Workspace      | File I/O        | Load prompt files      |
+| Agent    | Memory         | `memory_search` | Semantic recall        |
+| Agent    | Tools          | Policy check    | Execute capabilities   |
+| Agent    | Sessions       | JSONL write     | Persist transcript     |
+| Config   | All subsystems | Hot reload      | Apply settings         |
 
 **Sources:** All sections above, [README.md:187-202](), [docs/concepts/architecture.md]()

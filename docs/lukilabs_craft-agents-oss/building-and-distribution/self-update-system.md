@@ -10,8 +10,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The self-update system in Craft Agents enables automatic application updates without requiring users to manually download and install new releases. The system is built on `electron-updater` (version 6.8.0), a mature library that handles platform-specific update mechanisms including delta patching for efficient downloads.
 
 This page documents how `electron-updater` integrates with the Electron main process, the IPC communication layer for update checks, and the platform-specific installation mechanisms.
@@ -30,39 +28,39 @@ graph TB
         UI["Settings UI"]
         UpdateDialog["Update Available Dialog"]
     end
-    
+
     subgraph "Main Process"
         IPCHandlers["IPC Handlers<br/>(ipc.ts)"]
         AutoUpdateModule["Auto-Update Module<br/>(auto-update.ts)"]
         ElectronUpdater["electron-updater<br/>Library"]
     end
-    
+
     subgraph "External Services"
         CDN["Distribution CDN<br/>(Update Server)"]
         Metadata["latest.yml/<br/>latest-mac.yml/<br/>latest-linux.yml"]
     end
-    
+
     subgraph "Configuration Storage"
         ConfigManager["Config Manager<br/>(@craft-agent/shared/config)"]
         ConfigFile["config.json<br/>(dismissedUpdateVersion)"]
     end
-    
+
     UI -->|"UPDATE_CHECK"| IPCHandlers
     UI -->|"UPDATE_INSTALL"| IPCHandlers
     UI -->|"UPDATE_DISMISS"| IPCHandlers
-    
+
     IPCHandlers -->|"checkForUpdates()"| AutoUpdateModule
     IPCHandlers -->|"installUpdate()"| AutoUpdateModule
     IPCHandlers -->|"getUpdateInfo()"| AutoUpdateModule
     IPCHandlers -->|"setDismissedUpdateVersion()"| ConfigManager
-    
+
     AutoUpdateModule --> ElectronUpdater
-    
+
     ElectronUpdater -->|"Check for updates"| Metadata
     ElectronUpdater -->|"Download installer"| CDN
-    
+
     ConfigManager --> ConfigFile
-    
+
     UpdateDialog -->|User decision| UI
 ```
 
@@ -78,13 +76,13 @@ The system follows a request-response pattern where the renderer UI triggers upd
 
 The update system exposes five IPC channels for communication between the renderer and main processes:
 
-| Channel | Handler Function | Purpose |
-|---------|-----------------|---------|
-| `UPDATE_CHECK` | `checkForUpdates()` | Manually trigger update check (no auto-download) |
-| `UPDATE_GET_INFO` | `getUpdateInfo()` | Retrieve current update state and available version |
-| `UPDATE_INSTALL` | `installUpdate()` | Download and install available update |
-| `UPDATE_DISMISS` | `setDismissedUpdateVersion()` | Store dismissed version to prevent repeated prompts |
-| `UPDATE_GET_DISMISSED` | `getDismissedUpdateVersion()` | Retrieve dismissed version from config |
+| Channel                | Handler Function              | Purpose                                             |
+| ---------------------- | ----------------------------- | --------------------------------------------------- |
+| `UPDATE_CHECK`         | `checkForUpdates()`           | Manually trigger update check (no auto-download)    |
+| `UPDATE_GET_INFO`      | `getUpdateInfo()`             | Retrieve current update state and available version |
+| `UPDATE_INSTALL`       | `installUpdate()`             | Download and install available update               |
+| `UPDATE_DISMISS`       | `setDismissedUpdateVersion()` | Store dismissed version to prevent repeated prompts |
+| `UPDATE_GET_DISMISSED` | `getDismissedUpdateVersion()` | Retrieve dismissed version from config              |
 
 ### IPC Handler Implementation
 
@@ -97,18 +95,18 @@ graph LR
         UpdateDismiss["ipcMain.handle(<br/>UPDATE_DISMISS)"]
         UpdateGetDismissed["ipcMain.handle(<br/>UPDATE_GET_DISMISSED)"]
     end
-    
+
     subgraph "Auto-Update Module"
         CheckFn["checkForUpdates({<br/>autoDownload: false})"]
         GetInfoFn["getUpdateInfo()"]
         InstallFn["installUpdate()"]
     end
-    
+
     subgraph "Config Module"
         SetDismissed["setDismissedUpdateVersion(version)"]
         GetDismissed["getDismissedUpdateVersion()"]
     end
-    
+
     UpdateCheck --> CheckFn
     UpdateGetInfo --> GetInfoFn
     UpdateInstall --> InstallFn
@@ -128,11 +126,11 @@ The `UPDATE_CHECK` handler explicitly passes `autoDownload: false` to prevent au
 
 The `electron-updater` library is integrated as a production dependency and provides cross-platform update mechanisms:
 
-| Platform | Update Mechanism | Installer Format |
-|----------|-----------------|------------------|
-| macOS | Squirrel.Mac | `.dmg` with `.zip` for delta updates |
-| Windows | NSIS | `.exe` installer |
-| Linux | AppImage Updates | `.AppImage` |
+| Platform | Update Mechanism | Installer Format                     |
+| -------- | ---------------- | ------------------------------------ |
+| macOS    | Squirrel.Mac     | `.dmg` with `.zip` for delta updates |
+| Windows  | NSIS             | `.exe` installer                     |
+| Linux    | AppImage Updates | `.AppImage`                          |
 
 ### Update Metadata Files
 
@@ -166,52 +164,52 @@ The update system follows a user-initiated flow with manual confirmation at each
 ```mermaid
 stateDiagram-v2
     [*] --> Idle: "App Running"
-    
+
     Idle --> CheckingForUpdates: "User clicks 'Check for Updates'<br/>(UPDATE_CHECK IPC)"
-    
+
     CheckingForUpdates --> NoUpdate: "Current version is latest"
     CheckingForUpdates --> UpdateAvailable: "New version found"
     CheckingForUpdates --> CheckFailed: "Network error or timeout"
-    
+
     NoUpdate --> Idle: "Show 'Up to date' message"
     CheckFailed --> Idle: "Show error message"
-    
+
     UpdateAvailable --> PromptUser: "Store update metadata<br/>(getUpdateInfo)"
-    
+
     PromptUser --> UserDismiss: "User clicks 'Remind me later'"
     PromptUser --> UserInstall: "User clicks 'Install Update'"
-    
+
     UserDismiss --> Dismissed: "setDismissedUpdateVersion(version)"
     Dismissed --> Idle
-    
+
     UserInstall --> Downloading: "installUpdate() called"
-    
+
     Downloading --> DownloadComplete: "Installer downloaded"
     Downloading --> DownloadFailed: "Network error"
-    
+
     DownloadFailed --> Idle: "Show error, allow retry"
-    
+
     DownloadComplete --> ReadyToInstall: "Show 'Restart to install' prompt"
-    
+
     ReadyToInstall --> Installing: "User confirms restart"
     ReadyToInstall --> Idle: "User cancels"
-    
+
     state Installing {
         [*] --> QuitApp
         QuitApp --> InstallPlatformSpecific
-        
+
         state InstallPlatformSpecific <<choice>>
         InstallPlatformSpecific --> MacInstall: "macOS (Squirrel.Mac)"
         InstallPlatformSpecific --> WinInstall: "Windows (NSIS)"
         InstallPlatformSpecific --> LinuxInstall: "Linux (AppImage)"
-        
+
         MacInstall --> RestartApp
         WinInstall --> RestartApp
         LinuxInstall --> RestartApp
-        
+
         RestartApp --> [*]
     }
-    
+
     Installing --> [*]: "Launch updated version"
 ```
 
@@ -224,6 +222,7 @@ Updates are triggered manually by the user through the Settings UI. The `UPDATE_
 ### Update Notification
 
 When a new version is available, the renderer process calls `UPDATE_GET_INFO` to retrieve:
+
 - `version` - The new version number (e.g., `"0.4.8"`)
 - `releaseDate` - ISO timestamp of the release
 - `releaseNotes` - Markdown changelog (optional)
@@ -284,12 +283,13 @@ Update preferences are stored in the app-level `config.json` file:
 
 ```typescript
 interface Config {
-  dismissedUpdateVersion?: string;  // Most recent version user dismissed
+  dismissedUpdateVersion?: string // Most recent version user dismissed
   // ... other config fields
 }
 ```
 
 The `dismissedUpdateVersion` field is managed by:
+
 - `setDismissedUpdateVersion(version)` - Writes to `~/.craft-agent/config.json`
 - `getDismissedUpdateVersion()` - Reads from config file
 
@@ -330,13 +330,13 @@ The update system integrates with the build pipeline through `electron-builder` 
 
 ### Build Pipeline Stages
 
-| Build Stage | Command | Output |
-|-------------|---------|--------|
-| **Build Main Process** | `bun run build:main` | Bundles main process to `dist/main.cjs` |
-| **Build Renderer** | `bun run build:renderer` | Builds React UI with Vite |
-| **Package App** | `bun run dist:mac` / `dist:win` | Creates `.dmg`, `.exe`, or `.AppImage` |
-| **Generate Metadata** | (automatic) | Generates `latest-*.yml` files |
-| **Upload Artifacts** | (manual/CI) | Uploads installers + metadata to CDN |
+| Build Stage            | Command                         | Output                                  |
+| ---------------------- | ------------------------------- | --------------------------------------- |
+| **Build Main Process** | `bun run build:main`            | Bundles main process to `dist/main.cjs` |
+| **Build Renderer**     | `bun run build:renderer`        | Builds React UI with Vite               |
+| **Package App**        | `bun run dist:mac` / `dist:win` | Creates `.dmg`, `.exe`, or `.AppImage`  |
+| **Generate Metadata**  | (automatic)                     | Generates `latest-*.yml` files          |
+| **Upload Artifacts**   | (manual/CI)                     | Uploads installers + metadata to CDN    |
 
 The packaging scripts are defined in [apps/electron/package.json:31-33]():
 

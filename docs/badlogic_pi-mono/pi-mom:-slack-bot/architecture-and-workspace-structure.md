@@ -14,8 +14,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents mom's workspace organization, per-channel directory structure, and how conversation history flows between log files and LLM context. For information about mom's integration with Slack and the coding agent runtime, see [8: pi-mom: Slack Bot](#8). For details about scheduled events, see [8.2: Events System](#8.2). For the artifacts HTTP server, see [8.3: Artifacts Server](#8.3).
 
 ## Overview
@@ -64,16 +62,16 @@ Mom reuses the coding agent's core infrastructure (`AgentSession`, `SessionManag
 ```mermaid
 graph TB
     WorkspaceRoot["./data/<br/>(workspace root)"]
-    
+
     GlobalMemory["MEMORY.md<br/>(read by getMemory)"]
     SystemLog["SYSTEM.md<br/>(environment log)"]
     GlobalSettings["settings.json<br/>(WorkspaceSettingsStorage)"]
     GlobalSkills["skills/<br/>(loadMomSkills)"]
     Events["events/<br/>(EventScheduler)"]
-    
+
     ChannelDir["C123ABC/<br/>(channel ID = directory name)"]
     DMDir["D456DEF/<br/>(DM channel ID)"]
-    
+
     ChannelMemory["MEMORY.md<br/>(read by getMemory)"]
     LogFile["log.jsonl<br/>(ChannelStore.logToFile)"]
     ContextFile["context.jsonl<br/>(SessionManager)"]
@@ -81,7 +79,7 @@ graph TB
     Attachments["attachments/<br/>(ChannelStore.processAttachments)"]
     Scratch["scratch/<br/>(bash tool cwd)"]
     ChannelSkills["skills/<br/>(loadMomSkills, override global)"]
-    
+
     WorkspaceRoot --> GlobalMemory
     WorkspaceRoot --> SystemLog
     WorkspaceRoot --> GlobalSettings
@@ -89,7 +87,7 @@ graph TB
     WorkspaceRoot --> Events
     WorkspaceRoot --> ChannelDir
     WorkspaceRoot --> DMDir
-    
+
     ChannelDir --> ChannelMemory
     ChannelDir --> LogFile
     ChannelDir --> ContextFile
@@ -105,11 +103,11 @@ Sources: [packages/mom/README.md:183-197](), [packages/mom/src/agent.ts:419-421]
 
 Each channel gets a completely isolated workspace identified by Slack's channel ID:
 
-| Channel Type | Directory Pattern | Example |
-|--------------|-------------------|---------|
-| Public channel | `C<ALPHANUMERIC>/` | `C0A34FL8PMH/` |
-| Private channel | `G<ALPHANUMERIC>/` | `G123ABC456/` |
-| Direct message | `D<ALPHANUMERIC>/` | `D456DEF789/` |
+| Channel Type    | Directory Pattern  | Example        |
+| --------------- | ------------------ | -------------- |
+| Public channel  | `C<ALPHANUMERIC>/` | `C0A34FL8PMH/` |
+| Private channel | `G<ALPHANUMERIC>/` | `G123ABC456/`  |
+| Direct message  | `D<ALPHANUMERIC>/` | `D456DEF789/`  |
 
 The channel ID serves as both the directory name and the cache key in `channelRunners: Map<string, AgentRunner>`. Each cached runner contains:
 
@@ -129,6 +127,7 @@ Mom uses two JSONL files per channel with different purposes:
 ### log.jsonl - Permanent Record
 
 **Format:**
+
 ```json
 {
   "date": "2025-11-26T10:44:00.000Z",
@@ -138,13 +137,17 @@ Mom uses two JSONL files per channel with different purposes:
   "displayName": "Mario Zechner",
   "text": "Fix the bug in parser.ts",
   "attachments": [
-    {"original": "screenshot.png", "local": "C123ABC/attachments/1732531234567_screenshot.png"}
+    {
+      "original": "screenshot.png",
+      "local": "C123ABC/attachments/1732531234567_screenshot.png"
+    }
   ],
   "isBot": false
 }
 ```
 
 **Characteristics:**
+
 - **Append-only** - never compacted or modified
 - **User messages and bot responses only** - no tool calls or results
 - **Written synchronously** on every message event via `SlackBot.logToFile()`
@@ -158,6 +161,7 @@ Sources: [packages/mom/src/store.ts:11-20](), [packages/mom/src/slack.ts:216-224
 **Format:** Same as coding-agent session format (see [4.3: Session Management](#4.3))
 
 **Characteristics:**
+
 - **Includes tool calls and results** - full LLM interaction history
 - **Subject to compaction** when context exceeds model limits
 - **Synced from log.jsonl** before each agent run via `syncLogToSessionManager()`
@@ -179,12 +183,12 @@ sequenceDiagram
     participant SessionManager as "SessionManager"
     participant ContextJsonl as "context.jsonl"
     participant AgentSession as "AgentSession"
-    
+
     Note over Slack,AgentSession: Phase 1: Message Arrival
     Slack->>SlackBot: "message" event
     SlackBot->>ChannelStore: "logUserMessage()"
     ChannelStore->>LogJsonl: "Append JSONL entry (fsync)"
-    
+
     Note over Slack,AgentSession: Phase 2: Agent Invocation
     SlackBot->>syncFn: "syncLogToSessionManager(mgr, dir, ts)"
     syncFn->>LogJsonl: "readFileSync() all entries"
@@ -192,13 +196,13 @@ sequenceDiagram
     syncFn->>syncFn: "Deduplicate (normalize timestamps)"
     syncFn->>SessionManager: "appendMessage() for new entries"
     SessionManager->>ContextJsonl: "Persist to context.jsonl"
-    
+
     Note over Slack,AgentSession: Phase 3: Context Loading
     SlackBot->>SessionManager: "buildSessionContext()"
     SessionManager->>ContextJsonl: "Read entries via loadSession()"
     SessionManager-->>SlackBot: "Return message array"
     SlackBot->>AgentSession: "replaceMessages(messages)"
-    
+
     Note over Slack,AgentSession: Phase 4: Agent Response
     AgentSession->>SessionManager: "appendMessage() for assistant + tools"
     SessionManager->>ContextJsonl: "Persist updates + compaction"
@@ -214,12 +218,12 @@ When running in Docker mode, paths differ between host and container. Mom transl
 
 **Path Translation Mapping**
 
-| Location | Host Path | Container Path | Used By |
-|----------|-----------|----------------|---------|
-| Workspace root | `/Users/mario/mom/data/` | `/workspace/` | `workspacePath` variable |
-| Channel directory | `/Users/mario/mom/data/C123ABC/` | `/workspace/C123ABC/` | `channelDir` variable |
-| Global skills | `/Users/mario/mom/data/skills/` | `/workspace/skills/` | `loadMomSkills()` |
-| Channel skills | `/Users/mario/mom/data/C123ABC/skills/` | `/workspace/C123ABC/skills/` | `loadMomSkills()` |
+| Location          | Host Path                               | Container Path               | Used By                  |
+| ----------------- | --------------------------------------- | ---------------------------- | ------------------------ |
+| Workspace root    | `/Users/mario/mom/data/`                | `/workspace/`                | `workspacePath` variable |
+| Channel directory | `/Users/mario/mom/data/C123ABC/`        | `/workspace/C123ABC/`        | `channelDir` variable    |
+| Global skills     | `/Users/mario/mom/data/skills/`         | `/workspace/skills/`         | `loadMomSkills()`        |
+| Channel skills    | `/Users/mario/mom/data/C123ABC/skills/` | `/workspace/C123ABC/skills/` | `loadMomSkills()`        |
 
 **Path Translation Flow**
 
@@ -228,17 +232,17 @@ graph LR
     HostSkillPath["Host Skill Path<br/>/Users/.../data/skills/gmail/"]
     translatePath["translatePath()<br/>(hostWorkspacePath → workspacePath)"]
     ContainerSkillPath["Container Skill Path<br/>/workspace/skills/gmail/"]
-    
+
     HostChannelPath["Host Channel Path<br/>/Users/.../data/C123/scratch/"]
     translatePath2["translatePath()<br/>(hostWorkspacePath → workspacePath)"]
     ContainerChannelPath["Container Channel Path<br/>/workspace/C123/scratch/"]
-    
+
     SystemPrompt["System Prompt<br/>(contains translated paths)"]
-    
+
     HostSkillPath --> translatePath
     translatePath --> ContainerSkillPath
     ContainerSkillPath --> SystemPrompt
-    
+
     HostChannelPath --> translatePath2
     translatePath2 --> ContainerChannelPath
     ContainerChannelPath --> SystemPrompt
@@ -259,30 +263,31 @@ Skills are reusable CLI tools that mom creates and uses. Each skill is a directo
 ```mermaid
 graph TB
     loadMomSkills["loadMomSkills(channelDir, workspacePath)"]
-    
+
     GlobalSkills["Load from workspace/skills/<br/>(loadSkillsFromDir)"]
     ChannelSkills["Load from C123/skills/<br/>(loadSkillsFromDir)"]
-    
+
     SkillMap["Map&lt;name, Skill&gt;<br/>(channel skills override global)"]
-    
+
     translatePath["translatePath()<br/>(host → container paths)"]
-    
+
     formatSkillsForPrompt["formatSkillsForPrompt()<br/>(name + description list)"]
-    
+
     SystemPrompt["buildSystemPrompt()<br/>(includes skills section)"]
-    
+
     loadMomSkills --> GlobalSkills
     loadMomSkills --> ChannelSkills
-    
+
     GlobalSkills --> SkillMap
     ChannelSkills --> SkillMap
-    
+
     SkillMap --> translatePath
     translatePath --> formatSkillsForPrompt
     formatSkillsForPrompt --> SystemPrompt
 ```
 
 **Loading Order:**
+
 1. Load global skills from `<workspace>/skills/` - available to all channels
 2. Load channel skills from `<channelId>/skills/` - override global skills with same name
 3. Translate all file paths to container paths
@@ -343,6 +348,7 @@ Mom uses `MEMORY.md` files to persist context across sessions. Two levels of mem
 **Scope:** Shared across all channels
 
 **Typical Contents:**
+
 - Coding conventions and preferences
 - Project architecture notes
 - Team member roles and responsibilities
@@ -356,6 +362,7 @@ Mom uses `MEMORY.md` files to persist context across sessions. Two levels of mem
 **Scope:** Channel-specific
 
 **Typical Contents:**
+
 - Ongoing work in this channel
 - Channel-specific decisions
 - Task lists and reminders
@@ -380,26 +387,26 @@ If neither file exists, the system prompt shows `(no working memory yet)`.
 ```mermaid
 graph LR
     getMemory["getMemory(workspacePath, channelDir)"]
-    
+
     GlobalFile["MEMORY.md at workspace root"]
     ChannelFile["MEMORY.md in channel dir"]
-    
+
     GlobalRead["readFileSync(globalPath)<br/>(if exists)"]
     ChannelRead["readFileSync(channelPath)<br/>(if exists)"]
-    
+
     FormatMemory["Format with headers<br/>(Global / Channel-Specific)"]
-    
+
     SystemPrompt["buildSystemPrompt()<br/>(includes memory section)"]
-    
+
     getMemory --> GlobalFile
     getMemory --> ChannelFile
-    
+
     GlobalFile --> GlobalRead
     ChannelFile --> ChannelRead
-    
+
     GlobalRead --> FormatMemory
     ChannelRead --> FormatMemory
-    
+
     FormatMemory --> SystemPrompt
 ```
 
@@ -414,24 +421,24 @@ Mom uses a single `settings.json` file at the workspace root for configuration, 
 ```mermaid
 graph TB
     WorkspaceSettingsStorage["WorkspaceSettingsStorage<br/>(implements SettingsStorageBackend)"]
-    
+
     SettingsJsonFile["settings.json<br/>(at workspace root)"]
-    
+
     withLock["withLock(scope, fn)<br/>(file locking wrapper)"]
-    
+
     GlobalScope["scope='global':<br/>Read/write settings.json"]
     ProjectScope["scope='project':<br/>No-op (return undefined)"]
-    
+
     SettingsManager["SettingsManager<br/>(from @mariozechner/pi-coding-agent)"]
-    
+
     createRunner["createRunner()<br/>(creates SettingsManager instance)"]
-    
+
     WorkspaceSettingsStorage --> SettingsJsonFile
     WorkspaceSettingsStorage --> withLock
-    
+
     withLock --> GlobalScope
     withLock --> ProjectScope
-    
+
     SettingsManager --> WorkspaceSettingsStorage
     createRunner --> SettingsManager
 ```
@@ -459,36 +466,36 @@ Mom creates one `AgentRunner` per channel, cached for the lifetime of the proces
 ```mermaid
 graph TB
     getOrCreateRunner["getOrCreateRunner(config, channelId, channelDir)"]
-    
+
     channelRunners["channelRunners<br/>(Map&lt;channelId, AgentRunner&gt;)"]
-    
+
     createRunner["createRunner()<br/>(initialize all components)"]
-    
+
     SandboxExecutor["DockerExecutor or<br/>HostExecutor"]
-    
+
     createMomTools["createMomTools(executor)<br/>(bash, read, write, edit, attach)"]
-    
+
     SessionManager["SessionManager<br/>(from @mariozechner/pi-coding-agent)"]
-    
+
     SettingsManager["SettingsManager<br/>(from @mariozechner/pi-coding-agent)"]
-    
+
     Agent["Agent<br/>(from @mariozechner/pi-agent-core)"]
-    
+
     AgentSession["AgentSession<br/>(from @mariozechner/pi-coding-agent)"]
-    
+
     AgentRunner["AgentRunner object<br/>(executor, sessionManager, agentSession)"]
-    
+
     getOrCreateRunner --> channelRunners
     channelRunners -->|cache miss| createRunner
     channelRunners -->|cache hit| ReturnCached["Return cached runner"]
-    
+
     createRunner --> SandboxExecutor
     createRunner --> createMomTools
     createRunner --> SessionManager
     createRunner --> SettingsManager
     createRunner --> Agent
     createRunner --> AgentSession
-    
+
     SandboxExecutor --> AgentRunner
     createMomTools --> AgentRunner
     SessionManager --> AgentRunner
@@ -508,23 +515,23 @@ The system prompt is rebuilt on every agent run to include fresh state:
 ```mermaid
 graph LR
     buildSystemPrompt["buildSystemPrompt(config)"]
-    
+
     Static["Static Instructions<br/>(role definition, tool descriptions,<br/>Slack formatting rules)"]
-    
+
     getMemory["getMemory()<br/>(global + channel MEMORY.md)"]
-    
+
     loadMomSkills["loadMomSkills()<br/>(global + channel skills)"]
-    
+
     ChannelsList["channels<br/>(from Slack API)"]
-    
+
     UsersList["users<br/>(from Slack API)"]
-    
+
     EnvInfo["environment info<br/>(Docker/host, paths, bash cwd)"]
-    
+
     EventsDocs["events documentation<br/>(immediate, one-shot, periodic)"]
-    
+
     FinalPrompt["Complete system prompt<br/>(5-10KB typical)"]
-    
+
     buildSystemPrompt --> Static
     buildSystemPrompt --> getMemory
     buildSystemPrompt --> loadMomSkills
@@ -532,7 +539,7 @@ graph LR
     buildSystemPrompt --> UsersList
     buildSystemPrompt --> EnvInfo
     buildSystemPrompt --> EventsDocs
-    
+
     Static --> FinalPrompt
     getMemory --> FinalPrompt
     loadMomSkills --> FinalPrompt
@@ -559,17 +566,17 @@ sequenceDiagram
     participant ChannelStore as "ChannelStore"
     participant FileSystem as "File System"
     participant DownloadQueue as "Background Queue"
-    
+
     SlackAPI->>SlackBot: "message event (with files[])"
     SlackBot->>ChannelStore: "processAttachments(channelId, files, ts)"
-    
+
     ChannelStore->>ChannelStore: "generateLocalFilename()<br/>(ts_filename.png)"
-    
+
     ChannelStore->>DownloadQueue: "Queue async download"
     ChannelStore-->>SlackBot: "Return attachments metadata"
-    
+
     SlackBot->>FileSystem: "logToFile() to log.jsonl (fsync)"
-    
+
     Note over DownloadQueue,FileSystem: Background Processing
     DownloadQueue->>SlackAPI: "files.info + fetch (Bearer token)"
     SlackAPI-->>DownloadQueue: "File data"

@@ -10,8 +10,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the process of regenerating TypeScript types from the Codex app-server protocol. The `@craft-agent/codex-types` package contains auto-generated TypeScript definitions that ensure type safety when communicating with the Codex binary via JSON-RPC.
 
 For information about building the Codex agent itself, see [Agent System](#2.3). For general development setup, see [Development Setup](#5.1).
@@ -23,6 +21,7 @@ For information about building the Codex agent itself, see [Agent System](#2.3).
 The Codex app-server is a Rust binary that communicates via JSON-RPC over stdio. To maintain type safety in TypeScript, the binary includes a code generator that introspects its protocol definitions and outputs matching TypeScript types. These generated types are stored in the `@craft-agent/codex-types` package and consumed by `CodexAgent` and related code.
 
 **When to regenerate:**
+
 - After updating the Codex binary to a new version
 - When new protocol features are added (notifications, requests, responses)
 - If you see type mismatches between the app-server and TypeScript code
@@ -43,21 +42,21 @@ graph TB
         V2["src/v2/index.ts<br/>V2 protocol types"]
         Generated["src/**/*.ts<br/>Generated type files"]
     end
-    
+
     subgraph "External Dependencies"
         CodexBinary["codex binary<br/>Type generator"]
     end
-    
+
     subgraph "Consumers"
         CodexAgent["CodexAgent<br/>packages/shared/src/agent/codex-agent.ts"]
         AppServerClient["AppServerClient<br/>packages/shared/src/codex/app-server-client.ts"]
     end
-    
+
     CodexBinary -->|"codex app-server generate-ts"| Generated
     Package -->|"npm run regenerate"| CodexBinary
     Index --> Generated
     V2 --> Generated
-    
+
     CodexAgent -->|"import { RequestId, ReasoningEffort }"| Index
     CodexAgent -->|"import { AskForApproval, SandboxMode }"| V2
     AppServerClient --> Index
@@ -66,9 +65,9 @@ graph TB
 
 **Package exports:**
 
-| Export Path | Purpose | Example Types |
-|------------|---------|---------------|
-| `@craft-agent/codex-types` | Main protocol types | `RequestId`, `ReasoningEffort` |
+| Export Path                   | Purpose               | Example Types                                                                       |
+| ----------------------------- | --------------------- | ----------------------------------------------------------------------------------- |
+| `@craft-agent/codex-types`    | Main protocol types   | `RequestId`, `ReasoningEffort`                                                      |
 | `@craft-agent/codex-types/v2` | V2 protocol additions | `AskForApproval`, `SandboxMode`, `UserInput`, `ThreadTokenUsageUpdatedNotification` |
 
 Sources: [packages/codex-types/package.json:8-11]()
@@ -86,25 +85,26 @@ sequenceDiagram
     participant Codex as codex binary
     participant FS as File System
     participant TS as TypeScript
-    
+
     Dev->>NPM: npm run regenerate
     NPM->>Codex: codex app-server generate-ts --out src
-    
+
     Note over Codex: Introspects Rust protocol types<br/>(structs, enums, requests, notifications)
-    
+
     Codex->>FS: Write src/index.ts
     Codex->>FS: Write src/v2/index.ts
     Codex->>FS: Write src/**/*.ts (type files)
-    
+
     Note over FS: Generated files committed to repo<br/>for version control
-    
+
     Dev->>TS: Build workspace packages
     TS->>TS: Type-check CodexAgent imports
-    
+
     Note over TS: Compilation succeeds if<br/>protocol matches
 ```
 
 **Command syntax:**
+
 ```bash
 # From packages/codex-types directory
 npm run regenerate
@@ -114,6 +114,7 @@ codex app-server generate-ts --out src
 ```
 
 **What gets generated:**
+
 - Type definitions for all JSON-RPC protocol types
 - Request parameter types
 - Response types
@@ -134,35 +135,35 @@ The `CodexAgent` class imports generated types to ensure protocol compliance:
 graph LR
     subgraph "CodexAgent Imports"
         CodexAgent["CodexAgent class<br/>codex-agent.ts:163"]
-        
+
         MainTypes["Main types:<br/>RequestId<br/>ReasoningEffort"]
         V2Types["V2 types:<br/>AskForApproval<br/>SandboxMode<br/>UserInput<br/>CommandExecutionApprovalDecision<br/>FileChangeApprovalDecision<br/>ThreadTokenUsageUpdatedNotification"]
     end
-    
+
     subgraph "Generated Packages"
         CodexTypes["@craft-agent/codex-types"]
         CodexTypesV2["@craft-agent/codex-types/v2"]
     end
-    
+
     CodexTypes --> MainTypes
     CodexTypesV2 --> V2Types
-    
+
     MainTypes --> CodexAgent
     V2Types --> CodexAgent
 ```
 
 **Import examples from CodexAgent:**
 
-| Type | Source | Usage |
-|------|--------|-------|
-| `RequestId` | `@craft-agent/codex-types` | Identifying JSON-RPC requests |
-| `ReasoningEffort` | `@craft-agent/codex-types` | Mapping thinking levels to effort |
-| `AskForApproval` | `@craft-agent/codex-types/v2` | Approval policy configuration |
-| `SandboxMode` | `@craft-agent/codex-types/v2` | Sandbox security mode |
-| `UserInput` | `@craft-agent/codex-types/v2` | Building turn input messages |
-| `CommandExecutionApprovalDecision` | `@craft-agent/codex-types/v2` | Responding to bash approval requests |
-| `FileChangeApprovalDecision` | `@craft-agent/codex-types/v2` | Responding to file edit approval requests |
-| `ThreadTokenUsageUpdatedNotification` | `@craft-agent/codex-types/v2` | Token usage updates for UI |
+| Type                                  | Source                        | Usage                                     |
+| ------------------------------------- | ----------------------------- | ----------------------------------------- |
+| `RequestId`                           | `@craft-agent/codex-types`    | Identifying JSON-RPC requests             |
+| `ReasoningEffort`                     | `@craft-agent/codex-types`    | Mapping thinking levels to effort         |
+| `AskForApproval`                      | `@craft-agent/codex-types/v2` | Approval policy configuration             |
+| `SandboxMode`                         | `@craft-agent/codex-types/v2` | Sandbox security mode                     |
+| `UserInput`                           | `@craft-agent/codex-types/v2` | Building turn input messages              |
+| `CommandExecutionApprovalDecision`    | `@craft-agent/codex-types/v2` | Responding to bash approval requests      |
+| `FileChangeApprovalDecision`          | `@craft-agent/codex-types/v2` | Responding to file edit approval requests |
+| `ThreadTokenUsageUpdatedNotification` | `@craft-agent/codex-types/v2` | Token usage updates for UI                |
 
 Sources: [packages/shared/src/agent/codex-agent.ts:94-105]()
 
@@ -179,23 +180,23 @@ graph TB
         RustNotif["Notification<br/>enum ThreadStartedNotification"]
         RustEnum["Enum<br/>enum ReasoningEffort"]
     end
-    
+
     subgraph "Generated TypeScript"
         TSRequest["interface ThreadStartRequest"]
         TSNotif["interface ThreadStartedNotification"]
         TSEnum["type ReasoningEffort = 'low' | 'medium' | 'high'"]
     end
-    
+
     subgraph "CodexAgent Usage"
         ThinkingLevel["ThinkingLevel → ReasoningEffort<br/>THINKING_TO_EFFORT mapping"]
         ClientCall["client.threadStart(params)<br/>TypeScript validates params"]
         EventHandler["client.on('thread/started', ...)<br/>TypeScript validates notification"]
     end
-    
+
     RustRequest -.->|"codex app-server generate-ts"| TSRequest
     RustNotif -.->|"codex app-server generate-ts"| TSNotif
     RustEnum -.->|"codex app-server generate-ts"| TSEnum
-    
+
     TSEnum --> ThinkingLevel
     TSRequest --> ClientCall
     TSNotif --> EventHandler
@@ -209,7 +210,7 @@ const THINKING_TO_EFFORT: Record<ThinkingLevel, ReasoningEffort> = {
   off: 'low',
   think: 'medium',
   max: 'high',
-};
+}
 ```
 
 **Example: Approval policy type**
@@ -246,6 +247,7 @@ Sources: [packages/shared/src/agent/codex-agent.ts:141-145](), [packages/shared/
 ### Step-by-Step Process
 
 1. **Ensure Codex binary is available**
+
    ```bash
    # Check binary location
    which codex
@@ -253,16 +255,19 @@ Sources: [packages/shared/src/agent/codex-agent.ts:141-145](), [packages/shared/
    ```
 
 2. **Navigate to codex-types package**
+
    ```bash
    cd packages/codex-types
    ```
 
 3. **Run regeneration script**
+
    ```bash
    npm run regenerate
    ```
 
 4. **Verify generated files**
+
    ```bash
    # Check that src/ was updated
    git status
@@ -270,6 +275,7 @@ Sources: [packages/shared/src/agent/codex-agent.ts:141-145](), [packages/shared/
    ```
 
 5. **Type-check the workspace**
+
    ```bash
    cd ../..
    npm run typecheck
@@ -291,23 +297,22 @@ Sources: [packages/codex-types/package.json:15-16]()
 
 The codex-types package uses two export paths to manage protocol evolution:
 
-| Export | Purpose | Breaking Changes |
-|--------|---------|-----------------|
-| `@craft-agent/codex-types` | Stable core types | Rare; v1 protocol |
-| `@craft-agent/codex-types/v2` | V2 additions | More frequent; new features |
+| Export                        | Purpose           | Breaking Changes            |
+| ----------------------------- | ----------------- | --------------------------- |
+| `@craft-agent/codex-types`    | Stable core types | Rare; v1 protocol           |
+| `@craft-agent/codex-types/v2` | V2 additions      | More frequent; new features |
 
 **Migration strategy:**
+
 - Core types (`RequestId`, `ReasoningEffort`) remain in main export
 - New protocol features land in `/v2` export
 - Consumers can import selectively based on feature requirements
 
 **Example: Dual imports in CodexAgent**
+
 ```typescript
 // Core protocol types (stable)
-import type {
-  RequestId,
-  ReasoningEffort,
-} from '@craft-agent/codex-types';
+import type { RequestId, ReasoningEffort } from '@craft-agent/codex-types'
 
 // V2 protocol additions (evolving)
 import type {
@@ -315,7 +320,7 @@ import type {
   SandboxMode,
   UserInput,
   // ... more v2 types
-} from '@craft-agent/codex-types/v2';
+} from '@craft-agent/codex-types/v2'
 ```
 
 Sources: [packages/codex-types/package.json:8-11](), [packages/shared/src/agent/codex-agent.ts:94-105]()
@@ -326,14 +331,15 @@ Sources: [packages/codex-types/package.json:8-11](), [packages/shared/src/agent/
 
 ### Common Issues
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| `codex: command not found` | Codex binary not in PATH | Set `CODEX_PATH` env var or install Codex |
-| Type mismatch after Codex update | Stale generated types | Run `npm run regenerate` in codex-types package |
-| Missing types in v2 export | Outdated binary version | Update Codex binary, then regenerate |
-| TypeScript errors in CodexAgent | Protocol change | Regenerate types and update CodexAgent usage |
+| Issue                            | Cause                    | Solution                                        |
+| -------------------------------- | ------------------------ | ----------------------------------------------- |
+| `codex: command not found`       | Codex binary not in PATH | Set `CODEX_PATH` env var or install Codex       |
+| Type mismatch after Codex update | Stale generated types    | Run `npm run regenerate` in codex-types package |
+| Missing types in v2 export       | Outdated binary version  | Update Codex binary, then regenerate            |
+| TypeScript errors in CodexAgent  | Protocol change          | Regenerate types and update CodexAgent usage    |
 
 **Debug type generation:**
+
 ```bash
 # Run with verbose output to see what's being generated
 codex app-server generate-ts --out src --verbose

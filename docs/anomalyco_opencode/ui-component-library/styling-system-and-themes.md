@@ -15,8 +15,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the CSS architecture, color system, and theming mechanism used throughout OpenCode's user interfaces. It covers the layered CSS structure, color palettes, typography utilities, and how themes are configured and applied across the `@opencode-ai/ui` package.
 
 For information about specific UI components and their usage, see [Component Architecture & Exports](#4.1). For information about session rendering and message components, see [Session Turn & Message Rendering](#4.2).
@@ -32,12 +30,12 @@ The styling system uses CSS Cascade Layers to establish explicit precedence rule
 ```mermaid
 graph TD
     Entry["packages/ui/src/styles/index.css<br/>Entry Point"]
-    
+
     ThemeLayer["@layer theme<br/>Lowest Precedence"]
     BaseLayer["@layer base<br/>Second Precedence"]
     ComponentsLayer["@layer components<br/>Third Precedence"]
     UtilitiesLayer["@layer utilities<br/>Highest Precedence"]
-    
+
     Colors["colors.css<br/>CSS Custom Properties<br/>Color Palettes"]
     Theme["theme.css<br/>Theme Definitions<br/>Semantic Tokens"]
     Base["base.css<br/>Reset & Defaults"]
@@ -45,20 +43,20 @@ graph TD
     ComponentCSS["50+ Component CSS Files<br/>accordion.css, button.css, etc."]
     Utilities["utilities.css<br/>Utility Classes"]
     Animations["animations.css<br/>Keyframe Definitions"]
-    
+
     Entry --> ThemeLayer
     Entry --> BaseLayer
     Entry --> ComponentsLayer
     Entry --> UtilitiesLayer
-    
+
     ThemeLayer --> Colors
     ThemeLayer --> Theme
-    
+
     BaseLayer --> Base
     BaseLayer --> Katex
-    
+
     ComponentsLayer --> ComponentCSS
-    
+
     UtilitiesLayer --> Utilities
     UtilitiesLayer --> Animations
 ```
@@ -66,6 +64,7 @@ graph TD
 **Sources:** [packages/ui/src/styles/index.css:1-66]()
 
 The layer order declaration `@layer theme, base, components, utilities` establishes that:
+
 1. Theme layer (lowest) - Can be overridden by all other layers
 2. Base layer - Overrides theme, can be overridden by components and utilities
 3. Components layer - Overrides base and theme, can be overridden by utilities
@@ -96,14 +95,14 @@ graph LR
         Ink["Ink<br/>Cool gray"]
         Amber["Amber<br/>Orange accent"]
     end
-    
+
     subgraph Variants["For Each Scale"]
         Light["Light Mode<br/>12 steps<br/>--{color}-light-1 to --{color}-light-12"]
         Dark["Dark Mode<br/>12 steps<br/>--{color}-dark-1 to --{color}-dark-12"]
         LightAlpha["Light Alpha<br/>12 steps with transparency<br/>--{color}-light-alpha-1 to --{color}-light-alpha-12"]
         DarkAlpha["Dark Alpha<br/>12 steps with transparency<br/>--{color}-dark-alpha-1 to --{color}-dark-alpha-12"]
     end
-    
+
     Scales --> Light
     Scales --> Dark
     Scales --> LightAlpha
@@ -115,6 +114,7 @@ graph LR
 ### Color Scale Progression
 
 Each 12-step scale follows a consistent pattern:
+
 - **Steps 1-3**: Backgrounds (subtle to moderate)
 - **Steps 4-6**: Interactive element backgrounds (hover, active states)
 - **Steps 7-9**: Borders and separators
@@ -122,19 +122,20 @@ Each 12-step scale follows a consistent pattern:
 - **Step 12**: High contrast text
 
 Example from the Gray scale:
+
 ```css
---gray-dark-1: #161616;   /* App background */
---gray-dark-2: #1c1c1c;   /* Subtle background */
---gray-dark-3: #232323;   /* UI element background */
---gray-dark-4: #282828;   /* Hovered UI element */
---gray-dark-5: #2e2e2e;   /* Active UI element */
---gray-dark-6: #343434;   /* Subtle borders */
---gray-dark-7: #3e3e3e;   /* UI element border */
---gray-dark-8: #505050;   /* Hovered border */
---gray-dark-9: #707070;   /* Solid backgrounds */
---gray-dark-10: #7e7e7e;  /* Hovered solid backgrounds */
---gray-dark-11: #a0a0a0;  /* Low contrast text */
---gray-dark-12: #ededed;  /* High contrast text */
+--gray-dark-1: #161616; /* App background */
+--gray-dark-2: #1c1c1c; /* Subtle background */
+--gray-dark-3: #232323; /* UI element background */
+--gray-dark-4: #282828; /* Hovered UI element */
+--gray-dark-5: #2e2e2e; /* Active UI element */
+--gray-dark-6: #343434; /* Subtle borders */
+--gray-dark-7: #3e3e3e; /* UI element border */
+--gray-dark-8: #505050; /* Hovered border */
+--gray-dark-9: #707070; /* Solid backgrounds */
+--gray-dark-10: #7e7e7e; /* Hovered solid backgrounds */
+--gray-dark-11: #a0a0a0; /* Low contrast text */
+--gray-dark-12: #ededed; /* High contrast text */
 ```
 
 **Sources:** [packages/ui/src/styles/colors.css:2-13]()
@@ -169,7 +170,7 @@ graph TD
         LetterSpacing["--letter-spacing-normal<br/>--letter-spacing-tight<br/>--letter-spacing-tightest"]
         FontFeatures["--font-feature-settings-mono"]
     end
-    
+
     subgraph Utilities["Utility Classes"]
         Text12Regular[".text-12-regular<br/>Sans, 12px, Regular"]
         Text12Medium[".text-12-medium<br/>Sans, 12px, Medium"]
@@ -180,7 +181,7 @@ graph TD
         Text16Medium[".text-16-medium<br/>Sans, 16px, Medium"]
         Text20Medium[".text-20-medium<br/>Sans, 20px, Medium"]
     end
-    
+
     Variables --> Utilities
 ```
 
@@ -190,18 +191,19 @@ graph TD
 
 The system provides eight base typography classes:
 
-| Class | Family | Size | Weight | Use Case |
-|-------|--------|------|--------|----------|
-| `.text-12-regular` | Sans | 12px | Regular | Small body text, captions |
-| `.text-12-medium` | Sans | 12px | Medium | Small labels, UI elements |
-| `.text-12-mono` | Mono | 12px | Regular | Code snippets, technical data |
-| `.text-14-regular` | Sans | 14px | Regular | Primary body text |
-| `.text-14-medium` | Sans | 14px | Medium | Labels, buttons |
-| `.text-14-mono` | Mono | 14px | Regular | Code blocks, file paths |
-| `.text-16-medium` | Sans | 16px | Medium | Section headings |
-| `.text-20-medium` | Sans | 20px | Medium | Page titles |
+| Class              | Family | Size | Weight  | Use Case                      |
+| ------------------ | ------ | ---- | ------- | ----------------------------- |
+| `.text-12-regular` | Sans   | 12px | Regular | Small body text, captions     |
+| `.text-12-medium`  | Sans   | 12px | Medium  | Small labels, UI elements     |
+| `.text-12-mono`    | Mono   | 12px | Regular | Code snippets, technical data |
+| `.text-14-regular` | Sans   | 14px | Regular | Primary body text             |
+| `.text-14-medium`  | Sans   | 14px | Medium  | Labels, buttons               |
+| `.text-14-mono`    | Mono   | 14px | Regular | Code blocks, file paths       |
+| `.text-16-medium`  | Sans   | 16px | Medium  | Section headings              |
+| `.text-20-medium`  | Sans   | 20px | Medium  | Page titles                   |
 
 Example usage:
+
 ```css
 .text-14-regular {
   font-family: var(--font-family-sans);
@@ -223,11 +225,11 @@ The system provides several utility classes for common styling patterns.
 
 **Table: Core Utility Classes**
 
-| Class | Purpose | Implementation |
-|-------|---------|----------------|
-| `.no-scrollbar` | Hides scrollbars | Webkit + Firefox + IE/Edge support |
-| `.sr-only` | Screen reader only | Visually hidden, accessible to screen readers |
-| `.truncate-start` | Text ellipsis at start | RTL direction, text-overflow: ellipsis |
+| Class             | Purpose                | Implementation                                |
+| ----------------- | ---------------------- | --------------------------------------------- |
+| `.no-scrollbar`   | Hides scrollbars       | Webkit + Firefox + IE/Edge support            |
+| `.sr-only`        | Screen reader only     | Visually hidden, accessible to screen readers |
+| `.truncate-start` | Text ellipsis at start | RTL direction, text-overflow: ellipsis        |
 
 **Sources:** [packages/ui/src/styles/utilities.css:15-44]()
 
@@ -275,12 +277,12 @@ Additional utilities are defined using Tailwind's `@utility` directive for integ
 
 **Table: Tailwind Utilities**
 
-| Utility | Purpose | Key Features |
-|---------|---------|--------------|
-| `@utility no-scrollbar` | Hide scrollbars | Cross-browser support |
-| `@utility badge-mask` | Radial mask for badges | 5px circle cutout at top-right |
-| `@utility truncate-start` | Ellipsis at start | RTL direction trick |
-| `@utility fade-up-text` | Staggered fade-in animation | 30 child support with delays |
+| Utility                   | Purpose                     | Key Features                   |
+| ------------------------- | --------------------------- | ------------------------------ |
+| `@utility no-scrollbar`   | Hide scrollbars             | Cross-browser support          |
+| `@utility badge-mask`     | Radial mask for badges      | 5px circle cutout at top-right |
+| `@utility truncate-start` | Ellipsis at start           | RTL direction trick            |
+| `@utility fade-up-text`   | Staggered fade-in animation | 30 child support with delays   |
 
 **Sources:** [packages/ui/src/styles/tailwind/utilities.css:1-119]()
 
@@ -314,7 +316,7 @@ The component layer imports 50+ individual CSS files, each dedicated to a specif
 ```mermaid
 graph TD
     ComponentsLayer["@layer components"]
-    
+
     subgraph Interactive["Interactive Components"]
         Button["button.css"]
         IconButton["icon-button.css"]
@@ -325,7 +327,7 @@ graph TD
         InlineInput["inline-input.css"]
         Select["select.css"]
     end
-    
+
     subgraph Layout["Layout Components"]
         Accordion["accordion.css"]
         Collapsible["collapsible.css"]
@@ -334,7 +336,7 @@ graph TD
         ScrollView["scroll-view.css"]
         ResizeHandle["resize-handle.css"]
     end
-    
+
     subgraph Overlay["Overlay Components"]
         Dialog["dialog.css"]
         Popover["popover.css"]
@@ -343,7 +345,7 @@ graph TD
         DropdownMenu["dropdown-menu.css"]
         HoverCard["hover-card.css"]
     end
-    
+
     subgraph Domain["Domain-Specific"]
         MessagePart["message-part.css"]
         SessionTurn["session-turn.css"]
@@ -352,7 +354,7 @@ graph TD
         DiffChanges["diff-changes.css"]
         ShellSubmessage["shell-submessage.css"]
     end
-    
+
     subgraph Visual["Visual Elements"]
         Icon["icon.css"]
         FileIcon["file-icon.css"]
@@ -364,7 +366,7 @@ graph TD
         Progress["progress.css"]
         ProgressCircle["progress-circle.css"]
     end
-    
+
     ComponentsLayer --> Interactive
     ComponentsLayer --> Layout
     ComponentsLayer --> Overlay
@@ -375,6 +377,7 @@ graph TD
 **Sources:** [packages/ui/src/styles/index.css:9-62]()
 
 Each component CSS file contains:
+
 - Component-specific class definitions
 - State variants (hover, active, disabled, etc.)
 - Size variants where applicable
@@ -392,15 +395,15 @@ Themes are defined in the `theme.css` file within the theme layer. The theme lay
 ```mermaid
 graph TD
     ColorScales["Color Scales<br/>colors.css<br/>--gray-dark-1 to --gray-dark-12<br/>--cobalt-light-1 to --cobalt-light-12"]
-    
+
     ThemeCSS["Theme Definition<br/>theme.css<br/>Semantic Token Mapping"]
-    
+
     SemanticTokens["Semantic Tokens<br/>--color-background<br/>--color-foreground<br/>--color-primary<br/>--color-border<br/>--color-surface<br/>etc."]
-    
+
     Components["Component Styles<br/>button.css, card.css, etc.<br/>Use semantic tokens"]
-    
+
     UserTheme["User Theme Selection<br/>Light/Dark mode toggle"]
-    
+
     ColorScales --> ThemeCSS
     ThemeCSS --> SemanticTokens
     SemanticTokens --> Components
@@ -412,11 +415,13 @@ graph TD
 ### Theme Token Pattern
 
 Themes follow a pattern where:
+
 1. Color scales provide the raw palette
 2. Theme definitions map scale steps to semantic meanings
 3. Components reference only semantic tokens, never raw scale values
 
 Example pattern (inferred):
+
 ```css
 /* In theme.css - Light theme */
 :root {
@@ -427,7 +432,7 @@ Example pattern (inferred):
 }
 
 /* In theme.css - Dark theme */
-[data-theme="dark"] {
+[data-theme='dark'] {
   --color-background: var(--gray-dark-1);
   --color-foreground: var(--gray-dark-12);
   --color-primary: var(--cobalt-dark-9);
@@ -443,6 +448,7 @@ Example pattern (inferred):
 ```
 
 This indirection allows:
+
 - Switching themes by changing only semantic token values
 - Multiple theme variants without modifying components
 - Consistent semantic meaning across color modes
@@ -455,20 +461,20 @@ Icons are implemented as inline SVG paths within the `Icon` component rather tha
 
 **Table: Icon Implementation**
 
-| Aspect | Implementation | Location |
-|--------|---------------|----------|
-| Icon storage | JavaScript object with SVG paths | [packages/ui/src/components/icon.tsx:3-84]() |
-| Icon rendering | Dynamic SVG element creation | Icon component |
-| Icon styling | `currentColor` for stroke/fill | Inherits text color |
-| Available icons | 80+ icons | See icon.tsx |
+| Aspect          | Implementation                   | Location                                     |
+| --------------- | -------------------------------- | -------------------------------------------- |
+| Icon storage    | JavaScript object with SVG paths | [packages/ui/src/components/icon.tsx:3-84]() |
+| Icon rendering  | Dynamic SVG element creation     | Icon component                               |
+| Icon styling    | `currentColor` for stroke/fill   | Inherits text color                          |
+| Available icons | 80+ icons                        | See icon.tsx                                 |
 
 The `icons` object maps icon names to SVG path definitions:
 
 ```typescript
 const icons = {
-  "align-right": `<path d="M12.292..." stroke="currentColor".../>`,
-  "arrow-up": `<path fill-rule="evenodd".../>`,
-  "archive": `<path d="M16.8747..."/>`,
+  'align-right': `<path d="M12.292..." stroke="currentColor".../>`,
+  'arrow-up': `<path fill-rule="evenodd".../>`,
+  archive: `<path d="M16.8747..."/>`,
   // ... 80+ more icons
 }
 ```
@@ -478,8 +484,8 @@ const icons = {
 Using `currentColor` allows icons to inherit the text color from their parent element, making them theme-aware without additional styling:
 
 ```typescript
-stroke="currentColor"
-fill="currentColor"
+stroke = 'currentColor'
+fill = 'currentColor'
 ```
 
 ---
@@ -490,14 +496,14 @@ The styling system maintains cross-browser compatibility through:
 
 **Table: Compatibility Strategies**
 
-| Feature | Strategy | Browsers Covered |
-|---------|----------|------------------|
-| Scrollbar hiding | Multiple vendor prefixes | Webkit, Firefox, IE/Edge |
-| CSS Layers | Native `@layer` | Modern browsers (2022+) |
-| Custom properties | Native CSS variables | All modern browsers |
-| Alpha transparency | Hex8 color format | All modern browsers |
-| Font features | `font-feature-settings` | Modern browsers |
-| Mask properties | Both `-webkit-` and standard | Webkit + standards |
+| Feature            | Strategy                     | Browsers Covered         |
+| ------------------ | ---------------------------- | ------------------------ |
+| Scrollbar hiding   | Multiple vendor prefixes     | Webkit, Firefox, IE/Edge |
+| CSS Layers         | Native `@layer`              | Modern browsers (2022+)  |
+| Custom properties  | Native CSS variables         | All modern browsers      |
+| Alpha transparency | Hex8 color format            | All modern browsers      |
+| Font features      | `font-feature-settings`      | Modern browsers          |
+| Mask properties    | Both `-webkit-` and standard | Webkit + standards       |
 
 **Sources:** [packages/ui/src/styles/utilities.css:15-24](), [packages/ui/src/styles/tailwind/utilities.css:1-14]()
 
@@ -512,17 +518,17 @@ The styling system integrates with several external systems:
 ```mermaid
 graph LR
     StylingSystem["Styling System"]
-    
+
     Kobalte["Kobalte UI<br/>Headless components"]
     Shiki["Shiki<br/>Code highlighting"]
     KaTeX["KaTeX<br/>Math rendering"]
     PierreDiffs["@pierre/diffs<br/>Diff viewer"]
-    
+
     StylingSystem --> Kobalte
     StylingSystem --> Shiki
     StylingSystem --> KaTeX
     StylingSystem --> PierreDiffs
-    
+
     KaTeX --> KatexCSS["katex.min.css<br/>Imported in base layer"]
 ```
 
@@ -533,7 +539,7 @@ graph LR
 KaTeX styles are imported in the base layer for mathematical notation rendering:
 
 ```css
-@import "katex/dist/katex.min.css" layer(base);
+@import 'katex/dist/katex.min.css' layer(base);
 ```
 
 **Sources:** [packages/ui/src/styles/index.css:7]()
@@ -543,7 +549,7 @@ KaTeX styles are imported in the base layer for mathematical notation rendering:
 The `@pierre/diffs` web component is declared as a valid JSX element:
 
 ```typescript
-declare module "solid-js" {
+declare module 'solid-js' {
   namespace JSX {
     interface IntrinsicElements {
       [DIFFS_TAG_NAME]: HTMLAttributes<HTMLElement>
@@ -567,6 +573,7 @@ The styling architecture includes several performance optimizations:
 5. **No Runtime JS**: Pure CSS styling with no JavaScript overhead
 
 The layered import structure in [packages/ui/src/styles/index.css:1-66]() ensures that:
+
 - Theme and base styles load first (required)
 - Component styles load on-demand (can be split)
 - Utilities override everything (always available)

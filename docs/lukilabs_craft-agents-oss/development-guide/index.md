@@ -10,8 +10,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page provides an overview of the development workflow, tooling, and common tasks for contributing to the Craft Agents codebase. It covers the prerequisites, development environment setup, and high-level build processes.
 
 For detailed setup instructions, see [Development Setup](#5.1). For comprehensive build system documentation, see [Build System](#5.2). For code quality tools and testing, see [Code Quality & Type Checking](#5.3). For working with the monorepo packages, see [Working with Packages](#5.4).
@@ -20,17 +18,17 @@ For detailed setup instructions, see [Development Setup](#5.1). For comprehensiv
 
 The Craft Agents project uses a modern JavaScript/TypeScript stack with specific tooling requirements:
 
-| Component | Technology | Version | Purpose |
-|-----------|-----------|---------|---------|
-| Runtime | Bun | latest | Package manager, test runner, script execution |
-| Desktop Framework | Electron | ^39.2.7 | Cross-platform desktop application |
-| UI Framework | React | ^18.3.1 | User interface components |
-| Build Tool (Main/Preload) | ESBuild | ^0.25.0 | Fast JavaScript/TypeScript bundler |
-| Build Tool (Renderer) | Vite | ^6.2.4 | Modern frontend build tool with HMR |
-| Type System | TypeScript | ^5.0.0 | Static type checking |
-| Linter | ESLint | ^9.39.2 | Code quality and style enforcement |
-| Packager | Electron Builder | ^26.0.12 | Application distribution |
-| CSS Framework | Tailwind CSS | ^4.1.18 | Utility-first styling |
+| Component                 | Technology       | Version  | Purpose                                        |
+| ------------------------- | ---------------- | -------- | ---------------------------------------------- |
+| Runtime                   | Bun              | latest   | Package manager, test runner, script execution |
+| Desktop Framework         | Electron         | ^39.2.7  | Cross-platform desktop application             |
+| UI Framework              | React            | ^18.3.1  | User interface components                      |
+| Build Tool (Main/Preload) | ESBuild          | ^0.25.0  | Fast JavaScript/TypeScript bundler             |
+| Build Tool (Renderer)     | Vite             | ^6.2.4   | Modern frontend build tool with HMR            |
+| Type System               | TypeScript       | ^5.0.0   | Static type checking                           |
+| Linter                    | ESLint           | ^9.39.2  | Code quality and style enforcement             |
+| Packager                  | Electron Builder | ^26.0.12 | Application distribution                       |
+| CSS Framework             | Tailwind CSS     | ^4.1.18  | Utility-first styling                          |
 
 **Sources:** [package.json:1-128]()
 
@@ -41,14 +39,14 @@ The codebase is organized as a Bun workspace monorepo with strict separation bet
 ```mermaid
 graph TB
     Root["craft-agent<br/>(root package.json)"]
-    
+
     subgraph apps ["apps/*"]
         Electron["apps/electron<br/>(Desktop Application)"]
         Viewer["apps/viewer<br/>(Web Viewer)"]
         Marketing["apps/marketing<br/>(Marketing Site)"]
         OnlineDocs["apps/online-docs<br/>(EXCLUDED from workspace)"]
     end
-    
+
     subgraph packages ["packages/*"]
         Core["packages/core<br/>(@craft-agent/core)"]
         Shared["packages/shared<br/>(@craft-agent/shared)"]
@@ -57,22 +55,22 @@ graph TB
         SessionTools["packages/session-tools-core"]
         CodexTypes["packages/codex-types"]
     end
-    
+
     Root --> Electron
     Root --> Viewer
     Root --> Marketing
-    
+
     Electron --> Shared
     Electron --> Core
     Electron --> UI
-    
+
     Viewer --> Core
     Viewer --> UI
-    
+
     Shared --> Core
     Shared --> SessionTools
     Shared --> CodexTypes
-    
+
     UI --> Core
     UI --> Mermaid
 ```
@@ -90,7 +88,7 @@ The typical development workflow involves building, running, and testing changes
 ```mermaid
 graph TB
     Dev["Developer Makes Changes"]
-    
+
     subgraph "Build Process"
         BuildMain["electron:build:main<br/>(scripts/electron-build-main.ts)"]
         BuildPreload["electron:build:preload<br/>(scripts/electron-build-preload.ts)"]
@@ -98,41 +96,41 @@ graph TB
         BuildResources["electron:build:resources<br/>(scripts/electron-build-resources.ts)"]
         BuildAssets["electron:build:assets<br/>(copy-assets.ts)"]
     end
-    
+
     subgraph "Development Mode"
         ElectronDev["electron:dev<br/>(scripts/electron-dev.ts)"]
         WatchChanges["File Watcher<br/>(Auto-rebuild)"]
         HMR["Hot Module Replacement<br/>(Vite HMR)"]
     end
-    
+
     subgraph "Quality Checks"
         TypeCheck["typecheck<br/>(tsc --noEmit)"]
         Lint["lint<br/>(eslint)"]
         Test["test<br/>(bun test)"]
     end
-    
+
     subgraph "Running Application"
         ElectronProcess["Electron Process<br/>(apps/electron)"]
         MainProcess["Main Process<br/>(Node.js backend)"]
         RendererProcess["Renderer Process<br/>(React UI)"]
-        
+
         ElectronProcess --> MainProcess
         ElectronProcess --> RendererProcess
     end
-    
+
     Dev --> BuildMain
     Dev --> BuildPreload
     Dev --> BuildRenderer
     BuildMain --> ElectronDev
     BuildPreload --> ElectronDev
     BuildRenderer --> ElectronDev
-    
+
     ElectronDev --> WatchChanges
     WatchChanges --> HMR
     HMR --> RendererProcess
-    
+
     ElectronDev --> ElectronProcess
-    
+
     Dev --> TypeCheck
     Dev --> Lint
     Dev --> Test
@@ -146,44 +144,44 @@ The root `package.json` defines npm scripts for all common development tasks. Al
 
 ### Development Commands
 
-| Command | Purpose | Details |
-|---------|---------|---------|
-| `bun run electron:dev` | Start development mode | Builds and launches Electron with file watching |
-| `bun run electron:dev:terminal` | Development mode (terminal) | Runs dev mode with output in current terminal |
-| `bun run electron:dev:logs` | View application logs | Opens tail of main.log in new terminal |
-| `bun run viewer:dev` | Start web viewer dev server | Launches Vite dev server on port 5174 |
-| `bun run marketing:dev` | Start marketing site dev server | Launches marketing site with Vite |
+| Command                         | Purpose                         | Details                                         |
+| ------------------------------- | ------------------------------- | ----------------------------------------------- |
+| `bun run electron:dev`          | Start development mode          | Builds and launches Electron with file watching |
+| `bun run electron:dev:terminal` | Development mode (terminal)     | Runs dev mode with output in current terminal   |
+| `bun run electron:dev:logs`     | View application logs           | Opens tail of main.log in new terminal          |
+| `bun run viewer:dev`            | Start web viewer dev server     | Launches Vite dev server on port 5174           |
+| `bun run marketing:dev`         | Start marketing site dev server | Launches marketing site with Vite               |
 
 ### Build Commands
 
-| Command | Purpose | Output Location |
-|---------|---------|-----------------|
-| `bun run electron:build` | Build all Electron components | `apps/electron/out/` |
-| `bun run electron:build:main` | Build main process only | `apps/electron/out/main/` |
-| `bun run electron:build:preload` | Build preload script only | `apps/electron/out/preload/` |
-| `bun run electron:build:renderer` | Build renderer process only | `apps/electron/out/renderer/` |
-| `bun run electron:build:resources` | Copy static resources | `apps/electron/out/resources/` |
-| `bun run electron:build:assets` | Copy asset files | `apps/electron/out/assets/` |
+| Command                            | Purpose                       | Output Location                |
+| ---------------------------------- | ----------------------------- | ------------------------------ |
+| `bun run electron:build`           | Build all Electron components | `apps/electron/out/`           |
+| `bun run electron:build:main`      | Build main process only       | `apps/electron/out/main/`      |
+| `bun run electron:build:preload`   | Build preload script only     | `apps/electron/out/preload/`   |
+| `bun run electron:build:renderer`  | Build renderer process only   | `apps/electron/out/renderer/`  |
+| `bun run electron:build:resources` | Copy static resources         | `apps/electron/out/resources/` |
+| `bun run electron:build:assets`    | Copy asset files              | `apps/electron/out/assets/`    |
 
 ### Distribution Commands
 
-| Command | Purpose | Output |
-|---------|---------|--------|
-| `bun run electron:dist` | Build distributable for current platform | `dist/` directory |
-| `bun run electron:dist:mac` | Build for macOS (ARM64 + x64) | `.dmg` and `.zip` files |
-| `bun run electron:dist:win` | Build for Windows | `.exe` installer |
-| `bun run electron:dist:linux` | Build for Linux | `.AppImage`, `.deb`, `.rpm` |
+| Command                       | Purpose                                  | Output                      |
+| ----------------------------- | ---------------------------------------- | --------------------------- |
+| `bun run electron:dist`       | Build distributable for current platform | `dist/` directory           |
+| `bun run electron:dist:mac`   | Build for macOS (ARM64 + x64)            | `.dmg` and `.zip` files     |
+| `bun run electron:dist:win`   | Build for Windows                        | `.exe` installer            |
+| `bun run electron:dist:linux` | Build for Linux                          | `.AppImage`, `.deb`, `.rpm` |
 
 ### Quality Assurance Commands
 
-| Command | Purpose | Scope |
-|---------|---------|-------|
-| `bun test` | Run all tests | All packages with test files |
-| `bun run typecheck` | Type check shared package | `packages/shared` only |
-| `bun run typecheck:all` | Type check all packages | `packages/core` and `packages/shared` |
-| `bun run lint` | Run linters | `apps/electron` and `packages/shared` |
-| `bun run lint:electron` | Lint Electron app only | `apps/electron` |
-| `bun run lint:shared` | Lint shared package only | `packages/shared` |
+| Command                 | Purpose                   | Scope                                 |
+| ----------------------- | ------------------------- | ------------------------------------- |
+| `bun test`              | Run all tests             | All packages with test files          |
+| `bun run typecheck`     | Type check shared package | `packages/shared` only                |
+| `bun run typecheck:all` | Type check all packages   | `packages/core` and `packages/shared` |
+| `bun run lint`          | Run linters               | `apps/electron` and `packages/shared` |
+| `bun run lint:electron` | Lint Electron app only    | `apps/electron`                       |
+| `bun run lint:shared`   | Lint shared package only  | `packages/shared`                     |
 
 **Sources:** [package.json:12-51]()
 
@@ -192,17 +190,20 @@ The root `package.json` defines npm scripts for all common development tasks. Al
 ### Quick Start
 
 1. **Install Bun runtime**
+
    ```bash
    curl -fsSL https://bun.sh/install | bash
    ```
 
 2. **Clone repository**
+
    ```bash
    git clone https://github.com/lukilabs/craft-agents-oss.git
    cd craft-agents-oss
    ```
 
 3. **Install dependencies**
+
    ```bash
    bun install
    ```
@@ -226,40 +227,40 @@ graph LR
         RendererSrc["apps/electron/src/renderer/<br/>(React UI)"]
         PackagesSrc["packages/*<br/>(Shared libraries)"]
     end
-    
+
     subgraph "Build Tools"
         ESBuildMain["esbuild<br/>(scripts/electron-build-main.ts)"]
         ESBuildPreload["esbuild<br/>(scripts/electron-build-preload.ts)"]
         ViteRenderer["vite<br/>(scripts/electron-build-renderer.ts)"]
     end
-    
+
     subgraph "Build Output"
         MainOut["apps/electron/out/main/index.js"]
         PreloadOut["apps/electron/out/preload/preload.js"]
         RendererOut["apps/electron/out/renderer/index.html"]
         ResourcesOut["apps/electron/out/resources/*"]
     end
-    
+
     subgraph "Packager"
         ElectronBuilder["electron-builder<br/>(electron-builder.yml)"]
         DistOut["dist/<br/>(Platform installers)"]
     end
-    
+
     MainSrc --> ESBuildMain
     PreloadSrc --> ESBuildPreload
     RendererSrc --> ViteRenderer
     PackagesSrc --> ESBuildMain
     PackagesSrc --> ViteRenderer
-    
+
     ESBuildMain --> MainOut
     ESBuildPreload --> PreloadOut
     ViteRenderer --> RendererOut
-    
+
     MainOut --> ElectronBuilder
     PreloadOut --> ElectronBuilder
     RendererOut --> ElectronBuilder
     ResourcesOut --> ElectronBuilder
-    
+
     ElectronBuilder --> DistOut
 ```
 
@@ -280,19 +281,19 @@ The monorepo contains six packages under `packages/`:
 
 ### Core Packages
 
-| Package | Path | Purpose | Key Exports |
-|---------|------|---------|-------------|
-| `@craft-agent/core` | `packages/core` | Type definitions and utilities | Base types, utility functions |
-| `@craft-agent/shared` | `packages/shared` | Business logic layer | SessionManager, ConfigManager, AgentSystem |
-| `@craft-agent/ui` | `packages/ui` | React components | Reusable UI components, theming |
+| Package               | Path              | Purpose                        | Key Exports                                |
+| --------------------- | ----------------- | ------------------------------ | ------------------------------------------ |
+| `@craft-agent/core`   | `packages/core`   | Type definitions and utilities | Base types, utility functions              |
+| `@craft-agent/shared` | `packages/shared` | Business logic layer           | SessionManager, ConfigManager, AgentSystem |
+| `@craft-agent/ui`     | `packages/ui`     | React components               | Reusable UI components, theming            |
 
 ### Supporting Packages
 
-| Package | Path | Purpose |
-|---------|------|---------|
-| `@craft-agent/mermaid` | `packages/mermaid` | Mermaid diagram renderer |
-| `@craft-agent/session-tools-core` | `packages/session-tools-core` | Session-scoped tool handlers |
-| `@craft-agent/codex-types` | `packages/codex-types` | Codex backend type definitions |
+| Package                           | Path                          | Purpose                        |
+| --------------------------------- | ----------------------------- | ------------------------------ |
+| `@craft-agent/mermaid`            | `packages/mermaid`            | Mermaid diagram renderer       |
+| `@craft-agent/session-tools-core` | `packages/session-tools-core` | Session-scoped tool handlers   |
+| `@craft-agent/codex-types`        | `packages/codex-types`        | Codex backend type definitions |
 
 ### Dependency Graph
 
@@ -304,20 +305,20 @@ graph TB
     Mermaid["@craft-agent/mermaid"]
     SessionTools["@craft-agent/session-tools-core"]
     CodexTypes["@craft-agent/codex-types"]
-    
+
     Electron["apps/electron"]
     Viewer["apps/viewer"]
-    
+
     Shared --> Core
     Shared --> SessionTools
     Shared --> CodexTypes
     UI --> Core
     UI --> Mermaid
-    
+
     Electron --> Shared
     Electron --> UI
     Electron --> Core
-    
+
     Viewer --> UI
     Viewer --> Core
 ```
@@ -374,22 +375,22 @@ For testing best practices and coverage requirements, see [Code Quality & Type C
 
 ### Development Utilities
 
-| Script | Purpose | Usage |
-|--------|---------|-------|
-| `fresh-start` | Reset all configuration and credentials | For testing onboarding flow |
-| `fresh-start:token` | Reset OAuth tokens only | For testing token refresh |
-| `print:system-prompt` | Display current system prompt | For prompt development |
-| `electron:clean` | Clean build artifacts | Removes `apps/electron/out/` |
-| `sync-secrets` | Sync secrets from 1Password | Requires 1Password CLI |
+| Script                | Purpose                                 | Usage                        |
+| --------------------- | --------------------------------------- | ---------------------------- |
+| `fresh-start`         | Reset all configuration and credentials | For testing onboarding flow  |
+| `fresh-start:token`   | Reset OAuth tokens only                 | For testing token refresh    |
+| `print:system-prompt` | Display current system prompt           | For prompt development       |
+| `electron:clean`      | Clean build artifacts                   | Removes `apps/electron/out/` |
+| `sync-secrets`        | Sync secrets from 1Password             | Requires 1Password CLI       |
 
 ### Advanced Development
 
-| Script | Purpose | Notes |
-|--------|---------|-------|
-| `electron:dev:menu` | Launch dev mode via shell menu | Uses `scripts/electron-dev.sh` |
-| `electron:dev:logs` | Auto-tail application logs | Opens new terminal with log tail |
-| `check-version` | Validate version consistency | Ensures package.json versions match |
-| `oss:sync` | Sync to OSS repository | Used by maintainers only |
+| Script              | Purpose                        | Notes                               |
+| ------------------- | ------------------------------ | ----------------------------------- |
+| `electron:dev:menu` | Launch dev mode via shell menu | Uses `scripts/electron-dev.sh`      |
+| `electron:dev:logs` | Auto-tail application logs     | Opens new terminal with log tail    |
+| `check-version`     | Validate version consistency   | Ensures package.json versions match |
+| `oss:sync`          | Sync to OSS repository         | Used by maintainers only            |
 
 **Sources:** [package.json:32-50]()
 

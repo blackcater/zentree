@@ -31,8 +31,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the `@ai-sdk/react` package: the `useChat` hook, the `Chat` class it wraps, all configuration options, returned helpers, the tool approval flow, stream resumption, and the throttle mechanism.
 
 For the underlying framework-agnostic `AbstractChat` class and the `ChatTransport` interface that all UI integrations share, see [Framework-Agnostic Chat Architecture](#4.1). For Vue and Svelte equivalents, see [Vue and Svelte Integrations](#4.3). For the React Server Components package (`@ai-sdk/rsc`), see [React Server Components](#4.5).
@@ -43,13 +41,13 @@ For the underlying framework-agnostic `AbstractChat` class and the `ChatTranspor
 
 `@ai-sdk/react` is located at `packages/react/` and published as `@ai-sdk/react`. It wraps the shared `AbstractChat` class from the `ai` package with React-idiomatic subscription via `useSyncExternalStore`.
 
-| Property | Value |
-|---|---|
-| Package name | `@ai-sdk/react` |
-| Current version | `3.0.x` |
-| Peer dependency | `react` `^18 \|\| ~19.0.1 \|\| ~19.1.2 \|\| ^19.2.1` |
+| Property           | Value                                                  |
+| ------------------ | ------------------------------------------------------ |
+| Package name       | `@ai-sdk/react`                                        |
+| Current version    | `3.0.x`                                                |
+| Peer dependency    | `react` `^18 \|\| ~19.0.1 \|\| ~19.1.2 \|\| ^19.2.1`   |
 | Runtime dependency | `ai` (workspace), `swr` `^2.2.5`, `throttleit` `2.1.0` |
-| Node requirement | `>=18` |
+| Node requirement   | `>=18`                                                 |
 
 Sources: [packages/react/package.json:1-84]()
 
@@ -144,26 +142,26 @@ function useChat<UI_MESSAGE extends UIMessage = UIMessage>(
 
 The `extras` that only exist on `UseChatOptions` (not on `ChatInit`):
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `experimental_throttle` | `number` | `undefined` | Milliseconds to throttle message/data re-renders. `undefined` disables throttling. |
-| `resume` | `boolean` | `false` | If `true`, calls `resumeStream()` on mount to reconnect to an active server-side stream. |
+| Option                  | Type      | Default     | Description                                                                              |
+| ----------------------- | --------- | ----------- | ---------------------------------------------------------------------------------------- |
+| `experimental_throttle` | `number`  | `undefined` | Milliseconds to throttle message/data re-renders. `undefined` disables throttling.       |
+| `resume`                | `boolean` | `false`     | If `true`, calls `resumeStream()` on mount to reconnect to an active server-side stream. |
 
 All other options come directly from `ChatInit<UI_MESSAGE>`:
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `id` | `string` | auto-generated | Chat session identifier. Changing this recreates the `Chat` instance. |
-| `messages` | `UI_MESSAGE[]` | `[]` | Initial messages to populate the chat. |
-| `transport` | `ChatTransport` | `DefaultChatTransport` at `/api/chat` | Transport layer used for sending messages and receiving streams. |
-| `generateId` | `() => string` | built-in | ID generator for new messages. |
-| `messageMetadataSchema` | `FlexibleSchema` | none | Schema used to validate `metadata` on incoming assistant messages. |
-| `dataPartSchemas` | `UIDataTypesToSchemas<...>` | none | Schemas for typed data parts arriving in the stream. |
-| `onToolCall` | `(options: { toolCall }) => void \| Promise<void>` | none | Called when a tool call is received in an assistant message. |
-| `onFinish` | `(options) => void \| Promise<void>` | none | Called when a generation stream completes. |
-| `onData` | `(data: JSONValue[]) => void` | none | Called when data parts arrive. |
-| `onError` | `(error: Error) => void` | none | Called when a transport or stream error occurs. |
-| `sendAutomaticallyWhen` | `(options) => boolean \| Promise<boolean>` | none | If provided, the chat submits automatically when the condition is met (e.g., after a tool result is added). |
+| Option                  | Type                                               | Default                               | Description                                                                                                 |
+| ----------------------- | -------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `id`                    | `string`                                           | auto-generated                        | Chat session identifier. Changing this recreates the `Chat` instance.                                       |
+| `messages`              | `UI_MESSAGE[]`                                     | `[]`                                  | Initial messages to populate the chat.                                                                      |
+| `transport`             | `ChatTransport`                                    | `DefaultChatTransport` at `/api/chat` | Transport layer used for sending messages and receiving streams.                                            |
+| `generateId`            | `() => string`                                     | built-in                              | ID generator for new messages.                                                                              |
+| `messageMetadataSchema` | `FlexibleSchema`                                   | none                                  | Schema used to validate `metadata` on incoming assistant messages.                                          |
+| `dataPartSchemas`       | `UIDataTypesToSchemas<...>`                        | none                                  | Schemas for typed data parts arriving in the stream.                                                        |
+| `onToolCall`            | `(options: { toolCall }) => void \| Promise<void>` | none                                  | Called when a tool call is received in an assistant message.                                                |
+| `onFinish`              | `(options) => void \| Promise<void>`               | none                                  | Called when a generation stream completes.                                                                  |
+| `onData`                | `(data: JSONValue[]) => void`                      | none                                  | Called when data parts arrive.                                                                              |
+| `onError`               | `(error: Error) => void`                           | none                                  | Called when a transport or stream error occurs.                                                             |
+| `sendAutomaticallyWhen` | `(options) => boolean \| Promise<boolean>`         | none                                  | If provided, the chat submits automatically when the condition is met (e.g., after a tool result is added). |
 
 Sources: [packages/react/src/use-chat.ts:42-56](), [packages/ai/src/ui/chat.ts:86-250](), [content/docs/07-reference/02-ai-sdk-ui/01-use-chat.mdx:44-300]()
 
@@ -175,18 +173,18 @@ The `transport` option accepts any object implementing `ChatTransport`. Three bu
 
 **`DefaultChatTransport`** — sends `UIMessage` chunks over HTTP POST using the structured chunk protocol.
 
-| Option | Type | Description |
-|---|---|---|
-| `api` | `string` | Endpoint URL. Default: `/api/chat`. |
-| `credentials` | `RequestCredentials` | Fetch credentials mode. |
-| `headers` | `Record<string,string> \| Headers \| (() => ...)` | Static or dynamic headers for every request. |
-| `body` | `object` | Extra JSON properties merged into every request body. |
-| `fetch` | `typeof fetch` | Custom fetch function. |
-| `onResponse` | `(response: Response) => void` | Called before stream consumption begins. |
-| `prepareRequestBody` | `(options) => BodyInit` | Override the full request body serialization. |
-| `prepareRequestHeaders` | `(options) => Headers` | Override headers per-request. |
-| `prepareReconnectToStreamRequest` | `(options) => Request \| null` | Called when `resume: true` reconnects; return `null` to skip. |
-| `reconnectLastStreamedMessageId` | `string` | Pass the last streamed message ID for reconnection. |
+| Option                            | Type                                              | Description                                                   |
+| --------------------------------- | ------------------------------------------------- | ------------------------------------------------------------- |
+| `api`                             | `string`                                          | Endpoint URL. Default: `/api/chat`.                           |
+| `credentials`                     | `RequestCredentials`                              | Fetch credentials mode.                                       |
+| `headers`                         | `Record<string,string> \| Headers \| (() => ...)` | Static or dynamic headers for every request.                  |
+| `body`                            | `object`                                          | Extra JSON properties merged into every request body.         |
+| `fetch`                           | `typeof fetch`                                    | Custom fetch function.                                        |
+| `onResponse`                      | `(response: Response) => void`                    | Called before stream consumption begins.                      |
+| `prepareRequestBody`              | `(options) => BodyInit`                           | Override the full request body serialization.                 |
+| `prepareRequestHeaders`           | `(options) => Headers`                            | Override headers per-request.                                 |
+| `prepareReconnectToStreamRequest` | `(options) => Request \| null`                    | Called when `resume: true` reconnects; return `null` to skip. |
+| `reconnectLastStreamedMessageId`  | `string`                                          | Pass the last streamed message ID for reconnection.           |
 
 **`TextStreamChatTransport`** — same options as `DefaultChatTransport` but consumes a plain text stream instead of JSON-encoded chunks.
 
@@ -200,20 +198,20 @@ Sources: [content/docs/07-reference/02-ai-sdk-ui/01-use-chat.mdx:60-200](), [pac
 
 `useChat` returns `UseChatHelpers<UI_MESSAGE>`, which is a mix of read-only reactive state and action methods.
 
-| Property / Method | Type | Description |
-|---|---|---|
-| `id` | `string` | The chat's unique identifier. |
-| `messages` | `UI_MESSAGE[]` | Current message array. Updates reactively via `useSyncExternalStore`. |
-| `status` | `ChatStatus` | Current chat lifecycle status (see below). |
-| `error` | `Error \| undefined` | Last transport or stream error. |
-| `sendMessage` | `(message: CreateUIMessage<UI_MESSAGE>, options?: ChatRequestOptions) => void` | Appends a user message and triggers a generation request. |
-| `regenerate` | `(options?: ChatRequestOptions) => void` | Removes the last assistant message and re-submits. |
-| `stop` | `() => void` | Aborts the active stream. |
-| `resumeStream` | `() => void` | Attempts to reconnect to an active server-side stream. |
-| `setMessages` | `(msgs: UI_MESSAGE[] \| ((msgs: UI_MESSAGE[]) => UI_MESSAGE[])) => void` | Directly replaces the local message array. |
-| `addToolOutput` | `({ toolCallId, output }) => void` | Supplies a tool result to the chat (formerly `addToolResult`). |
-| `addToolApprovalResponse` | `({ id, approved, reason? }) => void` | Approves or denies a pending tool call. |
-| `clearError` | `() => void` | Clears the current error state. |
+| Property / Method         | Type                                                                           | Description                                                           |
+| ------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| `id`                      | `string`                                                                       | The chat's unique identifier.                                         |
+| `messages`                | `UI_MESSAGE[]`                                                                 | Current message array. Updates reactively via `useSyncExternalStore`. |
+| `status`                  | `ChatStatus`                                                                   | Current chat lifecycle status (see below).                            |
+| `error`                   | `Error \| undefined`                                                           | Last transport or stream error.                                       |
+| `sendMessage`             | `(message: CreateUIMessage<UI_MESSAGE>, options?: ChatRequestOptions) => void` | Appends a user message and triggers a generation request.             |
+| `regenerate`              | `(options?: ChatRequestOptions) => void`                                       | Removes the last assistant message and re-submits.                    |
+| `stop`                    | `() => void`                                                                   | Aborts the active stream.                                             |
+| `resumeStream`            | `() => void`                                                                   | Attempts to reconnect to an active server-side stream.                |
+| `setMessages`             | `(msgs: UI_MESSAGE[] \| ((msgs: UI_MESSAGE[]) => UI_MESSAGE[])) => void`       | Directly replaces the local message array.                            |
+| `addToolOutput`           | `({ toolCallId, output }) => void`                                             | Supplies a tool result to the chat (formerly `addToolResult`).        |
+| `addToolApprovalResponse` | `({ id, approved, reason? }) => void`                                          | Approves or denies a pending tool call.                               |
+| `clearError`              | `() => void`                                                                   | Clears the current error state.                                       |
 
 Sources: [packages/react/src/use-chat.ts:12-41](), [packages/ai/src/ui/chat.ts:86-170]()
 
@@ -236,12 +234,12 @@ stateDiagram-v2
   error --> ready: "clearError()"
 ```
 
-| Status | Description |
-|---|---|
-| `ready` | No active request; the UI is idle. |
+| Status      | Description                                        |
+| ----------- | -------------------------------------------------- |
+| `ready`     | No active request; the UI is idle.                 |
 | `submitted` | Request has been sent; waiting for the first byte. |
-| `streaming` | Actively receiving and processing stream chunks. |
-| `error` | An error occurred; `error` property is populated. |
+| `streaming` | Actively receiving and processing stream chunks.   |
+| `error`     | An error occurred; `error` property is populated.  |
 
 Sources: [packages/ai/src/ui/chat.ts:86-90]()
 
@@ -322,10 +320,10 @@ Sources: [packages/react/src/use-chat.ts:111-117](), [packages/react/package.jso
 // packages/react/src/use-chat.ts:88-96
 const optionsWithCallbacks = {
   ...options,
-  onToolCall: arg => callbacksRef.current.onToolCall?.(arg),
-  onFinish: arg => callbacksRef.current.onFinish?.(arg),
+  onToolCall: (arg) => callbacksRef.current.onToolCall?.(arg),
+  onFinish: (arg) => callbacksRef.current.onFinish?.(arg),
   // ...
-};
+}
 ```
 
 This means the `Chat` object only needs to be created once (or when `id` changes), while callbacks always see the latest props. A regression test for this was added in `@ai-sdk/react@3.0.24`.
@@ -343,11 +341,11 @@ Sources: [packages/react/src/use-chat.ts:63-109](), [packages/react/CHANGELOG.md
 const chatInstance = new Chat({
   id: 'session-123',
   transport: new DefaultChatTransport({ api: '/api/chat' }),
-});
+})
 
 // Share across components
 function MyComponent() {
-  const { messages, sendMessage } = useChat({ chat: chatInstance });
+  const { messages, sendMessage } = useChat({ chat: chatInstance })
 }
 ```
 
@@ -361,12 +359,12 @@ Sources: [packages/react/src/use-chat.ts:98-117](), [packages/ai/src/ui/chat.ts:
 
 `useChat` is generic over `UI_MESSAGE extends UIMessage`. The default `UIMessage` interface (from `packages/ai/src/ui/ui-messages.ts`) is:
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | `string` | Unique message ID. |
-| `role` | `'system' \| 'user' \| 'assistant'` | Message role. |
-| `parts` | `UIMessagePart[]` | Typed content parts (text, tool, reasoning, file, data, source). |
-| `metadata` | `METADATA` | Optional typed metadata, validated by `messageMetadataSchema`. |
+| Field      | Type                                | Description                                                      |
+| ---------- | ----------------------------------- | ---------------------------------------------------------------- |
+| `id`       | `string`                            | Unique message ID.                                               |
+| `role`     | `'system' \| 'user' \| 'assistant'` | Message role.                                                    |
+| `parts`    | `UIMessagePart[]`                   | Typed content parts (text, tool, reasoning, file, data, source). |
+| `metadata` | `METADATA`                          | Optional typed metadata, validated by `messageMetadataSchema`.   |
 
 `CreateUIMessage<UI_MESSAGE>` is `UIMessage` with `id` and `role` made optional — this is the type accepted by `sendMessage`.
 

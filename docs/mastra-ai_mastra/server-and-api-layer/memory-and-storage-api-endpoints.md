@@ -12,7 +12,7 @@ The following files were used as context for generating this wiki page:
 - [client-sdks/client-js/src/resources/index.ts](client-sdks/client-js/src/resources/index.ts)
 - [client-sdks/client-js/src/types.ts](client-sdks/client-js/src/types.ts)
 - [e2e-tests/create-mastra/create-mastra.test.ts](e2e-tests/create-mastra/create-mastra.test.ts)
-- [packages/core/src/agent/__tests__/dynamic-model-fallback.test.ts](packages/core/src/agent/__tests__/dynamic-model-fallback.test.ts)
+- [packages/core/src/agent/**tests**/dynamic-model-fallback.test.ts](packages/core/src/agent/__tests__/dynamic-model-fallback.test.ts)
 - [packages/core/src/memory/mock.ts](packages/core/src/memory/mock.ts)
 - [packages/core/src/storage/mock.test.ts](packages/core/src/storage/mock.test.ts)
 - [packages/core/src/stream/aisdk/v5/transform.test.ts](packages/core/src/stream/aisdk/v5/transform.test.ts)
@@ -30,8 +30,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the REST API endpoints for memory and storage operations exposed by the Mastra server. These endpoints provide access to thread management, message storage, memory configuration, and observational memory features.
 
 **Scope**: This page covers the HTTP API layer for memory and storage operations. For the underlying memory system architecture, see [Memory System Architecture](#7.1). For storage domain implementation details, see [Storage Domain Architecture](#7.3). For server setup and middleware configuration, see [Server Architecture and Setup](#9.1).
@@ -40,14 +38,14 @@ This document describes the REST API endpoints for memory and storage operations
 
 The memory and storage API endpoints are organized into several functional groups:
 
-| Endpoint Group | Base Path | Purpose | Handler Route |
-|----------------|-----------|---------|---------------|
-| Thread Management | `/memory/threads` | Create, list, update, delete conversation threads | `LIST_THREADS_ROUTE`, `CREATE_THREAD_ROUTE`, `UPDATE_THREAD_ROUTE`, `DELETE_THREAD_ROUTE` |
-| Message Operations | `/memory/threads/{threadId}/messages` | Store and retrieve messages within threads | `LIST_MESSAGES_ROUTE`, `SAVE_MESSAGES_ROUTE`, `DELETE_MESSAGES_ROUTE` |
-| Memory Configuration | `/memory/config` | Query memory system settings | `GET_MEMORY_CONFIG_ROUTE` |
-| Memory Status | `/memory/status` | Monitor memory system state | `GET_MEMORY_STATUS_ROUTE` |
-| Observational Memory | `/memory/observational-memory` | Access compressed long-term observations | `GET_OBSERVATIONAL_MEMORY_ROUTE`, `AWAIT_BUFFER_STATUS_ROUTE` |
-| Working Memory | `/memory/threads/{threadId}/working-memory` | Manage structured persistent data | `GET_WORKING_MEMORY_ROUTE`, `UPDATE_WORKING_MEMORY_ROUTE` |
+| Endpoint Group       | Base Path                                   | Purpose                                           | Handler Route                                                                             |
+| -------------------- | ------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Thread Management    | `/memory/threads`                           | Create, list, update, delete conversation threads | `LIST_THREADS_ROUTE`, `CREATE_THREAD_ROUTE`, `UPDATE_THREAD_ROUTE`, `DELETE_THREAD_ROUTE` |
+| Message Operations   | `/memory/threads/{threadId}/messages`       | Store and retrieve messages within threads        | `LIST_MESSAGES_ROUTE`, `SAVE_MESSAGES_ROUTE`, `DELETE_MESSAGES_ROUTE`                     |
+| Memory Configuration | `/memory/config`                            | Query memory system settings                      | `GET_MEMORY_CONFIG_ROUTE`                                                                 |
+| Memory Status        | `/memory/status`                            | Monitor memory system state                       | `GET_MEMORY_STATUS_ROUTE`                                                                 |
+| Observational Memory | `/memory/observational-memory`              | Access compressed long-term observations          | `GET_OBSERVATIONAL_MEMORY_ROUTE`, `AWAIT_BUFFER_STATUS_ROUTE`                             |
+| Working Memory       | `/memory/threads/{threadId}/working-memory` | Manage structured persistent data                 | `GET_WORKING_MEMORY_ROUTE`, `UPDATE_WORKING_MEMORY_ROUTE`                                 |
 
 **Authentication**: All memory endpoints require authentication by default. The `requiresAuth: true` flag is set on route definitions. See [Authentication and Authorization](#9.6) for details on auth middleware configuration.
 
@@ -63,7 +61,7 @@ graph TB
         MastraClient["MastraClient<br/>client-js/src/client.ts"]
         MemoryThread["MemoryThread<br/>client-js/src/resources/memory-thread.ts"]
     end
-    
+
     subgraph APILayer["API Endpoints Layer"]
         ListThreadsRoute["GET /memory/threads<br/>LIST_THREADS_ROUTE"]
         CreateThreadRoute["POST /memory/threads<br/>CREATE_THREAD_ROUTE"]
@@ -74,54 +72,54 @@ graph TB
         GetOMRoute["GET /memory/observational-memory<br/>GET_OBSERVATIONAL_MEMORY_ROUTE"]
         GetWorkingMemRoute["GET /memory/threads/:threadId/working-memory<br/>GET_WORKING_MEMORY_ROUTE"]
     end
-    
+
     subgraph HandlerLayer["Handler Layer"]
         GetMemFromContext["getMemoryFromContext()<br/>memory.ts:89"]
         GetAgentFromContext["getAgentFromContext()<br/>memory.ts:156"]
         GetStorageFromContext["getStorageFromContext()<br/>memory.ts:149"]
         ValidateThreadOwnership["validateThreadOwnership()<br/>utils.ts:88"]
     end
-    
+
     subgraph MemoryLayer["Memory System"]
         MastraMemory["MastraMemory<br/>core/memory/memory.ts"]
         MemoryStorage["MemoryStorage<br/>core/storage/domains/memory.ts"]
         StorageThreadType["StorageThreadType<br/>threads table"]
         MastraDBMessage["MastraDBMessage<br/>messages table"]
     end
-    
+
     subgraph StorageLayer["Storage Layer"]
         CompositeStore["MastraCompositeStore<br/>core/storage/composite.ts"]
         InMemoryStore["InMemoryStore<br/>core/storage/mock.ts"]
         PgStore["PostgresStore<br/>@mastra/pg"]
     end
-    
+
     MastraClient -->|"listMemoryThreads()"| ListThreadsRoute
     MastraClient -->|"createMemoryThread()"| CreateThreadRoute
     MastraClient -->|"getMemoryThread(threadId)"| MemoryThread
     MastraClient -->|"getMemoryConfig()"| GetConfigRoute
     MastraClient -->|"getMemoryStatus()"| GetStatusRoute
-    
+
     MemoryThread -->|"details()"| GetThreadRoute
     MemoryThread -->|"messages()"| ListMessagesRoute
     MemoryThread -->|"getWorkingMemory()"| GetWorkingMemRoute
-    
+
     ListThreadsRoute --> GetMemFromContext
     CreateThreadRoute --> GetMemFromContext
     GetConfigRoute --> GetMemFromContext
     GetStatusRoute --> GetMemFromContext
     GetOMRoute --> GetAgentFromContext
-    
+
     GetMemFromContext -->|"agentId provided"| MastraMemory
     GetMemFromContext -->|"no agentId"| GetStorageFromContext
     GetStorageFromContext --> CompositeStore
-    
+
     GetThreadRoute --> ValidateThreadOwnership
     ValidateThreadOwnership --> MastraMemory
-    
+
     MastraMemory --> MemoryStorage
     MemoryStorage -->|"saveThread(), listThreads()"| StorageThreadType
     MemoryStorage -->|"saveMessages(), listMessages()"| MastraDBMessage
-    
+
     CompositeStore --> InMemoryStore
     CompositeStore --> PgStore
 ```
@@ -142,15 +140,15 @@ Lists memory threads with optional filtering by `resourceId`, `metadata`, and `a
 
 **Query Parameters**:
 
-| Parameter | Type | Required | Description | Schema |
-|-----------|------|----------|-------------|--------|
-| `resourceId` | string | No | Filter by resource identifier | `listThreadsQuerySchema` |
-| `metadata` | string (JSON) | No | Filter by metadata key-value pairs (AND logic) | Parsed from JSON string |
-| `agentId` | string | No | Agent identifier for memory resolution | |
-| `page` | number | No | Page number (0-indexed), default: 0 | |
-| `perPage` | number | No | Items per page, default: 100 | |
-| `orderBy` | object (JSON) | No | `{ field: 'createdAt' \| 'updatedAt', direction: 'ASC' \| 'DESC' }` | `storageOrderBySchema` |
-| `requestContext` | string (base64) | No | Base64-encoded request context | |
+| Parameter        | Type            | Required | Description                                                         | Schema                   |
+| ---------------- | --------------- | -------- | ------------------------------------------------------------------- | ------------------------ |
+| `resourceId`     | string          | No       | Filter by resource identifier                                       | `listThreadsQuerySchema` |
+| `metadata`       | string (JSON)   | No       | Filter by metadata key-value pairs (AND logic)                      | Parsed from JSON string  |
+| `agentId`        | string          | No       | Agent identifier for memory resolution                              |                          |
+| `page`           | number          | No       | Page number (0-indexed), default: 0                                 |                          |
+| `perPage`        | number          | No       | Items per page, default: 100                                        |                          |
+| `orderBy`        | object (JSON)   | No       | `{ field: 'createdAt' \| 'updatedAt', direction: 'ASC' \| 'DESC' }` | `storageOrderBySchema`   |
+| `requestContext` | string (base64) | No       | Base64-encoded request context                                      |                          |
 
 **Response**: `ListMemoryThreadsResponse` from [client-sdks/client-js/src/types.ts:336-340]()
 
@@ -223,6 +221,7 @@ Creates a new memory thread for the specified agent and resource.
 ```
 
 **Behavior**:
+
 - If `threadId` is not provided, generates a unique identifier
 - Associates thread with specified `resourceId` for multi-user scoping
 - Stores `metadata` for flexible filtering and categorization
@@ -238,10 +237,10 @@ Retrieves detailed information about a specific thread.
 
 **Query Parameters**:
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `agentId` | string | No | Agent identifier for memory resolution |
-| `requestContext` | string (base64) | No | Base64-encoded request context |
+| Parameter        | Type            | Required | Description                            |
+| ---------------- | --------------- | -------- | -------------------------------------- |
+| `agentId`        | string          | No       | Agent identifier for memory resolution |
+| `requestContext` | string (base64) | No       | Base64-encoded request context         |
 
 **Response**: `StorageThreadType`
 
@@ -276,18 +275,18 @@ Deletes a thread and all associated messages.
 
 **Query Parameters**:
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `agentId` | string | No | Agent identifier |
-| `networkId` | string | No | Network identifier (for network threads) |
-| `requestContext` | string (base64) | No | Base64-encoded request context |
+| Parameter        | Type            | Required | Description                              |
+| ---------------- | --------------- | -------- | ---------------------------------------- |
+| `agentId`        | string          | No       | Agent identifier                         |
+| `networkId`      | string          | No       | Network identifier (for network threads) |
+| `requestContext` | string (base64) | No       | Base64-encoded request context           |
 
-**Response**: 
+**Response**:
 
 ```typescript
 {
-  success: boolean;
-  message: string;
+  success: boolean
+  message: string
 }
 ```
 
@@ -329,6 +328,7 @@ Creates a copy of a thread with optional message filtering.
 ```
 
 **Use Cases**:
+
 - Create conversation branches
 - Copy conversations across resources
 - Extract specific message ranges for archival
@@ -347,13 +347,14 @@ Retrieves messages for a specific thread.
 
 **Query Parameters**:
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `agentId` | string | No | Agent identifier for memory resolution |
-| `networkId` | string | No | Network identifier (for network threads) |
-| `requestContext` | string (base64) | No | Base64-encoded request context |
+| Parameter        | Type            | Required | Description                              |
+| ---------------- | --------------- | -------- | ---------------------------------------- |
+| `agentId`        | string          | No       | Agent identifier for memory resolution   |
+| `networkId`      | string          | No       | Network identifier (for network threads) |
+| `requestContext` | string (base64) | No       | Base64-encoded request context           |
 
 **Additional Parameters** (via `StorageListMessagesInput`):
+
 - Pagination, filtering, and ordering options
 - See [Thread Management and Message Storage](#7.2) for details
 
@@ -366,6 +367,7 @@ Retrieves messages for a specific thread.
 ```
 
 **Routing Behavior**:
+
 - If `networkId` provided: routes to `/memory/network/threads/{threadId}/messages`
 - If `agentId` provided: routes to `/memory/threads/{threadId}/messages?agentId={agentId}`
 - Otherwise: uses storage directly at `/memory/threads/{threadId}/messages`
@@ -408,17 +410,17 @@ Deletes all messages in a thread without deleting the thread itself.
 
 **Query Parameters**:
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `agentId` | string | No | Agent identifier |
-| `requestContext` | string (base64) | No | Base64-encoded request context |
+| Parameter        | Type            | Required | Description                    |
+| ---------------- | --------------- | -------- | ------------------------------ |
+| `agentId`        | string          | No       | Agent identifier               |
+| `requestContext` | string (base64) | No       | Base64-encoded request context |
 
 **Response**:
 
 ```typescript
 {
-  success: boolean;
-  message: string;
+  success: boolean
+  message: string
 }
 ```
 
@@ -472,6 +474,7 @@ Performs semantic or keyword search across messages in a thread.
 ```
 
 **Search Behavior**:
+
 - If agent has `semanticRecall` configured, performs vector similarity search
 - Otherwise, falls back to keyword/text search
 - Context messages help understand conversation flow around matches
@@ -492,16 +495,16 @@ Retrieves the memory configuration for a specific agent, including observational
 
 **Query Parameters**:
 
-| Parameter | Type | Required | Description | Schema |
-|-----------|------|----------|-------------|--------|
-| `agentId` | string | Yes | Agent identifier | `getMemoryConfigQuerySchema` |
-| `requestContext` | string (base64) | No | Base64-encoded request context | |
+| Parameter        | Type            | Required | Description                    | Schema                       |
+| ---------------- | --------------- | -------- | ------------------------------ | ---------------------------- |
+| `agentId`        | string          | Yes      | Agent identifier               | `getMemoryConfigQuerySchema` |
+| `requestContext` | string (base64) | No       | Base64-encoded request context |                              |
 
 **Response**: `GetMemoryConfigResponse` from [client-sdks/client-js/src/types.ts:345-347]()
 
 ```typescript
 {
-  config: MemoryConfig | null;  // null if memory not configured
+  config: MemoryConfig | null // null if memory not configured
 }
 ```
 
@@ -512,7 +515,7 @@ Retrieves the memory configuration for a specific agent, including observational
   // Basic configuration
   lastMessages?: number | false;
   readOnly?: boolean;
-  
+
   // Semantic recall configuration
   semanticRecall?: boolean | {
     topK: number;
@@ -521,13 +524,13 @@ Retrieves the memory configuration for a specific agent, including observational
     threshold?: number;
     indexName?: string;
   };
-  
+
   // Title generation configuration
   generateTitle?: boolean | {
     model: string;
     instructions?: string;
   };
-  
+
   // Working memory configuration
   workingMemory?: {
     enabled: boolean;
@@ -535,7 +538,7 @@ Retrieves the memory configuration for a specific agent, including observational
     template?: string;
     schema?: any;
   };
-  
+
   // Observational memory configuration (populated by handler)
   observationalMemory?: {
     enabled: boolean;
@@ -575,12 +578,12 @@ Retrieves current memory system status including observational memory runtime st
 
 **Query Parameters**:
 
-| Parameter | Type | Required | Description | Schema |
-|-----------|------|----------|-------------|--------|
-| `agentId` | string | Yes | Agent identifier | `getMemoryStatusQuerySchema` |
-| `resourceId` | string | No | Resource identifier for OM lookup | |
-| `threadId` | string | No | Thread identifier for thread-scoped OM | |
-| `requestContext` | string (base64) | No | Base64-encoded request context | |
+| Parameter        | Type            | Required | Description                            | Schema                       |
+| ---------------- | --------------- | -------- | -------------------------------------- | ---------------------------- |
+| `agentId`        | string          | Yes      | Agent identifier                       | `getMemoryStatusQuerySchema` |
+| `resourceId`     | string          | No       | Resource identifier for OM lookup      |                              |
+| `threadId`       | string          | No       | Thread identifier for thread-scoped OM |                              |
+| `requestContext` | string (base64) | No       | Base64-encoded request context         |                              |
 
 **Response**: `GetMemoryStatusResponse` from [packages/server/src/server/schemas/memory.ts:425-453]()
 
@@ -628,12 +631,12 @@ Retrieves observational memory data (compressed long-term observations and refle
 
 **Query Parameters**:
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `agentId` | string | Yes | Agent identifier |
-| `resourceId` | string | No | Resource identifier (for resource-scoped OM) |
-| `threadId` | string | No | Thread identifier (for thread-scoped OM) |
-| `requestContext` | string (base64) | No | Base64-encoded request context |
+| Parameter        | Type            | Required | Description                                  |
+| ---------------- | --------------- | -------- | -------------------------------------------- |
+| `agentId`        | string          | Yes      | Agent identifier                             |
+| `resourceId`     | string          | No       | Resource identifier (for resource-scoped OM) |
+| `threadId`       | string          | No       | Thread identifier (for thread-scoped OM)     |
+| `requestContext` | string (base64) | No       | Base64-encoded request context               |
 
 **Response**: `GetObservationalMemoryResponse`
 
@@ -693,8 +696,8 @@ Blocks until any in-flight observational memory buffering completes, then return
 
 ```typescript
 {
-  record: ObservationalMemoryRecord | null;
-  completed: boolean;
+  record: ObservationalMemoryRecord | null
+  completed: boolean
 }
 ```
 
@@ -734,6 +737,7 @@ Blocks until any in-flight observational memory buffering completes, then return
 **Use Case**: This endpoint is critical for ensuring observational memory is fully processed before operations that depend on up-to-date OM state. When `bufferTokens` and `bufferActivation` are configured, observations are pre-computed asynchronously at token intervals (e.g., 20% of budget). This endpoint ensures the buffer completes before proceeding.
 
 **Async Buffering Flow**:
+
 - At 20% token budget: Starts async observation generation (non-blocking)
 - At 100% token budget: Activates OM (compresses message window)
 - `awaitBufferCompletion()`: Blocks until any in-flight generation completes
@@ -752,21 +756,22 @@ Retrieves working memory state for a thread.
 
 **Query Parameters**:
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `agentId` | string | Yes | Agent identifier |
-| `requestContext` | string (base64) | No | Base64-encoded request context |
+| Parameter        | Type            | Required | Description                    |
+| ---------------- | --------------- | -------- | ------------------------------ |
+| `agentId`        | string          | Yes      | Agent identifier               |
+| `requestContext` | string (base64) | No       | Base64-encoded request context |
 
 **Response**:
 
 ```typescript
 {
-  workingMemory: Record<string, any>; // Structured data
-  scope: 'thread' | 'resource';
+  workingMemory: Record<string, any> // Structured data
+  scope: 'thread' | 'resource'
 }
 ```
 
 **Working Memory Format**:
+
 - Markdown format: Free-form text organized by sections
 - JSON Schema format: Validated structured data conforming to agent's schema
 
@@ -791,6 +796,7 @@ Updates working memory state.
 **Response**: Updated working memory state
 
 **Update Behavior**:
+
 - Markdown format: Replaces entire content
 - JSON Schema format: Validates against schema before persistence
 - Scope inheritance: Uses agent's `workingMemory.scope` configuration (`thread` or `resource`)
@@ -807,46 +813,46 @@ graph TB
         ClientCall["Client API Call"]
         RequestContextObj["RequestContext<br/>userId, tenantId, etc."]
     end
-    
+
     subgraph "API Gateway"
         AuthMiddleware["Auth Middleware<br/>registerAuthMiddleware()"]
         ContextMiddleware["Context Middleware<br/>registerContextMiddleware()"]
     end
-    
+
     subgraph "Handler Layer"
         MemoryHandler["Memory Handler"]
         GetEffectiveResourceId["getEffectiveResourceId()<br/>Precedence: context > param"]
         ValidateOwnership["validateThreadOwnership()"]
     end
-    
+
     subgraph "Memory Resolution"
         AgentMemory["Agent.getMemory()<br/>requestContext"]
         MemoryInstance["Memory Instance"]
         ThreadResolver["Thread Resolver<br/>resourceId scoping"]
     end
-    
+
     subgraph "Storage Layer"
         StorageQuery["Storage Query<br/>WHERE resourceId = ?"]
         RowLevelSecurity["Optional RLS<br/>Database-level"]
     end
-    
+
     ClientCall -->|"passes"| RequestContextObj
     RequestContextObj -->|"serialized as query param"| AuthMiddleware
-    
+
     AuthMiddleware -->|"validates auth"| ContextMiddleware
     ContextMiddleware -->|"sets c.var('requestContext')"| MemoryHandler
-    
+
     MemoryHandler --> GetEffectiveResourceId
     GetEffectiveResourceId -->|"1. Check requestContext key"| MemoryHandler
     GetEffectiveResourceId -->|"2. Fallback to param"| MemoryHandler
-    
+
     MemoryHandler --> ValidateOwnership
     ValidateOwnership -->|"if context has key"| MemoryHandler
-    
+
     MemoryHandler --> AgentMemory
     AgentMemory -->|"resolves with context"| MemoryInstance
     MemoryInstance --> ThreadResolver
-    
+
     ThreadResolver -->|"scopes by resourceId"| StorageQuery
     StorageQuery --> RowLevelSecurity
 ```
@@ -868,7 +874,7 @@ const mastra = new Mastra({
   server: {
     requestContextKey: 'userId', // Use userId from context as resourceId
   },
-});
+})
 ```
 
 **Handler Implementation**: The `getEffectiveResourceId()` function in [packages/server/src/server/handlers/utils.ts:62-87]() implements the two-tier resolution:
@@ -876,18 +882,18 @@ const mastra = new Mastra({
 ```typescript
 export function getEffectiveResourceId(
   requestContext: RequestContext | undefined,
-  clientResourceId: string | undefined,
+  clientResourceId: string | undefined
 ): string | undefined {
   // 1. Check if requestContext has the reserved MASTRA_RESOURCE_ID_KEY
   if (requestContext) {
-    const contextResourceId = requestContext.get(MASTRA_RESOURCE_ID_KEY);
+    const contextResourceId = requestContext.get(MASTRA_RESOURCE_ID_KEY)
     if (contextResourceId) {
-      return contextResourceId;
+      return contextResourceId
     }
   }
-  
+
   // 2. Fallback to client-provided resourceId parameter
-  return clientResourceId;
+  return clientResourceId
 }
 ```
 
@@ -904,30 +910,32 @@ export async function validateThreadOwnership({
   thread,
   requestContext,
 }: {
-  thread: StorageThreadType | null;
-  requestContext?: RequestContext;
+  thread: StorageThreadType | null
+  requestContext?: RequestContext
 }): Promise<void> {
   if (!thread) {
-    throw new HTTPException(404, { message: 'Thread not found' });
+    throw new HTTPException(404, { message: 'Thread not found' })
   }
 
   // If requestContext has MASTRA_RESOURCE_ID_KEY set, validate ownership
-  const effectiveResourceId = requestContext?.get(MASTRA_RESOURCE_ID_KEY);
-  
+  const effectiveResourceId = requestContext?.get(MASTRA_RESOURCE_ID_KEY)
+
   if (effectiveResourceId && thread.resourceId !== effectiveResourceId) {
     throw new HTTPException(403, {
       message: 'Access denied: thread belongs to different resource',
-    });
+    })
   }
 }
 ```
 
 **Enforcement Points**: This validation is called by thread operations:
+
 - `UPDATE_THREAD_ROUTE` [packages/server/src/server/handlers/memory.ts:767-835]()
 - `DELETE_THREAD_ROUTE` [packages/server/src/server/handlers/memory.ts:837-884]()
 - `GET_THREAD_BY_ID_ROUTE` [packages/server/src/server/handlers/memory.ts:586-655]()
 
 **Security Model**: The validation ensures:
+
 1. Users cannot access threads belonging to other resources/tenants
 2. Even if a client knows a thread ID, they must own the resource to access it
 3. The check only applies if `MASTRA_RESOURCE_ID_KEY` is set in `requestContext` (i.e., auth middleware populated it)
@@ -943,7 +951,7 @@ The client SDK provides two primary interfaces for memory operations:
 Top-level methods on `MastraClient` for cross-thread operations:
 
 ```typescript
-const client = new MastraClient({ baseUrl: '...' });
+const client = new MastraClient({ baseUrl: '...' })
 
 // List all threads for a resource
 const threads = await client.listMemoryThreads({
@@ -951,7 +959,7 @@ const threads = await client.listMemoryThreads({
   metadata: { category: 'support' },
   page: 0,
   perPage: 20,
-});
+})
 
 // Create a new thread
 const thread = await client.createMemoryThread({
@@ -959,19 +967,19 @@ const thread = await client.createMemoryThread({
   resourceId: 'user-123',
   title: 'Support Request',
   metadata: { category: 'support' },
-});
+})
 
 // Get memory configuration
 const config = await client.getMemoryConfig({
   agentId: 'support-agent',
-});
+})
 
 // Get memory status
 const status = await client.getMemoryStatus(
   'support-agent',
   undefined, // requestContext
   { resourceId: 'user-123' }
-);
+)
 ```
 
 **Sources**: [client-sdks/client-js/src/client.ts:160-337]()
@@ -985,24 +993,24 @@ Thread-specific operations via the `MemoryThread` resource defined in [client-sd
 const thread = client.getMemoryThread({
   threadId: 'thread-456',
   agentId: 'support-agent',
-});
+})
 
 // Get thread details via GET /memory/threads/:threadId
-const details = await thread.details();
+const details = await thread.details()
 // Calls: this.request(`/memory/threads/${this.threadId}?agentId=...`)
 
 // Update thread via PATCH /memory/threads/:threadId
 await thread.update({
   title: 'Updated Title',
   metadata: { status: 'resolved' },
-});
+})
 // Calls: this.request(`/memory/threads/${this.threadId}?agentId=...`, { method: 'PATCH' })
 
 // List messages via GET /memory/threads/:threadId/messages
 const messages = await thread.messages({
   page: 0,
   perPage: 50,
-});
+})
 // Calls: this.request(`/memory/threads/${this.threadId}/messages?agentId=...&page=0&perPage=50`)
 
 // Search messages via POST /memory/threads/:threadId/search
@@ -1010,7 +1018,7 @@ const results = await thread.search({
   query: 'billing issue',
   topK: 5,
   includeContext: true,
-});
+})
 // Calls: this.request(`/memory/threads/${this.threadId}/search?agentId=...`, { method: 'POST', body: ... })
 
 // Clone thread via POST /memory/threads/:threadId/clone
@@ -1020,25 +1028,26 @@ const cloned = await thread.cloneThread({
   options: {
     messageLimit: 100,
   },
-});
+})
 // Returns: { thread: StorageThreadType, clonedMessages: MastraDBMessage[] }
 
 // Working memory operations
-const workingMem = await thread.getWorkingMemory();
+const workingMem = await thread.getWorkingMemory()
 // Calls: GET /memory/threads/:threadId/working-memory?agentId=...
 
 await thread.updateWorkingMemory({
   preferences: { language: 'en' },
   context: { lastTopic: 'billing' },
-});
+})
 // Calls: PUT /memory/threads/:threadId/working-memory?agentId=...
 
 // Delete thread via DELETE /memory/threads/:threadId
-await thread.delete();
+await thread.delete()
 // Returns: { success: boolean, message: string }
 ```
 
 **Base Resource Pattern**: All methods inherit from `BaseResource` which provides:
+
 - Automatic request construction with base URL and auth headers
 - Retry logic with exponential backoff (configurable via `retries`, `backoffMs`, `maxBackoffMs`)
 - Error handling via `getErrorFromUnknown()`
@@ -1050,13 +1059,13 @@ await thread.delete();
 
 Memory API endpoints return standard HTTP status codes:
 
-| Status Code | Meaning | Common Causes |
-|-------------|---------|---------------|
-| 200 | Success | Operation completed successfully |
-| 400 | Bad Request | Missing required parameters, invalid data format |
-| 403 | Forbidden | Thread ownership validation failed, context key mismatch |
-| 404 | Not Found | Thread or agent not found |
-| 500 | Internal Server Error | Storage connection failure, database error |
+| Status Code | Meaning               | Common Causes                                            |
+| ----------- | --------------------- | -------------------------------------------------------- |
+| 200         | Success               | Operation completed successfully                         |
+| 400         | Bad Request           | Missing required parameters, invalid data format         |
+| 403         | Forbidden             | Thread ownership validation failed, context key mismatch |
+| 404         | Not Found             | Thread or agent not found                                |
+| 500         | Internal Server Error | Storage connection failure, database error               |
 
 **Error Response Format**:
 
@@ -1071,18 +1080,18 @@ Memory API endpoints return standard HTTP status codes:
 **HTTPException Usage**: Server handlers use `HTTPException` for structured error responses:
 
 ```typescript
-import { HTTPException } from '../http-exception';
+import { HTTPException } from '../http-exception'
 
 if (!threadId) {
-  throw new HTTPException(400, { 
-    message: 'Thread ID is required' 
-  });
+  throw new HTTPException(400, {
+    message: 'Thread ID is required',
+  })
 }
 
 if (thread.resourceId !== effectiveResourceId) {
   throw new HTTPException(403, {
     message: 'Access denied: thread belongs to different resource',
-  });
+  })
 }
 ```
 
@@ -1094,24 +1103,27 @@ Memory list endpoints support consistent pagination patterns:
 
 ### Pagination Parameters
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `page` | number | 0 | Zero-indexed page number |
-| `perPage` | number | 100 | Items per page |
+| Parameter | Type   | Default | Description              |
+| --------- | ------ | ------- | ------------------------ |
+| `page`    | number | 0       | Zero-indexed page number |
+| `perPage` | number | 100     | Items per page           |
 
 **Legacy Support**: Some endpoints also accept `offset` and `limit` for backward compatibility:
+
 - `offset = page * perPage`
 - `limit = perPage`
 
 ### Filtering Parameters
 
 **Thread Filtering**:
+
 - `resourceId`: Filter by resource identifier
 - `metadata`: JSON object for AND-based metadata matching
 - `orderBy`: Sort field (`createdAt`, `updatedAt`)
 - `sortDirection`: Sort order (`ASC`, `DESC`)
 
 **Message Filtering** (via `StorageListMessagesInput`):
+
 - Date range: `startDate`, `endDate`
 - Role filtering: `roles` array
 - Message IDs: `messageIds` array
@@ -1139,23 +1151,23 @@ The `requestContext` parameter is serialized as a base64-encoded JSON string in 
 ```typescript
 // From client-sdks/client-js/src/utils/index.ts
 export function base64RequestContext(
-  requestContext: Record<string, any> | undefined,
+  requestContext: Record<string, any> | undefined
 ): string | undefined {
-  if (!requestContext) return undefined;
-  
-  const json = JSON.stringify(requestContext);
-  return Buffer.from(json).toString('base64');
+  if (!requestContext) return undefined
+
+  const json = JSON.stringify(requestContext)
+  return Buffer.from(json).toString('base64')
 }
 
 // Used in query string
 export function requestContextQueryString(
   requestContext: RequestContext | Record<string, any> | undefined,
-  prefix: string = '?',
+  prefix: string = '?'
 ): string {
-  const parsed = parseClientRequestContext(requestContext);
-  const encoded = base64RequestContext(parsed);
-  
-  return encoded ? `${prefix}requestContext=${encoded}` : '';
+  const parsed = parseClientRequestContext(requestContext)
+  const encoded = base64RequestContext(parsed)
+
+  return encoded ? `${prefix}requestContext=${encoded}` : ''
 }
 ```
 

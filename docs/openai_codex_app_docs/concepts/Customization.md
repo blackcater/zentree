@@ -40,23 +40,23 @@ Codex can load guidance from multiple locations: a global file in your Codex hom
 Use the global file to shape how Codex communicates with you (for example, review style, verbosity, and defaults), and keep repo files focused on team and codebase rules.
 
 <FileTree
-  class="mt-4"
-  tree={[
-    {
-      name: "~/.codex/",
-      open: true,
-      children: [
-        { name: "AGENTS.md", comment: "Global (for you as a developer)" },
-      ],
-    },
-    {
-      name: "repo-root/",
-      open: true,
-      children: [
-        { name: "AGENTS.md", comment: "repo-specific (for your team)" },
-      ],
-    },
-  ]}
+class="mt-4"
+tree={[
+{
+name: "~/.codex/",
+open: true,
+children: [
+{ name: "AGENTS.md", comment: "Global (for you as a developer)" },
+],
+},
+{
+name: "repo-root/",
+open: true,
+children: [
+{ name: "AGENTS.md", comment: "repo-specific (for your team)" },
+],
+},
+]}
 />
 
 [Custom instructions with AGENTS.md](https://developers.openai.com/codex/guides/agents-md)
@@ -70,19 +70,19 @@ Skills are loaded and visible to the agent (at least their metadata), so Codex c
 A skill is typically a `SKILL.md` file plus optional scripts, references, and assets.
 
 <FileTree
-  class="mt-4"
-  tree={[
-    {
-      name: "my-skill/",
-      open: true,
-      children: [
-        { name: "SKILL.md", comment: "Required: instructions + metadata" },
-        { name: "scripts/", comment: "Optional: executable code" },
-        { name: "references/", comment: "Optional: documentation" },
-        { name: "assets/", comment: "Optional: templates, resources" },
-      ],
-    },
-  ]}
+class="mt-4"
+tree={[
+{
+name: "my-skill/",
+open: true,
+children: [
+{ name: "SKILL.md", comment: "Required: instructions + metadata" },
+{ name: "scripts/", comment: "Optional: executable code" },
+{ name: "references/", comment: "Optional: documentation" },
+{ name: "assets/", comment: "Optional: templates, resources" },
+],
+},
+]}
 />
 
 The skill directory can include a `scripts/` folder with CLI scripts that Codex invokes as part of the workflow (for example, seed data or run validations). When the workflow needs external systems (issue trackers, design tools, docs servers), pair the skill with [MCP](https://developers.openai.com/codex/mcp).

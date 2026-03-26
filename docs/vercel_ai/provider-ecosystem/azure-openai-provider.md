@@ -41,8 +41,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The `@ai-sdk/azure` package provides an AI SDK provider for [Azure OpenAI Service](https://azure.microsoft.com/en-us/products/ai-services/openai-service). It wraps the internal model classes from `@ai-sdk/openai` and adapts them to the Azure endpoint conventions, including deployment-based routing and API key authentication via the `api-key` header.
 
 This page covers `@ai-sdk/azure` specifically — the `createAzure` factory, `AzureOpenAIProvider`, all supported model factory methods, URL construction, and Azure-specific built-in tools. For the underlying model implementations that this provider reuses, see the OpenAI provider pages: [3.2]() (Responses API) and [3.3]() (Chat Completions). For the general provider interface contract, see [3.1]().
@@ -51,14 +49,14 @@ This page covers `@ai-sdk/azure` specifically — the `createAzure` factory, `Az
 
 ## Package Overview
 
-| Field | Value |
-|---|---|
-| Package name | `@ai-sdk/azure` |
-| NPM package | `@ai-sdk/azure` |
-| Source directory | `packages/azure/src/` |
+| Field              | Value                                         |
+| ------------------ | --------------------------------------------- |
+| Package name       | `@ai-sdk/azure`                               |
+| NPM package        | `@ai-sdk/azure`                               |
+| Source directory   | `packages/azure/src/`                         |
 | Main provider file | `packages/azure/src/azure-openai-provider.ts` |
-| Direct dependency | `@ai-sdk/openai` (workspace) |
-| Node requirement | `>=18` |
+| Direct dependency  | `@ai-sdk/openai` (workspace)                  |
+| Node requirement   | `>=18`                                        |
 
 The package exports one entry point (`"."`) containing `createAzure`, `azure`, and the `AzureOpenAIProvider` type.
 
@@ -122,18 +120,18 @@ Sources: [packages/azure/src/azure-openai-provider.ts:1-268]()
 `createAzure` is the main export of the package. It accepts an `AzureOpenAIProviderSettings` object and returns an `AzureOpenAIProvider` instance.
 
 ```ts
-import { createAzure } from '@ai-sdk/azure';
+import { createAzure } from '@ai-sdk/azure'
 
 const azure = createAzure({
   resourceName: 'my-resource',
   apiKey: 'my-api-key',
-});
+})
 ```
 
 A pre-constructed default instance named `azure` is also exported:
 
 ```ts
-import { azure } from '@ai-sdk/azure';
+import { azure } from '@ai-sdk/azure'
 ```
 
 Sources: [packages/azure/src/azure-openai-provider.ts:144-273]()
@@ -144,15 +142,15 @@ Sources: [packages/azure/src/azure-openai-provider.ts:144-273]()
 
 All fields are optional. Settings resolve in order: explicit option → environment variable → error/default.
 
-| Option | Type | Default / Env Variable | Description |
-|---|---|---|---|
-| `resourceName` | `string` | `AZURE_RESOURCE_NAME` | Azure resource name, used to build `https://{resourceName}.openai.azure.com/openai`. Mutually exclusive with `baseURL`. |
-| `baseURL` | `string` | — | Overrides the URL prefix entirely. Takes precedence over `resourceName`. Resolved URL: `{baseURL}/v1{path}`. |
-| `apiKey` | `string` | `AZURE_API_KEY` | Sent as the `api-key` request header. |
-| `apiVersion` | `string` | `"v1"` | Appended as `?api-version={apiVersion}` to every request URL. |
-| `headers` | `Record<string, string>` | — | Additional HTTP headers merged into every request. |
-| `fetch` | `FetchFunction` | global `fetch` | Custom fetch implementation for proxying or testing. |
-| `useDeploymentBasedUrls` | `boolean` | `false` | When `true`, uses the legacy format `{baseURL}/deployments/{deploymentId}{path}?api-version={apiVersion}`. |
+| Option                   | Type                     | Default / Env Variable | Description                                                                                                             |
+| ------------------------ | ------------------------ | ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `resourceName`           | `string`                 | `AZURE_RESOURCE_NAME`  | Azure resource name, used to build `https://{resourceName}.openai.azure.com/openai`. Mutually exclusive with `baseURL`. |
+| `baseURL`                | `string`                 | —                      | Overrides the URL prefix entirely. Takes precedence over `resourceName`. Resolved URL: `{baseURL}/v1{path}`.            |
+| `apiKey`                 | `string`                 | `AZURE_API_KEY`        | Sent as the `api-key` request header.                                                                                   |
+| `apiVersion`             | `string`                 | `"v1"`                 | Appended as `?api-version={apiVersion}` to every request URL.                                                           |
+| `headers`                | `Record<string, string>` | —                      | Additional HTTP headers merged into every request.                                                                      |
+| `fetch`                  | `FetchFunction`          | global `fetch`         | Custom fetch implementation for proxying or testing.                                                                    |
+| `useDeploymentBasedUrls` | `boolean`                | `false`                | When `true`, uses the legacy format `{baseURL}/deployments/{deploymentId}{path}?api-version={apiVersion}`.              |
 
 Sources: [packages/azure/src/azure-openai-provider.ts:96-139](), [content/providers/01-ai-sdk-providers/04-azure.mdx:51-98]()
 
@@ -256,21 +254,21 @@ graph LR
   Sp --> SpModel
 ```
 
-| Method | Returns | Provider ID | Notes |
-|---|---|---|---|
-| `azure(deploymentId)` | `LanguageModelV3` | `azure.responses` | Default; calls Responses API |
-| `azure.languageModel(deploymentId)` | `LanguageModelV3` | `azure.responses` | Alias for default |
-| `azure.responses(deploymentId)` | `LanguageModelV3` | `azure.responses` | Explicit Responses API |
-| `azure.chat(deploymentId)` | `LanguageModelV3` | `azure.chat` | Chat Completions API |
-| `azure.completion(deploymentId)` | `LanguageModelV3` | `azure.completion` | Legacy completions endpoint |
-| `azure.embedding(deploymentId)` | `EmbeddingModelV3` | `azure.embeddings` | Text embeddings |
-| `azure.embeddingModel(deploymentId)` | `EmbeddingModelV3` | `azure.embeddings` | Alias for `embedding` |
-| `azure.textEmbedding(deploymentId)` | `EmbeddingModelV3` | `azure.embeddings` | **Deprecated** |
-| `azure.textEmbeddingModel(deploymentId)` | `EmbeddingModelV3` | `azure.embeddings` | **Deprecated** |
-| `azure.image(deploymentId)` | `ImageModelV3` | `azure.image` | DALL-E image generation |
-| `azure.imageModel(deploymentId)` | `ImageModelV3` | `azure.image` | Alias for `image` |
-| `azure.transcription(deploymentId)` | `TranscriptionModelV3` | `azure.transcription` | Audio transcription (Whisper) |
-| `azure.speech(deploymentId)` | `SpeechModelV3` | `azure.speech` | Text-to-speech |
+| Method                                   | Returns                | Provider ID           | Notes                         |
+| ---------------------------------------- | ---------------------- | --------------------- | ----------------------------- |
+| `azure(deploymentId)`                    | `LanguageModelV3`      | `azure.responses`     | Default; calls Responses API  |
+| `azure.languageModel(deploymentId)`      | `LanguageModelV3`      | `azure.responses`     | Alias for default             |
+| `azure.responses(deploymentId)`          | `LanguageModelV3`      | `azure.responses`     | Explicit Responses API        |
+| `azure.chat(deploymentId)`               | `LanguageModelV3`      | `azure.chat`          | Chat Completions API          |
+| `azure.completion(deploymentId)`         | `LanguageModelV3`      | `azure.completion`    | Legacy completions endpoint   |
+| `azure.embedding(deploymentId)`          | `EmbeddingModelV3`     | `azure.embeddings`    | Text embeddings               |
+| `azure.embeddingModel(deploymentId)`     | `EmbeddingModelV3`     | `azure.embeddings`    | Alias for `embedding`         |
+| `azure.textEmbedding(deploymentId)`      | `EmbeddingModelV3`     | `azure.embeddings`    | **Deprecated**                |
+| `azure.textEmbeddingModel(deploymentId)` | `EmbeddingModelV3`     | `azure.embeddings`    | **Deprecated**                |
+| `azure.image(deploymentId)`              | `ImageModelV3`         | `azure.image`         | DALL-E image generation       |
+| `azure.imageModel(deploymentId)`         | `ImageModelV3`         | `azure.image`         | Alias for `image`             |
+| `azure.transcription(deploymentId)`      | `TranscriptionModelV3` | `azure.transcription` | Audio transcription (Whisper) |
+| `azure.speech(deploymentId)`             | `SpeechModelV3`        | `azure.speech`        | Text-to-speech                |
 
 Sources: [packages/azure/src/azure-openai-provider.ts:27-93](), [packages/azure/src/azure-openai-provider.ts:253-268]()
 
@@ -291,7 +289,7 @@ const createResponsesModel = (modelId: string) =>
     headers: getHeaders,
     fetch: options.fetch,
     fileIdPrefixes: ['assistant-'],
-  });
+  })
 ```
 
 Sources: [packages/azure/src/azure-openai-provider.ts:210-218]()
@@ -302,12 +300,12 @@ Sources: [packages/azure/src/azure-openai-provider.ts:210-218]()
 
 The `azure.tools` property exposes a set of built-in Responses API tools. These are re-exported from `@ai-sdk/openai/internal` under the Azure provider surface.
 
-| Tool | Exported from `@ai-sdk/openai/internal` |
-|---|---|
-| `azure.tools.codeInterpreter` | `codeInterpreter` |
-| `azure.tools.fileSearch` | `fileSearch` |
-| `azure.tools.imageGeneration` | `imageGeneration` |
-| `azure.tools.webSearchPreview` | `webSearchPreview` |
+| Tool                           | Exported from `@ai-sdk/openai/internal` |
+| ------------------------------ | --------------------------------------- |
+| `azure.tools.codeInterpreter`  | `codeInterpreter`                       |
+| `azure.tools.fileSearch`       | `fileSearch`                            |
+| `azure.tools.imageGeneration`  | `imageGeneration`                       |
+| `azure.tools.webSearchPreview` | `webSearchPreview`                      |
 
 These tools are passed to `generateText` or `streamText` via the `tools` option. They are provider-executed, meaning the model calls them server-side rather than routing execution back to the application.
 
@@ -321,12 +319,12 @@ When using the Responses API via `azure.responses()` or the default call, result
 
 Exported types from `@ai-sdk/openai` for Azure:
 
-| Type | Description |
-|---|---|
-| `AzureResponsesProviderMetadata` | Top-level provider metadata for Azure Responses API |
-| `AzureResponsesReasoningProviderMetadata` | Metadata attached to reasoning parts |
-| `AzureResponsesTextProviderMetadata` | Metadata attached to text output parts |
-| `AzureResponsesSourceDocumentProviderMetadata` | Metadata for source document annotations |
+| Type                                           | Description                                         |
+| ---------------------------------------------- | --------------------------------------------------- |
+| `AzureResponsesProviderMetadata`               | Top-level provider metadata for Azure Responses API |
+| `AzureResponsesReasoningProviderMetadata`      | Metadata attached to reasoning parts                |
+| `AzureResponsesTextProviderMetadata`           | Metadata attached to text output parts              |
+| `AzureResponsesSourceDocumentProviderMetadata` | Metadata for source document annotations            |
 
 Sources: [packages/openai/CHANGELOG.md:103-107](), [packages/openai/CHANGELOG.md:185-189]()
 
@@ -336,15 +334,15 @@ Sources: [packages/openai/CHANGELOG.md:103-107](), [packages/openai/CHANGELOG.md
 
 The test suite in `packages/azure/src/azure-openai-provider.test.ts` mocks the following Azure endpoints:
 
-| Endpoint | Model Method |
-|---|---|
-| `.../openai/v1/responses` | `azure(...)`, `azure.responses(...)` |
-| `.../openai/v1/chat/completions` | `azure.chat(...)` |
-| `.../openai/v1/completions` | `azure.completion(...)` |
-| `.../openai/v1/embeddings` | `azure.embedding(...)` |
-| `.../openai/v1/images/generations` | `azure.image(...)` |
-| `.../openai/v1/audio/transcriptions` | `azure.transcription(...)` |
-| `.../openai/v1/audio/speech` | `azure.speech(...)` |
+| Endpoint                                             | Model Method                                   |
+| ---------------------------------------------------- | ---------------------------------------------- |
+| `.../openai/v1/responses`                            | `azure(...)`, `azure.responses(...)`           |
+| `.../openai/v1/chat/completions`                     | `azure.chat(...)`                              |
+| `.../openai/v1/completions`                          | `azure.completion(...)`                        |
+| `.../openai/v1/embeddings`                           | `azure.embedding(...)`                         |
+| `.../openai/v1/images/generations`                   | `azure.image(...)`                             |
+| `.../openai/v1/audio/transcriptions`                 | `azure.transcription(...)`                     |
+| `.../openai/v1/audio/speech`                         | `azure.speech(...)`                            |
 | `.../openai/deployments/{name}/audio/transcriptions` | `azure.transcription(...)` with deployment URL |
 
 Sources: [packages/azure/src/azure-openai-provider.test.ts:82-92]()
@@ -378,13 +376,13 @@ Sources: [packages/azure/src/azure-openai-provider.ts:1-9](), [packages/openai/s
 Azure may expose DeepSeek-R1 reasoning through `<think>` tags in the generated text. The `extractReasoningMiddleware` from the core `ai` package can extract this into a separate `reasoning` property:
 
 ```ts
-import { azure } from '@ai-sdk/azure';
-import { wrapLanguageModel, extractReasoningMiddleware } from 'ai';
+import { azure } from '@ai-sdk/azure'
+import { wrapLanguageModel, extractReasoningMiddleware } from 'ai'
 
 const model = wrapLanguageModel({
   model: azure('your-deepseek-r1-deployment'),
   middleware: extractReasoningMiddleware({ tagName: 'think' }),
-});
+})
 ```
 
 For documentation of `wrapLanguageModel` and middleware, see [2.6]().

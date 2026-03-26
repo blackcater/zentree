@@ -36,8 +36,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes how `codex exec` processes and formats events from the agent core in non-interactive (headless) mode. The event processing layer translates internal protocol events into human-readable terminal output or machine-parseable JSONL, handles approval requests synchronously, and manages progress indication.
@@ -58,14 +56,14 @@ classDiagram
         +process_event(event) CodexStatus
         +print_final_output()
     }
-    
+
     class CodexStatus {
         <<enumeration>>
         Running
         InitiateShutdown
         Shutdown
     }
-    
+
     class EventProcessorWithHumanOutput {
         -call_id_to_patch: HashMap
         -bold: Style
@@ -76,11 +74,11 @@ classDiagram
         -use_ansi_cursor: bool
         +create_with_ansi(with_ansi, cursor_ansi, config, last_message_path)
     }
-    
+
     class EventProcessorWithJsonOutput {
         +new()
     }
-    
+
     EventProcessor <|.. EventProcessorWithHumanOutput
     EventProcessor <|.. EventProcessorWithJsonOutput
     EventProcessor --> CodexStatus
@@ -99,13 +97,13 @@ graph TB
     HumanProc["EventProcessorWithHumanOutput<br/>(--json=false)"]
     JsonProc["EventProcessorWithJsonOutput<br/>(--json=true)"]
     EventLoop["Event Processing Loop<br/>(exec_run)"]
-    
+
     CLI -->|"json: bool<br/>color: Color"| SelectProcessor
     SelectProcessor -->|"json_mode=false"| HumanProc
     SelectProcessor -->|"json_mode=true"| JsonProc
     HumanProc --> EventLoop
     JsonProc --> EventLoop
-    
+
     EventLoop -->|"process_event(event)"| HumanProc
     EventLoop -->|"process_event(event)"| JsonProc
 ```
@@ -120,16 +118,16 @@ graph TB
 
 The processor respects the `--color` flag and terminal capabilities to determine whether to use ANSI formatting:
 
-| Field | Style | Usage |
-|-------|-------|-------|
-| `bold` | Bold weight | Headings, important labels |
-| `italic` | Italic style | File paths, metadata |
-| `dimmed` | Reduced intensity | Secondary information |
-| `magenta` | Magenta color | Agent reasoning headers |
-| `red` | Red color | Errors, failures |
-| `green` | Green color | Success states |
-| `cyan` | Cyan color | Tool calls, system messages |
-| `yellow` | Yellow color | Warnings |
+| Field     | Style             | Usage                       |
+| --------- | ----------------- | --------------------------- |
+| `bold`    | Bold weight       | Headings, important labels  |
+| `italic`  | Italic style      | File paths, metadata        |
+| `dimmed`  | Reduced intensity | Secondary information       |
+| `magenta` | Magenta color     | Agent reasoning headers     |
+| `red`     | Red color         | Errors, failures            |
+| `green`   | Green color       | Success states              |
+| `cyan`    | Cyan color        | Tool calls, system messages |
+| `yellow`  | Yellow color      | Warnings                    |
 
 The `create_with_ansi` constructor initializes these fields as either styled or plain `Style::new()` based on terminal support.
 
@@ -144,7 +142,7 @@ sequenceDiagram
     participant Main as run_main
     participant Proc as EventProcessorWithHumanOutput
     participant Stderr as stderr
-    
+
     Main->>Proc: print_config_summary(config, prompt, session_configured)
     Proc->>Proc: Format model info
     Proc->>Proc: Format sandbox/approval policies
@@ -158,6 +156,7 @@ sequenceDiagram
 ```
 
 The summary includes:
+
 - Model name and provider
 - Current working directory
 - Sandbox mode (ReadOnly, WorkspaceWrite, DangerFullAccess)
@@ -177,24 +176,24 @@ graph TB
     RecvEvent["Receive Event<br/>(from InProcessAppServerClient)"]
     ProcessEvent["process_event(event)<br/>(EventProcessor trait)"]
     MatchType["Match EventMsg Type"]
-    
+
     AgentMsg["AgentMessage<br/>Print text delta"]
     ToolBegin["ExecCommandBegin<br/>ToolCallBegin<br/>Print header"]
     ToolEnd["ExecCommandEnd<br/>ToolCallEnd<br/>Print result"]
     ApprovalReq["ExecApprovalRequest<br/>PatchApprovalRequest<br/>Handle approval"]
     TurnComplete["TurnComplete<br/>Cleanup progress"]
     Error["ErrorEvent<br/>Print error"]
-    
+
     RecvEvent --> ProcessEvent
     ProcessEvent --> MatchType
-    
+
     MatchType -->|AgentMessage| AgentMsg
     MatchType -->|ExecCommandBegin| ToolBegin
     MatchType -->|ExecCommandEnd| ToolEnd
     MatchType -->|ExecApprovalRequest| ApprovalReq
     MatchType -->|TurnComplete| TurnComplete
     MatchType -->|ErrorEvent| Error
-    
+
     AgentMsg --> Return["Return CodexStatus"]
     ToolEnd --> Return
     ApprovalReq --> Return
@@ -312,23 +311,24 @@ sequenceDiagram
     participant Proc as EventProcessorWithHumanOutput
     participant Stdin as stdin
     participant User as User
-    
+
     Agent->>EventLoop: ExecApprovalRequestEvent
     EventLoop->>Proc: process_event(event)
-    
+
     Proc->>Proc: Format command info
     Proc->>Stdin: Print approval prompt
     Proc->>Stdin: "[Y]es / [n]o / [e]dit / [a]lways"
-    
+
     Stdin->>User: Display prompt
     User->>Stdin: Type response
     Stdin->>Proc: Return user choice
-    
+
     Proc->>EventLoop: Submit ExecApproval op
     EventLoop->>Agent: Op::ExecApproval
 ```
 
 The approval prompt displays:
+
 1. Command to be executed
 2. Sandbox policy in effect
 3. Approval options: Yes, No, Edit, Always
@@ -366,13 +366,13 @@ Apply patch to /path/to/file.txt?
 
 ### Approval Decision Mapping
 
-| User Input | ReviewDecision | Effect |
-|-----------|----------------|--------|
-| `y`, `Y`, `yes` | `Approved` | Execute command/apply patch |
-| `n`, `N`, `no` | `Rejected` | Skip execution |
-| `e`, `E`, `edit` | `Edited { new_input }` | Replace command/patch with edited version |
-| `a`, `A`, `always` | `Always` | Execute and add rule to auto-approve future matches |
-| `i`, `I`, `inspect` | N/A | Show detailed inspection view (exec only) |
+| User Input          | ReviewDecision         | Effect                                              |
+| ------------------- | ---------------------- | --------------------------------------------------- |
+| `y`, `Y`, `yes`     | `Approved`             | Execute command/apply patch                         |
+| `n`, `N`, `no`      | `Rejected`             | Skip execution                                      |
+| `e`, `E`, `edit`    | `Edited { new_input }` | Replace command/patch with edited version           |
+| `a`, `A`, `always`  | `Always`               | Execute and add rule to auto-approve future matches |
+| `i`, `I`, `inspect` | N/A                    | Show detailed inspection view (exec only)           |
 
 **Sources:** [codex-rs/exec/src/event_processor_with_human_output.rs:931-1050]()
 
@@ -389,13 +389,13 @@ stateDiagram-v2
     Active --> Active: update_progress()
     Active --> Inactive: clear_progress()
     Inactive --> [*]: session end
-    
+
     note right of Active
         progress_active: true
         progress_anchor: true
         Cursor hidden
     end note
-    
+
     note right of Inactive
         progress_active: false
         progress_anchor: false
@@ -404,6 +404,7 @@ stateDiagram-v2
 ```
 
 Progress indication state is tracked with:
+
 - `progress_active`: Whether progress is currently displayed
 - `progress_last_len`: Length of last progress message for clearing
 - `use_ansi_cursor`: Whether ANSI cursor control is available
@@ -443,16 +444,16 @@ graph LR
     Event["EventMsg::*"]
     ToJson["serde_json::to_string"]
     Stdout["stdout.write_all"]
-    
+
     Event -->|"Convert to JSON"| ToJson
     ToJson -->|"Append newline"| Stdout
-    
+
     subgraph "Output Format"
         Line1["{'type':'agent_message','delta':'text'}"]
         Line2["{'type':'turn_complete','token_usage':{...}}"]
         Line3["{'type':'error','message':'...'}"]
     end
-    
+
     Stdout -.-> Line1
     Stdout -.-> Line2
     Stdout -.-> Line3
@@ -462,27 +463,27 @@ Each event is serialized as a single JSON object on one line, with no line break
 
 **Example JSONL output:**
 
-```json
+````json
 {"type":"session_configured","thread_id":"...","model":"gpt-4"}
 {"type":"agent_message","delta":"Here is the code:\
 "}
 {"type":"agent_message","delta":"```python\
 "}
 {"type":"turn_complete","token_usage":{"prompt_tokens":150,"completion_tokens":45}}
-```
+````
 
 **Sources:** [codex-rs/exec/src/event_processor_with_jsonl_output.rs]()
 
 ### JSONL vs Human Output Comparison
 
-| Feature | Human Output | JSONL Output |
-|---------|-------------|--------------|
-| Target audience | Humans viewing terminal | Scripts/automation |
-| Output destination | stderr (mostly) | stdout |
-| Formatting | ANSI colors, layout | Raw JSON |
-| Progress indication | Spinners, in-place updates | Discrete event objects |
-| Approval handling | Interactive prompts | Non-interactive (requires --full-auto or --yolo) |
-| Message aggregation | Concatenates deltas | Emits each delta separately |
+| Feature             | Human Output               | JSONL Output                                     |
+| ------------------- | -------------------------- | ------------------------------------------------ |
+| Target audience     | Humans viewing terminal    | Scripts/automation                               |
+| Output destination  | stderr (mostly)            | stdout                                           |
+| Formatting          | ANSI colors, layout        | Raw JSON                                         |
+| Progress indication | Spinners, in-place updates | Discrete event objects                           |
+| Approval handling   | Interactive prompts        | Non-interactive (requires --full-auto or --yolo) |
+| Message aggregation | Concatenates deltas        | Emits each delta separately                      |
 
 **Sources:** [codex-rs/exec/src/lib.rs:405-530](), [codex-rs/exec/src/event_processor_with_jsonl_output.rs]()
 
@@ -499,17 +500,18 @@ graph TB
     EventLoop["exec_run Event Loop<br/>(lib.rs)"]
     Processor["EventProcessor<br/>(trait impl)"]
     Output["Terminal Output<br/>(stderr/stdout)"]
-    
+
     CoreAgent -->|"Event::*"| AppServer
     AppServer -->|"InProcessServerEvent::Notification"| EventLoop
     EventLoop -->|"process_event(event)"| Processor
     Processor -->|"Formatted output"| Output
-    
+
     EventLoop -->|"Op::ExecApproval<br/>Op::Interrupt"| AppServer
     AppServer -->|"Submission"| CoreAgent
 ```
 
 The client handles:
+
 1. Thread start/resume operations
 2. Turn submission with user input
 3. Event streaming and buffering

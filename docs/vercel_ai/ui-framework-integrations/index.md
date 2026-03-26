@@ -31,8 +31,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the UI Framework Layer of the AI SDK, which provides reactive chat interfaces for React, Vue, Svelte, Angular, Solid, and React Server Components. These packages build on the Core SDK ([page 2](#2)) to deliver framework-specific hooks, composables, and components for building conversational AI applications.
 
 For information about the Core SDK functionality (generateText, streamText, tool calling), see [Core SDK Functionality](#2). For provider-specific implementations, see [Provider Ecosystem](#3).
@@ -51,7 +49,7 @@ graph TB
         COMP["React/Vue/Svelte Component"]
         HOOK["useChat / Chat"]
     end
-    
+
     subgraph "UI Framework Packages"
         REACT["@ai-sdk/react<br/>Chat.react"]
         VUE["@ai-sdk/vue<br/>Chat.vue"]
@@ -60,27 +58,27 @@ graph TB
         SOLID["@ai-sdk/solid"]
         RSC["@ai-sdk/rsc"]
     end
-    
+
     subgraph "Framework-Agnostic Core"
         ABSTRACT["AbstractChat"]
         TRANSPORT["ChatTransport"]
         STATE["ChatState"]
         SERIALIZE["SerialJobExecutor"]
     end
-    
+
     subgraph "Transport Implementations"
         DEFAULT["DefaultChatTransport<br/>/api/chat endpoint"]
         HTTP["HttpChatTransport<br/>custom endpoints"]
         TEXT["TextStreamChatTransport<br/>text/event-stream"]
         DIRECT["DirectChatTransport<br/>function calls"]
     end
-    
+
     subgraph "Core SDK"
         STREAM["streamText"]
         GEN["generateText"]
         UI_STREAM["processUIMessageStream"]
     end
-    
+
     COMP --> HOOK
     HOOK --> REACT
     HOOK --> VUE
@@ -88,26 +86,26 @@ graph TB
     HOOK --> ANGULAR
     HOOK --> SOLID
     HOOK --> RSC
-    
+
     REACT --> ABSTRACT
     VUE --> ABSTRACT
     SVELTE --> ABSTRACT
     ANGULAR --> ABSTRACT
     SOLID --> ABSTRACT
-    
+
     ABSTRACT --> TRANSPORT
     ABSTRACT --> STATE
     ABSTRACT --> SERIALIZE
-    
+
     TRANSPORT --> DEFAULT
     TRANSPORT --> HTTP
     TRANSPORT --> TEXT
     TRANSPORT --> DIRECT
-    
+
     DEFAULT --> STREAM
     TEXT --> STREAM
     DIRECT --> GEN
-    
+
     ABSTRACT --> UI_STREAM
 ```
 
@@ -131,7 +129,7 @@ classDiagram
         +ChatTransport transport
         +ChatState state
         +SerialJobExecutor jobExecutor
-        
+
         +sendMessage(message) Promise~void~
         +regenerate(options?) Promise~void~
         +stop() void
@@ -140,11 +138,11 @@ classDiagram
         +addToolOutput(params) void
         +addToolApprovalResponse(params) void
         +clearError() void
-        
+
         #processStream(stream) Promise~void~
         #maybeAutoSend(messages) Promise~void~
     }
-    
+
     class ChatState {
         <<interface>>
         +UIMessage[] messages
@@ -155,19 +153,19 @@ classDiagram
         +popMessage() UIMessage
         +replaceLastMessage(message) void
     }
-    
+
     class ChatTransport {
         <<interface>>
         +sendMessages(params) ReadableStream
         +reconnectToStream(params) ReadableStream?
     }
-    
+
     class SerialJobExecutor {
         +execute(job) Promise~T~
         -Queue queue
         -Promise? currentJob
     }
-    
+
     class ChatInit {
         +string? id
         +UIMessage[]? messages
@@ -180,7 +178,7 @@ classDiagram
         +OnErrorCallback? onError
         +SendAutomaticallyWhen? sendAutomaticallyWhen
     }
-    
+
     AbstractChat --> ChatState : manages
     AbstractChat --> ChatTransport : uses
     AbstractChat --> SerialJobExecutor : uses
@@ -191,14 +189,14 @@ classDiagram
 
 ### Key Responsibilities
 
-| Responsibility | Implementation | Location |
-|----------------|----------------|----------|
-| Message Management | Maintains ordered message list, adds user/assistant messages | [packages/ai/src/ui/chat.ts:562-623]() |
-| Stream Processing | Processes UIMessageChunk events, updates messages incrementally | [packages/ai/src/ui/chat.ts:694-823]() |
-| Tool Execution | Handles tool calls, approval requests, and result submission | [packages/ai/src/ui/chat.ts:625-692]() |
-| Automatic Sending | Evaluates `sendAutomaticallyWhen` condition after updates | [packages/ai/src/ui/chat.ts:825-879]() |
-| Job Serialization | Ensures stream processing happens sequentially via `SerialJobExecutor` | [packages/ai/src/util/serial-job-executor.ts]() |
-| State Synchronization | Delegates to framework-specific `ChatState` implementation | [packages/ai/src/ui/chat.ts:431-460]() |
+| Responsibility        | Implementation                                                         | Location                                        |
+| --------------------- | ---------------------------------------------------------------------- | ----------------------------------------------- |
+| Message Management    | Maintains ordered message list, adds user/assistant messages           | [packages/ai/src/ui/chat.ts:562-623]()          |
+| Stream Processing     | Processes UIMessageChunk events, updates messages incrementally        | [packages/ai/src/ui/chat.ts:694-823]()          |
+| Tool Execution        | Handles tool calls, approval requests, and result submission           | [packages/ai/src/ui/chat.ts:625-692]()          |
+| Automatic Sending     | Evaluates `sendAutomaticallyWhen` condition after updates              | [packages/ai/src/ui/chat.ts:825-879]()          |
+| Job Serialization     | Ensures stream processing happens sequentially via `SerialJobExecutor` | [packages/ai/src/util/serial-job-executor.ts]() |
+| State Synchronization | Delegates to framework-specific `ChatState` implementation             | [packages/ai/src/ui/chat.ts:431-460]()          |
 
 **Sources:** [packages/ai/src/ui/chat.ts:431-882](), [packages/ai/src/util/serial-job-executor.ts]()
 
@@ -220,15 +218,15 @@ sequenceDiagram
     participant Abstract as AbstractChat
     participant Store as useSyncExternalStore
     participant State as ReactChatState
-    
+
     Comp->>Hook: useChat(options)
     Hook->>Chat: new Chat(options)
     Chat->>Abstract: super(options)
     Abstract->>State: new ReactChatState()
-    
+
     Hook->>Store: subscribe(registerMessagesCallback)
     Store->>Chat: registerMessagesCallback(update)
-    
+
     Comp->>Hook: sendMessage(message)
     Hook->>Chat: sendMessage(message)
     Chat->>Abstract: sendMessage(message)
@@ -259,12 +257,12 @@ export function useChat<UI_MESSAGE extends UIMessage>(
   const messages = ref(chat.value.messages);
   const status = ref(chat.value.status);
   const error = ref(chat.value.error);
-  
+
   // Subscribe to chat updates
   chat.value['~registerMessagesCallback'](() => {
     messages.value = chat.value.messages;
   });
-  
+
   return { messages, status, error, sendMessage, ... };
 }
 ```
@@ -278,24 +276,24 @@ export function useChat<UI_MESSAGE extends UIMessage>(
 Svelte 5 uses `$state` runes for fine-grained reactivity ([packages/svelte/src/chat.svelte.ts:1-44]()):
 
 ```typescript
-class SvelteChatState<UI_MESSAGE extends UIMessage>
-  implements ChatState<UI_MESSAGE>
-{
-  messages: UI_MESSAGE[];
-  status = $state<ChatStatus>('ready');
-  error = $state<Error | undefined>(undefined);
+class SvelteChatState<
+  UI_MESSAGE extends UIMessage,
+> implements ChatState<UI_MESSAGE> {
+  messages: UI_MESSAGE[]
+  status = $state<ChatStatus>('ready')
+  error = $state<Error | undefined>(undefined)
 
   constructor(messages: UI_MESSAGE[] = []) {
-    this.messages = $state(messages);
+    this.messages = $state(messages)
   }
 
   setMessages = (messages: UI_MESSAGE[]) => {
-    this.messages = messages;
-  };
+    this.messages = messages
+  }
 
   pushMessage = (message: UI_MESSAGE) => {
-    this.messages.push(message);
-  };
+    this.messages.push(message)
+  }
   // ... other methods
 }
 ```
@@ -339,7 +337,7 @@ classDiagram
         +sendMessages(params) ReadableStream~UIMessageChunk~
         +reconnectToStream(params) ReadableStream~UIMessageChunk~ | null
     }
-    
+
     class DefaultChatTransport {
         +string api
         +RequestCredentials? credentials
@@ -347,14 +345,14 @@ classDiagram
         +sendMessages(params) ReadableStream
         +reconnectToStream(params) ReadableStream | null
     }
-    
+
     class HttpChatTransport {
         +prepareSendMessagesRequest(params) Request
         +prepareReconnectToStreamRequest(params) Request | null
         +sendMessages(params) ReadableStream
         +reconnectToStream(params) ReadableStream | null
     }
-    
+
     class TextStreamChatTransport {
         +string api
         +RequestCredentials? credentials
@@ -362,30 +360,30 @@ classDiagram
         +sendMessages(params) ReadableStream
         +reconnectToStream(params) ReadableStream | null
     }
-    
+
     class DirectChatTransport {
         +Function handler
         +sendMessages(params) ReadableStream
         +reconnectToStream(params) null
     }
-    
+
     ChatTransport <|.. DefaultChatTransport
     ChatTransport <|.. HttpChatTransport
     ChatTransport <|.. TextStreamChatTransport
     ChatTransport <|.. DirectChatTransport
-    
+
     DefaultChatTransport --|> HttpChatTransport : extends
     TextStreamChatTransport --|> HttpChatTransport : extends
 ```
 
 ### Transport Implementations
 
-| Transport | Endpoint | Protocol | Use Case |
-|-----------|----------|----------|----------|
-| `DefaultChatTransport` | `/api/chat` | UIMessageChunk JSON | Default HTTP transport ([packages/ai/src/ui/default-chat-transport.ts]()) |
-| `HttpChatTransport` | Custom | UIMessageChunk JSON | Custom request/response handling ([packages/ai/src/ui/http-chat-transport.ts]()) |
-| `TextStreamChatTransport` | Custom | `text/event-stream` | Legacy SSE support ([packages/ai/src/ui/text-stream-chat-transport.ts]()) |
-| `DirectChatTransport` | N/A | In-process | Direct function calls, server components ([packages/ai/src/ui/direct-chat-transport.ts]()) |
+| Transport                 | Endpoint    | Protocol            | Use Case                                                                                   |
+| ------------------------- | ----------- | ------------------- | ------------------------------------------------------------------------------------------ |
+| `DefaultChatTransport`    | `/api/chat` | UIMessageChunk JSON | Default HTTP transport ([packages/ai/src/ui/default-chat-transport.ts]())                  |
+| `HttpChatTransport`       | Custom      | UIMessageChunk JSON | Custom request/response handling ([packages/ai/src/ui/http-chat-transport.ts]())           |
+| `TextStreamChatTransport` | Custom      | `text/event-stream` | Legacy SSE support ([packages/ai/src/ui/text-stream-chat-transport.ts]())                  |
+| `DirectChatTransport`     | N/A         | In-process          | Direct function calls, server components ([packages/ai/src/ui/direct-chat-transport.ts]()) |
 
 ### DefaultChatTransport Flow
 
@@ -395,7 +393,7 @@ sequenceDiagram
     participant Trans as DefaultChatTransport
     participant API as /api/chat
     participant Core as streamText
-    
+
     UI->>Trans: sendMessages({messages})
     Trans->>Trans: prepareSendMessagesRequest()
     Trans->>API: POST /api/chat<br/>{messages, data}
@@ -403,9 +401,9 @@ sequenceDiagram
     Core-->>API: UIMessageChunk stream
     API-->>Trans: Response with stream
     Trans-->>UI: ReadableStream~UIMessageChunk~
-    
+
     UI->>UI: processUIMessageStream()
-    
+
     Note over UI,Trans: Resume after disconnect
     UI->>Trans: reconnectToStream({id})
     Trans->>API: GET /api/chat/:id/stream
@@ -425,26 +423,26 @@ Each framework implements `ChatState` interface ([packages/ai/src/ui/chat.ts:189
 
 ```typescript
 export interface ChatState<UI_MESSAGE extends UIMessage> {
-  messages: UI_MESSAGE[];
-  status: ChatStatus;
-  error: Error | undefined;
+  messages: UI_MESSAGE[]
+  status: ChatStatus
+  error: Error | undefined
 
-  setMessages(messages: UI_MESSAGE[]): void;
-  pushMessage(message: UI_MESSAGE): void;
-  popMessage(): UI_MESSAGE | undefined;
-  replaceLastMessage(message: UI_MESSAGE): void;
+  setMessages(messages: UI_MESSAGE[]): void
+  pushMessage(message: UI_MESSAGE): void
+  popMessage(): UI_MESSAGE | undefined
+  replaceLastMessage(message: UI_MESSAGE): void
 }
 ```
 
 ### Framework Comparison
 
-| Framework | Reactivity | Implementation | Subscription |
-|-----------|------------|----------------|--------------|
-| React | `useSyncExternalStore` | Manual callbacks + refs ([packages/react/src/chat.react.ts]()) | `registerMessagesCallback` with optional throttle |
-| Vue | `ref` | Vue refs ([packages/vue/src/use-chat.ts]()) | Direct ref updates |
-| Svelte 5 | `$state` runes | Svelte 5 fine-grained ([packages/svelte/src/chat.svelte.ts:23-44]()) | Automatic |
-| Angular | Signals | Angular signals | Automatic |
-| Solid | Reactive primitives | Solid stores | Automatic |
+| Framework | Reactivity             | Implementation                                                       | Subscription                                      |
+| --------- | ---------------------- | -------------------------------------------------------------------- | ------------------------------------------------- |
+| React     | `useSyncExternalStore` | Manual callbacks + refs ([packages/react/src/chat.react.ts]())       | `registerMessagesCallback` with optional throttle |
+| Vue       | `ref`                  | Vue refs ([packages/vue/src/use-chat.ts]())                          | Direct ref updates                                |
+| Svelte 5  | `$state` runes         | Svelte 5 fine-grained ([packages/svelte/src/chat.svelte.ts:23-44]()) | Automatic                                         |
+| Angular   | Signals                | Angular signals                                                      | Automatic                                         |
+| Solid     | Reactive primitives    | Solid stores                                                         | Automatic                                         |
 
 ### SerialJobExecutor for Consistency
 
@@ -452,20 +450,20 @@ The `SerialJobExecutor` ([packages/ai/src/util/serial-job-executor.ts]()) ensure
 
 ```typescript
 export class SerialJobExecutor {
-  private queue: Array<() => Promise<unknown>> = [];
-  private currentJob: Promise<unknown> | undefined;
+  private queue: Array<() => Promise<unknown>> = []
+  private currentJob: Promise<unknown> | undefined
 
   async execute<T>(job: () => Promise<T>): Promise<T> {
     return new Promise((resolve, reject) => {
       this.queue.push(async () => {
         try {
-          resolve(await job());
+          resolve(await job())
         } catch (error) {
-          reject(error);
+          reject(error)
         }
-      });
-      this.processQueue();
-    });
+      })
+      this.processQueue()
+    })
   }
   // ... queue processing logic
 }
@@ -486,16 +484,16 @@ stateDiagram-v2
     [*] --> ToolCallReceived
     ToolCallReceived --> ApprovalRequested : needsApproval=true
     ToolCallReceived --> ExecutingTool : needsApproval=false
-    
+
     ApprovalRequested --> WaitingForUser
     WaitingForUser --> ExecutingTool : addToolApprovalResponse(approved=true)
     WaitingForUser --> Rejected : addToolApprovalResponse(approved=false)
-    
+
     ExecutingTool --> ToolComplete
     ToolComplete --> SendingResult : auto-send enabled
     ToolComplete --> WaitingForUserSend : auto-send disabled
     WaitingForUserSend --> SendingResult : user calls sendMessage
-    
+
     Rejected --> [*]
     SendingResult --> [*]
 ```
@@ -517,15 +515,12 @@ stateDiagram-v2
 Convert browser `FileList` to `FileUIPart[]` via `convertFileListToFileUIParts` ([packages/ai/src/ui/convert-file-list-to-file-ui-parts.ts]()):
 
 ```typescript
-const files: FileList = fileInput.files;
-const fileParts = await convertFileListToFileUIParts(files);
+const files: FileList = fileInput.files
+const fileParts = await convertFileListToFileUIParts(files)
 
 sendMessage({
-  parts: [
-    { type: 'text', text: 'Describe this image' },
-    ...fileParts
-  ]
-});
+  parts: [{ type: 'text', text: 'Describe this image' }, ...fileParts],
+})
 ```
 
 **Sources:** [packages/ai/src/ui/convert-file-list-to-file-ui-parts.ts](), [packages/ai/src/ui/index.ts:19]()
@@ -536,17 +531,17 @@ The `sendAutomaticallyWhen` callback determines when to auto-send after state ch
 
 **Built-in Predicates:**
 
-| Function | Condition | Use Case |
-|----------|-----------|----------|
-| `lastAssistantMessageIsCompleteWithToolCalls` | Last message has tool calls in terminal state | Automatic tool result submission |
-| `lastAssistantMessageIsCompleteWithApprovalResponses` | Last message has approved tools | Automatic post-approval sending |
+| Function                                              | Condition                                     | Use Case                         |
+| ----------------------------------------------------- | --------------------------------------------- | -------------------------------- |
+| `lastAssistantMessageIsCompleteWithToolCalls`         | Last message has tool calls in terminal state | Automatic tool result submission |
+| `lastAssistantMessageIsCompleteWithApprovalResponses` | Last message has approved tools               | Automatic post-approval sending  |
 
 **Example:**
 
 ```typescript
 const { sendMessage } = useChat({
-  sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls
-});
+  sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+})
 ```
 
 **Sources:** [packages/ai/src/ui/last-assistant-message-is-complete-with-tool-calls.ts](), [packages/ai/src/ui/last-assistant-message-is-complete-with-approval-responses.ts](), [examples/ai-e2e-next/app/chat/test-tool-approval-options/page.tsx:24]()
@@ -556,13 +551,13 @@ const { sendMessage } = useChat({
 Reconnect to interrupted streams using `resumeStream()` ([packages/ai/src/ui/chat.ts:580-623]()):
 
 ```typescript
-const { resumeStream, status } = useChat({ resume: true });
+const { resumeStream, status } = useChat({ resume: true })
 
 useEffect(() => {
   if (resume && status === 'ready') {
-    resumeStream(); // Automatically resume on mount
+    resumeStream() // Automatically resume on mount
   }
-}, [resume, status]);
+}, [resume, status])
 ```
 
 The transport's `reconnectToStream` method ([packages/ai/src/ui/chat-transport.ts:44-57]()) requests the backend to resume the stream. Backend returns 204 if no active stream exists.
@@ -571,12 +566,12 @@ The transport's `reconnectToStream` method ([packages/ai/src/ui/chat-transport.t
 
 ### Callback System
 
-| Callback | Signature | When Called |
-|----------|-----------|-------------|
-| `onToolCall` | `(toolCall) => void \| Promise<void>` | After receiving tool-call part |
-| `onData` | `(dataPart) => void` | After receiving data part |
-| `onFinish` | `({message, messages, finishReason, ...}) => void` | After message completion |
-| `onError` | `(error) => void` | On stream or processing error |
+| Callback     | Signature                                          | When Called                    |
+| ------------ | -------------------------------------------------- | ------------------------------ |
+| `onToolCall` | `(toolCall) => void \| Promise<void>`              | After receiving tool-call part |
+| `onData`     | `(dataPart) => void`                               | After receiving data part      |
+| `onFinish`   | `({message, messages, finishReason, ...}) => void` | After message completion       |
+| `onError`    | `(error) => void`                                  | On stream or processing error  |
 
 **Sources:** [packages/ai/src/ui/chat.ts:66-122](), [packages/react/src/use-chat.ts:64-85](), [content/docs/07-reference/02-ai-sdk-ui/01-use-chat.mdx:127-198]()
 
@@ -590,7 +585,7 @@ All framework packages share a common testing pattern using `@ai-sdk/test-server
 const server = createTestServer({
   '/api/chat': {},
   '/api/chat/123/stream': {},
-});
+})
 
 it('should stream messages', async () => {
   server.urls['/api/chat'].response = {
@@ -598,15 +593,15 @@ it('should stream messages', async () => {
     chunks: [
       formatChunk({ type: 'text-delta', delta: 'Hello' }),
       formatChunk({ type: 'finish', finishReason: 'stop' }),
-    ]
-  };
-  
-  const chat = new Chat({ generateId: mockId() });
-  await chat.sendMessage({ parts: [{ type: 'text', text: 'Hi' }] });
-  
-  expect(chat.messages).toHaveLength(2);
-  expect(chat.messages[1].parts[0].text).toBe('Hello');
-});
+    ],
+  }
+
+  const chat = new Chat({ generateId: mockId() })
+  await chat.sendMessage({ parts: [{ type: 'text', text: 'Hi' }] })
+
+  expect(chat.messages).toHaveLength(2)
+  expect(chat.messages[1].parts[0].text).toBe('Hello')
+})
 ```
 
 **Sources:** [packages/react/src/use-chat.ui.test.tsx](), [packages/svelte/src/chat.svelte.test.ts](), [packages/ai/src/ui/chat.test.ts]()
@@ -690,13 +685,13 @@ it('should stream messages', async () => {
 
 The UI framework packages follow coordinated versioning with the core `ai` package:
 
-| Package | Current Version | Core Dependency |
-|---------|----------------|-----------------|
-| `ai` | `7.0.0-beta.7` | N/A |
-| `@ai-sdk/react` | `4.0.0-beta.7` | `ai@7.0.0-beta.7` |
-| `@ai-sdk/vue` | `4.0.0-beta.7` | `ai@7.0.0-beta.7` |
-| `@ai-sdk/svelte` | `5.0.0-beta.7` | `ai@7.0.0-beta.7` |
-| `@ai-sdk/rsc` | `3.0.0-beta.7` | `ai@7.0.0-beta.7` |
+| Package          | Current Version | Core Dependency   |
+| ---------------- | --------------- | ----------------- |
+| `ai`             | `7.0.0-beta.7`  | N/A               |
+| `@ai-sdk/react`  | `4.0.0-beta.7`  | `ai@7.0.0-beta.7` |
+| `@ai-sdk/vue`    | `4.0.0-beta.7`  | `ai@7.0.0-beta.7` |
+| `@ai-sdk/svelte` | `5.0.0-beta.7`  | `ai@7.0.0-beta.7` |
+| `@ai-sdk/rsc`    | `3.0.0-beta.7`  | `ai@7.0.0-beta.7` |
 
 Svelte has a higher major version (5.x) to align with Svelte 5's breaking changes.
 

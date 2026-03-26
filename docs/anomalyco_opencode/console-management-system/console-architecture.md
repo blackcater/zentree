@@ -20,8 +20,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The OpenCode Console is a three-tier SaaS platform that provides managed access to OpenCode Zen and Go services. This page documents the overall architecture, component interactions, and deployment structure. For implementation details of the backend services, see [Console Backend](#7.2). For frontend implementation details, see [Console Frontend](#7.3).
 
 ## Architecture Overview
@@ -33,6 +31,7 @@ The Console platform consists of three primary tiers deployed on Cloudflare's in
 3. **console-core**: Shared business logic layer with database operations and integrations
 
 Two additional packages provide shared functionality:
+
 - **console-resource**: TypeScript type definitions for Cloudflare bindings
 - **console-mail**: Email template generation using JSX Email
 
@@ -43,59 +42,59 @@ graph TB
     subgraph "Client Layer"
         Browser["Browser Client"]
     end
-    
+
     subgraph "Frontend Tier"
         ConsoleApp["console-app<br/>SolidStart Application<br/>Cloudflare Pages"]
         VitePlugin["@cloudflare/vite-plugin"]
         Nitro["Nitro Server<br/>SSR Runtime"]
     end
-    
+
     subgraph "Backend Tier"
         ConsoleFunction["console-function<br/>Cloudflare Workers<br/>Hono HTTP Server"]
         HonoRouter["Hono Routes"]
         ZodValidator["@hono/zod-validator"]
         AISDK["AI SDK<br/>@ai-sdk/anthropic<br/>@ai-sdk/openai"]
     end
-    
+
     subgraph "Business Logic Tier"
         ConsoleCore["console-core<br/>Shared Business Logic"]
         DrizzleORM["Drizzle ORM"]
         StripeSDK["Stripe SDK"]
         AWSSTS["@aws-sdk/client-sts"]
     end
-    
+
     subgraph "Shared Packages"
         ConsoleResource["console-resource<br/>TypeScript Types<br/>Cloudflare Bindings"]
         ConsoleMail["console-mail<br/>JSX Email Templates<br/>@jsx-email/all"]
     end
-    
+
     subgraph "External Services"
         Database["PostgreSQL<br/>PlanetScale"]
         StripeAPI["Stripe API"]
         LLMProviders["LLM Providers<br/>OpenAI, Anthropic"]
         EmailService["Email Delivery"]
     end
-    
+
     Browser --> ConsoleApp
     ConsoleApp --> VitePlugin
     ConsoleApp --> Nitro
     ConsoleApp --> ConsoleFunction
-    
+
     ConsoleFunction --> HonoRouter
     HonoRouter --> ZodValidator
     HonoRouter --> AISDK
-    
+
     ConsoleApp --> ConsoleCore
     ConsoleFunction --> ConsoleCore
-    
+
     ConsoleCore --> DrizzleORM
     ConsoleCore --> StripeSDK
     ConsoleCore --> AWSSTS
     ConsoleCore --> ConsoleMail
-    
+
     ConsoleApp --> ConsoleResource
     ConsoleFunction --> ConsoleResource
-    
+
     DrizzleORM --> Database
     StripeSDK --> StripeAPI
     AISDK --> LLMProviders
@@ -106,13 +105,13 @@ Sources: [packages/console/app/package.json:1-46](), [packages/console/function/
 
 ## Package Dependencies and Responsibilities
 
-| Package | Framework | Deployment Target | Primary Responsibility |
-|---------|-----------|-------------------|----------------------|
-| `console-app` | SolidStart | Cloudflare Pages | Web UI, SSR, client-side routing |
-| `console-function` | Hono | Cloudflare Workers | API endpoints, AI model proxy |
-| `console-core` | N/A | Shared Library | Database access, business logic, integrations |
-| `console-mail` | JSX Email | Shared Library | Email template rendering |
-| `console-resource` | TypeScript | Shared Library | Type definitions for Cloudflare resources |
+| Package            | Framework  | Deployment Target  | Primary Responsibility                        |
+| ------------------ | ---------- | ------------------ | --------------------------------------------- |
+| `console-app`      | SolidStart | Cloudflare Pages   | Web UI, SSR, client-side routing              |
+| `console-function` | Hono       | Cloudflare Workers | API endpoints, AI model proxy                 |
+| `console-core`     | N/A        | Shared Library     | Database access, business logic, integrations |
+| `console-mail`     | JSX Email  | Shared Library     | Email template rendering                      |
+| `console-resource` | TypeScript | Shared Library     | Type definitions for Cloudflare resources     |
 
 **Key Dependencies by Tier**
 
@@ -126,7 +125,7 @@ graph LR
         ChartJS["chart.js"]
         SolidStripe["solid-stripe"]
     end
-    
+
     subgraph "console-function Dependencies"
         Hono["hono"]
         ZodValidator["@hono/zod-validator"]
@@ -135,7 +134,7 @@ graph LR
         AI["ai"]
         OpenAuth2["@openauthjs/openauth"]
     end
-    
+
     subgraph "console-core Dependencies"
         Drizzle["drizzle-orm"]
         Postgres["postgres"]
@@ -144,23 +143,23 @@ graph LR
         AWS4Fetch["aws4fetch"]
         AWSSTS["@aws-sdk/client-sts"]
     end
-    
+
     subgraph "Shared Dependencies"
         ConsoleCore["@opencode-ai/console-core"]
         ConsoleResource["@opencode-ai/console-resource"]
         ConsoleMail["@opencode-ai/console-mail"]
         UI["@opencode-ai/ui"]
     end
-    
+
     SolidStart -.uses.-> ConsoleCore
     Hono -.uses.-> ConsoleCore
-    
+
     SolidStart -.uses.-> ConsoleResource
     Hono -.uses.-> ConsoleResource
-    
+
     SolidStart -.uses.-> ConsoleMail
     Drizzle -.uses.-> ConsoleMail
-    
+
     SolidStart -.uses.-> UI
 ```
 
@@ -180,7 +179,7 @@ sequenceDiagram
     participant OpenAuth as "@openauthjs/openauth"
     participant ConsoleCore as "console-core"
     participant Database as "PostgreSQL"
-    
+
     User->>ConsoleApp: HTTP Request
     ConsoleApp->>Nitro: SSR Handler
     Nitro->>OpenAuth: Verify Session
@@ -206,7 +205,7 @@ sequenceDiagram
     participant ConsoleCore as "console-core"
     participant AISDK as "AI SDK"
     participant LLM as "LLM Provider"
-    
+
     Client->>ConsoleFunction: POST /api/chat
     ConsoleFunction->>Validator: Validate Request
     Validator-->>ConsoleFunction: Valid
@@ -238,38 +237,38 @@ graph TB
             NitroWorker["Nitro Worker<br/>SSR Runtime"]
             VitePlugin["@cloudflare/vite-plugin<br/>Build Tool"]
         end
-        
+
         subgraph "console-function Deployment"
             Worker["Cloudflare Worker<br/>Hono HTTP Server"]
             Bindings["Environment Bindings<br/>Secrets, KV, R2"]
         end
-        
+
         subgraph "Cloudflare Resources"
             KV["KV Namespace<br/>Session Storage"]
             R2["R2 Storage<br/>File Storage"]
             D1["D1 Database<br/>Edge SQLite"]
         end
     end
-    
+
     subgraph "External Infrastructure"
         PostgreSQL["PostgreSQL<br/>Primary Database<br/>postgres connector"]
         PlanetScale["PlanetScale<br/>Database Proxy<br/>@planetscale/database"]
         Stripe["Stripe API<br/>Payment Processing"]
     end
-    
+
     Pages --> NitroWorker
     VitePlugin -.builds.-> Pages
-    
+
     Worker --> Bindings
     Bindings --> KV
     Bindings --> R2
-    
+
     NitroWorker --> PostgreSQL
     Worker --> PostgreSQL
-    
+
     NitroWorker --> PlanetScale
     Worker --> PlanetScale
-    
+
     NitroWorker --> Stripe
     Worker --> Stripe
 ```
@@ -289,23 +288,23 @@ graph TB
         Schema["Database Schema"]
         Migrations["Migration Scripts<br/>drizzle-kit"]
     end
-    
+
     subgraph "Connection Drivers"
         PostgresDriver["postgres<br/>Direct Connection"]
         PlanetScaleDriver["@planetscale/database<br/>HTTP Connection"]
     end
-    
+
     subgraph "Database Instances"
         DevDB["Development DB"]
         ProdDB["Production DB<br/>PlanetScale"]
     end
-    
+
     DrizzleORM --> Schema
     DrizzleORM --> PostgresDriver
     DrizzleORM --> PlanetScaleDriver
-    
+
     Migrations --> DrizzleORM
-    
+
     PostgresDriver --> DevDB
     PlanetScaleDriver --> ProdDB
 ```
@@ -314,14 +313,14 @@ graph TB
 
 The `console-core` package includes several scripts for database operations:
 
-| Script | Purpose | Command |
-|--------|---------|---------|
-| `db` | Run drizzle-kit in SST shell | `bun run db` |
-| `db-dev` | Run drizzle-kit against dev stage | `bun run db-dev` |
-| `db-prod` | Run drizzle-kit against production | `bun run db-prod` |
-| `shell` | Open SST shell for database access | `bun run shell` |
-| `shell-dev` | Open dev stage shell | `bun run shell-dev` |
-| `shell-prod` | Open production shell | `bun run shell-prod` |
+| Script       | Purpose                            | Command              |
+| ------------ | ---------------------------------- | -------------------- |
+| `db`         | Run drizzle-kit in SST shell       | `bun run db`         |
+| `db-dev`     | Run drizzle-kit against dev stage  | `bun run db-dev`     |
+| `db-prod`    | Run drizzle-kit against production | `bun run db-prod`    |
+| `shell`      | Open SST shell for database access | `bun run shell`      |
+| `shell-dev`  | Open dev stage shell               | `bun run shell-dev`  |
+| `shell-prod` | Open production shell              | `bun run shell-prod` |
 
 Sources: [packages/console/core/package.json:25-31](), [packages/console/core/package.json:13-16]()
 
@@ -338,32 +337,32 @@ graph TB
         AuthProviders["OAuth Providers"]
         SessionStore["Session Storage"]
     end
-    
+
     subgraph "Frontend Auth"
         ConsoleAppAuth["console-app<br/>OpenAuth Client"]
         SolidStartServer["SolidStart Server Functions"]
     end
-    
+
     subgraph "Backend Auth"
         ConsoleFunctionAuth["console-function<br/>OpenAuth Middleware"]
         HonoAuth["Hono Auth Middleware"]
     end
-    
+
     subgraph "Protected Resources"
         DatabaseAccess["Database Operations"]
         StripeAPI["Stripe Integration"]
         AIRequests["AI Model Requests"]
     end
-    
+
     ConsoleAppAuth --> OpenAuth
     ConsoleFunctionAuth --> OpenAuth
-    
+
     OpenAuth --> AuthProviders
     OpenAuth --> SessionStore
-    
+
     SolidStartServer --> ConsoleAppAuth
     HonoAuth --> ConsoleFunctionAuth
-    
+
     ConsoleAppAuth --> DatabaseAccess
     ConsoleFunctionAuth --> AIRequests
     ConsoleAppAuth --> StripeAPI
@@ -384,35 +383,35 @@ graph TB
         RequestValidator["@hono/zod-validator<br/>Schema Validation"]
         AISDKCore["ai<br/>AI SDK Core"]
     end
-    
+
     subgraph "Provider SDKs"
         AnthropicSDK["@ai-sdk/anthropic<br/>Version 2.0.0"]
         OpenAISDK["@ai-sdk/openai<br/>Version 2.0.2"]
         CompatibleSDK["@ai-sdk/openai-compatible<br/>Version 1.0.1"]
     end
-    
+
     subgraph "LLM Services"
         Claude["Anthropic Claude"]
         GPT["OpenAI GPT"]
         CustomModels["Custom Endpoints"]
     end
-    
+
     subgraph "Usage Tracking"
         ConsoleCore["console-core<br/>Usage Logging"]
         Database["PostgreSQL<br/>Usage Records"]
     end
-    
+
     HonoEndpoint --> RequestValidator
     RequestValidator --> AISDKCore
-    
+
     AISDKCore --> AnthropicSDK
     AISDKCore --> OpenAISDK
     AISDKCore --> CompatibleSDK
-    
+
     AnthropicSDK --> Claude
     OpenAISDK --> GPT
     CompatibleSDK --> CustomModels
-    
+
     AISDKCore --> ConsoleCore
     ConsoleCore --> Database
 ```
@@ -432,32 +431,32 @@ graph TB
         StripeJS["@stripe/stripe-js<br/>Client SDK"]
         PaymentUI["Payment UI Components"]
     end
-    
+
     subgraph "Backend Payment Processing"
         StripeSDK["stripe<br/>Server SDK<br/>Version 18.0.0"]
         WebhookHandler["Stripe Webhook Handler"]
         PaymentCore["Payment Logic<br/>console-core"]
     end
-    
+
     subgraph "Database"
         CustomerTable["Customer Records"]
         SubscriptionTable["Subscription Records"]
         UsageTable["Usage Tracking"]
     end
-    
+
     subgraph "External"
         StripeAPI["Stripe API"]
         StripeWebhooks["Stripe Webhooks"]
     end
-    
+
     PaymentUI --> SolidStripe
     SolidStripe --> StripeJS
     StripeJS --> StripeAPI
-    
+
     StripeWebhooks --> WebhookHandler
     WebhookHandler --> StripeSDK
     StripeSDK --> PaymentCore
-    
+
     PaymentCore --> CustomerTable
     PaymentCore --> SubscriptionTable
     PaymentCore --> UsageTable
@@ -479,23 +478,23 @@ graph TB
         EmailCLI["@jsx-email/cli<br/>Preview Server"]
         Templates["Email Templates<br/>emails/templates/"]
     end
-    
+
     subgraph "Template Consumers"
         ConsoleCore["console-core<br/>Template Invocation"]
         ConsoleApp["console-app<br/>Preview & Testing"]
     end
-    
+
     subgraph "Delivery"
         EmailProvider["Email Service Provider"]
     end
-    
+
     Templates --> JSXEmail
     JSXEmail --> JSXRender
     EmailCLI --> Templates
-    
+
     ConsoleCore --> JSXRender
     ConsoleApp --> JSXRender
-    
+
     JSXRender --> EmailProvider
 ```
 
@@ -510,6 +509,7 @@ The package exports templates via a wildcard pattern defined in `package.json`:
 ```
 
 This allows consumers to import templates like:
+
 - `@opencode-ai/console-mail/welcome`
 - `@opencode-ai/console-mail/payment-receipt`
 - `@opencode-ai/console-mail/usage-alert`
@@ -529,16 +529,16 @@ graph TB
         CustomTypes["Custom Type Definitions"]
         BindingTypes["Cloudflare Binding Types<br/>KV, R2, D1, etc."]
     end
-    
+
     subgraph "Type Consumers"
         ConsoleApp["console-app<br/>Import Types"]
         ConsoleFunction["console-function<br/>Import Types"]
         ConsoleCore["console-core<br/>Import Types"]
     end
-    
+
     CloudflareTypes --> CustomTypes
     CustomTypes --> BindingTypes
-    
+
     BindingTypes --> ConsoleApp
     BindingTypes --> ConsoleFunction
     BindingTypes --> ConsoleCore
@@ -554,13 +554,13 @@ Each Console package has distinct build and development processes tailored to it
 
 **Development Commands by Package**
 
-| Package | Dev Command | Build Command | Purpose |
-|---------|-------------|---------------|---------|
-| `console-app` | `vite dev --host 0.0.0.0` | `vite build` | SolidStart dev server with HMR |
-| `console-app` (remote) | `dev:remote` with SST shell | N/A | Connect to dev environment with remote services |
-| `console-function` | N/A | Wrangler builds automatically | Cloudflare Workers deployment |
-| `console-core` | `sst shell` | `tsgo --noEmit` | Type checking only, runtime library |
-| `console-mail` | `email preview emails/templates` | N/A | JSX Email preview server |
+| Package                | Dev Command                      | Build Command                 | Purpose                                         |
+| ---------------------- | -------------------------------- | ----------------------------- | ----------------------------------------------- |
+| `console-app`          | `vite dev --host 0.0.0.0`        | `vite build`                  | SolidStart dev server with HMR                  |
+| `console-app` (remote) | `dev:remote` with SST shell      | N/A                           | Connect to dev environment with remote services |
+| `console-function`     | N/A                              | Wrangler builds automatically | Cloudflare Workers deployment                   |
+| `console-core`         | `sst shell`                      | `tsgo --noEmit`               | Type checking only, runtime library             |
+| `console-mail`         | `email preview emails/templates` | N/A                           | JSX Email preview server                        |
 
 **Build Tool Chain**
 
@@ -572,23 +572,23 @@ graph LR
         Nitro["Nitro<br/>Version 3.0.1-alpha.1"]
         SolidStart["@solidjs/start"]
     end
-    
+
     subgraph "console-function Build"
         Wrangler["Wrangler<br/>Version 4.50.0"]
         WorkersTypes["@cloudflare/workers-types"]
     end
-    
+
     subgraph "console-core Build"
         TypeScript["TypeScript<br/>Type Checking"]
         DrizzleKit["drizzle-kit<br/>Migration Tool"]
     end
-    
+
     Vite --> CloudflarePlugin
     CloudflarePlugin --> Nitro
     Nitro --> SolidStart
-    
+
     Wrangler --> WorkersTypes
-    
+
     TypeScript --> DrizzleKit
 ```
 
@@ -608,15 +608,15 @@ graph TB
     ConsoleMail["console-mail<br/>Email Templates"]
     ConsoleResource["console-resource<br/>Type Definitions"]
     UI["@opencode-ai/ui<br/>Shared Components"]
-    
+
     ConsoleApp -->|workspace:*| ConsoleCore
     ConsoleApp -->|workspace:*| ConsoleMail
     ConsoleApp -->|workspace:*| ConsoleResource
     ConsoleApp -->|workspace:*| UI
-    
+
     ConsoleFunction -->|workspace:*| ConsoleCore
     ConsoleFunction -->|workspace:*| ConsoleResource
-    
+
     ConsoleCore -->|workspace:*| ConsoleMail
     ConsoleCore -->|workspace:*| ConsoleResource
 ```

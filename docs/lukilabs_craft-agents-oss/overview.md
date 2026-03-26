@@ -10,8 +10,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page introduces Craft Agents: its purpose, the Agent Native software philosophy it embodies, and a high-level map of the monorepo. For detailed architecture, see [Architecture](#2). For installation and first-run setup, see [Getting Started](#3).
 
 ---
@@ -38,14 +36,14 @@ Sources: [README.md:14-23]()
 
 ## Agent Native Software Philosophy
 
-Craft Agents is described as being built with *Agent Native software* principles. In practice this means:
+Craft Agents is described as being built with _Agent Native software_ principles. In practice this means:
 
-| Principle | Implementation |
-|---|---|
+| Principle                      | Implementation                                                                                                                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Configuration via conversation | Connecting Linear, Slack, or a custom API is done by describing the intent to the agent — it reads docs, sets up credentials, and writes config. |
-| No restart required | Sources, skills, and settings take effect immediately; `@mention` new resources mid-session. |
-| Self-modifying workflow | The app itself is developed using Craft Agents — prompts replace code-editor interactions. |
-| Transparent tool use | Every tool call, permission prompt, and file diff is surfaced in the UI, not hidden. |
+| No restart required            | Sources, skills, and settings take effect immediately; `@mention` new resources mid-session.                                                     |
+| Self-modifying workflow        | The app itself is developed using Craft Agents — prompts replace code-editor interactions.                                                       |
+| Transparent tool use           | Every tool call, permission prompt, and file diff is surfaced in the UI, not hidden.                                                             |
 
 Sources: [README.md:14-58]()
 
@@ -55,13 +53,13 @@ Sources: [README.md:14-58]()
 
 Craft Agents routes agent work through two internal backends — `ClaudeAgent` (Claude Agent SDK) and `CopilotAgent`/`CraftAgent` (Pi SDK). See [Agent System](#2.3) for the routing logic.
 
-| Provider | Auth Method | Backend |
-|---|---|---|
-| Anthropic Claude | API key or Claude Max/Pro OAuth | `ClaudeAgent` (Claude Agent SDK) |
-| Google AI Studio | API key | Pi SDK |
-| ChatGPT Plus / Pro | Codex OAuth | Pi SDK |
-| GitHub Copilot | OAuth device code | Pi SDK |
-| OpenRouter / Vercel AI Gateway / Ollama | Custom base URL + API key | `ClaudeAgent` (custom endpoint) |
+| Provider                                | Auth Method                     | Backend                          |
+| --------------------------------------- | ------------------------------- | -------------------------------- |
+| Anthropic Claude                        | API key or Claude Max/Pro OAuth | `ClaudeAgent` (Claude Agent SDK) |
+| Google AI Studio                        | API key                         | Pi SDK                           |
+| ChatGPT Plus / Pro                      | Codex OAuth                     | Pi SDK                           |
+| GitHub Copilot                          | OAuth device code               | Pi SDK                           |
+| OpenRouter / Vercel AI Gateway / Ollama | Custom base URL + API key       | `ClaudeAgent` (custom endpoint)  |
 
 Sources: [README.md:262-290]()
 
@@ -223,18 +221,18 @@ Sources: [README.md:292-311]()
 
 ## Tech Stack Summary
 
-| Layer | Technology | Used In |
-|---|---|---|
-| Runtime | [Bun](https://bun.sh/) | All packages |
-| Desktop shell | Electron | `apps/electron` |
-| UI framework | React 18 + Vite | `apps/electron/renderer`, `apps/viewer` |
-| UI components | shadcn/ui + Tailwind CSS v4 | `packages/ui` |
-| Main process build | esbuild | `scripts/electron-build-main.ts` |
-| AI (Claude backend) | `@anthropic-ai/claude-agent-sdk` | `packages/shared/src/agent/` |
-| AI (Pi backend) | `@mariozechner/pi-coding-agent` | `packages/shared/src/agent/` |
-| MCP protocol | `@modelcontextprotocol/sdk` | `packages/shared/src/sources/` |
-| Credential storage | AES-256-GCM (Node `crypto`) | `packages/shared/src/credentials/` |
-| Diagrams | `beautiful-mermaid` via `packages/mermaid` | Renderer UI |
+| Layer               | Technology                                 | Used In                                 |
+| ------------------- | ------------------------------------------ | --------------------------------------- |
+| Runtime             | [Bun](https://bun.sh/)                     | All packages                            |
+| Desktop shell       | Electron                                   | `apps/electron`                         |
+| UI framework        | React 18 + Vite                            | `apps/electron/renderer`, `apps/viewer` |
+| UI components       | shadcn/ui + Tailwind CSS v4                | `packages/ui`                           |
+| Main process build  | esbuild                                    | `scripts/electron-build-main.ts`        |
+| AI (Claude backend) | `@anthropic-ai/claude-agent-sdk`           | `packages/shared/src/agent/`            |
+| AI (Pi backend)     | `@mariozechner/pi-coding-agent`            | `packages/shared/src/agent/`            |
+| MCP protocol        | `@modelcontextprotocol/sdk`                | `packages/shared/src/sources/`          |
+| Credential storage  | AES-256-GCM (Node `crypto`)                | `packages/shared/src/credentials/`      |
+| Diagrams            | `beautiful-mermaid` via `packages/mermaid` | Renderer UI                             |
 
 Sources: [README.md:376-386](), [package.json:56-143]()
 
@@ -242,14 +240,14 @@ Sources: [README.md:376-386](), [package.json:56-143]()
 
 ## Where to Go Next
 
-| Topic | Wiki Page |
-|---|---|
-| Full system architecture and process model | [Architecture](#2) |
-| Monorepo package layout and inter-dependencies | [Package Structure](#2.1) |
-| Electron main/preload/renderer processes | [Electron Application Architecture](#2.2) |
-| Agent backends and LLM routing | [Agent System](#2.3) |
-| MCP servers, REST APIs, OAuth | [External Service Integration](#2.4) |
-| Installation | [Installation](#3.1) |
-| Workspaces, sessions, sources, skills | [Core Concepts](#4) |
-| Automations reference | [Hooks & Automation](#4.9) |
-| Developer setup and scripts | [Development Setup](#5.1) |
+| Topic                                          | Wiki Page                                 |
+| ---------------------------------------------- | ----------------------------------------- |
+| Full system architecture and process model     | [Architecture](#2)                        |
+| Monorepo package layout and inter-dependencies | [Package Structure](#2.1)                 |
+| Electron main/preload/renderer processes       | [Electron Application Architecture](#2.2) |
+| Agent backends and LLM routing                 | [Agent System](#2.3)                      |
+| MCP servers, REST APIs, OAuth                  | [External Service Integration](#2.4)      |
+| Installation                                   | [Installation](#3.1)                      |
+| Workspaces, sessions, sources, skills          | [Core Concepts](#4)                       |
+| Automations reference                          | [Hooks & Automation](#4.9)                |
+| Developer setup and scripts                    | [Development Setup](#5.1)                 |

@@ -44,8 +44,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes the Inter-Process Communication (IPC) system that enables type-safe communication between the Electron main process and renderer process. Superset uses [tRPC](https://trpc.io/) with the `trpc-electron` adapter to expose main process functionality to the renderer through a strongly-typed API. This system provides 20+ specialized routers covering terminal management, Git operations, file system access, workspace management, and more.
@@ -67,22 +65,22 @@ graph TB
         TRPCClient["tRPC Client<br/>(trpc-electron/renderer)"]
         IPCBridge["IPC Bridge<br/>contextBridge"]
     end
-    
+
     subgraph "IPC Channel"
         ElectronIPC["Electron IPC<br/>ipcRenderer ↔ ipcMain"]
     end
-    
+
     subgraph "Main Process (Node.js)"
         IPCHandler["createIPCHandler<br/>trpc-electron/main"]
         AppRouter["AppRouter<br/>router() composition"]
-        
+
         subgraph "Router Modules"
             TerminalRouter["terminal router"]
             WorkspacesRouter["workspaces router"]
             ProjectsRouter["projects router"]
             OtherRouters["...17 more routers"]
         end
-        
+
         subgraph "System Resources"
             PTY["node-pty"]
             Git["Git CLI"]
@@ -90,23 +88,23 @@ graph TB
             LocalDB["SQLite DB"]
         end
     end
-    
+
     UI -->|"trpc.terminal.create()"| TRPCClient
     TRPCClient -->|"Serialize request"| IPCBridge
     IPCBridge -->|"IPC message"| ElectronIPC
     ElectronIPC -->|"Deserialize"| IPCHandler
     IPCHandler -->|"Route request"| AppRouter
-    
+
     AppRouter -->|"Dispatch"| TerminalRouter
     AppRouter -->|"Dispatch"| WorkspacesRouter
     AppRouter -->|"Dispatch"| ProjectsRouter
     AppRouter -->|"Dispatch"| OtherRouters
-    
+
     TerminalRouter --> PTY
     WorkspacesRouter --> Git
     ProjectsRouter --> FileSystem
     ProjectsRouter --> LocalDB
-    
+
     AppRouter -->|"Response"| IPCHandler
     IPCHandler -->|"Serialize"| ElectronIPC
     ElectronIPC -->|"IPC message"| IPCBridge
@@ -125,9 +123,10 @@ graph TB
 The IPC handler is created as a singleton that persists across window closures and reopenings. This is critical on macOS, where closing the window doesn't quit the application, and reopening requires reattaching to the existing handler rather than creating duplicate handlers.
 
 [apps/desktop/src/main/windows/main.ts:34-35]():
+
 ```typescript
 // Singleton IPC handler to prevent duplicate handlers on window reopen (macOS)
-let ipcHandler: ReturnType<typeof createIPCHandler> | null = null;
+let ipcHandler: ReturnType<typeof createIPCHandler> | null = null
 ```
 
 ### Handler Creation and Window Attachment
@@ -135,25 +134,27 @@ let ipcHandler: ReturnType<typeof createIPCHandler> | null = null;
 The handler is created once on first window creation and reused for subsequent windows:
 
 [apps/desktop/src/main/windows/main.ts:128-135]():
+
 ```typescript
 if (ipcHandler) {
-    ipcHandler.attachWindow(window);
+  ipcHandler.attachWindow(window)
 } else {
-    ipcHandler = createIPCHandler({
-        router: createAppRouter(getWindow),
-        windows: [window],
-    });
+  ipcHandler = createIPCHandler({
+    router: createAppRouter(getWindow),
+    windows: [window],
+  })
 }
 ```
 
 The `createAppRouter` function receives a `getWindow` getter that always returns the current window reference, ensuring routers don't hold stale window references:
 
 [apps/desktop/src/main/windows/main.ts:59-62]():
+
 ```typescript
-let currentWindow: BrowserWindow | null = null;
+let currentWindow: BrowserWindow | null = null
 
 // Routers receive this getter so they always see the current window, not a stale reference
-const getWindow = () => currentWindow;
+const getWindow = () => currentWindow
 ```
 
 ### Window Detachment on Close
@@ -161,10 +162,11 @@ const getWindow = () => currentWindow;
 When a window closes, it detaches from the IPC handler but the handler remains alive:
 
 [apps/desktop/src/main/windows/main.ts:265-267]():
+
 ```typescript
 // Detach window from IPC handler (handler stays alive for window reopen)
-ipcHandler?.detachWindow(window);
-currentWindow = null;
+ipcHandler?.detachWindow(window)
+currentWindow = null
 ```
 
 **Sources:** [apps/desktop/src/main/windows/main.ts:34-35](), [apps/desktop/src/main/windows/main.ts:59-267]()
@@ -178,31 +180,32 @@ currentWindow = null;
 The `AppRouter` is composed of 16 specialized routers, each handling a distinct domain of functionality. The router is created using tRPC's `router()` combinator:
 
 [apps/desktop/src/lib/trpc/routers/index.ts:24-47]():
+
 ```typescript
 export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
-    return router({
-        aiChat: createAiChatRouter(),
-        analytics: createAnalyticsRouter(),
-        auth: createAuthRouter(),
-        autoUpdate: createAutoUpdateRouter(),
-        cache: createCacheRouter(),
-        window: createWindowRouter(getWindow),
-        projects: createProjectsRouter(getWindow),
-        workspaces: createWorkspacesRouter(),
-        terminal: createTerminalRouter(),
-        changes: createChangesRouter(),
-        filesystem: createFilesystemRouter(),
-        notifications: createNotificationsRouter(),
-        ports: createPortsRouter(),
-        menu: createMenuRouter(),
-        hotkeys: createHotkeysRouter(getWindow),
-        external: createExternalRouter(),
-        settings: createSettingsRouter(),
-        config: createConfigRouter(),
-        uiState: createUiStateRouter(),
-        ringtone: createRingtoneRouter(),
-    });
-};
+  return router({
+    aiChat: createAiChatRouter(),
+    analytics: createAnalyticsRouter(),
+    auth: createAuthRouter(),
+    autoUpdate: createAutoUpdateRouter(),
+    cache: createCacheRouter(),
+    window: createWindowRouter(getWindow),
+    projects: createProjectsRouter(getWindow),
+    workspaces: createWorkspacesRouter(),
+    terminal: createTerminalRouter(),
+    changes: createChangesRouter(),
+    filesystem: createFilesystemRouter(),
+    notifications: createNotificationsRouter(),
+    ports: createPortsRouter(),
+    menu: createMenuRouter(),
+    hotkeys: createHotkeysRouter(getWindow),
+    external: createExternalRouter(),
+    settings: createSettingsRouter(),
+    config: createConfigRouter(),
+    uiState: createUiStateRouter(),
+    ringtone: createRingtoneRouter(),
+  })
+}
 ```
 
 ### Type Export
@@ -210,8 +213,9 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 The `AppRouter` type is exported for use in the renderer process:
 
 [apps/desktop/src/lib/trpc/routers/index.ts:49]():
+
 ```typescript
-export type AppRouter = ReturnType<typeof createAppRouter>;
+export type AppRouter = ReturnType<typeof createAppRouter>
 ```
 
 This type is imported by the renderer's tRPC client to provide full type inference for all IPC calls.
@@ -226,28 +230,28 @@ Each router module encapsulates related functionality. Some routers require acce
 
 ### Router Inventory
 
-| Router Name | Purpose | Requires Window |
-|------------|---------|-----------------|
-| `aiChat` | AI chat session lifecycle and stream management | No |
-| `analytics` | Analytics event tracking | No |
-| `auth` | Authentication flow and session management | No |
-| `autoUpdate` | Application auto-update system | No |
-| `cache` | Key-value cache operations | No |
-| `window` | Window state management (maximize, minimize, close) | Yes |
-| `projects` | Project/repository management, cloning, opening | Yes |
-| `workspaces` | Workspace creation, deletion, initialization | No |
-| `terminal` | Terminal session management, PTY operations | No |
-| `changes` | Git status and change detection | No |
-| `filesystem` | File system operations, directory listing | No |
-| `notifications` | Notification subscriptions via SSE | No |
-| `ports` | Port availability checking | No |
-| `menu` | Application menu actions and events | No |
-| `hotkeys` | Hotkey configuration management | Yes |
-| `external` | External link handling | No |
-| `settings` | Settings persistence and retrieval | No |
-| `config` | Workspace configuration (setup/teardown scripts) | No |
-| `uiState` | UI state persistence (tabs, panes, window state) | No |
-| `ringtone` | Notification sound management | No |
+| Router Name     | Purpose                                             | Requires Window |
+| --------------- | --------------------------------------------------- | --------------- |
+| `aiChat`        | AI chat session lifecycle and stream management     | No              |
+| `analytics`     | Analytics event tracking                            | No              |
+| `auth`          | Authentication flow and session management          | No              |
+| `autoUpdate`    | Application auto-update system                      | No              |
+| `cache`         | Key-value cache operations                          | No              |
+| `window`        | Window state management (maximize, minimize, close) | Yes             |
+| `projects`      | Project/repository management, cloning, opening     | Yes             |
+| `workspaces`    | Workspace creation, deletion, initialization        | No              |
+| `terminal`      | Terminal session management, PTY operations         | No              |
+| `changes`       | Git status and change detection                     | No              |
+| `filesystem`    | File system operations, directory listing           | No              |
+| `notifications` | Notification subscriptions via SSE                  | No              |
+| `ports`         | Port availability checking                          | No              |
+| `menu`          | Application menu actions and events                 | No              |
+| `hotkeys`       | Hotkey configuration management                     | Yes             |
+| `external`      | External link handling                              | No              |
+| `settings`      | Settings persistence and retrieval                  | No              |
+| `config`        | Workspace configuration (setup/teardown scripts)    | No              |
+| `uiState`       | UI state persistence (tabs, panes, window state)    | No              |
+| `ringtone`      | Notification sound management                       | No              |
 
 ### Window-Dependent Routers
 
@@ -258,6 +262,7 @@ Three routers receive the `getWindow` getter because they need direct access to 
 - **`hotkeys`**: May need to trigger window-level actions or focus changes
 
 [apps/desktop/src/lib/trpc/routers/index.ts:31-32,40]():
+
 ```typescript
 window: createWindowRouter(getWindow),
 projects: createProjectsRouter(getWindow),
@@ -276,14 +281,14 @@ graph TB
     subgraph "AppRouter Factory"
         CreateAppRouter["createAppRouter(getWindow)"]
     end
-    
+
     subgraph "Core Infrastructure Routers"
         Window["window<br/>createWindowRouter(getWindow)"]
         Auth["auth<br/>createAuthRouter()"]
         AutoUpdate["autoUpdate<br/>createAutoUpdateRouter()"]
         Cache["cache<br/>createCacheRouter()"]
     end
-    
+
     subgraph "Development Environment Routers"
         Projects["projects<br/>createProjectsRouter(getWindow)"]
         Workspaces["workspaces<br/>createWorkspacesRouter()"]
@@ -291,13 +296,13 @@ graph TB
         Changes["changes<br/>createChangesRouter()"]
         Config["config<br/>createConfigRouter()"]
     end
-    
+
     subgraph "File and System Routers"
         Filesystem["filesystem<br/>createFilesystemRouter()"]
         Ports["ports<br/>createPortsRouter()"]
         External["external<br/>createExternalRouter()"]
     end
-    
+
     subgraph "UI and User Experience Routers"
         UIState["uiState<br/>createUiStateRouter()"]
         Settings["settings<br/>createSettingsRouter()"]
@@ -306,34 +311,34 @@ graph TB
         Notifications["notifications<br/>createNotificationsRouter()"]
         Ringtone["ringtone<br/>createRingtoneRouter()"]
     end
-    
+
     subgraph "AI Features Routers"
         AIChat["aiChat<br/>createAiChatRouter()"]
         Analytics["analytics<br/>createAnalyticsRouter()"]
     end
-    
+
     CreateAppRouter --> Window
     CreateAppRouter --> Auth
     CreateAppRouter --> AutoUpdate
     CreateAppRouter --> Cache
-    
+
     CreateAppRouter --> Projects
     CreateAppRouter --> Workspaces
     CreateAppRouter --> Terminal
     CreateAppRouter --> Changes
     CreateAppRouter --> Config
-    
+
     CreateAppRouter --> Filesystem
     CreateAppRouter --> Ports
     CreateAppRouter --> External
-    
+
     CreateAppRouter --> UIState
     CreateAppRouter --> Settings
     CreateAppRouter --> Hotkeys
     CreateAppRouter --> Menu
     CreateAppRouter --> Notifications
     CreateAppRouter --> Ringtone
-    
+
     CreateAppRouter --> AIChat
     CreateAppRouter --> Analytics
 ```
@@ -360,17 +365,17 @@ graph LR
         RouterImpl["Router Implementation<br/>procedures with<br/>input/output types"]
         AppRouterType["export type AppRouter"]
     end
-    
+
     subgraph "Type System"
         TypeDef["AppRouter Type Definition<br/>(compile-time only)"]
     end
-    
+
     subgraph "Renderer Process"
         ClientImport["import type { AppRouter }"]
         TRPCClient["trpc client with<br/>AppRouter type parameter"]
         ComponentCall["Component calls<br/>trpc.terminal.create()"]
     end
-    
+
     RouterImpl -->|"ReturnType<typeof createAppRouter>"| AppRouterType
     AppRouterType -->|"Type export (no runtime)"| TypeDef
     TypeDef -->|"Type import"| ClientImport
@@ -404,17 +409,17 @@ router({
       .input(z.object({ cwd: z.string() }))
       .mutation(async ({ input }) => {
         // Create terminal session
-        return { paneId: "terminal-123" };
+        return { paneId: 'terminal-123' }
       }),
-    
+
     getStatus: query()
       .input(z.object({ paneId: z.string() }))
       .query(async ({ input }) => {
         // Return status
-        return { isRunning: true };
+        return { isRunning: true }
       }),
   }),
-});
+})
 ```
 
 ### Observable Pattern for Streaming
@@ -430,15 +435,15 @@ router({
       .subscription(({ input }) => {
         return observable((emit) => {
           // Emit data as it arrives
-          pty.on('data', (data) => emit.next({ data }));
-          
+          pty.on('data', (data) => emit.next({ data }))
+
           return () => {
             // Cleanup on unsubscribe
-          };
-        });
+          }
+        })
       }),
   }),
-});
+})
 ```
 
 The renderer subscribes to these observables and receives real-time updates as they occur.
@@ -453,7 +458,7 @@ if (!isValidWorkspace) {
   throw new TRPCError({
     code: 'BAD_REQUEST',
     message: 'Invalid workspace ID',
-  });
+  })
 }
 ```
 
@@ -470,8 +475,9 @@ The renderer receives these as typed errors that can be handled appropriately in
 The menu system uses a separate event emitter for application menu actions, which is then exposed through the `menu` router:
 
 [apps/desktop/src/main/lib/menu.ts:113]():
+
 ```typescript
-menuEmitter.emit("open-settings", "keyboard");
+menuEmitter.emit('open-settings', 'keyboard')
 ```
 
 This pattern allows menu actions (triggered by keyboard accelerators or menu clicks) to be communicated to the renderer through tRPC subscriptions.
@@ -481,13 +487,14 @@ This pattern allows menu actions (triggered by keyboard accelerators or menu cli
 The hotkey system uses an event emitter to notify when hotkey configurations change, triggering menu updates:
 
 [apps/desktop/src/main/lib/menu.ts:31-37]():
+
 ```typescript
 export function registerMenuHotkeyUpdates() {
-    if (isHotkeyListenerRegistered) return;
-    isHotkeyListenerRegistered = true;
-    hotkeysEmitter.on("change", () => {
-        createApplicationMenu();
-    });
+  if (isHotkeyListenerRegistered) return
+  isHotkeyListenerRegistered = true
+  hotkeysEmitter.on('change', () => {
+    createApplicationMenu()
+  })
 }
 ```
 

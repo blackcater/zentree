@@ -35,8 +35,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The `@opencode-ai/sdk` package (`packages/sdk/js`) is the official JavaScript/TypeScript client for the opencode HTTP server. It provides typed wrappers around all REST and SSE endpoints, with client code auto-generated from `packages/sdk/openapi.json`. This page covers the package layout, entry point functions, the generated service class layer, SSE event consumption, and the core type system.
 
 For the HTTP server that the SDK communicates with, see [HTTP Server & REST API](#2.5). For the OpenAPI spec and the code generation pipeline, see [OpenAPI Specification & Code Generation](#5.2).
@@ -58,15 +56,15 @@ When published, only the `dist/` directory is shipped. Generated files under `sr
 
 The package exposes seven named subpath exports in `package.json`:
 
-| Export path | Source file | Primary exports |
-|---|---|---|
-| `.` | `src/index.ts` | `createOpencode`, re-exports from client and server |
-| `./client` | `src/client.ts` | `createOpencodeClient` |
-| `./server` | `src/server.ts` | `createOpencodeServer`, `ServerOptions` |
-| `./v2` | `src/v2/index.ts` | All v2 types and `createOpencodeClient` |
-| `./v2/client` | `src/v2/client.ts` | `createOpencodeClient` (primary internal path) |
-| `./v2/gen/client` | `src/v2/gen/client/index.ts` | Raw HTTP client primitives used by service classes |
-| `./v2/server` | `src/v2/server.ts` | Server spawn utilities |
+| Export path       | Source file                  | Primary exports                                     |
+| ----------------- | ---------------------------- | --------------------------------------------------- |
+| `.`               | `src/index.ts`               | `createOpencode`, re-exports from client and server |
+| `./client`        | `src/client.ts`              | `createOpencodeClient`                              |
+| `./server`        | `src/server.ts`              | `createOpencodeServer`, `ServerOptions`             |
+| `./v2`            | `src/v2/index.ts`            | All v2 types and `createOpencodeClient`             |
+| `./v2/client`     | `src/v2/client.ts`           | `createOpencodeClient` (primary internal path)      |
+| `./v2/gen/client` | `src/v2/gen/client/index.ts` | Raw HTTP client primitives used by service classes  |
+| `./v2/server`     | `src/v2/server.ts`           | Server spawn utilities                              |
 
 The `./v2` and `./v2/client` paths are what all internal consumers use. The root `.` export is a convenience layer for external scripts.
 
@@ -113,12 +111,12 @@ Sources: [packages/sdk/js/package.json:1-43](), [packages/sdk/js/src/index.ts:1-
 Defined in `src/index.ts` [packages/sdk/js/src/index.ts:8-21](). Spawns an opencode server subprocess and returns both a server handle and a typed client already connected to it. Useful when you need opencode to manage the server lifecycle.
 
 ```typescript
-import { createOpencode } from "@opencode-ai/sdk"
+import { createOpencode } from '@opencode-ai/sdk'
 
 const { client, server } = await createOpencode({
-  hostname: "127.0.0.1",
+  hostname: '127.0.0.1',
   port: 4096,
-  config: { model: "anthropic/claude-sonnet-4-5" },
+  config: { model: 'anthropic/claude-sonnet-4-5' },
 })
 // server.url contains the base URL
 // call server.close() when done
@@ -126,24 +124,24 @@ const { client, server } = await createOpencode({
 
 `ServerOptions` parameters (forwarded to `createOpencodeServer`):
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `hostname` | `string` | `127.0.0.1` | Server hostname |
-| `port` | `number` | `4096` | Server port |
-| `signal` | `AbortSignal` | — | Cancellation signal |
-| `timeout` | `number` | `5000` | Server start timeout in ms |
-| `config` | `Config` | `{}` | Config overrides merged with `opencode.json` |
+| Option     | Type          | Default     | Description                                  |
+| ---------- | ------------- | ----------- | -------------------------------------------- |
+| `hostname` | `string`      | `127.0.0.1` | Server hostname                              |
+| `port`     | `number`      | `4096`      | Server port                                  |
+| `signal`   | `AbortSignal` | —           | Cancellation signal                          |
+| `timeout`  | `number`      | `5000`      | Server start timeout in ms                   |
+| `config`   | `Config`      | `{}`        | Config overrides merged with `opencode.json` |
 
 ### `createOpencodeClient`
 
 Creates a typed HTTP client for an already-running opencode server. This is the most commonly used function — both inside the opencode CLI and in external integrations.
 
 ```typescript
-import { createOpencodeClient } from "@opencode-ai/sdk/v2"
+import { createOpencodeClient } from '@opencode-ai/sdk/v2'
 
 const client = createOpencodeClient({
-  baseUrl: "http://localhost:4096",
-  directory: "/path/to/project",
+  baseUrl: 'http://localhost:4096',
+  directory: '/path/to/project',
 })
 
 const sessions = await client.session.list()
@@ -151,14 +149,14 @@ const sessions = await client.session.list()
 
 Client constructor options:
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `baseUrl` | `string` | `http://localhost:4096` | Server base URL |
-| `fetch` | `function` | `globalThis.fetch` | Custom fetch implementation |
-| `directory` | `string` | — | Project directory; appended as `?directory=` on project-scoped requests |
-| `workspace` | `string` | — | Workspace name; appended as `?workspace=` on scoped requests |
-| `signal` | `AbortSignal` | — | Cancellation signal |
-| `throwOnError` | `boolean` | `false` | Throw on HTTP errors rather than returning them |
+| Option         | Type          | Default                 | Description                                                             |
+| -------------- | ------------- | ----------------------- | ----------------------------------------------------------------------- |
+| `baseUrl`      | `string`      | `http://localhost:4096` | Server base URL                                                         |
+| `fetch`        | `function`    | `globalThis.fetch`      | Custom fetch implementation                                             |
+| `directory`    | `string`      | —                       | Project directory; appended as `?directory=` on project-scoped requests |
+| `workspace`    | `string`      | —                       | Workspace name; appended as `?workspace=` on scoped requests            |
+| `signal`       | `AbortSignal` | —                       | Cancellation signal                                                     |
+| `throwOnError` | `boolean`     | `false`                 | Throw on HTTP errors rather than returning them                         |
 
 When `directory` is provided, it is sent as a query parameter on all requests that require a project context, routing them to the correct instance on the server.
 
@@ -178,7 +176,7 @@ All code under `src/v2/gen/` is auto-generated. Running `bun ./script/build.ts` 
 class HeyApiClient {
   protected client: Client
   constructor(args?: { client?: Client }) {
-    this.client = args?.client ?? client  // falls back to module-level default
+    this.client = args?.client ?? client // falls back to module-level default
   }
 }
 ```
@@ -244,32 +242,32 @@ Each service class in `sdk.gen.ts` wraps one group of HTTP routes. Methods map t
 
 **Complete service class reference:**
 
-| Class | Key Methods | Route Prefix |
-|---|---|---|
-| `Global` | `health()`, `event()` (SSE), `dispose()` | `/global/` |
-| `Config` (via `Global.config`) | `get()`, `update()` | `/global/config` |
-| `Auth` | `set(providerID, auth)`, `remove(providerID)` | `/auth/{providerID}` |
-| `Project` | `list()`, `current()`, `update(projectID, ...)` | `/project/` |
-| `Session` | `create()`, `get(id)`, `list()`, `delete(id)`, `prompt(id, ...)`, `promptAsync(id, ...)`, `abort(id)`, `fork(id)`, `share(id)`, `unshare(id)`, `summarize(id)`, `revert(id, ...)`, `unrevert(id)`, `diff(id)`, `init(id)`, `update(id, ...)`, `children(id)`, `command(id, ...)`, `shell(id, ...)`, `status()`, `messages(id)`, `message(id, msgId)`, `deleteMessage(id, msgId)`, `todo(id)` | `/session/` |
-| `Part` | `update(id, ...)`, `delete(id)` | `/part/` |
-| `Provider` | `list()`, `auth(id)`, `oauthAuthorize(id)`, `oauthCallback(id, ...)` | `/provider/` |
-| `Pty` | `list()`, `create(...)`, `get(id)`, `update(id, ...)`, `remove(id)`, `connect(id)` | `/pty/` |
-| `Mcp` | `status()`, `connect(name)`, `disconnect(name)`, `add(...)`, `authStart(name)`, `authAuthenticate(name, ...)`, `authCallback(name, ...)`, `authRemove(name)` | `/mcp/` |
-| `Permission` | `list()`, `reply(id, ...)`, `respond(id, ...)` | `/permission/` |
-| `Question` | `list()`, `reply(id, ...)`, `reject(id)` | `/question/` |
-| `Worktree` | `create(...)`, `list()`, `remove(...)`, `reset(...)` | `/worktree/` |
-| `Vcs` | `get()` | `/vcs/` |
-| `File` | `read(path)`, `list()`, `status(path)` | `/file/` |
-| `Find` | `files(...)`, `symbols(...)`, `text(...)` | `/find/` |
-| `Lsp` | `status()` | `/lsp/` |
-| `Formatter` | `status()` | `/formatter/` |
-| `Tool` | `ids()`, `list(...)` | `/experimental/tool/` |
-| `Event` | `subscribe(...)` (SSE) | `/event/subscribe` |
-| `Tui` | `appendPrompt(...)`, `submitPrompt()`, `clearPrompt()`, `executeCommand(...)`, `controlNext()`, `controlResponse()`, `openSessions()`, `openModels()`, `openThemes()`, `openHelp()`, `publish(...)`, `selectSession(...)`, `showToast(...)` | `/tui/` |
-| `Instance` | `dispose()` | `/instance/` |
-| `Command` | `list()` | `/command/` |
-| `App` | `agents()`, `skills()`, `log(...)` | `/app/` |
-| `Path` | `get()` | `/path/` |
+| Class                          | Key Methods                                                                                                                                                                                                                                                                                                                                                                                  | Route Prefix          |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `Global`                       | `health()`, `event()` (SSE), `dispose()`                                                                                                                                                                                                                                                                                                                                                     | `/global/`            |
+| `Config` (via `Global.config`) | `get()`, `update()`                                                                                                                                                                                                                                                                                                                                                                          | `/global/config`      |
+| `Auth`                         | `set(providerID, auth)`, `remove(providerID)`                                                                                                                                                                                                                                                                                                                                                | `/auth/{providerID}`  |
+| `Project`                      | `list()`, `current()`, `update(projectID, ...)`                                                                                                                                                                                                                                                                                                                                              | `/project/`           |
+| `Session`                      | `create()`, `get(id)`, `list()`, `delete(id)`, `prompt(id, ...)`, `promptAsync(id, ...)`, `abort(id)`, `fork(id)`, `share(id)`, `unshare(id)`, `summarize(id)`, `revert(id, ...)`, `unrevert(id)`, `diff(id)`, `init(id)`, `update(id, ...)`, `children(id)`, `command(id, ...)`, `shell(id, ...)`, `status()`, `messages(id)`, `message(id, msgId)`, `deleteMessage(id, msgId)`, `todo(id)` | `/session/`           |
+| `Part`                         | `update(id, ...)`, `delete(id)`                                                                                                                                                                                                                                                                                                                                                              | `/part/`              |
+| `Provider`                     | `list()`, `auth(id)`, `oauthAuthorize(id)`, `oauthCallback(id, ...)`                                                                                                                                                                                                                                                                                                                         | `/provider/`          |
+| `Pty`                          | `list()`, `create(...)`, `get(id)`, `update(id, ...)`, `remove(id)`, `connect(id)`                                                                                                                                                                                                                                                                                                           | `/pty/`               |
+| `Mcp`                          | `status()`, `connect(name)`, `disconnect(name)`, `add(...)`, `authStart(name)`, `authAuthenticate(name, ...)`, `authCallback(name, ...)`, `authRemove(name)`                                                                                                                                                                                                                                 | `/mcp/`               |
+| `Permission`                   | `list()`, `reply(id, ...)`, `respond(id, ...)`                                                                                                                                                                                                                                                                                                                                               | `/permission/`        |
+| `Question`                     | `list()`, `reply(id, ...)`, `reject(id)`                                                                                                                                                                                                                                                                                                                                                     | `/question/`          |
+| `Worktree`                     | `create(...)`, `list()`, `remove(...)`, `reset(...)`                                                                                                                                                                                                                                                                                                                                         | `/worktree/`          |
+| `Vcs`                          | `get()`                                                                                                                                                                                                                                                                                                                                                                                      | `/vcs/`               |
+| `File`                         | `read(path)`, `list()`, `status(path)`                                                                                                                                                                                                                                                                                                                                                       | `/file/`              |
+| `Find`                         | `files(...)`, `symbols(...)`, `text(...)`                                                                                                                                                                                                                                                                                                                                                    | `/find/`              |
+| `Lsp`                          | `status()`                                                                                                                                                                                                                                                                                                                                                                                   | `/lsp/`               |
+| `Formatter`                    | `status()`                                                                                                                                                                                                                                                                                                                                                                                   | `/formatter/`         |
+| `Tool`                         | `ids()`, `list(...)`                                                                                                                                                                                                                                                                                                                                                                         | `/experimental/tool/` |
+| `Event`                        | `subscribe(...)` (SSE)                                                                                                                                                                                                                                                                                                                                                                       | `/event/subscribe`    |
+| `Tui`                          | `appendPrompt(...)`, `submitPrompt()`, `clearPrompt()`, `executeCommand(...)`, `controlNext()`, `controlResponse()`, `openSessions()`, `openModels()`, `openThemes()`, `openHelp()`, `publish(...)`, `selectSession(...)`, `showToast(...)`                                                                                                                                                  | `/tui/`               |
+| `Instance`                     | `dispose()`                                                                                                                                                                                                                                                                                                                                                                                  | `/instance/`          |
+| `Command`                      | `list()`                                                                                                                                                                                                                                                                                                                                                                                     | `/command/`           |
+| `App`                          | `agents()`, `skills()`, `log(...)`                                                                                                                                                                                                                                                                                                                                                           | `/app/`               |
+| `Path`                         | `get()`                                                                                                                                                                                                                                                                                                                                                                                      | `/path/`              |
 
 Sources: [packages/sdk/js/src/v2/gen/sdk.gen.ts:230-end](), [packages/sdk/openapi.json:1-end]()
 
@@ -287,8 +285,8 @@ const events = await sdk.event.subscribe({}, { signal })
 for await (const event of events.stream) {
   // event.directory: string — which project instance emitted this
   // event.payload: Event   — discriminated union narrowed by .type
-  if (event.payload.type === "session.updated") {
-    const session = event.payload.properties.info  // typed as Session
+  if (event.payload.type === 'session.updated') {
+    const session = event.payload.properties.info // typed as Session
   }
 }
 ```

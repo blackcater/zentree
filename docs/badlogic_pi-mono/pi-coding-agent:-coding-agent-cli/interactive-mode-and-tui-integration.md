@@ -25,8 +25,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page documents the interactive terminal mode (`InteractiveMode` class) and its integration with the pi-tui library. Interactive mode provides a full-featured TUI for the coding agent with real-time message streaming, keyboard shortcuts, autocomplete, and extension UI capabilities.
@@ -48,31 +46,31 @@ graph TB
         Footer["FooterComponent"]
         Components["Message Components<br/>AssistantMessageComponent<br/>ToolExecutionComponent<br/>UserMessageComponent<br/>etc."]
     end
-    
+
     subgraph "Business Logic Layer"
         AS["AgentSession"]
         Agent["Agent (pi-agent-core)"]
         SM["SessionManager"]
         ER["ExtensionRunner"]
     end
-    
+
     subgraph "User Interaction"
         User["Terminal Input"]
         Display["Terminal Output"]
     end
-    
+
     User --> Editor
     Editor --> IM
     IM --> AS
     AS --> Agent
     AS --> SM
     AS --> ER
-    
+
     IM --> TUI
     TUI --> Components
     TUI --> Footer
     IM --> Display
-    
+
     AS -.events.-> IM
     ER -.UI context.-> IM
 ```
@@ -87,17 +85,17 @@ The `InteractiveMode` class maintains UI state and subscribes to `AgentSession` 
 
 ### Key Properties
 
-| Property | Type | Purpose |
-|----------|------|---------|
-| `session` | `AgentSession` | Business logic delegate |
-| `ui` | `TUI` | Main TUI instance from pi-tui |
-| `chatContainer` | `Container` | Holds message history |
-| `pendingMessagesContainer` | `Container` | Shows queued messages during streaming |
-| `statusContainer` | `Container` | Temporary status messages |
-| `editor` | `EditorComponent` | Active input editor (default or custom) |
-| `defaultEditor` | `CustomEditor` | Built-in editor with autocomplete |
-| `footer` | `FooterComponent` | Status bar at bottom |
-| `extensionRunner` | `ExtensionRunner` | For extension UI integration |
+| Property                   | Type              | Purpose                                 |
+| -------------------------- | ----------------- | --------------------------------------- |
+| `session`                  | `AgentSession`    | Business logic delegate                 |
+| `ui`                       | `TUI`             | Main TUI instance from pi-tui           |
+| `chatContainer`            | `Container`       | Holds message history                   |
+| `pendingMessagesContainer` | `Container`       | Shows queued messages during streaming  |
+| `statusContainer`          | `Container`       | Temporary status messages               |
+| `editor`                   | `EditorComponent` | Active input editor (default or custom) |
+| `defaultEditor`            | `CustomEditor`    | Built-in editor with autocomplete       |
+| `footer`                   | `FooterComponent` | Status bar at bottom                    |
+| `extensionRunner`          | `ExtensionRunner` | For extension UI integration            |
 
 **Sources:** [packages/coding-agent/src/modes/interactive/interactive-mode.ts:142-261]()
 
@@ -110,7 +108,7 @@ sequenceDiagram
     participant AS as AgentSession
     participant TUI
     participant User
-    
+
     Main->>IM: new InteractiveMode(session)
     Main->>IM: init()
     IM->>IM: Load changelog
@@ -120,7 +118,7 @@ sequenceDiagram
     IM->>IM: renderInitialMessages()
     IM->>TUI: start()
     IM->>AS: subscribe(listener)
-    
+
     loop Main Loop
         User->>IM: Input text
         IM->>IM: getUserInput()
@@ -150,7 +148,7 @@ graph TB
     EditorCont["editorContainer"]
     WidgetBelow["widgetContainerBelow"]
     FooterComp["footer or customFooter"]
-    
+
     Root --> Header
     Root --> Chat
     Root --> Pending
@@ -159,7 +157,7 @@ graph TB
     Root --> EditorCont
     Root --> WidgetBelow
     Root --> FooterComp
-    
+
     Header -.contains.-> BuiltInHeader["Built-in logo + keybindings<br/>or customHeader"]
     Chat -.contains.-> Messages["Message components<br/>(user, assistant, tools)"]
     EditorCont -.contains.-> Editor["editor (CustomEditor or custom)"]
@@ -167,6 +165,7 @@ graph TB
 ```
 
 **Layout behavior:**
+
 - Containers stack vertically with height calculated by their children
 - Editor container uses remaining viewport space
 - Footer is pinned to bottom via TUI focus system
@@ -200,12 +199,12 @@ graph LR
     Editor["CustomEditor"]
     ActionHandlers["actionHandlers Map"]
     Handler["Handler Function"]
-    
+
     KeyPress --> TUI
     TUI --> Editor
     Editor --> ActionHandlers
     ActionHandlers --> Handler
-    
+
     Handler -.examples.-> CycleModel["cycleModelForward<br/>cycleModelBackward"]
     Handler -.examples.-> Interrupt["interrupt (Ctrl+C)"]
     Handler -.examples.-> Clear["clear (Ctrl+L)"]
@@ -213,6 +212,7 @@ graph LR
 ```
 
 Key actions:
+
 - `interrupt`: Abort agent, restore queued messages to editor
 - `clear`: Clear screen (Ctrl+L twice to exit)
 - `cycleModelForward/Backward`: Cycle through available models
@@ -232,11 +232,12 @@ Key actions:
 When the editor text starts with `!`, interactive mode enters bash mode:
 
 1. Editor border turns yellow (theme-dependent)
-2. On submit, creates `BashExecutionComponent` 
+2. On submit, creates `BashExecutionComponent`
 3. `BashExecutionComponent` shows live output via `ProcessTerminal`
 4. User can abort with Ctrl+C
 
 **Bash mode variants:**
+
 - `!command` - Runs with full context (skills, attachments)
 - `!!command` - Runs without context (bare execution)
 
@@ -250,19 +251,19 @@ InteractiveMode subscribes to `AgentSession` events and renders different messag
 
 ### Event-to-Component Mapping
 
-| Event Type | Component | Purpose |
-|------------|-----------|---------|
-| `message_start` (user) | `UserMessageComponent` | Shows user prompt with images/attachments |
-| `message_start` (assistant) | `AssistantMessageComponent` | Streams assistant response |
-| `message_update` | Updates streaming component | Delta rendering of text/thinking |
-| `message_end` (assistant) | Finalizes component | Adds usage stats, stop reason |
-| `tool_execution_start` | `ToolExecutionComponent` | Shows tool call with args |
-| `tool_execution_update` | Updates tool component | Live output from bash/grep |
-| `tool_execution_end` | Finalizes tool component | Shows result, exit code |
-| Custom message | `CustomMessageComponent` | Extension-defined rendering |
-| Bash execution | `BashExecutionComponent` | Interactive bash with terminal |
-| Compaction | `CompactionSummaryMessageComponent` | Shows compaction summary |
-| Branch summary | `BranchSummaryMessageComponent` | Shows navigation summary |
+| Event Type                  | Component                           | Purpose                                   |
+| --------------------------- | ----------------------------------- | ----------------------------------------- |
+| `message_start` (user)      | `UserMessageComponent`              | Shows user prompt with images/attachments |
+| `message_start` (assistant) | `AssistantMessageComponent`         | Streams assistant response                |
+| `message_update`            | Updates streaming component         | Delta rendering of text/thinking          |
+| `message_end` (assistant)   | Finalizes component                 | Adds usage stats, stop reason             |
+| `tool_execution_start`      | `ToolExecutionComponent`            | Shows tool call with args                 |
+| `tool_execution_update`     | Updates tool component              | Live output from bash/grep                |
+| `tool_execution_end`        | Finalizes tool component            | Shows result, exit code                   |
+| Custom message              | `CustomMessageComponent`            | Extension-defined rendering               |
+| Bash execution              | `BashExecutionComponent`            | Interactive bash with terminal            |
+| Compaction                  | `CompactionSummaryMessageComponent` | Shows compaction summary                  |
+| Branch summary              | `BranchSummaryMessageComponent`     | Shows navigation summary                  |
 
 **Sources:** [packages/coding-agent/src/modes/interactive/interactive-mode.ts:2157-2367]()
 
@@ -276,11 +277,11 @@ sequenceDiagram
     participant IM as InteractiveMode
     participant Component as AssistantMessageComponent
     participant TUI
-    
+
     Agent->>IM: message_start (assistant)
     IM->>Component: new AssistantMessageComponent()
     IM->>IM: Store in streamingComponent
-    
+
     loop Each Delta
         Agent->>IM: message_update
         IM->>Component: appendDelta(event)
@@ -289,7 +290,7 @@ sequenceDiagram
         TUI->>Component: render()
         Component-->>TUI: Rendered lines
     end
-    
+
     Agent->>IM: message_end
     IM->>Component: finalize()
     IM->>IM: Clear streamingComponent
@@ -309,13 +310,17 @@ Example custom tool rendering:
 ```typescript
 // Extension registers tool with custom render
 api.registerTool({
-  definition: { /* ... */ },
-  execute: async (args) => { /* ... */ },
+  definition: {
+    /* ... */
+  },
+  execute: async (args) => {
+    /* ... */
+  },
   render: (tui, args, result, theme) => {
     // Return custom TUI component
-    return new CustomToolVisualization(args, result);
-  }
-});
+    return new CustomToolVisualization(args, result)
+  },
+})
 ```
 
 **Sources:** [packages/coding-agent/src/modes/interactive/interactive-mode.ts:2346-2367](), [packages/coding-agent/src/modes/interactive/components/tool-execution.ts]()
@@ -328,18 +333,18 @@ Extensions receive an `ExtensionUIContext` that exposes TUI capabilities. This c
 
 ### UI Methods
 
-| Method | Purpose |
-|--------|---------|
-| `select(title, options, opts)` | Show option selector, returns selected item |
-| `confirm(title, message, opts)` | Yes/No dialog |
-| `input(title, placeholder, opts)` | Text input dialog |
-| `editor(title, prefill)` | Multi-line editor (Ctrl+G to submit) |
-| `notify(message, type)` | Show status/warning/error |
-| `custom(factory, options)` | Render custom component (overlay or replace editor) |
-| `pasteToEditor(text)` | Insert text at cursor |
-| `setEditorText(text)` | Replace editor content |
-| `getEditorText()` | Read current editor content |
-| `setEditorComponent(factory)` | Replace default editor with custom one |
+| Method                            | Purpose                                             |
+| --------------------------------- | --------------------------------------------------- |
+| `select(title, options, opts)`    | Show option selector, returns selected item         |
+| `confirm(title, message, opts)`   | Yes/No dialog                                       |
+| `input(title, placeholder, opts)` | Text input dialog                                   |
+| `editor(title, prefill)`          | Multi-line editor (Ctrl+G to submit)                |
+| `notify(message, type)`           | Show status/warning/error                           |
+| `custom(factory, options)`        | Render custom component (overlay or replace editor) |
+| `pasteToEditor(text)`             | Insert text at cursor                               |
+| `setEditorText(text)`             | Replace editor content                              |
+| `getEditorText()`                 | Read current editor content                         |
+| `setEditorComponent(factory)`     | Replace default editor with custom one              |
 
 **Sources:** [packages/coding-agent/src/modes/interactive/interactive-mode.ts:1380-1435]()
 
@@ -349,17 +354,21 @@ Extensions can render widgets above or below the editor:
 
 ```typescript
 // Text widget (string array)
-ui.setWidget('myKey', ['Line 1', 'Line 2'], { placement: 'aboveEditor' });
+ui.setWidget('myKey', ['Line 1', 'Line 2'], { placement: 'aboveEditor' })
 
 // Component widget (factory function)
-ui.setWidget('myKey', (tui, theme) => {
-  const container = new Container();
-  container.addChild(new Text('Custom component', 1, 0));
-  return container;
-}, { placement: 'belowEditor' });
+ui.setWidget(
+  'myKey',
+  (tui, theme) => {
+    const container = new Container()
+    container.addChild(new Text('Custom component', 1, 0))
+    return container
+  },
+  { placement: 'belowEditor' }
+)
 
 // Clear widget
-ui.setWidget('myKey', undefined);
+ui.setWidget('myKey', undefined)
 ```
 
 **Maximum widget lines:** 10 total to prevent viewport overflow.
@@ -373,17 +382,17 @@ Extensions can replace the built-in header/footer:
 ```typescript
 // Custom footer (receives FooterDataProvider for status data)
 ui.setFooter((tui, theme, footerData) => {
-  return new CustomFooter(tui, theme, footerData);
-});
+  return new CustomFooter(tui, theme, footerData)
+})
 
 // Custom header
 ui.setHeader((tui, theme) => {
-  return new CustomHeader(tui, theme);
-});
+  return new CustomHeader(tui, theme)
+})
 
 // Restore defaults
-ui.setFooter(undefined);
-ui.setHeader(undefined);
+ui.setFooter(undefined)
+ui.setHeader(undefined)
 ```
 
 **Sources:** [packages/coding-agent/src/modes/interactive/interactive-mode.ts:1289-1357]()
@@ -395,12 +404,13 @@ Extensions can intercept raw terminal input before the editor sees it:
 ```typescript
 const unsubscribe = ui.onTerminalInput((data) => {
   // data is the raw key sequence
-  if (data === '\x1b[A') { // Up arrow
+  if (data === '\x1b[A') {
+    // Up arrow
     // Custom handling
-    return { consume: true }; // Don't pass to editor
+    return { consume: true } // Don't pass to editor
   }
-  return { consume: false, data }; // Pass through
-});
+  return { consume: false, data } // Pass through
+})
 ```
 
 **Sources:** [packages/coding-agent/src/modes/interactive/interactive-mode.ts:1359-1375]()
@@ -416,7 +426,7 @@ graph LR
     SetupShortcuts["setupExtensionShortcuts()"]
     Editor["CustomEditor.onExtensionShortcut"]
     Handler["Shortcut Handler"]
-    
+
     ExtAPI --> ExtRunner
     ExtRunner --> SetupShortcuts
     SetupShortcuts --> Editor
@@ -437,6 +447,7 @@ Interactive mode integrates with the theme hot-reload system from `theme.ts`:
 4. On change: `ui.invalidate()` + `ui.requestRender()` to redraw all components
 
 **Theme application:**
+
 - Editor uses `getEditorTheme()` for syntax highlighting
 - Markdown uses `getMarkdownTheme()` for rendering
 - Components use `theme.fg()`, `theme.bold()`, etc. for styling
@@ -451,13 +462,13 @@ Interactive mode integrates with the theme hot-reload system from `theme.ts`:
 
 The footer shows dynamic information via the `FooterDataProvider`:
 
-| Section | Content |
-|---------|---------|
-| Session | Session name, auto-compact indicator |
-| Git | Current branch (updated via file watcher) |
-| Model | Current model and thinking level |
-| Usage | Tokens (input/output/cache) and cost |
-| Extension Statuses | Custom key-value pairs from extensions |
+| Section            | Content                                   |
+| ------------------ | ----------------------------------------- |
+| Session            | Session name, auto-compact indicator      |
+| Git                | Current branch (updated via file watcher) |
+| Model              | Current model and thinking level          |
+| Usage              | Tokens (input/output/cache) and cost      |
+| Extension Statuses | Custom key-value pairs from extensions    |
 
 **FooterDataProvider** is passed to extensions via `ExtensionUIContext.setFooter()` so custom footers can access the same data.
 
@@ -511,7 +522,7 @@ graph TD
     BuildCommands["Build command list:<br/>- BUILTIN_SLASH_COMMANDS<br/>- promptTemplates<br/>- extensionCommands<br/>- skillCommands"]
     CreateProvider["new CombinedAutocompleteProvider()"]
     SetProvider["editor.setAutocompleteProvider()"]
-    
+
     Init --> EnsureTools
     EnsureTools --> Setup
     Setup --> BuildCommands
@@ -528,11 +539,13 @@ graph TD
 On startup, `showLoadedResources()` displays loaded skills, prompts, themes, and extensions with source metadata:
 
 **Display structure:**
+
 - Groups by scope: `project`, `user`, `path` (temp)
 - Within each scope: local files first, then packages (npm/git)
 - Shows diagnostics (collisions, parse errors) even in quiet mode
 
 Example output:
+
 ```
 [Skills]
   project
@@ -559,27 +572,27 @@ sequenceDiagram
     participant AS as AgentSession
     participant RL as ResourceLoader
     participant TUI
-    
+
     Main->>AS: new AgentSession(config)
     Main->>IM: new InteractiveMode(session)
     Main->>IM: init()
-    
+
     IM->>IM: Load changelog
     IM->>IM: ensureTool('fd'), ensureTool('rg')
-    
+
     IM->>AS: bindExtensions({ uiContext, ... })
     AS->>RL: Load extensions
     RL-->>AS: ExtensionsResult
     AS->>AS: Create ExtensionRunner
-    
+
     IM->>IM: setupAutocomplete(fdPath)
     IM->>IM: setupExtensionShortcuts()
     IM->>IM: showLoadedResources()
     IM->>IM: renderInitialMessages()
-    
+
     IM->>TUI: start()
     IM->>AS: subscribe(listener)
-    
+
     loop Event Loop
         AS-->>IM: Events (message_start, etc.)
         IM->>IM: Render components

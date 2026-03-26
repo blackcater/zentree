@@ -9,8 +9,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page introduces the fundamental building blocks of Craft Agents that every user needs to understand before working effectively with the application. These concepts apply at the user-facing level — what things are called, how they relate, and how to configure them.
 
 For deeper technical details, each concept has its own dedicated child page. For implementation specifics such as IPC channels, agent backends, and session persistence internals, see [Architecture](#2).
@@ -144,14 +142,14 @@ A **workspace** is the top-level organizational unit. Everything — sessions, s
 
 A **session** is a single conversation thread with the agent.
 
-| Property | Description |
-|---|---|
-| **Persistence** | Stored as a JSONL file in `workspaces/{id}/sessions/` |
-| **Status** | One of the workspace-defined status states (e.g., Todo, In Progress, Done) |
-| **Labels** | Zero or more free-form tags applied to the session |
-| **Flagged** | Boolean marker for quick access |
-| **Archived** | Moves session out of the active inbox |
-| **Branching** | New session forked from a specific turn in the conversation |
+| Property        | Description                                                                |
+| --------------- | -------------------------------------------------------------------------- |
+| **Persistence** | Stored as a JSONL file in `workspaces/{id}/sessions/`                      |
+| **Status**      | One of the workspace-defined status states (e.g., Todo, In Progress, Done) |
+| **Labels**      | Zero or more free-form tags applied to the session                         |
+| **Flagged**     | Boolean marker for quick access                                            |
+| **Archived**    | Moves session out of the active inbox                                      |
+| **Branching**   | New session forked from a specific turn in the conversation                |
 
 Sessions are managed by `SessionManager` in `packages/shared/src/sessions/`. The inbox displays sessions filtered by status — active states appear in the inbox, completed or archived sessions are separated.
 
@@ -165,11 +163,11 @@ A **source** is a connection to an external system that the agent can use as a t
 
 **Source Types**
 
-| Type | Examples | Transport |
-|---|---|---|
-| `MCP` | Linear, GitHub, Craft, Notion, custom servers | `stdio`, HTTP, SSE |
-| `API` | Gmail, Calendar, Drive, Slack, Microsoft | REST with OAuth / API key |
-| `Local` | Filesystem, Obsidian vaults, Git repos | Direct file access |
+| Type    | Examples                                      | Transport                 |
+| ------- | --------------------------------------------- | ------------------------- |
+| `MCP`   | Linear, GitHub, Craft, Notion, custom servers | `stdio`, HTTP, SSE        |
+| `API`   | Gmail, Calendar, Drive, Slack, Microsoft      | REST with OAuth / API key |
+| `Local` | Filesystem, Obsidian vaults, Git repos        | Direct file access        |
 
 Source configurations live in `workspaces/{id}/sources/`. Credentials are stored separately in `credentials.enc` via `CredentialManager` in `packages/shared/src/credentials/`.
 
@@ -214,11 +212,11 @@ Skills are a lightweight way to encode reusable workflows, conventions, or domai
 
 The **permission mode** governs what the agent is allowed to do without asking the user first. Permissions apply at the session level and can be changed at any time via `SHIFT+TAB`.
 
-| Mode Key | UI Label | Behavior |
-|---|---|---|
-| `safe` | Explore | Read-only. All write operations are blocked. |
-| `ask` | Ask to Edit | Prompts for approval before write operations (default). |
-| `allow-all` | Auto | Auto-approves all tool calls including writes. |
+| Mode Key    | UI Label    | Behavior                                                |
+| ----------- | ----------- | ------------------------------------------------------- |
+| `safe`      | Explore     | Read-only. All write operations are blocked.            |
+| `ask`       | Ask to Edit | Prompts for approval before write operations (default). |
+| `allow-all` | Auto        | Auto-approves all tool calls including writes.          |
 
 The `ModeManager` component in the renderer renders the current mode indicator and handles the `SHIFT+TAB` cycle. Permission logic is enforced in the pre-tool-use check pipeline in `packages/shared/src/agent/`.
 
@@ -260,9 +258,9 @@ Statuses are managed by the `statuses` module in `packages/shared/src/statuses/`
 
 Craft Agents has a **cascading theme system** with two levels:
 
-| Level | File | Scope |
-|---|---|---|
-| App-level | `~/.craft-agent/theme.json` | Applies to all workspaces |
+| Level           | File                                        | Scope                                  |
+| --------------- | ------------------------------------------- | -------------------------------------- |
+| App-level       | `~/.craft-agent/theme.json`                 | Applies to all workspaces              |
 | Workspace-level | `~/.craft-agent/workspaces/{id}/theme.json` | Overrides app theme for that workspace |
 
 Both files use the `ThemeOverrides` format. Workspace themes take precedence over the app theme, allowing per-workspace visual customization. Preset themes are available through the settings UI.
@@ -277,18 +275,18 @@ Both files use the `ThemeOverrides` format. Workspace themes take precedence ove
 
 **Supported Event Types**
 
-| Event | Description |
-|---|---|
-| `LabelAdd` | A label was added to a session |
-| `LabelRemove` | A label was removed from a session |
-| `SessionStatusChange` | A session's status changed |
-| `FlagChange` | A session was flagged or unflagged |
-| `PermissionModeChange` | The permission mode changed |
-| `SchedulerTick` | A cron schedule fired |
-| `PreToolUse` | Before a tool call executes |
-| `PostToolUse` | After a tool call completes |
-| `SessionStart` | A session began |
-| `SessionEnd` | A session ended |
+| Event                  | Description                        |
+| ---------------------- | ---------------------------------- |
+| `LabelAdd`             | A label was added to a session     |
+| `LabelRemove`          | A label was removed from a session |
+| `SessionStatusChange`  | A session's status changed         |
+| `FlagChange`           | A session was flagged or unflagged |
+| `PermissionModeChange` | The permission mode changed        |
+| `SchedulerTick`        | A cron schedule fired              |
+| `PreToolUse`           | Before a tool call executes        |
+| `PostToolUse`          | After a tool call completes        |
+| `SessionStart`         | A session began                    |
+| `SessionEnd`           | A session ended                    |
 
 **Automations Schema (version 2)**
 
@@ -300,7 +298,10 @@ Both files use the `ThemeOverrides` format. Workspace themes take precedence ove
       {
         "matcher": "^urgent$",
         "actions": [
-          { "type": "prompt", "prompt": "An urgent label was added. Triage the session." }
+          {
+            "type": "prompt",
+            "prompt": "An urgent label was added. Triage the session."
+          }
         ]
       }
     ],
@@ -310,7 +311,10 @@ Both files use the `ThemeOverrides` format. Workspace themes take precedence ove
         "timezone": "America/New_York",
         "labels": ["Scheduled"],
         "actions": [
-          { "type": "prompt", "prompt": "Check @github for new issues assigned to me" }
+          {
+            "type": "prompt",
+            "prompt": "Check @github for new issues assigned to me"
+          }
         ]
       }
     ]
@@ -342,9 +346,9 @@ resolve @mention sources and skills"
 
 Prompt actions support `@mention` syntax for sources and skills, and the following environment variables are automatically expanded:
 
-| Variable | Value |
-|---|---|
-| `$CRAFT_LABEL` | The label that triggered the event |
+| Variable            | Value                                   |
+| ------------------- | --------------------------------------- |
+| `$CRAFT_LABEL`      | The label that triggered the event      |
 | `$CRAFT_SESSION_ID` | The session ID that triggered the event |
 
 > For the full automations schema, event matchers, cron syntax, and `$CRAFT_*` variable reference, see [Hooks & Automation](#4.9).

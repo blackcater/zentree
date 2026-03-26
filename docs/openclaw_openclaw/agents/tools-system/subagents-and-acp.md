@@ -21,8 +21,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers how OpenClaw spawns subagent sessions via the `sessions_spawn` tool, the lifecycle of those sessions in the subagent registry, the announce flow that delivers results back to the requester, depth limiting, and the tool policy restrictions applied to subagent sessions.
 
 For general session management concepts (session keys, transcripts, the session store), see [2.4](#2.4). For the tool policy pipeline that gates which tools a subagent receives, see [3.4](#3.4). For ACP-runtime subagents (`runtime: "acp"`), which have a distinct harness path, see the ACP Agents documentation.
@@ -34,6 +32,7 @@ For general session management concepts (session keys, transcripts, the session 
 A subagent is an agent run that executes inside its own isolated session, spawned at the request of a parent agent turn or a user command (`/subagents spawn`). When the subagent finishes, it **announces** its result back to the requester's chat channel through the announce flow.
 
 Subagents enable:
+
 - Parallel or background work without blocking the main agent turn
 - Session-level isolation (separate context window, separate tool scope)
 - Configurable nesting via depth limits
@@ -46,10 +45,10 @@ Each subagent session key has the form `agent:<agentId>:subagent:<uuid>`, which 
 
 There are two ways a subagent is spawned:
 
-| Entry Point | Description |
-|---|---|
+| Entry Point                        | Description                                    |
+| ---------------------------------- | ---------------------------------------------- |
 | `sessions_spawn` tool (agent call) | The running agent calls the tool during a turn |
-| `/subagents spawn` slash command | A user issues the command directly in chat |
+| `/subagents spawn` slash command   | A user issues the command directly in chat     |
 
 Both ultimately call `spawnSubagentDirect` in `src/agents/subagent-spawn.ts`.
 
@@ -91,18 +90,18 @@ Sources: [src/agents/tools/sessions-spawn-tool.ts:1-119](), [src/agents/subagent
 
 Defined by `createSessionsSpawnTool` in `src/agents/tools/sessions-spawn-tool.ts`.
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `task` | string (required) | — | Task description sent as the subagent prompt |
-| `label` | string? | — | Human-readable label for the session |
-| `runtime` | `"subagent"` \| `"acp"` | `"subagent"` | Which harness to use |
-| `agentId` | string? | caller's agent | Spawn under a different agent identity |
-| `model` | string? | inherited | Override model for this run |
-| `thinking` | string? | inherited | Override thinking level |
-| `runTimeoutSeconds` | number? | `agents.defaults.subagents.runTimeoutSeconds` or `0` | Abort the run after N seconds |
-| `thread` | boolean | `false` | Request channel thread binding |
-| `mode` | `"run"` \| `"session"` | `"run"` (or `"session"` when `thread: true`) | One-shot vs. persistent session |
-| `cleanup` | `"delete"` \| `"keep"` | `"keep"` | Whether to delete the session after completion |
+| Parameter           | Type                    | Default                                              | Description                                    |
+| ------------------- | ----------------------- | ---------------------------------------------------- | ---------------------------------------------- |
+| `task`              | string (required)       | —                                                    | Task description sent as the subagent prompt   |
+| `label`             | string?                 | —                                                    | Human-readable label for the session           |
+| `runtime`           | `"subagent"` \| `"acp"` | `"subagent"`                                         | Which harness to use                           |
+| `agentId`           | string?                 | caller's agent                                       | Spawn under a different agent identity         |
+| `model`             | string?                 | inherited                                            | Override model for this run                    |
+| `thinking`          | string?                 | inherited                                            | Override thinking level                        |
+| `runTimeoutSeconds` | number?                 | `agents.defaults.subagents.runTimeoutSeconds` or `0` | Abort the run after N seconds                  |
+| `thread`            | boolean                 | `false`                                              | Request channel thread binding                 |
+| `mode`              | `"run"` \| `"session"`  | `"run"` (or `"session"` when `thread: true`)         | One-shot vs. persistent session                |
+| `cleanup`           | `"delete"` \| `"keep"`  | `"keep"`                                             | Whether to delete the session after completion |
 
 `mode: "session"` requires `thread: true`. When `thread: true` and `mode` is omitted, mode defaults to `"session"`.
 
@@ -142,6 +141,7 @@ subagentRuns: Map<runId, SubagentRunRecord>
 ```
 
 `SubagentRunRecord` (from `src/agents/subagent-registry.types.ts`) tracks:
+
 - `runId`, `childSessionKey`, `requesterSessionKey`
 - `requesterOrigin: DeliveryContext`
 - `startedAt`, `endedAt`
@@ -304,13 +304,13 @@ Sources: [src/agents/pi-tools.ts:285-291]()
 
 All subagent-relevant config lives under `agents.defaults.subagents` (and per-agent in `agents.list[].subagents`):
 
-| Field | Description |
-|---|---|
-| `model` | Default model for spawned subagents (caller's model used if unset) |
-| `thinking` | Default thinking level for spawned subagents |
-| `runTimeoutSeconds` | Default timeout for subagent runs (0 = no timeout) |
-| `maxSpawnDepth` | Maximum nesting depth allowed |
-| `announceTimeoutMs` | Timeout for the announce gateway call (default 60 s) |
+| Field               | Description                                                        |
+| ------------------- | ------------------------------------------------------------------ |
+| `model`             | Default model for spawned subagents (caller's model used if unset) |
+| `thinking`          | Default thinking level for spawned subagents                       |
+| `runTimeoutSeconds` | Default timeout for subagent runs (0 = no timeout)                 |
+| `maxSpawnDepth`     | Maximum nesting depth allowed                                      |
+| `announceTimeoutMs` | Timeout for the announce gateway call (default 60 s)               |
 
 Individual `sessions_spawn` tool call parameters override these defaults for a single run. For example, an explicit `model` in the tool call takes precedence over `agents.defaults.subagents.model`.
 
@@ -327,6 +327,7 @@ agent:<agentId>:subagent:<uuid>
 ```
 
 This prefix is recognized by `isSubagentSessionKey` in `src/routing/session-key.ts` and used to:
+
 - Apply the subagent tool policy (see above)
 - Determine spawn depth from the session store
 - Route announces to the correct requester
@@ -343,11 +344,11 @@ When `thread: true` is passed to `sessions_spawn`, the subagent session can be b
 
 Currently supported only on **Discord**. Relevant config keys:
 
-| Config Key | Description |
-|---|---|
-| `channels.discord.threadBindings.enabled` | Master toggle |
-| `channels.discord.threadBindings.idleHours` | Idle timeout for thread-bound sessions |
-| `channels.discord.threadBindings.maxAgeHours` | Maximum age before the binding expires |
+| Config Key                                              | Description                               |
+| ------------------------------------------------------- | ----------------------------------------- |
+| `channels.discord.threadBindings.enabled`               | Master toggle                             |
+| `channels.discord.threadBindings.idleHours`             | Idle timeout for thread-bound sessions    |
+| `channels.discord.threadBindings.maxAgeHours`           | Maximum age before the binding expires    |
 | `channels.discord.threadBindings.spawnSubagentSessions` | Allow spawning into thread-bound sessions |
 
 The `createBoundDeliveryRouter().resolveDestination()` call in `resolveSubagentCompletionOrigin` uses the thread binding registry to route completion announces to the correct thread.

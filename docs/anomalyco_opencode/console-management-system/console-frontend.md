@@ -20,8 +20,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 The Console Frontend (`@opencode-ai/console-app`) is a SolidStart-based administrative web application that provides the management interface for the OpenCode platform. This application handles user account management, subscription billing, usage analytics, and platform administration tasks. It is deployed as a Cloudflare Workers application using the Nitro runtime.
@@ -34,17 +32,17 @@ For information about the backend business logic and database operations, see [C
 
 The console frontend is built using the following core technologies:
 
-| Technology | Purpose | Version |
-|------------|---------|---------|
-| **SolidStart** | Meta-framework for SSR and routing | Latest (catalog) |
-| **SolidJS** | Reactive UI framework | 1.9.10 |
-| **Nitro** | Server runtime for deployment | 3.0.1-alpha.1 |
-| **Vite** | Build tool and dev server | 7.1.4 |
-| **@opencode-ai/ui** | Shared UI component library | workspace |
-| **@kobalte/core** | Headless UI primitives | 0.13.11 |
-| **Stripe** | Payment processing | @stripe/stripe-js 8.6.1 |
-| **Chart.js** | Data visualization | 4.5.1 |
-| **OpenAuth** | Authentication system | 0.0.0-20250322224806 |
+| Technology          | Purpose                            | Version                 |
+| ------------------- | ---------------------------------- | ----------------------- |
+| **SolidStart**      | Meta-framework for SSR and routing | Latest (catalog)        |
+| **SolidJS**         | Reactive UI framework              | 1.9.10                  |
+| **Nitro**           | Server runtime for deployment      | 3.0.1-alpha.1           |
+| **Vite**            | Build tool and dev server          | 7.1.4                   |
+| **@opencode-ai/ui** | Shared UI component library        | workspace               |
+| **@kobalte/core**   | Headless UI primitives             | 0.13.11                 |
+| **Stripe**          | Payment processing                 | @stripe/stripe-js 8.6.1 |
+| **Chart.js**        | Data visualization                 | 4.5.1                   |
+| **OpenAuth**        | Authentication system              | 0.0.0-20250322224806    |
 
 Sources: [packages/console/app/package.json:1-46]()
 
@@ -57,33 +55,33 @@ graph TB
     subgraph "Console Frontend Package"
         APP["@opencode-ai/console-app"]
     end
-    
+
     subgraph "Workspace Dependencies"
         CORE["@opencode-ai/console-core<br/>Business Logic"]
         MAIL["@opencode-ai/console-mail<br/>Email Templates"]
         RES["@opencode-ai/console-resource<br/>Infrastructure"]
         UI["@opencode-ai/ui<br/>UI Components"]
     end
-    
+
     subgraph "External Services"
         AUTH["OpenAuth<br/>Authentication"]
         STRIPE["Stripe<br/>Payments"]
         CF["Cloudflare Workers<br/>Deployment Target"]
     end
-    
+
     subgraph "Build Tools"
         VITE["Vite"]
         NITRO["Nitro Runtime"]
         WRANGLER["Wrangler CLI"]
     end
-    
+
     APP --> CORE
     APP --> MAIL
     APP --> RES
     APP --> UI
     APP --> AUTH
     APP --> STRIPE
-    
+
     VITE --> APP
     NITRO --> APP
     APP --> CF
@@ -93,6 +91,7 @@ graph TB
 **Package Dependencies**
 
 The console-app depends on:
+
 - **console-core**: Database models, business logic, and Stripe backend integration
 - **console-mail**: JSX Email templates for transactional emails
 - **console-resource**: SST infrastructure resource type definitions
@@ -112,7 +111,7 @@ graph LR
     SITEMAP --> VITE["Vite Build<br/>Outputs to .output/"]
     VITE --> SCHEMA["Generate Config Schemas<br/>opencode/script/schema.ts"]
     SCHEMA --> OUTPUT["Build Artifacts<br/>.output/public/"]
-    
+
     OUTPUT --> CONFIG["config.json"]
     OUTPUT --> TUI["tui.json"]
 ```
@@ -127,14 +126,15 @@ Sources: [packages/console/app/package.json:10]()
 
 ### Development Scripts
 
-| Script | Command | Purpose |
-|--------|---------|---------|
-| `dev` | `vite dev --host 0.0.0.0` | Local development server accessible on network |
-| `dev:remote` | `sst shell --stage=dev bun dev` | Development against remote dev environment |
-| `build` | Multi-step build process | Production build with schema generation |
-| `typecheck` | `tsgo --noEmit` | Type checking without emitting files |
+| Script       | Command                         | Purpose                                        |
+| ------------ | ------------------------------- | ---------------------------------------------- |
+| `dev`        | `vite dev --host 0.0.0.0`       | Local development server accessible on network |
+| `dev:remote` | `sst shell --stage=dev bun dev` | Development against remote dev environment     |
+| `build`      | Multi-step build process        | Production build with schema generation        |
+| `typecheck`  | `tsgo --noEmit`                 | Type checking without emitting files           |
 
 The `dev:remote` script configures environment variables for remote services:
+
 - `VITE_AUTH_URL=https://auth.dev.opencode.ai` - Remote authentication endpoint
 - `VITE_STRIPE_PUBLISHABLE_KEY` - Stripe test mode publishable key
 
@@ -154,26 +154,26 @@ graph TB
         SSR["Server-Side Render<br/>Nitro Runtime"]
         HYDRATE["Client Hydration<br/>SolidJS"]
     end
-    
+
     subgraph "Page Components"
         ROUTES["Route Components<br/>src/routes/"]
         LAYOUTS["Layout Components"]
         PAGES["Page Components"]
     end
-    
+
     subgraph "Data Layer"
         ACTIONS["Server Actions"]
         LOADER["Route Data Loaders"]
         CORE_API["Console Core API"]
     end
-    
+
     CLIENT --> ROUTER
     ROUTER --> SSR
     SSR --> ROUTES
     ROUTES --> LAYOUTS
     ROUTES --> PAGES
     SSR --> HYDRATE
-    
+
     ROUTES --> LOADER
     ROUTES --> ACTIONS
     LOADER --> CORE_API
@@ -181,6 +181,7 @@ graph TB
 ```
 
 SolidStart provides:
+
 - **File-based routing** in the `src/routes/` directory
 - **Server functions** for data fetching and mutations
 - **SSR with hydration** for optimal performance
@@ -206,6 +207,7 @@ graph LR
 ```
 
 The console uses `@openauthjs/openauth` for authentication, with configurable auth URLs:
+
 - **Development**: Local OpenAuth server via SST
 - **Remote Dev**: `https://auth.dev.opencode.ai`
 - **Production**: Production auth endpoint
@@ -217,10 +219,12 @@ Sources: [packages/console/app/package.json:18](), [packages/console/app/package
 The application integrates Stripe for subscription management and billing:
 
 **Client-Side Components**:
+
 - `@stripe/stripe-js` - Stripe JavaScript SDK
 - `solid-stripe` - SolidJS bindings for Stripe Elements
 
 **Features**:
+
 - Payment method collection
 - Subscription management UI
 - Usage-based billing display
@@ -231,6 +235,7 @@ Sources: [packages/console/app/package.json:28](), [packages/console/app/package
 ### Data Visualization
 
 Chart.js provides analytics visualizations:
+
 - Usage metrics over time
 - Billing graphs
 - Performance dashboards
@@ -252,23 +257,24 @@ graph TB
         KOBALTE["@kobalte/core<br/>Headless Primitives"]
         SOLID["SolidJS<br/>Reactive Framework"]
     end
-    
+
     subgraph "Styling System"
         PLEX["IBM Plex Font<br/>@ibm/plex"]
         CSS["CSS Modules"]
         THEMES["Theme System"]
     end
-    
+
     APP_COMPONENTS --> UI_LIB
     UI_LIB --> KOBALTE
     KOBALTE --> SOLID
-    
+
     APP_COMPONENTS --> PLEX
     APP_COMPONENTS --> CSS
     APP_COMPONENTS --> THEMES
 ```
 
 **Component Dependencies**:
+
 1. **@opencode-ai/ui**: Provides shared components like `SessionTurn`, `MessagePart`, code highlighting with Shiki
 2. **@kobalte/core**: Headless accessible UI primitives (modals, dropdowns, tabs)
 3. **@ibm/plex**: IBM Plex font family for consistent typography
@@ -288,23 +294,23 @@ graph TB
         VITE_BUILD["Vite Build"]
         NITRO_BUILD["Nitro Processing"]
     end
-    
+
     subgraph "Cloudflare Workers"
         WORKER["Worker Entry"]
         ROUTES_HANDLER["Route Handler"]
         ASSETS["Static Assets"]
     end
-    
+
     subgraph "Vite Plugin"
         CF_PLUGIN["@cloudflare/vite-plugin"]
         CONFIG["Worker Configuration"]
     end
-    
+
     VITE_BUILD --> NITRO_BUILD
     NITRO_BUILD --> WORKER
     WORKER --> ROUTES_HANDLER
     WORKER --> ASSETS
-    
+
     CF_PLUGIN --> VITE_BUILD
     CONFIG --> CF_PLUGIN
 ```
@@ -312,6 +318,7 @@ graph TB
 The application uses Nitro 3.0.1-alpha.1 to compile SolidStart routes into a Cloudflare Workers-compatible format. The `@cloudflare/vite-plugin` integrates the build process with Cloudflare's tooling.
 
 **Deployment Environment**:
+
 - **Runtime**: Cloudflare Workers (V8 isolates)
 - **Assets**: Cloudflare Pages for static files
 - **Build tool**: Wrangler 4.50.0
@@ -331,7 +338,7 @@ sequenceDiagram
     participant ConsoleCore
     participant Database
     participant Stripe
-    
+
     Browser->>SolidStart: Page Request
     SolidStart->>ConsoleCore: Data Loader Call
     ConsoleCore->>Database: Query User/Subscription
@@ -339,7 +346,7 @@ sequenceDiagram
     ConsoleCore-->>SolidStart: Formatted Response
     SolidStart-->>Browser: SSR HTML + Data
     Browser->>Browser: Hydrate with SolidJS
-    
+
     Browser->>SolidStart: Server Action (e.g., Update Subscription)
     SolidStart->>ConsoleCore: Business Logic
     ConsoleCore->>Stripe: Update Subscription
@@ -350,6 +357,7 @@ sequenceDiagram
 ```
 
 **Data Layer Integration**:
+
 - **console-core**: Provides database access, Stripe API integration, email sending
 - **Server actions**: Handle mutations with automatic revalidation
 - **Loaders**: Fetch data server-side for initial page load
@@ -363,6 +371,7 @@ Sources: [packages/console/app/package.json:19]()
 The console-app uses `@jsx-email/render` to render email templates from `@opencode-ai/console-mail`:
 
 **Email Workflow**:
+
 1. User action triggers server function
 2. Server function calls `@opencode-ai/console-core` business logic
 3. Core logic uses `@jsx-email/render` to render templates from `@opencode-ai/console-mail`
@@ -383,13 +392,13 @@ graph LR
         CODEC["@smithy/eventstream-codec"]
         UTF8["@smithy/util-utf8"]
     end
-    
+
     subgraph "Console Frontend"
         DECODE["Decode Binary Events"]
         PROCESS["Process Event Data"]
         UI_UPDATE["Update UI"]
     end
-    
+
     SOURCE --> CODEC
     CODEC --> UTF8
     UTF8 --> DECODE
@@ -398,6 +407,7 @@ graph LR
 ```
 
 The console uses Smithy event stream codecs for processing binary event streams:
+
 - `@smithy/eventstream-codec` - Decodes AWS-style event streams
 - `@smithy/util-utf8` - UTF-8 encoding/decoding utilities
 
@@ -412,16 +422,21 @@ Sources: [packages/console/app/package.json:23-24]()
 ### Local Development
 
 **Standard Local Development**:
+
 ```bash
 bun dev
 ```
+
 Starts Vite dev server on `http://0.0.0.0:5173` for network access.
 
 **Remote Environment Development**:
+
 ```bash
 bun dev:remote
 ```
+
 Uses SST to inject environment variables and connect to remote services:
+
 - Remote authentication service
 - Test Stripe account
 - Development database
@@ -431,6 +446,7 @@ Uses SST to inject environment variables and connect to remote services:
 ```bash
 bun typecheck
 ```
+
 Runs TypeScript compilation without emitting files using `tsgo`.
 
 Sources: [packages/console/app/package.json:7-9]()
@@ -443,17 +459,18 @@ Sources: [packages/console/app/package.json:7-9]()
 
 The build process produces several key files:
 
-| File | Location | Purpose |
-|------|----------|---------|
+| File          | Location          | Purpose                       |
+| ------------- | ----------------- | ----------------------------- |
 | `config.json` | `.output/public/` | OpenCode configuration schema |
-| `tui.json` | `.output/public/` | TUI configuration schema |
-| Sitemap | `.output/public/` | Generated sitemap for SEO |
+| `tui.json`    | `.output/public/` | TUI configuration schema      |
+| Sitemap       | `.output/public/` | Generated sitemap for SEO     |
 | Worker bundle | `.output/server/` | Cloudflare Worker entry point |
-| Static assets | `.output/public/` | CSS, images, client JS |
+| Static assets | `.output/public/` | CSS, images, client JS        |
 
 **Schema Generation**:
 
 The build script runs:
+
 ```
 bun ../../opencode/script/schema.ts ./.output/public/config.json ./.output/public/tui.json
 ```
@@ -467,6 +484,7 @@ Sources: [packages/console/app/package.json:10]()
 ## Resource Integration
 
 The console-app depends on `@opencode-ai/console-resource` which provides:
+
 - SST infrastructure type definitions
 - Cloudflare Workers bindings
 - Environment variable types
@@ -481,6 +499,7 @@ Sources: [packages/console/app/package.json:21]()
 ## Engine Requirements
 
 The console-app requires Node.js 22 or higher due to:
+
 - Native SolidStart features
 - Nitro runtime compatibility
 - Modern TypeScript support

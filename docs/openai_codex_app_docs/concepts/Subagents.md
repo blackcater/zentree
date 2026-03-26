@@ -71,7 +71,7 @@ choice in your prompt or set `model` and `model_reasoning_effort` directly in
 the agent file.
 
 For most tasks in Codex, start with `gpt-5.4`. Use `gpt-5.3-codex-spark` when
-  you want a faster option for lighter subagent work.
+you want a faster option for lighter subagent work.
 
 ### Model choice
 

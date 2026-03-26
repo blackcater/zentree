@@ -45,11 +45,10 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document provides a high-level introduction to the AI SDK repository architecture, package structure, and core design principles. The AI SDK is a modular TypeScript framework for building AI-powered applications with unified interfaces to multiple AI providers and reactive UI framework integrations.
 
 For detailed information about specific subsystems, see:
+
 - Core SDK functionality: [Core SDK Functionality](#2)
 - Provider implementations: [Provider Ecosystem](#3)
 - UI framework integrations: [UI Framework Integrations](#4)
@@ -76,14 +75,14 @@ The monorepo follows a clear organizational hierarchy divided into packages, exa
 ```mermaid
 graph TB
     ROOT[/"Root<br/>pnpm workspace"/]
-    
+
     subgraph "Core Packages"
         AI["ai<br/>packages/ai"]
         PROVIDER["@ai-sdk/provider<br/>packages/provider"]
         UTILS["@ai-sdk/provider-utils<br/>packages/provider-utils"]
         GATEWAY["@ai-sdk/gateway<br/>packages/gateway"]
     end
-    
+
     subgraph "UI Framework Packages"
         REACT["@ai-sdk/react<br/>packages/react"]
         VUE["@ai-sdk/vue<br/>packages/vue"]
@@ -91,7 +90,7 @@ graph TB
         ANGULAR["@ai-sdk/angular<br/>packages/angular"]
         RSC["@ai-sdk/rsc<br/>packages/rsc"]
     end
-    
+
     subgraph "Provider Packages"
         OPENAI["@ai-sdk/openai<br/>packages/openai"]
         ANTHROPIC["@ai-sdk/anthropic<br/>packages/anthropic"]
@@ -100,14 +99,14 @@ graph TB
         BEDROCK["@ai-sdk/amazon-bedrock<br/>packages/amazon-bedrock"]
         COMPAT["@ai-sdk/openai-compatible<br/>packages/openai-compatible"]
     end
-    
+
     subgraph "Examples"
         NEXT["examples/next<br/>examples/next-*"]
         SVELTE_EX["examples/sveltekit-openai"]
         NUXT["examples/nuxt-openai"]
         EXPRESS["examples/express"]
     end
-    
+
     ROOT --> AI
     ROOT --> PROVIDER
     ROOT --> UTILS
@@ -130,6 +129,7 @@ graph TB
 ```
 
 **Package Dependency Pattern:**
+
 - All packages use `workspace:*` dependencies for internal packages
 - Core packages (`ai`, `@ai-sdk/provider`, `@ai-sdk/provider-utils`) are dependency roots
 - UI framework packages depend on `ai` and `@ai-sdk/provider-utils`
@@ -150,61 +150,61 @@ graph TB
         OUTPUT["Output.json()<br/>Output.array()"]
         TOOLS["Tool execution<br/>Approval workflows"]
         TELEMETRY["experimental_telemetry<br/>OpenTelemetry"]
-        
+
         AI_PKG --> GENERATE
         AI_PKG --> OUTPUT
         AI_PKG --> TOOLS
         AI_PKG --> TELEMETRY
     end
-    
+
     subgraph "Layer 2: Provider Interfaces"
         SPEC["Provider-V3 specification<br/>@ai-sdk/provider"]
         LANG_MODEL["LanguageModelV3<br/>doGenerate/doStream"]
         EMBED_MODEL["EmbeddingModelV3<br/>doEmbed"]
         IMAGE_MODEL["ImageModelV3<br/>generateImage"]
-        
+
         SPEC --> LANG_MODEL
         SPEC --> EMBED_MODEL
         SPEC --> IMAGE_MODEL
     end
-    
+
     subgraph "Layer 3: Provider Implementations"
         NATIVE["Native Providers<br/>OpenAI, Anthropic, Google"]
         COMPAT_IMPL["OpenAI-Compatible Bridge<br/>xAI, Fireworks, Cerebras"]
         SPECIALIZED["Specialized Providers<br/>Vertex, Bedrock, Azure"]
     end
-    
+
     subgraph "Layer 4: UI Frameworks"
         HOOKS["useChat<br/>useObject<br/>useCompletion"]
         TRANSPORT["ChatTransport<br/>HttpChatTransport"]
         STATE["Reactive State<br/>useSyncExternalStore"]
-        
+
         HOOKS --> TRANSPORT
         HOOKS --> STATE
     end
-    
+
     GENERATE --> LANG_MODEL
     OUTPUT --> LANG_MODEL
     TOOLS --> LANG_MODEL
-    
+
     LANG_MODEL --> NATIVE
     LANG_MODEL --> COMPAT_IMPL
     LANG_MODEL --> SPECIALIZED
-    
+
     HOOKS --> GENERATE
     TRANSPORT --> GENERATE
 ```
 
 **Layer Responsibilities:**
 
-| Layer | Package(s) | Primary Exports | Purpose |
-|-------|-----------|-----------------|---------|
-| Core SDK | `ai` | `generateText`, `streamText`, `Output`, tool execution | Framework-agnostic AI operations |
-| Provider Spec | `@ai-sdk/provider` | `LanguageModelV3`, `EmbeddingModelV3`, `ImageModelV3` | Standardized model interfaces |
-| Provider Utils | `@ai-sdk/provider-utils` | `postJsonToApi`, validation, streaming handlers | Shared provider utilities |
-| Providers | `@ai-sdk/openai`, `@ai-sdk/anthropic`, etc. | Model factory functions, provider-specific tools | AI service integrations |
-| UI Frameworks | `@ai-sdk/react`, `@ai-sdk/vue`, etc. | `useChat`, `useObject`, reactive state | Client-side UI integration |
-| Gateway | `@ai-sdk/gateway` | Model routing, failover | Multi-provider coordination |
+| Layer          | Package(s)                                  | Primary Exports                                        | Purpose                          |
+| -------------- | ------------------------------------------- | ------------------------------------------------------ | -------------------------------- |
+| Core SDK       | `ai`                                        | `generateText`, `streamText`, `Output`, tool execution | Framework-agnostic AI operations |
+| Provider Spec  | `@ai-sdk/provider`                          | `LanguageModelV3`, `EmbeddingModelV3`, `ImageModelV3`  | Standardized model interfaces    |
+| Provider Utils | `@ai-sdk/provider-utils`                    | `postJsonToApi`, validation, streaming handlers        | Shared provider utilities        |
+| Providers      | `@ai-sdk/openai`, `@ai-sdk/anthropic`, etc. | Model factory functions, provider-specific tools       | AI service integrations          |
+| UI Frameworks  | `@ai-sdk/react`, `@ai-sdk/vue`, etc.        | `useChat`, `useObject`, reactive state                 | Client-side UI integration       |
+| Gateway        | `@ai-sdk/gateway`                           | Model routing, failover                                | Multi-provider coordination      |
 
 **Sources:** [packages/ai/package.json:1-117](), [packages/react/package.json:39-44](), [packages/anthropic/package.json:53-56]()
 
@@ -219,7 +219,7 @@ graph LR
     subgraph "Core (v7.x)"
         AI_V7["ai@7.0.0-beta.7"]
     end
-    
+
     subgraph "UI Frameworks (v3.x/4.x/5.x)"
         REACT_V4["@ai-sdk/react@4.0.0-beta.7"]
         VUE_V4["@ai-sdk/vue@4.0.0-beta.7"]
@@ -227,7 +227,7 @@ graph LR
         ANGULAR_V3["@ai-sdk/angular@3.0.0-beta.7"]
         RSC_V3["@ai-sdk/rsc@3.0.0-beta.7"]
     end
-    
+
     subgraph "Providers (v4.x/5.x)"
         OPENAI_V4["@ai-sdk/openai@4.0.0-beta.3"]
         ANTHROPIC_V4["@ai-sdk/anthropic@4.0.0-beta.1"]
@@ -235,20 +235,20 @@ graph LR
         VERTEX_V5["@ai-sdk/google-vertex@5.0.0-beta.3"]
         BEDROCK_V5["@ai-sdk/amazon-bedrock@5.0.0-beta.1"]
     end
-    
+
     subgraph "Infrastructure (v4.x/5.x)"
         PROVIDER_V4["@ai-sdk/provider@4.0.0-beta.0"]
         UTILS_V5["@ai-sdk/provider-utils@5.0.0-beta.1"]
         GATEWAY_V4["@ai-sdk/gateway@4.0.0-beta.2"]
     end
-    
+
     AI_V7 -.depends on.-> PROVIDER_V4
     AI_V7 -.depends on.-> UTILS_V5
     AI_V7 -.depends on.-> GATEWAY_V4
-    
+
     REACT_V4 -.depends on.-> AI_V7
     REACT_V4 -.depends on.-> UTILS_V5
-    
+
     OPENAI_V4 -.depends on.-> PROVIDER_V4
     OPENAI_V4 -.depends on.-> UTILS_V5
 ```
@@ -258,6 +258,7 @@ graph LR
 The repository is currently in **v7 beta pre-release mode** coordinated via Changesets:
 
 **Key Configuration:**
+
 - Pre-release tag: `beta` (defined in `.changeset/pre.json`)
 - Core package version: `ai@7.0.0-beta.7`
 - All packages synchronized to beta versions
@@ -278,6 +279,7 @@ All packages follow a consistent dual-format export pattern:
 ```
 
 This provides:
+
 - **CommonJS** (`dist/index.js`) for Node.js compatibility
 - **ES Modules** (`dist/index.mjs`) for modern bundlers
 - **TypeScript types** (`dist/index.d.ts`) with full type safety
@@ -292,6 +294,7 @@ This provides:
 The central `ai` package ([packages/ai]()) provides the framework-agnostic core:
 
 **Primary Exports:**
+
 - `generateText()` - Synchronous text generation
 - `streamText()` - Streaming text generation with real-time responses
 - `Output.json()`, `Output.array()`, `Output.choice()`, `Output.text()` - Structured output modes
@@ -300,6 +303,7 @@ The central `ai` package ([packages/ai]()) provides the framework-agnostic core:
 - Middleware: `wrapLanguageModel()`, `wrapImageModel()`, `wrapEmbeddingModel()`
 
 **Internal Structure:**
+
 ```
 packages/ai/
 ├── src/
@@ -315,6 +319,7 @@ packages/ai/
 ```
 
 **Multiple Export Targets:**
+
 - Main: `ai` (default exports from `index.ts`)
 - Internal: `ai/internal` (experimental/internal APIs)
 - Test utilities: `ai/test` (testing helpers)
@@ -326,6 +331,7 @@ packages/ai/
 The `@ai-sdk/provider` package defines standardized interfaces:
 
 **Core Interfaces:**
+
 - `LanguageModelV3` - Language model contract with `doGenerate()` and `doStream()`
 - `EmbeddingModelV3` - Embedding model contract with `doEmbed()`
 - `ImageModelV3` - Image generation contract
@@ -342,15 +348,15 @@ The repository includes 50+ example applications demonstrating real-world usage 
 
 **Example Categories:**
 
-| Category | Examples | Purpose |
-|----------|----------|---------|
-| Next.js | `examples/next`, `examples/next-agent`, `examples/next-openai-*` | App Router, Pages Router, RSC, production features |
-| SvelteKit | `examples/sveltekit-openai` | SvelteKit integration with Svelte 5 |
-| Nuxt | `examples/nuxt-openai` | Vue 3 + Nuxt 3 integration |
-| Angular | `examples/angular` | Angular integration with signals |
-| Server Frameworks | `examples/express`, `examples/fastify`, `examples/hono`, `examples/nest` | Backend-only implementations |
-| Production Features | `examples/next-openai-telemetry`, `examples/next-openai-kasada-bot-protection` | OpenTelemetry, rate limiting, bot protection |
-| LangChain | `examples/next-langchain` | LangGraph integration |
+| Category            | Examples                                                                       | Purpose                                            |
+| ------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------- |
+| Next.js             | `examples/next`, `examples/next-agent`, `examples/next-openai-*`               | App Router, Pages Router, RSC, production features |
+| SvelteKit           | `examples/sveltekit-openai`                                                    | SvelteKit integration with Svelte 5                |
+| Nuxt                | `examples/nuxt-openai`                                                         | Vue 3 + Nuxt 3 integration                         |
+| Angular             | `examples/angular`                                                             | Angular integration with signals                   |
+| Server Frameworks   | `examples/express`, `examples/fastify`, `examples/hono`, `examples/nest`       | Backend-only implementations                       |
+| Production Features | `examples/next-openai-telemetry`, `examples/next-openai-kasada-bot-protection` | OpenTelemetry, rate limiting, bot protection       |
+| LangChain           | `examples/next-langchain`                                                      | LangGraph integration                              |
 
 All examples use `workspace:*` dependencies, consuming packages directly from the monorepo for testing against the latest code.
 
@@ -363,27 +369,28 @@ All examples use `workspace:*` dependencies, consuming packages directly from th
 ```mermaid
 graph LR
     SRC["Source TypeScript<br/>src/**/*.ts"]
-    
+
     TSUP["tsup build<br/>CJS + ESM"]
     VITEST["vitest<br/>Node + Edge runtimes"]
     ESLINT["eslint + prettier<br/>@vercel/ai-tsconfig"]
     TSC["tsc --build<br/>Type checking"]
-    
+
     DIST_CJS["dist/index.js<br/>CommonJS"]
     DIST_ESM["dist/index.mjs<br/>ES Modules"]
     DIST_TYPES["dist/index.d.ts<br/>TypeScript types"]
-    
+
     SRC --> TSUP
     SRC --> VITEST
     SRC --> ESLINT
     SRC --> TSC
-    
+
     TSUP --> DIST_CJS
     TSUP --> DIST_ESM
     TSUP --> DIST_TYPES
 ```
 
 **Standard Package Scripts:**
+
 ```json
 {
   "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
@@ -397,6 +404,7 @@ graph LR
 
 **Documentation Copying:**
 Many provider packages copy their documentation during the `prepack` phase:
+
 ```bash
 prepack: mkdir -p docs && cp ../../content/providers/.../provider-name.mdx ./docs/
 postpack: del-cli docs
@@ -411,12 +419,14 @@ This ensures published packages include their own documentation files.
 The repository uses **Changesets** for version management and coordinated releases:
 
 **Changeset Workflow:**
+
 1. Developers create changesets for changes: `.changeset/*.md`
 2. Changes accumulated in `.changeset/pre.json:85-99`
 3. Versions synchronized across all packages in beta pre-release mode
 4. CHANGELOGs automatically generated (e.g., `packages/ai/CHANGELOG.md`)
 
 **Pre-release Configuration:**
+
 ```json
 {
   "mode": "pre",

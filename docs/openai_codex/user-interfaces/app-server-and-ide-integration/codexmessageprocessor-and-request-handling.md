@@ -21,13 +21,12 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents `CodexMessageProcessor`, the central request dispatcher in the `codex-app-server` crate, and the full pipeline from incoming JSON-RPC bytes to domain handler invocation.
 
 Coverage includes: the two-layer processing architecture, the `initialize` handshake, the complete `ClientRequest` dispatch table, outgoing message infrastructure, experimental API gating, and concurrency behavior.
 
 Related pages:
+
 - For the thread/turn API shapes and semantics, see [4.5.2](#4.5.2)
 - For how core `EventMsg` events are translated into `ServerNotification` messages, see [4.5.3](#4.5.3)
 - For config RPC endpoints (`config/read`, `config/value/write`, etc.), see [4.5.4](#4.5.4)
@@ -82,14 +81,14 @@ Sources: [codex-rs/app-server/src/message_processor.rs:131-221](), [codex-rs/app
 
 **`MessageProcessor` fields:**
 
-| Field | Type | Role |
-|---|---|---|
-| `outgoing` | `Arc<OutgoingMessageSender>` | Send responses and notifications |
-| `codex_message_processor` | `CodexMessageProcessor` | Handles most `ClientRequest` variants |
-| `config_api` | `ConfigApi` | Handles config read/write RPCs |
-| `external_agent_config_api` | `ExternalAgentConfigApi` | Handles external-agent config migration |
-| `config` | `Arc<Config>` | Config snapshot loaded at startup |
-| `config_warnings` | `Arc<Vec<ConfigWarningNotification>>` | Warnings queued for emission after `initialize` |
+| Field                       | Type                                  | Role                                            |
+| --------------------------- | ------------------------------------- | ----------------------------------------------- |
+| `outgoing`                  | `Arc<OutgoingMessageSender>`          | Send responses and notifications                |
+| `codex_message_processor`   | `CodexMessageProcessor`               | Handles most `ClientRequest` variants           |
+| `config_api`                | `ConfigApi`                           | Handles config read/write RPCs                  |
+| `external_agent_config_api` | `ExternalAgentConfigApi`              | Handles external-agent config migration         |
+| `config`                    | `Arc<Config>`                         | Config snapshot loaded at startup               |
+| `config_warnings`           | `Arc<Vec<ConfigWarningNotification>>` | Warnings queued for emission after `initialize` |
 
 Sources: [codex-rs/app-server/src/message_processor.rs:131-220]()
 
@@ -141,6 +140,7 @@ sequenceDiagram
 Sources: [codex-rs/app-server/src/message_processor.rs:270-425]()
 
 Key behaviors:
+
 - `clientInfo.name` is forwarded as the `originator` HTTP header on all upstream OpenAI API calls (compliance logging).
 - `capabilities.experimentalApi: true` must be set to call any experimental endpoint; attempts without it return a JSON-RPC error.
 - `capabilities.optOutNotificationMethods` lists exact notification method strings to suppress for this connection. Unknown names are silently accepted.
@@ -198,107 +198,107 @@ The full dispatch table, organized by domain:
 
 ### Thread Lifecycle (V2)
 
-| `ClientRequest` Variant | Wire Method | Handler |
-|---|---|---|
-| `ThreadStart` | `thread/start` | `thread_start()` |
-| `ThreadResume` | `thread/resume` | `thread_resume()` |
-| `ThreadFork` | `thread/fork` | `thread_fork()` |
-| `ThreadArchive` | `thread/archive` | `thread_archive()` |
-| `ThreadUnarchive` | `thread/unarchive` | `thread_unarchive()` |
-| `ThreadUnsubscribe` | `thread/unsubscribe` | `thread_unsubscribe()` |
-| `ThreadSetName` | `thread/name/set` | `thread_set_name()` |
-| `ThreadCompactStart` | `thread/compact/start` | `thread_compact_start()` |
-| `ThreadBackgroundTerminalsClean` *(exp.)* | `thread/backgroundTerminals/clean` | `thread_background_terminals_clean()` |
-| `ThreadRollback` | `thread/rollback` | `thread_rollback()` |
-| `ThreadList` | `thread/list` | `thread_list()` |
-| `ThreadLoadedList` | `thread/loaded/list` | `thread_loaded_list()` |
-| `ThreadRead` | `thread/read` | `thread_read()` |
+| `ClientRequest` Variant                   | Wire Method                        | Handler                               |
+| ----------------------------------------- | ---------------------------------- | ------------------------------------- |
+| `ThreadStart`                             | `thread/start`                     | `thread_start()`                      |
+| `ThreadResume`                            | `thread/resume`                    | `thread_resume()`                     |
+| `ThreadFork`                              | `thread/fork`                      | `thread_fork()`                       |
+| `ThreadArchive`                           | `thread/archive`                   | `thread_archive()`                    |
+| `ThreadUnarchive`                         | `thread/unarchive`                 | `thread_unarchive()`                  |
+| `ThreadUnsubscribe`                       | `thread/unsubscribe`               | `thread_unsubscribe()`                |
+| `ThreadSetName`                           | `thread/name/set`                  | `thread_set_name()`                   |
+| `ThreadCompactStart`                      | `thread/compact/start`             | `thread_compact_start()`              |
+| `ThreadBackgroundTerminalsClean` _(exp.)_ | `thread/backgroundTerminals/clean` | `thread_background_terminals_clean()` |
+| `ThreadRollback`                          | `thread/rollback`                  | `thread_rollback()`                   |
+| `ThreadList`                              | `thread/list`                      | `thread_list()`                       |
+| `ThreadLoadedList`                        | `thread/loaded/list`               | `thread_loaded_list()`                |
+| `ThreadRead`                              | `thread/read`                      | `thread_read()`                       |
 
 ### Turn (V2)
 
-| `ClientRequest` Variant | Wire Method | Handler |
-|---|---|---|
-| `TurnStart` | `turn/start` | `turn_start()` |
-| `TurnSteer` | `turn/steer` | `turn_steer()` |
-| `TurnInterrupt` | `turn/interrupt` | `turn_interrupt()` |
+| `ClientRequest` Variant | Wire Method      | Handler            |
+| ----------------------- | ---------------- | ------------------ |
+| `TurnStart`             | `turn/start`     | `turn_start()`     |
+| `TurnSteer`             | `turn/steer`     | `turn_steer()`     |
+| `TurnInterrupt`         | `turn/interrupt` | `turn_interrupt()` |
 
-### Realtime *(experimental)*
+### Realtime _(experimental)_
 
-| `ClientRequest` Variant | Wire Method | Handler |
-|---|---|---|
-| `ThreadRealtimeStart` | `thread/realtime/start` | `thread_realtime_start()` |
+| `ClientRequest` Variant     | Wire Method                   | Handler                          |
+| --------------------------- | ----------------------------- | -------------------------------- |
+| `ThreadRealtimeStart`       | `thread/realtime/start`       | `thread_realtime_start()`        |
 | `ThreadRealtimeAppendAudio` | `thread/realtime/appendAudio` | `thread_realtime_append_audio()` |
-| `ThreadRealtimeAppendText` | `thread/realtime/appendText` | `thread_realtime_append_text()` |
-| `ThreadRealtimeStop` | `thread/realtime/stop` | `thread_realtime_stop()` |
+| `ThreadRealtimeAppendText`  | `thread/realtime/appendText`  | `thread_realtime_append_text()`  |
+| `ThreadRealtimeStop`        | `thread/realtime/stop`        | `thread_realtime_stop()`         |
 
 ### Review, Skills, Apps
 
-| `ClientRequest` Variant | Wire Method | Handler |
-|---|---|---|
-| `ReviewStart` | `review/start` | `review_start()` |
-| `SkillsList` | `skills/list` | `skills_list()` |
-| `SkillsRemoteList` | `skills/remote/list` | `skills_remote_list()` |
-| `SkillsRemoteExport` | `skills/remote/export` | `skills_remote_export()` |
-| `SkillsConfigWrite` | `skills/config/write` | `skills_config_write()` |
-| `AppsList` | `app/list` | `apps_list()` |
+| `ClientRequest` Variant | Wire Method            | Handler                  |
+| ----------------------- | ---------------------- | ------------------------ |
+| `ReviewStart`           | `review/start`         | `review_start()`         |
+| `SkillsList`            | `skills/list`          | `skills_list()`          |
+| `SkillsRemoteList`      | `skills/remote/list`   | `skills_remote_list()`   |
+| `SkillsRemoteExport`    | `skills/remote/export` | `skills_remote_export()` |
+| `SkillsConfigWrite`     | `skills/config/write`  | `skills_config_write()`  |
+| `AppsList`              | `app/list`             | `apps_list()`            |
 
 ### Model and Feature Discovery
 
-| `ClientRequest` Variant | Wire Method | Handler |
-|---|---|---|
-| `ModelList` | `model/list` | `list_models()` (via `tokio::spawn`) |
-| `ExperimentalFeatureList` | `experimentalFeature/list` | `experimental_feature_list()` |
-| `CollaborationModeList` *(exp.)* | `collaborationMode/list` | `list_collaboration_modes()` (via `tokio::spawn`) |
-| `MockExperimentalMethod` *(exp.)* | `mock/experimentalMethod` | `mock_experimental_method()` |
+| `ClientRequest` Variant           | Wire Method                | Handler                                           |
+| --------------------------------- | -------------------------- | ------------------------------------------------- |
+| `ModelList`                       | `model/list`               | `list_models()` (via `tokio::spawn`)              |
+| `ExperimentalFeatureList`         | `experimentalFeature/list` | `experimental_feature_list()`                     |
+| `CollaborationModeList` _(exp.)_  | `collaborationMode/list`   | `list_collaboration_modes()` (via `tokio::spawn`) |
+| `MockExperimentalMethod` _(exp.)_ | `mock/experimentalMethod`  | `mock_experimental_method()`                      |
 
 ### MCP and Windows Sandbox
 
-| `ClientRequest` Variant | Wire Method | Handler |
-|---|---|---|
-| `McpServerOauthLogin` | `mcpServer/oauth/login` | `mcp_server_oauth_login()` |
-| `McpServerRefresh` | `config/mcpServer/reload` | `mcp_server_refresh()` |
-| `McpServerStatusList` | `mcpServerStatus/list` | `list_mcp_server_status()` |
+| `ClientRequest` Variant    | Wire Method                 | Handler                         |
+| -------------------------- | --------------------------- | ------------------------------- |
+| `McpServerOauthLogin`      | `mcpServer/oauth/login`     | `mcp_server_oauth_login()`      |
+| `McpServerRefresh`         | `config/mcpServer/reload`   | `mcp_server_refresh()`          |
+| `McpServerStatusList`      | `mcpServerStatus/list`      | `list_mcp_server_status()`      |
 | `WindowsSandboxSetupStart` | `windowsSandbox/setupStart` | `windows_sandbox_setup_start()` |
 
 ### Account and Auth (V2)
 
-| `ClientRequest` Variant | Wire Method | Handler |
-|---|---|---|
-| `LoginAccount` | `account/login/start` | `login_v2()` |
-| `LogoutAccount` | `account/logout` | `logout_v2()` |
-| `CancelLoginAccount` | `account/login/cancel` | `cancel_login_v2()` |
-| `GetAccount` | `account/read` | `get_account()` |
-| `FeedbackUpload` | `feedback/upload` | (inline feedback upload handler) |
-| `OneOffCommandExec` | `command/exec` | (exec handler) |
+| `ClientRequest` Variant | Wire Method            | Handler                          |
+| ----------------------- | ---------------------- | -------------------------------- |
+| `LoginAccount`          | `account/login/start`  | `login_v2()`                     |
+| `LogoutAccount`         | `account/logout`       | `logout_v2()`                    |
+| `CancelLoginAccount`    | `account/login/cancel` | `cancel_login_v2()`              |
+| `GetAccount`            | `account/read`         | `get_account()`                  |
+| `FeedbackUpload`        | `feedback/upload`      | (inline feedback upload handler) |
+| `OneOffCommandExec`     | `command/exec`         | (exec handler)                   |
 
-### Fuzzy File Search *(experimental)*
+### Fuzzy File Search _(experimental)_
 
-| `ClientRequest` Variant | Wire Method | Handler |
-|---|---|---|
-| `FuzzyFileSearch` | `FuzzyFileSearch` | `run_fuzzy_file_search()` |
-| `FuzzyFileSearchSessionStart` | `fuzzyFileSearch/sessionStart` | `start_fuzzy_file_search_session()` |
-| `FuzzyFileSearchSessionUpdate` | `fuzzyFileSearch/sessionUpdate` | (session update inline) |
-| `FuzzyFileSearchSessionStop` | `fuzzyFileSearch/sessionStop` | (session stop inline) |
+| `ClientRequest` Variant        | Wire Method                     | Handler                             |
+| ------------------------------ | ------------------------------- | ----------------------------------- |
+| `FuzzyFileSearch`              | `FuzzyFileSearch`               | `run_fuzzy_file_search()`           |
+| `FuzzyFileSearchSessionStart`  | `fuzzyFileSearch/sessionStart`  | `start_fuzzy_file_search_session()` |
+| `FuzzyFileSearchSessionUpdate` | `fuzzyFileSearch/sessionUpdate` | (session update inline)             |
+| `FuzzyFileSearchSessionStop`   | `fuzzyFileSearch/sessionStop`   | (session stop inline)               |
 
 ### Legacy V1 (deprecated)
 
-| `ClientRequest` Variant | Handler |
-|---|---|
-| `NewConversation` | `process_new_conversation()` |
-| `GetConversationSummary` | `get_thread_summary()` |
-| `ListConversations` | `handle_list_conversations()` |
-| `ResumeConversation` | `handle_resume_conversation()` |
-| `ForkConversation` | `handle_fork_conversation()` |
-| `ArchiveConversation` | `archive_conversation()` |
-| `SendUserMessage` | `send_user_message()` |
-| `SendUserTurn` | `send_user_turn()` |
-| `InterruptConversation` | `interrupt_conversation()` |
-| `AddConversationListener` | `add_conversation_listener()` |
-| `RemoveConversationListener` | `remove_thread_listener()` |
-| `GitDiffToRemote` | `git_diff_to_origin()` |
-| `LoginApiKey` | `login_api_key_v1()` |
-| `LoginChatGpt` | `login_chatgpt_v1()` |
-| `CancelLoginChatGpt` | `cancel_login_chatgpt()` |
+| `ClientRequest` Variant      | Handler                        |
+| ---------------------------- | ------------------------------ |
+| `NewConversation`            | `process_new_conversation()`   |
+| `GetConversationSummary`     | `get_thread_summary()`         |
+| `ListConversations`          | `handle_list_conversations()`  |
+| `ResumeConversation`         | `handle_resume_conversation()` |
+| `ForkConversation`           | `handle_fork_conversation()`   |
+| `ArchiveConversation`        | `archive_conversation()`       |
+| `SendUserMessage`            | `send_user_message()`          |
+| `SendUserTurn`               | `send_user_turn()`             |
+| `InterruptConversation`      | `interrupt_conversation()`     |
+| `AddConversationListener`    | `add_conversation_listener()`  |
+| `RemoveConversationListener` | `remove_thread_listener()`     |
+| `GitDiffToRemote`            | `git_diff_to_origin()`         |
+| `LoginApiKey`                | `login_api_key_v1()`           |
+| `LoginChatGpt`               | `login_chatgpt_v1()`           |
+| `CancelLoginChatGpt`         | `cancel_login_chatgpt()`       |
 
 Sources: [codex-rs/app-server/src/codex_message_processor.rs:589-850](), [codex-rs/app-server-protocol/src/protocol/common.rs:178-519]()
 
@@ -308,10 +308,10 @@ Sources: [codex-rs/app-server/src/codex_message_processor.rs:589-850](), [codex-
 
 `CodexMessageProcessor` maintains an `ApiVersion` enum [codex-rs/app-server/src/codex_message_processor.rs:388-393]() used when handling events for a given listener:
 
-| Variant | Value | Meaning |
-|---|---|---|
+| Variant          | Value         | Meaning                                                     |
+| ---------------- | ------------- | ----------------------------------------------------------- |
 | `ApiVersion::V1` | (non-default) | Legacy `NewConversation`/`SendUserMessage` conversation API |
-| `ApiVersion::V2` | (default) | Current `thread/*/turn/*` API |
+| `ApiVersion::V2` | (default)     | Current `thread/*/turn/*` API                               |
 
 This value is passed into `apply_bespoke_event_handling` [codex-rs/app-server/src/bespoke_event_handling.rs:172-183](), which branches on it to emit either V1-style server requests (e.g., `ExecCommandApproval`) or V2-style `ServerNotification` messages (e.g., `CommandExecutionRequestApproval`). See [4.5.3](#4.5.3) for the full event translation layer.
 
@@ -384,6 +384,7 @@ The `client_request_definitions!` macro in [codex-rs/app-server-protocol/src/pro
 Some requests use `inspect_params: true` instead of a method-level annotation. In that case, experimental gating happens at the individual field level within the params struct (e.g., `ThreadStartParams` has experimental fields that only activate when `capabilities.experimentalApi: true`).
 
 `MessageProcessor::process_request` checks this before delegating:
+
 - If `codex_request.experimental_reason()` returns `Some(_)` and `session.experimental_api_enabled == false`, the request is rejected with an error message from `experimental_required_message()`.
 - The `EXPERIMENTAL_CLIENT_METHODS`, `EXPERIMENTAL_CLIENT_METHOD_PARAM_TYPES`, and `EXPERIMENTAL_CLIENT_METHOD_RESPONSE_TYPES` constants (also generated by the macro) are used to build the schema export and may be used for discovery.
 

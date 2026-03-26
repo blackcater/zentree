@@ -5,7 +5,7 @@
 
 The following files were used as context for generating this wiki page:
 
-- [.github/workflows/_build-reusable.yml](.github/workflows/_build-reusable.yml)
+- [.github/workflows/\_build-reusable.yml](.github/workflows/_build-reusable.yml)
 - [.github/workflows/build-manual.yml](.github/workflows/build-manual.yml)
 - [bun.lock](bun.lock)
 - [src/index.ts](src/index.ts)
@@ -17,8 +17,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the command-line interface (CLI) features available in AionUi: the startup flags that control application mode, the `--resetpass` password reset utility, and environment variable overrides. For details on how the application modes work internally once started, see [Application Modes](#3.1). For the WebUI server architecture that `--webui` activates, see [WebUI Server Architecture](#3.5).
 
 ---
@@ -27,13 +25,13 @@ This page documents the command-line interface (CLI) features available in AionU
 
 AionUi's executable binary accepts a set of flags that modify its startup behavior. These flags are parsed by the main process at launch.
 
-| Flag | Argument | Description |
-|---|---|---|
-| `--webui` | none | Start the embedded Express web server instead of rendering the Electron window |
-| `--remote` | none | Bind the WebUI server to `0.0.0.0` (allows LAN access) |
-| `--port` | `<number>` | Override the default WebUI listen port |
-| `--resetpass` | `[username]` | Reset the password for a WebUI user (default: `admin`) |
-| `--no-sandbox` | none | Required in sandboxed environments such as Termux/proot-Ubuntu |
+| Flag           | Argument     | Description                                                                    |
+| -------------- | ------------ | ------------------------------------------------------------------------------ |
+| `--webui`      | none         | Start the embedded Express web server instead of rendering the Electron window |
+| `--remote`     | none         | Bind the WebUI server to `0.0.0.0` (allows LAN access)                         |
+| `--port`       | `<number>`   | Override the default WebUI listen port                                         |
+| `--resetpass`  | `[username]` | Reset the password for a WebUI user (default: `admin`)                         |
+| `--no-sandbox` | none         | Required in sandboxed environments such as Termux/proot-Ubuntu                 |
 
 Sources: [WEBUI_GUIDE.md:596-603](), [WEBUI_GUIDE.md:606-673]()
 
@@ -47,13 +45,13 @@ Starts AionUi without its native Electron window. Instead it launches an embedde
 
 **Platform invocation examples:**
 
-| Platform | Command |
-|---|---|
-| Windows | `"C:\Program Files\AionUi\AionUi.exe" --webui` |
-| macOS | `/Applications/AionUi.app/Contents/MacOS/AionUi --webui` |
-| Linux (deb) | `aionui --webui` |
-| Linux (AppImage) | `./AionUi-*.AppImage --webui` |
-| Android (Termux/proot) | `AionUi --no-sandbox --webui` |
+| Platform               | Command                                                  |
+| ---------------------- | -------------------------------------------------------- |
+| Windows                | `"C:\Program Files\AionUi\AionUi.exe" --webui`           |
+| macOS                  | `/Applications/AionUi.app/Contents/MacOS/AionUi --webui` |
+| Linux (deb)            | `aionui --webui`                                         |
+| Linux (AppImage)       | `./AionUi-*.AppImage --webui`                            |
+| Android (Termux/proot) | `AionUi --no-sandbox --webui`                            |
 
 Sources: [WEBUI_GUIDE.md:29-140]()
 
@@ -85,11 +83,11 @@ Sources: [WEBUI_GUIDE.md:353-356](), [WEBUI_GUIDE.md:566-568]()
 
 Environment variables can substitute for or supplement CLI flags. CLI flags take highest precedence, followed by environment variables, then the `webui.config.json` file.
 
-| Variable | Effect |
-|---|---|
-| `AIONUI_PORT` | Sets the WebUI listen port |
-| `AIONUI_ALLOW_REMOTE` | `true` is equivalent to passing `--remote` |
-| `AIONUI_HOST` | Setting to `0.0.0.0` has the same effect as `AIONUI_ALLOW_REMOTE=true` |
+| Variable              | Effect                                                                 |
+| --------------------- | ---------------------------------------------------------------------- |
+| `AIONUI_PORT`         | Sets the WebUI listen port                                             |
+| `AIONUI_ALLOW_REMOTE` | `true` is equivalent to passing `--remote`                             |
+| `AIONUI_HOST`         | Setting to `0.0.0.0` has the same effect as `AIONUI_ALLOW_REMOTE=true` |
 
 Sources: [WEBUI_GUIDE.md:549-568]()
 
@@ -99,13 +97,14 @@ Sources: [WEBUI_GUIDE.md:549-568]()
 
 From v1.5.0 onwards, persistent WebUI startup preferences can be stored in a `webui.config.json` file in the Electron user-data directory.
 
-| Platform | Path |
-|---|---|
-| Windows | `%APPDATA%/AionUi/webui.config.json` |
-| macOS | `~/Library/Application Support/AionUi/webui.config.json` |
-| Linux | `~/.config/AionUi/webui.config.json` |
+| Platform | Path                                                     |
+| -------- | -------------------------------------------------------- |
+| Windows  | `%APPDATA%/AionUi/webui.config.json`                     |
+| macOS    | `~/Library/Application Support/AionUi/webui.config.json` |
+| Linux    | `~/.config/AionUi/webui.config.json`                     |
 
 Example contents:
+
 ```json
 {
   "port": 8080,
@@ -150,14 +149,14 @@ The implementation lives in `src/utils/resetPasswordCLI.ts` and is invoked by th
 
 **Key functions and their roles:**
 
-| Symbol | Location | Role |
-|---|---|---|
-| `resetPasswordCLI` | [src/utils/resetPasswordCLI.ts:69-158]() | Main entry point; orchestrates the full reset sequence |
-| `hashPassword` | [src/utils/resetPasswordCLI.ts:49-51]() | Wrapper around `bcrypt.hash` with salt rounds = 10 |
-| `hashPasswordAsync` | [src/utils/resetPasswordCLI.ts:36-45]() | Promise wrapper for the callback-based `bcrypt.hash` |
-| `generatePassword` | [src/utils/resetPasswordCLI.ts:54-61]() | Generates a 12-character alphanumeric password using `Math.random` |
-| `getDataPath` | (imported from `@process/utils`) | Returns the platform-appropriate user data directory |
-| `ensureDirectory` | (imported from `@process/utils`) | Creates the directory if it does not exist |
+| Symbol              | Location                                 | Role                                                               |
+| ------------------- | ---------------------------------------- | ------------------------------------------------------------------ |
+| `resetPasswordCLI`  | [src/utils/resetPasswordCLI.ts:69-158]() | Main entry point; orchestrates the full reset sequence             |
+| `hashPassword`      | [src/utils/resetPasswordCLI.ts:49-51]()  | Wrapper around `bcrypt.hash` with salt rounds = 10                 |
+| `hashPasswordAsync` | [src/utils/resetPasswordCLI.ts:36-45]()  | Promise wrapper for the callback-based `bcrypt.hash`               |
+| `generatePassword`  | [src/utils/resetPasswordCLI.ts:54-61]()  | Generates a 12-character alphanumeric password using `Math.random` |
+| `getDataPath`       | (imported from `@process/utils`)         | Returns the platform-appropriate user data directory               |
+| `ensureDirectory`   | (imported from `@process/utils`)         | Creates the directory if it does not exist                         |
 
 Sources: [src/utils/resetPasswordCLI.ts:1-60]()
 
@@ -265,6 +264,7 @@ WantedBy=multi-user.target
 ```
 
 Enable and start:
+
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable aionui-webui.service

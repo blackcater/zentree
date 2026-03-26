@@ -28,8 +28,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The `@mariozechner/pi-tui` package provides a comprehensive set of components for building terminal user interfaces. All components implement the `Component` interface defined in [packages/tui/src/tui.ts:14-40]() with a `render(width: number): string[]` method and optional `handleInput(data: string): void` for interactive components.
 
 This page documents the built-in components organized by category. For the core TUI framework and rendering engine, see page [5.1](#5.1). For details on the Editor and Input components specifically, see page [5.3](#5.3). For keyboard protocol and input handling, see page [5.4](#5.4).
@@ -47,34 +45,34 @@ graph TB
         Box["Box<br/>────────────<br/>Container + padding + background"]
         Spacer["Spacer<br/>────────────<br/>Empty vertical space"]
     end
-    
+
     subgraph "Display Components"
         Text["Text<br/>────────────<br/>Multi-line word-wrapped text"]
         TruncatedText["TruncatedText<br/>────────────<br/>Single-line truncated text"]
         Markdown["Markdown<br/>────────────<br/>CommonMark rendering"]
         Image["Image<br/>────────────<br/>Inline images (Kitty/iTerm2)"]
     end
-    
+
     subgraph "Input Components"
         Input["Input<br/>────────────<br/>Single-line text input"]
         Editor["Editor<br/>────────────<br/>Multi-line editor + autocomplete"]
     end
-    
+
     subgraph "Interactive Components"
         SelectList["SelectList<br/>────────────<br/>Keyboard-navigable list"]
         SettingsList["SettingsList<br/>────────────<br/>Settings panel with cycling"]
     end
-    
+
     subgraph "Feedback Components"
         Loader["Loader<br/>────────────<br/>Animated spinner"]
         CancellableLoader["CancellableLoader<br/>────────────<br/>Loader + AbortSignal"]
     end
-    
+
     Container -.inherits from.-> Component
     Box -.extends.-> Container
     Loader -.extends.-> Container
     CancellableLoader -.extends.-> Loader
-    
+
     Component["Component interface<br/>────────────<br/>render(width): string[]<br/>handleInput?(data): void<br/>invalidate(): void"]
 ```
 
@@ -90,12 +88,12 @@ The `Container` class in [packages/tui/src/tui.ts:172-204]() groups child compon
 
 **Key methods:**
 
-| Method | Purpose |
-|---|---|
-| `addChild(component: Component)` | Append a child to the end |
-| `removeChild(component: Component)` | Remove a child |
-| `clear()` | Remove all children |
-| `render(width: number): string[]` | Concatenate all child render outputs |
+| Method                              | Purpose                              |
+| ----------------------------------- | ------------------------------------ |
+| `addChild(component: Component)`    | Append a child to the end            |
+| `removeChild(component: Component)` | Remove a child                       |
+| `clear()`                           | Remove all children                  |
+| `render(width: number): string[]`   | Concatenate all child render outputs |
 
 Sources: [packages/tui/src/tui.ts:172-204]()
 
@@ -105,11 +103,11 @@ The `Box` class in [packages/tui/src/components/box.ts:1-56]() extends `Containe
 
 **Constructor parameters:**
 
-| Parameter | Type | Default | Purpose |
-|---|---|---|---|
-| `paddingX` | `number` | `1` | Left and right margin |
-| `paddingY` | `number` | `1` | Top and bottom margin |
-| `bgFn` | `(text: string) => string` | `undefined` | Background color function (e.g., `chalk.bgGray`) |
+| Parameter  | Type                       | Default     | Purpose                                          |
+| ---------- | -------------------------- | ----------- | ------------------------------------------------ |
+| `paddingX` | `number`                   | `1`         | Left and right margin                            |
+| `paddingY` | `number`                   | `1`         | Top and bottom margin                            |
+| `bgFn`     | `(text: string) => string` | `undefined` | Background color function (e.g., `chalk.bgGray`) |
 
 **Methods:**
 
@@ -139,12 +137,12 @@ The `Text` component in [packages/tui/src/components/text.ts:1-106]() displays m
 
 **Constructor parameters:**
 
-| Parameter | Type | Default | Purpose |
-|---|---|---|---|
-| `text` | `string` | `""` | Content to display |
-| `paddingX` | `number` | `1` | Left and right margin in columns |
-| `paddingY` | `number` | `1` | Empty lines above and below content |
-| `customBgFn` | `(text: string) => string` | `undefined` | ANSI background color function |
+| Parameter    | Type                       | Default     | Purpose                             |
+| ------------ | -------------------------- | ----------- | ----------------------------------- |
+| `text`       | `string`                   | `""`        | Content to display                  |
+| `paddingX`   | `number`                   | `1`         | Left and right margin in columns    |
+| `paddingY`   | `number`                   | `1`         | Empty lines above and below content |
+| `customBgFn` | `(text: string) => string` | `undefined` | ANSI background color function      |
 
 **Text rendering flow**
 
@@ -173,11 +171,11 @@ The `TruncatedText` component in [packages/tui/src/components/truncated-text.ts:
 
 **Constructor parameters:**
 
-| Parameter | Type | Default | Purpose |
-|---|---|---|---|
-| `text` | `string` | `""` | Content to display |
-| `paddingX` | `number` | `0` | Left and right margin |
-| `paddingY` | `number` | `0` | Top and bottom margin |
+| Parameter  | Type     | Default | Purpose               |
+| ---------- | -------- | ------- | --------------------- |
+| `text`     | `string` | `""`    | Content to display    |
+| `paddingX` | `number` | `0`     | Left and right margin |
+| `paddingY` | `number` | `0`     | Top and bottom margin |
 
 **Methods:**
 
@@ -193,47 +191,47 @@ The `Markdown` component in [packages/tui/src/components/markdown.ts:1-50]() ren
 
 **Constructor parameters:**
 
-| Parameter | Type | Purpose |
-|---|---|---|
-| `text` | `string` | Markdown content to render |
-| `paddingX` | `number` | Left and right margin |
-| `paddingY` | `number` | Top and bottom margin |
-| `theme` | `MarkdownTheme` | Styling functions for all markdown elements |
-| `defaultTextStyle` | `DefaultTextStyle` | Optional base text formatting |
+| Parameter          | Type               | Purpose                                     |
+| ------------------ | ------------------ | ------------------------------------------- |
+| `text`             | `string`           | Markdown content to render                  |
+| `paddingX`         | `number`           | Left and right margin                       |
+| `paddingY`         | `number`           | Top and bottom margin                       |
+| `theme`            | `MarkdownTheme`    | Styling functions for all markdown elements |
+| `defaultTextStyle` | `DefaultTextStyle` | Optional base text formatting               |
 
 **MarkdownTheme interface**
 
 Every visual styling decision is delegated to the `MarkdownTheme` object. Each field is a function `(text: string) => string` that wraps text in ANSI codes.
 
-| Theme field | Purpose |
-|---|---|
-| `heading(text)` | Heading styles |
-| `link(text)` | Link text color |
-| `linkUrl(text)` | URL color |
-| `code(text)` | Inline code style |
-| `codeBlock(text)` | Code fence content |
-| `codeBlockBorder(text)` | Code fence border lines |
-| `quote(text)` | Blockquote content |
-| `quoteBorder(text)` | Blockquote left border |
-| `hr(text)` | Horizontal rule |
-| `listBullet(text)` | List item bullets |
-| `bold(text)`, `italic(text)`, `strikethrough(text)`, `underline(text)` | Inline styles |
-| `highlightCode?(code, lang)` | Optional syntax highlighter returning pre-styled lines |
-| `codeBlockIndent?` | Prefix for code lines (default: `"  "`) |
+| Theme field                                                            | Purpose                                                |
+| ---------------------------------------------------------------------- | ------------------------------------------------------ |
+| `heading(text)`                                                        | Heading styles                                         |
+| `link(text)`                                                           | Link text color                                        |
+| `linkUrl(text)`                                                        | URL color                                              |
+| `code(text)`                                                           | Inline code style                                      |
+| `codeBlock(text)`                                                      | Code fence content                                     |
+| `codeBlockBorder(text)`                                                | Code fence border lines                                |
+| `quote(text)`                                                          | Blockquote content                                     |
+| `quoteBorder(text)`                                                    | Blockquote left border                                 |
+| `hr(text)`                                                             | Horizontal rule                                        |
+| `listBullet(text)`                                                     | List item bullets                                      |
+| `bold(text)`, `italic(text)`, `strikethrough(text)`, `underline(text)` | Inline styles                                          |
+| `highlightCode?(code, lang)`                                           | Optional syntax highlighter returning pre-styled lines |
+| `codeBlockIndent?`                                                     | Prefix for code lines (default: `"  "`)                |
 
 **Markdown token rendering table**
 
-| Token type | Rendered output |
-|---|---|
-| `heading` | `theme.heading(...)` with `theme.bold`, `theme.underline` for `h1` |
-| `paragraph` | Inline tokens with default style |
-| `code` | Border via `theme.codeBlockBorder`, content via `theme.codeBlock` or `highlightCode` |
-| `list` | Recursive `renderList()`, `theme.listBullet`, 2-space indent per level |
-| `table` | Width-aware `renderTable()` with box-drawing borders (`┌─┬│┼└┘`) |
-| `blockquote` | `theme.quote(theme.italic(...))`, `theme.quoteBorder("│ ")` prefix |
-| `hr` | `theme.hr("─".repeat(min(width, 80)))` |
-| `html` | Rendered as plain text |
-| `space` | Empty line |
+| Token type   | Rendered output                                                                      |
+| ------------ | ------------------------------------------------------------------------------------ |
+| `heading`    | `theme.heading(...)` with `theme.bold`, `theme.underline` for `h1`                   |
+| `paragraph`  | Inline tokens with default style                                                     |
+| `code`       | Border via `theme.codeBlockBorder`, content via `theme.codeBlock` or `highlightCode` |
+| `list`       | Recursive `renderList()`, `theme.listBullet`, 2-space indent per level               |
+| `table`      | Width-aware `renderTable()` with box-drawing borders (`┌─┬│┼└┘`)                     |
+| `blockquote` | `theme.quote(theme.italic(...))`, `theme.quoteBorder("│ ")` prefix                   |
+| `hr`         | `theme.hr("─".repeat(min(width, 80)))`                                               |
+| `html`       | Rendered as plain text                                                               |
+| `space`      | Empty line                                                                           |
 
 **Methods:**
 
@@ -249,20 +247,20 @@ The `Image` component in [packages/tui/src/components/image.ts:1-240]() renders 
 
 **Constructor parameters:**
 
-| Parameter | Type | Purpose |
-|---|---|---|
-| `base64Data` | `string` | Base64-encoded image data |
-| `mimeType` | `string` | MIME type (`image/png`, `image/jpeg`, etc.) |
-| `theme` | `ImageTheme` | Fallback text color |
-| `options` | `ImageOptions` | Optional sizing constraints |
+| Parameter    | Type           | Purpose                                     |
+| ------------ | -------------- | ------------------------------------------- |
+| `base64Data` | `string`       | Base64-encoded image data                   |
+| `mimeType`   | `string`       | MIME type (`image/png`, `image/jpeg`, etc.) |
+| `theme`      | `ImageTheme`   | Fallback text color                         |
+| `options`    | `ImageOptions` | Optional sizing constraints                 |
 
 **ImageOptions:**
 
 ```typescript
 interface ImageOptions {
-  maxWidthCells?: number;    // Max width in terminal columns
-  maxHeightCells?: number;   // Max height in terminal rows
-  filename?: string;         // Optional display name for fallback
+  maxWidthCells?: number // Max width in terminal columns
+  maxHeightCells?: number // Max height in terminal rows
+  filename?: string // Optional display name for fallback
 }
 ```
 
@@ -323,6 +321,7 @@ extractAnsiCode(str: string, pos: number): { code: string; length: number } | nu
 ```
 
 Parses a single ANSI escape sequence starting at `pos`. Handles three families:
+
 - **CSI** (`ESC [` … `m/G/K/H/J`) — SGR and cursor codes
 - **OSC** (`ESC ]` … `BEL` or `ST`) — hyperlinks, window titles
 - **APC** (`ESC _` … `BEL` or `ST`) — cursor marker and application commands
@@ -335,28 +334,28 @@ Sources: [packages/tui/src/utils.ts:140-178]()
 
 `AnsiCodeTracker` (class, not exported directly) maintains a stateful model of active SGR attributes as text is scanned left-to-right. It tracks:
 
-| Attribute | SGR codes |
-|---|---|
-| Bold | 1 / 22 |
-| Dim | 2 / 22 |
-| Italic | 3 / 23 |
-| Underline | 4 / 24 |
-| Blink | 5 / 25 |
-| Inverse | 7 / 27 |
-| Hidden | 8 / 28 |
-| Strikethrough | 9 / 29 |
-| Foreground color | 30–37, 90–97, 38;5;N, 38;2;R;G;B |
+| Attribute        | SGR codes                          |
+| ---------------- | ---------------------------------- |
+| Bold             | 1 / 22                             |
+| Dim              | 2 / 22                             |
+| Italic           | 3 / 23                             |
+| Underline        | 4 / 24                             |
+| Blink            | 5 / 25                             |
+| Inverse          | 7 / 27                             |
+| Hidden           | 8 / 28                             |
+| Strikethrough    | 9 / 29                             |
+| Foreground color | 30–37, 90–97, 38;5;N, 38;2;R;G;B   |
 | Background color | 40–47, 100–107, 48;5;N, 48;2;R;G;B |
 
 Key methods:
 
-| Method | Purpose |
-|---|---|
-| `process(ansiCode)` | Update state from an SGR sequence |
-| `getActiveCodes()` | Return a single `\x1b[…m` sequence restoring all active attributes |
+| Method              | Purpose                                                                       |
+| ------------------- | ----------------------------------------------------------------------------- |
+| `process(ansiCode)` | Update state from an SGR sequence                                             |
+| `getActiveCodes()`  | Return a single `\x1b[…m` sequence restoring all active attributes            |
 | `getLineEndReset()` | Return `\x1b[24m` (underline-off only) if underline is active, otherwise `""` |
-| `hasActiveCodes()` | Check if any attribute is active |
-| `clear()` | Reset all state |
+| `hasActiveCodes()`  | Check if any attribute is active                                              |
+| `clear()`           | Reset all state                                                               |
 
 The split between `getActiveCodes()` and `getLineEndReset()` is intentional: a full reset at line-end would also clear background colors, causing the padding added by the `Text` and `Markdown` components to render without background. Only underline is reset at line boundaries because it visually "bleeds" into padding.
 
@@ -371,6 +370,7 @@ wrapTextWithAnsi(text: string, width: number): string[]
 Word-wraps `text` to at most `width` visible columns per line. ANSI state is preserved across line breaks: each wrapped continuation line begins with `tracker.getActiveCodes()`. Underline is reset at line ends via `getLineEndReset()` without discarding other active styles.
 
 The algorithm:
+
 1. Split `text` on `\
 `. For each input line:
 2. Tokenize into whitespace and non-whitespace chunks via `splitIntoTokensWithAnsi()`, which keeps ANSI codes attached to the following visible character.

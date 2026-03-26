@@ -10,8 +10,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the automations system: the `automations.json` schema, every supported event type, cron scheduling, prompt action expansion, and how automations spawn new agent sessions. For the label system that drives `LabelAdd`/`LabelRemove` events, see [Labels (4.7)](#4.7). For the status system that drives `SessionStatusChange`, see [Status Workflow (4.6)](#4.6). For how agent sessions are created and executed, see [Agent System (2.3)](#2.3) and [Session Lifecycle (2.7)](#2.7).
 
 ---
@@ -21,11 +19,13 @@ This page documents the automations system: the `automations.json` schema, every
 Automations let you trigger agent sessions and other actions in response to workspace events—without writing any code. Rules are stored in a per-workspace `automations.json` file. The runtime lives in `packages/shared/src/automations/`, and cron scheduling is handled by the [`croner`](https://www.npmjs.com/package/croner) library.
 
 **File location:**
+
 ```
 ~/.craft-agent/workspaces/{workspaceId}/automations.json
 ```
 
 **Entry point:**
+
 - `packages/shared/src/automations/index.ts`
 - Config path resolution: `packages/shared/src/automations/resolve-config-path.ts`
 
@@ -37,9 +37,9 @@ Sources: [packages/shared/package.json:57-58](), [README.md:313-355]()
 
 The top-level document has two fields:
 
-| Field | Type | Description |
-|---|---|---|
-| `version` | `number` | Must be `2`. |
+| Field         | Type     | Description                                                       |
+| ------------- | -------- | ----------------------------------------------------------------- |
+| `version`     | `number` | Must be `2`.                                                      |
 | `automations` | `object` | Keys are event-type names; values are arrays of automation rules. |
 
 Each key in `automations` is one of the supported event type strings (see the Event Types section below). The value is an array of **rule objects**, evaluated in order when that event fires.
@@ -58,7 +58,10 @@ Sources: [README.md:325-349]()
         "timezone": "America/New_York",
         "labels": ["Scheduled"],
         "actions": [
-          { "type": "prompt", "prompt": "Check @github for new issues assigned to me" }
+          {
+            "type": "prompt",
+            "prompt": "Check @github for new issues assigned to me"
+          }
         ]
       }
     ],
@@ -83,13 +86,13 @@ Sources: [README.md:325-349]()
 
 Different event types support different subsets of these fields:
 
-| Field | Type | Applies to | Description |
-|---|---|---|---|
-| `cron` | `string` | `SchedulerTick` | Standard 5-field cron expression. |
-| `timezone` | `string` | `SchedulerTick` | IANA timezone string (e.g., `"America/New_York"`). Defaults to local system timezone. |
-| `labels` | `string[]` | `SchedulerTick` | Labels to attach to the new session created by this automation. |
-| `matcher` | `string` | Label/Status/Tool events | A regular expression tested against the event value (e.g., label name, status name, tool name). |
-| `actions` | `Action[]` | All | Array of action objects to execute when the rule fires. |
+| Field      | Type       | Applies to               | Description                                                                                     |
+| ---------- | ---------- | ------------------------ | ----------------------------------------------------------------------------------------------- |
+| `cron`     | `string`   | `SchedulerTick`          | Standard 5-field cron expression.                                                               |
+| `timezone` | `string`   | `SchedulerTick`          | IANA timezone string (e.g., `"America/New_York"`). Defaults to local system timezone.           |
+| `labels`   | `string[]` | `SchedulerTick`          | Labels to attach to the new session created by this automation.                                 |
+| `matcher`  | `string`   | Label/Status/Tool events | A regular expression tested against the event value (e.g., label name, status name, tool name). |
+| `actions`  | `Action[]` | All                      | Array of action objects to execute when the rule fires.                                         |
 
 Sources: [README.md:326-349]()
 
@@ -147,18 +150,18 @@ Sources: [README.md:353-354](), [packages/shared/package.json:57-58]()
 
 ### Event Reference Table
 
-| Event Type | `matcher` applies to | Notes |
-|---|---|---|
-| `LabelAdd` | Label name added | Fires when any label is applied to a session. |
-| `LabelRemove` | Label name removed | Fires when a label is removed from a session. |
-| `SessionStatusChange` | New status name | Fires on any workflow status transition. |
-| `FlagChange` | `"flagged"` / `"unflagged"` | Fires when a session flag state changes. |
-| `PermissionModeChange` | Mode string (`"safe"`, `"ask"`, `"allow-all"`) | Fires when the user cycles permission modes. |
-| `SessionStart` | — | Fires when a new session is created. |
-| `SessionEnd` | — | Fires when a session ends. |
-| `PreToolUse` | Tool name | Fires before the agent executes a tool call. |
-| `PostToolUse` | Tool name | Fires after a tool call completes. |
-| `SchedulerTick` | — (uses `cron` field) | Time-based trigger; no `matcher` needed. |
+| Event Type             | `matcher` applies to                           | Notes                                         |
+| ---------------------- | ---------------------------------------------- | --------------------------------------------- |
+| `LabelAdd`             | Label name added                               | Fires when any label is applied to a session. |
+| `LabelRemove`          | Label name removed                             | Fires when a label is removed from a session. |
+| `SessionStatusChange`  | New status name                                | Fires on any workflow status transition.      |
+| `FlagChange`           | `"flagged"` / `"unflagged"`                    | Fires when a session flag state changes.      |
+| `PermissionModeChange` | Mode string (`"safe"`, `"ask"`, `"allow-all"`) | Fires when the user cycles permission modes.  |
+| `SessionStart`         | —                                              | Fires when a new session is created.          |
+| `SessionEnd`           | —                                              | Fires when a session ends.                    |
+| `PreToolUse`           | Tool name                                      | Fires before the agent executes a tool call.  |
+| `PostToolUse`          | Tool name                                      | Fires after a tool call completes.            |
+| `SchedulerTick`        | — (uses `cron` field)                          | Time-based trigger; no `matcher` needed.      |
 
 Sources: [README.md:353-354](), [README.md:329-349]()
 
@@ -183,13 +186,17 @@ Sources: [README.md:353-354](), [README.md:329-349]()
 The optional `timezone` field accepts any IANA timezone string. If omitted, the host system's local timezone is used.
 
 **Example — Weekly Friday summary:**
+
 ```json
 {
   "cron": "0 17 * * 5",
   "timezone": "Europe/London",
   "labels": ["Weekly Summary"],
   "actions": [
-    { "type": "prompt", "prompt": "Summarise all completed tasks from this week." }
+    {
+      "type": "prompt",
+      "prompt": "Summarise all completed tasks from this week."
+    }
   ]
 }
 ```
@@ -214,9 +221,9 @@ The prompt string supports two extension mechanisms:
 
 Mentions in the prompt are resolved at execution time, injecting the referenced source or skill into the new session's context—exactly as if the user typed `@mention` in the chat input.
 
-| Syntax | Effect |
-|---|---|
-| `@github` | Activates the `github` source for the new session |
+| Syntax      | Effect                                              |
+| ----------- | --------------------------------------------------- |
+| `@github`   | Activates the `github` source for the new session   |
 | `@my-skill` | Injects the `my-skill` skill into the system prompt |
 
 For details on how sources and skills are resolved from `@mentions`, see [Sources (4.3)](#4.3) and [Skills (4.4)](#4.4).
@@ -225,12 +232,12 @@ For details on how sources and skills are resolved from `@mentions`, see [Source
 
 Variables of the form `$CRAFT_VAR_NAME` are expanded into the prompt before it is submitted to the agent. These provide event context to the automation.
 
-| Variable | Description |
-|---|---|
-| `$CRAFT_SESSION_ID` | ID of the session that triggered the event |
-| `$CRAFT_LABEL` | The label name (for `LabelAdd`/`LabelRemove` events) |
-| `$CRAFT_STATUS` | The new status name (for `SessionStatusChange`) |
-| `$CRAFT_TOOL` | The tool name (for `PreToolUse`/`PostToolUse`) |
+| Variable            | Description                                          |
+| ------------------- | ---------------------------------------------------- |
+| `$CRAFT_SESSION_ID` | ID of the session that triggered the event           |
+| `$CRAFT_LABEL`      | The label name (for `LabelAdd`/`LabelRemove` events) |
+| `$CRAFT_STATUS`     | The new status name (for `SessionStatusChange`)      |
+| `$CRAFT_TOOL`       | The tool name (for `PreToolUse`/`PostToolUse`)       |
 
 Sources: [README.md:351-353]()
 
@@ -348,12 +355,12 @@ Sources: [packages/shared/package.json:57-58](), [packages/shared/package.json:6
 
 ## Relationship to Other Systems
 
-| Related System | Connection |
-|---|---|
-| [Labels (4.7)](#4.7) | `LabelAdd` / `LabelRemove` events are the most common automation triggers |
-| [Status Workflow (4.6)](#4.6) | `SessionStatusChange` fires on every status transition |
-| [Permission System (4.5)](#4.5) | `PermissionModeChange` fires when mode is cycled with SHIFT+TAB |
-| [Sources (4.3)](#4.3) | `@mention` in prompt actions activates sources in the spawned session |
-| [Skills (4.4)](#4.4) | `@mention` in prompt actions injects skills into the spawned session |
-| [Session Lifecycle (2.7)](#2.7) | Each automation ultimately calls into `SessionManager` to create a session |
+| Related System                        | Connection                                                                           |
+| ------------------------------------- | ------------------------------------------------------------------------------------ |
+| [Labels (4.7)](#4.7)                  | `LabelAdd` / `LabelRemove` events are the most common automation triggers            |
+| [Status Workflow (4.6)](#4.6)         | `SessionStatusChange` fires on every status transition                               |
+| [Permission System (4.5)](#4.5)       | `PermissionModeChange` fires when mode is cycled with SHIFT+TAB                      |
+| [Sources (4.3)](#4.3)                 | `@mention` in prompt actions activates sources in the spawned session                |
+| [Skills (4.4)](#4.4)                  | `@mention` in prompt actions injects skills into the spawned session                 |
+| [Session Lifecycle (2.7)](#2.7)       | Each automation ultimately calls into `SessionManager` to create a session           |
 | [Storage & Configuration (2.8)](#2.8) | `automations.json` lives inside the workspace directory alongside other config files |

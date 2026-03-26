@@ -24,8 +24,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the Cargo workspace organization, key crates, and dependency relationships in the `codex-rs` repository. For installation and distribution mechanisms, see [1.1](#1.1). For architectural patterns and execution modes, see [1.3](#1.3).
 
 ## Scope and Organization
@@ -47,64 +45,64 @@ graph TB
         CargoLock["Cargo.lock<br/>(dependency lock)"]
         RustToolchain["rust-toolchain.toml"]
     end
-    
+
     subgraph "Entry Point Binaries"
         CLI["cli/<br/>codex binary"]
         TUI["tui/<br/>codex-tui binary"]
         EXEC["exec/<br/>codex-exec binary"]
     end
-    
+
     subgraph "Core Engine"
         CORE["core/<br/>codex_core library"]
     end
-    
+
     subgraph "Protocol & Communication"
         PROTOCOL["protocol/<br/>codex_protocol"]
         APPSERVERPROTO["app-server-protocol/"]
         APPSERVER["app-server/"]
         APPCLIENT["app-server-client/"]
     end
-    
+
     subgraph "Configuration & State"
         CONFIG["config/"]
         STATE["state/"]
         SECRETS["secrets/"]
     end
-    
+
     subgraph "Tool & Execution Systems"
         SHELLCMD["shell-command/"]
         EXEC_MOD["exec/ (module)"]
         SKILLS["skills/"]
         EXECPOLICY["execpolicy/"]
     end
-    
+
     subgraph "Infrastructure Utilities"
         UTILS["utils/*<br/>(~15 utility crates)"]
     end
-    
+
     CargoToml --> CLI
     CargoToml --> TUI
     CargoToml --> EXEC
     CargoToml --> CORE
-    
+
     CLI --> CORE
     CLI --> TUI
     CLI --> EXEC
     CLI --> APPSERVER
-    
+
     TUI --> CORE
     TUI --> APPCLIENT
     TUI --> APPSERVERPROTO
-    
+
     EXEC --> CORE
     EXEC --> APPCLIENT
-    
+
     CORE --> PROTOCOL
     CORE --> CONFIG
     CORE --> STATE
     CORE --> SHELLCMD
     CORE --> SKILLS
-    
+
     APPSERVER --> CORE
     APPSERVER --> APPSERVERPROTO
     APPCLIENT --> APPSERVERPROTO
@@ -120,18 +118,18 @@ graph TB
 
 The `codex` binary serves as the unified entry point, routing to different execution modes via subcommands. The `MultitoolCli` struct in [codex-rs/cli/src/main.rs:70-82]() defines the command structure:
 
-| Binary Name | Crate | Primary Function |
-|-------------|-------|------------------|
-| `codex` | `codex-cli` | Multitool dispatcher with subcommand routing |
-| `codex-tui` | `codex-tui` | Interactive terminal UI (launched via `codex` or `codex-tui`) |
-| `codex-exec` | `codex-exec` | Non-interactive/headless execution |
+| Binary Name  | Crate        | Primary Function                                              |
+| ------------ | ------------ | ------------------------------------------------------------- |
+| `codex`      | `codex-cli`  | Multitool dispatcher with subcommand routing                  |
+| `codex-tui`  | `codex-tui`  | Interactive terminal UI (launched via `codex` or `codex-tui`) |
+| `codex-exec` | `codex-exec` | Non-interactive/headless execution                            |
 
 The CLI dispatches to subcommands defined in [codex-rs/cli/src/main.rs:84-149]():
 
 ```mermaid
 graph LR
     codex["codex binary"]
-    
+
     codex --> interactive["(no subcommand)<br/>→ TUI mode"]
     codex --> exec["exec<br/>→ headless execution"]
     codex --> review["review<br/>→ code review"]
@@ -143,7 +141,7 @@ graph LR
     codex --> appserver["app-server<br/>→ JSON-RPC server"]
     codex --> sandbox["sandbox<br/>→ sandbox testing"]
     codex --> features["features<br/>→ feature inspection"]
-    
+
     style codex fill:#ff6b6b
 ```
 
@@ -158,6 +156,7 @@ The `codex-tui` crate provides a fullscreen terminal interface built with [Ratat
 - **Main loop:** `run_ratatui_app` in [codex-rs/tui/src/lib.rs:532-841]()
 
 The crate exports key types for external integration:
+
 - `Cli` struct for argument parsing ([codex-rs/tui/src/cli.rs:1-116]())
 - `AppExitInfo` and `ExitReason` ([codex-rs/tui/src/lib.rs:8-9]())
 - Public widgets like `ComposerInput` and `ComposerAction` ([codex-rs/tui/src/lib.rs:226-227]())
@@ -171,7 +170,7 @@ The `codex-exec` binary enables non-interactive operation with output to stdout/
 - **Binary:** `codex-exec` ([codex-rs/exec/Cargo.toml:7-9]())
 - **Library:** `codex_exec` ([codex-rs/exec/Cargo.toml:11-13]())
 - **Entry:** `run_main` in [codex-rs/exec/src/lib.rs:161-466]()
-- **Event processors:** 
+- **Event processors:**
   - `EventProcessorWithHumanOutput` ([codex-rs/exec/src/event_processor_with_human_output.rs]())
   - `EventProcessorWithJsonOutput` ([codex-rs/exec/src/event_processor_with_jsonl_output.rs]())
 
@@ -189,66 +188,66 @@ The `codex-core` crate contains the business logic for Codex sessions, model int
 graph TB
     subgraph "codex-core Library"
         LibEntry["lib.rs<br/>Root module"]
-        
+
         subgraph "Session Management"
             Codex["codex.rs<br/>Codex struct"]
             Thread["codex_thread.rs<br/>CodexThread"]
             ThreadMgr["thread_manager.rs<br/>ThreadManager"]
         end
-        
+
         subgraph "Model Communication"
             Client["client.rs<br/>ModelClient"]
             ClientCommon["client_common.rs<br/>ResponseEvent/Prompt"]
             EventMapping["event_mapping.rs<br/>parse_turn_item"]
         end
-        
+
         subgraph "Configuration"
             Config["config/<br/>Config struct"]
             ConfigLoader["config_loader.rs"]
             Features["features.rs<br/>Feature flags"]
         end
-        
+
         subgraph "Tool System"
             Tools["tools/<br/>Tool specs"]
             FunctionTool["function_tool.rs"]
             UserShellCmd["user_shell_command.rs"]
         end
-        
+
         subgraph "Context & History"
             ContextMgr["context_manager.rs"]
             MessageHistory["message_history.rs"]
             Rollout["rollout.rs<br/>RolloutRecorder"]
         end
-        
+
         subgraph "Execution & Sandboxing"
             Exec["exec/<br/>UnifiedExec"]
             Sandboxing["sandboxing.rs"]
             Safety["safety.rs"]
         end
-        
+
         LibEntry --> Codex
         LibEntry --> ThreadMgr
         LibEntry --> Client
         LibEntry --> Config
-        
+
         Codex --> Thread
         ThreadMgr --> Thread
         Thread --> ContextMgr
         Thread --> Tools
-        
+
         Client --> ClientCommon
         ClientCommon --> EventMapping
-        
+
         Tools --> FunctionTool
         Tools --> UserShellCmd
         Tools --> Exec
-        
+
         Exec --> Sandboxing
         Sandboxing --> Safety
     end
-    
+
     ConfigSchemaBin["bin/config_schema.rs<br/>codex-write-config-schema"]
-    
+
     style LibEntry fill:#ff6b6b
     style Codex fill:#4ecdc4
 ```
@@ -257,14 +256,14 @@ graph TB
 
 The root module [codex-rs/core/src/lib.rs:1-178]() re-exports primary types:
 
-| Export | Source Module | Purpose |
-|--------|---------------|---------|
-| `Codex` | [codex.rs:16]() | Session lifecycle management |
-| `CodexThread` | [codex_thread.rs:22]() | Individual thread state |
-| `ThreadManager` | [thread_manager.rs:95-96]() | Multi-thread orchestration |
-| `ModelClient` | [client.rs:157]() | Model API communication |
-| `ResponseEvent` | [client_common.rs:163]() | Streaming event types |
-| `RolloutRecorder` | [rollout.rs:123]() | Session persistence |
+| Export            | Source Module               | Purpose                      |
+| ----------------- | --------------------------- | ---------------------------- |
+| `Codex`           | [codex.rs:16]()             | Session lifecycle management |
+| `CodexThread`     | [codex_thread.rs:22]()      | Individual thread state      |
+| `ThreadManager`   | [thread_manager.rs:95-96]() | Multi-thread orchestration   |
+| `ModelClient`     | [client.rs:157]()           | Model API communication      |
+| `ResponseEvent`   | [client_common.rs:163]()    | Streaming event types        |
+| `RolloutRecorder` | [rollout.rs:123]()          | Session persistence          |
 
 ### Binary Target
 
@@ -283,6 +282,7 @@ The `codex-protocol` crate defines shared types for communication between compon
 ### App Server Protocol (`app-server-protocol/`)
 
 JSON-RPC protocol definitions for IDE integrations. Defines:
+
 - Request/response types for `thread/*` and `turn/*` endpoints
 - Notification types for streaming events
 - Experimental API feature flags via `codex-experimental-api-macros`
@@ -292,6 +292,7 @@ The protocol is versioned and supports TypeScript/JSON Schema generation via [co
 ### App Server Implementation (`app-server/`)
 
 WebSocket and stdio JSON-RPC server implementation. Core types:
+
 - `CodexMessageProcessor` handles request routing
 - `OutgoingMessageSender` manages bidirectional communication
 - Transport abstraction supports `stdio://` and `ws://IP:PORT` endpoints
@@ -309,6 +310,7 @@ In-process client for TUI and exec modes to reuse app-server logic. Provides `In
 ### Configuration System (`config/`)
 
 The `codex-config` crate implements the layered configuration system described in [2.2](#2.2). Key types:
+
 - `Config` struct with validated settings
 - `ConfigBuilder` for merging layers
 - Profile system for environment-specific overrides
@@ -316,6 +318,7 @@ The `codex-config` crate implements the layered configuration system described i
 ### State Persistence (`state/`)
 
 SQLite-based state management via the `codex-state` crate:
+
 - `StateRuntime` for database lifecycle
 - Session metadata indexing
 - Thread history storage
@@ -333,6 +336,7 @@ Encrypted credential storage using platform-specific keyrings.
 ### Shell Command Parsing (`shell-command/`)
 
 Command parsing and safety analysis via `codex-shell-command`:
+
 - `parse_command` for shell syntax parsing
 - `is_safe_command` and `is_dangerous_command` classifiers
 - Bash and PowerShell command structures
@@ -360,24 +364,24 @@ graph LR
         CargoBin["utils/cargo-bin<br/>Binary path resolution"]
         HomeDir["utils/home-dir<br/>Home directory detection"]
     end
-    
+
     subgraph "Data Processing"
         Json2Toml["utils/json-to-toml<br/>Format conversion"]
         StreamParser["utils/stream-parser<br/>SSE parsing"]
         FuzzyMatch["utils/fuzzy-match<br/>Search ranking"]
     end
-    
+
     subgraph "System Integration"
         Pty["utils/pty<br/>Pseudo-terminal"]
         SleepInhibitor["utils/sleep-inhibitor<br/>Power management"]
         Image["utils/image<br/>Image processing"]
     end
-    
+
     subgraph "Observability"
         Elapsed["utils/elapsed<br/>Duration formatting"]
         Readiness["utils/readiness<br/>Health checks"]
     end
-    
+
     subgraph "Security & Sandboxing"
         SandboxSummary["utils/sandbox-summary<br/>Sandbox state display"]
         ApprovalPresets["utils/approval-presets<br/>Preset policies"]
@@ -385,6 +389,7 @@ graph LR
 ```
 
 Each utility is a standalone crate with focused functionality. For example:
+
 - [codex-rs/Cargo.toml:132](): `codex-utils-absolute-path` for safe path handling
 - [codex-rs/Cargo.toml:143](): `codex-utils-pty` for PTY session management
 - [codex-rs/Cargo.toml:139](): `codex-utils-image` for image encoding/decoding
@@ -399,13 +404,13 @@ Each utility is a standalone crate with focused functionality. For example:
 
 The workspace defines shared dependencies in [codex-rs/Cargo.toml:83-314]() with version pinning and feature flags. Key patterns:
 
-| Dependency | Purpose | Workspace Feature |
-|------------|---------|-------------------|
-| `tokio` | Async runtime | `rt-multi-thread`, `macros` |
-| `serde` | Serialization | `derive` |
-| `clap` | CLI parsing | `derive` |
-| `tracing` | Observability | `log` |
-| `rmcp` | MCP protocol | `server`, `macros` |
+| Dependency | Purpose       | Workspace Feature           |
+| ---------- | ------------- | --------------------------- |
+| `tokio`    | Async runtime | `rt-multi-thread`, `macros` |
+| `serde`    | Serialization | `derive`                    |
+| `clap`     | CLI parsing   | `derive`                    |
+| `tracing`  | Observability | `log`                       |
+| `rmcp`     | MCP protocol  | `server`, `macros`          |
 
 ### Dependency Graph
 
@@ -416,28 +421,28 @@ graph TB
     EXEC["exec crate"]
     CORE["core crate"]
     PROTOCOL["protocol crate"]
-    
+
     CLI --> TUI
     CLI --> EXEC
     CLI --> CORE
-    
+
     TUI --> CORE
     TUI --> APPCLIENT["app-server-client"]
-    
+
     EXEC --> CORE
     EXEC --> APPCLIENT
-    
+
     CORE --> PROTOCOL
     CORE --> CONFIG["config crate"]
     CORE --> SHELLCMD["shell-command"]
     CORE --> RMCPCLIENT["rmcp-client"]
-    
+
     APPCLIENT --> APPSERVERPROTO["app-server-protocol"]
     APPSERVER["app-server"] --> CORE
     APPSERVER --> APPSERVERPROTO
-    
+
     CONFIG --> PROTOCOL
-    
+
     style CLI fill:#ff6b6b
     style CORE fill:#4ecdc4
 ```
@@ -445,6 +450,7 @@ graph TB
 ### Platform-Specific Dependencies
 
 Platform-specific dependencies are declared via `[target.'cfg(...)'.dependencies]` sections:
+
 - Linux: `landlock`, `seccompiler` ([codex-rs/core/Cargo.toml:120-123]())
 - macOS: `core-foundation`, keyring with `apple-native` ([codex-rs/core/Cargo.toml:125-127]())
 - Windows: `windows-sys` with specific feature flags ([codex-rs/core/Cargo.toml:137-143]())
@@ -460,17 +466,18 @@ Platform-specific dependencies are declared via `[target.'cfg(...)'.dependencies
 
 Shared build configuration in [codex-rs/Cargo.toml:74-82,367-376]():
 
-| Setting | Value | Purpose |
-|---------|-------|---------|
-| `edition` | `"2024"` | Rust 2024 edition |
-| `license` | `"Apache-2.0"` | Apache 2.0 license |
-| `lto` | `"fat"` | Link-time optimization for release |
-| `strip` | `"symbols"` | Remove debug symbols |
-| `codegen-units` | `1` | Single codegen unit for size optimization |
+| Setting         | Value          | Purpose                                   |
+| --------------- | -------------- | ----------------------------------------- |
+| `edition`       | `"2024"`       | Rust 2024 edition                         |
+| `license`       | `"Apache-2.0"` | Apache 2.0 license                        |
+| `lto`           | `"fat"`        | Link-time optimization for release        |
+| `strip`         | `"symbols"`    | Remove debug symbols                      |
+| `codegen-units` | `1`            | Single codegen unit for size optimization |
 
 ### Clippy Lints
 
 Workspace enforces ~40 clippy lints defined in [codex-rs/Cargo.toml:322-356](). Notable denials:
+
 - `unwrap_used` and `expect_used` to prevent panics
 - Manual `*_fold`, `*_map`, `*_filter` patterns
 - Redundant clones and closures
@@ -479,6 +486,7 @@ Workspace enforces ~40 clippy lints defined in [codex-rs/Cargo.toml:322-356](). 
 ### Cargo Patches
 
 Development patches in [codex-rs/Cargo.toml:382-394]():
+
 - `crossterm` with color query support
 - `ratatui` with custom patches
 - `tokio-tungstenite` and `tungstenite` with proxy fixes
@@ -549,6 +557,7 @@ codex-rs/
 ### TUI Features
 
 The `codex-tui` crate defines optional features in [codex-rs/tui/Cargo.toml:15-22]():
+
 - `voice-input` (default): Enables audio capture via `cpal` and `hound`
 - `vt100-tests`: Enables terminal emulator-based tests
 - `debug-logs`: Verbose internal logging

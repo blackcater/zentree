@@ -11,8 +11,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers the session data model: how sessions are stored on disk, their metadata fields, and the operations that can be performed on them (status changes, flagging, archiving, read/unread tracking, branching, and sharing). For the full runtime lifecycle of a session (message flow, agent event processing, `SessionManager` as orchestrator), see the [Session Lifecycle page (2.7)](#2.7). For workspace-level configuration that governs session defaults, see [Workspaces (4.1)](#4.1).
 
 ---
@@ -60,28 +58,28 @@ Sources: [packages/shared/src/sessions/storage.ts:162-168](), [packages/shared/s
 
 The `SessionHeader` type (line 1 of `session.jsonl`) contains all metadata the UI needs without loading full message history. Key fields:
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | `string` | Human-readable session slug |
-| `name` | `string?` | AI-generated or user-defined title |
-| `createdAt` | `number` | Unix timestamp (ms) |
-| `lastUsedAt` | `number` | Updated on every write |
-| `sessionStatus` | `string?` | Workspace-scoped status ID (e.g., `todo`, `done`) |
-| `isFlagged` | `boolean?` | Whether session is pinned/flagged |
-| `isArchived` | `boolean?` | Whether session is archived |
-| `archivedAt` | `number?` | Timestamp when archived |
-| `hasUnread` | `boolean?` | Explicit unread indicator |
-| `lastReadMessageId` | `string?` | ID of last message the user has seen |
-| `labels` | `string[]?` | Array of label IDs applied to session |
-| `permissionMode` | `string?` | `safe` / `ask` / `allow-all` |
-| `enabledSourceSlugs` | `string[]?` | Sources active in this session |
-| `model` | `string?` | Model override for this session |
-| `llmConnection` | `string?` | LLM connection slug (locked after first message) |
-| `workingDirectory` | `string?` | Working directory for Bash tool |
-| `sdkCwd` | `string?` | Immutable CWD for SDK transcript storage |
-| `sharedUrl` | `string?` | Public viewer URL if shared |
-| `sharedId` | `string?` | Viewer ID for revoke |
-| `branchFromMessageId` | `string?` | Message ID this session branched from |
+| Field                 | Type        | Description                                       |
+| --------------------- | ----------- | ------------------------------------------------- |
+| `id`                  | `string`    | Human-readable session slug                       |
+| `name`                | `string?`   | AI-generated or user-defined title                |
+| `createdAt`           | `number`    | Unix timestamp (ms)                               |
+| `lastUsedAt`          | `number`    | Updated on every write                            |
+| `sessionStatus`       | `string?`   | Workspace-scoped status ID (e.g., `todo`, `done`) |
+| `isFlagged`           | `boolean?`  | Whether session is pinned/flagged                 |
+| `isArchived`          | `boolean?`  | Whether session is archived                       |
+| `archivedAt`          | `number?`   | Timestamp when archived                           |
+| `hasUnread`           | `boolean?`  | Explicit unread indicator                         |
+| `lastReadMessageId`   | `string?`   | ID of last message the user has seen              |
+| `labels`              | `string[]?` | Array of label IDs applied to session             |
+| `permissionMode`      | `string?`   | `safe` / `ask` / `allow-all`                      |
+| `enabledSourceSlugs`  | `string[]?` | Sources active in this session                    |
+| `model`               | `string?`   | Model override for this session                   |
+| `llmConnection`       | `string?`   | LLM connection slug (locked after first message)  |
+| `workingDirectory`    | `string?`   | Working directory for Bash tool                   |
+| `sdkCwd`              | `string?`   | Immutable CWD for SDK transcript storage          |
+| `sharedUrl`           | `string?`   | Public viewer URL if shared                       |
+| `sharedId`            | `string?`   | Viewer ID for revoke                              |
+| `branchFromMessageId` | `string?`   | Message ID this session branched from             |
 
 Sources: [packages/shared/src/sessions/storage.ts:524-567](), [apps/electron/src/main/sessions.ts:553-697]()
 
@@ -188,11 +186,11 @@ Sources: [apps/electron/src/main/sessions.ts:1869-1955](), [apps/electron/src/ma
 
 Writes go through `sessionPersistenceQueue` (exported from `packages/shared/src/sessions/persistence-queue.ts`). Rapid sequential writes to the same session are coalesced — only the most recent state is written. Two methods exist:
 
-| Method | Behavior |
-|---|---|
-| `sessionPersistenceQueue.enqueue(session)` | Debounced async write |
-| `sessionPersistenceQueue.flush(sessionId)` | Force immediate write |
-| `sessionPersistenceQueue.flushAll()` | Flush all sessions (used on app quit) |
+| Method                                     | Behavior                              |
+| ------------------------------------------ | ------------------------------------- |
+| `sessionPersistenceQueue.enqueue(session)` | Debounced async write                 |
+| `sessionPersistenceQueue.flush(sessionId)` | Force immediate write                 |
+| `sessionPersistenceQueue.flushAll()`       | Flush all sessions (used on app quit) |
 
 `persistSession()` in `SessionManager` skips writing if `messagesLoaded` is false, preventing an empty message array from overwriting existing JSONL data.
 
@@ -204,10 +202,10 @@ Sources: [packages/shared/src/sessions/storage.ts:305-315](), [apps/electron/src
 
 Each session has a `sessionStatus` field referencing a workspace-defined status ID. Statuses have a **category** — either `open` or `closed` — which determines where sessions appear in the UI:
 
-| Category | Meaning | UI Location |
-|---|---|---|
-| `open` | Active / in progress | Inbox view |
-| `closed` | Finished / done | Completed view |
+| Category | Meaning              | UI Location    |
+| -------- | -------------------- | -------------- |
+| `open`   | Active / in progress | Inbox view     |
+| `closed` | Finished / done      | Completed view |
 
 The storage layer exposes filtered list functions:
 
@@ -227,11 +225,11 @@ Sources: [packages/shared/src/sessions/storage.ts:700-740](), [packages/shared/s
 
 Flagging marks a session for quick access. The `isFlagged` boolean is stored in the session header.
 
-| Function | Effect |
-|---|---|
-| `flagSession(workspaceRootPath, sessionId)` | Sets `isFlagged: true` and persists |
-| `unflagSession(workspaceRootPath, sessionId)` | Sets `isFlagged: false` and persists |
-| `listFlaggedSessions(workspaceRootPath)` | Returns all non-archived flagged sessions |
+| Function                                      | Effect                                    |
+| --------------------------------------------- | ----------------------------------------- |
+| `flagSession(workspaceRootPath, sessionId)`   | Sets `isFlagged: true` and persists       |
+| `unflagSession(workspaceRootPath, sessionId)` | Sets `isFlagged: false` and persists      |
+| `listFlaggedSessions(workspaceRootPath)`      | Returns all non-archived flagged sessions |
 
 At runtime, `SessionManager` emits `session_flagged` or `session_unflagged` IPC events to the renderer when the flag state changes (including changes detected via `ConfigWatcher` from external edits).
 
@@ -243,10 +241,10 @@ Sources: [packages/shared/src/sessions/storage.ts:570-582](), [apps/electron/src
 
 Archived sessions are hidden from the inbox and completed views. They are preserved on disk but excluded from `listActiveSessions()`.
 
-| Function | Effect |
-|---|---|
-| `archiveSession(workspaceRootPath, sessionId)` | Sets `isArchived: true`, records `archivedAt` timestamp |
-| `unarchiveSession(workspaceRootPath, sessionId)` | Clears `isArchived` and `archivedAt` |
+| Function                                                      | Effect                                                                       |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `archiveSession(workspaceRootPath, sessionId)`                | Sets `isArchived: true`, records `archivedAt` timestamp                      |
+| `unarchiveSession(workspaceRootPath, sessionId)`              | Clears `isArchived` and `archivedAt`                                         |
 | `deleteOldArchivedSessions(workspaceRootPath, retentionDays)` | Deletes archived sessions older than cutoff using `archivedAt ?? lastUsedAt` |
 
 The `getUnreadSummary()` method on `SessionManager` excludes both archived and hidden sessions from unread counts and badge updates.
@@ -259,10 +257,10 @@ Sources: [packages/shared/src/sessions/storage.ts:608-762](), [apps/electron/src
 
 Two complementary fields track whether a user has seen new content in a session:
 
-| Field | Type | Role |
-|---|---|---|
-| `hasUnread` | `boolean?` | **Primary flag.** Set `true` when assistant completes a turn while user is not viewing the session. Set `false` when user views the session (and session is not processing). |
-| `lastReadMessageId` | `string?` | ID of the last message the user has explicitly read. Used for scroll-position recovery. |
+| Field               | Type       | Role                                                                                                                                                                         |
+| ------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hasUnread`         | `boolean?` | **Primary flag.** Set `true` when assistant completes a turn while user is not viewing the session. Set `false` when user views the session (and session is not processing). |
+| `lastReadMessageId` | `string?`  | ID of the last message the user has explicitly read. Used for scroll-position recovery.                                                                                      |
 
 `SessionManager` tracks which session the user is actively viewing per workspace in `activeViewingSession: Map<string, string>` (workspaceId → sessionId). When an assistant turn completes for a session that is not the active one, `hasUnread` is set to `true`.
 
@@ -296,6 +294,7 @@ sequenceDiagram
 ```
 
 **Validation rules enforced before branching:**
+
 - Both `branchFromSessionId` and `branchFromMessageId` must be provided together.
 - Source session must belong to the same workspace.
 - Source and target sessions must use the same provider backend (e.g., cannot branch a Claude session into a Pi session).

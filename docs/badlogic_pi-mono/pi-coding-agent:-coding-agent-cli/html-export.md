@@ -19,8 +19,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 HTML Export is a feature that converts session JSONL files into standalone HTML documents suitable for sharing or archival. The exported HTML files are self-contained with embedded styling and interactive elements, preserving the full conversation history including tool calls, thinking blocks, and user messages.
 
 For information about session persistence and the JSONL format, see [Session Management & History Tree](#4.3). For sharing exported sessions via GitHub gist, see the `/share` command in [Commands](#4.10).
@@ -48,29 +46,29 @@ Exported HTML files are fully self-contained with no external dependencies, maki
 graph TB
     CLI["CLI: pi --export session.jsonl output.html"]
     Cmd["Interactive: /export output.html"]
-    
+
     ParseArgs["parseArgs()<br/>(args.ts)"]
     ExportCmd["exportCommand()<br/>(commands/export.ts)"]
-    
+
     Main["main()<br/>(main.ts)"]
     ExportFromFile["exportFromFile()<br/>(export-html/index.ts)"]
-    
+
     SessionMgr["SessionManager.open()"]
     BuildContext["buildSessionContext()"]
-    
+
     RenderHTML["renderSessionHTML()"]
     WriteFile["fs.writeFileSync()"]
-    
+
     Output["output.html<br/>(standalone)"]
-    
+
     CLI --> ParseArgs
     ParseArgs --> Main
-    
+
     Cmd --> ExportCmd
     ExportCmd --> ExportFromFile
-    
+
     Main --> ExportFromFile
-    
+
     ExportFromFile --> SessionMgr
     SessionMgr --> BuildContext
     BuildContext --> RenderHTML
@@ -93,42 +91,42 @@ graph TB
 ```mermaid
 graph TB
     Input["Session JSONL File"]
-    
+
     ExportFromFile["exportFromFile(inputPath, outputPath?)"]
-    
+
     OpenSession["SessionManager.open(inputPath)"]
     GetLeafId["session.getLeafId()"]
     BuildCtx["session.buildSessionContext(leafId)"]
-    
+
     Context["SessionContext<br/>{messages, compactions, branches}"]
-    
+
     Render["renderSessionHTML(context)"]
-    
+
     GenHeader["generateHTMLHeader()"]
     GenMessages["generateMessageHTML()"]
     GenTools["generateToolHTML()"]
     GenThinking["generateThinkingHTML()"]
-    
+
     HTML["Complete HTML Document<br/>with embedded CSS/JS"]
-    
+
     Write["fs.writeFileSync(outputPath, html)"]
-    
+
     Input --> ExportFromFile
     ExportFromFile --> OpenSession
     OpenSession --> GetLeafId
     GetLeafId --> BuildCtx
     BuildCtx --> Context
-    
+
     Context --> Render
-    
+
     Render --> GenHeader
     Render --> GenMessages
     GenMessages --> GenTools
     GenMessages --> GenThinking
-    
+
     GenHeader --> HTML
     GenMessages --> HTML
-    
+
     HTML --> Write
 ```
 
@@ -150,15 +148,15 @@ The `exportFromFile()` function orchestrates the entire export process:
 
 The HTML export renders each message type from the session context with appropriate styling and structure:
 
-| Session Message Type | HTML Rendering | Interactive Features |
-|---------------------|----------------|---------------------|
-| User messages | Light background, user icon, content with preserved formatting | None |
-| Assistant text | Assistant icon, markdown rendering, syntax highlighting | None |
-| Tool calls | Collapsed by default, expandable sections | Click to expand/collapse |
-| Tool results | Nested under tool calls, formatted output | Scroll for long results |
-| Thinking blocks | Collapsed by default, dimmed styling | Click to expand/collapse |
-| Compaction entries | Special marker with summary text | None |
-| Branch summaries | Branch point indicator | None |
+| Session Message Type | HTML Rendering                                                 | Interactive Features     |
+| -------------------- | -------------------------------------------------------------- | ------------------------ |
+| User messages        | Light background, user icon, content with preserved formatting | None                     |
+| Assistant text       | Assistant icon, markdown rendering, syntax highlighting        | None                     |
+| Tool calls           | Collapsed by default, expandable sections                      | Click to expand/collapse |
+| Tool results         | Nested under tool calls, formatted output                      | Scroll for long results  |
+| Thinking blocks      | Collapsed by default, dimmed styling                           | Click to expand/collapse |
+| Compaction entries   | Special marker with summary text                               | None                     |
+| Branch summaries     | Branch point indicator                                         | None                     |
 
 **Custom Tool Rendering**: Extensions that define custom tool renderers have their collapsed and expanded states preserved in the HTML export. If a tool provides different content for collapsed vs. expanded views, the HTML includes both with JavaScript toggle functionality.
 
@@ -173,32 +171,32 @@ The HTML export renders each message type from the session context with appropri
 ```mermaid
 graph TB
     HTML["HTML Document"]
-    
+
     Head["<head>"]
     Body["<body>"]
-    
+
     CSS["Embedded CSS<br/>- Message styling<br/>- Code highlighting<br/>- Collapsible sections"]
     Meta["Meta tags<br/>- Charset UTF-8<br/>- Viewport<br/>- Session metadata"]
-    
+
     Header["Header Section<br/>- Session ID<br/>- Creation date<br/>- Model info"]
     Messages["Messages Container"]
     Scripts["Embedded JavaScript<br/>- Collapse/expand<br/>- Code copy buttons<br/>- Scroll handling"]
-    
+
     UserMsg["User Message Blocks"]
     AssistantMsg["Assistant Message Blocks"]
     ToolBlocks["Tool Call/Result Blocks"]
     ThinkBlocks["Thinking Blocks"]
-    
+
     HTML --> Head
     HTML --> Body
-    
+
     Head --> CSS
     Head --> Meta
-    
+
     Body --> Header
     Body --> Messages
     Body --> Scripts
-    
+
     Messages --> UserMsg
     Messages --> AssistantMsg
     Messages --> ToolBlocks
@@ -233,6 +231,7 @@ pi --export abc123
 ```
 
 When invoked via CLI with `--export`, the main entry point:
+
 1. Parses the input path (session file or ID prefix)
 2. Resolves to an actual JSONL file via `resolveSessionPath()`
 3. Calls `exportFromFile()` with input and optional output path
@@ -248,6 +247,7 @@ When invoked via CLI with `--export`, the main entry point:
 ```
 
 The `/export` command in interactive mode:
+
 1. Uses the current `SessionManager` instance
 2. Exports the active conversation branch (current `leafId`)
 3. Allows specifying output filename as command argument
@@ -267,7 +267,7 @@ graph LR
     Gist["GitHub Gist API<br/>createGist()"]
     URL["Shareable URL<br/>PI_SHARE_VIEWER_URL/gist-id"]
     Clipboard["Copy to clipboard"]
-    
+
     Export --> Gist
     Gist --> URL
     URL --> Clipboard
@@ -299,6 +299,7 @@ Extensions can define custom tool renderers with distinct collapsed and expanded
 **Expanded State**: The full tool output, visible when the user clicks to expand.
 
 If a custom tool renderer provides:
+
 - **Only expanded content**: Rendered directly without collapse functionality
 - **Both collapsed and expanded content**: Creates an expandable section with toggle button
 - **Neither**: Falls back to default JSON tool call/result rendering
@@ -313,14 +314,14 @@ This ensures that custom extension tools maintain their intended UX in exported 
 
 ### Key Functions and Modules
 
-| Entity | Location | Purpose |
-|--------|----------|---------|
-| `exportFromFile()` | `src/core/export-html/index.ts` | Main export orchestration function |
-| `SessionManager.open()` | `src/core/session-manager.ts` | Opens session JSONL file for reading |
-| `buildSessionContext()` | `src/core/session-manager.ts` | Walks session tree to build message context |
-| `renderSessionHTML()` | `src/core/export-html/` | Converts session context to HTML string |
-| `/export` command | `src/modes/interactive/commands/export.ts` | Interactive export command handler |
-| `--export` flag | `src/cli/args.ts` | CLI argument parsing for export mode |
+| Entity                  | Location                                   | Purpose                                     |
+| ----------------------- | ------------------------------------------ | ------------------------------------------- |
+| `exportFromFile()`      | `src/core/export-html/index.ts`            | Main export orchestration function          |
+| `SessionManager.open()` | `src/core/session-manager.ts`              | Opens session JSONL file for reading        |
+| `buildSessionContext()` | `src/core/session-manager.ts`              | Walks session tree to build message context |
+| `renderSessionHTML()`   | `src/core/export-html/`                    | Converts session context to HTML string     |
+| `/export` command       | `src/modes/interactive/commands/export.ts` | Interactive export command handler          |
+| `--export` flag         | `src/cli/args.ts`                          | CLI argument parsing for export mode        |
 
 **Sources:** [packages/coding-agent/src/main.ts:18](), [packages/coding-agent/src/cli/args.ts:124-125]()
 

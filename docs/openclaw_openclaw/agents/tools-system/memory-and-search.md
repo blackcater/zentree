@@ -33,8 +33,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Memory & Search system provides semantic retrieval capabilities for agents through a hybrid SQLite-based index that combines vector similarity and full-text search (FTS). Agents use the `memory_search` and `memory_get` tools to recall information from workspace files and session transcripts.
 
 For workspace file layout and memory flush behavior during compaction, see [Context Compaction](#3.6). For tool policy controls, see [Tool Policies & Filtering](#3.4.1).
@@ -54,14 +52,14 @@ graph TB
         ExtraPaths["Extra Paths<br/>memorySearch.extraPaths"]
         SessionJSONL["Session Transcripts<br/>sessions/*.jsonl"]
     end
-    
+
     subgraph "MemoryIndexManager"
         FileWatcher["FSWatcher<br/>chokidar"]
         SessionListener["Session Change Listener<br/>session-manager events"]
         SyncQueue["Sync Queue<br/>dirty tracking"]
         Indexer["Indexing Pipeline<br/>chunk → embed → store"]
     end
-    
+
     subgraph "Embedding Providers"
         ProviderFactory["createEmbeddingProvider<br/>embeddings.ts"]
         OpenAIClient["OpenAiEmbeddingClient<br/>text-embedding-3-small"]
@@ -71,7 +69,7 @@ graph TB
         OllamaClient["OllamaEmbeddingClient"]
         LocalLlama["node-llama-cpp<br/>local GGUF models"]
     end
-    
+
     subgraph "SQLite Storage"
         DB["DatabaseSync<br/>~/.openclaw/memory/<agentId>.sqlite"]
         ChunksTable["chunks<br/>id, source, path, text, metadata"]
@@ -79,22 +77,22 @@ graph TB
         FTSTable["chunks_fts<br/>FTS5 virtual table<br/>text content"]
         CacheTable["embedding_cache<br/>text hash → vector"]
     end
-    
+
     subgraph "Search Engine"
         SearchAPI["MemorySearchManager<br/>search(query)"]
         VectorSearch["searchVector<br/>cosine similarity"]
         KeywordSearch["searchKeyword<br/>FTS5 BM25"]
         HybridMerge["mergeHybridResults<br/>weighted scoring + MMR"]
     end
-    
+
     WorkspaceMD --> FileWatcher
     ExtraPaths --> FileWatcher
     SessionJSONL --> SessionListener
-    
+
     FileWatcher --> SyncQueue
     SessionListener --> SyncQueue
     SyncQueue --> Indexer
-    
+
     Indexer --> ProviderFactory
     ProviderFactory --> OpenAIClient
     ProviderFactory --> GeminiClient
@@ -102,19 +100,19 @@ graph TB
     ProviderFactory --> MistralClient
     ProviderFactory --> OllamaClient
     ProviderFactory --> LocalLlama
-    
+
     OpenAIClient --> DB
     GeminiClient --> DB
     VoyageClient --> DB
     MistralClient --> DB
     OllamaClient --> DB
     LocalLlama --> DB
-    
+
     DB --> ChunksTable
     DB --> VectorTable
     DB --> FTSTable
     DB --> CacheTable
-    
+
     SearchAPI --> VectorSearch
     SearchAPI --> KeywordSearch
     VectorSearch --> VectorTable
@@ -144,7 +142,7 @@ graph LR
     EnsureSchema["ensureSchema<br/>chunks, chunks_vec, chunks_fts"]
     StartWatchers["ensureWatcher<br/>ensureSessionListener<br/>ensureIntervalSync"]
     Ready["Manager Ready"]
-    
+
     GetManager --> CheckCache
     CheckCache -->|hit| Ready
     CheckCache -->|miss| CheckPending
@@ -165,12 +163,12 @@ graph LR
 
 The manager creates four tables in the SQLite database:
 
-| Table | Type | Purpose |
-|-------|------|---------|
-| `chunks` | Regular | Base chunk storage with text, path, source, line ranges |
-| `chunks_vec` | Virtual (sqlite-vec) | Vector embeddings for semantic search |
-| `chunks_fts` | Virtual (FTS5) | Full-text search index |
-| `embedding_cache` | Regular | Hash-based embedding cache to avoid recomputation |
+| Table             | Type                 | Purpose                                                 |
+| ----------------- | -------------------- | ------------------------------------------------------- |
+| `chunks`          | Regular              | Base chunk storage with text, path, source, line ranges |
+| `chunks_vec`      | Virtual (sqlite-vec) | Vector embeddings for semantic search                   |
+| `chunks_fts`      | Virtual (FTS5)       | Full-text search index                                  |
+| `embedding_cache` | Regular              | Hash-based embedding cache to avoid recomputation       |
 
 **Sources:** [src/memory/manager.ts:34-37](), [src/memory/manager-schema.ts:1-200]()
 
@@ -184,40 +182,40 @@ The memory system supports multiple embedding providers with automatic fallback.
 graph TD
     ResolveProvider["resolveMemorySearchConfig<br/>agents.defaults.memorySearch.provider"]
     CheckAuto["provider === 'auto'?"]
-    
+
     CheckLocalModel["local.modelPath exists?"]
     UseLocal["Use local<br/>node-llama-cpp"]
-    
+
     CheckOpenAI["OpenAI key available?"]
     UseOpenAI["Use openai<br/>text-embedding-3-small"]
-    
+
     CheckGemini["Gemini key available?"]
     UseGemini["Use gemini<br/>text-embedding-004"]
-    
+
     CheckVoyage["Voyage key available?"]
     UseVoyage["Use voyage<br/>voyage-3"]
-    
+
     CheckMistral["Mistral key available?"]
     UseMistral["Use mistral<br/>mistral-embed"]
-    
+
     NoProvider["provider = null<br/>FTS-only mode"]
-    
+
     ResolveProvider --> CheckAuto
     CheckAuto -->|yes| CheckLocalModel
     CheckAuto -->|no| CreateExplicit["createEmbeddingProvider<br/>explicit provider"]
-    
+
     CheckLocalModel -->|yes| UseLocal
     CheckLocalModel -->|no| CheckOpenAI
-    
+
     CheckOpenAI -->|yes| UseOpenAI
     CheckOpenAI -->|no| CheckGemini
-    
+
     CheckGemini -->|yes| UseGemini
     CheckGemini -->|no| CheckVoyage
-    
+
     CheckVoyage -->|yes| UseVoyage
     CheckVoyage -->|no| CheckMistral
-    
+
     CheckMistral -->|yes| UseMistral
     CheckMistral -->|no| NoProvider
 ```
@@ -232,14 +230,14 @@ Each provider implements the `EmbeddingProvider` interface with these methods:
 
 Provider-specific configuration:
 
-| Provider | Config Path | Default Model | Dimensions |
-|----------|-------------|---------------|------------|
-| `openai` | `memorySearch.remote` | `text-embedding-3-small` | 1536 |
-| `gemini` | `memorySearch.remote` | `text-embedding-004` | 768 |
-| `voyage` | `memorySearch.remote` | `voyage-3` | 1024 |
-| `mistral` | `memorySearch.remote` | `mistral-embed` | 1024 |
-| `ollama` | `memorySearch.remote` | configurable | provider-specific |
-| `local` | `memorySearch.local` | configurable GGUF | model-specific |
+| Provider  | Config Path           | Default Model            | Dimensions        |
+| --------- | --------------------- | ------------------------ | ----------------- |
+| `openai`  | `memorySearch.remote` | `text-embedding-3-small` | 1536              |
+| `gemini`  | `memorySearch.remote` | `text-embedding-004`     | 768               |
+| `voyage`  | `memorySearch.remote` | `voyage-3`               | 1024              |
+| `mistral` | `memorySearch.remote` | `mistral-embed`          | 1024              |
+| `ollama`  | `memorySearch.remote` | configurable             | provider-specific |
+| `local`   | `memorySearch.local`  | configurable GGUF        | model-specific    |
 
 **Sources:** [src/memory/embeddings.ts:1-800](), [src/agents/memory-search.ts:1-350]()
 
@@ -253,17 +251,17 @@ sequenceDiagram
     participant Provider as EmbeddingProvider
     participant API as Provider Batch API
     participant Poll as Polling Loop
-    
+
     Manager->>Provider: embedBatch(chunks)
     Provider->>API: Create batch job
     API-->>Provider: batch_id
-    
+
     loop Poll until complete
         Provider->>Poll: pollIntervalMs delay
         Poll->>API: Get batch status
         API-->>Poll: status + results
     end
-    
+
     Poll-->>Provider: completed embeddings
     Provider-->>Manager: number[][]
 ```
@@ -294,7 +292,7 @@ graph TB
     Dedupe["Deduplication<br/>hash-based cache check"]
     Embed["Generate Embeddings<br/>EmbeddingProvider.embed"]
     Store["Store in SQLite<br/>chunks + chunks_vec + chunks_fts"]
-    
+
     Source --> Parse
     Parse --> Chunk
     Chunk --> Dedupe
@@ -315,10 +313,10 @@ graph TB
 
 The manager indexes content from configured sources:
 
-| Source | Description | Path Pattern | Sync Behavior |
-|--------|-------------|--------------|---------------|
-| `memory` | Workspace Markdown | `MEMORY.md`<br/>`memory/*.md`<br/>`memorySearch.extraPaths` | File watcher + interval |
-| `sessions` | Session transcripts | `sessions/*.jsonl` | Delta-based on message/byte thresholds |
+| Source     | Description         | Path Pattern                                                | Sync Behavior                          |
+| ---------- | ------------------- | ----------------------------------------------------------- | -------------------------------------- |
+| `memory`   | Workspace Markdown  | `MEMORY.md`<br/>`memory/*.md`<br/>`memorySearch.extraPaths` | File watcher + interval                |
+| `sessions` | Session transcripts | `sessions/*.jsonl`                                          | Delta-based on message/byte thresholds |
 
 **Session Indexing** is controlled by `memorySearch.sync.sessions`:
 
@@ -340,18 +338,18 @@ graph LR
         SearchTrigger["Search Call<br/>memorySearch.sync.onSearch"]
         SessionStart["Session Start<br/>memorySearch.sync.onSessionStart"]
     end
-    
+
     subgraph "Debouncing"
         DebounceFW["Debounce<br/>watchDebounceMs"]
         DebounceSess["Debounce<br/>session sync delay"]
     end
-    
+
     subgraph "Sync Execution"
         DirtyCheck["Check dirty flag"]
         SyncRun["sync({reason, force})<br/>build chunks + embed + store"]
         ClearDirty["Clear dirty flag"]
     end
-    
+
     FileChange --> DebounceFW
     SessionDelta --> DebounceSess
     DebounceFW --> DirtyCheck
@@ -360,7 +358,7 @@ graph LR
     ManualSync --> SyncRun
     SearchTrigger --> DirtyCheck
     SessionStart --> DirtyCheck
-    
+
     DirtyCheck -->|dirty| SyncRun
     DirtyCheck -->|clean| Skip["Skip sync"]
     SyncRun --> ClearDirty
@@ -383,10 +381,10 @@ sequenceDiagram
     participant VectorSearch as searchVector
     participant KeywordSearch as searchKeyword
     participant Merger as mergeHybridResults
-    
+
     Agent->>Manager: search(query, opts)
     Manager->>Manager: warmSession<br/>trigger sync if needed
-    
+
     par Vector Search
         Manager->>Manager: embedQueryWithTimeout
         Manager->>VectorSearch: searchVector(queryVec, limit)
@@ -397,11 +395,11 @@ sequenceDiagram
         KeywordSearch->>KeywordSearch: FTS5 BM25
         KeywordSearch-->>Manager: keywordResults[]
     end
-    
+
     Manager->>Merger: mergeHybridResults<br/>{vector, keyword, weights}
     Merger->>Merger: Normalize scores<br/>Apply MMR diversity<br/>Apply temporal decay
     Merger-->>Manager: merged results
-    
+
     Manager->>Manager: Filter by minScore
     Manager->>Manager: Limit to maxResults
     Manager-->>Agent: MemorySearchResult[]
@@ -414,6 +412,7 @@ sequenceDiagram
 The merger combines vector and keyword scores with configurable weights:
 
 **Formula:**
+
 ```
 finalScore = (vectorScore × vectorWeight) + (textScore × textWeight)
 ```
@@ -445,13 +444,13 @@ graph TD
     Query["User Query<br/>'that API discussion'"]
     ExtractKeywords["extractKeywords<br/>remove stop words"]
     Keywords["['API', 'discussion']"]
-    
+
     MultiQuery["Search each keyword"]
     FTS1["FTS5 search: 'API'"]
     FTS2["FTS5 search: 'discussion'"]
-    
+
     Merge["Merge results<br/>dedupe by chunk ID<br/>keep highest BM25 score"]
-    
+
     Query --> ExtractKeywords
     ExtractKeywords --> Keywords
     Keywords --> MultiQuery
@@ -471,10 +470,10 @@ The `openclaw memory` command provides status inspection, manual indexing, and s
 
 ### CLI Commands
 
-| Command | Description | Key Options |
-|---------|-------------|-------------|
-| `memory status` | Show index status | `--deep`, `--index`, `--json` |
-| `memory index` | Force reindex | `--force`, `--agent` |
+| Command         | Description       | Key Options                          |
+| --------------- | ----------------- | ------------------------------------ |
+| `memory status` | Show index status | `--deep`, `--index`, `--json`        |
+| `memory index`  | Force reindex     | `--force`, `--agent`                 |
 | `memory search` | Test search query | `--query`, `--max-results`, `--json` |
 
 **Sources:** [src/cli/memory-cli.ts:1-900]()
@@ -486,16 +485,16 @@ graph TB
     subgraph "memory status --deep"
         AgentConfig["Read agent config<br/>memorySearch settings"]
         ResolveManager["MemoryIndexManager.get"]
-        
+
         ProbeVector["probeVectorAvailability<br/>check sqlite-vec"]
         GetStatus["manager.status()<br/>files, chunks, dirty flag"]
-        
+
         ScanSources["scanMemorySources<br/>workspace + sessions"]
         FileCheck["Check file readability<br/>EACCES detection"]
-        
+
         Output["Format output<br/>provider, files, chunks, paths"]
     end
-    
+
     AgentConfig --> ResolveManager
     ResolveManager --> ProbeVector
     ProbeVector --> GetStatus
@@ -540,7 +539,7 @@ graph LR
     Store["Store in SQLite"]
     Progress4["Progress: 90% (storing)"]
     Complete["Complete"]
-    
+
     Start --> ScanFiles
     ScanFiles --> Progress1
     Progress1 --> ChunkFiles
@@ -569,24 +568,24 @@ graph TB
         Provider["provider: 'openai' | 'local' | etc"]
         Sources["sources: ['memory', 'sessions']"]
         ExtraPaths["extraPaths: string[]"]
-        
+
         Store["store.driver: 'sqlite'<br/>store.path: template<br/>store.vector.enabled"]
-        
+
         Chunking["chunking.tokens: 512<br/>chunking.overlap: 128"]
-        
+
         Sync["sync.watch: boolean<br/>sync.intervalMinutes<br/>sync.sessions.*"]
-        
+
         Query["query.maxResults: 10<br/>query.minScore: 0.35<br/>query.hybrid.*"]
-        
+
         Remote["remote.baseUrl<br/>remote.apiKey<br/>remote.batch.*"]
-        
+
         Local["local.modelPath<br/>local.modelCacheDir"]
     end
-    
+
     subgraph "Per-Agent Override"
         AgentMemSearch["agents.list[].memorySearch"]
     end
-    
+
     Enabled --> AgentMemSearch
     Provider --> AgentMemSearch
     Sources --> AgentMemSearch
@@ -603,19 +602,19 @@ graph TB
 
 ### Key Configuration Paths
 
-| Path | Type | Default | Description |
-|------|------|---------|-------------|
-| `memorySearch.enabled` | `boolean` | `true` | Enable memory search |
-| `memorySearch.provider` | `string` | `"auto"` | Embedding provider |
-| `memorySearch.sources` | `string[]` | `["memory"]` | Index sources |
-| `memorySearch.extraPaths` | `string[]` | `[]` | Additional paths to index |
-| `memorySearch.store.path` | `string` | `"~/.openclaw/memory/{agentId}.sqlite"` | Database path |
-| `memorySearch.store.vector.enabled` | `boolean` | `true` | Enable vector search |
-| `memorySearch.chunking.tokens` | `number` | `512` | Chunk size |
-| `memorySearch.sync.watch` | `boolean` | `true` | Watch for file changes |
-| `memorySearch.sync.intervalMinutes` | `number` | `5` | Periodic sync interval |
-| `memorySearch.query.hybrid.vectorWeight` | `number` | `0.7` | Vector score weight |
-| `memorySearch.query.hybrid.textWeight` | `number` | `0.3` | FTS score weight |
+| Path                                     | Type       | Default                                 | Description               |
+| ---------------------------------------- | ---------- | --------------------------------------- | ------------------------- |
+| `memorySearch.enabled`                   | `boolean`  | `true`                                  | Enable memory search      |
+| `memorySearch.provider`                  | `string`   | `"auto"`                                | Embedding provider        |
+| `memorySearch.sources`                   | `string[]` | `["memory"]`                            | Index sources             |
+| `memorySearch.extraPaths`                | `string[]` | `[]`                                    | Additional paths to index |
+| `memorySearch.store.path`                | `string`   | `"~/.openclaw/memory/{agentId}.sqlite"` | Database path             |
+| `memorySearch.store.vector.enabled`      | `boolean`  | `true`                                  | Enable vector search      |
+| `memorySearch.chunking.tokens`           | `number`   | `512`                                   | Chunk size                |
+| `memorySearch.sync.watch`                | `boolean`  | `true`                                  | Watch for file changes    |
+| `memorySearch.sync.intervalMinutes`      | `number`   | `5`                                     | Periodic sync interval    |
+| `memorySearch.query.hybrid.vectorWeight` | `number`   | `0.7`                                   | Vector score weight       |
+| `memorySearch.query.hybrid.textWeight`   | `number`   | `0.3`                                   | FTS score weight          |
 
 **Sources:** [src/config/zod-schema.agent-runtime.ts:600-750](), [src/agents/memory-search.ts:15-170]()
 
@@ -637,18 +636,18 @@ sequenceDiagram
     participant Agent as Agent Turn
     participant Write as memory_write Tool
     participant Index as MemoryIndexManager
-    
+
     Session->>Guard: Check token estimate
     Guard->>Guard: tokens > contextWindow<br/>- reserveTokensFloor<br/>- softThresholdTokens
     Guard->>Flush: Trigger flush
-    
+
     Flush->>Flush: Check cache-ttl marker<br/>one flush per cycle
     Flush->>Agent: Silent agent turn<br/>systemPrompt + prompt
-    
+
     Agent->>Write: memory_write(...)<br/>to memory/YYYY-MM-DD.md
     Write->>Index: File change detected
     Index->>Index: Mark dirty<br/>schedule sync
-    
+
     Agent-->>Flush: NO_REPLY response
     Flush->>Flush: Set cache-ttl marker
     Flush-->>Session: Continue to compaction
@@ -687,23 +686,23 @@ graph TD
     EnsureVector["ensureVectorReady(dims)"]
     CheckAvailable["vector.available !== null?"]
     LoadExtension["loadVectorExtension<br/>sqlite-vec.so/dylib/dll"]
-    
+
     CreateVirtual["CREATE VIRTUAL TABLE<br/>chunks_vec USING vec0"]
-    
+
     TestQuery["Test query<br/>vec_distance_cosine"]
-    
+
     Success["vector.available = true<br/>vector.dims = dims"]
     Failure["vector.available = false<br/>vector.loadError = msg"]
-    
+
     EnsureVector --> CheckAvailable
     CheckAvailable -->|null| LoadExtension
     CheckAvailable -->|set| Return
-    
+
     LoadExtension --> CreateVirtual
     CreateVirtual --> TestQuery
     TestQuery -->|success| Success
     TestQuery -->|error| Failure
-    
+
     Success --> Return["Return true"]
     Failure --> Return["Return false"]
 ```
@@ -728,14 +727,14 @@ The memory system supports indexing images and audio when using compatible embed
 graph TB
     Check["memorySearch.multimodal.enabled"]
     Provider["Provider supports<br/>multimodal embeddings?"]
-    
+
     ValidProviders["gemini with<br/>gemini-embedding-2-preview"]
-    
+
     IndexImages["Index image files<br/>from extraPaths"]
     IndexAudio["Index audio files<br/>from extraPaths"]
-    
+
     EmbedMulti["Generate multimodal<br/>embeddings"]
-    
+
     Check -->|true| Provider
     Provider -->|yes| ValidProviders
     ValidProviders --> IndexImages
@@ -769,12 +768,12 @@ The memory system implements graceful degradation when components fail.
 graph TD
     Primary["Try primary provider"]
     PrimaryFail["Primary fails<br/>billing/auth/network"]
-    
+
     Fallback["Try fallback provider<br/>memorySearch.fallback"]
     FallbackFail["Fallback fails"]
-    
+
     FTSOnly["Fall back to FTS-only<br/>provider = null"]
-    
+
     Primary -->|error| PrimaryFail
     PrimaryFail --> Fallback
     Fallback -->|error| FallbackFail

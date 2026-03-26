@@ -21,8 +21,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the Output API — the `Output` namespace and the `output` parameter accepted by `generateText` and `streamText` — which enables schema-validated structured data generation from language models.
 
 `generateObject` and `streamObject` are **deprecated** as of AI SDK 6. The Output API described here is the current replacement. For text generation without structured output, see page [2.1](#2.1). For tool calling (which can be combined with structured output in the same request), see page [2.3](#2.3).
@@ -76,13 +74,13 @@ Sources: [content/docs/03-ai-sdk-core/10-generating-structured-data.mdx:1-110]()
 
 The `Output` namespace provides five factory methods. The chosen factory is passed to the `output` parameter of `generateText` or `streamText`.
 
-| Factory | Schema Required | Validated | Streaming Support | Description |
-|---|---|---|---|---|
-| `Output.object({ schema })` | Yes | Yes | `partialOutputStream` | Validated structured object |
-| `Output.array({ schema })` | Yes | Yes | `partialOutputStream`, `elementStream` | Validated array of objects |
-| `Output.text()` | No | N/A | text chunks | Plain text (default mode) |
-| `Output.json()` | No | No | `partialOutputStream` | Parsed JSON, no schema validation |
-| `Output.choice(options)` | No | Enum-like | N/A | Constrained string from a fixed list |
+| Factory                     | Schema Required | Validated | Streaming Support                      | Description                          |
+| --------------------------- | --------------- | --------- | -------------------------------------- | ------------------------------------ |
+| `Output.object({ schema })` | Yes             | Yes       | `partialOutputStream`                  | Validated structured object          |
+| `Output.array({ schema })`  | Yes             | Yes       | `partialOutputStream`, `elementStream` | Validated array of objects           |
+| `Output.text()`             | No              | N/A       | text chunks                            | Plain text (default mode)            |
+| `Output.json()`             | No              | No        | `partialOutputStream`                  | Parsed JSON, no schema validation    |
+| `Output.choice(options)`    | No              | Enum-like | N/A                                    | Constrained string from a fixed list |
 
 Sources: [content/docs/03-ai-sdk-core/10-generating-structured-data.mdx:131-300](), [packages/ai/CHANGELOG.md:540-545](), [packages/ai/CHANGELOG.md:823-826]()
 
@@ -92,11 +90,11 @@ Sources: [content/docs/03-ai-sdk-core/10-generating-structured-data.mdx:131-300]
 
 The `schema` property in `Output.object` and `Output.array` accepts three schema formats:
 
-| Format | Package | Notes |
-|---|---|---|
-| Zod schema | `zod` (peer dep) | Most common; `z.object({...})` |
-| Valibot schema | `valibot` | Optional alternative |
-| JSON Schema | Native JS object | Plain `{ type: "object", properties: {...} }` |
+| Format         | Package          | Notes                                         |
+| -------------- | ---------------- | --------------------------------------------- |
+| Zod schema     | `zod` (peer dep) | Most common; `z.object({...})`                |
+| Valibot schema | `valibot`        | Optional alternative                          |
+| JSON Schema    | Native JS object | Plain `{ type: "object", properties: {...} }` |
 
 Standard JSON Schema support was added in AI SDK 6 (changelog: `763d04a`).
 
@@ -195,14 +193,14 @@ Output.array only"]
 
 Sources: [content/docs/03-ai-sdk-core/10-generating-structured-data.mdx:58-106](), [packages/ai/CHANGELOG.md:819-820]()
 
-| Property | Function | Available When |
-|---|---|---|
-| `result.output` | `generateText` | `Output.object`, `Output.array`, `Output.json`, `Output.choice` |
-| `result.text` | `generateText` | `Output.text` |
-| `result.response` | `generateText` | Always |
-| `result.partialOutputStream` | `streamText` | `Output.object`, `Output.array`, `Output.json` |
-| `result.elementStream` | `streamText` | `Output.array` only |
-| `result.textStream` | `streamText` | `Output.text` |
+| Property                     | Function       | Available When                                                  |
+| ---------------------------- | -------------- | --------------------------------------------------------------- |
+| `result.output`              | `generateText` | `Output.object`, `Output.array`, `Output.json`, `Output.choice` |
+| `result.text`                | `generateText` | `Output.text`                                                   |
+| `result.response`            | `generateText` | Always                                                          |
+| `result.partialOutputStream` | `streamText`   | `Output.object`, `Output.array`, `Output.json`                  |
+| `result.elementStream`       | `streamText`   | `Output.array` only                                             |
+| `result.textStream`          | `streamText`   | `Output.text`                                                   |
 
 ---
 

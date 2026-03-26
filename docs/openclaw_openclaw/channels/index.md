@@ -56,8 +56,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 OpenClaw's channel subsystem integrates external messaging platforms through a **provider pattern**: each platform runs as an independent monitor that receives raw events, enforces access control, normalizes messages to a common envelope format, and routes replies back through platform-specific delivery mechanisms. This page documents the core architecture, access control flow, message normalization, and outbound delivery abstractions. For platform-specific integration details see [Channel Architecture](#4.1), [Telegram](#4.2), [Discord](#4.3), and [Other Channels](#4.4).
 
 ---
@@ -66,24 +64,24 @@ OpenClaw's channel subsystem integrates external messaging platforms through a *
 
 Channels are either **core** (built into the main `src/` tree) or **extension** (separate packages under `extensions/`).
 
-| Platform | Monitor Entry Point | Config Key | Notes |
-|---|---|---|---|
-| Telegram | `createTelegramBot` [`src/telegram/bot.ts`]() | `channels.telegram` | grammY, long-poll or webhook |
-| Discord | `monitorDiscordProvider` [`src/discord/monitor/provider.ts`]() | `channels.discord` | @buape/carbon gateway |
-| Slack | `monitorSlackProvider` [`src/slack/monitor/provider.ts`]() | `channels.slack` | Socket Mode or HTTP |
-| Signal | `monitorSignalProvider` [`src/signal/monitor.ts`]() | `channels.signal` | signal-cli JSON-RPC / SSE |
-| iMessage | `monitorIMessageProvider` [`src/imessage/monitor/monitor-provider.ts`]() | `channels.imessage` | `imsg` CLI, macOS only |
-| WhatsApp | `monitorWebInbox` [`src/web/inbound.ts`]() | `channels.whatsapp` | Baileys / web protocol |
-| Matrix | `MatrixMonitorHandlerParams` [`extensions/matrix/src/matrix/monitor/handler.ts`]() | `channels.matrix` | Extension |
-| Feishu | `handleFeishuMessageEvent` [`extensions/feishu/src/bot.ts`]() | `channels.feishu` | Extension |
-| Mattermost | `monitorMattermostProvider` [`extensions/mattermost/src/mattermost/monitor.ts`]() | `channels.mattermost` | Extension |
-| MS Teams | (handler) [`extensions/msteams/src/monitor-handler/message-handler.ts`]() | `channels.msteams` | Extension |
-| Zalo | (monitor) [`extensions/zalo/src/monitor.ts`]() | `channels.zalo` | Extension |
-| Google Chat | (schema) [`src/config/zod-schema.providers-core.ts:610-695`]() | `channels.googlechat` | Webhook-based |
-| LINE | `resolveLineAccount` [`src/plugin-sdk/index.ts:562-590`]() | `channels.line` | Extension |
-| BlueBubbles | (plugin) | `channels.bluebubbles` | Extension |
-| IRC | (plugin) | `channels.irc` | Extension |
-| Nextcloud Talk | (plugin) | `channels.nextcloud` | Extension |
+| Platform       | Monitor Entry Point                                                                | Config Key             | Notes                        |
+| -------------- | ---------------------------------------------------------------------------------- | ---------------------- | ---------------------------- |
+| Telegram       | `createTelegramBot` [`src/telegram/bot.ts`]()                                      | `channels.telegram`    | grammY, long-poll or webhook |
+| Discord        | `monitorDiscordProvider` [`src/discord/monitor/provider.ts`]()                     | `channels.discord`     | @buape/carbon gateway        |
+| Slack          | `monitorSlackProvider` [`src/slack/monitor/provider.ts`]()                         | `channels.slack`       | Socket Mode or HTTP          |
+| Signal         | `monitorSignalProvider` [`src/signal/monitor.ts`]()                                | `channels.signal`      | signal-cli JSON-RPC / SSE    |
+| iMessage       | `monitorIMessageProvider` [`src/imessage/monitor/monitor-provider.ts`]()           | `channels.imessage`    | `imsg` CLI, macOS only       |
+| WhatsApp       | `monitorWebInbox` [`src/web/inbound.ts`]()                                         | `channels.whatsapp`    | Baileys / web protocol       |
+| Matrix         | `MatrixMonitorHandlerParams` [`extensions/matrix/src/matrix/monitor/handler.ts`]() | `channels.matrix`      | Extension                    |
+| Feishu         | `handleFeishuMessageEvent` [`extensions/feishu/src/bot.ts`]()                      | `channels.feishu`      | Extension                    |
+| Mattermost     | `monitorMattermostProvider` [`extensions/mattermost/src/mattermost/monitor.ts`]()  | `channels.mattermost`  | Extension                    |
+| MS Teams       | (handler) [`extensions/msteams/src/monitor-handler/message-handler.ts`]()          | `channels.msteams`     | Extension                    |
+| Zalo           | (monitor) [`extensions/zalo/src/monitor.ts`]()                                     | `channels.zalo`        | Extension                    |
+| Google Chat    | (schema) [`src/config/zod-schema.providers-core.ts:610-695`]()                     | `channels.googlechat`  | Webhook-based                |
+| LINE           | `resolveLineAccount` [`src/plugin-sdk/index.ts:562-590`]()                         | `channels.line`        | Extension                    |
+| BlueBubbles    | (plugin)                                                                           | `channels.bluebubbles` | Extension                    |
+| IRC            | (plugin)                                                                           | `channels.irc`         | Extension                    |
+| Nextcloud Talk | (plugin)                                                                           | `channels.nextcloud`   | Extension                    |
 
 Sources: [`src/plugin-sdk/index.ts`](), [`src/config/zod-schema.providers-core.ts`](), [`src/discord/monitor.ts`](), [`src/slack/monitor.ts`](), [`src/signal/monitor.ts`](), [`src/imessage/monitor.ts`](), [`src/web/inbound.ts`]()
 
@@ -95,14 +93,14 @@ Each channel integration implements a **provider pattern** where a dedicated mon
 
 **Provider pattern implementation per platform**
 
-| Platform | Monitor Function | Client Library | Connection Type | Handler Registration |
-|---|---|---|---|---|
-| Telegram | `createTelegramBot` | grammY `Bot` | Long poll or webhook | `registerTelegramHandlers` |
-| Discord | `monitorDiscordProvider` | @buape/carbon `Client` | Gateway WebSocket | `registerDiscordListener` |
-| Slack | `monitorSlackProvider` | @slack/bolt `App` | Socket Mode or HTTP | `app.message`, `app.event` |
-| Signal | `monitorSignalProvider` | signal-cli JSON-RPC | SSE stream | `createSignalEventHandler` |
-| iMessage | `monitorIMessageProvider` | imsg CLI stdio | Polling loop | Direct handler in monitor |
-| WhatsApp | `monitorWebInbox` | Baileys Web | WebSocket | Web event listeners |
+| Platform | Monitor Function          | Client Library         | Connection Type      | Handler Registration       |
+| -------- | ------------------------- | ---------------------- | -------------------- | -------------------------- |
+| Telegram | `createTelegramBot`       | grammY `Bot`           | Long poll or webhook | `registerTelegramHandlers` |
+| Discord  | `monitorDiscordProvider`  | @buape/carbon `Client` | Gateway WebSocket    | `registerDiscordListener`  |
+| Slack    | `monitorSlackProvider`    | @slack/bolt `App`      | Socket Mode or HTTP  | `app.message`, `app.event` |
+| Signal   | `monitorSignalProvider`   | signal-cli JSON-RPC    | SSE stream           | `createSignalEventHandler` |
+| iMessage | `monitorIMessageProvider` | imsg CLI stdio         | Polling loop         | Direct handler in monitor  |
+| WhatsApp | `monitorWebInbox`         | Baileys Web            | WebSocket            | Web event listeners        |
 
 **Channel monitor initialization and lifecycle**
 
@@ -130,7 +128,7 @@ runSlackSocketLoop)"]
     backoff["Backoff policy\
 (computeBackoff)"]
     reconnect["Reconnect"]
-    
+
     gateway --> config
     config --> enabled
     enabled -->|"true"| monitor
@@ -197,7 +195,7 @@ recordInboundSessionMetaSafe)"]
 resolveAckReaction)"]
     agent["Agent execution\
 (runReplyAgent)"]
-    
+
     raw --> dedup
     dedup -->|"duplicate"| drop1["Drop"]
     dedup -->|"new"| parse
@@ -220,20 +218,20 @@ resolveAckReaction)"]
 
 ### Core Pipeline Functions
 
-| Stage | Primary Function | Fallback / Alternative | Location |
-|---|---|---|---|
-| Deduplication | `createTelegramUpdateDedupe` | `createDedupeCache` | [src/telegram/bot-updates.ts](), [src/auto-reply/reply/inbound-dedupe.js]() |
-| Access control (DM) | `resolveDmGroupAccessWithLists` | `readStoreAllowFromForDmPolicy` | [src/security/dm-policy-shared.js]() |
-| Access control (group) | `isDiscordGroupAllowedByPolicy` | `evaluateTelegramGroupBaseAccess` | [src/discord/monitor/allow-list.ts](), [src/telegram/group-access.ts]() |
-| Mention detection | `matchesMentionWithExplicit` | `hasBotMention` | [src/auto-reply/reply/mentions.js](), [src/telegram/bot/helpers.ts]() |
-| Routing | `resolveAgentRoute` | `buildAgentSessionKey` | [src/routing/resolve-route.js]() |
-| Media resolution | `resolveMedia` (Telegram) | `buildDiscordMediaPayload` | [src/telegram/bot/delivery.resolve-media.ts](), [src/discord/monitor/message-utils.ts]() |
-| Envelope format | `formatInboundEnvelope` | — | [src/auto-reply/envelope.js]() |
-| History context | `buildPendingHistoryContextFromMap` | — | [src/auto-reply/reply/history.js]() |
-| Context finalization | `finalizeInboundContext` | — | [src/auto-reply/reply/inbound-context.js]() |
-| Session recording | `recordInboundSession` | `recordInboundSessionMetaSafe` | [src/channels/session.js](), [src/channels/session-meta.ts]() |
-| Inbound dispatch | `dispatchInboundMessage` | — | [src/auto-reply/dispatch.js]() |
-| ACK reaction | `shouldAckReaction` | `resolveAckReaction` | [src/channels/ack-reactions.js](), [src/agents/identity.js]() |
+| Stage                  | Primary Function                    | Fallback / Alternative            | Location                                                                                 |
+| ---------------------- | ----------------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------- |
+| Deduplication          | `createTelegramUpdateDedupe`        | `createDedupeCache`               | [src/telegram/bot-updates.ts](), [src/auto-reply/reply/inbound-dedupe.js]()              |
+| Access control (DM)    | `resolveDmGroupAccessWithLists`     | `readStoreAllowFromForDmPolicy`   | [src/security/dm-policy-shared.js]()                                                     |
+| Access control (group) | `isDiscordGroupAllowedByPolicy`     | `evaluateTelegramGroupBaseAccess` | [src/discord/monitor/allow-list.ts](), [src/telegram/group-access.ts]()                  |
+| Mention detection      | `matchesMentionWithExplicit`        | `hasBotMention`                   | [src/auto-reply/reply/mentions.js](), [src/telegram/bot/helpers.ts]()                    |
+| Routing                | `resolveAgentRoute`                 | `buildAgentSessionKey`            | [src/routing/resolve-route.js]()                                                         |
+| Media resolution       | `resolveMedia` (Telegram)           | `buildDiscordMediaPayload`        | [src/telegram/bot/delivery.resolve-media.ts](), [src/discord/monitor/message-utils.ts]() |
+| Envelope format        | `formatInboundEnvelope`             | —                                 | [src/auto-reply/envelope.js]()                                                           |
+| History context        | `buildPendingHistoryContextFromMap` | —                                 | [src/auto-reply/reply/history.js]()                                                      |
+| Context finalization   | `finalizeInboundContext`            | —                                 | [src/auto-reply/reply/inbound-context.js]()                                              |
+| Session recording      | `recordInboundSession`              | `recordInboundSessionMetaSafe`    | [src/channels/session.js](), [src/channels/session-meta.ts]()                            |
+| Inbound dispatch       | `dispatchInboundMessage`            | —                                 | [src/auto-reply/dispatch.js]()                                                           |
+| ACK reaction           | `shouldAckReaction`                 | `resolveAckReaction`              | [src/channels/ack-reactions.js](), [src/agents/identity.js]()                            |
 
 **Telegram-specific implementation**: [src/telegram/bot-message-context.ts:170-720]()  
 **Discord-specific implementation**: [src/discord/monitor/message-handler.process.ts:1-500]()  
@@ -247,13 +245,13 @@ Sources: [src/telegram/bot-message-context.ts](), [src/discord/monitor/message-h
 
 Each inbound message is assigned a **session key** that determines which agent conversation the message belongs to. The format varies by context:
 
-| Chat Type | Session Key Pattern |
-|---|---|
-| DM (default scope) | `agent:<agentId>:main` |
-| DM (per-user scope) | `agent:<agentId>:<channel>:user:<userId>` |
-| Group chat | `agent:<agentId>:<channel>:group:<groupId>` |
-| Channel (Discord/Slack) | `agent:<agentId>:<channel>:channel:<channelId>` |
-| Telegram forum topic | `agent:<agentId>:telegram:group:<chatId>:topic:<threadId>` |
+| Chat Type               | Session Key Pattern                                        |
+| ----------------------- | ---------------------------------------------------------- |
+| DM (default scope)      | `agent:<agentId>:main`                                     |
+| DM (per-user scope)     | `agent:<agentId>:<channel>:user:<userId>`                  |
+| Group chat              | `agent:<agentId>:<channel>:group:<groupId>`                |
+| Channel (Discord/Slack) | `agent:<agentId>:<channel>:channel:<channelId>`            |
+| Telegram forum topic    | `agent:<agentId>:telegram:group:<chatId>:topic:<threadId>` |
 
 Session keys are built by `buildAgentSessionKey` in `src/routing/resolve-route.js` and resolved by `resolveAgentRoute`.
 
@@ -294,7 +292,7 @@ deliverDiscordMedia)"]
     removeAck["Remove ACK reaction\
 (removeAckReactionAfterReply)"]
     done["Delivery complete"]
-    
+
     agentReply --> dispatcher
     dispatcher --> typing
     typing --> streaming
@@ -311,27 +309,30 @@ deliverDiscordMedia)"]
 
 ### Platform-Specific Delivery Functions
 
-| Platform | Primary Function | Streaming Implementation | Retry Policy | Location |
-|---|---|---|---|---|
-| Telegram | `deliverReplies` | `createTelegramDraftStream` with `sendChatAction("typing")` loop | `createTelegramRetryRunner` | [src/telegram/bot/delivery.replies.ts]() |
-| Discord | `deliverDiscordReply` | `createDiscordDraftStream` with message edits | `createDiscordRetryRunner` | [src/discord/monitor/message-handler.process.ts:400-620]() |
-| Slack | `deliverReplies` | `startSlackStream` / `stopSlackStream` with chat.update | Bolt SDK internal | [src/slack/monitor/replies.js]() |
-| Signal | `sendMessageSignal` | Not supported | Manual retry in `sendSignalMessage` | [src/signal/send.ts]() |
-| iMessage | `sendMessageIMessage` | Not supported | None | [src/imessage/send.js]() |
-| WhatsApp | `sendMessageWeb` | Not supported | None | [src/web/send.ts]() |
+| Platform | Primary Function      | Streaming Implementation                                         | Retry Policy                        | Location                                                   |
+| -------- | --------------------- | ---------------------------------------------------------------- | ----------------------------------- | ---------------------------------------------------------- |
+| Telegram | `deliverReplies`      | `createTelegramDraftStream` with `sendChatAction("typing")` loop | `createTelegramRetryRunner`         | [src/telegram/bot/delivery.replies.ts]()                   |
+| Discord  | `deliverDiscordReply` | `createDiscordDraftStream` with message edits                    | `createDiscordRetryRunner`          | [src/discord/monitor/message-handler.process.ts:400-620]() |
+| Slack    | `deliverReplies`      | `startSlackStream` / `stopSlackStream` with chat.update          | Bolt SDK internal                   | [src/slack/monitor/replies.js]()                           |
+| Signal   | `sendMessageSignal`   | Not supported                                                    | Manual retry in `sendSignalMessage` | [src/signal/send.ts]()                                     |
+| iMessage | `sendMessageIMessage` | Not supported                                                    | None                                | [src/imessage/send.js]()                                   |
+| WhatsApp | `sendMessageWeb`      | Not supported                                                    | None                                | [src/web/send.ts]()                                        |
 
 **Text chunking**:
+
 - `chunkTextWithMode` [src/auto-reply/chunk.js:80-150]() splits replies exceeding `textChunkLimit`
 - `chunkMode: "length"` splits at character boundaries
 - `chunkMode: "newline"` splits at paragraph boundaries
 - Per-channel limits: Telegram 4000, Discord 2000, Slack 4000 (configurable)
 
 **Media delivery**:
+
 - Media paths resolved by `resolveMedia` (Telegram) or `buildDiscordMediaPayload` (Discord)
 - Attachments sent via `sendMessageTelegram` with `InputFile`, `deliverDiscordMedia` with file uploads
 - Media size limits enforced by `mediaMaxMb` config (default: Telegram 100MB, Discord 8MB)
 
 **Retry behavior**:
+
 - Telegram: `createTelegramRetryRunner` [src/infra/retry-policy.js:20-80]() with exponential backoff
 - Discord: `createDiscordRetryRunner` [src/infra/retry-policy.js:120-180]()
 - Retry config from `channels.<provider>.retry` or `channels.<provider>.accounts.<id>.retry`
@@ -351,27 +352,29 @@ Both policies are evaluated by `resolveDmGroupAccessWithLists` [src/security/dm-
 
 ### DM Policy Values
 
-| Policy | Validation Function | Behavior | Config Requirement |
-|---|---|---|---|
-| `pairing` (default) | `readStoreAllowFromForDmPolicy` | Unknown senders receive pairing code; approved senders stored in pairing store [~/.openclaw/credentials/<channel>/pairing.json]() | None |
-| `allowlist` | `isAllowedParsedChatSender` | Only `allowFrom` entries accepted | Requires ≥1 entry in `allowFrom` |
-| `open` | — | Any sender accepted (no gate) | Requires `allowFrom: ["*"]` |
-| `disabled` | — | All DMs rejected | None |
+| Policy              | Validation Function             | Behavior                                                                                                                          | Config Requirement               |
+| ------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `pairing` (default) | `readStoreAllowFromForDmPolicy` | Unknown senders receive pairing code; approved senders stored in pairing store [~/.openclaw/credentials/<channel>/pairing.json]() | None                             |
+| `allowlist`         | `isAllowedParsedChatSender`     | Only `allowFrom` entries accepted                                                                                                 | Requires ≥1 entry in `allowFrom` |
+| `open`              | —                               | Any sender accepted (no gate)                                                                                                     | Requires `allowFrom: ["*"]`      |
+| `disabled`          | —                               | All DMs rejected                                                                                                                  | None                             |
 
 **Pairing flow implementation**:
+
 - `upsertChannelPairingRequest` [src/pairing/pairing.js:50-120]() creates pending request with 1-hour expiry
 - `sendPairingCode` [src/pairing/pairing.js:180-220]() delivers challenge to user
 - `approvePairingRequest` [src/pairing/pairing.js:250-290]() commits approval to pairing store
 
 ### Group Policy Values
 
-| Policy | Validation Function | Behavior | Fallback on Missing Config |
-|---|---|---|---|
-| `open` | — | Any group accepted; all senders permitted | — |
+| Policy                | Validation Function             | Behavior                                                                | Fallback on Missing Config                 |
+| --------------------- | ------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------ |
+| `open`                | —                               | Any group accepted; all senders permitted                               | —                                          |
 | `allowlist` (default) | `isDiscordGroupAllowedByPolicy` | Groups must match `groups` config; senders filtered by `groupAllowFrom` | Applied when `channels.<provider>` missing |
-| `disabled` | — | All group messages rejected | — |
+| `disabled`            | —                               | All group messages rejected                                             | —                                          |
 
 **Provider-specific group validation**:
+
 - Telegram: `evaluateTelegramGroupBaseAccess` [src/telegram/group-access.ts:20-95]()
 - Discord: `isDiscordGroupAllowedByPolicy` [src/discord/monitor/allow-list.ts:140-210]()
 - Slack: `isSlackChannelAllowedByPolicy` [src/slack/monitor/policy.ts]()
@@ -393,69 +396,69 @@ flowchart TD
     message["Inbound message"]
     chatType{"Chat type"}
     dmPolicyValue{"dmPolicy value"}
-    
+
     pairingPath["pairing path"]
     storeCheck["readStoreAllowFromForDmPolicy"]
     storeMatch{"In pairing store?"}
     createChallenge["upsertChannelPairingRequest"]
     sendCode["sendPairingCode"]
-    
+
     allowlistPath["allowlist path"]
     allowCheck["isSenderAllowed /\
 isAllowedParsedChatSender"]
     allowMatch{"In allowFrom?"}
-    
+
     openPath["open path"]
     disabledPath["disabled path"]
-    
+
     groupPolicyValue{"groupPolicy value"}
     groupOpenPath["open path"]
     groupAllowlistPath["allowlist path"]
-    
+
     groupCheck["isDiscordGroupAllowedByPolicy /\
 evaluateTelegramGroupBaseAccess"]
     groupMatch{"Group allowed?"}
-    
+
     senderCheck["Check groupAllowFrom"]
     senderMatch{"Sender allowed?"}
-    
+
     mentionRequired{"requireMention?"}
     mentionCheck["resolveMentionGatingWithBypass"]
     mentioned{"Was mentioned?"}
-    
+
     dispatch["dispatchInboundMessage"]
     drop["Drop message"]
-    
+
     message --> chatType
     chatType -->|"direct"| dmPolicyValue
     chatType -->|"group"| groupPolicyValue
-    
+
     dmPolicyValue -->|"pairing"| pairingPath
     dmPolicyValue -->|"allowlist"| allowlistPath
     dmPolicyValue -->|"open"| openPath
     dmPolicyValue -->|"disabled"| disabledPath
-    
+
     pairingPath --> storeCheck
     storeCheck --> storeMatch
     storeMatch -->|"yes"| dispatch
     storeMatch -->|"no"| createChallenge
     createChallenge --> sendCode
     sendCode --> drop
-    
+
     allowlistPath --> allowCheck
     allowCheck --> allowMatch
     allowMatch -->|"yes"| dispatch
     allowMatch -->|"no"| drop
-    
+
     openPath --> dispatch
     disabledPath --> drop
-    
+
     groupPolicyValue -->|"open"| groupOpenPath
     groupPolicyValue -->|"allowlist"| groupAllowlistPath
     groupPolicyValue -->|"disabled"| drop
-    
+
     groupOpenPath --> mentionRequired
-    
+
     groupAllowlistPath --> groupCheck
     groupCheck --> groupMatch
     groupMatch -->|"no"| drop
@@ -463,7 +466,7 @@ evaluateTelegramGroupBaseAccess"]
     senderCheck --> senderMatch
     senderMatch -->|"no"| drop
     senderMatch -->|"yes"| mentionRequired
-    
+
     mentionRequired -->|"yes"| mentionCheck
     mentionRequired -->|"no"| dispatch
     mentionCheck --> mentioned
@@ -472,6 +475,7 @@ evaluateTelegramGroupBaseAccess"]
 ```
 
 **Allowlist resolution** for username-to-ID conversion is handled by platform-specific resolvers:
+
 - Telegram: `resolveTelegramAccount` [src/telegram/accounts.ts]()
 - Discord: `resolveDiscordAllowlistConfig` [src/discord/monitor/provider.allowlist.ts]()
 - Slack: `resolveSlackUserAllowlist` [src/slack/resolve-users.ts]()
@@ -488,23 +492,24 @@ Channel configuration is defined under `channels.<provider>` and validated by Zo
 
 ### Common Channel Configuration Fields
 
-| Field | Type | Schema Location | Default | Description |
-|---|---|---|---|---|
-| `enabled` | `boolean` | All provider schemas | — | Enable/disable channel monitor |
-| `dmPolicy` | `DmPolicySchema` | `zod-schema.core.ts:22-26` | `"pairing"` | Direct message access policy |
-| `allowFrom` | `Array<string \| number>` | — | `[]` | DM sender allowlist |
-| `groupPolicy` | `GroupPolicySchema` | `zod-schema.core.ts:28-32` | `"allowlist"` | Group access policy |
-| `groupAllowFrom` | `Array<string \| number>` | — | `allowFrom` | Group sender allowlist (fallback) |
-| `requireMention` | `boolean` | — | `true` | Require mention in groups |
-| `historyLimit` | `number` | — | 50 | Group history messages per turn |
-| `textChunkLimit` | `number` | — | Platform-specific | Max outbound message length |
-| `chunkMode` | `"length" \| "newline"` | `zod-schema.core.ts:95-97` | `"length"` | Text splitting strategy |
-| `streaming` | `boolean \| StreamMode` | — | `"off"` | Reply streaming mode |
-| `mediaMaxMb` | `number` | — | Platform-specific | Inbound media size limit |
-| `ackReaction` | `string` | — | Agent emoji | ACK reaction emoji |
-| `commands.native` | `boolean \| "auto"` | `ProviderCommandsSchema` | `"auto"` | Native command registration |
+| Field             | Type                      | Schema Location            | Default           | Description                       |
+| ----------------- | ------------------------- | -------------------------- | ----------------- | --------------------------------- |
+| `enabled`         | `boolean`                 | All provider schemas       | —                 | Enable/disable channel monitor    |
+| `dmPolicy`        | `DmPolicySchema`          | `zod-schema.core.ts:22-26` | `"pairing"`       | Direct message access policy      |
+| `allowFrom`       | `Array<string \| number>` | —                          | `[]`              | DM sender allowlist               |
+| `groupPolicy`     | `GroupPolicySchema`       | `zod-schema.core.ts:28-32` | `"allowlist"`     | Group access policy               |
+| `groupAllowFrom`  | `Array<string \| number>` | —                          | `allowFrom`       | Group sender allowlist (fallback) |
+| `requireMention`  | `boolean`                 | —                          | `true`            | Require mention in groups         |
+| `historyLimit`    | `number`                  | —                          | 50                | Group history messages per turn   |
+| `textChunkLimit`  | `number`                  | —                          | Platform-specific | Max outbound message length       |
+| `chunkMode`       | `"length" \| "newline"`   | `zod-schema.core.ts:95-97` | `"length"`        | Text splitting strategy           |
+| `streaming`       | `boolean \| StreamMode`   | —                          | `"off"`           | Reply streaming mode              |
+| `mediaMaxMb`      | `number`                  | —                          | Platform-specific | Inbound media size limit          |
+| `ackReaction`     | `string`                  | —                          | Agent emoji       | ACK reaction emoji                |
+| `commands.native` | `boolean \| "auto"`       | `ProviderCommandsSchema`   | `"auto"`          | Native command registration       |
 
 **Schema definition locations**:
+
 - Core types: [src/config/zod-schema.core.ts:15-120]()
 - Telegram: [src/config/zod-schema.providers-core.ts:152-310]()
 - Discord: [src/config/zod-schema.providers-core.ts:315-590]()
@@ -515,18 +520,18 @@ Channel configuration is defined under `channels.<provider>` and validated by Zo
 Channels supporting multiple accounts (Telegram, Discord, Slack) define accounts under `channels.<provider>.accounts.<accountId>`. Account-level config is shallow-merged with top-level channel config via `resolveXAccount` functions:
 
 **Account resolution logic**:
+
 ```typescript
 // Telegram: src/telegram/accounts.ts:30-80
 export function resolveTelegramAccount(params: {
-  cfg: OpenClawConfig;
-  accountId?: string;
+  cfg: OpenClawConfig
+  accountId?: string
 }): ResolvedTelegramAccount {
-  const channelConfig = cfg.channels?.telegram;
-  const accountId = params.accountId ?? 
-    channelConfig?.defaultAccount ?? 
-    "default";
-  const accountConfig = channelConfig?.accounts?.[accountId];
-  
+  const channelConfig = cfg.channels?.telegram
+  const accountId =
+    params.accountId ?? channelConfig?.defaultAccount ?? 'default'
+  const accountConfig = channelConfig?.accounts?.[accountId]
+
   // Shallow merge: account overrides channel defaults
   return {
     accountId,
@@ -536,31 +541,33 @@ export function resolveTelegramAccount(params: {
       ...accountConfig,
       accountId,
     },
-  };
+  }
 }
 ```
 
 **Multi-account routing**:
+
 - `accountId` flows through the entire pipeline: `resolveAgentRoute` → `buildAgentSessionKey` → session file → agent context
 - Bindings support `match.accountId` to route specific accounts to specific agents
 - Default account selection: explicit `defaultAccount` config → `"default"` account → first account (sorted by ID)
 
 Example multi-account config:
+
 ```json5
 {
   channels: {
     telegram: {
-      defaultAccount: "main",
+      defaultAccount: 'main',
       accounts: {
         main: {
-          name: "Primary bot",
-          botToken: "${TELEGRAM_MAIN_TOKEN}",
-          allowFrom: ["123456789"],
+          name: 'Primary bot',
+          botToken: '${TELEGRAM_MAIN_TOKEN}',
+          allowFrom: ['123456789'],
         },
         alerts: {
-          name: "Alerts bot",
-          botToken: "${TELEGRAM_ALERTS_TOKEN}",
-          allowFrom: ["987654321"],
+          name: 'Alerts bot',
+          botToken: '${TELEGRAM_ALERTS_TOKEN}',
+          allowFrom: ['987654321'],
         },
       },
     },
@@ -580,29 +587,30 @@ Typing indicators are implemented through `createTypingCallbacks` [src/channels/
 
 **Platform typing implementations**:
 
-| Platform | Start Function | Stop Method | Notes |
-|---|---|---|---|
+| Platform | Start Function                                           | Stop Method       | Notes                  |
+| -------- | -------------------------------------------------------- | ----------------- | ---------------------- |
 | Telegram | `sendChatActionHandler.sendChatAction(chatId, "typing")` | Automatic timeout | Looped every 5 seconds |
-| Discord | `channel.sendTyping()` | Automatic timeout | Looped every 9 seconds |
-| Slack | `client.chat.setTyping(channel, true)` | No explicit stop | Single call |
-| Signal | Not supported | — | No typing API |
-| iMessage | Not supported | — | No typing API |
+| Discord  | `channel.sendTyping()`                                   | Automatic timeout | Looped every 9 seconds |
+| Slack    | `client.chat.setTyping(channel, true)`                   | No explicit stop  | Single call            |
+| Signal   | Not supported                                            | —                 | No typing API          |
+| iMessage | Not supported                                            | —                 | No typing API          |
 
 **Implementation**:
+
 ```typescript
 // Telegram: src/telegram/bot.ts:356-366
 const sendTyping = async () => {
   await sendChatActionHandler.sendChatAction(
     chatId,
-    "typing",
+    'typing',
     buildTypingThreadParams(replyThreadId)
-  );
-};
+  )
+}
 
 // Discord: src/discord/monitor/message-handler.process.ts:200-210
 const typingStart = async () => {
-  await channel.sendTyping();
-};
+  await channel.sendTyping()
+}
 ```
 
 Typing errors are logged via `logTypingFailure` [src/channels/logging.js:40-55]() at verbose level and never block message processing.
@@ -617,6 +625,7 @@ ACK reactions provide immediate user feedback while the agent processes a messag
 4. `agents.list[].identity.emoji` (default `"👀"`)
 
 **ACK reaction flow**:
+
 ```mermaid
 flowchart TD
     message["Message received"]
@@ -630,7 +639,7 @@ reactDiscordMessage)"]
     remove{"removeAckAfterReply?"}
     removeReaction["removeAckReactionAfterReply"]
     done["Complete"]
-    
+
     message --> scope
     scope -->|"off"| agent
     scope -->|"dm / group-mentions / all"| gate
@@ -647,12 +656,12 @@ reactDiscordMessage)"]
 **Scope filtering** (enforced by `shouldAckReaction` [src/channels/ack-reactions.js:15-70]()):
 
 | `ackReactionScope` | Direct Messages | Group (not mentioned) | Group (mentioned) |
-|---|---|---|---|
-| `off` | No | No | No |
-| `dm` | Yes | No | No |
-| `group-mentions` | Yes | No | Yes |
-| `group-all` | Yes | Yes | Yes |
-| `all` | Yes | Yes | Yes |
+| ------------------ | --------------- | --------------------- | ----------------- |
+| `off`              | No              | No                    | No                |
+| `dm`               | Yes             | No                    | No                |
+| `group-mentions`   | Yes             | No                    | Yes               |
+| `group-all`        | Yes             | Yes                   | Yes               |
+| `all`              | Yes             | Yes                   | Yes               |
 
 Platforms without reaction support (Signal, iMessage) skip ACK reaction calls silently.
 

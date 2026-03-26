@@ -11,19 +11,17 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers the steps required to clone the repository, install dependencies, configure environment credentials, and launch the app in development mode. For information about the full build pipeline and distribution artifacts, see [Build System](#5.2). For running checks and tests before submitting changes, see [Code Quality & Type Checking](#5.3).
 
 ---
 
 ## Prerequisites
 
-| Requirement | Notes |
-|---|---|
-| [Bun](https://bun.sh/) runtime | Primary package manager and script runner |
-| Node.js 18+ | Required by some tooling (e.g., `electron-builder`) |
-| macOS, Linux, or Windows | All three platforms are supported |
+| Requirement                    | Notes                                               |
+| ------------------------------ | --------------------------------------------------- |
+| [Bun](https://bun.sh/) runtime | Primary package manager and script runner           |
+| Node.js 18+                    | Required by some tooling (e.g., `electron-builder`) |
+| macOS, Linux, or Windows       | All three platforms are supported                   |
 
 ---
 
@@ -57,14 +55,14 @@ The `.env` file is loaded at dev-server startup by `loadEnvFile()` in [scripts/e
 
 The following variables are injected at build time into the main process bundle by `getOAuthDefines()` [scripts/electron-dev.ts:229-245]():
 
-| Variable | Purpose |
-|---|---|
-| `GOOGLE_OAUTH_CLIENT_ID` | Google AI Studio OAuth flow |
-| `GOOGLE_OAUTH_CLIENT_SECRET` | Google AI Studio OAuth flow |
-| `SLACK_OAUTH_CLIENT_ID` | Slack integration |
-| `SLACK_OAUTH_CLIENT_SECRET` | Slack integration |
-| `MICROSOFT_OAUTH_CLIENT_ID` | Microsoft OAuth flow |
-| `MICROSOFT_OAUTH_CLIENT_SECRET` | Microsoft OAuth flow |
+| Variable                        | Purpose                     |
+| ------------------------------- | --------------------------- |
+| `GOOGLE_OAUTH_CLIENT_ID`        | Google AI Studio OAuth flow |
+| `GOOGLE_OAUTH_CLIENT_SECRET`    | Google AI Studio OAuth flow |
+| `SLACK_OAUTH_CLIENT_ID`         | Slack integration           |
+| `SLACK_OAUTH_CLIENT_SECRET`     | Slack integration           |
+| `MICROSOFT_OAUTH_CLIENT_ID`     | Microsoft OAuth flow        |
+| `MICROSOFT_OAUTH_CLIENT_SECRET` | Microsoft OAuth flow        |
 
 If a variable is absent from the environment, `getOAuthDefines()` substitutes an empty string. Missing OAuth credentials will disable the corresponding provider flow but will not prevent the app from starting.
 
@@ -121,10 +119,10 @@ Sources: [scripts/electron-dev.ts:362-580]()
 
 `main()` calls `runEsbuild()` [scripts/electron-dev.ts:266-288]() in parallel for three entry points:
 
-| Entry Point | Output |
-|---|---|
-| `apps/electron/src/main/index.ts` | `apps/electron/dist/main.cjs` |
-| `apps/electron/src/preload/index.ts` | `apps/electron/dist/preload.cjs` |
+| Entry Point                                    | Output                                           |
+| ---------------------------------------------- | ------------------------------------------------ |
+| `apps/electron/src/main/index.ts`              | `apps/electron/dist/main.cjs`                    |
+| `apps/electron/src/preload/index.ts`           | `apps/electron/dist/preload.cjs`                 |
 | `apps/electron/src/preload/browser-toolbar.ts` | `apps/electron/dist/browser-toolbar-preload.cjs` |
 
 After each build, `waitForFileStable()` [scripts/electron-dev.ts:333-360]() polls until the file size stabilizes, and `verifyJsFile()` [scripts/electron-dev.ts:318-330]() confirms the file exists and is non-empty.
@@ -133,12 +131,12 @@ After each build, `waitForFileStable()` [scripts/electron-dev.ts:333-360]() poll
 
 Four concurrent processes are started:
 
-| Process | Mechanism | Description |
-|---|---|---|
-| Vite dev server | `spawn(VITE_BIN)` | Serves renderer at `http://localhost:5173` |
-| Main watcher | `esbuild.context().watch()` | Rebuilds `main.cjs` on source changes |
-| Preload watcher | `esbuild.context().watch()` | Rebuilds `preload.cjs` on source changes |
-| Toolbar preload watcher | `esbuild.context().watch()` | Rebuilds `browser-toolbar-preload.cjs` |
+| Process                 | Mechanism                   | Description                                |
+| ----------------------- | --------------------------- | ------------------------------------------ |
+| Vite dev server         | `spawn(VITE_BIN)`           | Serves renderer at `http://localhost:5173` |
+| Main watcher            | `esbuild.context().watch()` | Rebuilds `main.cjs` on source changes      |
+| Preload watcher         | `esbuild.context().watch()` | Rebuilds `preload.cjs` on source changes   |
+| Toolbar preload watcher | `esbuild.context().watch()` | Rebuilds `browser-toolbar-preload.cjs`     |
 
 Electron is launched via `spawn(ELECTRON_BIN, "apps/electron")` [scripts/electron-dev.ts:537-545]() with the environment produced by `getElectronEnv()` [scripts/electron-dev.ts:247-263](), which injects `VITE_DEV_SERVER_URL` so the main process knows where to load the renderer from.
 
@@ -148,14 +146,14 @@ Sources: [scripts/electron-dev.ts:390-580]()
 
 ## Auxiliary Dev Scripts
 
-| Script | Command | Notes |
-|---|---|---|
-| `electron:dev` | `bun run electron:dev` | Standard dev mode |
-| `electron:dev:terminal` | `bun run electron:dev:terminal` | Passes `--terminal` flag |
-| `electron:dev:menu` | `bun run electron:dev:menu` | Interactive Bash menu (`scripts/electron-dev.sh`) |
-| `electron:dev:logs` | `bun run electron:dev:logs` | Tails `main.log` in a new Terminal window (macOS) |
-| `fresh-start` | `bun run fresh-start` | Resets local config state via `scripts/fresh-start.ts` |
-| `fresh-start:token` | `bun run fresh-start:token` | Resets only the stored token |
+| Script                  | Command                         | Notes                                                  |
+| ----------------------- | ------------------------------- | ------------------------------------------------------ |
+| `electron:dev`          | `bun run electron:dev`          | Standard dev mode                                      |
+| `electron:dev:terminal` | `bun run electron:dev:terminal` | Passes `--terminal` flag                               |
+| `electron:dev:menu`     | `bun run electron:dev:menu`     | Interactive Bash menu (`scripts/electron-dev.sh`)      |
+| `electron:dev:logs`     | `bun run electron:dev:logs`     | Tails `main.log` in a new Terminal window (macOS)      |
+| `fresh-start`           | `bun run fresh-start`           | Resets local config state via `scripts/fresh-start.ts` |
+| `fresh-start:token`     | `bun run fresh-start:token`     | Resets only the stored token                           |
 
 Sources: [package.json:29-36]()
 
@@ -193,12 +191,12 @@ Sources: [scripts/electron-dev.ts:190-226](), [scripts/electron-dev.ts:294-311](
 
 Running multiple development instances simultaneously is supported. `detectInstance()` [scripts/electron-dev.ts:67-84]() checks the repository folder name for a numeric suffix (e.g., `craft-agents-1`) and adjusts the following environment variables:
 
-| Variable | Default | Instance 1 Example |
-|---|---|---|
-| `CRAFT_VITE_PORT` | `5173` | `1173` |
-| `CRAFT_APP_NAME` | `Craft Agents` | `Craft Agents [1]` |
-| `CRAFT_CONFIG_DIR` | `~/.craft-agent/` | `~/.craft-agent-1/` |
-| `CRAFT_DEEPLINK_SCHEME` | `craftagents` | `craftagents1` |
+| Variable                | Default           | Instance 1 Example  |
+| ----------------------- | ----------------- | ------------------- |
+| `CRAFT_VITE_PORT`       | `5173`            | `1173`              |
+| `CRAFT_APP_NAME`        | `Craft Agents`    | `Craft Agents [1]`  |
+| `CRAFT_CONFIG_DIR`      | `~/.craft-agent/` | `~/.craft-agent-1/` |
+| `CRAFT_DEEPLINK_SCHEME` | `craftagents`     | `craftagents1`      |
 
 Cloning the repo into a folder named `craft-agents-2` would configure the second instance on port `2173` with its own isolated config directory.
 

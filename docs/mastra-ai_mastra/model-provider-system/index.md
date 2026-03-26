@@ -10,7 +10,7 @@ The following files were used as context for generating this wiki page:
 - [docs/src/content/en/models/gateways/openrouter.mdx](docs/src/content/en/models/gateways/openrouter.mdx)
 - [docs/src/content/en/models/gateways/vercel.mdx](docs/src/content/en/models/gateways/vercel.mdx)
 - [docs/src/content/en/models/index.mdx](docs/src/content/en/models/index.mdx)
-- [docs/src/content/en/models/providers/_meta.ts](docs/src/content/en/models/providers/_meta.ts)
+- [docs/src/content/en/models/providers/\_meta.ts](docs/src/content/en/models/providers/_meta.ts)
 - [docs/src/content/en/models/providers/alibaba-cn.mdx](docs/src/content/en/models/providers/alibaba-cn.mdx)
 - [docs/src/content/en/models/providers/alibaba.mdx](docs/src/content/en/models/providers/alibaba.mdx)
 - [docs/src/content/en/models/providers/anthropic.mdx](docs/src/content/en/models/providers/anthropic.mdx)
@@ -49,8 +49,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Model Provider System provides unified access to 94 AI providers and 3373+ models through a centralized registry, auto-generated TypeScript types, and a string-based model identification scheme. This system abstracts away provider-specific configuration, enabling developers to switch between models and providers without changing application code.
 
 For information about how agents use models, see [Agent Configuration and Execution](#3.1). For model fallback configuration, see [Model Fallbacks and Error Handling](#5.5). For dynamic model selection patterns, see [Dynamic Model Selection](#5.4).
@@ -67,38 +65,38 @@ graph TB
         Registry["provider-registry.json<br/>94 providers, 3373+ models"]
         TypeGen["provider-types.generated.d.ts<br/>Auto-generated TypeScript types"]
     end
-    
+
     subgraph "Configuration Layer"
         ModelString["Model ID String<br/>'provider/model-name'"]
         ParseID["Model ID Parser<br/>Split on '/'"]
         ProviderLookup["Provider Config Lookup<br/>url, apiKeyEnvVar, headers"]
     end
-    
+
     subgraph "Resolution Layer"
         EnvVars["Environment Variables<br/>OPENAI_API_KEY, etc."]
         APIKeyResolver["API Key Resolver<br/>Read from process.env"]
         URLBuilder["URL Builder<br/>Construct base URL"]
     end
-    
+
     subgraph "Execution Layer"
         ModelInstance["MastraLanguageModel<br/>AI SDK compatible instance"]
         APICall["HTTP Request<br/>To provider endpoint"]
     end
-    
+
     Registry --> TypeGen
     Registry --> ProviderLookup
-    
+
     ModelString --> ParseID
     ParseID --> ProviderLookup
     ProviderLookup --> APIKeyResolver
     ProviderLookup --> URLBuilder
-    
+
     APIKeyResolver --> EnvVars
     APIKeyResolver --> ModelInstance
     URLBuilder --> ModelInstance
-    
+
     ModelInstance --> APICall
-    
+
     TypeGen -.->|"IDE autocomplete"| ModelString
 ```
 
@@ -114,16 +112,16 @@ The provider registry is a JSON file that defines all available providers and th
 
 The registry is structured as a top-level `providers` object where each key is a provider identifier and each value is a provider configuration object.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `url` | string | No | Base URL for API requests. If omitted, uses OpenAI SDK default |
-| `apiKeyEnvVar` | string | Yes | Environment variable name containing the API key |
-| `apiKeyHeader` | string | No | HTTP header name for API key (defaults to "Authorization") |
-| `name` | string | Yes | Human-readable provider name |
-| `models` | string[] | Yes | Array of model identifiers |
-| `docUrl` | string | No | Link to provider documentation |
-| `gateway` | string | No | Identifies gateway providers (e.g., "models.dev") |
-| `npm` | string | No | NPM package for AI SDK integration |
+| Field          | Type     | Required | Description                                                    |
+| -------------- | -------- | -------- | -------------------------------------------------------------- |
+| `url`          | string   | No       | Base URL for API requests. If omitted, uses OpenAI SDK default |
+| `apiKeyEnvVar` | string   | Yes      | Environment variable name containing the API key               |
+| `apiKeyHeader` | string   | No       | HTTP header name for API key (defaults to "Authorization")     |
+| `name`         | string   | Yes      | Human-readable provider name                                   |
+| `models`       | string[] | Yes      | Array of model identifiers                                     |
+| `docUrl`       | string   | No       | Link to provider documentation                                 |
+| `gateway`      | string   | No       | Identifies gateway providers (e.g., "models.dev")              |
+| `npm`          | string   | No       | NPM package for AI SDK integration                             |
 
 **Example Provider Entry:**
 
@@ -133,12 +131,7 @@ The registry is structured as a top-level `providers` object where each key is a
     "openai": {
       "apiKeyEnvVar": "OPENAI_API_KEY",
       "name": "OpenAI",
-      "models": [
-        "gpt-4o",
-        "gpt-4o-mini",
-        "gpt-5",
-        "o3-mini"
-      ],
+      "models": ["gpt-4o", "gpt-4o-mini", "gpt-5", "o3-mini"],
       "docUrl": "https://platform.openai.com/docs/models"
     }
   }
@@ -163,13 +156,13 @@ export type ProviderModelsMap = {
     'KBLab/kb-whisper-large',
     'Qwen/Qwen3-30B-A3B-Instruct-2507-FP8',
     // ... more models
-  ];
+  ]
   readonly openai: readonly [
     'gpt-4o',
     'gpt-4o-mini',
     'gpt-5',
     // ... more models
-  ];
+  ]
   // ... more providers
 }
 ```
@@ -193,37 +186,37 @@ graph LR
     subgraph "Model ID String"
         Input["'openai/gpt-4o'"]
     end
-    
+
     subgraph "Parsing"
         Split["Split on '/'"]
         Provider["provider = 'openai'"]
         Model["model = 'gpt-4o'"]
     end
-    
+
     subgraph "Registry Lookup"
         FindProvider["providers['openai']"]
         ExtractConfig["url: undefined<br/>apiKeyEnvVar: 'OPENAI_API_KEY'<br/>apiKeyHeader: 'Authorization'"]
     end
-    
+
     subgraph "Environment Resolution"
         ReadEnv["process.env['OPENAI_API_KEY']"]
         APIKey["API Key Value"]
     end
-    
+
     subgraph "Constructed Config"
         FinalConfig["url: 'https://api.openai.com/v1'<br/>apiKey: sk-...<br/>headers: Authorization"]
     end
-    
+
     Input --> Split
     Split --> Provider
     Split --> Model
-    
+
     Provider --> FindProvider
     FindProvider --> ExtractConfig
-    
+
     ExtractConfig --> ReadEnv
     ReadEnv --> APIKey
-    
+
     ExtractConfig --> FinalConfig
     APIKey --> FinalConfig
 ```
@@ -231,16 +224,19 @@ graph LR
 ### Provider ID Patterns
 
 **Direct Providers** use simple identifiers:
+
 - `"openai/gpt-4o"` → OpenAI API
 - `"anthropic/claude-opus-4"` → Anthropic API
 - `"google/gemini-2.5-flash"` → Google Generative AI API
 
 **Gateway Providers** prefix model names with sub-providers:
+
 - `"openrouter/anthropic/claude-opus-4"` → Claude via OpenRouter
 - `"vercel/openai/gpt-5"` → GPT-5 via Vercel AI Gateway
 - `"netlify/google/gemini-2.5-flash"` → Gemini via Netlify
 
 **Custom/Local Providers** support arbitrary identifiers:
+
 - `"lmstudio/qwen3-30b"` → Local LMStudio server
 - `"custom/my-model"` → Custom OpenAI-compatible endpoint
 
@@ -259,8 +255,8 @@ The most common pattern reads API keys from environment variables specified in t
 ```typescript
 // Agent using registry-based configuration
 const agent = new Agent({
-  model: "openai/gpt-4o"  // Reads OPENAI_API_KEY automatically
-});
+  model: 'openai/gpt-4o', // Reads OPENAI_API_KEY automatically
+})
 ```
 
 The system looks up `apiKeyEnvVar` from the provider registry (`"OPENAI_API_KEY"`) and reads `process.env.OPENAI_API_KEY`.
@@ -272,13 +268,13 @@ For custom headers, API keys, or URLs, use configuration objects:
 ```typescript
 const agent = new Agent({
   model: {
-    id: "openai/gpt-4o",
+    id: 'openai/gpt-4o',
     apiKey: process.env.CUSTOM_KEY,
     headers: {
-      "OpenAI-Organization": "org-abc123"
-    }
-  }
-});
+      'OpenAI-Organization': 'org-abc123',
+    },
+  },
+})
 ```
 
 ### Custom Provider URLs
@@ -288,10 +284,10 @@ Local models or custom endpoints specify a `url` field:
 ```typescript
 const agent = new Agent({
   model: {
-    id: "custom/my-qwen3-model",
-    url: "http://localhost:1234/v1"  // LMStudio endpoint
-  }
-});
+    id: 'custom/my-qwen3-model',
+    url: 'http://localhost:1234/v1', // LMStudio endpoint
+  },
+})
 ```
 
 The `url` must point to an OpenAI-compatible base endpoint (not including `/chat/completions`).
@@ -311,25 +307,25 @@ graph TB
         Anthropic["anthropic<br/>apiKeyEnvVar: ANTHROPIC_API_KEY<br/>url: undefined (SDK default)"]
         Google["google<br/>apiKeyEnvVar: GOOGLE_GENERATIVE_AI_API_KEY<br/>url: undefined (SDK default)"]
     end
-    
+
     subgraph "Gateway Providers"
         OpenRouter["openrouter<br/>apiKeyEnvVar: OPENROUTER_API_KEY<br/>url: https://openrouter.ai/api/v1<br/>gateway: 'models.dev'"]
         Vercel["vercel<br/>apiKeyEnvVar: AI_GATEWAY_API_KEY<br/>url: https://gateway.ai.cloudflare.com/v1<br/>gateway: 'models.dev'"]
         Netlify["netlify<br/>apiKeyEnvVar: NETLIFY_TOKEN<br/>url: dynamic per site<br/>gateway: 'models.dev'"]
     end
-    
+
     subgraph "Specialized Gateways"
         ModelsDevGateways["Models tagged with<br/>gateway: 'models.dev'<br/>(70+ providers)"]
     end
-    
+
     OpenAI -->|"Direct API call"| OpenAIAPI["api.openai.com"]
     Anthropic -->|"Direct API call"| AnthropicAPI["api.anthropic.com"]
     Google -->|"Direct API call"| GoogleAPI["generativelanguage.googleapis.com"]
-    
+
     OpenRouter -->|"Proxy to multiple"| MultiProvider["OpenAI, Anthropic, Google, etc."]
     Vercel -->|"Proxy to multiple"| MultiProvider
     Netlify -->|"Proxy to multiple"| MultiProvider
-    
+
     ModelsDevGateways -->|"Examples"| OpenRouter
     ModelsDevGateways -->|"Examples"| FastRouter["fastrouter<br/>14 models"]
     ModelsDevGateways -->|"Examples"| Evroc["evroc<br/>13 models"]
@@ -340,7 +336,7 @@ graph TB
 Direct providers communicate with first-party APIs:
 
 - **OpenAI**: 46 models including GPT-4, GPT-5, o3, and Codex variants
-- **Anthropic**: 23 models including Claude Opus, Sonnet, and Haiku families  
+- **Anthropic**: 23 models including Claude Opus, Sonnet, and Haiku families
 - **Google**: 30 models including Gemini 2.5, 3.0, and embedding models
 - **Mistral**: 26 models including Codestral, Devstral, and Mistral Large
 - **xAI**: 25 models including Grok 3, Grok 4, and Grok Code
@@ -365,12 +361,12 @@ Different providers expose unique configuration options through `providerOptions
 
 ### Common Provider Options
 
-| Provider | Option | Description |
-|----------|--------|-------------|
-| OpenAI | `reasoningEffort` | Controls o1/o3 model thinking depth ("low", "medium", "high") |
-| Anthropic | `cacheControl` | Enables prompt caching for repeated context |
-| Google | `safetySettings` | Configures content filtering thresholds |
-| Mistral | `safePrompt` | Enables/disables safety guardrails |
+| Provider  | Option            | Description                                                   |
+| --------- | ----------------- | ------------------------------------------------------------- |
+| OpenAI    | `reasoningEffort` | Controls o1/o3 model thinking depth ("low", "medium", "high") |
+| Anthropic | `cacheControl`    | Enables prompt caching for repeated context                   |
+| Google    | `safetySettings`  | Configures content filtering thresholds                       |
+| Mistral   | `safePrompt`      | Enables/disables safety guardrails                            |
 
 ### Agent-Level Configuration
 
@@ -378,15 +374,15 @@ Provider options in the `instructions` field apply to all future agent calls:
 
 ```typescript
 const agent = new Agent({
-  model: "openai/o3-pro",
+  model: 'openai/o3-pro',
   instructions: {
-    role: "system",
-    content: "You are a helpful assistant.",
+    role: 'system',
+    content: 'You are a helpful assistant.',
     providerOptions: {
-      openai: { reasoningEffort: "low" }
-    }
-  }
-});
+      openai: { reasoningEffort: 'low' },
+    },
+  },
+})
 ```
 
 ### Message-Level Configuration
@@ -396,13 +392,13 @@ Provider options in individual messages override agent-level settings:
 ```typescript
 const response = await agent.generate([
   {
-    role: "user",
-    content: "Solve this complex problem",
+    role: 'user',
+    content: 'Solve this complex problem',
     providerOptions: {
-      openai: { reasoningEffort: "high" }  // Overrides agent default
-    }
-  }
-]);
+      openai: { reasoningEffort: 'high' }, // Overrides agent default
+    },
+  },
+])
 ```
 
 This pattern enables dynamic adjustment of model behavior based on task complexity.
@@ -418,31 +414,36 @@ The registry includes both mainstream providers and specialized platforms, enabl
 ### Provider Categories
 
 **Major Cloud Providers:**
+
 - OpenAI (46 models)
-- Anthropic (23 models)  
+- Anthropic (23 models)
 - Google (30 models)
 - Amazon Bedrock (multi-provider access)
 - Azure OpenAI (private deployments)
 
 **Specialized Inference Platforms:**
+
 - Deep Infra (27 models)
 - Fireworks AI (13 models)
 - Together AI (17 models)
 - Groq (9 models, optimized for speed)
 
 **Regional Providers:**
+
 - Alibaba (41 international, 74 China-specific models)
 - Moonshot AI (6 models, Kimi K2 family)
 - Z.AI (10 models, GLM family)
 - Xiaomi (1 model, Mimo V2)
 
 **Gateway Aggregators:**
+
 - OpenRouter (198 models)
 - Vercel (217 models)
 - Netlify (63 models)
 - Kilo Gateway (335 models)
 
 **Coding-Specialized Platforms:**
+
 - Alibaba Coding Plan (8 models)
 - MiniMax Coding Plan (4 models)
 - Z.AI Coding Plan (11 models)
@@ -462,17 +463,17 @@ While the registry stores basic provider configuration, individual model metadat
 
 Documentation files expose model-specific metadata through `ProviderModelsTable` components:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `imageInput` | boolean | Supports image input (multimodal) |
-| `audioInput` | boolean | Supports audio input |
-| `videoInput` | boolean | Supports video input |
-| `toolUsage` | boolean | Supports function/tool calling |
-| `reasoning` | boolean | Extended thinking/reasoning mode |
-| `contextWindow` | number | Maximum input tokens |
-| `maxOutput` | number | Maximum output tokens |
-| `inputCost` | number \| null | Cost per 1M input tokens (USD) |
-| `outputCost` | number \| null | Cost per 1M output tokens (USD) |
+| Field           | Type           | Description                       |
+| --------------- | -------------- | --------------------------------- |
+| `imageInput`    | boolean        | Supports image input (multimodal) |
+| `audioInput`    | boolean        | Supports audio input              |
+| `videoInput`    | boolean        | Supports video input              |
+| `toolUsage`     | boolean        | Supports function/tool calling    |
+| `reasoning`     | boolean        | Extended thinking/reasoning mode  |
+| `contextWindow` | number         | Maximum input tokens              |
+| `maxOutput`     | number         | Maximum output tokens             |
+| `inputCost`     | number \| null | Cost per 1M input tokens (USD)    |
+| `outputCost`    | number \| null | Cost per 1M output tokens (USD)   |
 
 **Example Model Metadata:**
 
@@ -560,14 +561,14 @@ Developers can implement custom gateways for private LLM deployments or speciali
 ```typescript
 const agent = new Agent({
   model: {
-    id: "custom-gateway/provider/model-name",
-    url: "https://my-gateway.example.com/v1",
+    id: 'custom-gateway/provider/model-name',
+    url: 'https://my-gateway.example.com/v1',
     apiKey: process.env.GATEWAY_API_KEY,
     headers: {
-      "X-Custom-Header": "value"
-    }
-  }
-});
+      'X-Custom-Header': 'value',
+    },
+  },
+})
 ```
 
 The URL must point to the base endpoint (not including `/chat/completions`). The system appends `/chat/completions` automatically when making requests.
@@ -579,14 +580,14 @@ Azure OpenAI requires special handling for deployment names and API versions:
 ```typescript
 const agent = new Agent({
   model: {
-    id: "azure-openai/my-deployment-name",
-    url: "https://my-resource.openai.azure.com",
+    id: 'azure-openai/my-deployment-name',
+    url: 'https://my-resource.openai.azure.com',
     apiKey: process.env.AZURE_OPENAI_API_KEY,
     headers: {
-      "api-key": process.env.AZURE_OPENAI_API_KEY
-    }
-  }
-});
+      'api-key': process.env.AZURE_OPENAI_API_KEY,
+    },
+  },
+})
 ```
 
 Azure-specific configuration is documented separately in gateway documentation.
@@ -603,8 +604,8 @@ The Model Provider System integrates with the Agent System through model resolut
 
 ```typescript
 const agent = new Agent({
-  model: "openai/gpt-4o"  // Resolved via registry
-});
+  model: 'openai/gpt-4o', // Resolved via registry
+})
 ```
 
 ### Object-Based Model Configuration
@@ -612,10 +613,10 @@ const agent = new Agent({
 ```typescript
 const agent = new Agent({
   model: {
-    id: "anthropic/claude-opus-4",
-    apiKey: process.env.CUSTOM_KEY
-  }
-});
+    id: 'anthropic/claude-opus-4',
+    apiKey: process.env.CUSTOM_KEY,
+  },
+})
 ```
 
 ### Dynamic Model Selection
@@ -623,12 +624,10 @@ const agent = new Agent({
 ```typescript
 const agent = new Agent({
   model: ({ requestContext }) => {
-    const tier = requestContext.get("user-tier");
-    return tier === "premium" 
-      ? "anthropic/claude-opus-4" 
-      : "openai/gpt-4o-mini";
-  }
-});
+    const tier = requestContext.get('user-tier')
+    return tier === 'premium' ? 'anthropic/claude-opus-4' : 'openai/gpt-4o-mini'
+  },
+})
 ```
 
 The dynamic pattern enables A/B testing, user-based model selection, and multi-tenant applications where different customers use different models.

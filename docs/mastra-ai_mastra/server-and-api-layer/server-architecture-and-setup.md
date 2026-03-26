@@ -19,7 +19,7 @@ The following files were used as context for generating this wiki page:
 - [packages/cli/src/commands/studio/studio.ts](packages/cli/src/commands/studio/studio.ts)
 - [packages/core/src/bundler/index.ts](packages/core/src/bundler/index.ts)
 - [packages/deployer/src/build/analyze.ts](packages/deployer/src/build/analyze.ts)
-- [packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap](packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap)
+- [packages/deployer/src/build/analyze/**snapshots**/analyzeEntry.test.ts.snap](packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap)
 - [packages/deployer/src/build/analyze/analyzeEntry.test.ts](packages/deployer/src/build/analyze/analyzeEntry.test.ts)
 - [packages/deployer/src/build/analyze/analyzeEntry.ts](packages/deployer/src/build/analyze/analyzeEntry.ts)
 - [packages/deployer/src/build/analyze/bundleExternals.test.ts](packages/deployer/src/build/analyze/bundleExternals.test.ts)
@@ -30,7 +30,7 @@ The following files were used as context for generating this wiki page:
 - [packages/deployer/src/build/watcher.test.ts](packages/deployer/src/build/watcher.test.ts)
 - [packages/deployer/src/build/watcher.ts](packages/deployer/src/build/watcher.ts)
 - [packages/deployer/src/bundler/index.ts](packages/deployer/src/bundler/index.ts)
-- [packages/deployer/src/server/__tests__/option-studio-base.test.ts](packages/deployer/src/server/__tests__/option-studio-base.test.ts)
+- [packages/deployer/src/server/**tests**/option-studio-base.test.ts](packages/deployer/src/server/__tests__/option-studio-base.test.ts)
 - [packages/deployer/src/server/index.ts](packages/deployer/src/server/index.ts)
 - [packages/playground/e2e/tests/auth/infrastructure.spec.ts](packages/playground/e2e/tests/auth/infrastructure.spec.ts)
 - [packages/playground/e2e/tests/auth/viewer-role.spec.ts](packages/playground/e2e/tests/auth/viewer-role.spec.ts)
@@ -39,8 +39,6 @@ The following files were used as context for generating this wiki page:
 - [packages/playground/src/components/ui/app-sidebar.tsx](packages/playground/src/components/ui/app-sidebar.tsx)
 
 </details>
-
-
 
 This page documents the Mastra server architecture, covering how HTTP servers are created, configured, and deployed. It explains the layered approach to server initialization, middleware registration, and platform-specific deployment patterns.
 
@@ -61,7 +59,7 @@ graph TB
     middleware["Middleware Registration"]
     routes["Route Registration"]
     studio["Studio Integration"]
-    
+
     mastra -->|"provides config"| createHono
     createHono -->|"new Hono()"| honoApp
     createHono -->|"new MastraServer()"| adapter
@@ -69,7 +67,7 @@ graph TB
     adapter -->|"registerAuthMiddleware()"| middleware
     adapter -->|"registerRoutes()"| routes
     createHono -->|"if options.studio"| studio
-    
+
     middleware -->|"sets mastra, tools, taskStore"| honoApp
     routes -->|"adds /api/* endpoints"| honoApp
     studio -->|"serves static assets"| honoApp
@@ -87,13 +85,13 @@ graph LR
     serve["@hono/node-server serve()"]
     httpServer["Node HTTP/HTTPS Server"]
     eventEngine["mastra.startEventEngine()"]
-    
+
     createNode -->|"awaits"| createHono
     createHono -->|"returns"| honoApp
     createNode -->|"serve({fetch: app.fetch})"| serve
     serve -->|"creates"| httpServer
     createNode -->|"after server starts"| eventEngine
-    
+
     httpServer -.->|"listens on port"| port["process.env.PORT or 4111"]
 ```
 
@@ -103,20 +101,20 @@ graph LR
 
 The `Mastra` instance provides server configuration through `mastra.getServer()`, which returns a `ServerConfig` object with various options:
 
-| Configuration | Type | Default | Description |
-|--------------|------|---------|-------------|
-| `port` | `number` | `4111` | HTTP server port |
-| `host` | `string` | `'localhost'` | Server hostname |
-| `apiPrefix` | `string` | `'/api'` | Base path for API routes |
-| `studioBase` | `string` | `'/'` | Base path for Studio UI |
-| `timeout` | `number` | `180000` | Request timeout in milliseconds |
-| `bodySizeLimit` | `number` | `4.5 * 1024 * 1024` | Maximum request body size (4.5MB) |
-| `cors` | `object \| false` | CORS config | CORS configuration or disabled |
-| `middleware` | `Middleware[]` | `[]` | Custom middleware functions |
-| `apiRoutes` | `CustomRoute[]` | `[]` | User-defined API routes |
-| `auth` | `AuthConfig` | `undefined` | Authentication configuration |
-| `https` | `{key, cert}` | `undefined` | HTTPS certificate options |
-| `build` | `BuildConfig` | `{}` | Build-time options (OpenAPI, Swagger, logs) |
+| Configuration   | Type              | Default             | Description                                 |
+| --------------- | ----------------- | ------------------- | ------------------------------------------- |
+| `port`          | `number`          | `4111`              | HTTP server port                            |
+| `host`          | `string`          | `'localhost'`       | Server hostname                             |
+| `apiPrefix`     | `string`          | `'/api'`            | Base path for API routes                    |
+| `studioBase`    | `string`          | `'/'`               | Base path for Studio UI                     |
+| `timeout`       | `number`          | `180000`            | Request timeout in milliseconds             |
+| `bodySizeLimit` | `number`          | `4.5 * 1024 * 1024` | Maximum request body size (4.5MB)           |
+| `cors`          | `object \| false` | CORS config         | CORS configuration or disabled              |
+| `middleware`    | `Middleware[]`    | `[]`                | Custom middleware functions                 |
+| `apiRoutes`     | `CustomRoute[]`   | `[]`                | User-defined API routes                     |
+| `auth`          | `AuthConfig`      | `undefined`         | Authentication configuration                |
+| `https`         | `{key, cert}`     | `undefined`         | HTTPS certificate options                   |
+| `build`         | `BuildConfig`     | `{}`                | Build-time options (OpenAPI, Swagger, logs) |
 
 **Sources:** [packages/deployer/src/server/index.ts:94-96](), [packages/deployer/src/server/index.ts:473-486]()
 
@@ -127,7 +125,7 @@ The middleware registration follows a strict order to ensure proper request proc
 ```mermaid
 graph TB
     request["Incoming Request"]
-    
+
     context["Context Middleware<br/>(registerContextMiddleware)"]
     custom["Custom Server Middleware<br/>(mastra.getServerMiddleware)"]
     cors["CORS + Timeout"]
@@ -142,7 +140,7 @@ graph TB
     studioRefresh["Studio Refresh Endpoints<br/>(if studio enabled)"]
     studioStatic["Studio Static Assets"]
     dynamicHTML["Dynamic HTML Handler"]
-    
+
     request --> context
     context --> custom
     custom --> cors
@@ -157,7 +155,7 @@ graph TB
     swagger --> studioRefresh
     studioRefresh --> studioStatic
     studioStatic --> dynamicHTML
-    
+
     context -.->|"sets c.var.mastra<br/>c.var.tools<br/>c.var.taskStore"| vars
     auth -.->|"sets c.var.requestContext"| vars
 ```
@@ -187,11 +185,11 @@ registerContextMiddleware() {
 
 CORS middleware is configured based on whether authentication is enabled:
 
-| Condition | Origin Setting | Credentials |
-|-----------|---------------|-------------|
-| Auth enabled | `(origin) => origin \|\| undefined` or user-configured | `true` |
-| Auth disabled | `'*'` or user-configured | `false` |
-| Disabled | CORS middleware skipped | N/A |
+| Condition     | Origin Setting                                         | Credentials |
+| ------------- | ------------------------------------------------------ | ----------- |
+| Auth enabled  | `(origin) => origin \|\| undefined` or user-configured | `true`      |
+| Auth disabled | `'*'` or user-configured                               | `false`     |
+| Disabled      | CORS middleware skipped                                | N/A         |
 
 When authentication uses cookie-based sessions, credentials must be enabled and origin cannot be `'*'`, so the server reflects the request origin by default unless explicitly configured.
 
@@ -209,7 +207,7 @@ graph LR
     register["mastra.addTool()"]
     registry["Mastra Tool Registry"]
     agents["Stored Agents"]
-    
+
     bundler -->|"discovers"| toolFiles
     bundler -->|"bundles to"| bundledTools
     bundledTools -->|"for each tool"| register
@@ -225,11 +223,11 @@ function getToolExports(tools: Record<string, Function>[]) {
   return tools.reduce((acc, toolModule) => {
     Object.entries(toolModule).forEach(([key, tool]) => {
       if (tool instanceof Tool) {
-        acc[key] = tool;
+        acc[key] = tool
       }
-    });
-    return acc;
-  }, {});
+    })
+    return acc
+  }, {})
 }
 ```
 
@@ -249,12 +247,12 @@ graph TB
     check1{"Path starts with<br/>apiPrefix?"}
     check2{"Is asset file?<br/>(has extension)"}
     check3{"Matches studioBase?"}
-    
+
     apiHandler["API Handler"]
     assetServe["Static Asset<br/>(serveStatic)"]
     htmlHandler["Dynamic HTML Handler<br/>(injectStudioHtmlConfig)"]
     fallback["404 Handler"]
-    
+
     request --> check1
     check1 -->|"yes"| apiHandler
     check1 -->|"no"| check2
@@ -273,23 +271,23 @@ Studio's `index.html` uses placeholders that are replaced at runtime with server
 ```html
 <!-- From packages/playground/index.html -->
 <script>
-  window.MASTRA_SERVER_HOST = '%%MASTRA_SERVER_HOST%%';
-  window.MASTRA_SERVER_PORT = '%%MASTRA_SERVER_PORT%%';
-  window.MASTRA_API_PREFIX = '%%MASTRA_API_PREFIX%%';
-  window.MASTRA_STUDIO_BASE_PATH = '%%MASTRA_STUDIO_BASE_PATH%%';
+  window.MASTRA_SERVER_HOST = '%%MASTRA_SERVER_HOST%%'
+  window.MASTRA_SERVER_PORT = '%%MASTRA_SERVER_PORT%%'
+  window.MASTRA_API_PREFIX = '%%MASTRA_API_PREFIX%%'
+  window.MASTRA_STUDIO_BASE_PATH = '%%MASTRA_STUDIO_BASE_PATH%%'
   // ... more config
 </script>
 ```
 
 The `injectStudioHtmlConfig()` utility replaces these placeholders:
 
-| Placeholder | Source | Example |
-|-------------|--------|---------|
-| `MASTRA_SERVER_HOST` | `serverOptions?.host` or `process.env.MASTRA_HOST` | `'localhost'` |
-| `MASTRA_SERVER_PORT` | `serverOptions?.port` or `process.env.PORT` | `'4111'` |
-| `MASTRA_SERVER_PROTOCOL` | HTTPS enabled check | `'http'` or `'https'` |
-| `MASTRA_API_PREFIX` | `serverOptions?.apiPrefix` | `'/api'` |
-| `MASTRA_STUDIO_BASE_PATH` | `normalizeStudioBase(serverOptions?.studioBase)` | `''` or `'/admin'` |
+| Placeholder               | Source                                             | Example               |
+| ------------------------- | -------------------------------------------------- | --------------------- |
+| `MASTRA_SERVER_HOST`      | `serverOptions?.host` or `process.env.MASTRA_HOST` | `'localhost'`         |
+| `MASTRA_SERVER_PORT`      | `serverOptions?.port` or `process.env.PORT`        | `'4111'`              |
+| `MASTRA_SERVER_PROTOCOL`  | HTTPS enabled check                                | `'http'` or `'https'` |
+| `MASTRA_API_PREFIX`       | `serverOptions?.apiPrefix`                         | `'/api'`              |
+| `MASTRA_STUDIO_BASE_PATH` | `normalizeStudioBase(serverOptions?.studioBase)`   | `''` or `'/admin'`    |
 
 **Sources:** [packages/deployer/src/server/index.ts:392-443](), [packages/deployer/src/build/utils.ts:249-267]()
 
@@ -306,7 +304,7 @@ graph LR
     trailing{"Ends with '/'?"}
     leading{"Starts with '/'?"}
     output["Normalized Path"]
-    
+
     input --> validate
     validate -->|"yes"| error["throw Error"]
     validate -->|"no"| normalize
@@ -334,7 +332,7 @@ graph TB
     watcher["Rollup Watcher"]
     envWatch["env-watcher plugin<br/>(watches .env files)"]
     toolsWatch["tools-watcher plugin<br/>(generates tools.mjs)"]
-    
+
     bundleEvent["BUNDLE_END event"]
     checkRestart["checkAndRestart()"]
     hotReloadCheck["Check /__hot-reload-status"]
@@ -342,12 +340,12 @@ graph TB
     restart["rebundleAndRestart()"]
     killProc["Kill current server process"]
     startProc["startServer()<br/>(new process)"]
-    
+
     cli --> bundler
     bundler --> watcher
     watcher -.-> envWatch
     watcher -.-> toolsWatch
-    
+
     watcher -->|"emits"| bundleEvent
     bundleEvent --> checkRestart
     checkRestart --> hotReloadCheck
@@ -381,17 +379,17 @@ Mastra supports multiple deployment targets through platform-specific deployer c
 ```mermaid
 graph TB
     Bundler["Abstract Bundler Class<br/>(@mastra/deployer/bundler)"]
-    
+
     Node["BuildBundler<br/>(Node.js target)"]
     CF["CloudflareDeployer<br/>(Workers target)"]
     Vercel["VercelDeployer<br/>(Functions target)"]
     Netlify["NetlifyDeployer<br/>(Functions target)"]
-    
+
     Bundler -->|"extends"| Node
     Bundler -->|"extends"| CF
     Bundler -->|"extends"| Vercel
     Bundler -->|"extends"| Netlify
-    
+
     Node -.->|"platform: 'node'"| nodeOut["createNodeServer()"]
     CF -.->|"platform: 'browser'"| cfOut["Cloudflare Worker<br/>(export default handler)"]
     Vercel -.->|"platform: 'node'"| vercelOut["Vercel Function<br/>(export GET/POST/...)"]
@@ -405,39 +403,44 @@ graph TB
 Each deployer generates a platform-specific entry file:
 
 **BuildBundler (Node.js)**
+
 ```javascript
 import { mastra } from '#mastra';
 import { createNodeServer, getToolExports } from '#server';
 import { tools } from '#tools';
 
-await createNodeServer(mastra, { 
-  tools: getToolExports(tools), 
-  studio: ${this.studio} 
+await createNodeServer(mastra, {
+  tools: getToolExports(tools),
+  studio: ${this.studio}
 });
 ```
 
 **CloudflareDeployer**
+
 ```javascript
 export default {
   fetch: async (request, env, context) => {
-    const { mastra } = await import('#mastra');
-    const { createHonoServer, getToolExports } = await import('#server');
-    const app = await createHonoServer(mastra(), { tools: getToolExports(tools) });
-    return app.fetch(request, env, context);
-  }
+    const { mastra } = await import('#mastra')
+    const { createHonoServer, getToolExports } = await import('#server')
+    const app = await createHonoServer(mastra(), {
+      tools: getToolExports(tools),
+    })
+    return app.fetch(request, env, context)
+  },
 }
 ```
 
 **VercelDeployer**
+
 ```javascript
-import { handle } from 'hono/vercel';
-import { mastra } from '#mastra';
-import { createHonoServer } from '#server';
+import { handle } from 'hono/vercel'
+import { mastra } from '#mastra'
+import { createHonoServer } from '#server'
 
-const app = await createHonoServer(mastra, { tools });
+const app = await createHonoServer(mastra, { tools })
 
-export const GET = handle(app);
-export const POST = handle(app);
+export const GET = handle(app)
+export const POST = handle(app)
 // ... other HTTP methods
 ```
 
@@ -453,7 +456,7 @@ graph LR
     server["createHonoServer()"]
     wrapper["Platform Wrapper<br/>(handle, export default, etc)"]
     runtime["Platform Runtime"]
-    
+
     bundler -->|"generates"| entry
     entry -->|"uses"| imports
     imports -->|"resolves to"| server
@@ -462,6 +465,7 @@ graph LR
 ```
 
 Each platform adapter:
+
 1. Extends `Bundler` base class
 2. Sets appropriate `platform` value (`'node'`, `'browser'`, or `'neutral'`)
 3. Implements `getEntry()` to generate platform-specific wrapper code
@@ -473,11 +477,11 @@ Each platform adapter:
 
 The server supports HTTPS via certificate configuration:
 
-| Source | Priority | Format |
-|--------|----------|--------|
-| `server.https.{key, cert}` in config | 1 (highest) | Buffer or string |
-| `MASTRA_HTTPS_KEY` + `MASTRA_HTTPS_CERT` env vars | 2 | Base64-encoded strings |
-| `--https` flag in dev command | 3 (lowest) | Auto-generated via `devcert` |
+| Source                                            | Priority    | Format                       |
+| ------------------------------------------------- | ----------- | ---------------------------- |
+| `server.https.{key, cert}` in config              | 1 (highest) | Buffer or string             |
+| `MASTRA_HTTPS_KEY` + `MASTRA_HTTPS_CERT` env vars | 2           | Base64-encoded strings       |
+| `--https` flag in dev command                     | 3 (lowest)  | Auto-generated via `devcert` |
 
 When HTTPS is enabled, the server uses `https.createServer()` instead of the default HTTP server.
 
@@ -489,12 +493,12 @@ Custom API routes can be registered through `server.apiRoutes`:
 
 ```typescript
 interface CustomRoute {
-  path: string;
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'ALL';
-  handler: (c: Context) => Response | Promise<Response>;
-  middleware?: Middleware | Middleware[];
-  requiresAuth?: boolean; // default: true
-  openapi?: OpenAPIRouteConfig; // optional OpenAPI spec
+  path: string
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'ALL'
+  handler: (c: Context) => Response | Promise<Response>
+  middleware?: Middleware | Middleware[]
+  requiresAuth?: boolean // default: true
+  openapi?: OpenAPIRouteConfig // optional OpenAPI spec
 }
 ```
 
@@ -512,7 +516,7 @@ const publicRoute: CustomRoute = {
   method: 'GET',
   handler: (c) => c.json({ status: 'ok' }),
   requiresAuth: false, // Explicitly disable auth requirement
-};
+}
 ```
 
 **Sources:** [packages/deployer/src/server/index.ts:113-122]()
@@ -525,11 +529,11 @@ The server error handler can be customized via `server.onError`:
 const mastra = new Mastra({
   server: {
     onError: (err, c) => {
-      console.error('Server error:', err);
-      return c.json({ error: 'Custom error message' }, 500);
+      console.error('Server error:', err)
+      return c.json({ error: 'Custom error message' }, 500)
     },
   },
-});
+})
 ```
 
 If not provided, the default error handler formats errors based on environment (detailed stack traces in development, sanitized messages in production).
@@ -544,7 +548,7 @@ Request body size is limited to prevent memory exhaustion:
 const bodyLimitOptions = {
   maxSize: server?.bodySizeLimit ?? 4.5 * 1024 * 1024, // 4.5MB default
   onError: () => ({ error: 'Request body too large' }),
-};
+}
 ```
 
 This limit applies to all request bodies (JSON, form data, etc.). Adjust via `server.bodySizeLimit` in Mastra config for larger file uploads.

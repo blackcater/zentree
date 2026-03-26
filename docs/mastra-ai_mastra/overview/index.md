@@ -41,13 +41,12 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document provides a high-level introduction to the Mastra framework, an AI application development platform for building agent-based systems, workflows, and tools. It covers the framework's architecture, package organization, and how the major systems interconnect.
 
 For detailed information about specific subsystems, see:
+
 - **Package organization and dependencies** → [1.1](#1.1)
 - **System architecture and component relationships** → [1.2](#1.2)
 - **Core configuration and initialization** → [2](#2)
@@ -76,7 +75,7 @@ The Mastra codebase is organized as a pnpm monorepo with the following top-level
 ```mermaid
 graph TB
     Root["mastra-turbo<br/>(monorepo root)"]
-    
+
     Root --> Packages["packages/<br/>Core framework packages"]
     Root --> ClientSDKs["client-sdks/<br/>JS and React SDKs"]
     Root --> Deployers["deployers/<br/>Platform deployers"]
@@ -86,7 +85,7 @@ graph TB
     Root --> Observability["observability/<br/>Telemetry integrations"]
     Root --> Workspaces["workspaces/<br/>Filesystem abstraction"]
     Root --> Examples["examples/<br/>Sample applications"]
-    
+
     Packages --> Core["@mastra/core<br/>Agent, Workflow, Memory"]
     Packages --> CLI["mastra<br/>CLI commands"]
     Packages --> Server["@mastra/server<br/>API routes & handlers"]
@@ -95,14 +94,14 @@ graph TB
     Packages --> RAG["@mastra/rag<br/>Document processing"]
     Packages --> Evals["@mastra/evals<br/>Evaluation metrics"]
     Packages --> PlaygroundUI["@mastra/playground-ui<br/>Studio React components"]
-    
+
     ClientSDKs --> ClientJS["@mastra/client-js<br/>HTTP client"]
     ClientSDKs --> React["@mastra/react<br/>React hooks & components"]
-    
+
     Deployers --> Cloudflare["@mastra/deployer-cloudflare"]
     Deployers --> Vercel["@mastra/deployer-vercel"]
     Deployers --> Netlify["@mastra/deployer-netlify"]
-    
+
     Stores --> PG["@mastra/pg<br/>PostgreSQL"]
     Stores --> LibSQL["@mastra/libsql<br/>LibSQL/SQLite"]
     Stores --> Upstash["@mastra/upstash<br/>Upstash Redis"]
@@ -114,17 +113,17 @@ graph TB
 
 The dependency graph shows how packages relate to each other:
 
-| Package | Description | Key Dependencies |
-|---------|-------------|------------------|
-| `@mastra/core` | Framework core (Agent, Workflow, Tools, Memory) | `zod`, `@ai-sdk/provider-*`, `hono` |
-| `mastra` (CLI) | Development server, build commands | `@mastra/core`, `@mastra/deployer` |
-| `@mastra/server` | HTTP API layer with handlers | `@mastra/core`, `hono` |
-| `@mastra/deployer` | Build system and platform abstraction | `@mastra/server`, `rollup`, `esbuild` |
-| `@mastra/client-js` | Client SDK for HTTP API | `@mastra/core` (types only) |
-| `@mastra/react` | React hooks and components | `@mastra/client-js` |
-| `@mastra/playground-ui` | Studio UI components | `@mastra/client-js`, `@mastra/react`, `@mastra/core` |
-| `@mastra/mcp` | Model Context Protocol client/server | `@mastra/core`, `@modelcontextprotocol/sdk` |
-| `@mastra/rag` | Document chunking and vector tools | `@mastra/core` |
+| Package                 | Description                                     | Key Dependencies                                     |
+| ----------------------- | ----------------------------------------------- | ---------------------------------------------------- |
+| `@mastra/core`          | Framework core (Agent, Workflow, Tools, Memory) | `zod`, `@ai-sdk/provider-*`, `hono`                  |
+| `mastra` (CLI)          | Development server, build commands              | `@mastra/core`, `@mastra/deployer`                   |
+| `@mastra/server`        | HTTP API layer with handlers                    | `@mastra/core`, `hono`                               |
+| `@mastra/deployer`      | Build system and platform abstraction           | `@mastra/server`, `rollup`, `esbuild`                |
+| `@mastra/client-js`     | Client SDK for HTTP API                         | `@mastra/core` (types only)                          |
+| `@mastra/react`         | React hooks and components                      | `@mastra/client-js`                                  |
+| `@mastra/playground-ui` | Studio UI components                            | `@mastra/client-js`, `@mastra/react`, `@mastra/core` |
+| `@mastra/mcp`           | Model Context Protocol client/server            | `@mastra/core`, `@modelcontextprotocol/sdk`          |
+| `@mastra/rag`           | Document chunking and vector tools              | `@mastra/core`                                       |
 
 **Sources:** [packages/core/package.json:222-333](), [packages/cli/package.json:52-93](), [packages/server/package.json:100-140](), [packages/deployer/package.json:96-165]()
 
@@ -137,26 +136,26 @@ graph LR
         CLI["npx mastra dev/build"]
         Code["import { Mastra }<br/>from '@mastra/core'"]
     end
-    
+
     subgraph "Core Classes"
         MastraClass["Mastra class<br/>packages/core/src/mastra.ts"]
         Agent["Agent class<br/>packages/core/src/agent"]
         Workflow["createWorkflow()<br/>packages/core/src/workflows"]
         Tool["createTool()<br/>packages/core/src/tools"]
     end
-    
+
     subgraph "Runtime Modes"
         Dev["Dev Server<br/>packages/cli/src/commands/dev"]
         Build["Production Build<br/>packages/deployer/src/build"]
         API["HTTP API Server<br/>packages/server/src"]
     end
-    
+
     Config --> MastraClass
     Code --> MastraClass
     MastraClass --> Agent
     MastraClass --> Workflow
     MastraClass --> Tool
-    
+
     CLI --> Dev
     CLI --> Build
     Dev --> API
@@ -174,17 +173,17 @@ graph TB
     subgraph "User Configuration"
         ConfigFile["mastra.config.ts"]
     end
-    
+
     subgraph "Core Abstractions"
         Mastra["Mastra<br/>src/mastra.ts"]
-        
+
         Mastra --> Agents["agents: Map<br/>src/mastra.ts"]
         Mastra --> Workflows["workflows: Map<br/>src/mastra.ts"]
         Mastra --> Tools["tools: Map<br/>src/mastra.ts"]
         Mastra --> Memory["memory: MastraMemory<br/>src/memory"]
         Mastra --> Storage["storage: MastraCompositeStore<br/>src/storage"]
     end
-    
+
     subgraph "Agent Execution"
         AgentClass["Agent<br/>src/agent/index.ts"]
         AgentClass --> Stream["agent.stream()<br/>src/agent/index.ts"]
@@ -193,7 +192,7 @@ graph TB
         PrepareStream --> LLMExec["llmExecutionStep<br/>src/agent/loop/llm-execution-step.ts"]
         PrepareStream --> ToolCallStep["toolCallStep<br/>src/agent/loop/tool-call-step.ts"]
     end
-    
+
     subgraph "Workflow Execution"
         CreateWF["createWorkflow()<br/>src/workflows/index.ts"]
         CreateWF --> Engine["ExecutionEngine<br/>src/workflows/execution-engines"]
@@ -201,13 +200,13 @@ graph TB
         Engine --> EventedEngine["EventedExecutionEngine"]
         Engine --> InngestEngine["InngestExecutionEngine"]
     end
-    
+
     subgraph "Model Layer"
         LLMClass["MastraLLMVNext<br/>src/llm"]
         LLMClass --> Registry["provider-registry.json<br/>src/llm/provider-registry"]
         LLMClass --> ModelRouter["Model resolution<br/>src/llm/index.ts"]
     end
-    
+
     subgraph "API Server"
         CreateServer["createHonoServer()<br/>@mastra/server/src"]
         CreateServer --> AgentHandlers["handlers/agents.ts"]
@@ -215,14 +214,14 @@ graph TB
         CreateServer --> MemoryHandlers["handlers/memory.ts"]
         CreateServer --> ToolHandlers["handlers/tools.ts"]
     end
-    
+
     subgraph "CLI Commands"
         CLIBin["mastra CLI<br/>packages/cli/dist/index.js"]
         CLIBin --> DevCmd["dev command<br/>src/commands/dev"]
         CLIBin --> BuildCmd["build command<br/>src/commands/build"]
         CLIBin --> CreateCmd["create command<br/>create-mastra"]
     end
-    
+
     ConfigFile --> Mastra
     Agents --> AgentClass
     Workflows --> CreateWF
@@ -239,7 +238,7 @@ graph TB
 The `Mastra` class is the central orchestrator that wires together all subsystems. It is configured via a `Config` object (typically exported from `mastra.config.ts`) and provides:
 
 - **Agent registration** via `agents` property
-- **Workflow registration** via `workflows` property  
+- **Workflow registration** via `workflows` property
 - **Tool registration** via `tools` property
 - **Memory system** via `memory` property
 - **Storage layer** via `storage` property
@@ -256,6 +255,7 @@ Agents combine an LLM, tools, and memory into an execution unit. Key classes:
 - `toolCallStep` - Executes tool invocations (local or client-side)
 
 Agents support:
+
 - Streaming and non-streaming responses
 - Tool approval and suspension
 - Memory integration (working, observational, semantic)
@@ -276,6 +276,7 @@ Workflows orchestrate multi-step processes with state management. Key components
 - `InngestExecutionEngine` - Durable execution with Inngest
 
 Workflows support:
+
 - Conditional branching
 - Parallel execution
 - Suspend/resume mechanisms
@@ -331,7 +332,7 @@ graph LR
     Dev["npx mastra dev"]
     Build["npx mastra build"]
     Deploy["Deploy to platform"]
-    
+
     Create --> ConfigTS["mastra.config.ts"]
     Init --> ConfigTS
     ConfigTS --> Dev
@@ -351,14 +352,14 @@ graph LR
 
 The HTTP server layer exposes agents, workflows, and tools via REST and SSE endpoints:
 
-| Endpoint Pattern | Handler Module | Purpose |
-|------------------|----------------|---------|
-| `/api/agents/*` | `handlers/agents.ts` | Agent list, generate, stream |
-| `/api/workflows/*` | `handlers/workflows.ts` | Workflow run, status, cancel |
-| `/api/memory/*` | `handlers/memory.ts` | Threads, messages, working memory |
-| `/api/tools/*` | `handlers/tools.ts` | Tool execution |
-| `/api/observability/*` | `handlers/observability.ts` | Traces, logs, metrics |
-| `/studio` | `handlers/studio.ts` | Studio UI assets |
+| Endpoint Pattern       | Handler Module              | Purpose                           |
+| ---------------------- | --------------------------- | --------------------------------- |
+| `/api/agents/*`        | `handlers/agents.ts`        | Agent list, generate, stream      |
+| `/api/workflows/*`     | `handlers/workflows.ts`     | Workflow run, status, cancel      |
+| `/api/memory/*`        | `handlers/memory.ts`        | Threads, messages, working memory |
+| `/api/tools/*`         | `handlers/tools.ts`         | Tool execution                    |
+| `/api/observability/*` | `handlers/observability.ts` | Traces, logs, metrics             |
+| `/studio`              | `handlers/studio.ts`        | Studio UI assets                  |
 
 The server uses the Hono framework and supports middleware for authentication, CORS, and request context.
 
@@ -371,7 +372,7 @@ graph TB
     subgraph "Browser/Node Apps"
         App["Application Code"]
     end
-    
+
     subgraph "@mastra/client-js"
         Client["MastraClient"]
         Client --> AgentResource["Agent resource"]
@@ -384,17 +385,17 @@ graph TB
         MemoryResource --> BaseResource
         ToolResource --> BaseResource
     end
-    
+
     subgraph "@mastra/react"
         Provider["MastraReactProvider"]
         Provider --> Hooks["useAgent, useMemory, etc"]
         Provider --> Components["UI Components"]
     end
-    
+
     subgraph "Server"
         API["HTTP API<br/>@mastra/server"]
     end
-    
+
     App --> Client
     App --> Provider
     Provider --> Client
@@ -415,6 +416,7 @@ The framework provides a storage abstraction layer with adapters for multiple ba
 - Additional vector stores (Pinecone, Qdrant, Chroma, etc.)
 
 Storage is used for:
+
 - Thread and message persistence
 - Working memory state
 - Observational memory records
@@ -433,6 +435,7 @@ The deployment pipeline consists of:
 4. **Platform Packaging** - Generates platform-specific artifacts
 
 Supported platforms:
+
 - **Cloudflare Workers** - `@mastra/deployer-cloudflare`
 - **Vercel Functions** - `@mastra/deployer-vercel`
 - **Netlify Functions** - `@mastra/deployer-netlify`
@@ -457,7 +460,7 @@ The framework includes built-in observability and evaluation capabilities:
 
 For deeper exploration of specific subsystems:
 
-- **Monorepo structure** → [1.1](#1.1)  
+- **Monorepo structure** → [1.1](#1.1)
 - **System architecture details** → [1.2](#1.2)
 - **Core configuration** → [2](#2)
 - **Agent system** → [3](#3)

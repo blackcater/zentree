@@ -27,8 +27,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Overview
 
 OAuth 2.0 authentication is supported exclusively for MCP servers using the **StreamableHttp** transport. Stdio transport servers do not support OAuth through Codex's built-in mechanisms. When configured, Codex performs an OAuth 2.0 authorization code flow with PKCE (Proof Key for Code Exchange) that opens a browser for user authorization, then stores the resulting credentials securely in the system keyring or a fallback file.
@@ -62,7 +60,7 @@ sequenceDiagram
     participant Browser as "Web Browser"
     participant AuthServer as "OAuth Provider<br/>(MCP Server)"
     participant Storage as "Credential Storage<br/>Keychain/File"
-    
+
     User->>CLI: codex mcp login my-server
     CLI->>CLI: Read server config<br/>from config.toml
     CLI->>LocalServer: Start HTTP server<br/>on configured port
@@ -82,13 +80,13 @@ sequenceDiagram
 
 The OAuth flow is triggered when a StreamableHttp MCP server is configured without a `bearer_token_env_var`. The `McpServerConfig` supports the following fields:
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `url` | `String` | Yes | MCP server endpoint URL |
-| `scopes` | `Option<Vec<String>>` | No | OAuth scopes to request during authorization (can be overridden via `--scopes` CLI flag) |
-| `bearer_token_env_var` | `Option<String>` | No | Alternative to OAuth: read bearer token from environment variable |
-| `http_headers` | `Option<HashMap<String, String>>` | No | Static HTTP headers to include in requests |
-| `env_http_headers` | `Option<HashMap<String, String>>` | No | HTTP headers read from environment variables |
+| Field                  | Type                              | Required | Description                                                                              |
+| ---------------------- | --------------------------------- | -------- | ---------------------------------------------------------------------------------------- |
+| `url`                  | `String`                          | Yes      | MCP server endpoint URL                                                                  |
+| `scopes`               | `Option<Vec<String>>`             | No       | OAuth scopes to request during authorization (can be overridden via `--scopes` CLI flag) |
+| `bearer_token_env_var` | `Option<String>`                  | No       | Alternative to OAuth: read bearer token from environment variable                        |
+| `http_headers`         | `Option<HashMap<String, String>>` | No       | Static HTTP headers to include in requests                                               |
+| `env_http_headers`     | `Option<HashMap<String, String>>` | No       | HTTP headers read from environment variables                                             |
 
 **OAuth vs Environment Variable Authentication:**
 
@@ -146,11 +144,11 @@ The callback server runs only during the OAuth flow and is automatically cleaned
 
 Codex supports three credential storage modes via the `OAuthCredentialsStoreMode` enum:
 
-| Mode | Description | Behavior |
-|------|-------------|----------|
+| Mode             | Description                   | Behavior                                                                                |
+| ---------------- | ----------------------------- | --------------------------------------------------------------------------------------- |
 | `Auto` (default) | Try keyring, fallback to file | Attempts `keyring` crate storage; falls back to `~/.codex/.credentials.json` on failure |
-| `File` | Always use file storage | Directly writes to `~/.codex/.credentials.json` |
-| `Keyring` | Require keyring storage | Fails if keyring is unavailable (no fallback) |
+| `File`           | Always use file storage       | Directly writes to `~/.codex/.credentials.json`                                         |
+| `Keyring`        | Require keyring storage       | Fails if keyring is unavailable (no fallback)                                           |
 
 **Platform-Specific Keyring Backends:**
 
@@ -170,46 +168,46 @@ graph TB
     Config["McpServerConfig"]
     Manager["McpConnectionManager"]
     Mode["OAuthCredentialsStoreMode<br/>(from config.mcp_oauth_credentials_store_mode)"]
-    
+
     RmcpClient["RmcpClient::new_streamable_http_client()"]
-    
+
     LoadTokens["load_oauth_tokens(server_name, url, mode)"]
-    
+
     ModeSwitch{Store Mode?}
-    
+
     AutoMode["Auto Mode"]
     FileMode["File Mode"]
     KeyringMode["Keyring Mode"]
-    
+
     TryKeyring["load_oauth_tokens_from_keyring()"]
     KeyringSuccess{Success?}
     FallbackFile["load_oauth_tokens_from_file()"]
     DirectFile["load_oauth_tokens_from_file()"]
     OnlyKeyring["load_oauth_tokens_from_keyring()"]
-    
+
     KeyringStore["keyring::Entry::new()<br/>service: 'Codex MCP Credentials'<br/>account: SHA256(server_name + url)"]
     FileStore["~/.codex/.credentials.json<br/>(BTreeMap<String, StoredOAuthTokens>)"]
-    
+
     Config --> Manager
     Manager --> Mode
     Mode --> RmcpClient
     RmcpClient --> LoadTokens
-    
+
     LoadTokens --> ModeSwitch
-    
+
     ModeSwitch -->|Auto| AutoMode
     ModeSwitch -->|File| FileMode
     ModeSwitch -->|Keyring| KeyringMode
-    
+
     AutoMode --> TryKeyring
     TryKeyring --> KeyringSuccess
     KeyringSuccess -->|Yes| KeyringStore
     KeyringSuccess -->|No| FallbackFile
     FallbackFile --> FileStore
-    
+
     FileMode --> DirectFile
     DirectFile --> FileStore
-    
+
     KeyringMode --> OnlyKeyring
     OnlyKeyring --> KeyringStore
 ```
@@ -312,12 +310,12 @@ sequenceDiagram
     participant AuthClient["AuthClient<br/>(rmcp auth module)"]
     participant Storage["Credential Storage"]
     participant McpServer["MCP Server<br/>OAuth Endpoint"]
-    
+
     Tool->>RmcpClient: call_tool(name, args)
     RmcpClient->>RmcpClient: refresh_oauth_if_needed()
     RmcpClient->>Persistor: refresh_if_needed()
     Persistor->>Persistor: Check expires_at - now() < REFRESH_SKEW
-    
+
     alt Token Expiring Soon
         Persistor->>AuthClient: Implicit refresh via AuthClient
         AuthClient->>McpServer: POST /token<br/>(grant_type=refresh_token)
@@ -325,22 +323,22 @@ sequenceDiagram
         AuthClient->>Persistor: Updated credentials
         Persistor->>Persistor: Mark needs_persist = true
     end
-    
+
     RmcpClient->>AuthClient: Make MCP request with auth
     AuthClient->>McpServer: HTTP request with Authorization header
     McpServer-->>AuthClient: Response
     AuthClient-->>RmcpClient: Result
-    
+
     RmcpClient->>RmcpClient: persist_oauth_tokens()
     RmcpClient->>Persistor: persist_if_needed()
-    
+
     alt Needs Persist
         Persistor->>Persistor: Extract current credentials from AuthClient
         Persistor->>Storage: save_oauth_tokens(updated_tokens)
         Storage-->>Persistor: Success
         Persistor->>Persistor: Update last_persisted_tokens
     end
-    
+
     RmcpClient-->>Tool: Tool result
 ```
 
@@ -373,12 +371,12 @@ When loading tokens from storage, `refresh_expires_in_from_timestamp` recalculat
 
 Codex tracks the authentication status of each configured MCP server and displays this information in `codex mcp list`. The `McpAuthStatus` enum defines four possible states:
 
-| Status | Description | Displayed When |
-|--------|-------------|----------------|
-| `Authenticated` | Valid OAuth credentials are stored | Credentials exist and are not expired |
-| `Unauthenticated` | OAuth is supported but user has not logged in | StreamableHttp server with no stored credentials |
-| `AuthenticationError` | OAuth flow failed or credentials are invalid | Token refresh failed or authorization was denied |
-| `Unsupported` | Server does not support OAuth | Stdio transport or `bearer_token_env_var` is configured |
+| Status                | Description                                   | Displayed When                                          |
+| --------------------- | --------------------------------------------- | ------------------------------------------------------- |
+| `Authenticated`       | Valid OAuth credentials are stored            | Credentials exist and are not expired                   |
+| `Unauthenticated`     | OAuth is supported but user has not logged in | StreamableHttp server with no stored credentials        |
+| `AuthenticationError` | OAuth flow failed or credentials are invalid  | Token refresh failed or authorization was denied        |
+| `Unsupported`         | Server does not support OAuth                 | Stdio transport or `bearer_token_env_var` is configured |
 
 **Sources:** [codex-rs/cli/src/mcp_cmd.rs:395-409](), [codex-rs/cli/src/mcp_cmd.rs:499-503]()
 
@@ -392,25 +390,25 @@ The `compute_auth_statuses` function in `codex_core::mcp::auth` checks credentia
 graph TB
     McpServers["Configured MCP Servers<br/>from config.toml"]
     Compute["compute_auth_statuses()<br/>mcp::auth module"]
-    
+
     CheckTransport{Transport Type?}
     CheckEnvVar{bearer_token_env_var<br/>configured?}
     CheckStored{Credentials<br/>in storage?}
-    
+
     Stdio["Status: Unsupported"]
     EnvVarAuth["Status: Unsupported"]
     HasCreds["Status: Authenticated"]
     NoCreds["Status: Unauthenticated"]
-    
+
     McpServers --> Compute
     Compute --> CheckTransport
-    
+
     CheckTransport -->|Stdio| Stdio
     CheckTransport -->|StreamableHttp| CheckEnvVar
-    
+
     CheckEnvVar -->|Yes| EnvVarAuth
     CheckEnvVar -->|No| CheckStored
-    
+
     CheckStored -->|Yes| HasCreds
     CheckStored -->|No| NoCreds
 ```
@@ -430,6 +428,7 @@ manual     https://manual.example.com     MANUAL_TOKEN          enabled  Unsuppo
 ```
 
 The auth status column indicates:
+
 - `Authenticated`: OAuth credentials exist in storage
 - `Unauthenticated`: OAuth is supported but no credentials stored
 - `Unsupported`: Server uses `bearer_token_env_var` or Stdio transport
@@ -525,12 +524,12 @@ sequenceDiagram
     participant AuthClient["AuthClient<reqwest::Client>"]
     participant Storage["Credential Storage"]
     participant McpServer["MCP Server"]
-    
+
     Manager->>Factory: server_name, McpServerTransportConfig, store_mode
     Factory->>RmcpClient: new_streamable_http_client(name, url, None, headers, None, store_mode)
     RmcpClient->>LoadTokens: load_oauth_tokens(name, url, store_mode)
     LoadTokens->>Storage: Read from keyring or file
-    
+
     alt Credentials Found
         Storage-->>LoadTokens: Some(StoredOAuthTokens)
         LoadTokens-->>RmcpClient: initial_tokens
@@ -595,11 +594,13 @@ The token is included in the `Authorization: Bearer <token>` header via `Streama
 ### Keyring vs File Storage Security
 
 **Keyring Storage (Preferred):**
+
 - macOS Keychain: Encrypted, requires user authentication or app-specific entitlements to access
 - Windows Credential Manager: Encrypted, per-user access control via Windows security
 - Linux Secret Service: Encrypted, requires DBus authentication and user-session-scoped access
 
 **File Storage (Fallback):**
+
 - Location: `~/.codex/.credentials.json`
 - Permissions: Codex attempts to set restrictive file permissions (0600 on Unix), but other processes running as the same user can read the file
 - Format: Plain JSON (not encrypted at rest)
@@ -607,12 +608,12 @@ The token is included in the `Authorization: Bearer <token>` header via `Streama
 
 **Best Practices:**
 
-| ✓ DO | ✗ DON'T |
-|------|---------|
-| Use `Auto` or `Keyring` mode when possible | Use `File` mode in production environments |
+| ✓ DO                                           | ✗ DON'T                                       |
+| ---------------------------------------------- | --------------------------------------------- |
+| Use `Auto` or `Keyring` mode when possible     | Use `File` mode in production environments    |
 | Verify file permissions on `.credentials.json` | Commit `.credentials.json` to version control |
-| Rotate OAuth tokens via re-login | Share keyring access across untrusted apps |
-| Monitor credential storage location changes | Store production tokens in dev keychain |
+| Rotate OAuth tokens via re-login               | Share keyring access across untrusted apps    |
+| Monitor credential storage location changes    | Store production tokens in dev keychain       |
 
 **Sources:** [codex-rs/rmcp-client/src/oauth.rs:1-17](), [codex-rs/rmcp-client/src/oauth.rs:66-79]()
 
@@ -634,6 +635,7 @@ bearer_token_env_var = "TOKEN"  # Too generic
 ```
 
 **Best Practices:**
+
 - Use secret management tools (`pass`, `1Password CLI`, `vault`) to populate environment variables
 - Set environment variables per-process rather than system-wide
 - Never commit environment variable values to version control

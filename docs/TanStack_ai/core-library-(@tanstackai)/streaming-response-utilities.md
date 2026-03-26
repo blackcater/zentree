@@ -27,8 +27,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the server-side utilities for converting AI chat streams into HTTP responses. These functions transform the `AsyncIterable<StreamChunk>` returned by `chat()` into Server-Sent Events (SSE) format suitable for HTTP streaming. For information about client-side consumption of these streams, see [Connection Adapters](#4.2). For details on the streaming architecture and chunk types, see [Streaming Protocols](#5).
 
 **Sources:** [docs/api/ai.md:134-184]()
@@ -43,11 +41,11 @@ graph LR
     convert["toServerSentEventsResponse()<br/>or<br/>toServerSentEventsStream()"]
     response["HTTP Response<br/>Content-Type: text/event-stream"]
     client["Client Connection Adapter<br/>fetchServerSentEvents()"]
-    
+
     chat --> convert
     convert --> response
     response --> client
-    
+
     style chat fill:#e1f5ff
     style convert fill:#d4edda
     style response fill:#fff3cd
@@ -57,6 +55,7 @@ graph LR
 **Diagram: Stream Conversion Pipeline**
 
 The conversion process:
+
 1. `chat()` produces an `AsyncIterable<StreamChunk>` with typed chunks (content, tool_call, thinking, done, error)
 2. Conversion utilities serialize chunks to JSON and wrap them in SSE format
 3. HTTP response is created with appropriate headers (`Content-Type: text/event-stream`, `Cache-Control: no-cache`, `Connection: keep-alive`)
@@ -79,20 +78,20 @@ function toServerSentEventsResponse(
 
 ### Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `stream` | `AsyncIterable<StreamChunk>` | Yes | The stream returned by `chat()`, `summarize()`, or other AI activities |
-| `init` | `ResponseInit & { abortController?: AbortController }` | No | Standard Response initialization options plus optional `abortController` for cancellation handling |
+| Parameter | Type                                                   | Required | Description                                                                                        |
+| --------- | ------------------------------------------------------ | -------- | -------------------------------------------------------------------------------------------------- |
+| `stream`  | `AsyncIterable<StreamChunk>`                           | Yes      | The stream returned by `chat()`, `summarize()`, or other AI activities                             |
+| `init`    | `ResponseInit & { abortController?: AbortController }` | No       | Standard Response initialization options plus optional `abortController` for cancellation handling |
 
 ### Response Headers
 
 The function automatically sets these headers on the returned `Response`:
 
-| Header | Value | Purpose |
-|--------|-------|---------|
-| `Content-Type` | `text/event-stream` | Identifies the response as SSE |
-| `Cache-Control` | `no-cache` | Prevents proxy/browser caching |
-| `Connection` | `keep-alive` | Maintains persistent connection |
+| Header          | Value               | Purpose                         |
+| --------------- | ------------------- | ------------------------------- |
+| `Content-Type`  | `text/event-stream` | Identifies the response as SSE  |
+| `Cache-Control` | `no-cache`          | Prevents proxy/browser caching  |
+| `Connection`    | `keep-alive`        | Maintains persistent connection |
 
 **Sources:** [docs/api/ai.md:161-184](), [docs/getting-started/quick-start.md:58-59]()
 
@@ -105,16 +104,16 @@ export const Route = createFileRoute('/api/tanchat')({
     handlers: {
       POST: async ({ request }) => {
         const { messages, data } = await request.json()
-        
+
         const stream = chat({
-          adapter: openaiText("gpt-4o"),
+          adapter: openaiText('gpt-4o'),
           messages,
           tools: [getGuitars, recommendGuitarToolDef],
           systemPrompts: [SYSTEM_PROMPT],
           agentLoopStrategy: maxIterations(20),
           conversationId: data?.conversationId,
         })
-        
+
         return toServerSentEventsResponse(stream)
       },
     },
@@ -128,17 +127,17 @@ export const Route = createFileRoute('/api/tanchat')({
 
 ```typescript
 // app/api/chat/route.ts
-import { chat, toServerSentEventsResponse } from "@tanstack/ai"
-import { openaiText } from "@tanstack/ai-openai"
+import { chat, toServerSentEventsResponse } from '@tanstack/ai'
+import { openaiText } from '@tanstack/ai-openai'
 
 export async function POST(request: Request) {
   const { messages } = await request.json()
-  
+
   const stream = chat({
-    adapter: openaiText("gpt-4o"),
+    adapter: openaiText('gpt-4o'),
     messages,
   })
-  
+
   return toServerSentEventsResponse(stream)
 }
 ```
@@ -153,7 +152,7 @@ Pass an `abortController` to handle client disconnections gracefully:
 const abortController = new AbortController()
 
 const stream = chat({
-  adapter: openaiText("gpt-4o"),
+  adapter: openaiText('gpt-4o'),
   messages,
   abortController,
 })
@@ -180,14 +179,15 @@ function toServerSentEventsStream(
 
 ### Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `stream` | `AsyncIterable<StreamChunk>` | Yes | The stream returned by `chat()` or other AI activities |
-| `abortController` | `AbortController` | No | Optional controller to abort when stream is cancelled |
+| Parameter         | Type                         | Required | Description                                            |
+| ----------------- | ---------------------------- | -------- | ------------------------------------------------------ |
+| `stream`          | `AsyncIterable<StreamChunk>` | Yes      | The stream returned by `chat()` or other AI activities |
+| `abortController` | `AbortController`            | No       | Optional controller to abort when stream is cancelled  |
 
 ### Returns
 
 A `ReadableStream<Uint8Array>` where each chunk follows SSE format:
+
 - Prefixed with `"data: "`
 - Followed by `"\
 \
@@ -199,11 +199,11 @@ A `ReadableStream<Uint8Array>` where each chunk follows SSE format:
 ### Usage Example
 
 ```typescript
-import { chat, toServerSentEventsStream } from "@tanstack/ai"
-import { openaiText } from "@tanstack/ai-openai"
+import { chat, toServerSentEventsStream } from '@tanstack/ai'
+import { openaiText } from '@tanstack/ai-openai'
 
 const stream = chat({
-  adapter: openaiText("gpt-4o"),
+  adapter: openaiText('gpt-4o'),
   messages,
 })
 
@@ -230,25 +230,25 @@ sequenceDiagram
     participant Stream as "AsyncIterable&lt;StreamChunk&gt;"
     participant Converter as "toServerSentEventsStream()"
     participant Output as "ReadableStream&lt;Uint8Array&gt;"
-    
+
     Stream->>Converter: "StreamChunk { type: 'content', delta: 'Hello' }"
     Converter->>Converter: "JSON.stringify(chunk)"
     Converter->>Output: 'data: {"type":"content","delta":"Hello"}\
 \
 '
-    
+
     Stream->>Converter: "StreamChunk { type: 'thinking', content: 'Reasoning...' }"
     Converter->>Converter: "JSON.stringify(chunk)"
     Converter->>Output: 'data: {"type":"thinking","content":"Reasoning..."}\
 \
 '
-    
+
     Stream->>Converter: "StreamChunk { type: 'done' }"
     Converter->>Converter: "JSON.stringify(chunk)"
     Converter->>Output: 'data: {"type":"done",...}\
 \
 '
-    
+
     Converter->>Output: "data: [DONE]\
 \
 "
@@ -267,6 +267,7 @@ data: {JSON_SERIALIZED_CHUNK}\
 ```
 
 For example, a content chunk:
+
 ```
 data: {"type":"content","id":"abc123","model":"gpt-4o","timestamp":1234567890,"delta":"Hello","content":"Hello","role":"assistant"}\
 \
@@ -274,6 +275,7 @@ data: {"type":"content","id":"abc123","model":"gpt-4o","timestamp":1234567890,"d
 ```
 
 The stream terminates with:
+
 ```
 data: [DONE]\
 \
@@ -289,21 +291,21 @@ data: [DONE]\
 Use `createFileRoute()` with server handlers:
 
 ```typescript
-import { createFileRoute } from "@tanstack/react-router"
-import { chat, toServerSentEventsResponse } from "@tanstack/ai"
-import { openaiText } from "@tanstack/ai-openai"
+import { createFileRoute } from '@tanstack/react-router'
+import { chat, toServerSentEventsResponse } from '@tanstack/ai'
+import { openaiText } from '@tanstack/ai-openai'
 
-export const Route = createFileRoute("/api/chat")({
+export const Route = createFileRoute('/api/chat')({
   server: {
     handlers: {
       POST: async ({ request }) => {
         const { messages } = await request.json()
-        
+
         const stream = chat({
-          adapter: openaiText("gpt-4o"),
+          adapter: openaiText('gpt-4o'),
           messages,
         })
-        
+
         return toServerSentEventsResponse(stream)
       },
     },
@@ -321,12 +323,12 @@ Export named HTTP method handlers:
 // app/api/chat/route.ts
 export async function POST(request: Request) {
   const { messages } = await request.json()
-  
+
   const stream = chat({
-    adapter: openaiText("gpt-4o"),
+    adapter: openaiText('gpt-4o'),
     messages,
   })
-  
+
   return toServerSentEventsResponse(stream)
 }
 ```
@@ -340,20 +342,20 @@ Manual response handling:
 ```typescript
 app.post('/api/chat', async (req, res) => {
   const { messages } = req.body
-  
+
   const stream = chat({
-    adapter: openaiText("gpt-4o"),
+    adapter: openaiText('gpt-4o'),
     messages,
   })
-  
+
   const sseStream = toServerSentEventsStream(stream)
-  
+
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
   res.setHeader('Connection', 'keep-alive')
-  
+
   const reader = sseStream.getReader()
-  
+
   try {
     while (true) {
       const { done, value } = await reader.read()
@@ -376,16 +378,16 @@ Handle errors during streaming by catching exceptions and returning appropriate 
 export async function POST(request: Request) {
   try {
     const { messages } = await request.json()
-    
+
     const stream = chat({
-      adapter: openaiText("gpt-4o"),
+      adapter: openaiText('gpt-4o'),
       messages,
     })
-    
+
     return toServerSentEventsResponse(stream)
   } catch (error) {
     console.error('Chat error:', error)
-    
+
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : 'An error occurred',
@@ -420,19 +422,19 @@ graph TB
         converter["toServerSentEventsResponse()"]
         response["HTTP Response<br/>text/event-stream"]
     end
-    
+
     subgraph "Network"
         sse["SSE Stream<br/>data: {JSON}\
 \
 "]
     end
-    
+
     subgraph "Client Side"
         adapter["fetchServerSentEvents()<br/>ConnectionAdapter"]
         client["ChatClient<br/>or<br/>useChat()"]
         ui["React/Solid/Vue<br/>Component"]
     end
-    
+
     chat_fn --> converter
     converter --> response
     response --> sse
@@ -446,18 +448,19 @@ graph TB
 The client-side code:
 
 ```typescript
-import { useChat, fetchServerSentEvents } from "@tanstack/ai-react"
+import { useChat, fetchServerSentEvents } from '@tanstack/ai-react'
 
 function ChatComponent() {
   const { messages, sendMessage } = useChat({
-    connection: fetchServerSentEvents("/api/chat"),
+    connection: fetchServerSentEvents('/api/chat'),
   })
-  
+
   // messages automatically update as chunks arrive
 }
 ```
 
 The `fetchServerSentEvents()` adapter:
+
 1. Makes a POST request to the API route
 2. Parses the SSE stream line-by-line
 3. Deserializes JSON chunks
@@ -476,14 +479,14 @@ sequenceDiagram
     participant Server as "API Route"
     participant Stream as "chat() Stream"
     participant LLM as "LLM Provider API"
-    
+
     Client->>Server: "POST /api/chat"
     Server->>Server: "Create AbortController"
     Server->>Stream: "chat({ ..., abortController })"
     Stream->>LLM: "API call with signal"
-    
+
     Note over Client,LLM: Client disconnects
-    
+
     Client--xServer: "Connection closed"
     Server->>Server: "abortController.abort()"
     Server->>Stream: "Signal abort"
@@ -498,22 +501,22 @@ Implementation pattern:
 ```typescript
 export async function POST(request: Request) {
   const requestSignal = request.signal
-  
+
   // Check if already aborted
   if (requestSignal.aborted) {
     return new Response(null, { status: 499 })
   }
-  
+
   const abortController = new AbortController()
   const { messages } = await request.json()
-  
+
   try {
     const stream = chat({
-      adapter: openaiText("gpt-4o"),
+      adapter: openaiText('gpt-4o'),
       messages,
       abortController,
     })
-    
+
     return toServerSentEventsResponse(stream, { abortController })
   } catch (error: any) {
     // Handle abort errors
@@ -562,8 +565,8 @@ Validate API keys and request parameters before starting the stream:
 ```typescript
 if (!process.env.OPENAI_API_KEY) {
   return new Response(
-    JSON.stringify({ error: "OPENAI_API_KEY not configured" }),
-    { status: 500, headers: { "Content-Type": "application/json" } }
+    JSON.stringify({ error: 'OPENAI_API_KEY not configured' }),
+    { status: 500, headers: { 'Content-Type': 'application/json' } }
   )
 }
 

@@ -40,8 +40,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document covers the `@mastra/react` package, which provides React hooks and UI components for integrating Mastra agents and workflows into frontend applications. The React SDK wraps `@mastra/client-js` (documented in [10.1](#10.1)) and adds React-specific abstractions, including streaming hooks, UI components, and integration patterns.
 
 For server-side API implementation details, see [9.1](#9.1). For JavaScript client operations, see [10.2](#10.2), [10.3](#10.3), and [10.4](#10.4).
@@ -60,57 +58,57 @@ graph TB
         App["React Application<br/>Next.js/Vite/CRA"]
         Components["React Components<br/>Chat/Forms/Displays"]
     end
-    
+
     subgraph "@mastra/react Package"
         Hooks["React Hooks<br/>useAgent/useWorkflow/useMemory"]
         UIComponents["UI Components<br/>ChatInterface/CodeBlock/ToolDisplay"]
         StreamHandlers["Stream Handlers<br/>SSE Processing/State Management"]
     end
-    
+
     subgraph "@mastra/client-js"
         MastraClient["MastraClient<br/>HTTP/SSE Transport"]
         AgentResource["Agent Resource<br/>stream/generate/network"]
         WorkflowResource["Workflow Resource<br/>start/stream/resume"]
         MemoryResource["MemoryThread Resource<br/>messages/workingMemory"]
     end
-    
+
     subgraph "Integration Libraries"
         AiSdkReact["@ai-sdk/react<br/>useChat/useCompletion"]
         AssistantUI["@assistant-ui/react<br/>Thread/Message Components"]
         RadixUI["@radix-ui/react-tooltip<br/>UI Primitives"]
     end
-    
+
     subgraph "Server"
         HonoServer["Hono Server<br/>REST + SSE Endpoints"]
         AgentAPI["/api/agents/*"]
         WorkflowAPI["/api/workflows/*"]
         MemoryAPI["/api/memory/*"]
     end
-    
+
     App --> Components
     Components --> Hooks
     Components --> UIComponents
-    
+
     Hooks --> StreamHandlers
     StreamHandlers --> MastraClient
     UIComponents --> Hooks
-    
+
     Hooks -.integrates.-> AiSdkReact
     UIComponents -.uses.-> AssistantUI
     UIComponents -.uses.-> RadixUI
-    
+
     MastraClient --> AgentResource
     MastraClient --> WorkflowResource
     MastraClient --> MemoryResource
-    
+
     AgentResource --> AgentAPI
     WorkflowResource --> WorkflowAPI
     MemoryResource --> MemoryAPI
-    
+
     AgentAPI --> HonoServer
     WorkflowAPI --> HonoServer
     MemoryAPI --> HonoServer
-    
+
     style Hooks fill:#e1f5ff,stroke:#333,stroke-width:3px
     style MastraClient fill:#ffe1e1,stroke:#333,stroke-width:2px
     style HonoServer fill:#e1ffe1,stroke:#333,stroke-width:2px
@@ -126,20 +124,20 @@ The `@mastra/react` package has a specific dependency structure that determines 
 
 ### Dependency Overview
 
-| Dependency Type | Package | Version | Purpose |
-|----------------|---------|---------|---------|
-| **Core** | `@mastra/client-js` | workspace | Base HTTP/SSE client functionality |
-| **UI Framework** | `react` | ≥19.0.0 | React runtime (peer dependency) |
-| **UI Framework** | `react-dom` | ≥19.0.0 | React DOM (peer dependency) |
-| **Styling** | `tailwindcss` | ^3.0.0 | CSS framework (peer dependency) |
-| **AI Integration** | `@ai-sdk/react` | ^2.0.57 | Vercel AI SDK React hooks |
-| **Chat UI** | `@assistant-ui/react` | ^0.12.10 | Chat interface components |
-| **UI Components** | `@radix-ui/react-tooltip` | ^1.2.7 | Accessible tooltips |
-| **Icons** | `lucide-react` | ^0.522.0 | Icon library |
-| **Syntax Highlighting** | `shiki` | ^1.29.2 | Code syntax highlighting |
-| **JSX Rendering** | `hast-util-to-jsx-runtime` | ^2.3.6 | AST to JSX conversion |
-| **Utility** | `tailwind-merge` | ^3.4.1 | Tailwind class merging |
-| **UUID** | `@lukeed/uuid` | ^2.0.1 | Unique ID generation |
+| Dependency Type         | Package                    | Version   | Purpose                            |
+| ----------------------- | -------------------------- | --------- | ---------------------------------- |
+| **Core**                | `@mastra/client-js`        | workspace | Base HTTP/SSE client functionality |
+| **UI Framework**        | `react`                    | ≥19.0.0   | React runtime (peer dependency)    |
+| **UI Framework**        | `react-dom`                | ≥19.0.0   | React DOM (peer dependency)        |
+| **Styling**             | `tailwindcss`              | ^3.0.0    | CSS framework (peer dependency)    |
+| **AI Integration**      | `@ai-sdk/react`            | ^2.0.57   | Vercel AI SDK React hooks          |
+| **Chat UI**             | `@assistant-ui/react`      | ^0.12.10  | Chat interface components          |
+| **UI Components**       | `@radix-ui/react-tooltip`  | ^1.2.7    | Accessible tooltips                |
+| **Icons**               | `lucide-react`             | ^0.522.0  | Icon library                       |
+| **Syntax Highlighting** | `shiki`                    | ^1.29.2   | Code syntax highlighting           |
+| **JSX Rendering**       | `hast-util-to-jsx-runtime` | ^2.3.6    | AST to JSX conversion              |
+| **Utility**             | `tailwind-merge`           | ^3.4.1    | Tailwind class merging             |
+| **UUID**                | `@lukeed/uuid`             | ^2.0.1    | Unique ID generation               |
 
 **Sources:** [pnpm-lock.yaml:451-540](), [client-sdks/react/package.json:1-73]()
 
@@ -169,47 +167,47 @@ graph LR
         useMemory["useMemory()<br/>Memory Management Hook"]
         useStream["useStream()<br/>Generic Streaming Hook"]
     end
-    
+
     subgraph "State Management"
         ReactState["React State<br/>useState/useReducer"]
         Effects["Effects<br/>useEffect/useCallback"]
         Refs["Refs<br/>useRef for connections"]
     end
-    
+
     subgraph "Client Resources"
         AgentClient["agent.stream()<br/>agent.generate()"]
         WorkflowClient["run.start()<br/>run.stream()"]
         MemoryClient["thread.getMessages()<br/>thread.updateWorkingMemory()"]
     end
-    
+
     subgraph "SSE Handling"
         EventSource["EventSource/fetch<br/>SSE Connection"]
         StreamParser["processDataStream()<br/>Chunk Parsing"]
     end
-    
+
     useAgent --> ReactState
     useWorkflow --> ReactState
     useMemory --> ReactState
     useStream --> ReactState
-    
+
     useAgent --> Effects
     useWorkflow --> Effects
     useMemory --> Effects
-    
+
     useAgent --> Refs
     useWorkflow --> Refs
-    
+
     useAgent --> AgentClient
     useWorkflow --> WorkflowClient
     useMemory --> MemoryClient
-    
+
     AgentClient --> EventSource
     WorkflowClient --> EventSource
     MemoryClient --> EventSource
-    
+
     EventSource --> StreamParser
     StreamParser --> ReactState
-    
+
     style useAgent fill:#e1f5ff,stroke:#333,stroke-width:3px
     style ReactState fill:#ffe1e1,stroke:#333,stroke-width:2px
 ```
@@ -230,6 +228,7 @@ The `useAgent` hook (or similar agent interaction hooks) would typically provide
 - **Refs**: abort controller, connection state
 
 **Typical Usage Pattern:**
+
 ```typescript
 // Pattern based on integration with @ai-sdk/react
 const {
@@ -250,6 +249,7 @@ const {
 ```
 
 **Key Features:**
+
 - Automatic SSE connection management for streaming
 - Tool call interception and client-side execution
 - Message history state synchronization
@@ -271,6 +271,7 @@ The `useWorkflow` hook provides state management for workflow execution:
 - **Effects**: polling for status updates, cleanup on unmount
 
 **Typical Usage Pattern:**
+
 ```typescript
 const {
   runId,           // Current run ID
@@ -303,18 +304,19 @@ The `useMemory` hook manages thread state and memory operations:
 - **Effects**: initial data loading, optimistic updates
 
 **Typical Usage Pattern:**
+
 ```typescript
 const {
-  messages,        // Array of MastraDBMessage objects
-  workingMemory,   // Current working memory state
-  isLoading,       // Loading state for operations
-  loadMessages,    // Function to fetch message history
-  addMessage,      // Function to append new message
+  messages, // Array of MastraDBMessage objects
+  workingMemory, // Current working memory state
+  isLoading, // Loading state for operations
+  loadMessages, // Function to fetch message history
+  addMessage, // Function to append new message
   updateWorkingMemory, // Function to update working memory
 } = useMemory({
   threadId: 'thread-456',
   resourceId: 'resource-789',
-});
+})
 ```
 
 **Sources:** [client-sdks/client-js/src/types.ts:20-22]()
@@ -334,49 +336,49 @@ graph TB
         AgentPanel["AgentPanel<br/>Agent info + controls"]
         WorkflowViewer["WorkflowViewer<br/>Step visualization"]
     end
-    
+
     subgraph "Message Components"
         MessageList["MessageList<br/>Thread display"]
         MessageItem["MessageItem<br/>Single message"]
         ToolInvocationDisplay["ToolInvocationDisplay<br/>Tool call results"]
         ReasoningDisplay["ReasoningDisplay<br/>Reasoning steps"]
     end
-    
+
     subgraph "Input Components"
         MessageInput["MessageInput<br/>Text input + send"]
         ContextSelector["ContextSelector<br/>RequestContext picker"]
         ToolSelector["ToolSelector<br/>Client tool config"]
     end
-    
+
     subgraph "Code Components"
         CodeBlock["CodeBlock<br/>Syntax highlighted code"]
         JsonViewer["JsonViewer<br/>Structured data display"]
     end
-    
+
     subgraph "Primitive Components"
         AssistantUIThread["Thread<br/>@assistant-ui/react"]
         AssistantUIMessage["Message<br/>@assistant-ui/react"]
         RadixTooltip["Tooltip<br/>@radix-ui/react-tooltip"]
         LucideIcons["Icons<br/>lucide-react"]
     end
-    
+
     ChatInterface --> MessageList
     ChatInterface --> MessageInput
     ChatInterface --> AgentPanel
-    
+
     MessageList --> MessageItem
     MessageItem --> ToolInvocationDisplay
     MessageItem --> ReasoningDisplay
     MessageItem --> CodeBlock
-    
+
     ToolInvocationDisplay --> JsonViewer
     ReasoningDisplay --> CodeBlock
-    
+
     MessageList -.uses.-> AssistantUIThread
     MessageItem -.uses.-> AssistantUIMessage
     AgentPanel -.uses.-> RadixTooltip
     MessageInput -.uses.-> LucideIcons
-    
+
     style ChatInterface fill:#e1f5ff,stroke:#333,stroke-width:3px
     style AssistantUIThread fill:#ffe1e1,stroke:#333,stroke-width:2px
 ```
@@ -388,6 +390,7 @@ graph TB
 The React SDK uses `shiki` for syntax highlighting with support for multiple themes and languages.
 
 **Implementation Pattern:**
+
 - `shiki` generates syntax-highlighted HTML
 - `hast-util-to-jsx-runtime` converts HTML AST to React components
 - Components render with proper semantic structure and accessibility
@@ -408,23 +411,23 @@ graph LR
         ChatUI["ChatUI Component"]
         useAgentHook["useAgent() Hook"]
     end
-    
+
     subgraph "Client Layer"
         MastraClient["MastraClient Instance"]
         AgentResource["Agent.stream()"]
     end
-    
+
     subgraph "Server"
         AgentEndpoint["/api/agents/:agentId/stream"]
         AgentHarness["Agent.generate()<br/>with streaming"]
     end
-    
+
     ChatUI --> useAgentHook
     useAgentHook --> MastraClient
     MastraClient --> AgentResource
     AgentResource --> AgentEndpoint
     AgentEndpoint --> AgentHarness
-    
+
     style useAgentHook fill:#e1f5ff,stroke:#333,stroke-width:2px
 ```
 
@@ -445,21 +448,21 @@ sequenceDiagram
     participant Hook as useWorkflow()
     participant Client as Workflow.Run
     participant Server as /api/workflows/:id/run
-    
+
     Component->>Hook: startRun(input, options)
     Hook->>Client: createRun() + start()
     Client->>Server: POST /start
     Server-->>Client: { runId, status: 'running' }
     Client-->>Hook: runId, initial state
     Hook-->>Component: { runId, status, results: [] }
-    
+
     loop Stream Events
         Server->>Client: SSE: step_complete
         Client->>Hook: Update results array
         Hook->>Component: { status, results: [...] }
         Component->>Component: Render progress
     end
-    
+
     Server->>Client: SSE: workflow_complete
     Client->>Hook: Final result
     Hook->>Component: { status: 'completed', results }
@@ -477,23 +480,23 @@ graph TB
         ToolHandler["Tool Call Handler<br/>onToolCall callback"]
         ResultMerger["Result Merger<br/>Adds tool result to stream"]
     end
-    
+
     subgraph "useAgent Hook"
         StreamProcessor["Stream Processor<br/>Detects tool_call chunks"]
         ToolExecutor["Tool Executor<br/>Runs client tools"]
     end
-    
+
     subgraph "Server Stream"
         AgentStream["Agent Stream<br/>tool_call events"]
         ContinuationStream["Continuation Stream<br/>After tool results"]
     end
-    
+
     AgentStream --> StreamProcessor
     StreamProcessor --> ToolHandler
     ToolHandler --> ToolExecutor
     ToolExecutor --> ResultMerger
     ResultMerger --> ContinuationStream
-    
+
     style ToolExecutor fill:#e1f5ff,stroke:#333,stroke-width:2px
 ```
 
@@ -523,7 +526,7 @@ import { createContext, useContext } from 'react';
 
 const MastraClientContext = createContext<MastraClient | null>(null);
 
-export function MastraProvider({ 
+export function MastraProvider({
   children,
   baseUrl = 'http://localhost:4111',
   apiPrefix = '/api',
@@ -540,7 +543,7 @@ export function MastraProvider({
     headers,
     credentials: 'include',
   });
-  
+
   return (
     <MastraClientContext.Provider value={client}>
       {children}
@@ -561,12 +564,12 @@ export function useMastraClient() {
 
 ### Environment-Specific Configuration
 
-| Environment | Base URL | Credentials | Notes |
-|------------|----------|-------------|-------|
-| **Development** | `http://localhost:4111` | `omit` | Local dev server |
-| **Production (Same Origin)** | `''` (relative) | `same-origin` | API on same domain |
-| **Production (CORS)** | `https://api.example.com` | `include` | Separate API domain |
-| **Tauri Desktop** | `http://localhost:4111` | `omit` | Custom fetch implementation |
+| Environment                  | Base URL                  | Credentials   | Notes                       |
+| ---------------------------- | ------------------------- | ------------- | --------------------------- |
+| **Development**              | `http://localhost:4111`   | `omit`        | Local dev server            |
+| **Production (Same Origin)** | `''` (relative)           | `same-origin` | API on same domain          |
+| **Production (CORS)**        | `https://api.example.com` | `include`     | Separate API domain         |
+| **Tauri Desktop**            | `http://localhost:4111`   | `omit`        | Custom fetch implementation |
 
 **Sources:** [client-sdks/client-js/src/types.ts:51-70]()
 
@@ -575,19 +578,20 @@ export function useMastraClient() {
 React components can provide dynamic `RequestContext` to agents and workflows for per-request customization.
 
 **Context Resolution:**
+
 ```typescript
 // Static context
 const { append } = useAgent({
   agentId: 'assistant',
   requestContext: { userId: 'user-123', sessionId: 'sess-456' },
-});
+})
 
 // Dynamic context from React state
-const [userId, setUserId] = useState('user-123');
+const [userId, setUserId] = useState('user-123')
 const { append } = useAgent({
   agentId: 'assistant',
   requestContext: { userId, timestamp: Date.now() },
-});
+})
 ```
 
 **Sources:** [client-sdks/client-js/src/types.ts:23-24]()
@@ -613,7 +617,7 @@ stateDiagram-v2
     Streaming --> Error: Network/Parse Error
     Complete --> Idle: Reset
     Error --> Idle: Retry/Reset
-    
+
     Idle: messages: []
     Idle: isLoading: false
     Connecting: isLoading: true
@@ -646,15 +650,16 @@ The React SDK provides comprehensive error handling for network failures, valida
 
 ### Error Types and Recovery
 
-| Error Category | Trigger | Hook State | Recovery Strategy |
-|---------------|---------|-----------|-------------------|
-| **Network Error** | Connection failure | `error: NetworkError` | Retry with exponential backoff |
-| **Validation Error** | Invalid input schema | `error: ValidationError` | Display field errors |
-| **Stream Interrupt** | Connection dropped | `error: StreamError` | Resume from last chunk |
-| **Tool Error** | Client tool throws | `error: ToolExecutionError` | Continue stream with error |
-| **Abort** | User cancellation | `error: AbortError` | Clean state reset |
+| Error Category       | Trigger              | Hook State                  | Recovery Strategy              |
+| -------------------- | -------------------- | --------------------------- | ------------------------------ |
+| **Network Error**    | Connection failure   | `error: NetworkError`       | Retry with exponential backoff |
+| **Validation Error** | Invalid input schema | `error: ValidationError`    | Display field errors           |
+| **Stream Interrupt** | Connection dropped   | `error: StreamError`        | Resume from last chunk         |
+| **Tool Error**       | Client tool throws   | `error: ToolExecutionError` | Continue stream with error     |
+| **Abort**            | User cancellation    | `error: AbortError`         | Clean state reset              |
 
 **Error Handling Pattern:**
+
 ```typescript
 const { error, reload } = useAgent({
   agentId: 'assistant',
@@ -689,7 +694,7 @@ graph TB
         MastraHook["useAgent()/useWorkflow()"]
         MastraState["{ messages, isLoading, ... }"]
     end
-    
+
     subgraph "@assistant-ui/react"
         AssistantProvider["AssistantRuntimeProvider"]
         Thread["Thread Component"]
@@ -698,13 +703,13 @@ graph TB
         ThreadViewport["Thread.Viewport"]
         Composer["Composer<br/>Input + Send"]
     end
-    
+
     subgraph "Message Types"
         UserMessage["UserMessage<br/>User input"]
         AssistantMessage["AssistantMessage<br/>AI response"]
         ToolCallMessage["ToolCall Message<br/>Tool invocation"]
     end
-    
+
     MastraHook --> MastraState
     MastraState --> AssistantProvider
     AssistantProvider --> Thread
@@ -712,16 +717,17 @@ graph TB
     Thread --> ThreadMessages
     Thread --> ThreadViewport
     Thread --> Composer
-    
+
     ThreadMessages --> UserMessage
     ThreadMessages --> AssistantMessage
     ThreadMessages --> ToolCallMessage
-    
+
     style MastraHook fill:#e1f5ff,stroke:#333,stroke-width:2px
     style AssistantProvider fill:#ffe1e1,stroke:#333,stroke-width:2px
 ```
 
 **Integration Steps:**
+
 1. Transform Mastra messages to Assistant UI format
 2. Provide runtime adapter for Assistant UI
 3. Render Thread component with custom styling
@@ -744,6 +750,7 @@ The React SDK provides full TypeScript support with generated types from the ser
 - **Generic Parameters**: Parameterized by input/output types
 
 **Type Example:**
+
 ```typescript
 // Fully typed hook usage
 const {
@@ -779,6 +786,7 @@ The React SDK implements several optimizations for production use:
 ### Bundle Size
 
 The React SDK adds approximately:
+
 - **Core hooks**: ~15KB gzipped
 - **UI components**: ~30KB gzipped (with Assistant UI)
 - **Syntax highlighting**: ~50KB gzipped (Shiki)

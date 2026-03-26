@@ -15,8 +15,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the shell execution tools that enable Codex to run commands on the user's system. These tools are the primary interface for executing shell commands, managing interactive processes, and handling multi-turn command interactions.
 
 For information about sandbox enforcement and approval workflows, see [Tool Orchestration and Approval](#5.5). For details on the UnifiedExec process management system, see [Unified Exec Process Management](#5.3). For shell backend selection and configuration, see [Tool Registry and Configuration](#5.1).
@@ -25,12 +23,12 @@ For information about sandbox enforcement and approval workflows, see [Tool Orch
 
 Codex provides three main shell execution tools, each serving different use cases:
 
-| Tool Name | Purpose | Session Type | Backend Options |
-|-----------|---------|--------------|-----------------|
-| `shell` | Execute array-style commands | Non-interactive | Classic, ZshFork |
-| `shell_command` | Execute script-style commands | Non-interactive | Classic, ZshFork |
-| `exec_command` | Interactive PTY sessions | Interactive | Direct, ZshFork |
-| `write_stdin` | Write to running exec sessions | Interactive | Same as exec_command |
+| Tool Name       | Purpose                        | Session Type    | Backend Options      |
+| --------------- | ------------------------------ | --------------- | -------------------- |
+| `shell`         | Execute array-style commands   | Non-interactive | Classic, ZshFork     |
+| `shell_command` | Execute script-style commands  | Non-interactive | Classic, ZshFork     |
+| `exec_command`  | Interactive PTY sessions       | Interactive     | Direct, ZshFork      |
+| `write_stdin`   | Write to running exec sessions | Interactive     | Same as exec_command |
 
 The tool selection is controlled by the `ConfigShellToolType` enum, which determines which tools are exposed to the model based on configuration and platform capabilities.
 
@@ -44,19 +42,19 @@ graph TB
     ZshForkCheck["Feature: ShellZshFork"]
     UnifiedExecCheck["Feature: UnifiedExec"]
     PlatformCheck["Platform: ConPTY Support"]
-    
+
     FeatureCheck -->|Disabled| Disabled["ConfigShellToolType::Disabled"]
     FeatureCheck -->|Enabled| ZshForkCheck
-    
+
     ZshForkCheck -->|Enabled| ShellCommand["ConfigShellToolType::ShellCommand<br/>(shell_command tool)"]
     ZshForkCheck -->|Disabled| UnifiedExecCheck
-    
+
     UnifiedExecCheck -->|Enabled| PlatformCheck
     PlatformCheck -->|Windows without ConPTY| ShellCommand
     PlatformCheck -->|ConPTY Supported| UnifiedExec["ConfigShellToolType::UnifiedExec<br/>(exec_command + write_stdin)"]
-    
+
     UnifiedExecCheck -->|Disabled| ModelDefault["Use model.shell_type default"]
-    
+
     style Disabled fill:#f9f9f9
     style ShellCommand fill:#f9f9f9
     style UnifiedExec fill:#f9f9f9
@@ -111,19 +109,20 @@ graph LR
     ExecParams["ExecParams"]
     Execute["Execute via<br/>codex_exec::run_command"]
     Output["JSON output:<br/>exit_code<br/>stdout/stderr"]
-    
+
     Input --> Parse
     Parse --> Handler
     Handler --> ExecParams
     ExecParams --> Execute
     Execute --> Output
-    
+
     style Handler fill:#f9f9f9
 ```
 
 **Diagram: shell Tool Execution Flow**
 
 **Parameters:**
+
 - `command`: Array of command arguments (e.g., `["ls", "-la"]`)
 - `workdir`: Optional working directory
 - `timeout_ms`: Command timeout in milliseconds
@@ -135,11 +134,13 @@ graph LR
 **Platform-Specific Description:**
 
 On Windows, commands are passed to `CreateProcessW()` with PowerShell invocation:
+
 ```
 ["powershell.exe", "-Command", "Get-ChildItem -Force"]
 ```
 
 On Unix, commands are passed to `execvp()` with shell wrapping:
+
 ```
 ["bash", "-lc", "ls -la"]
 ```
@@ -151,6 +152,7 @@ On Unix, commands are passed to `execvp()` with shell wrapping:
 The `shell_command` tool executes a script string in the user's default shell, providing a more natural interface for complex commands.
 
 **Parameters:**
+
 - `command`: Shell script as a single string (e.g., `"ls -la | grep txt"`)
 - `workdir`: Optional working directory
 - `timeout_ms`: Command timeout in milliseconds
@@ -163,11 +165,13 @@ The `shell_command` tool executes a script string in the user's default shell, p
 **Platform-Specific Description:**
 
 On Windows, executes PowerShell commands:
+
 ```
 "Get-ChildItem -Path C:\\myrepo -Recurse | Select-String -Pattern 'TODO'"
 ```
 
 On Unix, runs in the user's default shell:
+
 ```
 "ls -la | grep txt"
 ```
@@ -189,18 +193,18 @@ graph TB
     Output["Return output:<br/>session_id<br/>chunk_id<br/>output<br/>wall_time_seconds"]
     Terminated{"Process<br/>terminated?"}
     ExitOutput["Return with exit_code"]
-    
+
     ExecCall --> CreatePTY
     CreatePTY --> SessionID
     SessionID --> YieldCheck
-    
+
     YieldCheck -->|No| WaitMore["Wait for output"]
     WaitMore --> YieldCheck
-    
+
     YieldCheck -->|Yes| Terminated
     Terminated -->|No| Output
     Terminated -->|Yes| ExitOutput
-    
+
     style CreatePTY fill:#f9f9f9
     style SessionID fill:#f9f9f9
 ```
@@ -208,6 +212,7 @@ graph TB
 **Diagram: exec_command Interactive Session Flow**
 
 **Parameters:**
+
 - `cmd`: Shell command to execute
 - `workdir`: Optional working directory (defaults to turn cwd)
 - `shell`: Optional shell binary (defaults to user's default shell)
@@ -221,6 +226,7 @@ graph TB
 - `prefix_rule`: Suggested approval rule pattern
 
 **Output Schema:**
+
 - `chunk_id`: Unique identifier for this output chunk
 - `wall_time_seconds`: Elapsed time waiting for output
 - `exit_code`: Process exit code (only when finished)
@@ -237,6 +243,7 @@ The tool returns a `session_id` when the process is still running, allowing the 
 The `write_stdin` tool writes input to an ongoing `exec_command` session and retrieves new output.
 
 **Parameters:**
+
 - `session_id`: Identifier of the running session (from `exec_command` output)
 - `chars`: Bytes to write to stdin (may be empty to poll for output)
 - `yield_time_ms`: How long to wait for output before yielding
@@ -269,25 +276,25 @@ graph TB
         SessionMap["session_id → UnifiedExecProcess"]
         PrunePolicy["Prune oldest when limit reached"]
     end
-    
+
     subgraph "UnifiedExecProcess"
         PTY["PTY Handle"]
         ProcessHandle["Child Process"]
         OutputBuffer["Output Buffer"]
         State["Running | Terminated"]
     end
-    
+
     ExecCommand["exec_command"] -->|Create| SessionMap
     WriteStdin["write_stdin"] -->|Lookup| SessionMap
-    
+
     SessionMap --> ProcessStore
     ProcessStore --> PrunePolicy
-    
+
     SessionMap --> PTY
     SessionMap --> ProcessHandle
     SessionMap --> OutputBuffer
     SessionMap --> State
-    
+
     style ProcessStore fill:#f9f9f9
     style PTY fill:#f9f9f9
 ```
@@ -308,44 +315,44 @@ The `UnifiedExecProcessManager` maintains a session-scoped cache of running proc
 ```mermaid
 graph TB
     ToolInvocation["ToolInvocation<br/>{call_id, arguments}"]
-    
+
     subgraph "Shell Handlers"
         ShellHandler["ShellHandler::handle()"]
         ShellCommandHandler["ShellCommandHandler::handle()"]
     end
-    
+
     subgraph "UnifiedExec Handlers"
         UnifiedExecHandler["UnifiedExecHandler::handle()"]
         WriteStdinHandler["write_stdin (in UnifiedExecHandler)"]
     end
-    
+
     subgraph "Common Path"
         ParseArgs["parse_arguments()"]
         WorkdirResolve["resolve_workdir_base_path()"]
         PermissionValidation["normalize_and_validate_additional_permissions()"]
         ApprovalCheck["Check exec_policy + approval"]
     end
-    
+
     subgraph "Execution"
         RunCommand["codex_exec::run_command()"]
         UnifiedExecManager["UnifiedExecProcessManager"]
     end
-    
+
     ToolInvocation --> ShellHandler
     ToolInvocation --> ShellCommandHandler
     ToolInvocation --> UnifiedExecHandler
-    
+
     ShellHandler --> ParseArgs
     ShellCommandHandler --> ParseArgs
     UnifiedExecHandler --> ParseArgs
-    
+
     ParseArgs --> WorkdirResolve
     WorkdirResolve --> PermissionValidation
     PermissionValidation --> ApprovalCheck
-    
+
     ApprovalCheck --> RunCommand
     ApprovalCheck --> UnifiedExecManager
-    
+
     style ShellHandler fill:#f9f9f9
     style UnifiedExecHandler fill:#f9f9f9
     style PermissionValidation fill:#f9f9f9
@@ -372,18 +379,19 @@ The `normalize_and_validate_additional_permissions()` function enforces permissi
 
 **Validation Rules:**
 
-| Condition | Validation |
-|-----------|------------|
-| `additional_permissions_allowed=false` | Reject all inline permission requests |
-| `sandbox_permissions=with_additional_permissions` | Require `additional_permissions` field |
-| `approval_policy ≠ OnRequest` | Reject permission requests unless preapproved |
-| Empty permission profile | Reject (must specify network, file_system, or macos) |
-| macOS permissions on non-macOS | Reject |
-| Relative paths | Normalize against workdir |
+| Condition                                         | Validation                                           |
+| ------------------------------------------------- | ---------------------------------------------------- |
+| `additional_permissions_allowed=false`            | Reject all inline permission requests                |
+| `sandbox_permissions=with_additional_permissions` | Require `additional_permissions` field               |
+| `approval_policy ≠ OnRequest`                     | Reject permission requests unless preapproved        |
+| Empty permission profile                          | Reject (must specify network, file_system, or macos) |
+| macOS permissions on non-macOS                    | Reject                                               |
+| Relative paths                                    | Normalize against workdir                            |
 
 **Permission Preapproval:**
 
 The `apply_granted_turn_permissions()` function merges:
+
 1. Turn-scoped grants (from `request_permissions` tool)
 2. Session-scoped grants (sticky across turns)
 3. Inline `additional_permissions` parameter
@@ -459,11 +467,11 @@ The shell execution tools have extensive test coverage:
 
 **Key Test Scenarios:**
 
-| Test File | Coverage |
-|-----------|----------|
-| `request_permissions.rs` | Additional permissions validation, sticky grants, approval flows |
-| `codex_tests_guardian.rs` | Guardian approval for permission requests, policy inheritance |
-| `code_mode.rs` | Nested `exec_command` calls from JavaScript REPL |
+| Test File                 | Coverage                                                         |
+| ------------------------- | ---------------------------------------------------------------- |
+| `request_permissions.rs`  | Additional permissions validation, sticky grants, approval flows |
+| `codex_tests_guardian.rs` | Guardian approval for permission requests, policy inheritance    |
+| `code_mode.rs`            | Nested `exec_command` calls from JavaScript REPL                 |
 
 **Example Test Pattern:**
 

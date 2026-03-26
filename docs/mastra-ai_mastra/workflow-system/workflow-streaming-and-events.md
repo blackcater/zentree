@@ -26,8 +26,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents how workflows publish execution events in real-time and how clients consume them via streaming APIs. It covers the event publishing architecture, stream formats, chunk types, and engine-specific streaming behavior.
 
 For workflow execution fundamentals, see [Workflow Definition and Step Composition](#4.1). For workflow state persistence, see [Workflow State Management and Persistence](#4.3). For client-side consumption of workflow streams, see [Client SDK and UI Components](#10).
@@ -47,40 +45,40 @@ graph TB
         Step["Step Execution"]
         Agent["Agent Execution"]
     end
-    
+
     subgraph "Event Publishing"
         PubSub["PubSub Interface"]
         EventEmitter["EventEmitterPubSub<br/>(Default Implementation)"]
         InngestPubSub["InngestPubSub<br/>(Realtime Middleware)"]
     end
-    
+
     subgraph "Event Channels"
         WorkflowChannel["workflow.events.v2.{runId}"]
         WorkflowsChannel["workflows"]
         WorkflowsFinishChannel["workflows-finish"]
     end
-    
+
     subgraph "Event Consumers"
         StreamAPI["run.stream()<br/>run.streamLegacy()"]
         Server["API Server SSE"]
         EventProcessor["WorkflowEventProcessor<br/>(Evented Engine)"]
     end
-    
+
     Engine -->|publishes to| PubSub
     Step -->|publishes to| PubSub
     Agent -->|publishes to| PubSub
-    
+
     PubSub -->|implements| EventEmitter
     PubSub -->|implements| InngestPubSub
-    
+
     PubSub -->|publishes to| WorkflowChannel
     PubSub -->|publishes to| WorkflowsChannel
     PubSub -->|publishes to| WorkflowsFinishChannel
-    
+
     WorkflowChannel -->|consumed by| StreamAPI
     WorkflowsChannel -->|consumed by| EventProcessor
     WorkflowsFinishChannel -->|consumed by| EventProcessor
-    
+
     StreamAPI -->|transforms to| Server
 ```
 
@@ -103,27 +101,27 @@ graph LR
         Run["Run.stream()"]
         Format["streamFormat: 'vnext' | 'legacy'"]
     end
-    
+
     subgraph "Step Execution Context"
         PUBSUB["[PUBSUB_SYMBOL]:<br/>PubSub"]
         STREAM_FORMAT["[STREAM_FORMAT_SYMBOL]:<br/>Format"]
         Execute["step.execute(params)"]
     end
-    
+
     subgraph "Event Publishing"
         Publish["pubsub.publish()<br/>workflow.events.v2.{runId}"]
         FormatCheck["if (streamFormat === 'legacy')<br/>vs 'vnext'"]
     end
-    
+
     Run -->|sets| Format
     Run -->|provides| PUBSUB
-    
+
     PUBSUB --> Execute
     STREAM_FORMAT --> Execute
-    
+
     Execute --> Publish
     Execute --> FormatCheck
-    
+
     FormatCheck -->|determines| Publish
 ```
 
@@ -144,13 +142,13 @@ Workflows support two stream formats: `legacy` (v1/v2 compatibility) and `vnext`
 
 ### Format Comparison
 
-| Feature | Legacy Format | VNext Format |
-|---------|---------------|--------------|
-| **Event Types** | `tool-call-streaming-start`<br/>`tool-call-delta`<br/>`tool-call-streaming-finish`<br/>`step-result`<br/>`step-suspended`<br/>`step-waiting` | `workflow-step-start`<br/>`workflow-step-finish`<br/>`workflow-step-error`<br/>`workflow-step-suspend`<br/>`text-delta`<br/>`tool-call`<br/>`data-*` custom chunks |
-| **Structure** | Flat event with `type` and `data` | Typed chunk objects with discriminated unions |
-| **Agent Streaming** | Wrapped in tool-call events | Direct stream forwarding via `forwardAgentStreamChunk` |
-| **Custom Data** | Not supported | `data-*` prefix for custom chunks |
-| **Type Safety** | Weak (string types) | Strong (`ChunkType` discriminated union) |
+| Feature             | Legacy Format                                                                                                                                | VNext Format                                                                                                                                                       |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Event Types**     | `tool-call-streaming-start`<br/>`tool-call-delta`<br/>`tool-call-streaming-finish`<br/>`step-result`<br/>`step-suspended`<br/>`step-waiting` | `workflow-step-start`<br/>`workflow-step-finish`<br/>`workflow-step-error`<br/>`workflow-step-suspend`<br/>`text-delta`<br/>`tool-call`<br/>`data-*` custom chunks |
+| **Structure**       | Flat event with `type` and `data`                                                                                                            | Typed chunk objects with discriminated unions                                                                                                                      |
+| **Agent Streaming** | Wrapped in tool-call events                                                                                                                  | Direct stream forwarding via `forwardAgentStreamChunk`                                                                                                             |
+| **Custom Data**     | Not supported                                                                                                                                | `data-*` prefix for custom chunks                                                                                                                                  |
+| **Type Safety**     | Weak (string types)                                                                                                                          | Strong (`ChunkType` discriminated union)                                                                                                                           |
 
 **Sources:** [packages/core/src/workflows/types.ts:241-260](), [packages/core/src/stream/types.ts:1-100]()
 
@@ -168,7 +166,7 @@ graph TB
         PublishDelta["Publish: tool-call-delta<br/>with argsTextDelta"]
         StreamFinish["Publish: tool-call-streaming-finish"]
     end
-    
+
     AgentStep --> StreamStart
     StreamStart --> StreamLoop
     StreamLoop --> TextDelta
@@ -196,7 +194,7 @@ graph TB
         ForwardChunk["forwardAgentStreamChunk()"]
         ChunkType["Discriminate chunk.type"]
     end
-    
+
     subgraph "Chunk Types"
         TextDelta["'text-delta'"]
         ToolCall["'tool-call'"]
@@ -205,29 +203,29 @@ graph TB
         DataCustom["'data-*' custom"]
         Tripwire["'tripwire'"]
     end
-    
+
     subgraph "OutputWriter"
         Writer["outputWriter(chunk)"]
         Publish["pubsub.publish()<br/>workflow.events.v2.{runId}"]
     end
-    
+
     AgentStep --> ForwardChunk
     ForwardChunk --> ChunkType
-    
+
     ChunkType --> TextDelta
     ChunkType --> ToolCall
     ChunkType --> ToolResult
     ChunkType --> Finish
     ChunkType --> DataCustom
     ChunkType --> Tripwire
-    
+
     TextDelta --> Writer
     ToolCall --> Writer
     ToolResult --> Writer
     Finish --> Writer
     DataCustom --> Writer
     Tripwire --> Writer
-    
+
     Writer --> Publish
 ```
 
@@ -261,19 +259,19 @@ graph TB
         Suspend["workflow.suspend<br/>{runId, suspendPayload, steps}"]
         Resume["workflow.resume<br/>{runId, resumeData, resumeSteps}"]
     end
-    
+
     subgraph "Evented Engine Coordination"
         Processor["WorkflowEventProcessor"]
         Subscribe["subscribe('workflows', handler)"]
     end
-    
+
     Start -->|triggers| Processor
     Step -->|triggers| Processor
     End -->|completes| Processor
     Fail -->|completes| Processor
     Suspend -->|pauses| Processor
     Resume -->|continues| Processor
-    
+
     Processor --> Subscribe
 ```
 
@@ -292,16 +290,16 @@ graph TB
 
 Individual step execution publishes fine-grained events to the `workflow.events.v2.{runId}` channel:
 
-| Event Type | Published By | Data Structure | Purpose |
-|------------|-------------|----------------|---------|
-| `workflow-step-start` | `DefaultExecutionEngine` | `{id, stepCallId, ...stepInfo}` | Step begins execution |
-| `workflow-step-finish` | Step handlers | `{stepId, output, status}` | Step completes successfully |
-| `workflow-step-error` | Step handlers | `{stepId, error}` | Step fails with error |
-| `workflow-step-suspend` | Suspend handler | `{stepId, suspendPayload}` | Step suspends execution |
-| `text-delta` | Agent streams | `{textDelta}` | Incremental text output |
-| `tool-call` | Agent streams | `{toolCallId, toolName, args}` | Agent invokes a tool |
-| `tool-result` | Agent streams | `{toolCallId, result}` | Tool execution result |
-| `data-*` | Custom processors | `{type, ...data}` | Custom application data |
+| Event Type              | Published By             | Data Structure                  | Purpose                     |
+| ----------------------- | ------------------------ | ------------------------------- | --------------------------- |
+| `workflow-step-start`   | `DefaultExecutionEngine` | `{id, stepCallId, ...stepInfo}` | Step begins execution       |
+| `workflow-step-finish`  | Step handlers            | `{stepId, output, status}`      | Step completes successfully |
+| `workflow-step-error`   | Step handlers            | `{stepId, error}`               | Step fails with error       |
+| `workflow-step-suspend` | Suspend handler          | `{stepId, suspendPayload}`      | Step suspends execution     |
+| `text-delta`            | Agent streams            | `{textDelta}`                   | Incremental text output     |
+| `tool-call`             | Agent streams            | `{toolCallId, toolName, args}`  | Agent invokes a tool        |
+| `tool-result`           | Agent streams            | `{toolCallId, result}`          | Tool execution result       |
+| `data-*`                | Custom processors        | `{type, ...data}`               | Custom application data     |
 
 **Sources:** [packages/core/src/workflows/types.ts:241-260](), [packages/core/src/stream/types.ts:1-100](), [packages/core/src/workflows/default.ts:186-202]()
 
@@ -310,7 +308,7 @@ Individual step execution publishes fine-grained events to the `workflow.events.
 The `ChunkType` type defines all possible stream chunk shapes as a discriminated union:
 
 ```typescript
-type ChunkType = 
+type ChunkType =
   | { type: 'text-delta'; textDelta: string }
   | { type: 'tool-call'; toolCallId: string; toolName: string; args: any }
   | { type: 'tool-result'; toolCallId: string; result: any }
@@ -346,11 +344,11 @@ graph TB
         StepResult["Build StepResult"]
         PublishFinish["Publish: workflow-step-finish"]
     end
-    
+
     subgraph "PubSub"
         Channel["workflow.events.v2.{runId}"]
     end
-    
+
     ExecuteEntry --> OnStepStart
     OnStepStart --> ExecuteStep
     ExecuteStep -->|agent| AgentStream
@@ -358,7 +356,7 @@ graph TB
     AgentStream --> StepResult
     ToolExec --> StepResult
     StepResult --> PublishFinish
-    
+
     OnStepStart -->|publishes to| Channel
     AgentStream -->|publishes to| Channel
     PublishFinish -->|publishes to| Channel
@@ -384,7 +382,7 @@ graph TB
         Subscribe["Subscribe to 'workflows'"]
         Processor["WorkflowEventProcessor"]
     end
-    
+
     subgraph "Event Processing"
         Handler["Event Handler"]
         StepExec["StepExecutor.execute()"]
@@ -392,13 +390,13 @@ graph TB
         NextStep["Determine next step"]
         PublishNext["Publish next workflow.step"]
     end
-    
+
     subgraph "Completion"
         End["Detect completion"]
         PublishEnd["Publish: workflow.end"]
         Resolve["Resolve result promise"]
     end
-    
+
     Execute --> Subscribe
     Subscribe --> Processor
     Processor --> Handler
@@ -407,7 +405,7 @@ graph TB
     PublishResult --> NextStep
     NextStep --> PublishNext
     PublishNext --> Handler
-    
+
     Handler --> End
     End --> PublishEnd
     PublishEnd --> Resolve
@@ -433,19 +431,19 @@ graph TB
         Realtime["@inngest/realtime<br/>middleware"]
         Execute["Workflow execution<br/>in Inngest function"]
     end
-    
+
     subgraph "Event Publishing"
         InngestPubSub["InngestPubSub"]
         Emit["inngestStep.sendEvent()"]
         Subscribe["subscribe()<br/>Realtime client"]
     end
-    
+
     subgraph "Client"
         GetRunOutput["run.getRunOutput()"]
         Hybrid["Hybrid: realtime + polling"]
         Stream["ReadableStream"]
     end
-    
+
     Function --> Realtime
     Realtime --> Execute
     Execute --> InngestPubSub
@@ -480,25 +478,25 @@ graph TB
         StreamLegacy["run.streamLegacy()"]
         Start["run.start()"]
     end
-    
+
     subgraph "Stream Results"
         FullStream["fullStream<br/>ReadableStream&lt;WorkflowStreamEvent&gt;"]
         Result["result<br/>Promise&lt;WorkflowResult&gt;"]
         TextStream["textStream<br/>ReadableStream&lt;string&gt;"]
     end
-    
+
     subgraph "Legacy Results"
         LegacyStream["stream<br/>AsyncIterable&lt;StreamEvent&gt;"]
         GetState["getWorkflowState()<br/>Promise&lt;WorkflowResult&gt;"]
     end
-    
+
     Stream --> FullStream
     Stream --> Result
     Stream --> TextStream
-    
+
     StreamLegacy --> LegacyStream
     StreamLegacy --> GetState
-    
+
     Start -->|non-streaming| Result
 ```
 
@@ -529,25 +527,25 @@ graph TB
         HTTPClient["HTTP Client"]
         SSERequest["GET /agents/{id}/stream<br/>Accept: text/event-stream"]
     end
-    
+
     subgraph "Server Handler"
         Handler["Agent stream handler"]
         RunStream["run.stream()"]
         ProcessStream["processMastraStream()"]
     end
-    
+
     subgraph "SSE Encoding"
         EventStream["Server-Sent Events"]
         DataPrefix["data: {json}<br/>event: message<br/><br/>"]
         Chunks["Chunk-by-chunk transmission"]
     end
-    
+
     subgraph "Client Processing"
         EventSource["EventSource API"]
         Parse["JSON.parse(event.data)"]
         Handle["Handle chunk type"]
     end
-    
+
     HTTPClient --> SSERequest
     SSERequest --> Handler
     Handler --> RunStream
@@ -568,7 +566,7 @@ Each chunk is transmitted as an SSE message:
 event: message
 data: {"type":"text-delta","textDelta":"Hello"}
 
-event: message  
+event: message
 data: {"type":"finish","finishReason":"stop"}
 ```
 
@@ -589,19 +587,19 @@ graph TB
         CreateAgent["Create agent step"]
         AgentExecute["agent.execute()"]
     end
-    
+
     subgraph "Agent Streaming"
         AgentStream["agent.stream()"]
         ForwardChunk["forwardAgentStreamChunk()"]
         OutputWriter["outputWriter(chunk)"]
     end
-    
+
     subgraph "Parent Stream"
         ParentPubSub["Parent workflow PubSub"]
         ParentChannel["workflow.events.v2.{parentRunId}"]
         ClientStream["Client receives nested chunks"]
     end
-    
+
     ParentStep --> CreateAgent
     CreateAgent --> AgentExecute
     AgentExecute --> AgentStream
@@ -626,10 +624,10 @@ When an agent step executes within a workflow, its stream chunks are forwarded t
 
 Different engines offer different guarantees for real-time updates:
 
-| Engine | Real-Time Mechanism | Fallback | Latency |
-|--------|-------------------|----------|---------|
-| **Default** | In-memory PubSub | N/A | Instant |
-| **Evented** | Event-driven PubSub | N/A | <100ms |
+| Engine      | Real-Time Mechanism       | Fallback    | Latency   |
+| ----------- | ------------------------- | ----------- | --------- |
+| **Default** | In-memory PubSub          | N/A         | Instant   |
+| **Evented** | Event-driven PubSub       | N/A         | <100ms    |
 | **Inngest** | Realtime middleware + SSE | Polling API | 100-500ms |
 
 **Default/Evented Engines:**
@@ -648,18 +646,18 @@ Processors and steps can publish custom events using the `data-*` prefix:
 
 ```typescript
 // In a processor
-await writer.custom({ 
+await writer.custom({
   type: 'data-progress',
   progress: 0.5,
-  message: 'Processing documents...'
-});
+  message: 'Processing documents...',
+})
 
 // In a step
 await outputWriter({
   type: 'data-metric',
   metric: 'tokens_processed',
-  value: 1500
-});
+  value: 1500,
+})
 ```
 
 Clients can discriminate these custom chunks by checking the `type` field prefix:
@@ -668,7 +666,7 @@ Clients can discriminate these custom chunks by checking the `type` field prefix
 for await (const chunk of stream.fullStream) {
   if (chunk.type.startsWith('data-')) {
     // Handle custom application data
-    console.log('Custom event:', chunk);
+    console.log('Custom event:', chunk)
   }
 }
 ```

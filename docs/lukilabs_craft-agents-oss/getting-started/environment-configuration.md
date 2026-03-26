@@ -13,8 +13,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page documents the environment variables and build-time configuration required for developing and building Craft Agents. It covers OAuth client credentials for MCP source integrations, build-time variable injection, and the `.env` file structure.
@@ -42,13 +40,13 @@ All environment variables are sourced from a `.env` file at the repository root 
 
 The following environment variables configure OAuth client credentials for MCP source integrations. These are optional but required for users to authenticate with the respective services.
 
-| Variable | Service | Required | Purpose |
-|----------|---------|----------|---------|
-| `GOOGLE_OAUTH_CLIENT_ID` | Google APIs | No | OAuth 2.0 client ID for Google MCP sources |
-| `GOOGLE_OAUTH_CLIENT_SECRET` | Google APIs | No | OAuth 2.0 client secret for Google MCP sources |
-| `SLACK_OAUTH_CLIENT_ID` | Slack API | No | OAuth 2.0 client ID for Slack MCP sources |
-| `SLACK_OAUTH_CLIENT_SECRET` | Slack API | No | OAuth 2.0 client secret for Slack MCP sources |
-| `MICROSOFT_OAUTH_CLIENT_ID` | Microsoft Graph | No | OAuth 2.0 client ID for Microsoft MCP sources |
+| Variable                     | Service         | Required | Purpose                                        |
+| ---------------------------- | --------------- | -------- | ---------------------------------------------- |
+| `GOOGLE_OAUTH_CLIENT_ID`     | Google APIs     | No       | OAuth 2.0 client ID for Google MCP sources     |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | Google APIs     | No       | OAuth 2.0 client secret for Google MCP sources |
+| `SLACK_OAUTH_CLIENT_ID`      | Slack API       | No       | OAuth 2.0 client ID for Slack MCP sources      |
+| `SLACK_OAUTH_CLIENT_SECRET`  | Slack API       | No       | OAuth 2.0 client secret for Slack MCP sources  |
+| `MICROSOFT_OAUTH_CLIENT_ID`  | Microsoft Graph | No       | OAuth 2.0 client ID for Microsoft MCP sources  |
 
 **Note:** Microsoft OAuth does not require a client secret as it uses PKCE (Proof Key for Code Exchange) for public clients.
 
@@ -103,12 +101,12 @@ graph LR
         ESBuild["esbuild bundler"]
         MainBundle["dist/main.cjs"]
     end
-    
+
     subgraph "Variable Access"
         ProcessEnv["process.env.GOOGLE_OAUTH_CLIENT_ID"]
         RuntimeCode["Main process code"]
     end
-    
+
     EnvFile -->|"source .env"| BuildScript
     BuildScript -->|"--define flags"| ESBuild
     ESBuild -->|"compile literals"| MainBundle
@@ -162,48 +160,48 @@ graph TB
         SlackSecret["SLACK_OAUTH_CLIENT_SECRET"]
         MicrosoftID["MICROSOFT_OAUTH_CLIENT_ID"]
     end
-    
+
     subgraph "Build-Time Injection"
         ESBuildDefine["esbuild --define flags"]
     end
-    
+
     subgraph "Runtime Access"
         ProcessEnvGoogle["process.env.GOOGLE_OAUTH_CLIENT_ID"]
         ProcessEnvSlack["process.env.SLACK_OAUTH_CLIENT_ID"]
         ProcessEnvMS["process.env.MICROSOFT_OAUTH_CLIENT_ID"]
     end
-    
+
     subgraph "OAuth Flow Implementation"
         OAuthManager["packages/shared OAuth handlers"]
         GoogleFlow["Google OAuth 2.0 flow"]
         SlackFlow["Slack OAuth 2.0 flow"]
         MSFlow["Microsoft OAuth 2.0 PKCE flow"]
     end
-    
+
     subgraph "User Interaction"
         SourceAdd["User adds MCP source"]
         CredPrompt["source_credential_prompt tool"]
         OAuthTrigger["source_oauth_trigger tool"]
     end
-    
+
     GoogleID --> ESBuildDefine
     GoogleSecret --> ESBuildDefine
     SlackID --> ESBuildDefine
     SlackSecret --> ESBuildDefine
     MicrosoftID --> ESBuildDefine
-    
+
     ESBuildDefine --> ProcessEnvGoogle
     ESBuildDefine --> ProcessEnvSlack
     ESBuildDefine --> ProcessEnvMS
-    
+
     ProcessEnvGoogle --> GoogleFlow
     ProcessEnvSlack --> SlackFlow
     ProcessEnvMS --> MSFlow
-    
+
     GoogleFlow --> OAuthManager
     SlackFlow --> OAuthManager
     MSFlow --> OAuthManager
-    
+
     SourceAdd --> CredPrompt
     CredPrompt --> OAuthTrigger
     OAuthTrigger --> OAuthManager
@@ -220,11 +218,13 @@ graph TB
 ### Initial Setup
 
 1. Create a `.env` file at the repository root:
+
    ```bash
    touch .env
    ```
 
 2. Add OAuth credentials (optional for basic development):
+
    ```bash
    echo "GOOGLE_OAUTH_CLIENT_ID=your-client-id" >> .env
    echo "GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret" >> .env
@@ -296,6 +296,7 @@ Environment variables are re-sourced on each rebuild of the main process.
 ### Build Time
 
 If OAuth credentials are not provided:
+
 - The build completes successfully with empty string defaults
 - Variables are defined as `""` in the compiled bundle
 - No warnings or errors are generated
@@ -303,6 +304,7 @@ If OAuth credentials are not provided:
 ### Runtime
 
 When a user attempts to add an MCP source requiring OAuth:
+
 - The application checks if the respective client ID is defined
 - If missing, the OAuth flow is disabled for that source
 - Users see an error indicating OAuth is not configured
@@ -338,6 +340,7 @@ Example GitHub Actions configuration:
 ### Distribution Considerations
 
 OAuth credentials compiled into distributed binaries:
+
 - Are **not** user-specific; they identify your application to the OAuth provider
 - Should be rotated regularly and monitored for abuse
 - May have rate limits or quotas imposed by the provider
@@ -356,29 +359,29 @@ graph TB
         ESBuildProcess["esbuild build process"]
         MainCJS["dist/main.cjs<br/>(compiled bundle)"]
     end
-    
+
     subgraph "Runtime Configuration"
         ConfigJSON["~/.craft-agent/config.json<br/>(LLM connections, workspaces)"]
         CredentialsEnc["~/.craft-agent/credentials.enc<br/>(encrypted OAuth tokens)"]
         SourcesJSON["workspaces/{id}/sources/*.json<br/>(source configurations)"]
     end
-    
+
     subgraph "OAuth Flow"
         UserAuth["User authenticates"]
         OAuthCode["OAuth authorization code"]
         TokenExchange["Token exchange"]
         CredManager["CredentialManager"]
     end
-    
+
     EnvFile -->|"provides client credentials"| ESBuildProcess
     ESBuildProcess -->|"compiles into"| MainCJS
     MainCJS -->|"reads client ID/secret"| TokenExchange
-    
+
     UserAuth -->|"generates"| OAuthCode
     OAuthCode -->|"exchanged using client credentials"| TokenExchange
     TokenExchange -->|"stores access token"| CredManager
     CredManager -->|"encrypts and saves"| CredentialsEnc
-    
+
     CredentialsEnc -->|"references"| SourcesJSON
     SourcesJSON -->|"configured in"| ConfigJSON
 ```
@@ -396,6 +399,7 @@ graph TB
 **Symptom:** Build script cannot find `.env` file
 
 **Solution:**
+
 - Verify `.env` exists at repository root
 - Check file permissions: `chmod 600 .env`
 - On Windows, use `build:main:win` or set variables in PowerShell
@@ -405,6 +409,7 @@ graph TB
 **Symptom:** OAuth authentication fails or shows "not configured" error
 
 **Solution:**
+
 - Verify credentials are in `.env` before building
 - Rebuild the application after updating `.env`
 - Check that redirect URIs match in OAuth provider console
@@ -415,6 +420,7 @@ graph TB
 **Symptom:** `process.env.GOOGLE_OAUTH_CLIENT_ID` is `undefined` at runtime
 
 **Solution:**
+
 - Verify the `build:main` script was used (not `build:main:win` on Unix)
 - Check esbuild `--define` flags in build script
 - Rebuild the main process: `bun run electron:build:main`

@@ -20,8 +20,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the contributor approval process for pi-mono, the automated workflows that enforce it, and the requirements that must be met before submitting a pull request. It covers the issue-first workflow, the `APPROVED_CONTRIBUTORS` file, and the two GitHub Actions workflows that manage access control.
 
 ---
@@ -32,10 +30,10 @@ pi-mono uses a gated contribution model. Direct pull requests from unknown contr
 
 The process is enforced by two GitHub Actions workflows:
 
-| Workflow | File | Trigger |
-|---|---|---|
+| Workflow              | File                                        | Trigger               |
+| --------------------- | ------------------------------------------- | --------------------- |
 | `Approve Contributor` | `.github/workflows/approve-contributor.yml` | Issue comment created |
-| `PR Gate` | `.github/workflows/pr-gate.yml` | Pull request opened |
+| `PR Gate`             | `.github/workflows/pr-gate.yml`             | Pull request opened   |
 
 ---
 
@@ -148,11 +146,11 @@ flowchart TD
 
 **Access check priority:**
 
-| Check | Method | Passes if |
-|---|---|---|
-| Bot check | `prAuthor.endsWith('[bot]')` | Author is a GitHub bot |
-| Collaborator check | `repos.getCollaboratorPermissionLevel` | Permission is `admin` or `write` |
-| Approved list check | `.github/APPROVED_CONTRIBUTORS` | Handle found (case-insensitive) |
+| Check               | Method                                 | Passes if                        |
+| ------------------- | -------------------------------------- | -------------------------------- |
+| Bot check           | `prAuthor.endsWith('[bot]')`           | Author is a GitHub bot           |
+| Collaborator check  | `repos.getCollaboratorPermissionLevel` | Permission is `admin` or `write` |
+| Approved list check | `.github/APPROVED_CONTRIBUTORS`        | Handle found (case-insensitive)  |
 
 The rejection comment directs the contributor to `CONTRIBUTING.md` and explains the issue-first requirement [.github/workflows/pr-gate.yml:65-76]().
 

@@ -21,8 +21,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents how Codex authenticates users, stores credentials, refreshes tokens, and manages login state at runtime. It covers the `CodexAuth` / `AuthManager` types in `codex-core`, the OAuth/PKCE browser login server in `codex-login`, the device-code flow, API key auth, and the TUI onboarding screen that guides first-time users through sign-in.
 
 For how auth configuration is delivered to a running session (e.g., `forced_login_method` coming from cloud-managed config), see the Config API and Layer System [4.5.4](#4.5.4). For OAuth token handling specific to MCP servers, see OAuth Authentication for MCP [6.5](#6.5).
@@ -35,19 +33,19 @@ Codex supports two top-level authentication modes, represented by the `AuthMode`
 
 [codex-rs/core/src/auth.rs:44-48]()
 
-| `AuthMode` variant | Description |
-|---|---|
-| `ApiKey` | A raw OpenAI API key is sent as a Bearer token. Usage is billed per-token. |
-| `Chatgpt` | An OAuth access token obtained from a ChatGPT account is used. Rate limits and billing follow the user's ChatGPT plan. |
+| `AuthMode` variant | Description                                                                                                            |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `ApiKey`           | A raw OpenAI API key is sent as a Bearer token. Usage is billed per-token.                                             |
+| `Chatgpt`          | An OAuth access token obtained from a ChatGPT account is used. Rate limits and billing follow the user's ChatGPT plan. |
 
 The `CodexAuth` enum holds the concrete auth payload for one of three sub-modes:
 
 [codex-rs/core/src/auth.rs:61-65]()
 
-| `CodexAuth` variant | Internal struct | Description |
-|---|---|---|
-| `ApiKey(ApiKeyAuth)` | `ApiKeyAuth` | Holds the raw API key string. |
-| `Chatgpt(ChatgptAuth)` | `ChatgptAuth` | Holds OAuth tokens + a persistent storage backend. Used when Codex itself manages the OAuth flow. |
+| `CodexAuth` variant                    | Internal struct     | Description                                                                                                                  |
+| -------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `ApiKey(ApiKeyAuth)`                   | `ApiKeyAuth`        | Holds the raw API key string.                                                                                                |
+| `Chatgpt(ChatgptAuth)`                 | `ChatgptAuth`       | Holds OAuth tokens + a persistent storage backend. Used when Codex itself manages the OAuth flow.                            |
 | `ChatgptAuthTokens(ChatgptAuthTokens)` | `ChatgptAuthTokens` | Holds OAuth tokens obtained externally (e.g., from the IDE extension via the app server). Stored only in-memory (ephemeral). |
 
 **Auth mode resolution diagram**
@@ -75,22 +73,22 @@ Credentials are serialized to an `AuthDotJson` struct and persisted via an `Auth
 
 ### `AuthDotJson` fields
 
-| Field | Type | Purpose |
-|---|---|---|
-| `auth_mode` | `Option<AuthMode>` | Explicitly recorded auth mode. Falls back to heuristic if absent. |
-| `openai_api_key` | `Option<String>` | The raw API key (populated for `ApiKey` mode and, historically, after ChatGPT PKCE exchange). |
-| `tokens` | `Option<TokenData>` | ChatGPT OAuth token bundle (access, refresh, id). |
-| `last_refresh` | `Option<DateTime<Utc>>` | Timestamp of the last successful token refresh, used to decide when to refresh. |
+| Field            | Type                    | Purpose                                                                                       |
+| ---------------- | ----------------------- | --------------------------------------------------------------------------------------------- |
+| `auth_mode`      | `Option<AuthMode>`      | Explicitly recorded auth mode. Falls back to heuristic if absent.                             |
+| `openai_api_key` | `Option<String>`        | The raw API key (populated for `ApiKey` mode and, historically, after ChatGPT PKCE exchange). |
+| `tokens`         | `Option<TokenData>`     | ChatGPT OAuth token bundle (access, refresh, id).                                             |
+| `last_refresh`   | `Option<DateTime<Utc>>` | Timestamp of the last successful token refresh, used to decide when to refresh.               |
 
 ### `AuthCredentialsStoreMode`
 
 Controls where credentials are written:
 
-| Mode | Behavior |
-|---|---|
-| `File` | Reads/writes `auth.json` on disk under `codex_home`. |
-| `Ephemeral` | Stores credentials in process memory only; never touches disk. Used for externally-provided ChatGPT tokens. |
-| `Auto` / keyring variants | Platform-specific secure storage (keychain/keyring). |
+| Mode                      | Behavior                                                                                                    |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `File`                    | Reads/writes `auth.json` on disk under `codex_home`.                                                        |
+| `Ephemeral`               | Stores credentials in process memory only; never touches disk. Used for externally-provided ChatGPT tokens. |
+| `Auto` / keyring variants | Platform-specific secure storage (keychain/keyring).                                                        |
 
 The `ChatgptAuthTokens` variant always uses `Ephemeral` storage regardless of the configured mode.
 
@@ -113,6 +111,7 @@ AuthManager::new(codex_home, enable_codex_api_key_env, auth_credentials_store_mo
 ```
 
 The constructor:
+
 1. Optionally checks `CODEX_API_KEY` env var (if `enable_codex_api_key_env` is true).
 2. Checks the ephemeral store for externally-provided tokens.
 3. Falls back to the configured persistent store (`File` / keyring).
@@ -121,15 +120,15 @@ The constructor:
 
 ### Key methods
 
-| Method | Purpose |
-|---|---|
-| `auth_cached()` | Returns the cached `Option<CodexAuth>` without any network call. |
-| `auth()` | Returns the cached auth, refreshing stale ChatGPT tokens if needed. |
-| `reload()` | Re-reads from disk into the cache. Called after login completes. |
-| `refresh_token()` | Refreshes ChatGPT tokens if the current in-memory token differs from what is on disk. |
-| `refresh_token_from_authority()` | Always contacts `auth.openai.com` to get new tokens, regardless of disk state. |
-| `refresh_external_auth(reason)` | Asks an `ExternalAuthRefresher` (e.g., the IDE host) for new tokens. |
-| `unauthorized_recovery()` | Returns an `UnauthorizedRecovery` state machine for handling HTTP 401 retries. |
+| Method                           | Purpose                                                                               |
+| -------------------------------- | ------------------------------------------------------------------------------------- |
+| `auth_cached()`                  | Returns the cached `Option<CodexAuth>` without any network call.                      |
+| `auth()`                         | Returns the cached auth, refreshing stale ChatGPT tokens if needed.                   |
+| `reload()`                       | Re-reads from disk into the cache. Called after login completes.                      |
+| `refresh_token()`                | Refreshes ChatGPT tokens if the current in-memory token differs from what is on disk. |
+| `refresh_token_from_authority()` | Always contacts `auth.openai.com` to get new tokens, regardless of disk state.        |
+| `refresh_external_auth(reason)`  | Asks an `ExternalAuthRefresher` (e.g., the IDE host) for new tokens.                  |
+| `unauthorized_recovery()`        | Returns an `UnauthorizedRecovery` state machine for handling HTTP 401 retries.        |
 
 Sources: [codex-rs/core/src/auth.rs:954-1050]()
 
@@ -189,15 +188,15 @@ sequenceDiagram
 
 Key types in the flow:
 
-| Type / function | File | Role |
-|---|---|---|
-| `ServerOptions` | `login/src/server.rs:40` | Configuration bundle: codex_home, client_id, issuer, port, workspace restriction. |
-| `LoginServer` | `login/src/server.rs:73` | Handle to the running local HTTP server. Exposes `auth_url`, `actual_port`, `block_until_done()`. |
-| `ShutdownHandle` | `login/src/server.rs:101` | Tokio notify wrapper; calling `shutdown()` cancels the server loop. |
-| `run_login_server(opts)` | `login/src/server.rs:113` | Spawns server + async loop; returns `LoginServer`. |
-| `exchange_code_for_tokens()` | `login/src/server.rs:536` | POSTs to `{issuer}/oauth/token` with PKCE verifier; returns `ExchangedTokens`. |
-| `persist_tokens_async()` | `login/src/server.rs:583` | Writes `AuthDotJson` to disk via `save_auth()`. |
-| `ensure_workspace_allowed()` | `login/src/server.rs:698` | Validates `chatgpt_account_id` JWT claim against `forced_chatgpt_workspace_id`. |
+| Type / function              | File                      | Role                                                                                              |
+| ---------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------- |
+| `ServerOptions`              | `login/src/server.rs:40`  | Configuration bundle: codex_home, client_id, issuer, port, workspace restriction.                 |
+| `LoginServer`                | `login/src/server.rs:73`  | Handle to the running local HTTP server. Exposes `auth_url`, `actual_port`, `block_until_done()`. |
+| `ShutdownHandle`             | `login/src/server.rs:101` | Tokio notify wrapper; calling `shutdown()` cancels the server loop.                               |
+| `run_login_server(opts)`     | `login/src/server.rs:113` | Spawns server + async loop; returns `LoginServer`.                                                |
+| `exchange_code_for_tokens()` | `login/src/server.rs:536` | POSTs to `{issuer}/oauth/token` with PKCE verifier; returns `ExchangedTokens`.                    |
+| `persist_tokens_async()`     | `login/src/server.rs:583` | Writes `AuthDotJson` to disk via `save_auth()`.                                                   |
+| `ensure_workspace_allowed()` | `login/src/server.rs:698` | Validates `chatgpt_account_id` JWT claim against `forced_chatgpt_workspace_id`.                   |
 
 The OAuth client ID used is the constant `CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"`.
 
@@ -255,12 +254,12 @@ Tokens are refreshed by POSTing to `https://auth.openai.com/oauth/token` (overri
 
 When a 401 is returned from the refresh endpoint, the error body is parsed to classify the failure:
 
-| Error code in response | `RefreshTokenFailedReason` | User message |
-|---|---|---|
-| `refresh_token_expired` | `Expired` | Token expired — log out and sign in again. |
-| `refresh_token_reused` | `Exhausted` | Token already used — log out and sign in again. |
-| `refresh_token_invalidated` | `Revoked` | Token revoked — log out and sign in again. |
-| anything else | `Other` | Generic unknown error. |
+| Error code in response      | `RefreshTokenFailedReason` | User message                                    |
+| --------------------------- | -------------------------- | ----------------------------------------------- |
+| `refresh_token_expired`     | `Expired`                  | Token expired — log out and sign in again.      |
+| `refresh_token_reused`      | `Exhausted`                | Token already used — log out and sign in again. |
+| `refresh_token_invalidated` | `Revoked`                  | Token revoked — log out and sign in again.      |
+| anything else               | `Other`                    | Generic unknown error.                          |
 
 [codex-rs/core/src/auth.rs:665-692]()
 
@@ -313,11 +312,11 @@ The function `enforce_login_restrictions(config)` runs at startup and logs out (
 
 [codex-rs/core/src/auth.rs:447-518]()
 
-| Constraint field | Source | Effect on violation |
-|---|---|---|
-| `forced_login_method: Some(ForcedLoginMethod::Api)` | Cloud config | If ChatGPT auth is active → forced logout. |
-| `forced_login_method: Some(ForcedLoginMethod::Chatgpt)` | Cloud config | If API key auth is active → forced logout. |
-| `forced_chatgpt_workspace_id` | Cloud config | If ChatGPT token's `chatgpt_account_id` doesn't match → forced logout. |
+| Constraint field                                        | Source       | Effect on violation                                                    |
+| ------------------------------------------------------- | ------------ | ---------------------------------------------------------------------- |
+| `forced_login_method: Some(ForcedLoginMethod::Api)`     | Cloud config | If ChatGPT auth is active → forced logout.                             |
+| `forced_login_method: Some(ForcedLoginMethod::Chatgpt)` | Cloud config | If API key auth is active → forced logout.                             |
+| `forced_chatgpt_workspace_id`                           | Cloud config | If ChatGPT token's `chatgpt_account_id` doesn't match → forced logout. |
 
 The TUI `AuthModeWidget` also enforces these constraints locally when rendering login options — for example, hiding the API key option when `forced_login_method == Chatgpt`.
 
@@ -364,13 +363,13 @@ stateDiagram-v2
 
 ### `AuthModeWidget` fields
 
-| Field | Type | Role |
-|---|---|---|
-| `sign_in_state` | `Arc<RwLock<SignInState>>` | Current UI state; written from async Tokio tasks. |
-| `auth_manager` | `Arc<AuthManager>` | Reloaded via `auth_manager.reload()` after successful login. |
-| `codex_home` | `PathBuf` | Path for credential storage. |
-| `forced_login_method` | `Option<ForcedLoginMethod>` | Gates which options are shown/selectable. |
-| `forced_chatgpt_workspace_id` | `Option<String>` | Passed into `ServerOptions` to restrict OAuth to a specific workspace. |
+| Field                         | Type                        | Role                                                                   |
+| ----------------------------- | --------------------------- | ---------------------------------------------------------------------- |
+| `sign_in_state`               | `Arc<RwLock<SignInState>>`  | Current UI state; written from async Tokio tasks.                      |
+| `auth_manager`                | `Arc<AuthManager>`          | Reloaded via `auth_manager.reload()` after successful login.           |
+| `codex_home`                  | `PathBuf`                   | Path for credential storage.                                           |
+| `forced_login_method`         | `Option<ForcedLoginMethod>` | Gates which options are shown/selectable.                              |
+| `forced_chatgpt_workspace_id` | `Option<String>`            | Passed into `ServerOptions` to restrict OAuth to a specific workspace. |
 
 [codex-rs/tui/src/onboarding/auth.rs:196-208]()
 
@@ -382,14 +381,14 @@ Sources: [codex-rs/tui/src/onboarding/auth.rs:86-208](), [codex-rs/tui/src/onboa
 
 The CLI entry points in `codex-rs/cli/src/login.rs` map to the following operations:
 
-| Function | Invocation | Description |
-|---|---|---|
-| `run_login_with_chatgpt()` | `codex login` | Browser PKCE flow via `run_login_server()`. |
-| `run_login_with_device_code()` | `codex login --device-auth` | OAuth device code flow. |
-| `run_login_with_device_code_fallback_to_browser()` | `codex login` (headless) | Device code with browser fallback. |
-| `run_login_with_api_key()` | `codex login --with-api-key` | Reads key from stdin, writes via `login_with_api_key()`. |
-| `run_login_status()` | `codex login --status` | Prints current auth mode (API key masked, or ChatGPT). |
-| `run_logout()` | `codex logout` | Calls `logout()` and exits. |
+| Function                                           | Invocation                   | Description                                              |
+| -------------------------------------------------- | ---------------------------- | -------------------------------------------------------- |
+| `run_login_with_chatgpt()`                         | `codex login`                | Browser PKCE flow via `run_login_server()`.              |
+| `run_login_with_device_code()`                     | `codex login --device-auth`  | OAuth device code flow.                                  |
+| `run_login_with_device_code_fallback_to_browser()` | `codex login` (headless)     | Device code with browser fallback.                       |
+| `run_login_with_api_key()`                         | `codex login --with-api-key` | Reads key from stdin, writes via `login_with_api_key()`. |
+| `run_login_status()`                               | `codex login --status`       | Prints current auth mode (API key masked, or ChatGPT).   |
+| `run_logout()`                                     | `codex logout`               | Calls `logout()` and exits.                              |
 
 [codex-rs/cli/src/login.rs:29-272]()
 

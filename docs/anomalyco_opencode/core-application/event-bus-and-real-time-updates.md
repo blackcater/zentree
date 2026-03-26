@@ -52,8 +52,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page documents OpenCode's event-driven architecture, including the pub/sub event bus system and real-time update delivery via Server-Sent Events (SSE). The event bus enables loose coupling between system components and provides clients with real-time notifications about state changes.
@@ -75,39 +73,39 @@ graph TB
         LSP["LSP Module<br/>(lsp.updated, diagnostics)"]
         PERMISSION["Permission Module<br/>(permission.updated)"]
     end
-    
+
     subgraph "Event Bus Layer"
         BUS["Bus<br/>(Per-Instance)"]
         GLOBALBUS["GlobalBus<br/>(Cross-Instance)"]
         BUSEVENT["BusEvent<br/>(Type Definitions)"]
     end
-    
+
     subgraph "Event Consumers"
         SSE["SSE Endpoint<br/>/global/event"]
         PLUGIN["Plugin System<br/>(Event Hooks)"]
         DATABASE["Database.effect<br/>(Transaction-Aware)"]
     end
-    
+
     subgraph "Clients"
         WEB["Web UI"]
         DESKTOP["Desktop Apps"]
         CLI["CLI/TUI"]
     end
-    
+
     SESSION --> BUS
     MESSAGE --> BUS
     CONFIG --> BUS
     LSP --> BUS
     PERMISSION --> BUS
-    
+
     BUS --> SSE
     GLOBALBUS --> SSE
     BUS --> PLUGIN
-    
+
     SSE --> WEB
     SSE --> DESKTOP
     SSE --> CLI
-    
+
     BUSEVENT -.defines.-> SESSION
     BUSEVENT -.defines.-> MESSAGE
     DATABASE -.wraps.-> BUS
@@ -121,11 +119,11 @@ graph TB
 
 The event system consists of three primary components:
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| `Bus` | [packages/opencode/src/bus/index.ts]() | Per-instance event bus for project-scoped events |
-| `GlobalBus` | [packages/opencode/src/bus/global.ts]() | Global event bus for system-wide events |
-| `BusEvent` | [packages/opencode/src/bus/bus-event.ts]() | Type-safe event definition helper |
+| Component   | File                                       | Purpose                                          |
+| ----------- | ------------------------------------------ | ------------------------------------------------ |
+| `Bus`       | [packages/opencode/src/bus/index.ts]()     | Per-instance event bus for project-scoped events |
+| `GlobalBus` | [packages/opencode/src/bus/global.ts]()    | Global event bus for system-wide events          |
+| `BusEvent`  | [packages/opencode/src/bus/bus-event.ts]() | Type-safe event definition helper                |
 
 ### Bus Class Structure
 
@@ -137,19 +135,19 @@ classDiagram
         +subscribe(eventType, listener)
         +unsubscribe(eventType, listener)
     }
-    
+
     class BusEvent {
         +define(name, schema)
         +type: string
         +schema: ZodSchema
     }
-    
+
     class Instance {
         +state(initializer)
         +provide(context, fn)
         +dispose()
     }
-    
+
     Bus --> Instance: "scoped to"
     BusEvent --> Bus: "defines events for"
 ```
@@ -173,7 +171,7 @@ graph LR
         DIFF["session.diff"]
         ERROR["session.error"]
     end
-    
+
     CREATED --> DB["Database Insert"]
     UPDATED --> DB
     DELETED --> DB
@@ -185,17 +183,23 @@ Session events are defined at [packages/opencode/src/session/index.ts:181-214]()
 
 ```typescript
 export const Event = {
-  Created: BusEvent.define("session.created", z.object({ info: Info })),
-  Updated: BusEvent.define("session.updated", z.object({ info: Info })),
-  Deleted: BusEvent.define("session.deleted", z.object({ info: Info })),
-  Diff: BusEvent.define("session.diff", z.object({ 
-    sessionID: z.string(), 
-    diff: Snapshot.FileDiff.array() 
-  })),
-  Error: BusEvent.define("session.error", z.object({
-    sessionID: z.string().optional(),
-    error: MessageV2.Assistant.shape.error
-  }))
+  Created: BusEvent.define('session.created', z.object({ info: Info })),
+  Updated: BusEvent.define('session.updated', z.object({ info: Info })),
+  Deleted: BusEvent.define('session.deleted', z.object({ info: Info })),
+  Diff: BusEvent.define(
+    'session.diff',
+    z.object({
+      sessionID: z.string(),
+      diff: Snapshot.FileDiff.array(),
+    })
+  ),
+  Error: BusEvent.define(
+    'session.error',
+    z.object({
+      sessionID: z.string().optional(),
+      error: MessageV2.Assistant.shape.error,
+    })
+  ),
 }
 ```
 
@@ -205,13 +209,13 @@ export const Event = {
 
 Message-related events track changes to conversation messages and their parts:
 
-| Event Type | Schema | Purpose |
-|------------|--------|---------|
-| `message.updated` | `{ info: Message }` | Message created or modified |
-| `message.removed` | `{ sessionID, messageID }` | Message deleted |
-| `message.part.updated` | `{ part: Part }` | Message part created or modified |
-| `message.part.delta` | `{ sessionID, messageID, partID, field, delta }` | Streaming delta update |
-| `message.part.removed` | `{ sessionID, messageID, partID }` | Part deleted |
+| Event Type             | Schema                                           | Purpose                          |
+| ---------------------- | ------------------------------------------------ | -------------------------------- |
+| `message.updated`      | `{ info: Message }`                              | Message created or modified      |
+| `message.removed`      | `{ sessionID, messageID }`                       | Message deleted                  |
+| `message.part.updated` | `{ part: Part }`                                 | Message part created or modified |
+| `message.part.delta`   | `{ sessionID, messageID, partID, field, delta }` | Streaming delta update           |
+| `message.part.removed` | `{ sessionID, messageID, partID }`               | Part deleted                     |
 
 **Sources:** [packages/opencode/src/session/message-v2.ts:1-18](), [packages/sdk/js/src/v2/gen/types.gen.ts:246-550]()
 
@@ -221,7 +225,7 @@ Permission events notify when user approval is requested:
 
 ```typescript
 export const Event = {
-  Updated: BusEvent.define("permission.updated", Permission)
+  Updated: BusEvent.define('permission.updated', Permission),
 }
 ```
 
@@ -256,13 +260,13 @@ Bus.publish(Event.Updated, { info: result })
 
 Events are published throughout the codebase when state changes occur:
 
-| Location | Events Published |
-|----------|------------------|
+| Location                                           | Events Published        |
+| -------------------------------------------------- | ----------------------- |
 | [packages/opencode/src/session/index.ts:314-321]() | Session creation events |
-| [packages/opencode/src/session/index.ts:287]() | Session update events |
+| [packages/opencode/src/session/index.ts:287]()     | Session update events   |
 | [packages/opencode/src/session/index.ts:669-672]() | Session deletion events |
-| [packages/opencode/src/session/index.ts:692-696]() | Message update events |
-| [packages/opencode/src/config/config.ts:28]() | Config events |
+| [packages/opencode/src/session/index.ts:692-696]() | Message update events   |
+| [packages/opencode/src/config/config.ts:28]()      | Config events           |
 
 ### Transaction-Aware Publishing
 
@@ -271,9 +275,7 @@ The `Database.effect()` wrapper ensures events are only published after database
 ```typescript
 Database.use((db) => {
   db.insert(SessionTable).values(toRow(result)).run()
-  Database.effect(() =>
-    Bus.publish(Event.Created, { info: result })
-  )
+  Database.effect(() => Bus.publish(Event.Created, { info: result }))
 })
 ```
 
@@ -292,16 +294,16 @@ sequenceDiagram
     participant SSE as "streamSSE"
     participant Bus as "Event Bus"
     participant DB as "Database"
-    
+
     Client->>Server: GET /global/event
     Server->>SSE: streamSSE()
     SSE->>Bus: subscribe(eventType, listener)
-    
+
     Note over DB: State change occurs
     DB->>Bus: publish(event, data)
     Bus->>SSE: listener(event, data)
     SSE->>Client: event: session.updated<br/>data: {...}
-    
+
     Client->>Server: Connection closed
     SSE->>Bus: unsubscribe(eventType, listener)
 ```
@@ -334,17 +336,17 @@ The server uses Hono's `streamSSE` utility to establish persistent connections:
 app.get('/global/event', async (c) => {
   return streamSSE(c, async (stream) => {
     const listener = (event, data) => {
-      stream.writeSSE({ 
-        event: event.type, 
-        data: JSON.stringify(data) 
+      stream.writeSSE({
+        event: event.type,
+        data: JSON.stringify(data),
       })
     }
-    
+
     Bus.subscribe('*', listener)
-    
+
     // Keep connection alive
     await stream.wait()
-    
+
     Bus.unsubscribe('*', listener)
   })
 })
@@ -362,21 +364,21 @@ graph TB
         GLOBALBUS["GlobalBus"]
         GLOBAL_EVENTS["installation.updated<br/>installation.update-available<br/>global.disposed"]
     end
-    
+
     subgraph "Instance 1 (~/project1)"
         BUS1["Bus (Instance 1)"]
         EVENTS1["session.created<br/>message.updated<br/>permission.updated"]
     end
-    
+
     subgraph "Instance 2 (~/project2)"
         BUS2["Bus (Instance 2)"]
         EVENTS2["session.created<br/>message.updated<br/>permission.updated"]
     end
-    
+
     GLOBAL_EVENTS --> GLOBALBUS
     EVENTS1 --> BUS1
     EVENTS2 --> BUS2
-    
+
     GLOBALBUS --> SSE["SSE /global/event"]
     BUS1 --> SSE
     BUS2 --> SSE
@@ -398,7 +400,7 @@ When a client connects to `/global/event`, it may receive events from both the g
 The JavaScript SDK provides typed event subscription:
 
 ```typescript
-const client = createOpencodeClient({ baseUrl: "http://localhost:4096" })
+const client = createOpencodeClient({ baseUrl: 'http://localhost:4096' })
 
 for await (const event of client.global.event()) {
   switch (event.type) {
@@ -417,7 +419,7 @@ for await (const event of client.global.event()) {
 All event types are unified in a discriminated union for type safety at [packages/sdk/js/src/v2/gen/types.gen.ts]():
 
 ```typescript
-export type GlobalEvent = 
+export type GlobalEvent =
   | EventInstallationUpdated
   | EventInstallationUpdateAvailable
   | EventProjectUpdated
@@ -425,7 +427,7 @@ export type GlobalEvent =
   | EventMessageUpdated
   | EventMessagePartDelta
   | EventPermissionUpdated
-  // ... and many more
+// ... and many more
 ```
 
 **Sources:** [packages/sdk/js/src/v2/gen/types.gen.ts:685-766](), [packages/sdk/js/src/v2/gen/sdk.gen.ts]()
@@ -440,13 +442,13 @@ Plugins can hook into the event system through the `event` hook:
 export default function myPlugin(input: PluginInput) {
   return {
     event: {
-      "session.created": async (event, data) => {
+      'session.created': async (event, data) => {
         // React to session creation
       },
-      "message.updated": async (event, data) => {
+      'message.updated': async (event, data) => {
         // React to message updates
-      }
-    }
+      },
+    },
   }
 }
 ```
@@ -468,6 +470,7 @@ The event bus enables reactive UI updates through stores that subscribe to event
 ### Event Filtering
 
 Clients can filter events by:
+
 - **Directory** - Only receive events for a specific project directory
 - **Workspace** - Only receive events for a specific workspace context
 - **Event Type** - Subscribe to specific event types only
@@ -484,7 +487,7 @@ await Session.updatePartDelta({
   messageID,
   partID,
   field: 'text',
-  delta: 'new text chunk'
+  delta: 'new text chunk',
 })
 ```
 

@@ -44,8 +44,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents how packages in the `vercel/ai` monorepo are versioned and published to npm. It covers the changeset authoring workflow, the CI-driven release pipeline, snapshot releases, maintenance branches, and backporting. For information about the build and test infrastructure that runs as part of CI, see [Build, Test, and Quality Infrastructure](#6.2). For information about how packages are structured within the workspace, see [Monorepo Structure and Workspace Management](#6.1).
 
 ---
@@ -54,11 +52,11 @@ This page documents how packages in the `vercel/ai` monorepo are versioned and p
 
 The monorepo does **not** follow strict semantic versioning. The convention is:
 
-| Bump type | When used |
-|-----------|-----------|
-| `patch` | Default for all changes — both bug fixes and new features |
-| `minor` | "Marketing releases" only, accompanied by a blog post and migration guide |
-| `major` | Major breaking releases |
+| Bump type | When used                                                                 |
+| --------- | ------------------------------------------------------------------------- |
+| `patch`   | Default for all changes — both bug fixes and new features                 |
+| `minor`   | "Marketing releases" only, accompanied by a blog post and migration guide |
+| `major`   | Major breaking releases                                                   |
 
 CI enforces this policy: any changeset file that uses `minor` or `major` as a version bump will fail the `Verify Changesets` check unless the pull request carries a `minor` or `major` label. The enforcement logic lives in [.github/workflows/actions/verify-changesets/index.js:50-137]().
 
@@ -83,23 +81,23 @@ The repository is currently in **v7 beta pre-release mode**. This state is track
 
 **Current version snapshot (as of latest commit):**
 
-| Package | Version |
-|---------|---------|
-| `ai` | `7.0.0-beta.7` |
-| `@ai-sdk/react` | `4.0.0-beta.7` |
-| `@ai-sdk/vue` | `4.0.0-beta.7` |
-| `@ai-sdk/svelte` | `5.0.0-beta.7` |
-| `@ai-sdk/angular` | `3.0.0-beta.7` |
-| `@ai-sdk/rsc` | `3.0.0-beta.7` |
-| `@ai-sdk/langchain` | `3.0.0-beta.7` |
-| `@ai-sdk/openai` | `4.0.0-beta.3` |
-| `@ai-sdk/anthropic` | `4.0.0-beta.1` |
-| `@ai-sdk/google` | `4.0.0-beta.3` |
-| `@ai-sdk/google-vertex` | `5.0.0-beta.3` |
+| Package                  | Version        |
+| ------------------------ | -------------- |
+| `ai`                     | `7.0.0-beta.7` |
+| `@ai-sdk/react`          | `4.0.0-beta.7` |
+| `@ai-sdk/vue`            | `4.0.0-beta.7` |
+| `@ai-sdk/svelte`         | `5.0.0-beta.7` |
+| `@ai-sdk/angular`        | `3.0.0-beta.7` |
+| `@ai-sdk/rsc`            | `3.0.0-beta.7` |
+| `@ai-sdk/langchain`      | `3.0.0-beta.7` |
+| `@ai-sdk/openai`         | `4.0.0-beta.3` |
+| `@ai-sdk/anthropic`      | `4.0.0-beta.1` |
+| `@ai-sdk/google`         | `4.0.0-beta.3` |
+| `@ai-sdk/google-vertex`  | `5.0.0-beta.3` |
 | `@ai-sdk/amazon-bedrock` | `5.0.0-beta.1` |
-| `@ai-sdk/provider` | `4.0.0-beta.0` |
+| `@ai-sdk/provider`       | `4.0.0-beta.0` |
 | `@ai-sdk/provider-utils` | `5.0.0-beta.1` |
-| `@ai-sdk/gateway` | `4.0.0-beta.0` |
+| `@ai-sdk/gateway`        | `4.0.0-beta.0` |
 
 While in pre-release mode, all version bumps produce beta versions (e.g., `7.0.0-beta.8`, `7.0.0-beta.9`). The pre-release will continue until `pnpm changeset pre exit` is executed, at which point the next release will produce stable versions (`7.0.0`).
 
@@ -123,8 +121,8 @@ This runs the `@changesets/cli` (`@changesets/cli@2.27.10` per [pnpm-lock.yaml:1
 
 ```markdown
 ---
-"ai": patch
-"@ai-sdk/openai": patch
+'ai': patch
+'@ai-sdk/openai': patch
 ---
 
 Fix streaming timeout edge case in generateText
@@ -159,10 +157,10 @@ The regular release pipeline is fully automated using the `changesets/action` Gi
 
 **Key scripts declared in [package.json:21-22]():**
 
-| Script | Command |
-|--------|---------|
+| Script       | Command                                                                                                          |
+| ------------ | ---------------------------------------------------------------------------------------------------------------- |
 | `ci:version` | `changeset version && node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile` |
-| `ci:release` | `turbo clean && turbo build && changeset publish` |
+| `ci:release` | `turbo clean && turbo build && changeset publish`                                                                |
 
 The `cleanup-examples-changesets.mjs` script removes any changesets that only affect example packages, which are not published to npm.
 
@@ -217,7 +215,9 @@ During beta, changelogs accumulate entries under a beta version header. For exam
 - 210ed3d: feat(ai): pass result provider metadata across the stream
 
 ## 7.0.0-beta.6
+
 ...
+
 ## 7.0.0-beta.0
 
 ### Major Changes
@@ -370,9 +370,11 @@ The workflow documented in [contributing/releases.md]() is:
 1. **Create a maintenance branch** for the current stable minor version before switching `main` to beta. For example, when entering v7 beta, a `release-v6.0` branch was created.
 
 2. **Enter pre-release mode on `main`:**
+
    ```bash
    pnpm changeset pre enter beta
    ```
+
    This creates `.changeset/pre.json` that marks `main` as a beta channel. For v7, this set `initialVersions` to the v6 stable versions (e.g., `"ai": "6.0.116"`).
 
 3. **Continue development:** All PRs still target `main`. The "Version Packages" PR will produce `x.y.z-beta.N` versions. In the current v7 cycle, versions increment as `7.0.0-beta.0`, `7.0.0-beta.1`, ..., `7.0.0-beta.7`.
@@ -474,11 +476,11 @@ Sources: [.github/workflows/release.yml](), [.github/workflows/release-snapshot.
 
 ## Required Secrets and Tokens
 
-| Secret | Used by | Purpose |
-|--------|---------|---------|
-| `NPM_TOKEN_ELEVATED` | `release.yml`, `release-snapshot.yml`, `validate-npm-token.yml` | Publish packages to npm |
-| `VERCEL_AI_SDK_GITHUB_APP_PRIVATE_KEY_PKCS8` | `release.yml`, `backport.yml`, `triage.yml` | GitHub App token for creating PRs and pushing commits |
-| `GITHUB_TOKEN` | `release-snapshot.yml`, `verify-changesets.yml` | Standard GitHub Actions token for reading repo |
+| Secret                                       | Used by                                                         | Purpose                                               |
+| -------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------- |
+| `NPM_TOKEN_ELEVATED`                         | `release.yml`, `release-snapshot.yml`, `validate-npm-token.yml` | Publish packages to npm                               |
+| `VERCEL_AI_SDK_GITHUB_APP_PRIVATE_KEY_PKCS8` | `release.yml`, `backport.yml`, `triage.yml`                     | GitHub App token for creating PRs and pushing commits |
+| `GITHUB_TOKEN`                               | `release-snapshot.yml`, `verify-changesets.yml`                 | Standard GitHub Actions token for reading repo        |
 
 The npm token is validated hourly by a dedicated `validate-npm-token.yml` workflow ([.github/workflows/validate-npm-token.yml]()) to detect expiry proactively.
 
@@ -488,15 +490,15 @@ Sources: [.github/workflows/release.yml:69-70](), [.github/workflows/release-sna
 
 ## Summary Reference
 
-| Operation | Command / Mechanism |
-|-----------|---------------------|
-| Create a changeset | `pnpm changeset` |
+| Operation                   | Command / Mechanism                                           |
+| --------------------------- | ------------------------------------------------------------- |
+| Create a changeset          | `pnpm changeset`                                              |
 | Regular release (automated) | Merge "Version Packages" PR; `release.yml` calls `ci:release` |
-| Version bump on PR | `changesets/action` calls `ci:version` |
-| Snapshot release | Trigger `Release Snapshot` workflow dispatch |
-| Backport a fix | Add `backport` label to merged PR |
-| Enter beta mode | `pnpm changeset pre enter beta` |
-| Exit beta mode | `pnpm changeset pre exit` |
-| Check valid bumps in CI | `verify-changesets.yml` → `verifyChangesets()` in `index.js` |
+| Version bump on PR          | `changesets/action` calls `ci:version`                        |
+| Snapshot release            | Trigger `Release Snapshot` workflow dispatch                  |
+| Backport a fix              | Add `backport` label to merged PR                             |
+| Enter beta mode             | `pnpm changeset pre enter beta`                               |
+| Exit beta mode              | `pnpm changeset pre exit`                                     |
+| Check valid bumps in CI     | `verify-changesets.yml` → `verifyChangesets()` in `index.js`  |
 
 Sources: [contributing/releases.md](), [package.json:8-23]()

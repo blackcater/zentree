@@ -33,8 +33,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page catalogs the Next.js example applications in the AI SDK repository, demonstrating integration patterns for chat interfaces, tool calling, file attachments, OpenAI Responses API, provider-specific features, production telemetry, rate limiting, bot protection, and multi-step agent workflows. These examples primarily use the App Router (React Server Components) pattern with Next.js 15+.
 
 For examples using other frontend frameworks (SvelteKit, Nuxt, Angular), see [5.2](#5.2). For backend-only examples (Express, Fastify, Hono, NestJS), see [5.3](#5.3). For detailed coverage of production features like telemetry and rate limiting, see [5.4](#5.4).
@@ -60,13 +58,13 @@ graph TB
         SENTRY["examples/next-openai-telemetry-sentry<br/>Sentry integration"]
         RATELIMIT["examples/next-openai-upstash-rate-limits<br/>Rate limiting"]
     end
-    
+
     subgraph "Common Dependencies"
         REACT["@ai-sdk/react@4.0.0-beta.7<br/>useChat/useObject hooks"]
         AI["ai@7.0.0-beta.7<br/>Core SDK"]
         PROVIDERS["Provider packages<br/>@ai-sdk/openai, etc"]
     end
-    
+
     BASIC --> REACT
     BASIC --> AI
     E2E --> REACT
@@ -97,7 +95,7 @@ sequenceDiagram
     participant APIRoute as "API Route<br/>app/api/chat/route.ts"
     participant streamText as "streamText()<br/>ai package"
     participant OpenAI as "OpenAI Provider<br/>@ai-sdk/openai"
-    
+
     Client->>useChat: Initialize with /api/chat
     Client->>useChat: sendMessage("Hello")
     useChat->>APIRoute: POST /api/chat
@@ -111,11 +109,11 @@ sequenceDiagram
 
 ### File Structure
 
-| File Path | Purpose |
-|-----------|---------|
-| `app/api/chat/route.ts` | API route handler using `streamText()` |
-| `app/page.tsx` | Client component using `useChat()` hook |
-| `package.json` | Dependencies: `@ai-sdk/react`, `ai`, `next`, `react` |
+| File Path               | Purpose                                              |
+| ----------------------- | ---------------------------------------------------- |
+| `app/api/chat/route.ts` | API route handler using `streamText()`               |
+| `app/page.tsx`          | Client component using `useChat()` hook              |
+| `package.json`          | Dependencies: `@ai-sdk/react`, `ai`, `next`, `react` |
 
 **Sources:** [examples/next/package.json:1-41]()
 
@@ -129,16 +127,16 @@ Most examples use the **App Router** (Next.js 13+), but `examples/next-openai-pa
 
 ```typescript
 // app/api/chat/route.ts
-import { streamText } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai'
+import { openai } from '@ai-sdk/openai'
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages } = await req.json()
   const result = await streamText({
     model: openai('gpt-4'),
     messages,
-  });
-  return result.toDataStreamResponse();
+  })
+  return result.toDataStreamResponse()
 }
 ```
 
@@ -146,16 +144,16 @@ export async function POST(req: Request) {
 
 ```typescript
 // pages/api/chat.ts
-import { streamText } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai'
+import { openai } from '@ai-sdk/openai'
 
 export default async function handler(req, res) {
-  const { messages } = req.body;
+  const { messages } = req.body
   const result = await streamText({
     model: openai('gpt-4'),
     messages,
-  });
-  result.pipeDataStreamToResponse(res);
+  })
+  result.pipeDataStreamToResponse(res)
 }
 ```
 
@@ -172,7 +170,7 @@ The `examples/ai-e2e-next` example serves as the **primary testing ground** for 
 ```mermaid
 graph LR
     E2E["ai-e2e-next<br/>Testing Suite"]
-    
+
     E2E --> OPENAI["@ai-sdk/openai<br/>Responses API"]
     E2E --> ANTHROPIC["@ai-sdk/anthropic<br/>Messages API"]
     E2E --> GOOGLE["@ai-sdk/google<br/>Generative AI"]
@@ -189,13 +187,13 @@ graph LR
 
 ### Key Features Demonstrated
 
-| Feature | Implementation |
-|---------|---------------|
+| Feature                    | Implementation                                         |
+| -------------------------- | ------------------------------------------------------ |
 | **Provider-defined tools** | OpenAI `web_search`, `file_search`, `code_interpreter` |
-| **File attachments** | `@vercel/blob` integration for image/document uploads |
-| **MCP integration** | `@ai-sdk/mcp` package for Model Context Protocol |
-| **Structured outputs** | `@ai-sdk/valibot` for schema validation |
-| **UI components** | Radix UI, Tailwind CSS, Lucide icons |
+| **File attachments**       | `@vercel/blob` integration for image/document uploads  |
+| **MCP integration**        | `@ai-sdk/mcp` package for Model Context Protocol       |
+| **Structured outputs**     | `@ai-sdk/valibot` for schema validation                |
+| **UI components**          | Radix UI, Tailwind CSS, Lucide icons                   |
 
 **Dependencies:**
 
@@ -229,10 +227,10 @@ sequenceDiagram
     participant streamText as "streamText()"
     participant Tools as "Tool Registry"
     participant runTools as "runToolsTransformation"
-    
+
     Client->>API: POST with messages
     API->>streamText: streamText({tools, maxSteps: 5})
-    
+
     loop Multi-step execution
         streamText->>runTools: Execute tool calls
         runTools->>Tools: getWeather(location)
@@ -240,7 +238,7 @@ sequenceDiagram
         runTools-->>streamText: Continue with result
         streamText->>streamText: Check stopWhen condition
     end
-    
+
     streamText-->>API: Final result
     API-->>Client: Stream response
 ```
@@ -262,7 +260,7 @@ const result = await streamText({
     }),
   },
   maxSteps: 5, // Allow up to 5 tool calls
-});
+})
 ```
 
 **Sources:** [examples/next-agent/package.json:1-31]()
@@ -281,17 +279,18 @@ graph LR
     VERTEX_PKG["@ai-sdk/google-vertex<br/>5.0.0-beta.3"]
     AI_PKG["ai<br/>7.0.0-beta.7"]
     GEIST["geist<br/>UI library"]
-    
+
     APP --> VERTEX_PKG
     APP --> AI_PKG
     APP --> GEIST
-    
+
     VERTEX_PKG --> AUTH["Google Auth Library<br/>Service account authentication"]
     VERTEX_PKG --> GEMINI["Gemini models<br/>Vertex API"]
     VERTEX_PKG --> ANTHROPIC_V["Claude via Vertex<br/>anthropic sub-provider"]
 ```
 
 **Key Features:**
+
 - Service account authentication via `google-auth-library`
 - Access to Gemini models through Vertex AI
 - Support for Claude models via `@ai-sdk/google-vertex/anthropic`
@@ -313,7 +312,7 @@ graph TB
         LANGCHAIN_CORE["@langchain/core<br/>^1.1.5"]
         LANGCHAIN_OPENAI["@langchain/openai<br/>^1.2.0"]
     end
-    
+
     REACT --> LANGCHAIN_ADAPTER
     LANGCHAIN_ADAPTER --> LANGGRAPH
     LANGGRAPH --> LANGCHAIN_CORE
@@ -321,6 +320,7 @@ graph TB
 ```
 
 **Key Components:**
+
 - `toUIMessageStream()`: Converts LangGraph output to AI SDK message format
 - `parseLangGraphEvent()`: Parses LangGraph streaming events
 - LangGraph server: Run via `@langchain/langgraph-cli dev`
@@ -344,16 +344,17 @@ graph LR
     OTEL_SDK["@opentelemetry/sdk-logs<br/>0.55.0"]
     OTEL_INSTR["@opentelemetry/instrumentation<br/>0.52.1"]
     VERCEL_OTEL["@vercel/otel<br/>1.10.0"]
-    
+
     APP --> OTEL_API
     APP --> OTEL_SDK
     APP --> OTEL_INSTR
     APP --> VERCEL_OTEL
-    
+
     VERCEL_OTEL --> EXPORTER["OTLP Exporter<br/>Traces & Logs"]
 ```
 
 **Configuration:**
+
 - Uses `@vercel/otel` for automatic Next.js instrumentation
 - Exports traces and logs to OTLP-compatible backends
 - Captures AI SDK telemetry through `experimental_telemetry` option
@@ -368,15 +369,16 @@ graph LR
     SENTRY_NEXT["@sentry/nextjs<br/>^10.17.0"]
     SENTRY_OTEL["@sentry/opentelemetry<br/>8.22.0"]
     VERCEL_OTEL["@vercel/otel<br/>1.10.0"]
-    
+
     APP --> SENTRY_NEXT
     SENTRY_NEXT --> SENTRY_OTEL
     APP --> VERCEL_OTEL
-    
+
     SENTRY_OTEL --> SENTRY_BACKEND["Sentry Backend<br/>Error tracking & traces"]
 ```
 
 **Key Features:**
+
 - Error tracking for AI generation failures
 - Distributed tracing for request flows
 - Performance monitoring for streaming responses
@@ -393,17 +395,18 @@ graph TB
     VERCEL_KV["@vercel/kv<br/>^0.2.2"]
     KV_STORE["Upstash Redis<br/>Rate limit storage"]
     STREAMTEXT["streamText()"]
-    
+
     CLIENT --> MIDDLEWARE
     MIDDLEWARE --> UPSTASH
     UPSTASH --> VERCEL_KV
     VERCEL_KV --> KV_STORE
-    
+
     UPSTASH -->|"Allowed"| STREAMTEXT
     UPSTASH -->|"Rate limited"| REJECT["429 Response"]
 ```
 
 **Implementation Pattern:**
+
 - `@upstash/ratelimit`: Sliding window or token bucket algorithms
 - `@vercel/kv`: Serverless Redis storage via Vercel KV
 - Integration point: Check rate limit before `streamText()` call
@@ -419,7 +422,7 @@ graph TB
     API_ROUTE["API Route<br/>/api/chat"]
     KASADA_VERIFY["Kasada Verification<br/>@vercel/functions"]
     STREAMTEXT["streamText()"]
-    
+
     CLIENT --> KASADA
     KASADA --> API_ROUTE
     API_ROUTE --> KASADA_VERIFY
@@ -428,6 +431,7 @@ graph TB
 ```
 
 **Key Components:**
+
 - `@vercel/functions`: Provides `getKasadaContext()` for bot detection
 - Client-side Kasada SDK challenge
 - Server-side verification before AI generation
@@ -445,12 +449,12 @@ graph TB
     subgraph "Frontend: Next.js"
         PAGE["app/page.tsx<br/>useChat hook"]
     end
-    
+
     subgraph "Backend: FastAPI"
         FASTAPI["api/index.py<br/>Python FastAPI"]
         OPENAI_PY["OpenAI Python SDK"]
     end
-    
+
     PAGE -->|"HTTP POST /api/chat"| FASTAPI
     FASTAPI --> OPENAI_PY
     OPENAI_PY -->|"Stream response"| FASTAPI
@@ -458,17 +462,18 @@ graph TB
 ```
 
 **Development Setup:**
+
 - Frontend: `npm run next-dev` (Next.js dev server)
 - Backend: `npm run fastapi-dev` (uvicorn with hot reload)
 - Concurrent execution: `npm run dev` (both servers via `concurrently`)
 
 **Key Dependencies:**
 
-| Package | Purpose |
-|---------|---------|
-| `@ai-sdk/react` | Frontend `useChat()` hook |
-| `ai` | Message format compatibility |
-| `concurrently` | Run both dev servers |
+| Package                   | Purpose                      |
+| ------------------------- | ---------------------------- |
+| `@ai-sdk/react`           | Frontend `useChat()` hook    |
+| `ai`                      | Message format compatibility |
+| `concurrently`            | Run both dev servers         |
 | Python `requirements.txt` | FastAPI, OpenAI SDK, uvicorn |
 
 **Sources:** [examples/next-fastapi/package.json:1-33]()
@@ -481,12 +486,12 @@ The `examples/next-openai-pages` provides a reference implementation for project
 
 ### Key Differences from App Router
 
-| Aspect | App Router | Pages Router |
-|--------|-----------|--------------|
-| API Route Location | `app/api/chat/route.ts` | `pages/api/chat.ts` |
-| Export Pattern | `export async function POST()` | `export default function handler()` |
+| Aspect             | App Router                      | Pages Router                           |
+| ------------------ | ------------------------------- | -------------------------------------- |
+| API Route Location | `app/api/chat/route.ts`         | `pages/api/chat.ts`                    |
+| Export Pattern     | `export async function POST()`  | `export default function handler()`    |
 | Response Streaming | `result.toDataStreamResponse()` | `result.pipeDataStreamToResponse(res)` |
-| Client Component | `app/page.tsx` | `pages/index.tsx` |
+| Client Component   | `app/page.tsx`                  | `pages/index.tsx`                      |
 
 **Sources:** [examples/next-openai-pages/package.json:1-31]()
 
@@ -507,21 +512,21 @@ graph TB
         REACT_LIB["react<br/>^18"]
         REACT_DOM["react-dom<br/>^18"]
     end
-    
+
     subgraph "Provider Layer"
         OPENAI["@ai-sdk/openai"]
         ANTHROPIC["@ai-sdk/anthropic"]
         GOOGLE["@ai-sdk/google"]
         VERTEX["@ai-sdk/google-vertex"]
     end
-    
+
     subgraph "Optional Features"
         RSC["@ai-sdk/rsc<br/>Server Components"]
         LANGCHAIN["@ai-sdk/langchain<br/>LangGraph"]
         BLOB["@vercel/blob<br/>File uploads"]
         VALIBOT["@ai-sdk/valibot<br/>Schema validation"]
     end
-    
+
     REACT --> AI
     AI --> OPENAI
     AI --> ANTHROPIC
@@ -533,12 +538,12 @@ graph TB
 
 Standard scripts across all Next.js examples:
 
-| Script | Purpose | Implementation |
-|--------|---------|----------------|
-| `dev` | Start development server | `next dev` (port 3000) |
-| `build` | Production build | `next build` |
-| `start` | Run production server | `next start` |
-| `lint` | ESLint validation | `next lint` |
+| Script  | Purpose                  | Implementation         |
+| ------- | ------------------------ | ---------------------- |
+| `dev`   | Start development server | `next dev` (port 3000) |
+| `build` | Production build         | `next build`           |
+| `start` | Run production server    | `next start`           |
+| `lint`  | ESLint validation        | `next lint`            |
 
 **Sources:** [examples/next/package.json:1-41](), [examples/next-agent/package.json:1-31]()
 
@@ -546,18 +551,18 @@ Standard scripts across all Next.js examples:
 
 ## Example Selection Guide
 
-| Use Case | Recommended Example | Key Features |
-|----------|-------------------|--------------|
-| **Basic chat UI** | `examples/next` | Simple `useChat()` integration |
-| **Multi-step agents** | `examples/next-agent` | Tool calling with `maxSteps` |
-| **Google Vertex AI** | `examples/next-google-vertex` | Vertex authentication, enterprise features |
-| **LangGraph workflows** | `examples/next-langchain` | LangGraph server integration |
-| **Pages Router** | `examples/next-openai-pages` | Legacy Next.js support |
-| **Python backend** | `examples/next-fastapi` | FastAPI + Next.js hybrid |
-| **Production observability** | `examples/next-openai-telemetry` | OpenTelemetry tracing |
-| **Error tracking** | `examples/next-openai-telemetry-sentry` | Sentry integration |
-| **Rate limiting** | `examples/next-openai-upstash-rate-limits` | Upstash Redis rate limiting |
-| **Bot protection** | `examples/next-openai-kasada-bot-protection` | Kasada anti-bot verification |
-| **Comprehensive testing** | `examples/ai-e2e-next` | All providers, tools, features |
+| Use Case                     | Recommended Example                          | Key Features                               |
+| ---------------------------- | -------------------------------------------- | ------------------------------------------ |
+| **Basic chat UI**            | `examples/next`                              | Simple `useChat()` integration             |
+| **Multi-step agents**        | `examples/next-agent`                        | Tool calling with `maxSteps`               |
+| **Google Vertex AI**         | `examples/next-google-vertex`                | Vertex authentication, enterprise features |
+| **LangGraph workflows**      | `examples/next-langchain`                    | LangGraph server integration               |
+| **Pages Router**             | `examples/next-openai-pages`                 | Legacy Next.js support                     |
+| **Python backend**           | `examples/next-fastapi`                      | FastAPI + Next.js hybrid                   |
+| **Production observability** | `examples/next-openai-telemetry`             | OpenTelemetry tracing                      |
+| **Error tracking**           | `examples/next-openai-telemetry-sentry`      | Sentry integration                         |
+| **Rate limiting**            | `examples/next-openai-upstash-rate-limits`   | Upstash Redis rate limiting                |
+| **Bot protection**           | `examples/next-openai-kasada-bot-protection` | Kasada anti-bot verification               |
+| **Comprehensive testing**    | `examples/ai-e2e-next`                       | All providers, tools, features             |
 
 **Sources:** [pnpm-lock.yaml:65-211](), [.changeset/pre.json:1-100]()

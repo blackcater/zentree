@@ -27,8 +27,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document explains how TanStack AI handles different content types (text, images, audio, video, documents) in messages. It covers the type system for multimodal content, how modalities are constrained per model, and how adapters transform multimodal content for specific providers.
 
 For information about message types and data flow, see [Data Flow and Message Types](#2.2). For provider-specific features, see [AI Provider Adapters](#3.3).
@@ -45,13 +43,13 @@ Sources: [packages/typescript/ai/src/types.ts:100-196]()
 
 TanStack AI defines five modality types representing different forms of input content:
 
-| Modality | Description | Typical Use Cases |
-|----------|-------------|-------------------|
-| `text` | Plain text content | Chat messages, prompts, instructions |
-| `image` | Image content (base64 or URL) | Visual Q&A, OCR, image analysis |
-| `audio` | Audio content (base64 or URL) | Speech recognition, audio analysis |
-| `video` | Video content (base64 or URL) | Video understanding, frame analysis |
-| `document` | Document content like PDFs (base64 or URL) | Document Q&A, content extraction |
+| Modality   | Description                                | Typical Use Cases                    |
+| ---------- | ------------------------------------------ | ------------------------------------ |
+| `text`     | Plain text content                         | Chat messages, prompts, instructions |
+| `image`    | Image content (base64 or URL)              | Visual Q&A, OCR, image analysis      |
+| `audio`    | Audio content (base64 or URL)              | Speech recognition, audio analysis   |
+| `video`    | Video content (base64 or URL)              | Video understanding, frame analysis  |
+| `document` | Document content like PDFs (base64 or URL) | Document Q&A, content extraction     |
 
 ```typescript
 export type Modality = 'text' | 'image' | 'audio' | 'video' | 'document'
@@ -66,25 +64,25 @@ Sources: [packages/typescript/ai/src/types.ts:100-108]()
 ```mermaid
 graph TB
     ContentPart["ContentPart&lt;TTextMeta, TImageMeta, TAudioMeta, TVideoMeta, TDocumentMeta&gt;<br/>Union of all content part types"]
-    
+
     TextPart["TextPart&lt;TMetadata&gt;<br/>type: 'text'<br/>content: string<br/>metadata?: TMetadata"]
-    
+
     ImagePart["ImagePart&lt;TMetadata&gt;<br/>type: 'image'<br/>source: ContentPartSource<br/>metadata?: TMetadata"]
-    
+
     AudioPart["AudioPart&lt;TMetadata&gt;<br/>type: 'audio'<br/>source: ContentPartSource<br/>metadata?: TMetadata"]
-    
+
     VideoPart["VideoPart&lt;TMetadata&gt;<br/>type: 'video'<br/>source: ContentPartSource<br/>metadata?: TMetadata"]
-    
+
     DocumentPart["DocumentPart&lt;TMetadata&gt;<br/>type: 'document'<br/>source: ContentPartSource<br/>metadata?: TMetadata"]
-    
+
     ContentPartSource["ContentPartSource<br/>type: 'data' | 'url'<br/>value: string"]
-    
+
     ContentPart --> TextPart
     ContentPart --> ImagePart
     ContentPart --> AudioPart
     ContentPart --> VideoPart
     ContentPart --> DocumentPart
-    
+
     ImagePart --> ContentPartSource
     AudioPart --> ContentPartSource
     VideoPart --> ContentPartSource
@@ -105,7 +103,7 @@ Non-text content parts specify their source through the `ContentPartSource` inte
 export interface ContentPartSource {
   /** 'data': Inline data (base64) | 'url': URL reference */
   type: 'data' | 'url'
-  /** 
+  /**
    * For 'data': base64-encoded string
    * For 'url': HTTP(S) URL or data URI
    */
@@ -114,6 +112,7 @@ export interface ContentPartSource {
 ```
 
 **Data Source Example (Base64)**:
+
 ```typescript
 {
   type: 'image',
@@ -125,6 +124,7 @@ export interface ContentPartSource {
 ```
 
 **URL Source Example**:
+
 ```typescript
 {
   type: 'image',
@@ -207,11 +207,11 @@ Sources: [packages/typescript/ai/src/types.ts:130-175]()
 
 Each `ContentPart` type accepts a generic `TMetadata` parameter for provider-specific extensions. Different providers use metadata to expose unique capabilities:
 
-| Provider | Modality | Metadata Example | Purpose |
-|----------|----------|------------------|---------|
-| OpenAI | image | `{ detail: 'high' \| 'low' \| 'auto' }` | Control image processing detail level |
-| Anthropic | document | `{ media_type: 'application/pdf' }` | Specify document MIME type |
-| Anthropic | any | `{ cacheControl: { type: 'ephemeral', ttl: '5m' } }` | Control prompt caching |
+| Provider  | Modality | Metadata Example                                     | Purpose                               |
+| --------- | -------- | ---------------------------------------------------- | ------------------------------------- |
+| OpenAI    | image    | `{ detail: 'high' \| 'low' \| 'auto' }`              | Control image processing detail level |
+| Anthropic | document | `{ media_type: 'application/pdf' }`                  | Specify document MIME type            |
+| Anthropic | any      | `{ cacheControl: { type: 'ephemeral', ttl: '5m' } }` | Control prompt caching                |
 
 ### OpenAI Image Metadata Example
 
@@ -244,17 +244,17 @@ Sources: [packages/typescript/ai/src/types.ts:130-175](), [packages/typescript/a
 ```mermaid
 graph TB
     InputModalitiesTypes["InputModalitiesTypes<br/>inputModalities: ReadonlyArray&lt;Modality&gt;<br/>messageMetadataByModality: DefaultMessageMetadataByModality"]
-    
+
     ModalitiesArrayToUnion["ModalitiesArrayToUnion&lt;T&gt;<br/>Converts readonly ['text', 'image'] to 'text' | 'image'"]
-    
+
     ContentPartForInputModalitiesTypes["ContentPartForInputModalitiesTypes&lt;T&gt;<br/>Filters ContentPart union to allowed modalities<br/>Uses Extract to match type field"]
-    
+
     ConstrainedContent["ConstrainedContent&lt;T&gt;<br/>string | null | Array&lt;ContentPartForInputModalitiesTypes&lt;T&gt;&gt;"]
-    
+
     ConstrainedModelMessage["ConstrainedModelMessage&lt;T&gt;<br/>ModelMessage with content constrained to allowed modalities"]
-    
+
     BaseTextAdapter["BaseTextAdapter&lt;TModel, TProviderOptions, TInputModalities, TMetadataByModality&gt;<br/>Enforces modality constraints at adapter level"]
-    
+
     InputModalitiesTypes --> ModalitiesArrayToUnion
     InputModalitiesTypes --> ContentPartForInputModalitiesTypes
     ContentPartForInputModalitiesTypes --> ConstrainedContent
@@ -333,8 +333,8 @@ The simplest form uses a string for text-only content:
 const messages = [
   {
     role: 'user',
-    content: 'Describe this image'
-  }
+    content: 'Describe this image',
+  },
 ]
 ```
 
@@ -349,17 +349,17 @@ const messages = [
     content: [
       {
         type: 'text',
-        content: 'What is in this image?'
+        content: 'What is in this image?',
       },
       {
         type: 'image',
         source: {
           type: 'url',
-          value: 'https://example.com/photo.jpg'
-        }
-      }
-    ]
-  }
+          value: 'https://example.com/photo.jpg',
+        },
+      },
+    ],
+  },
 ]
 ```
 
@@ -372,20 +372,20 @@ const messages = [
     content: [
       {
         type: 'text',
-        content: 'Analyze this document'
+        content: 'Analyze this document',
       },
       {
         type: 'document',
         source: {
           type: 'data',
-          value: 'JVBERi0xLjQK...' // base64 PDF
+          value: 'JVBERi0xLjQK...', // base64 PDF
         },
         metadata: {
-          media_type: 'application/pdf' // Anthropic-specific
-        }
-      }
-    ]
-  }
+          media_type: 'application/pdf', // Anthropic-specific
+        },
+      },
+    ],
+  },
 ]
 ```
 
@@ -396,25 +396,25 @@ Sources: [packages/typescript/ai/src/types.ts:232-243]()
 ```mermaid
 graph TB
     ModelMessage["ModelMessage<br/>content: string | Array&lt;ContentPart&gt;"]
-    
+
     AdapterFormatMessages["Adapter.formatMessages()<br/>Maps ContentPart[] to provider format"]
-    
+
     TextExtraction["Extract text from TextPart"]
     ImageExtraction["Extract images from ImagePart<br/>Convert ContentPartSource to provider format"]
     AudioExtraction["Extract audio from AudioPart"]
     VideoExtraction["Extract video from VideoPart"]
     DocumentExtraction["Extract documents from DocumentPart"]
-    
+
     ProviderMessage["Provider-Specific Message<br/>OpenAI: { role, content: [{ type, text/image_url }] }<br/>Anthropic: { role, content: [{ type, text/source }] }<br/>Ollama: { role, content, images: [] }"]
-    
+
     ModelMessage --> AdapterFormatMessages
-    
+
     AdapterFormatMessages --> TextExtraction
     AdapterFormatMessages --> ImageExtraction
     AdapterFormatMessages --> AudioExtraction
     AdapterFormatMessages --> VideoExtraction
     AdapterFormatMessages --> DocumentExtraction
-    
+
     TextExtraction --> ProviderMessage
     ImageExtraction --> ProviderMessage
     AudioExtraction --> ProviderMessage
@@ -460,6 +460,7 @@ private formatMessages(messages: TextOptions['messages']): Array<Message> {
 ```
 
 This method:
+
 1. Iterates through `ContentPart` array
 2. Accumulates text from `TextPart` entries
 3. Collects image sources from `ImagePart` entries
@@ -507,8 +508,8 @@ const validMessage = {
   role: 'user',
   content: [
     { type: 'text', content: 'Hello' },
-    { type: 'image', source: { type: 'url', value: '...' } }
-  ]
+    { type: 'image', source: { type: 'url', value: '...' } },
+  ],
 }
 
 // ❌ Type Error: audio not supported
@@ -516,8 +517,8 @@ const invalidMessage = {
   role: 'user',
   content: [
     { type: 'text', content: 'Hello' },
-    { type: 'audio', source: { type: 'data', value: '...' } } // Type error!
-  ]
+    { type: 'audio', source: { type: 'data', value: '...' } }, // Type error!
+  ],
 }
 ```
 

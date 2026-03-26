@@ -21,8 +21,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 OpenClaw provides Docker-based sandboxing for tool execution to isolate agent sessions from the host system. Sandboxing restricts filesystem access, process execution, and network capabilities for group chat sessions, webhook triggers, or any scenario requiring host protection.
 
 This page covers sandbox modes, container lifecycle, tool filtering, workspace access controls, and security boundaries. For access control policies (DM/group allowlists), see page 10.1. For configuration reference, see page 2.3.1.
@@ -35,31 +33,31 @@ Sandboxing is configured via `agents.defaults.sandbox.mode` (or per-agent overri
 
 ### Sandbox Modes
 
-| Mode | Behavior | Use Case |
-|------|----------|----------|
-| `off` (default) | All sessions run on host. No isolation. | Trusted single-user setups |
-| `non-main` | Group chats, webhooks, and non-DM sessions run in Docker. Main DM sessions run on host. | Isolate untrusted group input while keeping DMs fast |
-| `all` | All agent sessions run in Docker, including main DMs. | Maximum isolation for all sessions |
+| Mode            | Behavior                                                                                | Use Case                                             |
+| --------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `off` (default) | All sessions run on host. No isolation.                                                 | Trusted single-user setups                           |
+| `non-main`      | Group chats, webhooks, and non-DM sessions run in Docker. Main DM sessions run on host. | Isolate untrusted group input while keeping DMs fast |
+| `all`           | All agent sessions run in Docker, including main DMs.                                   | Maximum isolation for all sessions                   |
 
 ### Sandbox Scope
 
 The `sandbox.scope` setting controls container granularity and lifecycle:
 
-| Scope | Container Lifecycle | Container Name Pattern |
-|-------|---------------------|------------------------|
-| `session` | One container per session key. Destroyed on `/new` or session reset. | `openclaw-sandbox-{sessionKey}` |
-| `agent` | One container per agent ID. Shared across all sessions for that agent. | `openclaw-sandbox-agent-{agentId}` |
-| `shared` | Single shared container for all sandboxed sessions across all agents. | `openclaw-sandbox-shared` |
+| Scope     | Container Lifecycle                                                    | Container Name Pattern             |
+| --------- | ---------------------------------------------------------------------- | ---------------------------------- |
+| `session` | One container per session key. Destroyed on `/new` or session reset.   | `openclaw-sandbox-{sessionKey}`    |
+| `agent`   | One container per agent ID. Shared across all sessions for that agent. | `openclaw-sandbox-agent-{agentId}` |
+| `shared`  | Single shared container for all sandboxed sessions across all agents.  | `openclaw-sandbox-shared`          |
 
 ### Workspace Access Modes
 
 The `sandbox.workspaceAccess` setting controls how the agent's workspace directory is mounted:
 
-| Mode | Behavior | File Tools Available |
-|------|----------|---------------------|
-| `none` | Workspace is **copied** to container on startup. Agent cannot modify host workspace. | `read`, `exec` |
-| `ro` (read-only) | Workspace is **bind-mounted** read-only. Agent can read host files but not write. | `read`, `exec` |
-| `rw` (read-write) | Workspace is **bind-mounted** read-write. Agent can modify host files directly. | `read`, `write`, `edit`, `exec` |
+| Mode              | Behavior                                                                             | File Tools Available            |
+| ----------------- | ------------------------------------------------------------------------------------ | ------------------------------- |
+| `none`            | Workspace is **copied** to container on startup. Agent cannot modify host workspace. | `read`, `exec`                  |
+| `ro` (read-only)  | Workspace is **bind-mounted** read-only. Agent can read host files but not write.    | `read`, `exec`                  |
+| `rw` (read-write) | Workspace is **bind-mounted** read-write. Agent can modify host files directly.      | `read`, `write`, `edit`, `exec` |
 
 **Default**: `none` (safest - no host filesystem access).
 
@@ -70,9 +68,9 @@ The `sandbox.workspaceAccess` setting controls how the agent's workspace directo
   agents: {
     defaults: {
       sandbox: {
-        mode: "non-main",           // Isolate groups, run DMs on host
-        scope: "agent",             // One container per agent
-        workspaceAccess: "none",    // Copy workspace, no host writes
+        mode: 'non-main', // Isolate groups, run DMs on host
+        scope: 'agent', // One container per agent
+        workspaceAccess: 'none', // Copy workspace, no host writes
       },
     },
   },
@@ -98,20 +96,20 @@ graph TB
     CheckMode{"sandbox.mode?"}
     CheckSession{"Session Type?"}
     BuildContext["buildEmbeddedSandboxInfo"]
-    
+
     SandboxEnabled["SandboxContext<br/>{enabled: true,<br/>workspaceAccess: 'none',<br/>scope: 'agent'}"]
     SandboxDisabled["SandboxContext<br/>{enabled: false}"]
-    
+
     LoadConfig --> SessionKey
     SessionKey --> CheckMode
-    
+
     CheckMode -->|"off"| SandboxDisabled
     CheckMode -->|"all"| BuildContext
     CheckMode -->|"non-main"| CheckSession
-    
+
     CheckSession -->|"main DM session"| SandboxDisabled
     CheckSession -->|"group/webhook/subagent"| BuildContext
-    
+
     BuildContext --> SandboxEnabled
 ```
 
@@ -119,19 +117,19 @@ graph TB
 
 When `enabled: true`, the `SandboxContext` object contains:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `enabled` | `boolean` | Always `true` when sandboxing is active |
-| `sessionKey` | `string` | Session key for container naming |
-| `workspaceDir` | `string` | Path to sandboxed workspace (container-side or temp copy) |
-| `agentWorkspaceDir` | `string` | Original agent workspace path (host-side) |
-| `workspaceAccess` | `"none"` \| `"ro"` \| `"rw"` | Workspace mount mode |
-| `containerName` | `string` | Docker container name (derived from scope + session/agent ID) |
-| `containerWorkdir` | `string` | Container working directory (e.g., `/workspace`) |
-| `docker` | `SandboxDockerConfig` | Docker exec config (image, network, mounts) |
-| `tools` | `ToolPolicy` | Sandbox-specific tool allowlist/denylist |
-| `fsBridge` | `SandboxFsBridge` | Filesystem bridge for `none`/`ro` workspace access |
-| `browserAllowHostControl` | `boolean` | Whether `browser` tool can control host Chrome |
+| Field                     | Type                         | Description                                                   |
+| ------------------------- | ---------------------------- | ------------------------------------------------------------- |
+| `enabled`                 | `boolean`                    | Always `true` when sandboxing is active                       |
+| `sessionKey`              | `string`                     | Session key for container naming                              |
+| `workspaceDir`            | `string`                     | Path to sandboxed workspace (container-side or temp copy)     |
+| `agentWorkspaceDir`       | `string`                     | Original agent workspace path (host-side)                     |
+| `workspaceAccess`         | `"none"` \| `"ro"` \| `"rw"` | Workspace mount mode                                          |
+| `containerName`           | `string`                     | Docker container name (derived from scope + session/agent ID) |
+| `containerWorkdir`        | `string`                     | Container working directory (e.g., `/workspace`)              |
+| `docker`                  | `SandboxDockerConfig`        | Docker exec config (image, network, mounts)                   |
+| `tools`                   | `ToolPolicy`                 | Sandbox-specific tool allowlist/denylist                      |
+| `fsBridge`                | `SandboxFsBridge`            | Filesystem bridge for `none`/`ro` workspace access            |
+| `browserAllowHostControl` | `boolean`                    | Whether `browser` tool can control host Chrome                |
 
 **Sources**: [src/agents/pi-tools.ts:274](), [src/agents/sandbox.js](), [src/agents/pi-embedded-runner.ts:20]()
 
@@ -151,15 +149,15 @@ graph LR
     SessionScope["scope: 'session'"]
     AgentScope["scope: 'agent'"]
     SharedScope["scope: 'shared'"]
-    
+
     SessionName["openclaw-sandbox-<br/>agent-main-telegram-<br/>group-123"]
     AgentName["openclaw-sandbox-<br/>agent-main"]
     SharedName["openclaw-sandbox-<br/>shared"]
-    
+
     ScopeConfig --> SessionScope
     ScopeConfig --> AgentScope
     ScopeConfig --> SharedScope
-    
+
     SessionScope --> SessionName
     AgentScope --> AgentName
     SharedScope --> SharedName
@@ -167,11 +165,11 @@ graph LR
 
 ### Container Persistence
 
-| Scope | Created When | Destroyed When |
-|-------|--------------|----------------|
-| `session` | First tool call in session | Session reset (`/new`), session deleted, or manual cleanup |
-| `agent` | First tool call for any session of this agent | Agent removed or manual cleanup |
-| `shared` | First tool call across all agents | Manual cleanup only |
+| Scope     | Created When                                  | Destroyed When                                             |
+| --------- | --------------------------------------------- | ---------------------------------------------------------- |
+| `session` | First tool call in session                    | Session reset (`/new`), session deleted, or manual cleanup |
+| `agent`   | First tool call for any session of this agent | Agent removed or manual cleanup                            |
+| `shared`  | First tool call across all agents             | Manual cleanup only                                        |
 
 Containers persist across Gateway restarts. Running containers are reused if they exist when a session resumes.
 
@@ -182,19 +180,19 @@ Containers persist across Gateway restarts. Running containers are reused if the
 ```mermaid
 graph TB
     WorkspaceAccess["sandbox.workspaceAccess"]
-    
+
     NoneMode["workspaceAccess: 'none'"]
     RoMode["workspaceAccess: 'ro'"]
     RwMode["workspaceAccess: 'rw'"]
-    
+
     NoneBehavior["Copy workspace to temp dir<br/>Container sees copied files<br/>Host workspace unchanged"]
     RoBehavior["Bind-mount workspace read-only<br/>Container sees live host files<br/>Agent cannot write"]
     RwBehavior["Bind-mount workspace read-write<br/>Container sees live host files<br/>Agent can modify host files"]
-    
+
     WorkspaceAccess --> NoneMode
     WorkspaceAccess --> RoMode
     WorkspaceAccess --> RwMode
-    
+
     NoneMode --> NoneBehavior
     RoMode --> RoBehavior
     RwMode --> RwBehavior
@@ -218,40 +216,41 @@ When `sandbox.enabled: true`, tool provisioning follows a different path that re
 graph TB
     CreateTools["createOpenClawCodingTools<br/>options.sandbox param"]
     CheckSandbox{"sandbox?.enabled?"}
-    
+
     ProvisionHost["Provision Host Tools<br/>read, write, edit, exec<br/>(host filesystem)<br/>browser, canvas, nodes<br/>cron, channel tools"]
-    
+
     ProvisionSandbox["Provision Sandboxed Tools<br/>createSandboxedReadTool<br/>createSandboxedWriteTool<br/>createSandboxedEditTool<br/>createExecTool (sandbox config)"]
-    
+
     CheckWorkspace{"sandbox.workspaceAccess?"}
-    
+
     ReadOnly["Read-only tool set<br/>read, exec"]
     ReadWrite["Read-write tool set<br/>read, write, edit, exec"]
-    
+
     ApplyPolicy["applyToolPolicyPipeline<br/>Global → Agent → Provider<br/>→ Group → Sandbox"]
-    
+
     FinalTools["Final Tool Array"]
-    
+
     CreateTools --> CheckSandbox
-    
+
     CheckSandbox -->|"false or null"| ProvisionHost
     CheckSandbox -->|"true"| ProvisionSandbox
-    
+
     ProvisionSandbox --> CheckWorkspace
-    
+
     CheckWorkspace -->|"'none' or 'ro'"| ReadOnly
     CheckWorkspace -->|"'rw'"| ReadWrite
-    
+
     ProvisionHost --> ApplyPolicy
     ReadOnly --> ApplyPolicy
     ReadWrite --> ApplyPolicy
-    
+
     ApplyPolicy --> FinalTools
 ```
 
 ### Sandbox Tool Policy
 
 **Allowed tools** (safe in containers):
+
 - `read` - File reads via `SandboxFsBridge` (for `none`/`ro`) or direct mount (for `rw`)
 - `exec` - Command execution inside container (`BashSandboxConfig` routes to Docker)
 - `process` - Background process management within container (scoped by `sessionKey`)
@@ -260,6 +259,7 @@ graph TB
 - `sessions_*` - Session coordination tools (use Gateway RPC, not host-dependent)
 
 **Denied tools** (require host access):
+
 - `browser` - Requires host Chrome/CDP connection (unless `browserAllowHostControl: true`)
 - `canvas` - Requires host window manager
 - `nodes` - Requires paired physical devices (macOS/iOS/Android)
@@ -269,17 +269,20 @@ graph TB
 ### Tool Implementation Details
 
 **Read Tool**:
+
 - **Host**: `createReadTool(workspaceRoot)` → [src/agents/pi-tools.ts:383]()
 - **Sandbox**: `createSandboxedReadTool({ root, bridge })` → [src/agents/pi-tools.ts:369-374]()
   - Uses `SandboxFsBridge.readFile()` to read from container or host copy
 
 **Write/Edit Tools**:
+
 - **Host**: `createHostWorkspaceWriteTool(workspaceRoot)` → [src/agents/pi-tools.ts:397]()
 - **Sandbox (rw only)**: `createSandboxedWriteTool({ root, bridge })` → [src/agents/pi-tools.ts:464-483]()
   - Only provisioned when `sandbox.workspaceAccess === "rw"`
   - Uses `SandboxFsBridge.writeFile()` to write to container or host mount
 
 **Exec Tool**:
+
 - **Host**: `createExecTool({ cwd: workspaceRoot })` → [src/agents/pi-tools.ts:410-444]()
 - **Sandbox**: `createExecTool({ sandbox: { containerName, workspaceDir, ... } })` → [src/agents/pi-tools.ts:436-443]()
   - Routes commands to Docker container via `docker exec`
@@ -300,29 +303,29 @@ The `exec` tool routes commands to Docker containers when `sandbox.enabled: true
 graph TB
     ExecTool["exec tool call<br/>(command, elevated, background)"]
     CheckSandbox{"BashSandboxConfig?"}
-    
+
     CheckElevated{"elevated: true?"}
-    
+
     HostExec["Host Execution<br/>spawn on host<br/>direct filesystem access"]
-    
+
     DockerExec["Docker Execution<br/>docker exec<br/>-w {containerWorkdir}<br/>--env OPENCLAW_SHELL=exec"]
-    
+
     CheckHost{"tools.exec.host?"}
-    
+
     HostOverride["Host Execution<br/>(elevated override)"]
     SandboxExec["Container Execution<br/>(elevated denied in sandbox)"]
-    
+
     ExecTool --> CheckSandbox
-    
+
     CheckSandbox -->|"null/undefined"| HostExec
     CheckSandbox -->|"{ containerName, ... }"| CheckElevated
-    
+
     CheckElevated -->|"true"| CheckHost
     CheckElevated -->|"false"| DockerExec
-    
+
     CheckHost -->|"'gateway'"| HostOverride
     CheckHost -->|"'sandbox'"| SandboxExec
-    
+
     DockerExec --> SandboxExec
 ```
 
@@ -330,10 +333,10 @@ graph TB
 
 When `tools.exec.elevated.enabled: true`, the `elevated` parameter allows escaping the sandbox **only if** `tools.exec.host: "gateway"` is configured:
 
-| Config | `elevated: true` Behavior |
-|--------|---------------------------|
-| `tools.exec.host: "gateway"` | Runs on host (escapes sandbox) |
-| `tools.exec.host: "sandbox"` (default) | Denied (throws error) |
+| Config                                 | `elevated: true` Behavior      |
+| -------------------------------------- | ------------------------------ |
+| `tools.exec.host: "gateway"`           | Runs on host (escapes sandbox) |
+| `tools.exec.host: "sandbox"` (default) | Denied (throws error)          |
 
 **Security Note**: Elevated mode in sandbox contexts is **dangerous** and should only be enabled for trusted DM sessions. Group chats should never have elevated access.
 
@@ -355,13 +358,13 @@ Background processes (started via `background: true` or `yieldMs` timeout) are s
 
 When `workspaceAccess` is `"none"` or `"ro"`, the sandbox uses a `SandboxFsBridge` to mediate filesystem operations:
 
-| Method | Purpose | `workspaceAccess: "none"` | `workspaceAccess: "ro"` |
-|--------|---------|---------------------------|-------------------------|
-| `resolvePath(relativePath)` | Map container path to host path | Maps to temp copy dir | Maps to host workspace (read-only) |
-| `readFile(relativePath)` | Read file contents | Reads from temp copy | Reads from host workspace |
-| `writeFile(relativePath, content)` | Write file (if `rw`) | Denied | Denied |
-| `mkdirp(relativePath)` | Create directories (if `rw`) | Denied | Denied |
-| `stat(relativePath)` | Get file metadata | Stats temp copy | Stats host file |
+| Method                             | Purpose                         | `workspaceAccess: "none"` | `workspaceAccess: "ro"`            |
+| ---------------------------------- | ------------------------------- | ------------------------- | ---------------------------------- |
+| `resolvePath(relativePath)`        | Map container path to host path | Maps to temp copy dir     | Maps to host workspace (read-only) |
+| `readFile(relativePath)`           | Read file contents              | Reads from temp copy      | Reads from host workspace          |
+| `writeFile(relativePath, content)` | Write file (if `rw`)            | Denied                    | Denied                             |
+| `mkdirp(relativePath)`             | Create directories (if `rw`)    | Denied                    | Denied                             |
+| `stat(relativePath)`               | Get file metadata               | Stats temp copy           | Stats host file                    |
 
 When `workspaceAccess: "rw"`, tools bypass the bridge and write directly to the bind-mounted workspace.
 
@@ -388,6 +391,7 @@ scripts/sandbox-setup.sh
 ```
 
 The script:
+
 1. Generates a Dockerfile with Node.js (matching host version), Git, curl, jq
 2. Builds the image as `openclaw-sandbox:latest`
 3. Verifies the image is ready
@@ -401,6 +405,7 @@ openclaw doctor --fix
 ```
 
 Doctor detects:
+
 - Missing `openclaw-sandbox` image
 - Outdated image (different Node version)
 - Legacy image names (migrates to new naming)
@@ -465,7 +470,7 @@ graph LR
     SandboxInfo["sandboxInfo param"]
     PromptSection["Runtime Environment section"]
     AgentAware["Agent sees:<br/>'Sandboxed runtime:<br/>Docker container'"]
-    
+
     SandboxInfo --> BuildPrompt
     BuildPrompt --> PromptSection
     PromptSection --> AgentAware

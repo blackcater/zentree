@@ -9,8 +9,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Zed Extension enables OpenCode to function as an agent server within the Zed editor, providing AI-powered coding assistance directly in the editor environment. The extension uses the Agent Client Protocol (ACP) to communicate with Zed and automatically downloads platform-specific OpenCode binaries from GitHub releases.
 
 For information about integrating OpenCode with Visual Studio Code, see [VS Code Extension](#6.1). For details about the ACP command implementation, see [CLI Entrypoint & Commands](#2.1).
@@ -25,14 +23,14 @@ The Zed extension is defined through a TOML configuration file that specifies me
 
 The extension manifest defines core identification and versioning information:
 
-| Property | Value | Purpose |
-|----------|-------|---------|
-| `id` | `"opencode"` | Unique identifier for the extension |
-| `name` | `"OpenCode"` | Display name in Zed |
-| `description` | `"The open source coding agent."` | User-facing description |
-| `version` | `"1.2.27"` | Extension version (synced with OpenCode releases) |
-| `schema_version` | `1` | Zed extension schema version |
-| `repository` | `"https://github.com/anomalyco/opencode"` | Source code repository |
+| Property         | Value                                     | Purpose                                           |
+| ---------------- | ----------------------------------------- | ------------------------------------------------- |
+| `id`             | `"opencode"`                              | Unique identifier for the extension               |
+| `name`           | `"OpenCode"`                              | Display name in Zed                               |
+| `description`    | `"The open source coding agent."`         | User-facing description                           |
+| `version`        | `"1.2.27"`                                | Extension version (synced with OpenCode releases) |
+| `schema_version` | `1`                                       | Zed extension schema version                      |
+| `repository`     | `"https://github.com/anomalyco/opencode"` | Source code repository                            |
 
 [packages/extensions/zed/extension.toml:1-7]()
 
@@ -45,19 +43,19 @@ graph TB
     ExtensionToml["extension.toml<br/>Extension Manifest"]
     AgentServer["agent_servers.opencode<br/>Server Declaration"]
     Icon["icon: ./icons/opencode.svg<br/>Editor UI Icon"]
-    
+
     Targets["Platform Targets<br/>Binary Distribution"]
-    
+
     DarwinArm["darwin-aarch64<br/>macOS ARM64"]
     DarwinX64["darwin-x86_64<br/>macOS Intel"]
     LinuxArm["linux-aarch64<br/>Linux ARM64"]
     LinuxX64["linux-x86_64<br/>Linux x64"]
     WinX64["windows-x86_64<br/>Windows x64"]
-    
+
     ExtensionToml --> AgentServer
     AgentServer --> Icon
     AgentServer --> Targets
-    
+
     Targets --> DarwinArm
     Targets --> DarwinX64
     Targets --> LinuxArm
@@ -75,30 +73,30 @@ Each platform target specifies how Zed should download and execute the OpenCode 
 
 ### Target Configuration Pattern
 
-| Platform | Archive URL Pattern | Executable | Arguments |
-|----------|---------------------|------------|-----------|
-| `darwin-aarch64` | `opencode-darwin-arm64.zip` | `./opencode` | `["acp"]` |
-| `darwin-x86_64` | `opencode-darwin-x64.zip` | `./opencode` | `["acp"]` |
-| `linux-aarch64` | `opencode-linux-arm64.tar.gz` | `./opencode` | `["acp"]` |
-| `linux-x86_64` | `opencode-linux-x64.tar.gz` | `./opencode` | `["acp"]` |
-| `windows-x86_64` | `opencode-windows-x64.zip` | `./opencode.exe` | `["acp"]` |
+| Platform         | Archive URL Pattern           | Executable       | Arguments |
+| ---------------- | ----------------------------- | ---------------- | --------- |
+| `darwin-aarch64` | `opencode-darwin-arm64.zip`   | `./opencode`     | `["acp"]` |
+| `darwin-x86_64`  | `opencode-darwin-x64.zip`     | `./opencode`     | `["acp"]` |
+| `linux-aarch64`  | `opencode-linux-arm64.tar.gz` | `./opencode`     | `["acp"]` |
+| `linux-x86_64`   | `opencode-linux-x64.tar.gz`   | `./opencode`     | `["acp"]` |
+| `windows-x86_64` | `opencode-windows-x64.zip`    | `./opencode.exe` | `["acp"]` |
 
 ### Binary Download and Execution Flow
 
 ```mermaid
 graph LR
     ZedEditor["Zed Editor<br/>Extension Manager"]
-    
+
     DetectPlatform["Detect Platform<br/>OS + Architecture"]
-    
+
     DownloadBinary["Download Binary<br/>GitHub Releases"]
-    
+
     ExtractArchive["Extract Archive<br/>.zip or .tar.gz"]
-    
+
     ExecuteACP["Execute Command<br/>./opencode acp"]
-    
+
     ACPServer["ACP Server<br/>Agent Protocol"]
-    
+
     ZedEditor --> DetectPlatform
     DetectPlatform --> DownloadBinary
     DownloadBinary --> ExtractArchive
@@ -108,6 +106,7 @@ graph LR
 ```
 
 All archive URLs follow the pattern:
+
 ```
 https://github.com/anomalyco/opencode/releases/download/v{version}/opencode-{platform}-{arch}.{ext}
 ```
@@ -123,12 +122,14 @@ The Zed extension launches OpenCode in Agent Client Protocol mode by passing the
 ### ACP Command Invocation
 
 For all platforms, the extension executes:
+
 ```
 ./opencode acp    # Unix-like systems
 ./opencode.exe acp  # Windows
 ```
 
 The `acp` command starts the OpenCode server in a mode specifically designed for editor integration, handling:
+
 - Agent server initialization
 - JSON-RPC message parsing
 - Request/response handling
@@ -144,28 +145,28 @@ graph TB
         ExtensionManager["Extension Manager<br/>Agent Server Lifecycle"]
         JSONRPC["JSON-RPC Client<br/>Protocol Handler"]
     end
-    
+
     subgraph "OpenCode Binary"
         ACPCommand["acp Command<br/>CLI Entrypoint"]
         ACPServer["ACP Server<br/>Protocol Implementation"]
         SessionMgmt["Session Management<br/>Conversation State"]
         ToolRegistry["Tool Registry<br/>bash, edit, read, etc."]
     end
-    
+
     subgraph "Workspace Context"
         FileSystem["File System<br/>Project Files"]
         Config["opencode.json<br/>Configuration"]
         GitRepo["Git Repository<br/>Version Control"]
     end
-    
+
     ZedUI --> ExtensionManager
     ExtensionManager --> JSONRPC
     JSONRPC <-.JSON-RPC Protocol.-> ACPCommand
-    
+
     ACPCommand --> ACPServer
     ACPServer --> SessionMgmt
     ACPServer --> ToolRegistry
-    
+
     ToolRegistry --> FileSystem
     SessionMgmt --> Config
     ToolRegistry --> GitRepo
@@ -186,14 +187,14 @@ The extension version in `extension.toml` must stay synchronized with OpenCode r
 
 When OpenCode releases a new version, the Zed extension requires updates to:
 
-| Location | Example | Purpose |
-|----------|---------|---------|
-| Root version | Line 4 | Extension registry version |
-| darwin-aarch64 archive URL | Line 14 | Binary download path |
-| darwin-x86_64 archive URL | Line 19 | Binary download path |
-| linux-aarch64 archive URL | Line 24 | Binary download path |
-| linux-x86_64 archive URL | Line 29 | Binary download path |
-| windows-x86_64 archive URL | Line 34 | Binary download path |
+| Location                   | Example | Purpose                    |
+| -------------------------- | ------- | -------------------------- |
+| Root version               | Line 4  | Extension registry version |
+| darwin-aarch64 archive URL | Line 14 | Binary download path       |
+| darwin-x86_64 archive URL  | Line 19 | Binary download path       |
+| linux-aarch64 archive URL  | Line 24 | Binary download path       |
+| linux-x86_64 archive URL   | Line 29 | Binary download path       |
+| windows-x86_64 archive URL | Line 34 | Binary download path       |
 
 This synchronization ensures users receive compatible binaries that match the extension's declared version.
 
@@ -214,43 +215,43 @@ graph TB
         BunCompile["Bun Compile<br/>Binary Builder"]
         MultiPlatform["Multi-Platform Builds<br/>5 Architectures"]
     end
-    
+
     subgraph "Distribution"
         GitHubReleases["GitHub Releases<br/>v1.2.27"]
-        
+
         DarwinARM["opencode-darwin-arm64.zip<br/>macOS ARM Binary"]
         DarwinX64["opencode-darwin-x64.zip<br/>macOS Intel Binary"]
         LinuxARM["opencode-linux-arm64.tar.gz<br/>Linux ARM Binary"]
         LinuxX64["opencode-linux-x64.tar.gz<br/>Linux x64 Binary"]
         WindowsX64["opencode-windows-x64.zip<br/>Windows Binary"]
     end
-    
+
     subgraph "Extension"
         ExtensionToml["extension.toml<br/>Target Definitions"]
     end
-    
+
     subgraph "User Installation"
         ZedInstall["Zed Extension Install<br/>User Action"]
         AutoDownload["Auto-Download Binary<br/>Platform Detection"]
         LocalCache["Local Cache<br/>~/.zed/extensions"]
     end
-    
+
     GHActions --> BunCompile
     BunCompile --> MultiPlatform
     MultiPlatform --> GitHubReleases
-    
+
     GitHubReleases --> DarwinARM
     GitHubReleases --> DarwinX64
     GitHubReleases --> LinuxARM
     GitHubReleases --> LinuxX64
     GitHubReleases --> WindowsX64
-    
+
     ExtensionToml -.References.-> DarwinARM
     ExtensionToml -.References.-> DarwinX64
     ExtensionToml -.References.-> LinuxARM
     ExtensionToml -.References.-> LinuxX64
     ExtensionToml -.References.-> WindowsX64
-    
+
     ZedInstall --> AutoDownload
     AutoDownload --> LocalCache
     DarwinARM -.Downloads.-> LocalCache
@@ -262,11 +263,11 @@ graph TB
 
 ### Archive Format by Platform
 
-| Platform | Compression | Rationale |
-|----------|-------------|-----------|
-| Darwin (macOS) | `.zip` | Native macOS archive format |
-| Linux | `.tar.gz` | Standard Unix compression |
-| Windows | `.zip` | Native Windows archive format |
+| Platform       | Compression | Rationale                     |
+| -------------- | ----------- | ----------------------------- |
+| Darwin (macOS) | `.zip`      | Native macOS archive format   |
+| Linux          | `.tar.gz`   | Standard Unix compression     |
+| Windows        | `.zip`      | Native Windows archive format |
 
 The extension does not include fallback URLs or mirror servers. All downloads must succeed from `github.com/anomalyco/opencode/releases`.
 

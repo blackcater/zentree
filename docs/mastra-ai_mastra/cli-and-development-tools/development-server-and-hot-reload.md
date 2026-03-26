@@ -42,7 +42,7 @@ The following files were used as context for generating this wiki page:
 - [packages/create-mastra/src/utils.ts](packages/create-mastra/src/utils.ts)
 - [packages/create-mastra/tsconfig.json](packages/create-mastra/tsconfig.json)
 - [packages/deployer/src/build/analyze.ts](packages/deployer/src/build/analyze.ts)
-- [packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap](packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap)
+- [packages/deployer/src/build/analyze/**snapshots**/analyzeEntry.test.ts.snap](packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap)
 - [packages/deployer/src/build/analyze/analyzeEntry.test.ts](packages/deployer/src/build/analyze/analyzeEntry.test.ts)
 - [packages/deployer/src/build/analyze/analyzeEntry.ts](packages/deployer/src/build/analyze/analyzeEntry.ts)
 - [packages/deployer/src/build/analyze/bundleExternals.test.ts](packages/deployer/src/build/analyze/bundleExternals.test.ts)
@@ -53,7 +53,7 @@ The following files were used as context for generating this wiki page:
 - [packages/deployer/src/build/watcher.test.ts](packages/deployer/src/build/watcher.test.ts)
 - [packages/deployer/src/build/watcher.ts](packages/deployer/src/build/watcher.ts)
 - [packages/deployer/src/bundler/index.ts](packages/deployer/src/bundler/index.ts)
-- [packages/deployer/src/server/__tests__/option-studio-base.test.ts](packages/deployer/src/server/__tests__/option-studio-base.test.ts)
+- [packages/deployer/src/server/**tests**/option-studio-base.test.ts](packages/deployer/src/server/__tests__/option-studio-base.test.ts)
 - [packages/deployer/src/server/index.ts](packages/deployer/src/server/index.ts)
 - [packages/playground/e2e/tests/auth/infrastructure.spec.ts](packages/playground/e2e/tests/auth/infrastructure.spec.ts)
 - [packages/playground/e2e/tests/auth/viewer-role.spec.ts](packages/playground/e2e/tests/auth/viewer-role.spec.ts)
@@ -62,8 +62,6 @@ The following files were used as context for generating this wiki page:
 - [packages/playground/src/components/ui/app-sidebar.tsx](packages/playground/src/components/ui/app-sidebar.tsx)
 
 </details>
-
-
 
 This document describes the `mastra dev` command and its hot reload system, which provides a development server with automatic rebuilding and restarting when source files change. The development server enables rapid iteration by detecting file changes, rebundling code, and restarting the server process without manual intervention.
 
@@ -78,54 +76,54 @@ graph TB
     subgraph "CLI Entry"
         DevFn["dev() function<br/>packages/cli/src/commands/dev/dev.ts:340"]
     end
-    
+
     subgraph "Bundler Layer"
         DevBundlerCls["DevBundler class<br/>watch() method"]
         CreateWatcher["createWatcher()<br/>packages/deployer/src/build/watcher.ts:96"]
         GetInputOpts["getInputOptions()<br/>packages/deployer/src/build/watcher.ts:16"]
     end
-    
+
     subgraph "Server Process"
         StartServer["startServer()<br/>dev.ts:67"]
         ExecaProc["execa(process.execPath, commands)<br/>dev.ts:109"]
         IndexMjs[".mastra/output/index.mjs"]
         DevEntryJs["dev.entry.js template<br/>DevBundler.ts:131"]
     end
-    
+
     subgraph "File System"
         MastraEntry["src/mastra/index.ts"]
         ToolsGlob["tools/**/*.{js,ts}<br/>getAllToolPaths()"]
         EnvFiles["getEnvFiles()<br/>.env.development/.env.local/.env"]
         OutputDir[".mastra/output/"]
     end
-    
+
     subgraph "Hot Reload Endpoints"
         HotReloadStatus["GET /__hot-reload-status<br/>checkAndRestart():275"]
         RefreshPost["POST /__refresh<br/>startServer():194"]
         RestartWorkflows["POST /__restart-active-workflow-runs<br/>startServer():190"]
     end
-    
+
     DevFn -->|"new DevBundler(env)"| DevBundlerCls
     DevFn -->|"calls startServer()"| StartServer
-    
+
     DevBundlerCls -->|"calls watch()"| CreateWatcher
     DevBundlerCls -->|"loadEnvVars()"| EnvFiles
     DevBundlerCls -->|"getAllToolPaths()"| ToolsGlob
-    
+
     CreateWatcher -->|"uses"| GetInputOpts
     CreateWatcher -->|"watches"| MastraEntry
     CreateWatcher -->|"watches"| ToolsGlob
     CreateWatcher -->|"watches via plugin"| EnvFiles
     CreateWatcher -->|"event: BUNDLE_END"| DevFn
-    
+
     DevFn -->|"checks before restart"| HotReloadStatus
     DevFn -->|"rebundleAndRestart()"| DevBundlerCls
     DevBundlerCls -->|"writes bundles"| OutputDir
-    
+
     StartServer -->|"spawns"| ExecaProc
     ExecaProc -->|"executes"| IndexMjs
     IndexMjs -->|"generated from"| DevEntryJs
-    
+
     StartServer -->|"after IPC ready"| RefreshPost
     StartServer -->|"after IPC ready"| RestartWorkflows
 ```
@@ -141,28 +139,28 @@ graph TB
     DevBundler["DevBundler<br/>packages/cli/src/commands/dev/DevBundler.ts"]
     Bundler["Bundler<br/>packages/deployer/src/bundler/index.ts"]
     MastraBundler["MastraBundler<br/>packages/core/src/bundler/index.ts"]
-    
+
     DevBundler -->|extends| Bundler
     Bundler -->|extends| MastraBundler
-    
+
     DevBundler -->|platform = bun ? 'neutral' : 'node'| PlatformDetection["Platform Detection<br/>(line 20)"]
     DevBundler -->|getEnvFiles| EnvFileService[".env.development<br/>.env.local<br/>.env"]
     DevBundler -->|prepare| StudioCopy["Copy Studio UI<br/>to .mastra/output/studio"]
     DevBundler -->|watch| WatcherSetup["Setup Rollup Watcher<br/>with tool plugins"]
-    
+
     WatcherSetup -->|env-watcher plugin| EnvWatcher["Watches .env files<br/>(lines 101-107)"]
     WatcherSetup -->|tools-watcher plugin| ToolsWatcher["Generates tools.mjs<br/>(lines 109-128)"]
 ```
 
 **Key Methods:**
 
-| Method | Purpose | Line Reference |
-|--------|---------|----------------|
-| `constructor(customEnvFile?)` | Initializes bundler, sets `this.platform` based on `process.versions.bun` | [packages/cli/src/commands/dev/DevBundler.ts:16-21]() |
-| `getEnvFiles()` | Returns first existing file from `['.env.development', '.env.local', '.env']`, respects `MASTRA_SKIP_DOTENV` | [packages/cli/src/commands/dev/DevBundler.ts:23-44]() |
-| `prepare(outputDirectory)` | Calls `super.prepare()`, copies Studio UI from `dist/studio` to `.mastra/output/studio` | [packages/cli/src/commands/dev/DevBundler.ts:46-56]() |
-| `watch(entryFile, outputDirectory, toolsPaths)` | Calls `getWatcherInputOptions()`, adds custom plugins, returns `createWatcher()` promise | [packages/cli/src/commands/dev/DevBundler.ts:58-160]() |
-| `bundle()` | No-op implementation (development mode doesn't use standard bundle) | [packages/cli/src/commands/dev/DevBundler.ts:162-165]() |
+| Method                                          | Purpose                                                                                                      | Line Reference                                          |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| `constructor(customEnvFile?)`                   | Initializes bundler, sets `this.platform` based on `process.versions.bun`                                    | [packages/cli/src/commands/dev/DevBundler.ts:16-21]()   |
+| `getEnvFiles()`                                 | Returns first existing file from `['.env.development', '.env.local', '.env']`, respects `MASTRA_SKIP_DOTENV` | [packages/cli/src/commands/dev/DevBundler.ts:23-44]()   |
+| `prepare(outputDirectory)`                      | Calls `super.prepare()`, copies Studio UI from `dist/studio` to `.mastra/output/studio`                      | [packages/cli/src/commands/dev/DevBundler.ts:46-56]()   |
+| `watch(entryFile, outputDirectory, toolsPaths)` | Calls `getWatcherInputOptions()`, adds custom plugins, returns `createWatcher()` promise                     | [packages/cli/src/commands/dev/DevBundler.ts:58-160]()  |
+| `bundle()`                                      | No-op implementation (development mode doesn't use standard bundle)                                          | [packages/cli/src/commands/dev/DevBundler.ts:162-165]() |
 
 The `watch()` method at line 58 configures a Rollup watcher with two critical plugins:
 
@@ -184,29 +182,29 @@ sequenceDiagram
     participant Watcher as Rollup Watcher
     participant Server as Node.js Process
     participant IPC as IPC Channel
-    
+
     DevCmd->>Bundler: prepare(outputDirectory)
     DevCmd->>Bundler: watch(entryFile, outputDir, tools)
     Bundler->>Watcher: createWatcher(inputOptions, outputOptions)
     Watcher-->>DevCmd: watcher instance
-    
+
     Note over Watcher: Initial bundle starts
     Watcher->>Watcher: BUNDLE_START event
     Watcher->>Watcher: BUNDLE_END event
-    
+
     DevCmd->>Server: startServer(dotMastraPath, options)
     Server->>DevCmd: IPC message {type: 'server-ready'}
     DevCmd->>Server: POST /__restart-active-workflow-runs
     DevCmd->>Server: POST /__refresh
-    
+
     Note over Watcher: File change detected
     Watcher->>Watcher: BUNDLE_START event
     Watcher->>Watcher: BUNDLE_END event
     Watcher->>DevCmd: event.code === 'BUNDLE_END'
-    
+
     DevCmd->>Server: GET /__hot-reload-status
     Server-->>DevCmd: {disabled: false, timestamp}
-    
+
     DevCmd->>Server: kill('SIGINT')
     DevCmd->>Bundler: loadEnvVars()
     DevCmd->>Server: startServer(dotMastraPath, options)
@@ -219,13 +217,13 @@ sequenceDiagram
 
 The `startServer` function spawns a Node.js child process using `execa` with specific configurations:
 
-| Configuration | Value | Purpose |
-|---------------|-------|---------|
-| `NODE_ENV` | `'production'` | Optimizes dependencies for runtime |
-| `MASTRA_DEV` | `'true'` | Signals development mode to server |
-| `PORT` | Configured or auto-selected | Server listen port |
-| `MASTRA_PACKAGES_FILE` | Path to JSON file | Passes package version info |
-| `stdio` | `['inherit', 'pipe', 'pipe', 'ipc']` | Enables IPC communication |
+| Configuration          | Value                                | Purpose                            |
+| ---------------------- | ------------------------------------ | ---------------------------------- |
+| `NODE_ENV`             | `'production'`                       | Optimizes dependencies for runtime |
+| `MASTRA_DEV`           | `'true'`                             | Signals development mode to server |
+| `PORT`                 | Configured or auto-selected          | Server listen port                 |
+| `MASTRA_PACKAGES_FILE` | Path to JSON file                    | Passes package version info        |
+| `stdio`                | `['inherit', 'pipe', 'pipe', 'ipc']` | Enables IPC communication          |
 
 The process writes discovered Mastra packages to `mastra-packages.json` which is passed via environment variable to the server process [packages/cli/src/commands/dev/dev.ts:101-106]().
 
@@ -240,7 +238,7 @@ graph LR
     IncrementCounter["Increment errorRestartCount"]
     RestartServer["Restart Server<br/>(after 1s delay)"]
     GiveUp["Log Error<br/>Exit Process"]
-    
+
     ServerError --> CheckRetries
     CheckRetries -->|Yes| IncrementCounter
     IncrementCounter --> RestartServer
@@ -260,23 +258,23 @@ The Rollup watcher monitors multiple file types:
 ```mermaid
 graph TB
     Watcher["Rollup Watcher"]
-    
+
     subgraph "Watched Files"
         EntryFile["Mastra Entry File<br/>src/mastra/index.ts"]
         ToolFiles["Tool Files<br/>tools/**/*.{js,ts}"]
         EnvFiles[".env Files<br/>via env-watcher plugin"]
     end
-    
+
     subgraph "Generated Outputs"
         IndexMjs[".mastra/output/index.mjs"]
         ToolsMjs[".mastra/output/tools.mjs"]
         ToolChunks[".mastra/output/tools/*.mjs"]
     end
-    
+
     Watcher -->|watches| EntryFile
     Watcher -->|watches| ToolFiles
     Watcher -->|watches via plugin| EnvFiles
-    
+
     EntryFile -->|bundles to| IndexMjs
     ToolFiles -->|bundles to| ToolsMjs
     ToolFiles -->|individual chunks| ToolChunks
@@ -284,11 +282,11 @@ graph TB
 
 The watcher emits events that the dev command listens to:
 
-| Event Code | Handler | Action |
-|------------|---------|--------|
-| `BUNDLE_START` | `devLogger.bundling()` | Display "Bundling..." message |
-| `BUNDLE_END` | `checkAndRestart()` | Verify hot reload status, then restart server |
-| `ERROR` | Error handler | Display error, potentially restart on certain errors |
+| Event Code     | Handler                | Action                                               |
+| -------------- | ---------------------- | ---------------------------------------------------- |
+| `BUNDLE_START` | `devLogger.bundling()` | Display "Bundling..." message                        |
+| `BUNDLE_END`   | `checkAndRestart()`    | Verify hot reload status, then restart server        |
+| `ERROR`        | Error handler          | Display error, potentially restart on certain errors |
 
 **Sources:** [packages/cli/src/commands/dev/dev.ts:465-485](), [packages/cli/src/commands/dev/DevBundler.ts:84-139]()
 
@@ -302,14 +300,14 @@ sequenceDiagram
     participant FetchStatus as "fetch(/__hot-reload-status)<br/>dev.ts:275"
     participant Server as "Mastra Server"
     participant AgentBuilder as "Agent Builder"
-    
+
     Note over CheckRestart: BUNDLE_END event received<br/>from watcher.on('event')
-    
+
     CheckRestart->>CheckRestart: "if (isRestarting) return"<br/>Guard check
-    
+
     CheckRestart->>FetchStatus: "GET http://{host}:{port}{studioBase}/__hot-reload-status"
     FetchStatus->>Server: HTTP GET request
-    
+
     alt Agent Builder Active
         Server->>AgentBuilder: Check installation status
         AgentBuilder-->>Server: Installation in progress
@@ -334,7 +332,7 @@ The DevBundler loads environment variables from multiple sources with precedence
 ```mermaid
 graph TB
     LoadEnv["loadEnvVars()"]
-    
+
     subgraph "Environment File Priority"
         direction TB
         Custom[".env.custom<br/>(if --env flag used)"]
@@ -342,23 +340,23 @@ graph TB
         LocalEnv[".env.local"]
         BaseEnv[".env"]
     end
-    
+
     subgraph "Processing"
         Parse["Parse with dotenv"]
         MergeMap["Merge into Map<string, string>"]
         SpreadToProcess["Spread to process.env"]
     end
-    
+
     LoadEnv --> Custom
     Custom --> DevEnv
     DevEnv --> LocalEnv
     LocalEnv --> BaseEnv
-    
+
     Custom --> Parse
     DevEnv --> Parse
     LocalEnv --> Parse
     BaseEnv --> Parse
-    
+
     Parse --> MergeMap
     MergeMap --> SpreadToProcess
 ```
@@ -369,16 +367,16 @@ Environment variables are reloaded on each server restart within `rebundleAndRes
 
 ```typescript
 // From rebundleAndRestart function at line 312
-const env = await bundler.loadEnvVars();
+const env = await bundler.loadEnvVars()
 
 // Add request context presets to env if available
 if (requestContextPresetsJson) {
-  env.set('MASTRA_REQUEST_CONTEXT_PRESETS', requestContextPresetsJson);
+  env.set('MASTRA_REQUEST_CONTEXT_PRESETS', requestContextPresetsJson)
 }
 
 // spread env into process.env
 for (const [key, value] of env.entries()) {
-  process.env[key] = value;
+  process.env[key] = value
 }
 ```
 
@@ -397,31 +395,31 @@ The `getAllToolPaths` method discovers tools using glob patterns:
 ```mermaid
 graph TB
     GetAllTools["getAllToolPaths(mastraDir, toolsPaths)"]
-    
+
     subgraph "Default Paths"
         DefaultPattern["mastraDir/tools/**/*.{js,ts}"]
         IgnoreTests["!mastraDir/tools/**/*.{test,spec}.{js,ts}"]
         IgnoreTestDirs["!mastraDir/tools/**/__tests__/**"]
     end
-    
+
     subgraph "User-Specified Paths"
         CustomPaths["toolsPaths array<br/>(from --tools flag)"]
     end
-    
+
     subgraph "Path Normalization"
         SlashUtil["slash() utility"]
         PosixJoin["posix.join()"]
     end
-    
+
     GetAllTools --> DefaultPattern
     GetAllTools --> IgnoreTests
     GetAllTools --> IgnoreTestDirs
     GetAllTools --> CustomPaths
-    
+
     DefaultPattern --> SlashUtil
     CustomPaths --> SlashUtil
     SlashUtil --> PosixJoin
-    
+
     PosixJoin --> CombinedPaths["Combined Paths Array<br/>[defaultPaths, ...toolsPaths]"]
 ```
 
@@ -436,17 +434,17 @@ sequenceDiagram
     participant FileCheck as "FileService.getFirstExistingFile()<br/>line 243"
     participant Watcher as "Rollup Watcher"
     participant Plugin as "tools-watcher plugin<br/>DevBundler.ts:109"
-    
+
     ListTools->>ListTools: "const inputs: Record<string, string> = {}"
-    
+
     loop "for (const toolPath of toolsPaths)"
         ListTools->>Glob: "glob(toolPath, {absolute: true, expandDirectories: false})"
         Glob-->>ListTools: "expandedPaths: string[]"
-        
+
         loop "for (const path of expandedPaths)"
             ListTools->>FileCheck: "getFirstExistingFile([join(path, 'index.ts'), join(path, 'index.js'), path])"
             FileCheck-->>ListTools: "entryFile or undefined"
-            
+
             alt "entryFile exists and is not directory"
                 ListTools->>ListTools: "const uniqueToolID = crypto.randomUUID()"
                 ListTools->>ListTools: "inputs[`tools/${uniqueToolID}`] = normalizedEntryFile"
@@ -455,12 +453,12 @@ sequenceDiagram
             end
         end
     end
-    
+
     ListTools-->>Watcher: "return inputs object"
     Watcher->>Watcher: "Bundle each tool as separate chunk"
     Watcher->>Plugin: "buildEnd hook triggered"
     Plugin->>Plugin: "Generate tools.mjs with import statements"
-    
+
     Note over Plugin: "Generated tools.mjs:<br/>import * as tool0 from './tools/{uuid-1}.mjs';<br/>import * as tool1 from './tools/{uuid-2}.mjs';<br/>export const tools = [tool0, tool1]"
 ```
 
@@ -475,25 +473,25 @@ The restart process coordinates multiple asynchronous operations while preventin
 ```mermaid
 stateDiagram-v2
     [*] --> Watching: Initial startup
-    
+
     Watching --> CheckingRestart: File change detected
-    
+
     state CheckingRestart {
         [*] --> IsRestartingCheck
         IsRestartingCheck --> Skip: isRestarting === true
         IsRestartingCheck --> CheckHotReload: isRestarting === false
-        
+
         CheckHotReload --> FetchStatus: GET /__hot-reload-status
         FetchStatus --> SkipRestart: disabled: true
         FetchStatus --> ProceedRestart: disabled: false
-        
+
         SkipRestart --> [*]
     }
-    
+
     CheckingRestart --> Watching: Skip (already restarting)
     CheckingRestart --> Watching: Skip (agent builder active)
     CheckingRestart --> Restarting: Proceed with restart
-    
+
     state Restarting {
         [*] --> SetFlag: isRestarting = true
         SetFlag --> KillServer: Kill current process (SIGINT)
@@ -503,19 +501,19 @@ stateDiagram-v2
         WaitReady --> ClearFlag: isRestarting = false
         ClearFlag --> [*]
     }
-    
+
     Restarting --> Watching: Restart complete
 ```
 
 ### State Variables
 
-| Variable | Type | Purpose | Location |
-|----------|------|---------|----------|
-| `currentServerProcess` | `ChildProcess \| undefined` | Reference to running server returned by execa | [packages/cli/src/commands/dev/dev.ts:21]() |
-| `isRestarting` | `boolean` | Guard flag checked by `checkAndRestart()` to prevent concurrent restarts | [packages/cli/src/commands/dev/dev.ts:22]() |
-| `serverStartTime` | `number \| undefined` | Set by `Date.now()` at line 77, used by `devLogger.ready()` to display startup time | [packages/cli/src/commands/dev/dev.ts:23]() |
-| `requestContextPresetsJson` | `string \| undefined` | JSON string from `loadAndValidatePresets()`, passed to server via `MASTRA_REQUEST_CONTEXT_PRESETS` env var | [packages/cli/src/commands/dev/dev.ts:24]() |
-| `ON_ERROR_MAX_RESTARTS` | `const number = 3` | Maximum automatic restart attempts after server errors | [packages/cli/src/commands/dev/dev.ts:25]() |
+| Variable                    | Type                        | Purpose                                                                                                    | Location                                    |
+| --------------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `currentServerProcess`      | `ChildProcess \| undefined` | Reference to running server returned by execa                                                              | [packages/cli/src/commands/dev/dev.ts:21]() |
+| `isRestarting`              | `boolean`                   | Guard flag checked by `checkAndRestart()` to prevent concurrent restarts                                   | [packages/cli/src/commands/dev/dev.ts:22]() |
+| `serverStartTime`           | `number \| undefined`       | Set by `Date.now()` at line 77, used by `devLogger.ready()` to display startup time                        | [packages/cli/src/commands/dev/dev.ts:23]() |
+| `requestContextPresetsJson` | `string \| undefined`       | JSON string from `loadAndValidatePresets()`, passed to server via `MASTRA_REQUEST_CONTEXT_PRESETS` env var | [packages/cli/src/commands/dev/dev.ts:24]() |
+| `ON_ERROR_MAX_RESTARTS`     | `const number = 3`          | Maximum automatic restart attempts after server errors                                                     | [packages/cli/src/commands/dev/dev.ts:25]() |
 
 **Sources:** [packages/cli/src/commands/dev/dev.ts:21-25](), [packages/cli/src/commands/dev/dev.ts:263-338]()
 
@@ -528,24 +526,24 @@ sequenceDiagram
     participant DevCmd as dev command
     participant ChildProc as Child Process (execa)
     participant Server as Mastra Server
-    
+
     DevCmd->>ChildProc: spawn with stdio: ['inherit', 'pipe', 'pipe', 'ipc']
-    
+
     Note over ChildProc: Server initializing...
-    
+
     Server->>ChildProc: process.send({type: 'server-ready'})
     ChildProc->>DevCmd: IPC message event
-    
+
     DevCmd->>DevCmd: serverIsReady = true
     DevCmd->>DevCmd: devLogger.ready(host, port, studioBase)
     DevCmd->>DevCmd: devLogger.watching()
-    
+
     par Parallel Operations
         DevCmd->>Server: POST /__restart-active-workflow-runs
         and
         DevCmd->>Server: POST /__refresh (after 1.5s retry)
     end
-    
+
     Note over DevCmd: Server ready for requests
 ```
 
@@ -559,15 +557,15 @@ The dev command filters server output to avoid duplicate log messages:
 // Filter server output to remove Studio message
 if (currentServerProcess.stdout) {
   currentServerProcess.stdout.on('data', (data: Buffer) => {
-    const output = data.toString();
+    const output = data.toString()
     if (
       !output.includes('Studio available') &&
       !output.includes('👨‍💻') &&
       !output.includes('Mastra API running on ')
     ) {
-      process.stdout.write(output);
+      process.stdout.write(output)
     }
-  });
+  })
 }
 ```
 
@@ -584,37 +582,37 @@ graph TB
     subgraph "Dev Command"
         DevCmd["dev command"]
     end
-    
+
     subgraph "DevBundler prepare()"
         CopyStudio["Copy Studio Assets<br/>packages/cli/src/dist/studio"]
         StudioDest[".mastra/output/studio/"]
     end
-    
+
     subgraph "Server Process"
         MastraServer["Mastra Server"]
         ServeStudio["Serve Static Files<br/>from studio/"]
         RefreshEndpoint["POST /__refresh"]
         HotReloadStatus["GET /__hot-reload-status"]
     end
-    
+
     subgraph "Browser"
         StudioUI["Studio UI<br/>localhost:4111"]
         SSE["Server-Sent Events<br/>Connection"]
     end
-    
+
     DevCmd -->|calls| CopyStudio
     CopyStudio --> StudioDest
-    
+
     MastraServer --> ServeStudio
     ServeStudio --> StudioDest
-    
+
     StudioUI -->|HTTP| MastraServer
     StudioUI -->|SSE| MastraServer
-    
+
     DevCmd -->|POST after restart| RefreshEndpoint
     RefreshEndpoint -->|triggers| SSE
     SSE -->|notify| StudioUI
-    
+
     DevCmd -->|GET before restart| HotReloadStatus
 ```
 
@@ -623,13 +621,17 @@ graph TB
 During the `prepare` phase, DevBundler copies Studio UI assets:
 
 ```typescript
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
-const studioServePath = join(outputDirectory, this.outputDir, 'studio');
-await fsExtra.copy(join(dirname(__dirname), join('dist', 'studio')), studioServePath, {
-  overwrite: true,
-});
+const studioServePath = join(outputDirectory, this.outputDir, 'studio')
+await fsExtra.copy(
+  join(dirname(__dirname), join('dist', 'studio')),
+  studioServePath,
+  {
+    overwrite: true,
+  }
+)
 ```
 
 The Studio assets are packaged with the CLI at build time and copied to `.mastra/output/studio` [packages/cli/src/commands/dev/DevBundler.ts:49-55]().
@@ -661,7 +663,7 @@ graph LR
     SerializeJSON["Serialize to JSON string"]
     EnvVar["MASTRA_REQUEST_CONTEXT_PRESETS"]
     Server["Server Process"]
-    
+
     DevCmd -->|path argument| LoadPresets
     LoadPresets --> PresetsFile
     PresetsFile --> Validate
@@ -676,12 +678,16 @@ The presets are validated and serialized before being passed to the server proce
 // Load and validate request context presets if provided
 if (requestContextPresets) {
   try {
-    requestContextPresetsJson = await loadAndValidatePresets(requestContextPresets);
+    requestContextPresetsJson = await loadAndValidatePresets(
+      requestContextPresets
+    )
     // Add presets to loaded env so it's passed to the server
-    loadedEnv.set('MASTRA_REQUEST_CONTEXT_PRESETS', requestContextPresetsJson);
+    loadedEnv.set('MASTRA_REQUEST_CONTEXT_PRESETS', requestContextPresetsJson)
   } catch (error) {
-    devLogger.error(`Failed to load request context presets: ${error instanceof Error ? error.message : error}`);
-    process.exit(1);
+    devLogger.error(
+      `Failed to load request context presets: ${error instanceof Error ? error.message : error}`
+    )
+    process.exit(1)
   }
 }
 ```
@@ -699,26 +705,26 @@ The dev command supports HTTPS via two configuration methods:
 ```mermaid
 graph TB
     HTTPSConfig{"HTTPS<br/>Configuration?"}
-    
+
     FlagOnly["--https flag<br/>(command line)"]
     ServerConfig["server.https<br/>(in mastra config)"]
-    
+
     GenerateCert["Generate Certificate<br/>via @expo/devcert"]
     ProvidedCert["Use Provided<br/>{key, cert}"]
-    
+
     ServerOptions["Server Options<br/>{https: {key, cert}}"]
     EnvVars["Environment Variables<br/>MASTRA_HTTPS_KEY<br/>MASTRA_HTTPS_CERT"]
-    
+
     HTTPSConfig -->|flag only| FlagOnly
     HTTPSConfig -->|config| ServerConfig
     HTTPSConfig -->|both| ServerConfig
-    
+
     FlagOnly --> GenerateCert
     ServerConfig --> ProvidedCert
-    
+
     GenerateCert --> ServerOptions
     ProvidedCert --> ServerOptions
-    
+
     ServerOptions --> EnvVars
 ```
 
@@ -728,13 +734,17 @@ The certificate is generated using `@expo/devcert` which creates a trusted local
 
 ```typescript
 if (https && serverOptions?.https) {
-  devLogger.warn('--https flag and server.https config are both specified. Using server.https config.');
+  devLogger.warn(
+    '--https flag and server.https config are both specified. Using server.https config.'
+  )
 }
 if (serverOptions?.https) {
-  httpsOptions = serverOptions.https;
+  httpsOptions = serverOptions.https
 } else if (https) {
-  const { key, cert } = await devcert.certificateFor(serverOptions?.host ?? 'localhost');
-  httpsOptions = { key, cert };
+  const { key, cert } = await devcert.certificateFor(
+    serverOptions?.host ?? 'localhost'
+  )
+  httpsOptions = { key, cert }
 }
 ```
 
@@ -750,29 +760,29 @@ The DevBundler detects the runtime platform and adjusts bundler configuration ac
 graph TB
     Constructor["DevBundler constructor"]
     CheckRuntime{"process.versions.bun<br/>exists?"}
-    
+
     BunPlatform["platform = 'neutral'"]
     NodePlatform["platform = 'node'"]
-    
+
     BundlerConfig["Bundler Configuration"]
-    
+
     Constructor --> CheckRuntime
     CheckRuntime -->|Yes| BunPlatform
     CheckRuntime -->|No| NodePlatform
-    
+
     BunPlatform --> BundlerConfig
     NodePlatform --> BundlerConfig
-    
+
     BundlerConfig --> NodeResolve["Node Resolution:<br/>node: preferBuiltins: true<br/>neutral: similar to node"]
     BundlerConfig --> Esbuild["Esbuild Transform:<br/>platform setting affects<br/>global handling"]
 ```
 
 ### Platform-Specific Behavior
 
-| Platform | Value | Use Case | Global Handling |
-|----------|-------|----------|-----------------|
-| `'node'` | Default for Node.js | Standard Node.js runtime | Externalizes Node.js built-ins |
-| `'neutral'` | Used for Bun | Bun runtime support | Preserves Bun globals like `Bun.s3` |
+| Platform    | Value               | Use Case                 | Global Handling                     |
+| ----------- | ------------------- | ------------------------ | ----------------------------------- |
+| `'node'`    | Default for Node.js | Standard Node.js runtime | Externalizes Node.js built-ins      |
+| `'neutral'` | Used for Bun        | Bun runtime support      | Preserves Bun globals like `Bun.s3` |
 
 The platform setting is passed to the watcher's input options, affecting how imports and globals are handled [packages/cli/src/commands/dev/DevBundler.ts:16-21](), [packages/deployer/src/build/watcher.ts:16-28]().
 
@@ -791,7 +801,7 @@ graph TB
         DevSourcemap["Sourcemaps: from config"]
         DevEsmShim["ESM shim: enabled"]
     end
-    
+
     subgraph "Production (mastra build)"
         ProdExternal["externals: from config or true"]
         ProdAll["Bundle all dependencies"]
@@ -799,13 +809,13 @@ graph TB
         ProdSourcemap["Sourcemaps: from config"]
         ProdEsmShim["ESM shim: platform-specific"]
     end
-    
+
     subgraph "Watcher Specifics"
         DevGetInput["getInputOptions<br/>(watcher.ts)"]
         DevAnalyze["analyzeBundle<br/>isDev: true"]
         DevExternalize["External dependencies<br/>not bundled"]
     end
-    
+
     subgraph "Build Specifics"
         ProdGetInput["getBundlerOptions<br/>(bundler/index.ts)"]
         ProdAnalyze["analyzeBundle<br/>isDev: false"]
@@ -815,15 +825,15 @@ graph TB
 
 ### Key Differences Table
 
-| Aspect | Development | Production |
-|--------|-------------|------------|
-| Dependency bundling | Workspace packages only | All or configured externals |
-| Watch mode | Enabled with Rollup watcher | Disabled |
-| Rebuild trigger | File changes | Manual `mastra build` |
-| Server restart | Automatic | Manual start |
-| Dependency optimization | Minimal (faster rebuilds) | Full (smaller bundles) |
-| `isDev` flag | `true` in analyzeBundle | `false` in analyzeBundle |
-| Studio assets | Copied to output | Optional via `--studio` flag |
+| Aspect                  | Development                 | Production                   |
+| ----------------------- | --------------------------- | ---------------------------- |
+| Dependency bundling     | Workspace packages only     | All or configured externals  |
+| Watch mode              | Enabled with Rollup watcher | Disabled                     |
+| Rebuild trigger         | File changes                | Manual `mastra build`        |
+| Server restart          | Automatic                   | Manual start                 |
+| Dependency optimization | Minimal (faster rebuilds)   | Full (smaller bundles)       |
+| `isDev` flag            | `true` in analyzeBundle     | `false` in analyzeBundle     |
+| Studio assets           | Copied to output            | Optional via `--studio` flag |
 
 The `isDev` flag affects how workspace dependencies are analyzed. In development, the analyzer recursively checks transitive workspace dependencies to ensure proper hot reloading [packages/deployer/src/build/analyze.ts:387-394]().
 
@@ -839,19 +849,19 @@ sequenceDiagram
     participant DevCmd as dev command
     participant Server as Child Process
     participant Watcher as Rollup Watcher
-    
+
     User->>DevCmd: Ctrl+C (SIGINT)
-    
+
     DevCmd->>DevCmd: devLogger.shutdown()
-    
+
     par Shutdown Operations
         DevCmd->>Server: kill()
         and
         DevCmd->>Watcher: watcher.close()
     end
-    
+
     Watcher-->>DevCmd: close resolved
-    
+
     DevCmd->>DevCmd: process.exit(0)
 ```
 
@@ -859,17 +869,17 @@ The SIGINT handler performs cleanup in parallel for faster shutdown:
 
 ```typescript
 process.on('SIGINT', () => {
-  devLogger.shutdown();
+  devLogger.shutdown()
 
   if (currentServerProcess) {
-    currentServerProcess.kill();
+    currentServerProcess.kill()
   }
 
   watcher
     .close()
     .catch(() => {})
-    .finally(() => process.exit(0));
-});
+    .finally(() => process.exit(0))
+})
 ```
 
 This ensures the Rollup watcher is properly closed and the server process is terminated before exiting [packages/cli/src/commands/dev/dev.ts:487-498]().

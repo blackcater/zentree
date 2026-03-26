@@ -26,8 +26,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes the suspend and resume mechanism in Mastra workflows, which allows workflow execution to pause at any step and later continue from that point with new data. This enables human-in-the-loop workflows, external event integration, and long-running processes that require user input or approval.
@@ -53,13 +51,13 @@ stateDiagram-v2
     Running --> Failed: Error
     Success --> [*]
     Failed --> [*]
-    
+
     note right of Suspended
         suspendPayload stored
         suspendedPaths tracked
         resumeLabels available
     end note
-    
+
     note right of Running
         resumeData passed to step
         execution continues from
@@ -84,24 +82,24 @@ graph TB
         SUSPEND_SIG["suspend(payload, options)"]
         OPTIONS["SuspendOptions"]
     end
-    
+
     subgraph "SuspendOptions"
         RESUME_LABEL["resumeLabel?: string | string[]"]
         CUSTOM_PROPS["...custom properties"]
     end
-    
+
     subgraph "Return Type"
         INNER_OUTPUT["InnerOutput"]
         BRANDED["void & { [SuspendBrand]: never }"]
     end
-    
+
     SUSPEND --> SUSPEND_SIG
     SUSPEND_SIG --> OPTIONS
     OPTIONS --> RESUME_LABEL
     OPTIONS --> CUSTOM_PROPS
     SUSPEND_SIG --> INNER_OUTPUT
     INNER_OUTPUT --> BRANDED
-    
+
     note1["Branded type ensures only
     suspend() can return this value"]
     BRANDED -.-> note1
@@ -109,13 +107,13 @@ graph TB
 
 **Type Definition:**
 
-| Component | Type | Purpose |
-|-----------|------|---------|
-| `suspend` | `(payload: TSuspend, options?: SuspendOptions) => InnerOutput` | Function to pause execution |
-| `TSuspend` | Inferred from `suspendSchema` | Type-safe suspend payload |
-| `SuspendOptions` | `{ resumeLabel?: string \| string[], ...custom }` | Suspend configuration |
-| `InnerOutput` | `void & { readonly [SuspendBrand]: never }` | Branded type preventing misuse |
-| `resumeLabel` | `string \| string[]` | Named resume points for multi-suspend |
+| Component        | Type                                                           | Purpose                               |
+| ---------------- | -------------------------------------------------------------- | ------------------------------------- |
+| `suspend`        | `(payload: TSuspend, options?: SuspendOptions) => InnerOutput` | Function to pause execution           |
+| `TSuspend`       | Inferred from `suspendSchema`                                  | Type-safe suspend payload             |
+| `SuspendOptions` | `{ resumeLabel?: string \| string[], ...custom }`              | Suspend configuration                 |
+| `InnerOutput`    | `void & { readonly [SuspendBrand]: never }`                    | Branded type preventing misuse        |
+| `resumeLabel`    | `string \| string[]`                                           | Named resume points for multi-suspend |
 
 **Sources:** [packages/core/src/workflows/step.ts:13-22](), [packages/core/src/workflows/step.ts:48-50]()
 
@@ -129,7 +127,7 @@ sequenceDiagram
     participant Engine as "ExecutionEngine"
     participant Storage as "WorkflowStore"
     participant Context as "ExecutionContext"
-    
+
     Step->>Engine: return suspend(payload, options)
     Engine->>Engine: Detect InnerOutput type
     Engine->>Context: Mark suspendedPaths[stepId]
@@ -137,7 +135,7 @@ sequenceDiagram
     Engine->>Storage: persistWorkflowSnapshot()
     Storage-->>Engine: Snapshot saved
     Engine-->>Step: Workflow suspended
-    
+
     Note over Storage: WorkflowRunState:<br/>status='suspended'<br/>suspendedPaths={}<br/>resumeLabels={}
 ```
 
@@ -157,23 +155,23 @@ graph LR
         EXEC["step.execute()"]
         SUSPEND_CALL["suspend(payload, options)"]
     end
-    
+
     subgraph "Validation"
         VALIDATE_SUSPEND["validateStepSuspendData()"]
         SUSPEND_SCHEMA["suspendSchema (Zod)"]
     end
-    
+
     subgraph "Execution Context"
         SUSPENDED_PATHS["suspendedPaths<br/>{stepId: [path]}"]
         RESUME_LABELS["resumeLabels<br/>{label: {stepId, foreachIndex}}"]
         STEP_RESULTS["stepResults<br/>{stepId: StepSuspended}"]
     end
-    
+
     subgraph "Persistence"
         SNAPSHOT["WorkflowRunState"]
         STORAGE["WorkflowStore"]
     end
-    
+
     EXEC --> SUSPEND_CALL
     SUSPEND_CALL --> VALIDATE_SUSPEND
     VALIDATE_SUSPEND --> SUSPEND_SCHEMA
@@ -186,13 +184,13 @@ graph LR
 
 **Suspend Data Structure:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `suspendPayload` | `TSuspend` | User data to persist during suspension |
-| `suspendedPaths` | `Record<string, number[]>` | Execution paths that are suspended |
-| `resumeLabels` | `Record<string, {stepId, foreachIndex}>` | Named resume points |
-| `status` | `'suspended'` | Workflow run status |
-| `context` | `Record<string, StepResult>` | All step results including suspended |
+| Field            | Type                                     | Description                            |
+| ---------------- | ---------------------------------------- | -------------------------------------- |
+| `suspendPayload` | `TSuspend`                               | User data to persist during suspension |
+| `suspendedPaths` | `Record<string, number[]>`               | Execution paths that are suspended     |
+| `resumeLabels`   | `Record<string, {stepId, foreachIndex}>` | Named resume points                    |
+| `status`         | `'suspended'`                            | Workflow run status                    |
+| `context`        | `Record<string, StepResult>`             | All step results including suspended   |
 
 **Sources:** [packages/core/src/workflows/types.ts:814-837](), [packages/core/src/workflows/utils.ts:94-131]()
 
@@ -227,29 +225,29 @@ graph TB
     subgraph "Client Call"
         RESUME_CALL["run.resume({<br/>step, resumeData,<br/>label, forEachIndex})"]
     end
-    
+
     subgraph "Storage Retrieval"
         GET_SNAPSHOT["getWorkflowRunById()"]
         LOAD_STATE["Load WorkflowRunState"]
         SUSPENDED_PATHS_LOAD["Extract suspendedPaths"]
     end
-    
+
     subgraph "Validation"
         VALIDATE_RESUME["validateStepResumeData()"]
         RESUME_SCHEMA["resumeSchema (Zod)"]
     end
-    
+
     subgraph "Resume Execution"
         RESOLVE_STEP["Resolve step from label or stepId"]
         BUILD_CONTEXT["Build ExecutionContext<br/>with resumeData"]
         EXECUTE_FROM["executeEntry() from<br/>suspended execution path"]
     end
-    
+
     subgraph "Step Execution"
         STEP_EXEC["step.execute({<br/>resumeData,<br/>...context})"]
         CONTINUE["Continue workflow"]
     end
-    
+
     RESUME_CALL --> GET_SNAPSHOT
     GET_SNAPSHOT --> LOAD_STATE
     LOAD_STATE --> SUSPENDED_PATHS_LOAD
@@ -268,10 +266,10 @@ graph TB
 
 The `Run` instance provides methods for resuming suspended workflows:
 
-| Method | Signature | Purpose |
-|--------|-----------|---------|
-| `resume()` | `resume(options: ResumeOptions): Promise<WorkflowResult>` | Resume and wait for completion |
-| `resumeStream()` | `resumeStream(options: ResumeOptions): WorkflowRunOutput` | Resume with streaming output |
+| Method           | Signature                                                 | Purpose                        |
+| ---------------- | --------------------------------------------------------- | ------------------------------ |
+| `resume()`       | `resume(options: ResumeOptions): Promise<WorkflowResult>` | Resume and wait for completion |
+| `resumeStream()` | `resumeStream(options: ResumeOptions): WorkflowRunOutput` | Resume with streaming output   |
 
 **ResumeOptions:**
 
@@ -299,35 +297,35 @@ graph TB
     subgraph "Step Definition"
         STEP_DEF["createStep({<br/>suspendSchema,<br/>resumeSchema})"]
     end
-    
+
     subgraph "Suspend Validation"
         SUSPEND_CALL["suspend(payload)"]
         VALIDATE_SUSPEND["validateStepSuspendData()"]
         SUSPEND_PARSE["suspendSchema.safeParseAsync()"]
         SUSPEND_ERROR["MastraError:<br/>WORKFLOW_STEP_SUSPEND_<br/>DATA_VALIDATION_FAILED"]
     end
-    
+
     subgraph "Resume Validation"
         RESUME_CALL["resume({resumeData})"]
         VALIDATE_RESUME["validateStepResumeData()"]
         RESUME_PARSE["resumeSchema.safeParseAsync()"]
         RESUME_ERROR["MastraError:<br/>WORKFLOW_STEP_RESUME_<br/>DATA_VALIDATION_FAILED"]
     end
-    
+
     subgraph "Runtime Check"
         IS_ZOD["isZodType(schema)"]
         VALIDATE_INPUTS["validateInputs option"]
     end
-    
+
     STEP_DEF --> SUSPEND_CALL
     STEP_DEF --> RESUME_CALL
-    
+
     SUSPEND_CALL --> VALIDATE_SUSPEND
     VALIDATE_SUSPEND --> IS_ZOD
     IS_ZOD --> VALIDATE_INPUTS
     VALIDATE_INPUTS --> SUSPEND_PARSE
     SUSPEND_PARSE -->|error| SUSPEND_ERROR
-    
+
     RESUME_CALL --> VALIDATE_RESUME
     VALIDATE_RESUME --> IS_ZOD
     VALIDATE_INPUTS --> RESUME_PARSE
@@ -355,24 +353,24 @@ const approvalStep = createStep({
   outputSchema: z.object({ approved: z.boolean() }),
   suspendSchema: z.object({
     requestId: z.string(),
-    timestamp: z.number()
+    timestamp: z.number(),
   }),
   resumeSchema: z.object({
     approved: z.boolean(),
-    approverEmail: z.string()
+    approverEmail: z.string(),
   }),
   execute: async ({ suspend, resumeData }) => {
     if (!resumeData) {
       // First execution - suspend for approval
       return suspend({
         requestId: generateId(),
-        timestamp: Date.now()
-      });
+        timestamp: Date.now(),
+      })
     }
     // Resumed - process approval
-    return { approved: resumeData.approved };
-  }
-});
+    return { approved: resumeData.approved }
+  },
+})
 ```
 
 **Sources:** [packages/core/src/workflows/step.ts:144-171]()
@@ -397,19 +395,19 @@ graph TB
         EXEC_PATH["stepExecutionPath?: string[]"]
         STATE["Custom state:<br/>Record<string, any>"]
     end
-    
+
     subgraph "Persistence Layer"
         STORE["WorkflowStore"]
         PERSIST["persistWorkflowSnapshot()"]
         RETRIEVE["getWorkflowRunById()"]
     end
-    
+
     subgraph "Storage Implementations"
         PG["@mastra/pg<br/>PostgreSQL"]
         LIBSQL["@mastra/libsql<br/>LibSQL/Turso"]
         MOCK["MockStore<br/>(in-memory)"]
     end
-    
+
     RUN_ID --> PERSIST
     STATUS --> PERSIST
     CONTEXT --> PERSIST
@@ -418,24 +416,24 @@ graph TB
     ACTIVE --> PERSIST
     EXEC_PATH --> PERSIST
     STATE --> PERSIST
-    
+
     PERSIST --> STORE
     STORE --> PG
     STORE --> LIBSQL
     STORE --> MOCK
-    
+
     RETRIEVE --> CONTEXT
 ```
 
 **Key State Fields:**
 
-| Field | Purpose | Example |
-|-------|---------|---------|
-| `suspendedPaths` | Tracks which execution paths are suspended | `{ "step1": [0, 1] }` |
-| `resumeLabels` | Maps labels to suspended steps | `{ "approval": { stepId: "step1", foreachIndex: 0 } }` |
-| `context` | All step results including suspended ones | `{ "step1": { status: "suspended", ... } }` |
-| `stepExecutionPath` | Linear path of executed steps | `["input", "step1", "step2"]` |
-| `activePaths` | Current execution indices in step graph | `[2, 1]` |
+| Field               | Purpose                                    | Example                                                |
+| ------------------- | ------------------------------------------ | ------------------------------------------------------ |
+| `suspendedPaths`    | Tracks which execution paths are suspended | `{ "step1": [0, 1] }`                                  |
+| `resumeLabels`      | Maps labels to suspended steps             | `{ "approval": { stepId: "step1", foreachIndex: 0 } }` |
+| `context`           | All step results including suspended ones  | `{ "step1": { status: "suspended", ... } }`            |
+| `stepExecutionPath` | Linear path of executed steps              | `["input", "step1", "step2"]`                          |
+| `activePaths`       | Current execution indices in step graph    | `[2, 1]`                                               |
 
 **Sources:** [packages/core/src/workflows/types.ts:328-353](), [packages/core/src/workflows/workflow.ts:1713-1789]()
 
@@ -449,12 +447,14 @@ createWorkflow({
   options: {
     shouldPersistSnapshot: ({ stepResults, workflowStatus }) => {
       // Persist on suspend, fail, or every 10 steps
-      return workflowStatus === 'suspended' ||
-             workflowStatus === 'failed' ||
-             Object.keys(stepResults).length % 10 === 0;
-    }
-  }
-});
+      return (
+        workflowStatus === 'suspended' ||
+        workflowStatus === 'failed' ||
+        Object.keys(stepResults).length % 10 === 0
+      )
+    },
+  },
+})
 ```
 
 **Sources:** [packages/core/src/workflows/types.ts:419-440]()
@@ -474,33 +474,33 @@ graph TB
         DEFAULT_RESUME["Direct step continuation"]
         DEFAULT_STORAGE["Requires storage for<br/>cross-restart resume"]
     end
-    
+
     subgraph "EventedExecutionEngine"
         EVENTED_SUSPEND["Event-driven suspension"]
         EVENTED_RESUME["Async resume via events"]
         EVENTED_PUBSUB["PubSub coordination"]
     end
-    
+
     subgraph "InngestExecutionEngine"
         INNGEST_SUSPEND["Durable suspension"]
         INNGEST_RESUME["Platform-managed resume"]
         INNGEST_WAIT["step.waitForEvent()"]
     end
-    
+
     subgraph "Common Mechanism"
         SUSPEND_FUNC["suspend() function"]
         RESUME_DATA["resumeData passing"]
         VALIDATION["Schema validation"]
     end
-    
+
     SUSPEND_FUNC --> DEFAULT_SUSPEND
     SUSPEND_FUNC --> EVENTED_SUSPEND
     SUSPEND_FUNC --> INNGEST_SUSPEND
-    
+
     RESUME_DATA --> DEFAULT_RESUME
     RESUME_DATA --> EVENTED_RESUME
     RESUME_DATA --> INNGEST_RESUME
-    
+
     VALIDATION --> DEFAULT_STORAGE
     VALIDATION --> EVENTED_PUBSUB
     VALIDATION --> INNGEST_WAIT
@@ -518,7 +518,7 @@ sequenceDiagram
     participant Engine as DefaultExecutionEngine
     participant Context as ExecutionContext
     participant Storage
-    
+
     Step->>Engine: suspend(payload, options)
     Engine->>Context: suspendedPaths[stepId] = executionPath
     alt resumeLabel provided
@@ -527,7 +527,7 @@ sequenceDiagram
     Engine->>Storage: persistWorkflowSnapshot()
     Storage-->>Engine: Snapshot saved
     Engine-->>Step: Return StepSuspended result
-    
+
     Note over Engine,Storage: Status: 'suspended'<br/>Execution halted
 ```
 
@@ -543,14 +543,14 @@ sequenceDiagram
     participant Engine as InngestExecutionEngine
     participant InngestStep as inngest.step
     participant Platform as Inngest Platform
-    
+
     Step->>Engine: suspend(payload, options)
     Engine->>InngestStep: step.waitForEvent(eventName)
     InngestStep->>Platform: Register event listener
     Platform-->>Engine: Workflow paused (durable)
-    
+
     Note over Platform: Workflow state persisted<br/>by Inngest platform
-    
+
     Platform->>InngestStep: Event received (resume)
     InngestStep->>Engine: Continue execution
     Engine->>Step: resumeData from event payload
@@ -573,25 +573,25 @@ graph TB
         SUSPEND_2["suspend(data2, {<br/>resumeLabel: 'payment'})"]
         SUSPEND_3["suspend(data3, {<br/>resumeLabel: ['approval', 'payment']})"]
     end
-    
+
     subgraph "Resume Label Registry"
         LABELS["resumeLabels: {<br/>'approval': {stepId: 'step1'},<br/>'payment': {stepId: 'step3'}<br/>}"]
     end
-    
+
     subgraph "Resume by Label"
         RESUME_APPROVAL["resume({<br/>label: 'approval',<br/>resumeData})"]
         RESUME_PAYMENT["resume({<br/>label: 'payment',<br/>resumeData})"]
     end
-    
+
     subgraph "Resolution"
         FIND_STEP["Find stepId from<br/>resumeLabels[label]"]
         EXECUTE["Execute from<br/>resolved step"]
     end
-    
+
     SUSPEND_1 --> LABELS
     SUSPEND_2 --> LABELS
     SUSPEND_3 --> LABELS
-    
+
     RESUME_APPROVAL --> FIND_STEP
     RESUME_PAYMENT --> FIND_STEP
     LABELS --> FIND_STEP
@@ -606,19 +606,22 @@ const step1 = createStep({
   id: 'request-approval',
   execute: async ({ suspend, resumeData }) => {
     if (!resumeData) {
-      return suspend({ timestamp: Date.now() }, {
-        resumeLabel: 'approval-needed'
-      });
+      return suspend(
+        { timestamp: Date.now() },
+        {
+          resumeLabel: 'approval-needed',
+        }
+      )
     }
-    return { approved: resumeData.approved };
-  }
-});
+    return { approved: resumeData.approved }
+  },
+})
 
 // Later, resume by label without knowing step ID
 await run.resume({
   label: 'approval-needed',
-  resumeData: { approved: true }
-});
+  resumeData: { approved: true },
+})
 ```
 
 **Sources:** [packages/core/src/workflows/workflow.ts:1485-1583](), [packages/core/src/workflows/types.ts:814-837]()
@@ -639,32 +642,32 @@ graph TB
         STEP2["step2: suspend({id: 2})"]
         STEP3["step3: complete"]
     end
-    
+
     subgraph "SuspendedPaths State"
         PATH1["suspendedPaths: {<br/>'step1': [1, 0],<br/>'step2': [1, 1]<br/>}"]
     end
-    
+
     subgraph "Resume Coordination"
         RESUME1["resume({step: 'step1',<br/>resumeData: {result: 'A'}})"]
         RESUME2["resume({step: 'step2',<br/>resumeData: {result: 'B'}})"]
         CHECK["Check if all parallel<br/>paths resumed"]
     end
-    
+
     subgraph "Continuation"
         MERGE["Merge results from<br/>all parallel branches"]
         NEXT["Continue to next step"]
     end
-    
+
     PARALLEL --> STEP1
     PARALLEL --> STEP2
     PARALLEL --> STEP3
-    
+
     STEP1 --> PATH1
     STEP2 --> PATH1
-    
+
     PATH1 --> RESUME1
     PATH1 --> RESUME2
-    
+
     RESUME1 --> CHECK
     RESUME2 --> CHECK
     CHECK --> MERGE
@@ -709,70 +712,70 @@ graph TB
         Step["Step<TSuspend, TResume>"]
         ExecuteFunction["ExecuteFunction"]
     end
-    
+
     subgraph "Execution"
         Workflow["Workflow"]
         Run["Run"]
         ExecutionEngine["ExecutionEngine"]
         DefaultExecutionEngine["DefaultExecutionEngine"]
     end
-    
+
     subgraph "State Management"
         ExecutionContext["ExecutionContext"]
         WorkflowRunState["WorkflowRunState"]
         StepResult["StepResult"]
         StepSuspended["StepSuspended"]
     end
-    
+
     subgraph "Validation"
         validateStepSuspendData["validateStepSuspendData()"]
         validateStepResumeData["validateStepResumeData()"]
         isZodType["isZodType()"]
     end
-    
+
     subgraph "Storage"
         WorkflowStore["WorkflowStore"]
         persistWorkflowSnapshot["persistWorkflowSnapshot()"]
         getWorkflowRunById["getWorkflowRunById()"]
     end
-    
+
     createStep --> Step
     Step --> ExecuteFunction
     ExecuteFunction -.->|provides| suspend
-    
+
     Workflow --> Run
     Run --> resume
     Run --> resumeStream
-    
+
     ExecutionEngine --> DefaultExecutionEngine
     DefaultExecutionEngine --> ExecutionContext
-    
+
     ExecutionContext --> suspendedPaths
     ExecutionContext --> resumeLabels
-    
+
     suspend --> validateStepSuspendData
     resume --> validateStepResumeData
     validateStepSuspendData --> isZodType
     validateStepResumeData --> isZodType
-    
+
     ExecutionContext --> WorkflowRunState
     WorkflowRunState --> persistWorkflowSnapshot
     persistWorkflowSnapshot --> WorkflowStore
-    
+
     resume --> getWorkflowRunById
     getWorkflowRunById --> WorkflowStore
 ```
 
 **Key Files:**
 
-| File | Key Exports |
-|------|-------------|
-| `packages/core/src/workflows/step.ts` | `Step`, `ExecuteFunction`, `SuspendOptions`, `InnerOutput` |
-| `packages/core/src/workflows/workflow.ts` | `createStep()`, `createWorkflow()`, `Workflow`, `Run` |
-| `packages/core/src/workflows/types.ts` | `StepSuspended`, `WorkflowRunState`, `ExecutionContext` |
-| `packages/core/src/workflows/utils.ts` | `validateStepSuspendData()`, `validateStepResumeData()` |
-| `packages/core/src/workflows/default.ts` | `DefaultExecutionEngine` |
-| `packages/core/src/workflows/execution-engine.ts` | `ExecutionEngine` (base class) |
+| File                                              | Key Exports                                                |
+| ------------------------------------------------- | ---------------------------------------------------------- |
+| `packages/core/src/workflows/step.ts`             | `Step`, `ExecuteFunction`, `SuspendOptions`, `InnerOutput` |
+| `packages/core/src/workflows/workflow.ts`         | `createStep()`, `createWorkflow()`, `Workflow`, `Run`      |
+| `packages/core/src/workflows/types.ts`            | `StepSuspended`, `WorkflowRunState`, `ExecutionContext`    |
+| `packages/core/src/workflows/utils.ts`            | `validateStepSuspendData()`, `validateStepResumeData()`    |
+| `packages/core/src/workflows/default.ts`          | `DefaultExecutionEngine`                                   |
+| `packages/core/src/workflows/execution-engine.ts` | `ExecutionEngine` (base class)                             |
 
 **Sources:** [packages/core/src/workflows/step.ts:1-188](), [packages/core/src/workflows/workflow.ts:1-2362](), [packages/core/src/workflows/types.ts:1-880](), [packages/core/src/workflows/utils.ts:1-476]()
 
@@ -814,18 +817,18 @@ graph TB
         P_NESTED["nestedWorkflow<br/>(step)"]
         P_STEP3["step3"]
     end
-    
+
     subgraph "Nested Workflow"
         N_STEP1["nested-step1"]
         N_SUSPEND["nested-step2<br/>suspend()"]
         N_STEP3["nested-step3"]
     end
-    
+
     P_STEP1 --> P_NESTED
     P_NESTED --> N_STEP1
     N_STEP1 --> N_SUSPEND
     N_SUSPEND -.->|suspends parent| P_NESTED
-    
+
     P_NESTED -->|when resumed| N_STEP3
     N_STEP3 --> P_STEP3
 ```
@@ -857,7 +860,7 @@ Internal workflow metadata is automatically added to suspend payloads for coordi
     // User data
     requestId: '123',
     timestamp: 1234567890,
-    
+
     // Internal metadata (filtered before exposure)
     __workflow_meta: {
       path: ['nestedStep1', 'nestedStep2'],
@@ -868,6 +871,7 @@ Internal workflow metadata is automatically added to suspend payloads for coordi
 ```
 
 **Filtering occurs in:**
+
 - Step execution context preparation
 - Resume data extraction
 - Workflow result formatting
@@ -888,11 +892,11 @@ execute: async ({ suspend, resumeData, ...context }) => {
     return suspend(
       { requestId: '123', timestamp: Date.now() },
       { resumeLabel: 'approval' }
-    );
+    )
   }
-  
+
   // Resumed execution
-  return { approved: resumeData.approved };
+  return { approved: resumeData.approved }
 }
 ```
 
@@ -902,33 +906,33 @@ execute: async ({ suspend, resumeData, ...context }) => {
 // Resume by step ID
 await run.resume({
   step: 'approval-step',
-  resumeData: { approved: true }
-});
+  resumeData: { approved: true },
+})
 
 // Resume by label
 await run.resume({
   label: 'approval',
-  resumeData: { approved: true }
-});
+  resumeData: { approved: true },
+})
 
 // Resume specific foreach iteration
 await run.resume({
   step: 'process-item',
   forEachIndex: 2,
-  resumeData: { result: 'processed' }
-});
+  resumeData: { result: 'processed' },
+})
 
 // Resume with streaming
 const stream = run.resumeStream({
   step: 'approval-step',
-  resumeData: { approved: true }
-});
+  resumeData: { approved: true },
+})
 
 for await (const event of stream.fullStream) {
-  console.log(event);
+  console.log(event)
 }
 
-const result = await stream.result;
+const result = await stream.result
 ```
 
 ### Schema Definition
@@ -939,17 +943,17 @@ createStep({
   suspendSchema: z.object({
     requestId: z.string(),
     timestamp: z.number(),
-    metadata: z.record(z.any()).optional()
+    metadata: z.record(z.any()).optional(),
   }),
   resumeSchema: z.object({
     approved: z.boolean(),
     approverEmail: z.string().email(),
-    comments: z.string().optional()
+    comments: z.string().optional(),
   }),
   execute: async ({ suspend, resumeData }) => {
     // Typed suspend and resumeData based on schemas
-  }
-});
+  },
+})
 ```
 
 **Sources:** [packages/core/src/workflows/step.ts:13-171](), [packages/core/src/workflows/workflow.ts:1485-1583]()

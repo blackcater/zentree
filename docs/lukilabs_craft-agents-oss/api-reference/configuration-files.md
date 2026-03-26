@@ -13,8 +13,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page provides a comprehensive reference for all configuration file formats used by Craft Agents. Configuration data is stored in `~/.craft-agent/` with a hierarchical structure spanning application-level, workspace-level, and session-level files.
 
 For information about the storage system architecture and data persistence patterns, see [Storage & Configuration](#2.8). For workspace-specific settings and organization, see [Workspaces](#4.1).
@@ -69,6 +67,7 @@ Main application configuration. Defined by the `StoredConfig` interface. Read by
 **Location:** `~/.craft-agent/config.json`
 
 **Format:**
+
 ```json
 {
   "llmConnections": [
@@ -107,22 +106,22 @@ Main application configuration. Defined by the `StoredConfig` interface. Read by
 }
 ```
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `llmConnections` | `LlmConnection[]` | `[]` | All configured LLM provider connections |
-| `defaultLlmConnection` | `string` | — | Slug of the global default connection |
-| `workspaces` | `Workspace[]` | — | Registered workspace entries |
-| `activeWorkspaceId` | `string \| null` | — | Currently active workspace ID |
-| `activeSessionId` | `string \| null` | — | Currently active session ID |
-| `notificationsEnabled` | `boolean` | `true` | Desktop notifications for task completion |
-| `colorTheme` | `string` | `"default"` | Preset theme ID (e.g. `"dracula"`, `"nord"`) |
-| `dismissedUpdateVersion` | `string` | — | Version dismissed from auto-update prompts |
-| `autoCapitalisation` | `boolean` | `true` | Auto-capitalize first letter in input |
-| `sendMessageKey` | `"enter" \| "cmd-enter"` | `"enter"` | Key combination to send messages |
-| `spellCheck` | `boolean` | `false` | Spell check in chat input |
-| `keepAwakeWhileRunning` | `boolean` | `false` | Prevent screen sleep during active sessions |
-| `richToolDescriptions` | `boolean` | `true` | Inject `_intent` metadata into tool schemas |
-| `gitBashPath` | `string` | — | Windows only: path to `bash.exe` for SDK subprocess |
+| Field                    | Type                     | Default     | Description                                         |
+| ------------------------ | ------------------------ | ----------- | --------------------------------------------------- |
+| `llmConnections`         | `LlmConnection[]`        | `[]`        | All configured LLM provider connections             |
+| `defaultLlmConnection`   | `string`                 | —           | Slug of the global default connection               |
+| `workspaces`             | `Workspace[]`            | —           | Registered workspace entries                        |
+| `activeWorkspaceId`      | `string \| null`         | —           | Currently active workspace ID                       |
+| `activeSessionId`        | `string \| null`         | —           | Currently active session ID                         |
+| `notificationsEnabled`   | `boolean`                | `true`      | Desktop notifications for task completion           |
+| `colorTheme`             | `string`                 | `"default"` | Preset theme ID (e.g. `"dracula"`, `"nord"`)        |
+| `dismissedUpdateVersion` | `string`                 | —           | Version dismissed from auto-update prompts          |
+| `autoCapitalisation`     | `boolean`                | `true`      | Auto-capitalize first letter in input               |
+| `sendMessageKey`         | `"enter" \| "cmd-enter"` | `"enter"`   | Key combination to send messages                    |
+| `spellCheck`             | `boolean`                | `false`     | Spell check in chat input                           |
+| `keepAwakeWhileRunning`  | `boolean`                | `false`     | Prevent screen sleep during active sessions         |
+| `richToolDescriptions`   | `boolean`                | `true`      | Inject `_intent` metadata into tool schemas         |
+| `gitBashPath`            | `string`                 | —           | Windows only: path to `bash.exe` for SDK subprocess |
 
 Workspace `rootPath` values are stored with `~` prefix via `toPortablePath()` for portability, then expanded on load via `expandPath()`.
 
@@ -136,45 +135,45 @@ Each entry in `llmConnections` is an `LlmConnection` object. Credentials are sto
 
 **`LlmProviderType` values:**
 
-| Value | Backend |
-|-------|---------|
-| `anthropic` | Direct Anthropic API (`api.anthropic.com`) |
-| `anthropic_compat` | Anthropic-format endpoints (OpenRouter, Ollama, etc.) |
-| `bedrock` | AWS Bedrock (Claude via AWS) |
-| `vertex` | Google Vertex AI (Claude via GCP) |
-| `pi` | Pi unified API (ChatGPT Plus, Copilot, Google AI Studio) |
-| `pi_compat` | Pi with custom endpoint |
+| Value              | Backend                                                  |
+| ------------------ | -------------------------------------------------------- |
+| `anthropic`        | Direct Anthropic API (`api.anthropic.com`)               |
+| `anthropic_compat` | Anthropic-format endpoints (OpenRouter, Ollama, etc.)    |
+| `bedrock`          | AWS Bedrock (Claude via AWS)                             |
+| `vertex`           | Google Vertex AI (Claude via GCP)                        |
+| `pi`               | Pi unified API (ChatGPT Plus, Copilot, Google AI Studio) |
+| `pi_compat`        | Pi with custom endpoint                                  |
 
 **`LlmAuthType` values:**
 
-| Value | Description |
-|-------|-------------|
-| `api_key` | Single API key field |
-| `api_key_with_endpoint` | API key + custom base URL |
-| `oauth` | Browser OAuth flow |
-| `iam_credentials` | AWS Access Key + Secret Key + Region |
-| `bearer_token` | Bearer token (distinct from API key header) |
-| `service_account_file` | GCP JSON service account file |
-| `environment` | Auto-detect from environment variables |
-| `none` | No authentication (e.g. Ollama) |
+| Value                   | Description                                 |
+| ----------------------- | ------------------------------------------- |
+| `api_key`               | Single API key field                        |
+| `api_key_with_endpoint` | API key + custom base URL                   |
+| `oauth`                 | Browser OAuth flow                          |
+| `iam_credentials`       | AWS Access Key + Secret Key + Region        |
+| `bearer_token`          | Bearer token (distinct from API key header) |
+| `service_account_file`  | GCP JSON service account file               |
+| `environment`           | Auto-detect from environment variables      |
+| `none`                  | No authentication (e.g. Ollama)             |
 
 **`LlmConnection` fields:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `slug` | `string` | URL-safe unique identifier (e.g. `"anthropic-api"`) |
-| `name` | `string` | Display name |
-| `providerType` | `LlmProviderType` | Backend SDK to use |
-| `authType` | `LlmAuthType` | Authentication mechanism |
-| `baseUrl` | `string?` | Custom endpoint URL (`*_compat` providers) |
-| `models` | `ModelDefinition[]?` | Available models for this connection |
-| `defaultModel` | `string?` | Default model ID for new sessions |
-| `piAuthProvider` | `string?` | Pi auth provider (e.g. `"openai-codex"`, `"github-copilot"`) |
-| `awsRegion` | `string?` | AWS region (Bedrock) |
-| `gcpProjectId` | `string?` | GCP project (Vertex) |
-| `gcpRegion` | `string?` | GCP region (Vertex) |
-| `createdAt` | `number` | Unix timestamp (ms) |
-| `lastUsedAt` | `number?` | Unix timestamp (ms) |
+| Field            | Type                 | Description                                                  |
+| ---------------- | -------------------- | ------------------------------------------------------------ |
+| `slug`           | `string`             | URL-safe unique identifier (e.g. `"anthropic-api"`)          |
+| `name`           | `string`             | Display name                                                 |
+| `providerType`   | `LlmProviderType`    | Backend SDK to use                                           |
+| `authType`       | `LlmAuthType`        | Authentication mechanism                                     |
+| `baseUrl`        | `string?`            | Custom endpoint URL (`*_compat` providers)                   |
+| `models`         | `ModelDefinition[]?` | Available models for this connection                         |
+| `defaultModel`   | `string?`            | Default model ID for new sessions                            |
+| `piAuthProvider` | `string?`            | Pi auth provider (e.g. `"openai-codex"`, `"github-copilot"`) |
+| `awsRegion`      | `string?`            | AWS region (Bedrock)                                         |
+| `gcpProjectId`   | `string?`            | GCP project (Vertex)                                         |
+| `gcpRegion`      | `string?`            | GCP region (Vertex)                                          |
+| `createdAt`      | `number`             | Unix timestamp (ms)                                          |
+| `lastUsedAt`     | `number?`            | Unix timestamp (ms)                                          |
 
 Connections are resolved through a fallback chain in `resolveEffectiveConnectionSlug()`: session-locked → workspace default → global default → first available.
 
@@ -187,6 +186,7 @@ Encrypted credential storage using AES-256-GCM encryption. Contains all API keys
 **Location:** `~/.craft-agent/credentials.enc`
 
 **Encryption Details:**
+
 - Algorithm: AES-256-GCM
 - Key derivation: System keychain (macOS Keychain, Windows Credential Manager) or machine-specific fallback
 - Format: Binary encrypted blob (not human-readable)
@@ -204,6 +204,7 @@ User profile and preferences accessible to the agent for personalization.
 **Location:** `~/.craft-agent/preferences.json`
 
 **Format:**
+
 ```json
 {
   "userName": "John Doe",
@@ -214,13 +215,13 @@ User profile and preferences accessible to the agent for personalization.
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `userName` | `string` | User's preferred name for agent to use |
-| `timezone` | `string` | IANA timezone identifier |
-| `language` | `string` | Locale code (BCP 47 format) |
-| `dateFormat` | `string` | Preferred date formatting pattern |
-| `timeFormat` | `"12h" \| "24h"` | Time display preference |
+| Field        | Type             | Description                            |
+| ------------ | ---------------- | -------------------------------------- |
+| `userName`   | `string`         | User's preferred name for agent to use |
+| `timezone`   | `string`         | IANA timezone identifier               |
+| `language`   | `string`         | Locale code (BCP 47 format)            |
+| `dateFormat` | `string`         | Preferred date formatting pattern      |
+| `timeFormat` | `"12h" \| "24h"` | Time display preference                |
 
 **Sources:** [README.md:210]()
 
@@ -231,6 +232,7 @@ Application-level theme configuration using a 6-color system. Workspace themes c
 **Location:** `~/.craft-agent/theme.json`
 
 **Format:**
+
 ```json
 {
   "mode": "light" | "dark",
@@ -264,15 +266,15 @@ Per-workspace settings. Read and written by `loadWorkspaceConfig()` / `saveWorks
 
 Key fields from the workspace config schema include:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | `string` | Workspace UUID |
-| `name` | `string` | Display name |
-| `createdAt` | `number` | Unix timestamp (ms) |
-| `defaults.workingDirectory` | `string` | Default working directory for sessions |
-| `defaults.permissionMode` | `"safe" \| "ask" \| "allow-all"` | Default permission mode |
-| `defaults.cyclablePermissionModes` | `string[]` | Modes available via SHIFT+TAB cycle |
-| `defaults.llmConnection` | `string` | Workspace-level default LLM connection slug (overrides global default) |
+| Field                              | Type                             | Description                                                            |
+| ---------------------------------- | -------------------------------- | ---------------------------------------------------------------------- |
+| `id`                               | `string`                         | Workspace UUID                                                         |
+| `name`                             | `string`                         | Display name                                                           |
+| `createdAt`                        | `number`                         | Unix timestamp (ms)                                                    |
+| `defaults.workingDirectory`        | `string`                         | Default working directory for sessions                                 |
+| `defaults.permissionMode`          | `"safe" \| "ask" \| "allow-all"` | Default permission mode                                                |
+| `defaults.cyclablePermissionModes` | `string[]`                       | Modes available via SHIFT+TAB cycle                                    |
+| `defaults.llmConnection`           | `string`                         | Workspace-level default LLM connection slug (overrides global default) |
 
 The workspace `config.json` is the single source of truth for the workspace name. The `Workspace` entry in the global `config.json` does not store a duplicate name field — `getWorkspaces()` reads names from workspace folder configs at runtime.
 
@@ -297,6 +299,7 @@ Event-driven automation rules for a workspace. Must include `"version": 2`.
 **Location:** `~/.craft-agent/workspaces/{id}/automations.json`
 
 **Format:**
+
 ```json
 {
   "version": 2,
@@ -315,7 +318,10 @@ Event-driven automation rules for a workspace. Must include `"version": 2`.
       {
         "matcher": "^urgent$",
         "actions": [
-          { "type": "prompt", "prompt": "An urgent label was added. Triage the session." }
+          {
+            "type": "prompt",
+            "prompt": "An urgent label was added. Triage the session."
+          }
         ]
       }
     ]
@@ -327,28 +333,28 @@ The top-level `automations` object is keyed by event type. Each event type holds
 
 **Supported event types:**
 
-| Event | Trigger |
-|-------|---------|
-| `LabelAdd` | Label applied to a session |
-| `LabelRemove` | Label removed from a session |
-| `PermissionModeChange` | Permission mode switched |
-| `FlagChange` | Session flagged or unflagged |
-| `SessionStatusChange` | Session status changed |
-| `SchedulerTick` | Cron schedule fires |
-| `PreToolUse` | Before any tool execution |
-| `PostToolUse` | After any tool execution |
-| `SessionStart` | New session created |
-| `SessionEnd` | Session ends |
+| Event                  | Trigger                      |
+| ---------------------- | ---------------------------- |
+| `LabelAdd`             | Label applied to a session   |
+| `LabelRemove`          | Label removed from a session |
+| `PermissionModeChange` | Permission mode switched     |
+| `FlagChange`           | Session flagged or unflagged |
+| `SessionStatusChange`  | Session status changed       |
+| `SchedulerTick`        | Cron schedule fires          |
+| `PreToolUse`           | Before any tool execution    |
+| `PostToolUse`          | After any tool execution     |
+| `SessionStart`         | New session created          |
+| `SessionEnd`           | Session ends                 |
 
 **Rule fields by event type:**
 
-| Field | Applies to | Description |
-|-------|-----------|-------------|
-| `cron` | `SchedulerTick` | Cron expression (5-field) |
-| `timezone` | `SchedulerTick` | IANA timezone identifier |
-| `labels` | `SchedulerTick` | Labels applied to created sessions |
-| `matcher` | `LabelAdd`, `LabelRemove` | Regex matched against label name |
-| `actions` | all | Array of action objects |
+| Field      | Applies to                | Description                        |
+| ---------- | ------------------------- | ---------------------------------- |
+| `cron`     | `SchedulerTick`           | Cron expression (5-field)          |
+| `timezone` | `SchedulerTick`           | IANA timezone identifier           |
+| `labels`   | `SchedulerTick`           | Labels applied to created sessions |
+| `matcher`  | `LabelAdd`, `LabelRemove` | Regex matched against label name   |
+| `actions`  | all                       | Array of action objects            |
 
 **Prompt action** (`{ "type": "prompt", "prompt": "..." }`): creates a new agent session. Supports `@mentions` for sources and skills, and expands environment variables like `$CRAFT_LABEL` and `$CRAFT_SESSION_ID`.
 
@@ -365,6 +371,7 @@ Customizable workflow states for session organization.
 **Location:** `~/.craft-agent/workspaces/{id}/statuses/status-config.json`
 
 **Format:**
+
 ```json
 {
   "statuses": [
@@ -411,17 +418,17 @@ Customizable workflow states for session organization.
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `statuses` | `Status[]` | Array of status definitions |
-| `statuses[].id` | `string` | Unique identifier (kebab-case) |
-| `statuses[].label` | `string` | Display name |
-| `statuses[].color` | `string` | Hex color code |
-| `statuses[].icon` | `string` | Icon identifier |
-| `statuses[].isInbox` | `boolean` | Appears in inbox (not archived) |
-| `statuses[].order` | `number` | Sort order in UI |
-| `defaultStatus` | `string` | Status ID for new sessions |
-| `transitions` | `Record<string, string[]>` | Valid status transition map |
+| Field                | Type                       | Description                     |
+| -------------------- | -------------------------- | ------------------------------- |
+| `statuses`           | `Status[]`                 | Array of status definitions     |
+| `statuses[].id`      | `string`                   | Unique identifier (kebab-case)  |
+| `statuses[].label`   | `string`                   | Display name                    |
+| `statuses[].color`   | `string`                   | Hex color code                  |
+| `statuses[].icon`    | `string`                   | Icon identifier                 |
+| `statuses[].isInbox` | `boolean`                  | Appears in inbox (not archived) |
+| `statuses[].order`   | `number`                   | Sort order in UI                |
+| `defaultStatus`      | `string`                   | Status ID for new sessions      |
+| `transitions`        | `Record<string, string[]>` | Valid status transition map     |
 
 **Sources:** [README.md:219]()
 
@@ -436,6 +443,7 @@ Each connected source (MCP server, API, or local resource) has a configuration f
 **Location:** `~/.craft-agent/workspaces/{id}/sources/{sourceSlug}.json`
 
 **Format (MCP Server - stdio):**
+
 ```json
 {
   "type": "mcp",
@@ -457,6 +465,7 @@ Each connected source (MCP server, API, or local resource) has a configuration f
 ```
 
 **Format (MCP Server - HTTP/SSE):**
+
 ```json
 {
   "type": "mcp",
@@ -473,6 +482,7 @@ Each connected source (MCP server, API, or local resource) has a configuration f
 ```
 
 **Format (REST API):**
+
 ```json
 {
   "type": "api",
@@ -492,6 +502,7 @@ Each connected source (MCP server, API, or local resource) has a configuration f
 ```
 
 **Format (Local Resource):**
+
 ```json
 {
   "type": "local",
@@ -506,26 +517,25 @@ Each connected source (MCP server, API, or local resource) has a configuration f
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | `"mcp" \| "api" \| "local"` | Source integration type |
-| `transport` | `"stdio" \| "sse"` | MCP transport mechanism (MCP only) |
-| `slug` | `string` | Unique identifier (kebab-case) |
-| `name` | `string` | Display name |
-| `description` | `string` | Human-readable description |
-| `command` | `string` | Executable command (stdio MCP only) |
-| `args` | `string[]` | Command arguments (stdio MCP only) |
-| `url` | `string` | Endpoint URL (SSE MCP or API) |
-| `env` | `Record<string, string>` | Environment variables (stdio MCP only) |
-| `provider` | `string` | OAuth provider identifier (API only) |
-| `scopes` | `string[]` | OAuth permission scopes (API only) |
-| `path` | `string` | Filesystem path (local only) |
-| `metadata` | `object` | Additional source-specific metadata |
+| Field         | Type                        | Description                            |
+| ------------- | --------------------------- | -------------------------------------- |
+| `type`        | `"mcp" \| "api" \| "local"` | Source integration type                |
+| `transport`   | `"stdio" \| "sse"`          | MCP transport mechanism (MCP only)     |
+| `slug`        | `string`                    | Unique identifier (kebab-case)         |
+| `name`        | `string`                    | Display name                           |
+| `description` | `string`                    | Human-readable description             |
+| `command`     | `string`                    | Executable command (stdio MCP only)    |
+| `args`        | `string[]`                  | Command arguments (stdio MCP only)     |
+| `url`         | `string`                    | Endpoint URL (SSE MCP or API)          |
+| `env`         | `Record<string, string>`    | Environment variables (stdio MCP only) |
+| `provider`    | `string`                    | OAuth provider identifier (API only)   |
+| `scopes`      | `string[]`                  | OAuth permission scopes (API only)     |
+| `path`        | `string`                    | Filesystem path (local only)           |
+| `metadata`    | `object`                    | Additional source-specific metadata    |
 
 **Sources:** [README.md:217]()
 
 ---
-
 
 ## Skills Configuration
 
@@ -534,6 +544,7 @@ Skills are stored as Markdown files with frontmatter metadata.
 **Location:** `~/.craft-agent/workspaces/{id}/skills/{skillSlug}.md`
 
 **Format:**
+
 ```markdown
 ---
 name: Code Review
@@ -565,14 +576,14 @@ When reviewing code, follow these steps:
 Always provide specific line numbers and actionable suggestions.
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| Frontmatter: `name` | `string` | Display name |
-| Frontmatter: `slug` | `string` | Unique identifier (matches filename) |
-| Frontmatter: `description` | `string` | Short description |
-| Frontmatter: `tags` | `string[]` | Categorization tags |
-| Frontmatter: `version` | `string` | Semantic version |
-| Body | Markdown | Skill instructions and context |
+| Field                      | Type       | Description                          |
+| -------------------------- | ---------- | ------------------------------------ |
+| Frontmatter: `name`        | `string`   | Display name                         |
+| Frontmatter: `slug`        | `string`   | Unique identifier (matches filename) |
+| Frontmatter: `description` | `string`   | Short description                    |
+| Frontmatter: `tags`        | `string[]` | Categorization tags                  |
+| Frontmatter: `version`     | `string`   | Semantic version                     |
+| Body                       | Markdown   | Skill instructions and context       |
 
 Skills are invoked using `@skillSlug` syntax in chat messages.
 
@@ -598,6 +609,7 @@ Sessions are stored as JSONL (JSON Lines) files for efficient streaming reads an
 ```
 
 **Event Types:**
+
 - `session_start`: Session initialization with config
 - `user_message`: User input
 - `thinking`: Claude's thinking process (when enabled)
@@ -628,7 +640,6 @@ Some sessions may have a companion `.json` file with metadata:
 **Sources:** [README.md:216]()
 
 ---
-
 
 ## Configuration File Mapping
 
@@ -736,13 +747,14 @@ The `docs/` directory contains bundled documentation that the agent can referenc
 export function initializeDocs(): void {
   // Always write bundled docs to disk on launch
   for (const [filename, content] of Object.entries(BUNDLED_DOCS)) {
-    const docPath = join(DOCS_DIR, filename);
-    writeFileSync(docPath, content, 'utf-8');
+    const docPath = join(DOCS_DIR, filename)
+    writeFileSync(docPath, content, 'utf-8')
   }
 }
 ```
 
 **Available Documentation:**
+
 - `sources.md` - Source integration guide
 - `permissions.md` - Permission pattern reference
 - `skills.md` - Skill creation guide
@@ -762,7 +774,7 @@ export const DOC_REFS = {
   permissions: '~/.craft-agent/docs/permissions.md',
   skills: '~/.craft-agent/docs/skills.md',
   // ...
-} as const;
+} as const
 ```
 
 **Sources:** [packages/shared/src/docs/index.ts:1-143]()

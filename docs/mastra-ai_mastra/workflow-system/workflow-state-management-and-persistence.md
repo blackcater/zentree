@@ -26,8 +26,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes how workflow execution state is structured, managed, and persisted across workflow runs. It covers the `ExecutionContext` and `MutableContext` types, state update mechanisms, step result tracking, and storage integration.
 
 For information about workflow execution engines, see [Execution Engines](#4.2). For suspend/resume mechanisms that rely on persisted state, see [Suspend and Resume Mechanism](#4.4).
@@ -38,10 +36,10 @@ For information about workflow execution engines, see [Execution Engines](#4.2).
 
 Workflow execution state is managed through two complementary structures:
 
-| Structure | Mutability | Purpose |
-|-----------|-----------|---------|
+| Structure          | Mutability                 | Purpose                                                                              |
+| ------------------ | -------------------------- | ------------------------------------------------------------------------------------ |
 | `ExecutionContext` | Immutable during execution | Contains complete execution state including paths, configuration, and workflow state |
-| `MutableContext` | Mutable via steps | Subset of fields that steps can modify: `state`, `suspendedPaths`, `resumeLabels` |
+| `MutableContext`   | Mutable via steps          | Subset of fields that steps can modify: `state`, `suspendedPaths`, `resumeLabels`    |
 
 The separation ensures that most execution state remains stable while allowing controlled modifications through the `setState()` and `suspend()` APIs.
 
@@ -68,17 +66,17 @@ graph TB
         State["state: Record&lt;string, any&gt;"]
         TracingIds["tracingIds?: {traceId, workflowSpanId}"]
     end
-    
+
     subgraph MutableSubset["MutableContext (Subset)"]
         MState["state"]
         MSuspended["suspendedPaths"]
         MResume["resumeLabels"]
     end
-    
+
     State -.->|"extracted to"| MState
     SuspendedPaths -.->|"extracted to"| MSuspended
     ResumeLabels -.->|"extracted to"| MResume
-    
+
     MutableSubset -.->|"buildMutableContext()"| ExecutionContext
     ExecutionContext -.->|"applyMutableContext()"| MutableSubset
 ```
@@ -112,19 +110,19 @@ sequenceDiagram
     participant Handler as "executeStep Handler"
     participant MutableCtx as "MutableContext"
     participant ExecCtx as "ExecutionContext"
-    
+
     Handler->>MutableCtx: buildMutableContext(execCtx)
     Note over MutableCtx: {state, suspendedPaths, resumeLabels}
-    
+
     Handler->>Step: execute({setState, state, ...})
     Step->>MutableCtx: setState({key: value})
     Note over MutableCtx: Captures state changes
-    
+
     Step->>Step: May call setState() multiple times
     Step->>MutableCtx: setState({key2: value2})
-    
+
     Step-->>Handler: return output
-    
+
     Handler->>ExecCtx: applyMutableContext(mutableCtx)
     Note over ExecCtx: State changes merged into ExecutionContext
 ```
@@ -168,7 +166,7 @@ State updates are **not visible** to the current step but are available to subse
 ```mermaid
 graph LR
     StepResult["StepResult&lt;P, R, S, T&gt;"]
-    
+
     StepResult --> StepSuccess["StepSuccess<br/>{status: 'success', output, payload,<br/>startedAt, endedAt}"]
     StepResult --> StepFailure["StepFailure<br/>{status: 'failed', error, payload,<br/>startedAt, endedAt, tripwire?}"]
     StepResult --> StepSuspended["StepSuspended<br/>{status: 'suspended', payload,<br/>suspendPayload, startedAt, suspendedAt}"]
@@ -187,6 +185,7 @@ stepResults['__state'] = { status: 'success', output: workflowState, ... }
 ```
 
 The `stepResults` map serves multiple purposes:
+
 - **State restoration**: Used when resuming suspended workflows
 - **Time travel**: Provides historical state for re-execution from arbitrary points
 - **Result retrieval**: Enables `getStepResult()` to access previous step outputs
@@ -195,11 +194,11 @@ The `stepResults` map serves multiple purposes:
 
 ### Special stepResults Keys
 
-| Key | Purpose | Content |
-|-----|---------|---------|
-| `input` | Initial workflow input | `{ status: 'success', output: inputData }` |
-| `__state` | Current workflow state | `{ status: 'success', output: state }` |
-| `stepId` | Individual step results | `StepResult` with status, output, payload, timing |
+| Key       | Purpose                 | Content                                           |
+| --------- | ----------------------- | ------------------------------------------------- |
+| `input`   | Initial workflow input  | `{ status: 'success', output: inputData }`        |
+| `__state` | Current workflow state  | `{ status: 'success', output: state }`            |
+| `stepId`  | Individual step results | `StepResult` with status, output, payload, timing |
 
 The `__state` key is managed by the execution engine and updated after each `setState()` call via `persistStepUpdate()`.
 
@@ -216,7 +215,7 @@ erDiagram
     WorkflowRunState ||--|| WorkflowMetadata : "contains"
     WorkflowRunState ||--o{ StepResult : "has"
     WorkflowRunState ||--|| ExecutionPaths : "tracks"
-    
+
     WorkflowRunState {
         string runId
         string status
@@ -234,14 +233,14 @@ erDiagram
         number timestamp
         StepTripwireInfo tripwire
     }
-    
+
     WorkflowMetadata {
         string workflowName
         string resourceId
         Date createdAt
         Date updatedAt
     }
-    
+
     StepResult {
         string status
         any output
@@ -251,7 +250,7 @@ erDiagram
         number startedAt
         number endedAt
     }
-    
+
     ExecutionPaths {
         number[] activePaths
         Record activeStepsPath
@@ -266,22 +265,25 @@ The `WorkflowRunState` type represents the complete snapshot of a workflow run p
 
 ```typescript
 interface WorkflowRunState {
-  runId: string;
-  status: WorkflowRunStatus;
-  result?: Record<string, any>;
-  error?: SerializedError;
-  requestContext?: Record<string, any>;
-  value: Record<string, string>;
-  context: { input?: Record<string, any> } & Record<string, SerializedStepResult>;
-  serializedStepGraph: SerializedStepFlowEntry[];
-  activePaths: number[];
-  activeStepsPath: Record<string, number[]>;
-  suspendedPaths: Record<string, number[]>;
-  resumeLabels: Record<string, {stepId: string; foreachIndex?: number}>;
-  waitingPaths: Record<string, number[]>;
-  timestamp: number;
-  tripwire?: StepTripwireInfo;
-  stepExecutionPath?: string[];
+  runId: string
+  status: WorkflowRunStatus
+  result?: Record<string, any>
+  error?: SerializedError
+  requestContext?: Record<string, any>
+  value: Record<string, string>
+  context: { input?: Record<string, any> } & Record<
+    string,
+    SerializedStepResult
+  >
+  serializedStepGraph: SerializedStepFlowEntry[]
+  activePaths: number[]
+  activeStepsPath: Record<string, number[]>
+  suspendedPaths: Record<string, number[]>
+  resumeLabels: Record<string, { stepId: string; foreachIndex?: number }>
+  waitingPaths: Record<string, number[]>
+  timestamp: number
+  tripwire?: StepTripwireInfo
+  stepExecutionPath?: string[]
 }
 ```
 
@@ -297,21 +299,21 @@ interface WorkflowRunState {
 
 The `WorkflowState` type combines metadata with execution state for API responses and provides a cleaner interface than `WorkflowRunState`:
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `runId` | `string` | Unique run identifier |
-| `workflowName` | `string` | Workflow definition ID |
-| `resourceId` | `string?` | Tenant/user identifier for multi-tenant scenarios |
-| `createdAt` | `Date` | Run creation timestamp |
-| `updatedAt` | `Date` | Last update timestamp |
-| `status` | `WorkflowRunStatus` | Current execution status |
-| `initialState` | `Record?` | Initial workflow state |
-| `stepExecutionPath` | `string[]?` | Ordered step IDs executed |
-| `steps` | `Record?` | Step results (optional, excluded for performance) |
-| `result` | `Record?` | Final workflow output |
-| `error` | `SerializedError?` | Failure details |
-| `activeStepsPath` | `Record?` | Path tracking (optional) |
-| `serializedStepGraph` | `SerializedStepFlowEntry[]?` | Graph structure (optional) |
+| Field                 | Type                         | Purpose                                           |
+| --------------------- | ---------------------------- | ------------------------------------------------- |
+| `runId`               | `string`                     | Unique run identifier                             |
+| `workflowName`        | `string`                     | Workflow definition ID                            |
+| `resourceId`          | `string?`                    | Tenant/user identifier for multi-tenant scenarios |
+| `createdAt`           | `Date`                       | Run creation timestamp                            |
+| `updatedAt`           | `Date`                       | Last update timestamp                             |
+| `status`              | `WorkflowRunStatus`          | Current execution status                          |
+| `initialState`        | `Record?`                    | Initial workflow state                            |
+| `stepExecutionPath`   | `string[]?`                  | Ordered step IDs executed                         |
+| `steps`               | `Record?`                    | Step results (optional, excluded for performance) |
+| `result`              | `Record?`                    | Final workflow output                             |
+| `error`               | `SerializedError?`           | Failure details                                   |
+| `activeStepsPath`     | `Record?`                    | Path tracking (optional)                          |
+| `serializedStepGraph` | `SerializedStepFlowEntry[]?` | Graph structure (optional)                        |
 
 **Field Filtering:** The `getWorkflowRunById()` method supports a `fields` parameter of type `WorkflowStateField[]` to reduce payload size by excluding expensive fields like `steps`, `activeStepsPath`, or `serializedStepGraph`.
 
@@ -334,7 +336,7 @@ graph LR
         RC1 --> Step1
         Step1 --> Serialize
     end
-    
+
     subgraph Replay["Replay (Memoized)"]
         Cached["Cached step result<br/>+ serialized context"]
         Deserialize["deserializeRequestContext()"]
@@ -342,7 +344,7 @@ graph LR
         Cached --> Deserialize
         Deserialize --> RC2
     end
-    
+
     Serialize -.->|"stored with result"| Cached
 ```
 
@@ -378,13 +380,13 @@ flowchart TD
     Start["Step Completes"] --> CheckShould{"shouldPersistSnapshot()?"}
     CheckShould -->|"true"| Serialize["Serialize Snapshot"]
     CheckShould -->|"false"| Skip["Skip Persistence"]
-    
+
     Serialize --> BuildSnapshot["Build WorkflowRunState"]
     BuildSnapshot --> StoreContext["store.context = stepResults"]
     StoreContext --> StoreGraph["store.serializedStepGraph = graph"]
     StoreGraph --> StorePaths["store.activePaths, suspendedPaths, etc."]
     StorePaths --> Save["workflowsStore.saveWorkflowSnapshot()"]
-    
+
     Save --> Done["Continue Execution"]
     Skip --> Done
 ```
@@ -399,10 +401,12 @@ const workflow = createWorkflow({
   options: {
     shouldPersistSnapshot: ({ stepResults, workflowStatus }) => {
       // Default: persist on terminal states
-      return ['success', 'failed', 'suspended', 'tripwire'].includes(workflowStatus);
-    }
-  }
-});
+      return ['success', 'failed', 'suspended', 'tripwire'].includes(
+        workflowStatus
+      )
+    },
+  },
+})
 ```
 
 **Default Behavior:** Snapshots are saved when workflow reaches a terminal state (`success`, `failed`, `suspended`, `tripwire`).
@@ -430,9 +434,9 @@ await workflowsStore.persistWorkflowSnapshot({
     waitingPaths: executionContext.waitingPaths,
     stepExecutionPath: executionContext.stepExecutionPath,
     value: {},
-    timestamp: Date.now()
-  }
-});
+    timestamp: Date.now(),
+  },
+})
 ```
 
 The `persistWorkflowSnapshot()` method is called by execution engines when `shouldPersistSnapshot()` returns true. Storage adapters implement this method to persist the snapshot:
@@ -455,16 +459,16 @@ sequenceDiagram
     participant Run as "run.resume()"
     participant Storage as "workflowsStore"
     participant Engine as "ExecutionEngine"
-    
+
     Client->>Run: resume({step, resumeData})
     Run->>Storage: loadWorkflowSnapshot(runId)
     Storage-->>Run: WorkflowRunState
-    
+
     Run->>Run: Extract stepResults from context
     Run->>Run: Build resumePath from activeStepsPath
-    
+
     Run->>Engine: execute({<br/>  resume: {<br/>    steps: [stepId],<br/>    stepResults,<br/>    resumePayload,<br/>    resumePath<br/>  }<br/>})
-    
+
     Engine->>Engine: Validate resumeData against resumeSchema
     Engine->>Engine: Resume execution from stepId
     Engine-->>Run: WorkflowResult
@@ -486,16 +490,16 @@ sequenceDiagram
     participant Run as "run.timeTravel()"
     participant Util as "createTimeTravelExecutionParams()"
     participant Engine as "ExecutionEngine"
-    
+
     Client->>Run: timeTravel({step, context, inputData})
     Run->>Run: Load snapshot
-    
+
     Run->>Util: Create execution params
     Util->>Util: Reconstruct stepResults up to target step
     Util->>Util: Build executionPath from graph
     Util->>Util: Set target steps to 'running' status
     Util-->>Run: TimeTravelExecutionParams
-    
+
     Run->>Engine: execute({timeTravel: params})
     Engine->>Engine: Re-execute from target step
     Engine-->>Run: WorkflowResult
@@ -526,14 +530,14 @@ graph TB
         MutableCtx["MutableContext<br/>(extracted on demand)"]
         StepResults["stepResults Map<br/>(accumulates in memory)"]
         PersistUpdate["persistStepUpdate()<br/>(saves __state)"]
-        
+
         ExecCtx -->|"buildMutableContext()"| MutableCtx
         MutableCtx -->|"applyMutableContext()"| ExecCtx
         ExecCtx -.->|"references"| StepResults
         ExecCtx -->|"after setState()"| PersistUpdate
         PersistUpdate -->|"stepResults['__state'] ="| StepResults
     end
-    
+
     DefaultEngine -->|"persist on terminal state"| Storage["Storage Adapter"]
 ```
 
@@ -545,7 +549,7 @@ graph TB
 
 **Key Methods:**
 
-- `buildMutableContext(executionContext)`: Extracts `{state, suspendedPaths, resumeLabels}` 
+- `buildMutableContext(executionContext)`: Extracts `{state, suspendedPaths, resumeLabels}`
 - `applyMutableContext(executionContext, mutableContext)`: Merges changes back into `ExecutionContext`
 - `persistStepUpdate(params)`: Saves current state to `stepResults['__state']`
 
@@ -560,17 +564,17 @@ graph TB
         Processor["WorkflowEventProcessor"]
         StepExec["StepExecutor"]
         LocalState["Per-Event State"]
-        
+
         Events -->|"workflow.start"| Processor
         Events -->|"workflow.step"| Processor
         Events -->|"workflow.resume"| Processor
-        
+
         Processor -->|"publishes workflow.step"| Events
         Processor -->|"passes state"| StepExec
         StepExec -->|"captures setState()"| LocalState
         StepExec -->|"publishes result"| Events
     end
-    
+
     EventedEngine -->|"persist after each event"| Storage["Storage Adapter"]
 ```
 
@@ -590,16 +594,16 @@ graph TB
         SerializedCtx["Serialized Context<br/>(for replay)"]
         StepResult["Step Result + Context<br/>(cached by Inngest)"]
         WrapDurable["wrapDurableOperation()<br/>(memoization wrapper)"]
-        
+
         InngestStep -->|"first run"| Execute["Execute Step"]
         Execute -->|"serialize via"| WrapDurable
         WrapDurable -->|"stores"| SerializedCtx
         SerializedCtx -->|"with"| StepResult
-        
+
         InngestStep -->|"replay"| StepResult
         StepResult -->|"deserialize"| SerializedCtx
     end
-    
+
     InngestExecutionEngine -->|"persist via Inngest platform"| InngestStorage["Inngest State Storage"]
 ```
 
@@ -626,38 +630,39 @@ graph TB
 
 ### Terminology Disambiguation
 
-| Term | Scope | Content | Access |
-|------|-------|---------|--------|
-| **`state`** | Workflow-level | User-defined key-value pairs set via `setState()` | Read: `state` param, Write: `setState()` |
-| **`stepResults`** | Internal execution | Map of step IDs to `StepResult` objects (status, output, payload, timing) | Read: `getStepResult()`, Write: automatic |
-| **`context`** (storage) | Persisted snapshot | Synonym for `stepResults` when saved to storage | Read: `snapshot.context`, Write: via persistence |
-| **`requestContext`** | Per-request | Request-scoped data (user ID, tenant ID, etc.) | Read/Write: `requestContext.get/set()` |
+| Term                    | Scope              | Content                                                                   | Access                                           |
+| ----------------------- | ------------------ | ------------------------------------------------------------------------- | ------------------------------------------------ |
+| **`state`**             | Workflow-level     | User-defined key-value pairs set via `setState()`                         | Read: `state` param, Write: `setState()`         |
+| **`stepResults`**       | Internal execution | Map of step IDs to `StepResult` objects (status, output, payload, timing) | Read: `getStepResult()`, Write: automatic        |
+| **`context`** (storage) | Persisted snapshot | Synonym for `stepResults` when saved to storage                           | Read: `snapshot.context`, Write: via persistence |
+| **`requestContext`**    | Per-request        | Request-scoped data (user ID, tenant ID, etc.)                            | Read/Write: `requestContext.get/set()`           |
 
 **Example:**
 
 ```typescript
 const workflow = createWorkflow({
-  stateSchema: z.object({ counter: z.number() })
-});
+  stateSchema: z.object({ counter: z.number() }),
+})
 
 const step1 = createStep({
   id: 'increment',
   execute: async ({ state, setState, getStepResult }) => {
     // state: workflow-level state
-    const current = state.counter || 0;
-    
+    const current = state.counter || 0
+
     // setState: update workflow state
-    await setState({ counter: current + 1 });
-    
+    await setState({ counter: current + 1 })
+
     // getStepResult: access previous step outputs
-    const prevOutput = getStepResult('previousStep');
-    
-    return { newValue: current + 1 };
-  }
-});
+    const prevOutput = getStepResult('previousStep')
+
+    return { newValue: current + 1 }
+  },
+})
 ```
 
 After execution, `stepResults['increment']` contains:
+
 ```typescript
 {
   status: 'success',
@@ -669,8 +674,11 @@ After execution, `stepResults['increment']` contains:
 ```
 
 While workflow `state` contains:
+
 ```typescript
-{ counter: 1 }
+{
+  counter: 1
+}
 ```
 
 **Sources:** [packages/core/src/workflows/step.ts:23-67](), [packages/core/src/workflows/types.ts:312-336]()

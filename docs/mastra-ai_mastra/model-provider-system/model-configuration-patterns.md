@@ -10,7 +10,7 @@ The following files were used as context for generating this wiki page:
 - [docs/src/content/en/models/gateways/openrouter.mdx](docs/src/content/en/models/gateways/openrouter.mdx)
 - [docs/src/content/en/models/gateways/vercel.mdx](docs/src/content/en/models/gateways/vercel.mdx)
 - [docs/src/content/en/models/index.mdx](docs/src/content/en/models/index.mdx)
-- [docs/src/content/en/models/providers/_meta.ts](docs/src/content/en/models/providers/_meta.ts)
+- [docs/src/content/en/models/providers/\_meta.ts](docs/src/content/en/models/providers/_meta.ts)
 - [docs/src/content/en/models/providers/alibaba-cn.mdx](docs/src/content/en/models/providers/alibaba-cn.mdx)
 - [docs/src/content/en/models/providers/alibaba.mdx](docs/src/content/en/models/providers/alibaba.mdx)
 - [docs/src/content/en/models/providers/anthropic.mdx](docs/src/content/en/models/providers/anthropic.mdx)
@@ -49,8 +49,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the various patterns for configuring LLM models in Mastra agents and workflows. It covers the model specification formats, dynamic selection strategies, fallback mechanisms, and custom provider integrations.
 
 For information about the provider registry system and model catalog, see [Provider Registry and Model Catalog](#5.1). For details on dynamic model selection based on request context, see [Dynamic Model Selection](#5.4). For model fallback error handling, see [Model Fallbacks and Error Handling](#5.5).
@@ -60,6 +58,7 @@ For information about the provider registry system and model catalog, see [Provi
 Mastra supports multiple configuration patterns for specifying which LLM model an agent or workflow should use. The configuration can range from a simple string identifier to complex objects with custom authentication, headers, and dynamic resolution logic. The system abstracts over 88 providers and 2609+ models through a unified interface.
 
 Model configuration accepts four primary formats:
+
 1. **String format**: `"provider/model-name"` for registry-based models
 2. **Object format**: Configuration object for custom endpoints and authentication
 3. **Function format**: Dynamic resolution based on request context
@@ -78,13 +77,13 @@ graph TB
     ProviderConfig["ProviderConfig<br/>{url, apiKeyEnvVar, apiKeyHeader}"]
     EnvVar["process.env[apiKeyEnvVar]"]
     LLMWrapper["createLanguageModel()"]
-    
+
     Agent -->|"parse provider/model"| Router
     Router -->|"lookup provider"| Registry
     Registry -->|"return config"| ProviderConfig
     ProviderConfig -->|"read"| EnvVar
     Router --> LLMWrapper
-    
+
     style Agent fill:#f9f9f9
     style Registry fill:#f9f9f9
     style LLMWrapper fill:#f9f9f9
@@ -129,20 +128,20 @@ graph TB
     ApiKeyField["apiKey: process.env.CUSTOM_KEY"]
     HeadersField["headers: {Custom-Header: value}"]
     OtherFields["baseURL, fetch, etc."]
-    
+
     CreateLM["createLanguageModel()"]
     AISDKProvider["AI SDK Provider Instance"]
-    
+
     AgentConfig --> ModelObject
     ModelObject --> IdField
     ModelObject --> UrlField
     ModelObject --> ApiKeyField
     ModelObject --> HeadersField
     ModelObject --> OtherFields
-    
+
     ModelObject --> CreateLM
     CreateLM --> AISDKProvider
-    
+
     style ModelObject fill:#f9f9f9
     style CreateLM fill:#f9f9f9
 ```
@@ -150,6 +149,7 @@ graph TB
 **Configuration Fields**
 
 The model object accepts the following fields:
+
 - `id`: Model identifier (required) - used for display and logging
 - `url`: Base URL for OpenAI-compatible endpoint (optional)
 - `apiKey`: Authentication key (optional, falls back to env vars)
@@ -196,31 +196,31 @@ graph TB
     Runtime["Agent.generate() call"]
     ReqCtx["RequestContext<br/>{tenantId, userId, task, etc}"]
     ModelFn["Model Resolution Function"]
-    
+
     Decision{"Selection Logic"}
-    
+
     StringReturn["return 'provider/model'"]
     ObjectReturn["return {id, url, ...}"]
     AISDKReturn["return aiSdkProvider()"]
-    
+
     ModelRouter["Model Router"]
     LLMInstance["Language Model Instance"]
-    
+
     AgentDef -->|"store function"| ModelFn
     Runtime --> ReqCtx
     Runtime --> ModelFn
     ReqCtx --> ModelFn
     ModelFn --> Decision
-    
+
     Decision -->|"simple"| StringReturn
     Decision -->|"custom"| ObjectReturn
     Decision -->|"direct"| AISDKReturn
-    
+
     StringReturn --> ModelRouter
     ObjectReturn --> ModelRouter
     AISDKReturn --> ModelRouter
     ModelRouter --> LLMInstance
-    
+
     style AgentDef fill:#f9f9f9
     style ReqCtx fill:#f9f9f9
     style Decision fill:#f9f9f9
@@ -230,7 +230,7 @@ graph TB
 
 ```typescript
 type ModelResolver = (context: {
-  requestContext?: RequestContext;
+  requestContext?: RequestContext
   // other context fields
 }) => string | ModelObject | LanguageModelV1
 ```
@@ -249,9 +249,9 @@ The `requestContext` parameter provides access to per-request data set by middle
 
 ```typescript
 model: ({ requestContext }) => {
-  const provider = requestContext?.get("provider-id");
-  const model = requestContext?.get("model-id");
-  return `${provider}/${model}`;
+  const provider = requestContext?.get('provider-id')
+  const model = requestContext?.get('model-id')
+  return `${provider}/${model}`
 }
 ```
 
@@ -259,14 +259,14 @@ model: ({ requestContext }) => {
 
 ```typescript
 model: ({ requestContext }) => {
-  const task = requestContext?.get("task-type");
-  
-  if (task === "complex-reasoning") {
-    return "anthropic/claude-opus-4-1";
-  } else if (task === "fast-response") {
-    return "openai/gpt-4o-mini";
+  const task = requestContext?.get('task-type')
+
+  if (task === 'complex-reasoning') {
+    return 'anthropic/claude-opus-4-1'
+  } else if (task === 'fast-response') {
+    return 'openai/gpt-4o-mini'
   } else {
-    return "openai/gpt-5";
+    return 'openai/gpt-5'
   }
 }
 ```
@@ -281,41 +281,41 @@ Array configuration creates a fallback chain where the system attempts models in
 graph TB
     AgentConfig["Agent Configuration<br/>model: [model1, model2, model3]"]
     FallbackArray["Model Fallback Array"]
-    
+
     Primary["Primary Model<br/>{model: 'openai/gpt-5',<br/>maxRetries: 3}"]
     Secondary["Secondary Model<br/>{model: 'anthropic/claude-4-5-sonnet',<br/>maxRetries: 2}"]
     Tertiary["Tertiary Model<br/>{model: 'google/gemini-2.5-pro',<br/>maxRetries: 2}"]
-    
+
     Attempt1["Attempt Primary"]
     Check1{"Success?"}
     Attempt2["Attempt Secondary"]
     Check2{"Success?"}
     Attempt3["Attempt Tertiary"]
     Check3{"Success?"}
-    
+
     Success["Return Response"]
     Failure["Throw Error<br/>with full context"]
-    
+
     AgentConfig --> FallbackArray
     FallbackArray --> Primary
     FallbackArray --> Secondary
     FallbackArray --> Tertiary
-    
+
     Primary --> Attempt1
     Attempt1 --> Check1
     Check1 -->|"No (500/rate/timeout)"| Attempt2
     Check1 -->|"Yes"| Success
-    
+
     Secondary --> Attempt2
     Attempt2 --> Check2
     Check2 -->|"No"| Attempt3
     Check2 -->|"Yes"| Success
-    
+
     Tertiary --> Attempt3
     Attempt3 --> Check3
     Check3 -->|"No"| Failure
     Check3 -->|"Yes"| Success
-    
+
     style FallbackArray fill:#f9f9f9
     style Success fill:#f9f9f9
     style Failure fill:#f9f9f9
@@ -324,6 +324,7 @@ graph TB
 **Fallback Item Structure**
 
 Each item in the fallback array can be:
+
 - A string: `"provider/model-name"`
 - An object with `model` and optional `maxRetries`:
 
@@ -337,6 +338,7 @@ Each item in the fallback array can be:
 **Triggering Conditions**
 
 Fallback to the next model occurs when encountering:
+
 - HTTP 500 errors (server errors)
 - HTTP 429 errors (rate limiting)
 - Timeout errors
@@ -347,6 +349,7 @@ Non-retryable errors (4xx client errors except 429) fail immediately without try
 **Retry Behavior**
 
 Each model in the chain has its own retry budget. The system:
+
 1. Attempts the primary model with its `maxRetries`
 2. If all retries fail, moves to the next model
 3. Attempts that model with its `maxRetries`
@@ -355,6 +358,7 @@ Each model in the chain has its own retry budget. The system:
 **Error Context Preservation**
 
 When all models fail, the error includes:
+
 - Full chain of attempted models
 - Error details from each attempt
 - Retry counts and timing information
@@ -369,20 +373,20 @@ Mastra supports local models running on your own infrastructure through OpenAI-c
 graph TB
     LocalServer["Local Model Server<br/>(LMStudio, Ollama, etc)"]
     OpenAIAPI["OpenAI-Compatible API<br/>/v1/models<br/>/v1/chat/completions"]
-    
+
     AgentConfig["Agent Configuration"]
     ModelObj["Model Object<br/>{id: 'custom/model',<br/>url: 'http://localhost:1234/v1'}"]
-    
+
     MastraRouter["Model Router"]
     Request["HTTP Request to<br/>localhost:1234/v1/chat/completions"]
-    
+
     LocalServer --> OpenAIAPI
-    
+
     AgentConfig --> ModelObj
     ModelObj --> MastraRouter
     MastraRouter --> Request
     Request --> OpenAIAPI
-    
+
     style LocalServer fill:#f9f9f9
     style ModelObj fill:#f9f9f9
 ```
@@ -390,6 +394,7 @@ graph TB
 **Requirements**
 
 The local server must provide:
+
 - OpenAI-compatible `/v1/chat/completions` endpoint
 - Standard request/response format
 - Optional: `/v1/models` endpoint for model listing
@@ -409,6 +414,7 @@ Use the base URL without the endpoint path. Mastra appends the appropriate path:
 **Model ID Convention**
 
 For local models, the `id` format is flexible since it's not used for registry lookup:
+
 - `"custom/my-model"`: Generic custom prefix
 - `"lmstudio/model-name"`: LMStudio-specific
 - `"ollama/model-name"`: Ollama-specific
@@ -437,20 +443,20 @@ Mastra supports direct use of Vercel AI SDK provider modules, allowing you to by
 ```mermaid
 graph TB
     AISDKPackage["@ai-sdk/groq<br/>@ai-sdk/anthropic<br/>@ai-sdk/openai<br/>etc."]
-    
+
     ProviderFn["groq('gemma2-9b-it')<br/>anthropic('claude-3-5-sonnet')"]
-    
+
     AgentConfig["Agent Configuration<br/>model: groq('gemma2-9b-it')"]
-    
+
     LMV1["LanguageModelV1<br/>Interface"]
-    
+
     MastraAgent["Agent Execution"]
-    
+
     AISDKPackage --> ProviderFn
     ProviderFn --> LMV1
     AgentConfig --> LMV1
     LMV1 --> MastraAgent
-    
+
     style AISDKPackage fill:#f9f9f9
     style LMV1 fill:#f9f9f9
 ```
@@ -460,19 +466,20 @@ graph TB
 Install the AI SDK provider package and use its model creation function:
 
 ```typescript
-import { groq } from '@ai-sdk/groq';
-import { anthropic } from '@ai-sdk/anthropic';
+import { groq } from '@ai-sdk/groq'
+import { anthropic } from '@ai-sdk/anthropic'
 
 const agent = new Agent({
-  id: "my-agent",
-  model: groq('gemma2-9b-it')
+  id: 'my-agent',
+  model: groq('gemma2-9b-it'),
   // or: anthropic('claude-3-5-sonnet-20241022')
-});
+})
 ```
 
 **Compatibility**
 
 AI SDK provider instances can be used anywhere that accepts a model configuration:
+
 - Agent `model` field
 - Workflow step model configuration
 - Model fallback arrays
@@ -483,11 +490,11 @@ AI SDK provider instances can be used anywhere that accepts a model configuratio
 AI SDK providers accept their own configuration options:
 
 ```typescript
-import { openai } from '@ai-sdk/openai';
+import { openai } from '@ai-sdk/openai'
 
 model: openai('gpt-4', {
   structuredOutputs: true,
-  parallelToolCalls: false
+  parallelToolCalls: false,
 })
 ```
 
@@ -515,25 +522,25 @@ The `providerOptions` field allows configuration of provider-specific features t
 graph TB
     AgentLevel["Agent-Level Config<br/>instructions.providerOptions"]
     MessageLevel["Message-Level Config<br/>message.providerOptions"]
-    
+
     ProviderOpts["Provider Options Object<br/>{openai: {...}, anthropic: {...}}"]
-    
+
     OpenAIOpts["OpenAI Options<br/>{reasoningEffort,<br/>structuredOutputs}"]
     AnthropicOpts["Anthropic Options<br/>{cacheControl,<br/>system: [...]}"]
-    
+
     LLMCall["LLM API Call"]
-    
+
     AgentLevel --> ProviderOpts
     MessageLevel --> ProviderOpts
-    
+
     ProviderOpts --> OpenAIOpts
     ProviderOpts --> AnthropicOpts
-    
+
     OpenAIOpts --> LLMCall
     AnthropicOpts --> LLMCall
-    
+
     MessageLevel -.->|"overrides"| AgentLevel
-    
+
     style ProviderOpts fill:#f9f9f9
     style LLMCall fill:#f9f9f9
 ```
@@ -544,16 +551,16 @@ Set options that apply to all future calls:
 
 ```typescript
 const agent = new Agent({
-  id: "planner",
+  id: 'planner',
   instructions: {
-    role: "system",
-    content: "You are a helpful assistant.",
+    role: 'system',
+    content: 'You are a helpful assistant.',
     providerOptions: {
-      openai: { reasoningEffort: "low" }
-    }
+      openai: { reasoningEffort: 'low' },
+    },
   },
-  model: "openai/o3-pro"
-});
+  model: 'openai/o3-pro',
+})
 ```
 
 **Message-Level Configuration**
@@ -563,29 +570,32 @@ Override options for specific messages:
 ```typescript
 const response = await agent.generate([
   {
-    role: "user",
-    content: "Plan a complex menu",
+    role: 'user',
+    content: 'Plan a complex menu',
     providerOptions: {
-      openai: { reasoningEffort: "high" }
-    }
-  }
-]);
+      openai: { reasoningEffort: 'high' },
+    },
+  },
+])
 ```
 
 **Common Provider Options**
 
 **OpenAI**:
+
 - `reasoningEffort`: "low" | "medium" | "high" (for o1/o3 models)
 - `structuredOutputs`: boolean (for JSON schema mode)
 - `parallelToolCalls`: boolean
 
 **Anthropic**:
+
 - `cacheControl`: Prompt caching configuration
 - `system`: Array of system messages with caching
 
 **Resolution Priority**
 
 When both agent-level and message-level options are present:
+
 1. Message-level options take precedence
 2. Options are merged per-provider
 3. Unspecified providers use defaults
@@ -599,45 +609,45 @@ This section describes how Mastra resolves model configuration through its inter
 ```mermaid
 graph TB
     Input["Model Config Input<br/>(string | object | function | array | AI SDK)"]
-    
+
     TypeCheck{"Config Type?"}
-    
+
     StringPath["String Parser<br/>split on '/'"]
     ObjectPath["Object Validator<br/>check required fields"]
     FunctionPath["Function Executor<br/>call with context"]
     ArrayPath["Fallback Chain Builder<br/>wrap models"]
     AISDKPath["Direct Pass-through"]
-    
+
     Registry["Provider Registry Lookup<br/>provider-registry.json"]
     EnvReader["Environment Variable Reader<br/>process.env[apiKeyEnvVar]"]
-    
+
     ModelRouter["ModelRouter.getModel()"]
-    
+
     CreateLM["createLanguageModel()<br/>AI SDK factory"]
-    
+
     LMInstance["LanguageModelV1 Instance"]
-    
+
     Input --> TypeCheck
-    
+
     TypeCheck -->|"string"| StringPath
     TypeCheck -->|"object"| ObjectPath
     TypeCheck -->|"function"| FunctionPath
     TypeCheck -->|"array"| ArrayPath
     TypeCheck -->|"AI SDK"| AISDKPath
-    
+
     StringPath --> Registry
     Registry --> EnvReader
     EnvReader --> ModelRouter
-    
+
     ObjectPath --> ModelRouter
     FunctionPath --> TypeCheck
-    
+
     ArrayPath --> ModelRouter
     AISDKPath --> LMInstance
-    
+
     ModelRouter --> CreateLM
     CreateLM --> LMInstance
-    
+
     style Input fill:#f9f9f9
     style TypeCheck fill:#f9f9f9
     style Registry fill:#f9f9f9
@@ -657,6 +667,7 @@ graph TB
 **Fallback Chain Resolution**
 
 For array configurations:
+
 1. Parse each array element recursively
 2. Wrap in `ModelWithRetries` structure
 3. Create fallback handler with retry logic
@@ -665,6 +676,7 @@ For array configurations:
 **Function Resolution**
 
 For function configurations:
+
 1. Execute function with context
 2. Take return value
 3. Recursively resolve as new configuration
@@ -673,6 +685,7 @@ For function configurations:
 **Error Handling**
 
 Configuration errors are caught and wrapped with context:
+
 - Missing provider in registry
 - Missing environment variable
 - Invalid model ID for provider
@@ -687,37 +700,37 @@ Gateway providers aggregate multiple model providers and add features like cachi
 ```mermaid
 graph TB
     AgentModel["Agent Model Config<br/>'openrouter/anthropic/claude-4-5-sonnet'"]
-    
+
     Parser["Gateway Model Parser<br/>extract gateway + provider/model"]
-    
+
     GatewayId["Gateway: 'openrouter'"]
     ModelPath["Model Path:<br/>'anthropic/claude-4-5-sonnet'"]
-    
+
     Registry["Provider Registry<br/>openrouter entry"]
-    
+
     GatewayURL["Gateway URL<br/>https://openrouter.ai/api/v1"]
     APIKey["Gateway API Key<br/>OPENROUTER_API_KEY"]
-    
+
     Request["HTTP Request<br/>model='anthropic/claude-4-5-sonnet'"]
-    
+
     GatewayServer["OpenRouter Server"]
     UpstreamProvider["Anthropic API"]
-    
+
     AgentModel --> Parser
     Parser --> GatewayId
     Parser --> ModelPath
-    
+
     GatewayId --> Registry
     Registry --> GatewayURL
     Registry --> APIKey
-    
+
     GatewayURL --> Request
     APIKey --> Request
     ModelPath --> Request
-    
+
     Request --> GatewayServer
     GatewayServer --> UpstreamProvider
-    
+
     style Parser fill:#f9f9f9
     style Registry fill:#f9f9f9
     style GatewayServer fill:#f9f9f9
@@ -738,24 +751,26 @@ Gateways are marked in the registry with a `gateway` field:
 **Model Path Format**
 
 Gateway models use the format `"gateway/provider/model"`:
+
 - `"openrouter/anthropic/claude-3-5-sonnet"`
 - `"vercel/openai/gpt-4o"`
 - `"netlify/google/gemini-2.5-flash"`
 
 **Gateway vs Direct Comparison**
 
-| Aspect | Gateway | Direct Provider |
-|--------|---------|----------------|
-| **API Key** | Single gateway key | Per-provider keys |
-| **Model Access** | All aggregated models | Provider-specific models |
-| **Features** | Caching, rate limiting, failover | Provider-native features |
-| **Latency** | +1 hop | Direct connection |
-| **Cost** | Gateway markup | Provider pricing |
-| **Observability** | Gateway dashboard | Provider logs |
+| Aspect            | Gateway                          | Direct Provider          |
+| ----------------- | -------------------------------- | ------------------------ |
+| **API Key**       | Single gateway key               | Per-provider keys        |
+| **Model Access**  | All aggregated models            | Provider-specific models |
+| **Features**      | Caching, rate limiting, failover | Provider-native features |
+| **Latency**       | +1 hop                           | Direct connection        |
+| **Cost**          | Gateway markup                   | Provider pricing         |
+| **Observability** | Gateway dashboard                | Provider logs            |
 
 **Built-in Gateways**
 
 Mastra includes configuration for:
+
 - **OpenRouter**: 186 models from multiple providers
 - **Vercel AI Gateway**: 199 models with edge caching
 - **Netlify AI Gateway**: 56 models with built-in observability
@@ -794,6 +809,7 @@ When multiple configuration sources are present, Mastra follows a precedence hie
 **Inheritance Behavior**
 
 Configuration is merged hierarchically:
+
 - **Headers**: Custom headers merged with registry defaults
 - **Provider options**: Per-provider objects merged independently
 - **URL/apiKey**: Direct override, no merging
@@ -805,27 +821,30 @@ Given this configuration:
 ```typescript
 const agent = new Agent({
   model: {
-    id: "openai/gpt-4",
-    headers: { "X-Custom": "value" }
+    id: 'openai/gpt-4',
+    headers: { 'X-Custom': 'value' },
   },
   instructions: {
     providerOptions: {
-      openai: { reasoningEffort: "low" }
-    }
-  }
-});
+      openai: { reasoningEffort: 'low' },
+    },
+  },
+})
 
 // Call with message-level options
-await agent.generate([{
-  role: "user",
-  content: "Hello",
-  providerOptions: {
-    openai: { reasoningEffort: "high" }
-  }
-}]);
+await agent.generate([
+  {
+    role: 'user',
+    content: 'Hello',
+    providerOptions: {
+      openai: { reasoningEffort: 'high' },
+    },
+  },
+])
 ```
 
 Final configuration:
+
 - URL: From registry (`https://api.openai.com/v1`)
 - API Key: `process.env.OPENAI_API_KEY`
 - Headers: `{"Authorization": "...", "X-Custom": "value"}`

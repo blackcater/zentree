@@ -26,8 +26,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 Channel plugins extend OpenClaw to support messaging platforms by implementing platform-specific message receipt, account resolution, and message delivery. This page covers the plugin SDK structure, the `ChannelPlugin` interface, account resolution mechanisms, and integration patterns for channel implementations.
 
 For general plugin architecture and discovery, see [Plugin Architecture](#9.1). For tool plugin development, see [Tool Plugins](#9.3). For channel-specific configuration and usage, see [Channel Architecture](#4.1).
@@ -40,20 +38,20 @@ The plugin SDK provides subpath exports for each channel integration, bundling p
 
 **Available Channel Plugin Exports**
 
-| Export Path | Platform | Primary Library | Extension Path |
-|------------|----------|-----------------|----------------|
-| `openclaw/plugin-sdk/telegram` | Telegram | grammY | `extensions/telegram` |
-| `openclaw/plugin-sdk/discord` | Discord | discord.js + Carbon | `extensions/discord` |
-| `openclaw/plugin-sdk/slack` | Slack | @slack/bolt | `extensions/slack` |
-| `openclaw/plugin-sdk/whatsapp` | WhatsApp | Baileys | `extensions/whatsapp` |
-| `openclaw/plugin-sdk/signal` | Signal | signal-cli wrapper | `extensions/signal` |
-| `openclaw/plugin-sdk/imessage` | iMessage | macOS bridging | `extensions/imessage` |
-| `openclaw/plugin-sdk/line` | LINE | @line/bot-sdk | `extensions/line` |
-| `openclaw/plugin-sdk/msteams` | Microsoft Teams | @microsoft/agents-hosting | `extensions/msteams` |
-| `openclaw/plugin-sdk/matrix` | Matrix | matrix-bot-sdk | `extensions/matrix` |
-| `openclaw/plugin-sdk/irc` | IRC | Custom protocol | `extensions/irc` |
-| `openclaw/plugin-sdk/nostr` | Nostr | nostr-tools | `extensions/nostr` |
-| `openclaw/plugin-sdk/twitch` | Twitch | @twurple | `extensions/twitch` |
+| Export Path                    | Platform        | Primary Library           | Extension Path        |
+| ------------------------------ | --------------- | ------------------------- | --------------------- |
+| `openclaw/plugin-sdk/telegram` | Telegram        | grammY                    | `extensions/telegram` |
+| `openclaw/plugin-sdk/discord`  | Discord         | discord.js + Carbon       | `extensions/discord`  |
+| `openclaw/plugin-sdk/slack`    | Slack           | @slack/bolt               | `extensions/slack`    |
+| `openclaw/plugin-sdk/whatsapp` | WhatsApp        | Baileys                   | `extensions/whatsapp` |
+| `openclaw/plugin-sdk/signal`   | Signal          | signal-cli wrapper        | `extensions/signal`   |
+| `openclaw/plugin-sdk/imessage` | iMessage        | macOS bridging            | `extensions/imessage` |
+| `openclaw/plugin-sdk/line`     | LINE            | @line/bot-sdk             | `extensions/line`     |
+| `openclaw/plugin-sdk/msteams`  | Microsoft Teams | @microsoft/agents-hosting | `extensions/msteams`  |
+| `openclaw/plugin-sdk/matrix`   | Matrix          | matrix-bot-sdk            | `extensions/matrix`   |
+| `openclaw/plugin-sdk/irc`      | IRC             | Custom protocol           | `extensions/irc`      |
+| `openclaw/plugin-sdk/nostr`    | Nostr           | nostr-tools               | `extensions/nostr`    |
+| `openclaw/plugin-sdk/twitch`   | Twitch          | @twurple                  | `extensions/twitch`   |
 
 Sources: [package.json:39-202]()
 
@@ -75,7 +73,7 @@ classDiagram
         +sendMessage(accountId, content, options) Promise~void~
         +shutdown() Promise~void~
     }
-    
+
     class TelegramPlugin {
         -bot: Bot
         -runner: RunHandle
@@ -83,7 +81,7 @@ classDiagram
         +resolveAccount(message)
         +sendMessage(accountId, content, options)
     }
-    
+
     class DiscordPlugin {
         -client: Client
         -carbon: Carbon
@@ -91,14 +89,14 @@ classDiagram
         +resolveAccount(message)
         +sendMessage(accountId, content, options)
     }
-    
+
     class SlackPlugin {
         -app: App
         +init(config, context)
         +resolveAccount(message)
         +sendMessage(accountId, content, options)
     }
-    
+
     ChannelPlugin <|-- TelegramPlugin
     ChannelPlugin <|-- DiscordPlugin
     ChannelPlugin <|-- SlackPlugin
@@ -106,14 +104,14 @@ classDiagram
 
 **Method Descriptions**
 
-| Method | Purpose | Required |
-|--------|---------|----------|
-| `init(config, context)` | Initialize platform connection, register event handlers | Yes |
-| `resolveAccount(message)` | Map incoming message to `AccountId` | Yes |
-| `sendMessage(accountId, content, options)` | Deliver agent response to platform | Yes |
-| `shutdown()` | Clean up resources, close connections | Yes |
-| `updatePresence?(status)` | Update bot online status | No |
-| `handleCommand?(command, context)` | Process channel-specific commands | No |
+| Method                                     | Purpose                                                 | Required |
+| ------------------------------------------ | ------------------------------------------------------- | -------- |
+| `init(config, context)`                    | Initialize platform connection, register event handlers | Yes      |
+| `resolveAccount(message)`                  | Map incoming message to `AccountId`                     | Yes      |
+| `sendMessage(accountId, content, options)` | Deliver agent response to platform                      | Yes      |
+| `shutdown()`                               | Clean up resources, close connections                   | Yes      |
+| `updatePresence?(status)`                  | Update bot online status                                | No       |
+| `handleCommand?(command, context)`         | Process channel-specific commands                       | No       |
 
 Sources: [package.json:39-74](), extensions package.json files
 
@@ -131,14 +129,14 @@ sequenceDiagram
     participant Plugin as "ChannelPlugin"
     participant AccountId as "AccountId Builder"
     participant Gateway as "Gateway Router"
-    
+
     Platform->>Plugin: "Incoming Message Event"
-    
+
     Plugin->>Plugin: "Extract platform IDs"
     Note over Plugin: "userId, chatId, guildId, etc."
-    
+
     Plugin->>AccountId: "constructAccountId()"
-    
+
     alt "Direct Message"
         AccountId->>AccountId: "Set peer=${userId}"
         AccountId->>AccountId: "Set channel=${channelId}"
@@ -148,10 +146,10 @@ sequenceDiagram
         AccountId->>AccountId: "Set parent=${threadId}"
         AccountId->>AccountId: "Set channel=${channelId}"
     end
-    
+
     AccountId-->>Plugin: "AccountId object"
     Plugin-->>Gateway: "Forward with AccountId"
-    
+
     Gateway->>Gateway: "Match agent bindings"
     Note over Gateway: "See Multi-Agent Routing"
 ```
@@ -160,13 +158,13 @@ sequenceDiagram
 
 The `AccountId` type encodes hierarchical context for routing:
 
-| Field | Type | Purpose | Example |
-|-------|------|---------|---------|
-| `channel` | `string` | Channel plugin identifier | `"telegram"`, `"discord"` |
-| `account` | `string` | Bot account identifier | `"bot1"`, `"main-bot"` |
-| `peer` | `string` | User/sender identifier | `"telegram:123456789"` |
-| `guild` | `string?` | Server/workspace identifier | `"discord:987654321"` |
-| `parent` | `string?` | Thread/topic parent | `"telegram:forum:456"` |
+| Field     | Type      | Purpose                     | Example                   |
+| --------- | --------- | --------------------------- | ------------------------- |
+| `channel` | `string`  | Channel plugin identifier   | `"telegram"`, `"discord"` |
+| `account` | `string`  | Bot account identifier      | `"bot1"`, `"main-bot"`    |
+| `peer`    | `string`  | User/sender identifier      | `"telegram:123456789"`    |
+| `guild`   | `string?` | Server/workspace identifier | `"discord:987654321"`     |
+| `parent`  | `string?` | Thread/topic parent         | `"telegram:forum:456"`    |
 
 Sources: [package.json:207-209]()
 
@@ -186,26 +184,26 @@ graph TB
     Formatter["Platform Formatter"]
     Uploader["Attachment Uploader"]
     API["Platform API"]
-    
+
     Gateway --> Plugin
     Plugin --> Chunker
     Chunker --> Formatter
     Formatter --> Uploader
     Uploader --> API
-    
+
     Chunker --> |"Message too long"| Chunker
     API --> |"Rate limit"| API
 ```
 
 **Platform-Specific Considerations**
 
-| Platform | Max Length | Markdown Support | Attachment Method | Rate Limits |
-|----------|-----------|------------------|-------------------|-------------|
-| Telegram | 4096 | Partial (HTML/Markdown) | `sendPhoto`, `sendDocument` | 30 msg/sec per chat |
-| Discord | 2000 | Full (subset) | Embed attachments | 5 msg/5sec per channel |
-| Slack | 40000 | mrkdwn format | `files.upload` | Tier-based |
-| WhatsApp | 4096 | None (plain text) | Media message | Dynamic |
-| Signal | 2000 | None (plain text) | Attachment field | Client-dependent |
+| Platform | Max Length | Markdown Support        | Attachment Method           | Rate Limits            |
+| -------- | ---------- | ----------------------- | --------------------------- | ---------------------- |
+| Telegram | 4096       | Partial (HTML/Markdown) | `sendPhoto`, `sendDocument` | 30 msg/sec per chat    |
+| Discord  | 2000       | Full (subset)           | Embed attachments           | 5 msg/5sec per channel |
+| Slack    | 40000      | mrkdwn format           | `files.upload`              | Tier-based             |
+| WhatsApp | 4096       | None (plain text)       | Media message               | Dynamic                |
+| Signal   | 2000       | None (plain text)       | Attachment field            | Client-dependent       |
 
 **Example: Telegram chunking and formatting**
 
@@ -215,10 +213,10 @@ Telegram plugin chunks messages exceeding 4096 characters and formats code block
 // extensions/telegram/src/telegram-channel-plugin.ts
 async sendMessage(accountId: AccountId, content: string, options: SendOptions) {
   const chunks = chunkMessage(content, 4096);
-  
+
   for (const chunk of chunks) {
     const formatted = markdownToTelegramHTML(chunk);
-    
+
     await this.bot.api.sendMessage(accountId.peer, formatted, {
       parse_mode: 'HTML',
       reply_to_message_id: options.replyToMessageId,
@@ -270,13 +268,13 @@ graph LR
     ValidateSchema["Validate openclaw field"]
     RegisterPlugin["Register ChannelPlugin"]
     InitPlugin["Call plugin.init()"]
-    
+
     ConfigLoad --> ScanExtensions
     ScanExtensions --> ReadMetadata
     ReadMetadata --> ValidateSchema
     ValidateSchema --> RegisterPlugin
     RegisterPlugin --> InitPlugin
-    
+
     style ValidateSchema fill:#f9f9f9
     style RegisterPlugin fill:#f9f9f9
 ```
@@ -291,14 +289,14 @@ Channel plugins integrate platform-specific SDKs using common patterns for authe
 
 **Authentication Strategies**
 
-| Platform | Auth Method | Config Field | Token Storage |
-|----------|-------------|--------------|---------------|
-| Telegram | Bot token | `channels.telegram[].token` | Plain or SecretRef |
-| Discord | Bot token | `channels.discord[].token` | Plain or SecretRef |
-| Slack | OAuth + App token | `channels.slack[].appToken` | Plain or SecretRef |
-| WhatsApp | Session credentials | `channels.whatsapp[].session` | Encrypted files |
-| Signal | Phone registration | `channels.signal[].phone` | signal-cli data dir |
-| Matrix | Access token | `channels.matrix[].accessToken` | Plain or SecretRef |
+| Platform | Auth Method         | Config Field                    | Token Storage       |
+| -------- | ------------------- | ------------------------------- | ------------------- |
+| Telegram | Bot token           | `channels.telegram[].token`     | Plain or SecretRef  |
+| Discord  | Bot token           | `channels.discord[].token`      | Plain or SecretRef  |
+| Slack    | OAuth + App token   | `channels.slack[].appToken`     | Plain or SecretRef  |
+| WhatsApp | Session credentials | `channels.whatsapp[].session`   | Encrypted files     |
+| Signal   | Phone registration  | `channels.signal[].phone`       | signal-cli data dir |
+| Matrix   | Access token        | `channels.matrix[].accessToken` | Plain or SecretRef  |
 
 **Webhook vs. Polling**
 
@@ -311,18 +309,18 @@ graph TB
         DiscordWebhook["Discord<br/>Interactions endpoint"]
         SlackWebhook["Slack<br/>Events API"]
     end
-    
+
     subgraph "Polling-Based Channels"
         TelegramPoll["Telegram<br/>getUpdates()"]
         WhatsAppPoll["WhatsApp<br/>Baileys socket"]
         SignalPoll["Signal<br/>signal-cli receive"]
     end
-    
+
     subgraph "Hybrid Channels"
         MatrixSync["Matrix<br/>/sync long-poll"]
         IRCSocket["IRC<br/>Persistent socket"]
     end
-    
+
     TelegramWebhook -.-> |"Default"| TelegramPoll
 ```
 
@@ -337,12 +335,12 @@ import { run } from '@grammyjs/runner';
 
 async init(config: TelegramChannelConfig, context: PluginContext) {
   this.bot = new Bot(config.token);
-  
+
   this.bot.on('message', async (ctx) => {
     const accountId = this.resolveAccount(ctx);
     await context.gateway.ingestMessage(accountId, ctx.message.text);
   });
-  
+
   this.runner = run(this.bot);  // Starts long-polling
 }
 ```
@@ -364,12 +362,12 @@ graph TB
     MockSDK["Mock Platform SDK"]
     PluginStub["Channel Plugin Stub"]
     Gateway["Gateway Test Harness"]
-    
+
     TestSuite --> IsolateHome
     IsolateHome --> MockSDK
     MockSDK --> PluginStub
     PluginStub --> Gateway
-    
+
     Gateway --> |"Verify message delivery"| PluginStub
     PluginStub --> |"Mock API calls"| MockSDK
 ```
@@ -378,42 +376,45 @@ graph TB
 
 The plugin SDK provides test utilities at `openclaw/plugin-sdk/test-utils`:
 
-| Utility | Purpose | Usage |
-|---------|---------|-------|
-| `createMockGateway()` | Stub Gateway RPC | Capture ingested messages |
-| `createMockPluginContext()` | Stub PluginContext | Provide logger, config |
-| `mockPlatformAPI()` | Mock platform SDK | Verify API call sequences |
-| `createTestAccountId()` | Generate AccountId | Test routing logic |
+| Utility                     | Purpose            | Usage                     |
+| --------------------------- | ------------------ | ------------------------- |
+| `createMockGateway()`       | Stub Gateway RPC   | Capture ingested messages |
+| `createMockPluginContext()` | Stub PluginContext | Provide logger, config    |
+| `mockPlatformAPI()`         | Mock platform SDK  | Verify API call sequences |
+| `createTestAccountId()`     | Generate AccountId | Test routing logic        |
 
 **Example: Discord plugin test structure**
 
 ```typescript
 // extensions/discord/src/discord-channel-plugin.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
-import { createMockGateway, createMockPluginContext } from 'openclaw/plugin-sdk/test-utils';
-import { DiscordPlugin } from './discord-channel-plugin.js';
+import { describe, it, expect, beforeEach } from 'vitest'
+import {
+  createMockGateway,
+  createMockPluginContext,
+} from 'openclaw/plugin-sdk/test-utils'
+import { DiscordPlugin } from './discord-channel-plugin.js'
 
 describe('DiscordPlugin', () => {
-  let plugin: DiscordPlugin;
-  let mockGateway: ReturnType<typeof createMockGateway>;
-  
+  let plugin: DiscordPlugin
+  let mockGateway: ReturnType<typeof createMockGateway>
+
   beforeEach(async () => {
-    mockGateway = createMockGateway();
-    const context = createMockPluginContext({ gateway: mockGateway });
-    
-    plugin = new DiscordPlugin();
-    await plugin.init({ token: 'mock-token' }, context);
-  });
-  
+    mockGateway = createMockGateway()
+    const context = createMockPluginContext({ gateway: mockGateway })
+
+    plugin = new DiscordPlugin()
+    await plugin.init({ token: 'mock-token' }, context)
+  })
+
   it('resolves DM message to AccountId', async () => {
-    const message = createMockDiscordDM('user123', 'Hello');
-    const accountId = await plugin.resolveAccount(message);
-    
-    expect(accountId.channel).toBe('discord');
-    expect(accountId.peer).toBe('discord:user123');
-    expect(accountId.guild).toBeUndefined();
-  });
-});
+    const message = createMockDiscordDM('user123', 'Hello')
+    const accountId = await plugin.resolveAccount(message)
+
+    expect(accountId.channel).toBe('discord')
+    expect(accountId.peer).toBe('discord:user123')
+    expect(accountId.guild).toBeUndefined()
+  })
+})
 ```
 
 Sources: [package.json:179-182]()
@@ -433,37 +434,37 @@ graph TB
     Compat["openclaw/plugin-sdk/compat<br/>(Migration helpers)"]
     AccountId["openclaw/plugin-sdk/account-id<br/>(AccountId utils)"]
     TestUtils["openclaw/plugin-sdk/test-utils<br/>(Test harness)"]
-    
+
     PluginSDK --> Core
     PluginSDK --> Compat
     PluginSDK --> AccountId
     PluginSDK --> TestUtils
-    
+
     Telegram["openclaw/plugin-sdk/telegram"]
     Discord["openclaw/plugin-sdk/discord"]
     Slack["openclaw/plugin-sdk/slack"]
     WhatsApp["openclaw/plugin-sdk/whatsapp"]
-    
+
     PluginSDK --> Telegram
     PluginSDK --> Discord
     PluginSDK --> Slack
     PluginSDK --> WhatsApp
-    
+
     style Core fill:#f9f9f9
     style TestUtils fill:#f9f9f9
 ```
 
 **Subpath Export Details**
 
-| Export Path | Purpose | Key Exports |
-|------------|---------|-------------|
-| `openclaw/plugin-sdk` | Main entry point | `ChannelPlugin`, `PluginContext` |
-| `openclaw/plugin-sdk/core` | Core interfaces | `ChannelPlugin`, `SendOptions`, `IngestContext` |
-| `openclaw/plugin-sdk/compat` | Backward compatibility | `migrateV2Config()`, `deprecatedAPI` |
-| `openclaw/plugin-sdk/account-id` | AccountId utilities | `parseAccountId()`, `formatAccountId()` |
-| `openclaw/plugin-sdk/telegram` | Telegram integration | `TelegramPlugin`, grammY re-exports |
-| `openclaw/plugin-sdk/discord` | Discord integration | `DiscordPlugin`, Carbon + discord.js |
-| `openclaw/plugin-sdk/slack` | Slack integration | `SlackPlugin`, @slack/bolt |
+| Export Path                      | Purpose                | Key Exports                                     |
+| -------------------------------- | ---------------------- | ----------------------------------------------- |
+| `openclaw/plugin-sdk`            | Main entry point       | `ChannelPlugin`, `PluginContext`                |
+| `openclaw/plugin-sdk/core`       | Core interfaces        | `ChannelPlugin`, `SendOptions`, `IngestContext` |
+| `openclaw/plugin-sdk/compat`     | Backward compatibility | `migrateV2Config()`, `deprecatedAPI`            |
+| `openclaw/plugin-sdk/account-id` | AccountId utilities    | `parseAccountId()`, `formatAccountId()`         |
+| `openclaw/plugin-sdk/telegram`   | Telegram integration   | `TelegramPlugin`, grammY re-exports             |
+| `openclaw/plugin-sdk/discord`    | Discord integration    | `DiscordPlugin`, Carbon + discord.js            |
+| `openclaw/plugin-sdk/slack`      | Slack integration      | `SlackPlugin`, @slack/bolt                      |
 
 Sources: [package.json:38-215]()
 

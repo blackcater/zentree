@@ -44,8 +44,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes Mastra's observability and evaluation systems. Observability provides trace-based monitoring of agent and workflow executions via OpenTelemetry integration, with support for multiple vendor backends and a query API. Evaluation provides tools for scoring execution quality using NLP-based and LLM-based metrics.
 
 For information about configuring telemetry during development, see [CLI and Development Tools](#8). For information about the server API that exposes observability endpoints, see [Server and API Layer](#9). For information about client SDKs that consume observability data, see [Client SDK and UI Components](#10).
@@ -66,19 +64,19 @@ graph TB
         WorkflowRun["workflow.run()"]
         ToolExecute["tool.execute()"]
     end
-    
+
     subgraph "Tracing Layer"
         OTelVendor["@mastra/core/telemetry/otel-vendor"]
         TraceContext["Trace Context<br/>traceId + spanId"]
         SpanCreation["Span Creation"]
     end
-    
+
     subgraph "Result Propagation"
         AgentResult["MastraModelOutput<br/>traceId, spanId"]
         WorkflowResult["WorkflowRunResult<br/>traceId, spanId"]
         ToolResult["Tool Result<br/>tracingContext"]
     end
-    
+
     subgraph "Vendor Integrations"
         Arize["@mastra/arize"]
         Braintrust["@mastra/braintrust"]
@@ -90,24 +88,24 @@ graph TB
         Sentry["@mastra/sentry"]
         OTelExporter["@mastra/otel-exporter"]
     end
-    
+
     subgraph "Storage & Query"
         ObservabilityAPI["Observability API<br/>/api/observability/*"]
         VendorStorage["Vendor Storage"]
     end
-    
+
     AgentStream --> SpanCreation
     AgentGenerate --> SpanCreation
     WorkflowRun --> SpanCreation
     ToolExecute --> SpanCreation
-    
+
     SpanCreation --> OTelVendor
     OTelVendor --> TraceContext
-    
+
     TraceContext --> AgentResult
     TraceContext --> WorkflowResult
     TraceContext --> ToolResult
-    
+
     OTelVendor --> Arize
     OTelVendor --> Braintrust
     OTelVendor --> Datadog
@@ -117,7 +115,7 @@ graph TB
     OTelVendor --> PostHog
     OTelVendor --> Sentry
     OTelVendor --> OTelExporter
-    
+
     Arize --> VendorStorage
     Braintrust --> VendorStorage
     Datadog --> VendorStorage
@@ -127,7 +125,7 @@ graph TB
     PostHog --> VendorStorage
     Sentry --> VendorStorage
     OTelExporter --> VendorStorage
-    
+
     VendorStorage --> ObservabilityAPI
 ```
 
@@ -141,19 +139,19 @@ Sources: [packages/core/CHANGELOG.md:22-23](), [packages/core/package.json:114-1
 
 Mastra provides official integrations with multiple observability platforms. Each integration is a separate package that implements the OpenTelemetry exporter interface.
 
-| Package | Purpose | Vendor |
-|---------|---------|--------|
-| `@mastra/arize` | Arize AI observability platform | Arize |
-| `@mastra/braintrust` | Braintrust evaluation and monitoring | Braintrust |
-| `@mastra/datadog` | Datadog APM integration | Datadog |
-| `@mastra/laminar` | Laminar LLM observability | Laminar |
-| `@mastra/langfuse` | Langfuse LLM engineering platform | Langfuse |
-| `@mastra/langsmith` | LangSmith tracing and evaluation | LangSmith |
-| `@mastra/posthog` | PostHog product analytics | PostHog |
-| `@mastra/sentry` | Sentry error tracking | Sentry |
-| `@mastra/otel-exporter` | Custom OpenTelemetry exporter | Custom |
-| `@mastra/otel-bridge` | OpenTelemetry bridge utilities | Bridge |
-| `@mastra/observability` | Core observability abstractions | Core |
+| Package                 | Purpose                              | Vendor     |
+| ----------------------- | ------------------------------------ | ---------- |
+| `@mastra/arize`         | Arize AI observability platform      | Arize      |
+| `@mastra/braintrust`    | Braintrust evaluation and monitoring | Braintrust |
+| `@mastra/datadog`       | Datadog APM integration              | Datadog    |
+| `@mastra/laminar`       | Laminar LLM observability            | Laminar    |
+| `@mastra/langfuse`      | Langfuse LLM engineering platform    | Langfuse   |
+| `@mastra/langsmith`     | LangSmith tracing and evaluation     | LangSmith  |
+| `@mastra/posthog`       | PostHog product analytics            | PostHog    |
+| `@mastra/sentry`        | Sentry error tracking                | Sentry     |
+| `@mastra/otel-exporter` | Custom OpenTelemetry exporter        | Custom     |
+| `@mastra/otel-bridge`   | OpenTelemetry bridge utilities       | Bridge     |
+| `@mastra/observability` | Core observability abstractions      | Core       |
 
 Each vendor integration exports configuration and initialization functions that integrate with the OpenTelemetry stack. The `@mastra/observability` package provides shared abstractions used across all vendor integrations.
 
@@ -169,23 +167,23 @@ graph LR
         DevCmd["mastra dev"]
         BuildCmd["mastra build"]
     end
-    
+
     subgraph "Telemetry Loading"
         TelemetryLoader["telemetry-loader.js"]
         EnvVars["Environment Variables"]
     end
-    
+
     subgraph "Runtime"
         MastraInstance["Mastra Instance"]
         OTelSetup["OpenTelemetry Setup"]
     end
-    
+
     DevCmd --> TelemetryLoader
     BuildCmd --> TelemetryLoader
-    
+
     TelemetryLoader --> EnvVars
     EnvVars --> OTelSetup
-    
+
     OTelSetup --> MastraInstance
 ```
 
@@ -203,17 +201,17 @@ The server exposes a comprehensive observability API that provides access to log
 graph TB
     subgraph "Observability API Routes"
         BaseRoute["/api/observability"]
-        
+
         LogsRoute["/logs<br/>Query execution logs"]
         ScoresRoute["/scores<br/>Query score data"]
         FeedbackRoute["/feedback<br/>Query feedback data"]
-        
+
         MetricsBase["/metrics"]
         MetricsAggregate["/metrics/aggregate<br/>Aggregated metrics"]
         MetricsBreakdown["/metrics/breakdown<br/>Grouped metrics"]
         MetricsTimeSeries["/metrics/time-series<br/>Time-based metrics"]
         MetricsPercentiles["/metrics/percentiles<br/>Distribution metrics"]
-        
+
         DiscoveryBase["/discovery"]
         MetricNames["/discovery/metric-names<br/>List all metric names"]
         LabelKeys["/discovery/label-keys<br/>List all label keys"]
@@ -224,18 +222,18 @@ graph TB
         Environments["/discovery/environments<br/>List environments"]
         Tags["/discovery/tags<br/>List all tags"]
     end
-    
+
     BaseRoute --> LogsRoute
     BaseRoute --> ScoresRoute
     BaseRoute --> FeedbackRoute
     BaseRoute --> MetricsBase
     BaseRoute --> DiscoveryBase
-    
+
     MetricsBase --> MetricsAggregate
     MetricsBase --> MetricsBreakdown
     MetricsBase --> MetricsTimeSeries
     MetricsBase --> MetricsPercentiles
-    
+
     DiscoveryBase --> MetricNames
     DiscoveryBase --> LabelKeys
     DiscoveryBase --> LabelValues
@@ -255,6 +253,7 @@ Sources: [packages/server/CHANGELOG.md:6-8](), [client-sdks/client-js/CHANGELOG.
 The logs API provides access to execution logs generated by agents, workflows, and tools. Logs include structured data about execution steps, errors, and state transitions.
 
 **Log Query Parameters:**
+
 - `traceId` - Filter by trace identifier
 - `spanId` - Filter by span identifier
 - `entityType` - Filter by entity type (agent, workflow, tool)
@@ -266,23 +265,24 @@ The logs API provides access to execution logs generated by agents, workflows, a
 - `tags` - Filter by tags
 
 **Response Format:**
+
 ```typescript
 {
   logs: Array<{
-    timestamp: string;
-    traceId: string;
-    spanId: string;
-    message: string;
-    level: string;
-    entityType: string;
-    entityName: string;
-    metadata: Record<string, unknown>;
-  }>;
+    timestamp: string
+    traceId: string
+    spanId: string
+    message: string
+    level: string
+    entityType: string
+    entityName: string
+    metadata: Record<string, unknown>
+  }>
   pagination: {
-    total: number;
-    page: number;
-    pageSize: number;
-  };
+    total: number
+    page: number
+    pageSize: number
+  }
 }
 ```
 
@@ -297,6 +297,7 @@ The scores and feedback APIs provide access to evaluation data generated by the 
 Scores represent quantitative evaluations of execution quality. They can be generated automatically by scorers or submitted manually.
 
 **Score Schema:**
+
 ```typescript
 {
   traceId: string;
@@ -313,6 +314,7 @@ Scores represent quantitative evaluations of execution quality. They can be gene
 Feedback represents qualitative user input about execution quality.
 
 **Feedback Schema:**
+
 ```typescript
 {
   traceId: string;
@@ -357,7 +359,7 @@ graph LR
         Aggregation["Aggregation Logic"]
         Response["Formatted Response"]
     end
-    
+
     ClientQuery --> MetricAPI
     MetricAPI --> VendorQuery
     VendorQuery --> Aggregation
@@ -371,16 +373,16 @@ Sources: [packages/server/CHANGELOG.md:6-8](), [client-sdks/client-js/CHANGELOG.
 
 The discovery API provides metadata about available metrics, labels, entities, and services. This enables dynamic UI construction and query building.
 
-| Endpoint | Purpose | Returns |
-|----------|---------|---------|
-| `/discovery/metric-names` | List all metric names | Array of metric name strings |
-| `/discovery/label-keys` | List all label keys | Array of label key strings |
-| `/discovery/label-values` | List values for a label key | Array of value strings for the key |
-| `/discovery/entity-types` | List all entity types | Array of entity type strings |
-| `/discovery/entity-names` | List entity names by type | Array of entity name strings |
-| `/discovery/service-names` | List all service names | Array of service name strings |
-| `/discovery/environments` | List all environments | Array of environment strings |
-| `/discovery/tags` | List all tags | Array of tag strings |
+| Endpoint                   | Purpose                     | Returns                            |
+| -------------------------- | --------------------------- | ---------------------------------- |
+| `/discovery/metric-names`  | List all metric names       | Array of metric name strings       |
+| `/discovery/label-keys`    | List all label keys         | Array of label key strings         |
+| `/discovery/label-values`  | List values for a label key | Array of value strings for the key |
+| `/discovery/entity-types`  | List all entity types       | Array of entity type strings       |
+| `/discovery/entity-names`  | List entity names by type   | Array of entity name strings       |
+| `/discovery/service-names` | List all service names      | Array of service name strings      |
+| `/discovery/environments`  | List all environments       | Array of environment strings       |
+| `/discovery/tags`          | List all tags               | Array of tag strings               |
 
 Discovery endpoints are primarily used by the Studio UI to populate dropdowns and filters dynamically based on available data.
 
@@ -395,18 +397,18 @@ graph TB
     subgraph "Client SDK"
         MastraClient["MastraClient"]
         ObservabilityResource["ObservabilityResource"]
-        
+
         GetLogs["getLogs()"]
         GetScores["getScores()"]
         PostScore["postScore()"]
         GetFeedback["getFeedback()"]
         PostFeedback["postFeedback()"]
-        
+
         GetMetricsAggregate["getMetricsAggregate()"]
         GetMetricsBreakdown["getMetricsBreakdown()"]
         GetMetricsTimeSeries["getMetricsTimeSeries()"]
         GetMetricsPercentiles["getMetricsPercentiles()"]
-        
+
         GetMetricNames["getMetricNames()"]
         GetLabelKeys["getLabelKeys()"]
         GetLabelValues["getLabelValues()"]
@@ -416,25 +418,25 @@ graph TB
         GetEnvironments["getEnvironments()"]
         GetTags["getTags()"]
     end
-    
+
     subgraph "HTTP Layer"
         BaseResource["BaseResource<br/>HTTP + retry + auth"]
         HTTPClient["HTTP Client"]
     end
-    
+
     MastraClient --> ObservabilityResource
-    
+
     ObservabilityResource --> GetLogs
     ObservabilityResource --> GetScores
     ObservabilityResource --> PostScore
     ObservabilityResource --> GetFeedback
     ObservabilityResource --> PostFeedback
-    
+
     ObservabilityResource --> GetMetricsAggregate
     ObservabilityResource --> GetMetricsBreakdown
     ObservabilityResource --> GetMetricsTimeSeries
     ObservabilityResource --> GetMetricsPercentiles
-    
+
     ObservabilityResource --> GetMetricNames
     ObservabilityResource --> GetLabelKeys
     ObservabilityResource --> GetLabelValues
@@ -443,7 +445,7 @@ graph TB
     ObservabilityResource --> GetServiceNames
     ObservabilityResource --> GetEnvironments
     ObservabilityResource --> GetTags
-    
+
     ObservabilityResource --> BaseResource
     BaseResource --> HTTPClient
 ```
@@ -462,56 +464,56 @@ The evaluation system (`@mastra/evals`) provides tools for scoring the quality o
 graph TB
     subgraph "Evaluation Package"
         EvalsPackage["@mastra/evals"]
-        
+
         PrebuiltScorers["Prebuilt Scorers"]
         ScorerUtils["Scorer Utils"]
         MetricTypes["Metric Types"]
     end
-    
+
     subgraph "Prebuilt Scorer Categories"
         NLPScorers["NLP-Based Scorers<br/>compromise, keyword-extractor"]
         LLMScorers["LLM-Based Scorers<br/>Model-evaluated quality"]
-        
+
         Similarity["Similarity Metrics"]
         Sentiment["Sentiment Analysis"]
         Readability["Readability Scores"]
         FactualAccuracy["Factual Accuracy"]
         Coherence["Coherence Metrics"]
     end
-    
+
     subgraph "Custom Scorer Building"
         ScorerBuilder["createScorer()"]
         CustomLogic["Custom Scoring Logic"]
         SchemaValidation["Input/Output Schema"]
     end
-    
+
     subgraph "Scoring Target"
         TracesToScore["Trace Data"]
         ScoreTracesAPI["@mastra/core/evals/scoreTraces"]
         ScoredResults["Scored Results"]
     end
-    
+
     EvalsPackage --> PrebuiltScorers
     EvalsPackage --> ScorerUtils
     EvalsPackage --> MetricTypes
-    
+
     PrebuiltScorers --> NLPScorers
     PrebuiltScorers --> LLMScorers
-    
+
     NLPScorers --> Similarity
     NLPScorers --> Sentiment
     NLPScorers --> Readability
-    
+
     LLMScorers --> FactualAccuracy
     LLMScorers --> Coherence
-    
+
     ScorerUtils --> ScorerBuilder
     ScorerBuilder --> CustomLogic
     ScorerBuilder --> SchemaValidation
-    
+
     PrebuiltScorers --> ScoreTracesAPI
     CustomLogic --> ScoreTracesAPI
-    
+
     TracesToScore --> ScoreTracesAPI
     ScoreTracesAPI --> ScoredResults
 ```
@@ -549,8 +551,8 @@ Custom scorers can be built using scorer utilities provided by `@mastra/evals`. 
 ```typescript
 // Conceptual example - not actual code from repo
 const customScorer = createScorer({
-  name: "custom-metric",
-  description: "Custom scoring logic",
+  name: 'custom-metric',
+  description: 'Custom scoring logic',
   inputSchema: z.object({
     input: z.string(),
     output: z.string(),
@@ -564,10 +566,10 @@ const customScorer = createScorer({
     // Custom scoring logic here
     return {
       score: 0.85,
-      reasoning: "Output matches expected criteria",
-    };
+      reasoning: 'Output matches expected criteria',
+    }
   },
-});
+})
 ```
 
 Custom scorers integrate seamlessly with the `scoreTraces` API and can be used alongside prebuilt scorers.
@@ -586,13 +588,14 @@ graph LR
         ScorerExec["Scorer Execution"]
         ScoreStorage["Score Storage<br/>via Observability API"]
     end
-    
+
     TraceData --> ScoreTracesFunc
     ScoreTracesFunc --> ScorerExec
     ScorerExec --> ScoreStorage
 ```
 
 The scoring workflow:
+
 1. Fetch trace/span data by trace ID
 2. Extract relevant execution data (inputs, outputs, intermediate steps)
 3. Apply each scorer to the extracted data
@@ -605,12 +608,12 @@ Sources: [packages/core/package.json:144-153]()
 
 The evaluation system defines several metric types for different scoring scenarios:
 
-| Metric Type | Range | Use Case |
-|-------------|-------|----------|
-| Binary | 0 or 1 | Pass/fail evaluations |
-| Normalized | 0.0 to 1.0 | Percentage-based scores |
-| Unbounded | Any number | Raw metrics (latency, token count) |
-| Categorical | Enum values | Classification results |
+| Metric Type | Range       | Use Case                           |
+| ----------- | ----------- | ---------------------------------- |
+| Binary      | 0 or 1      | Pass/fail evaluations              |
+| Normalized  | 0.0 to 1.0  | Percentage-based scores            |
+| Unbounded   | Any number  | Raw metrics (latency, token count) |
+| Categorical | Enum values | Classification results             |
 
 Metric types determine how scores are aggregated, visualized, and compared across executions.
 
@@ -627,16 +630,16 @@ graph TB
     subgraph "Agent Execution"
         AgentStart["agent.stream()"]
         TraceStart["Create Root Span"]
-        
+
         LLMSpan["LLM Call Span"]
         ToolSpan1["Tool Call Span 1"]
         ToolSpan2["Tool Call Span 2"]
         MemorySpan["Memory Operation Span"]
-        
+
         TraceEnd["Close Root Span"]
         ReturnResult["Return with traceId + spanId"]
     end
-    
+
     AgentStart --> TraceStart
     TraceStart --> LLMSpan
     LLMSpan --> ToolSpan1
@@ -647,6 +650,7 @@ graph TB
 ```
 
 Each span includes:
+
 - Span ID and trace ID
 - Parent span ID (for nested calls)
 - Start and end timestamps
@@ -668,7 +672,7 @@ graph LR
         AutoScore["Auto-Scoring"]
         DevUI["Studio UI<br/>Score Display"]
     end
-    
+
     DevServer --> AgentExec
     CodeChange --> AgentExec
     AgentExec --> AutoScore
@@ -690,26 +694,26 @@ graph TB
         ProdExec["Production Execution"]
         TraceLog["Log Trace Data"]
         AsyncQueue["Async Evaluation Queue"]
-        
+
         ScoringWorker["Scoring Worker"]
         PrebuiltScorers["Prebuilt Scorers"]
         CustomScorers["Custom Scorers"]
-        
+
         ScoreStorage["Store Scores"]
         AlertSystem["Alert System"]
         Dashboard["Monitoring Dashboard"]
     end
-    
+
     ProdExec --> TraceLog
     TraceLog --> AsyncQueue
-    
+
     AsyncQueue --> ScoringWorker
     ScoringWorker --> PrebuiltScorers
     ScoringWorker --> CustomScorers
-    
+
     PrebuiltScorers --> ScoreStorage
     CustomScorers --> ScoreStorage
-    
+
     ScoreStorage --> AlertSystem
     ScoreStorage --> Dashboard
 ```
@@ -731,25 +735,26 @@ graph TB
         ScoresView["Scores View"]
         MetricsView["Metrics Dashboard"]
     end
-    
+
     subgraph "Client SDK"
         ObsResource["ObservabilityResource"]
     end
-    
+
     subgraph "API"
         ObsAPI["Observability API"]
     end
-    
+
     TracesList --> ObsResource
     TraceDetail --> ObsResource
     LogsView --> ObsResource
     ScoresView --> ObsResource
     MetricsView --> ObsResource
-    
+
     ObsResource --> ObsAPI
 ```
 
 The Studio UI provides:
+
 - Real-time trace visualization
 - Log filtering and search
 - Score display and filtering
@@ -766,20 +771,20 @@ Observability is configured at the Mastra instance level. Vendor integrations ar
 
 ```typescript
 // Conceptual example - not actual code from repo
-import { Mastra } from '@mastra/core';
-import { LangfuseExporter } from '@mastra/langfuse';
+import { Mastra } from '@mastra/core'
+import { LangfuseExporter } from '@mastra/langfuse'
 
 const langfuse = new LangfuseExporter({
   publicKey: process.env.LANGFUSE_PUBLIC_KEY,
   secretKey: process.env.LANGFUSE_SECRET_KEY,
-});
+})
 
 const mastra = new Mastra({
   // ... other config
   observability: {
     exporters: [langfuse],
   },
-});
+})
 ```
 
 Multiple exporters can be configured simultaneously to send telemetry to multiple vendors.
@@ -792,14 +797,14 @@ Evaluation is configured by registering scorers with the evaluation system. Scor
 
 ```typescript
 // Conceptual example - not actual code from repo
-import { scoreTraces } from '@mastra/core/evals/scoreTraces';
-import { similarityScorer, coherenceScorer } from '@mastra/evals';
+import { scoreTraces } from '@mastra/core/evals/scoreTraces'
+import { similarityScorer, coherenceScorer } from '@mastra/evals'
 
 // Score a specific trace
 const scores = await scoreTraces({
   traceId: 'trace-123',
   scorers: [similarityScorer, coherenceScorer],
-});
+})
 
 // Scores are automatically stored via observability API
 ```
@@ -810,12 +815,12 @@ Sources: [packages/core/package.json:144-153](), [packages/evals/package.json:1-
 
 Observability and evaluation can be controlled via environment variables:
 
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OpenTelemetry collector endpoint | None |
-| `OTEL_SERVICE_NAME` | Service name in traces | `mastra` |
-| `MASTRA_OBSERVABILITY_ENABLED` | Enable/disable observability | `true` |
-| Vendor-specific keys | API keys for vendor integrations | Required per vendor |
+| Variable                       | Purpose                          | Default             |
+| ------------------------------ | -------------------------------- | ------------------- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`  | OpenTelemetry collector endpoint | None                |
+| `OTEL_SERVICE_NAME`            | Service name in traces           | `mastra`            |
+| `MASTRA_OBSERVABILITY_ENABLED` | Enable/disable observability     | `true`              |
+| Vendor-specific keys           | API keys for vendor integrations | Required per vendor |
 
 Sources: [packages/core/package.json:1-334]()
 
@@ -826,6 +831,7 @@ Sources: [packages/core/package.json:1-334]()
 OpenTelemetry tracing adds minimal overhead to execution. Span creation and attribute setting are designed to be non-blocking and low-latency. However, exporting traces to vendors can add network latency.
 
 **Best Practices:**
+
 - Use batch exporting to reduce network calls
 - Configure sampling for high-volume scenarios
 - Monitor exporter queue depth to detect backpressure
@@ -833,6 +839,7 @@ OpenTelemetry tracing adds minimal overhead to execution. Span creation and attr
 ### Evaluation Latency
 
 LLM-based scorers can add significant latency (hundreds of milliseconds to seconds per score). For production use:
+
 - Run evaluation asynchronously after execution completes
 - Use NLP-based scorers for real-time feedback
 - Cache scorer results for repeated evaluations of the same content
@@ -840,6 +847,7 @@ LLM-based scorers can add significant latency (hundreds of milliseconds to secon
 ### Storage Costs
 
 Observability data grows linearly with execution volume. Consider:
+
 - Vendor pricing models (per-span vs per-GB)
 - Retention policies (shorter for high-volume, low-value traces)
 - Sampling strategies for high-throughput systems

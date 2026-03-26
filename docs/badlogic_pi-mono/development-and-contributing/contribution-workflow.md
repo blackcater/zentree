@@ -15,8 +15,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the automated contribution approval process, PR validation gate, and review workflow for the pi-mono repository. The system uses GitHub Actions to manage contributor access, ensuring only approved users can submit pull requests while maintaining an open contribution model.
 
 For code quality standards and Git operation rules, see [Development Guidelines & Git Rules](#9.1). For changelog management and versioning, see [Release Process](#9.4). For provider-specific contributions, see [Adding LLM Providers](#9.3).
@@ -27,12 +25,12 @@ For code quality standards and Git operation rules, see [Development Guidelines 
 
 The repository implements a two-stage approval system designed to prevent low-quality automated contributions while remaining open to genuine contributors:
 
-| Stage | Action | Automation |
-|-------|--------|------------|
-| **1. Issue-Based Approval** | New contributor opens an issue describing their intended changes | Manual review by maintainer |
-| **2. LGTM Approval** | Maintainer comments `lgtm` on the issue | `approve-contributor.yml` adds user to approved list |
-| **3. PR Submission** | Contributor opens a pull request | `pr-gate.yml` validates author is approved |
-| **4. Code Review** | Maintainer reviews code quality and tests | Manual review process |
+| Stage                       | Action                                                           | Automation                                           |
+| --------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------- |
+| **1. Issue-Based Approval** | New contributor opens an issue describing their intended changes | Manual review by maintainer                          |
+| **2. LGTM Approval**        | Maintainer comments `lgtm` on the issue                          | `approve-contributor.yml` adds user to approved list |
+| **3. PR Submission**        | Contributor opens a pull request                                 | `pr-gate.yml` validates author is approved           |
+| **4. Code Review**          | Maintainer reviews code quality and tests                        | Manual review process                                |
 
 This workflow ensures that every contributor has been vetted before investing time in a pull request, reducing wasted effort on both sides.
 
@@ -51,7 +49,7 @@ New contributors must open an issue before submitting any pull request. The issu
 - **Write in your own voice** - At least the introduction must be human-written, not AI-generated
 - **Demonstrate understanding** - Show you grasp how your changes interact with the codebase
 
-The one critical rule from [CONTRIBUTING.md:7]() states: *"You must understand your code. If you can't explain what your changes do and how they interact with the rest of the system, your PR will be closed."*
+The one critical rule from [CONTRIBUTING.md:7]() states: _"You must understand your code. If you can't explain what your changes do and how they interact with the rest of the system, your PR will be closed."_
 
 Using AI tools to write code is acceptable if you gain genuine understanding by interrogating the agent with codebase access. Submitting AI-generated code without understanding will result in rejection.
 
@@ -91,7 +89,7 @@ flowchart TD
     PostComment["Post: '@user has been added<br/>to approved contributors list'"]
     Skip["Skip: No action"]
     PostAlready["Post: '@user is already<br/>in approved contributors list'"]
-    
+
     IssueComment --> CheckType
     CheckType -->|No, PR comment| Skip
     CheckType -->|Yes| ExtractData
@@ -129,6 +127,7 @@ If all checks pass and the contributor is not already approved, the workflow:
 3. Posts a confirmation comment on the issue [.github/workflows/approve-contributor.yml:89-100]()
 
 The approved contributors file format is simple:
+
 - One GitHub handle per line (without `@` prefix)
 - Lines starting with `#` are comments
 - Empty lines are ignored
@@ -159,7 +158,7 @@ flowchart TD
     BuildMessage["Build rejection message:<br/>• Explain approval process<br/>• Link to CONTRIBUTING.md"]
     PostComment["github.rest.issues.createComment()"]
     ClosePR["github.rest.pulls.update()<br/>state: 'closed'"]
-    
+
     PROpened --> ExtractAuthor
     ExtractAuthor --> IsBot
     IsBot -->|Yes| AllowPR
@@ -179,11 +178,11 @@ flowchart TD
 
 The workflow checks three authorization levels in order [.github/workflows/pr-gate.yml:16-60]():
 
-| Priority | Check | Method |
-|----------|-------|--------|
-| 1 | **Bot Account** | Username ends with `[bot]` or equals `dependabot[bot]` |
-| 2 | **Collaborator** | `getCollaboratorPermissionLevel()` returns `admin` or `write` |
-| 3 | **Approved Contributor** | Username present in `.github/APPROVED_CONTRIBUTORS` |
+| Priority | Check                    | Method                                                        |
+| -------- | ------------------------ | ------------------------------------------------------------- |
+| 1        | **Bot Account**          | Username ends with `[bot]` or equals `dependabot[bot]`        |
+| 2        | **Collaborator**         | `getCollaboratorPermissionLevel()` returns `admin` or `write` |
+| 3        | **Approved Contributor** | Username present in `.github/APPROVED_CONTRIBUTORS`           |
 
 If none of these conditions are met, the PR is rejected.
 
@@ -229,11 +228,11 @@ npm run check  # Runs lint, format, and typecheck
 
 The `npm run check` command [CONTRIBUTING.md:28]() executes three validation steps that must all pass with zero errors:
 
-| Check | Tool | Purpose |
-|-------|------|---------|
-| **Lint** | ESLint | Code quality and consistency |
-| **Format** | Prettier | Code formatting standards |
-| **Typecheck** | TypeScript | Type safety verification |
+| Check         | Tool       | Purpose                      |
+| ------------- | ---------- | ---------------------------- |
+| **Lint**      | ESLint     | Code quality and consistency |
+| **Format**    | Prettier   | Code formatting standards    |
+| **Typecheck** | TypeScript | Type safety verification     |
 
 The `./test.sh` script runs the test suite, which must pass completely.
 
@@ -250,6 +249,7 @@ All contributions must satisfy the fundamental requirement stated in [CONTRIBUTI
 > You must understand your code. If you can't explain what your changes do and how they interact with the rest of the system, your PR will be closed.
 
 This means:
+
 - Being able to explain the purpose of each change
 - Understanding how changes interact with existing code
 - Knowing the edge cases and potential effects
@@ -291,7 +291,7 @@ graph TB
         IssueCommentEvent["issue_comment.created"]
         PRTargetEvent["pull_request_target.opened"]
     end
-    
+
     subgraph "approve-contributor.yml"
         ApproveJob["Job: approve"]
         CheckoutApprove["Checkout default branch"]
@@ -299,7 +299,7 @@ graph TB
         CommitPush["Commit and Push:<br/>git-config<br/>git-add<br/>git-commit<br/>git-push"]
         CommentApprove["Post approval comment"]
     end
-    
+
     subgraph "pr-gate.yml"
         GateJob["Job: check-contributor"]
         FetchScript["GitHub Script:<br/>• Extract PR author<br/>• Check bot status<br/>• Check collaborator status<br/>• Fetch APPROVED_CONTRIBUTORS"]
@@ -307,18 +307,18 @@ graph TB
         CloseScript["Post rejection comment<br/>Close PR"]
         AllowContinue["Allow PR"]
     end
-    
+
     subgraph "Shared State"
         ApprovedFile[".github/APPROVED_CONTRIBUTORS<br/>━━━━━━━━━━━━━━<br/>Plaintext file<br/>One handle per line<br/>Comments start with #"]
     end
-    
+
     IssueCommentEvent --> ApproveJob
     ApproveJob --> CheckoutApprove
     CheckoutApprove --> UpdateScript
     UpdateScript --> CommitPush
     CommitPush --> ApprovedFile
     CommitPush --> CommentApprove
-    
+
     PRTargetEvent --> GateJob
     GateJob --> FetchScript
     ApprovedFile -.read.-> FetchScript
@@ -332,18 +332,20 @@ graph TB
 Both workflows use `pull_request_target` event type or explicit permissions to access repository contents and write to issues/PRs:
 
 **approve-contributor.yml permissions** [.github/workflows/approve-contributor.yml:11-13]():
+
 ```yaml
 permissions:
-  contents: write  # To commit to APPROVED_CONTRIBUTORS
-  issues: write    # To post comments
+  contents: write # To commit to APPROVED_CONTRIBUTORS
+  issues: write # To post comments
 ```
 
 **pr-gate.yml permissions** [.github/workflows/pr-gate.yml:10-13]():
+
 ```yaml
 permissions:
-  contents: read          # To read APPROVED_CONTRIBUTORS
-  issues: write           # To comment on PRs
-  pull-requests: write    # To close PRs
+  contents: read # To read APPROVED_CONTRIBUTORS
+  issues: write # To comment on PRs
+  pull-requests: write # To close PRs
 ```
 
 **Shared Data Format**
@@ -374,7 +376,7 @@ sequenceDiagram
     participant File as APPROVED_CONTRIBUTORS
     participant GateWF as pr-gate.yml
     participant Maintainer
-    
+
     rect rgb(240, 240, 240)
         Note over Dev,Maintainer: Phase 1: Approval Request
         Dev->>GH: Open issue describing changes
@@ -388,7 +390,7 @@ sequenceDiagram
         ApproveWF->>GH: Post confirmation comment
         GH->>Dev: Notification: "You can now submit PRs"
     end
-    
+
     rect rgb(240, 240, 240)
         Note over Dev,Maintainer: Phase 2: PR Submission
         Dev->>Dev: Run npm run check
@@ -407,7 +409,7 @@ sequenceDiagram
             GH->>Maintainer: Notification: PR ready for review
         end
     end
-    
+
     rect rgb(240, 240, 240)
         Note over Dev,Maintainer: Phase 3: Code Review
         Maintainer->>GH: Review code

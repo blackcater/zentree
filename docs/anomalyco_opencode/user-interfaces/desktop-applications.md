@@ -41,8 +41,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers both desktop application implementations: `@opencode-ai/desktop` (Tauri) and `@opencode-ai/desktop-electron` (Electron). Both are native desktop wrappers that embed the same SolidJS web application from `@opencode-ai/app` and manage an `opencode-cli` sidecar process. The scope here is the desktop-specific layers — backend process management, platform API bridges, and build configurations. For the embedded web UI, see [Web Application](#3.2). For the CLI process that both desktops spawn, see [Core Application](#2).
 
 ---
@@ -51,12 +49,13 @@ This page covers both desktop application implementations: `@opencode-ai/desktop
 
 OpenCode provides two desktop application implementations with different technology stacks but identical user experiences:
 
-| Package | Backend | Frontend | Platforms |
-|---|---|---|---|
-| `@opencode-ai/desktop` | Rust (Tauri 2) | SolidJS + Tauri APIs | macOS, Linux, Windows |
+| Package                         | Backend            | Frontend                | Platforms             |
+| ------------------------------- | ------------------ | ----------------------- | --------------------- |
+| `@opencode-ai/desktop`          | Rust (Tauri 2)     | SolidJS + Tauri APIs    | macOS, Linux, Windows |
 | `@opencode-ai/desktop-electron` | Node.js (Electron) | SolidJS + Electron APIs | macOS, Linux, Windows |
 
 Both implementations:
+
 - Embed the complete `@opencode-ai/app` SolidJS application in a WebView
 - Spawn `opencode-cli` as a child process ("sidecar")
 - Wait for the CLI's HTTP server to become ready
@@ -72,11 +71,11 @@ graph TB
         frontend["Frontend WebView<br/>(SolidJS App)"]
         platform["Platform Abstraction"]
     end
-    
+
     subgraph "Sidecar Process"
         cli["opencode-cli<br/>HTTP Server"]
     end
-    
+
     backend -->|"spawn + monitor"| cli
     backend -->|"IPC"| frontend
     frontend -->|"Platform API calls"| platform
@@ -108,10 +107,10 @@ The `@opencode-ai/desktop` package uses Tauri 2, a Rust-based framework that pro
 
 ### Architecture Layers
 
-| Layer | Location | Technology |
-|---|---|---|
-| Rust backend | `packages/desktop/src-tauri/` | Tauri 2, Tokio, tauri-specta |
-| TypeScript frontend | `packages/desktop/src/` | SolidJS, Tauri JS APIs |
+| Layer               | Location                      | Technology                   |
+| ------------------- | ----------------------------- | ---------------------------- |
+| Rust backend        | `packages/desktop/src-tauri/` | Tauri 2, Tokio, tauri-specta |
+| TypeScript frontend | `packages/desktop/src/`       | SolidJS, Tauri JS APIs       |
 
 **Diagram: Tauri Component Map**
 
@@ -190,12 +189,12 @@ Sources: [packages/desktop/src-tauri/src/lib.rs:434-600](), [packages/desktop/sr
 
 **Key Types:**
 
-| Rust Type | Purpose |
-|---|---|
-| `ServerReadyData` | URL, optional username/password, `is_sidecar` flag sent to frontend |
-| `InitStep` | Enum: `ServerWaiting`, `SqliteWaiting`, `Done` — streamed to frontend via `Channel` |
-| `ServerState` | Holds `Arc<Mutex<Option<CommandChild>>>` and a shared `oneshot::Receiver` for server ready status |
-| `InitState` | Holds `watch::Receiver<InitStep>` for streaming init progress |
+| Rust Type         | Purpose                                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------------------- |
+| `ServerReadyData` | URL, optional username/password, `is_sidecar` flag sent to frontend                               |
+| `InitStep`        | Enum: `ServerWaiting`, `SqliteWaiting`, `Done` — streamed to frontend via `Channel`               |
+| `ServerState`     | Holds `Arc<Mutex<Option<CommandChild>>>` and a shared `oneshot::Receiver` for server ready status |
+| `InitState`       | Holds `watch::Receiver<InitStep>` for streaming init progress                                     |
 
 Sources: [packages/desktop/src-tauri/src/lib.rs:41-88]()
 
@@ -275,6 +274,7 @@ Sources: [packages/desktop/src-tauri/src/cli.rs:1-120](), [packages/desktop/src-
 `server.rs` determines whether to use the sidecar or a previously-configured external server URL.
 
 `setup_server_connection()` logic:
+
 1. Checks for a saved server URL in the Tauri Store (`settings.json` file, key `default_server_url`).
 2. If a custom URL is stored, connects to it directly (no sidecar).
 3. Otherwise, spawns the sidecar, scans its stdout for the server ready signal, and performs health-check retries.
@@ -287,23 +287,23 @@ Sources: [packages/desktop/src-tauri/src/server.rs:1-200](), [packages/desktop/s
 
 All plugins registered in `run()`:
 
-| Plugin | Purpose |
-|---|---|
-| `tauri_plugin_single_instance` | Focus existing window if app is launched twice |
-| `tauri_plugin_deep_link` | Handle `opencode://` scheme URLs |
-| `tauri_plugin_os` | Query OS type |
-| `tauri_plugin_window_state` | Persist/restore window size and position |
-| `tauri_plugin_store` | Key-value persistent storage |
-| `tauri_plugin_dialog` | Native file/directory picker dialogs |
-| `tauri_plugin_shell` | Open URLs in browser |
-| `tauri_plugin_process` | `relaunch()` for restart-after-update |
-| `tauri_plugin_opener` | Open paths in external apps |
-| `tauri_plugin_clipboard_manager` | Read clipboard images |
-| `tauri_plugin_http` | Fetch via Tauri (bypasses CORS restrictions) |
-| `tauri_plugin_notification` | Desktop OS notifications |
-| `tauri_plugin_updater` | Auto-update (conditional on `UPDATER_ENABLED`) |
-| `tauri_plugin_decorum` | Custom window chrome on Windows |
-| `PinchZoomDisablePlugin` | Prevents accidental pinch-zoom in webview |
+| Plugin                           | Purpose                                        |
+| -------------------------------- | ---------------------------------------------- |
+| `tauri_plugin_single_instance`   | Focus existing window if app is launched twice |
+| `tauri_plugin_deep_link`         | Handle `opencode://` scheme URLs               |
+| `tauri_plugin_os`                | Query OS type                                  |
+| `tauri_plugin_window_state`      | Persist/restore window size and position       |
+| `tauri_plugin_store`             | Key-value persistent storage                   |
+| `tauri_plugin_dialog`            | Native file/directory picker dialogs           |
+| `tauri_plugin_shell`             | Open URLs in browser                           |
+| `tauri_plugin_process`           | `relaunch()` for restart-after-update          |
+| `tauri_plugin_opener`            | Open paths in external apps                    |
+| `tauri_plugin_clipboard_manager` | Read clipboard images                          |
+| `tauri_plugin_http`              | Fetch via Tauri (bypasses CORS restrictions)   |
+| `tauri_plugin_notification`      | Desktop OS notifications                       |
+| `tauri_plugin_updater`           | Auto-update (conditional on `UPDATER_ENABLED`) |
+| `tauri_plugin_decorum`           | Custom window chrome on Windows                |
+| `PinchZoomDisablePlugin`         | Prevents accidental pinch-zoom in webview      |
 
 Sources: [packages/desktop/src-tauri/src/lib.rs:329-376](), [packages/desktop/src-tauri/Cargo.toml:20-55]()
 

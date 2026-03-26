@@ -22,8 +22,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document provides a comprehensive reference for all `StreamChunk` types in TanStack AI. These types define the structure of data transmitted during streaming chat operations, enabling real-time updates for content generation, tool execution, thinking processes, and completion signals.
 
 For information about how chunks are transmitted over the wire, see [Server-Sent Events (SSE) Protocol](#5.1) and [HTTP Stream Protocol](#5.2). For information about how chunks are processed on the client, see [Stream Processing and Chunk Strategies](#4.3).
@@ -48,21 +46,21 @@ All chunk types share a common base structure defined by `BaseStreamChunk`:
 
 ```typescript
 interface BaseStreamChunk {
-  type: StreamChunkType;
-  id: string;          // Unique identifier for the message/response
-  model: string;       // Model identifier (e.g., "gpt-4o", "claude-3-5-sonnet")
-  timestamp: number;   // Unix timestamp in milliseconds
+  type: StreamChunkType
+  id: string // Unique identifier for the message/response
+  model: string // Model identifier (e.g., "gpt-4o", "claude-3-5-sonnet")
+  timestamp: number // Unix timestamp in milliseconds
 }
 ```
 
 **Field Descriptions:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | `StreamChunkType` | Discriminant field for the union type |
-| `id` | `string` | Response identifier, consistent across chunks in same response |
-| `model` | `string` | AI model that generated this chunk |
-| `timestamp` | `number` | When the chunk was created (milliseconds since epoch) |
+| Field       | Type              | Description                                                    |
+| ----------- | ----------------- | -------------------------------------------------------------- |
+| `type`      | `StreamChunkType` | Discriminant field for the union type                          |
+| `id`        | `string`          | Response identifier, consistent across chunks in same response |
+| `model`     | `string`          | AI model that generated this chunk                             |
+| `timestamp` | `number`          | When the chunk was created (milliseconds since epoch)          |
 
 Sources: [docs/protocol/chunk-definitions.md:11-23](), [packages/typescript/ai/src/types.ts:159-169]()
 
@@ -74,20 +72,20 @@ The `type` field is a string literal that enables TypeScript's discriminated uni
 
 ```typescript
 type StreamChunkType =
-  | 'content'              // Text content being generated
-  | 'thinking'             // Model's reasoning process (when supported)
-  | 'tool_call'            // Model calling a tool/function
+  | 'content' // Text content being generated
+  | 'thinking' // Model's reasoning process (when supported)
+  | 'tool_call' // Model calling a tool/function
   | 'tool-input-available' // Tool inputs ready for client execution
-  | 'approval-requested'   // Tool requires user approval
-  | 'tool_result'          // Result from tool execution
-  | 'done'                 // Stream completion
-  | 'error';               // Error occurred
+  | 'approval-requested' // Tool requires user approval
+  | 'tool_result' // Result from tool execution
+  | 'done' // Stream completion
+  | 'error' // Error occurred
 ```
 
 ```mermaid
 graph TB
     StreamChunk["StreamChunk<br/>(Discriminated Union)"]
-    
+
     StreamChunk --> Content["ContentStreamChunk<br/>type: 'content'"]
     StreamChunk --> Thinking["ThinkingStreamChunk<br/>type: 'thinking'"]
     StreamChunk --> ToolCall["ToolCallStreamChunk<br/>type: 'tool_call'"]
@@ -96,7 +94,7 @@ graph TB
     StreamChunk --> ToolResult["ToolResultStreamChunk<br/>type: 'tool_result'"]
     StreamChunk --> Done["DoneStreamChunk<br/>type: 'done'"]
     StreamChunk --> Error["ErrorStreamChunk<br/>type: 'error'"]
-    
+
     Content --> UI1["Rendered as TextPart<br/>in UIMessage"]
     Thinking --> UI2["Rendered as ThinkingPart<br/>in UIMessage"]
     ToolCall --> UI3["Rendered as ToolCallPart<br/>in UIMessage"]
@@ -117,14 +115,15 @@ Emitted when the AI model generates text content. Content is streamed incrementa
 
 ```typescript
 interface ContentStreamChunk extends BaseStreamChunk {
-  type: 'content';
-  delta: string;    // The incremental content token (new text since last chunk)
-  content: string;  // Full accumulated content so far
-  role?: 'assistant';
+  type: 'content'
+  delta: string // The incremental content token (new text since last chunk)
+  content: string // Full accumulated content so far
+  role?: 'assistant'
 }
 ```
 
 **Example:**
+
 ```json
 {
   "type": "content",
@@ -138,6 +137,7 @@ interface ContentStreamChunk extends BaseStreamChunk {
 ```
 
 **Usage Notes:**
+
 - Multiple `ContentStreamChunk` objects are sent for a single response
 - `delta` contains only the new text since the last chunk
 - `content` contains the complete accumulated text up to this point
@@ -156,13 +156,14 @@ Emitted when the model exposes its internal reasoning process. Supported by mode
 
 ```typescript
 interface ThinkingStreamChunk extends BaseStreamChunk {
-  type: 'thinking';
-  delta?: string;   // The incremental thinking token
-  content: string;  // Full accumulated thinking content so far
+  type: 'thinking'
+  delta?: string // The incremental thinking token
+  content: string // Full accumulated thinking content so far
 }
 ```
 
 **Example:**
+
 ```json
 {
   "type": "thinking",
@@ -175,6 +176,7 @@ interface ThinkingStreamChunk extends BaseStreamChunk {
 ```
 
 **Usage Notes:**
+
 - Rendered separately from final response text in UI
 - Thinking content is excluded from messages sent back to the model
 - Typically displayed in collapsible sections or separate UI areas
@@ -195,20 +197,21 @@ Emitted when the model decides to invoke a tool or function.
 
 ```typescript
 interface ToolCallStreamChunk extends BaseStreamChunk {
-  type: 'tool_call';
+  type: 'tool_call'
   toolCall: {
-    id: string;
-    type: 'function';
+    id: string
+    type: 'function'
     function: {
-      name: string;
-      arguments: string;  // JSON string (may be partial/incremental)
-    };
-  };
-  index: number;  // Index of this tool call (for parallel calls)
+      name: string
+      arguments: string // JSON string (may be partial/incremental)
+    }
+  }
+  index: number // Index of this tool call (for parallel calls)
 }
 ```
 
 **Example:**
+
 ```json
 {
   "type": "tool_call",
@@ -229,14 +232,15 @@ interface ToolCallStreamChunk extends BaseStreamChunk {
 
 **Field Details:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `toolCall.id` | `string` | Unique identifier for this specific tool call |
-| `toolCall.function.name` | `string` | Name of the tool to execute |
+| Field                         | Type     | Description                                                 |
+| ----------------------------- | -------- | ----------------------------------------------------------- |
+| `toolCall.id`                 | `string` | Unique identifier for this specific tool call               |
+| `toolCall.function.name`      | `string` | Name of the tool to execute                                 |
 | `toolCall.function.arguments` | `string` | JSON-encoded arguments (may be incomplete during streaming) |
-| `index` | `number` | Position in array of parallel tool calls |
+| `index`                       | `number` | Position in array of parallel tool calls                    |
 
 **Usage Notes:**
+
 - Multiple chunks may be sent for a single tool call (streaming arguments)
 - `arguments` field may be incomplete JSON until all chunks received
 - `index` enables multiple parallel tool calls in one response
@@ -254,14 +258,15 @@ Emitted when tool arguments are complete and ready for client-side execution. On
 
 ```typescript
 interface ToolInputAvailableStreamChunk extends BaseStreamChunk {
-  type: 'tool-input-available';
-  toolCallId: string;  // ID of the tool call
-  toolName: string;    // Name of the tool to execute
-  input: any;          // Parsed tool arguments (JSON object)
+  type: 'tool-input-available'
+  toolCallId: string // ID of the tool call
+  toolName: string // Name of the tool to execute
+  input: any // Parsed tool arguments (JSON object)
 }
 ```
 
 **Example:**
+
 ```json
 {
   "type": "tool-input-available",
@@ -278,6 +283,7 @@ interface ToolInputAvailableStreamChunk extends BaseStreamChunk {
 ```
 
 **Usage Notes:**
+
 - Signals client should execute the tool with provided inputs
 - Only sent for tools defined without `.server()` implementation
 - `input` is pre-parsed and validated against tool's `inputSchema`
@@ -296,18 +302,19 @@ Emitted when a tool requires user approval before execution. Occurs for tools wi
 
 ```typescript
 interface ApprovalRequestedStreamChunk extends BaseStreamChunk {
-  type: 'approval-requested';
-  toolCallId: string;  // ID of the tool call
-  toolName: string;    // Name of the tool requiring approval
-  input: any;          // Tool arguments for user review
+  type: 'approval-requested'
+  toolCallId: string // ID of the tool call
+  toolName: string // Name of the tool requiring approval
+  input: any // Tool arguments for user review
   approval: {
-    id: string;            // Unique approval request ID
-    needsApproval: true;   // Always true
-  };
+    id: string // Unique approval request ID
+    needsApproval: true // Always true
+  }
 }
 ```
 
 **Example:**
+
 ```json
 {
   "type": "approval-requested",
@@ -336,7 +343,7 @@ sequenceDiagram
     participant Stream as "Stream Response"
     participant Client as "ChatClient"
     participant User as "User"
-    
+
     Server->>Stream: "ApprovalRequestedStreamChunk"
     Stream->>Client: "Parse chunk"
     Client->>Client: "Update ToolCallPart<br/>state = 'approval-requested'"
@@ -349,6 +356,7 @@ sequenceDiagram
 **Diagram: Approval Request Flow**
 
 **Usage Notes:**
+
 - Stream pauses until approval is provided
 - Display approval UI with tool details for user review
 - User responds via `addToolApprovalResponse()` method
@@ -366,13 +374,14 @@ Emitted when a tool execution completes, either on server or client side.
 
 ```typescript
 interface ToolResultStreamChunk extends BaseStreamChunk {
-  type: 'tool_result';
-  toolCallId: string;  // ID of the tool call that was executed
-  content: string;     // Result of the tool execution (JSON stringified)
+  type: 'tool_result'
+  toolCallId: string // ID of the tool call that was executed
+  content: string // Result of the tool execution (JSON stringified)
 }
 ```
 
 **Example:**
+
 ```json
 {
   "type": "tool_result",
@@ -385,6 +394,7 @@ interface ToolResultStreamChunk extends BaseStreamChunk {
 ```
 
 **Usage Notes:**
+
 - Sent after tool execution completes successfully
 - `content` is the JSON-stringified result from tool's `execute` function
 - Model receives this result to continue the conversation
@@ -405,17 +415,18 @@ Emitted when the stream completes successfully. Marks the end of a response iter
 
 ```typescript
 interface DoneStreamChunk extends BaseStreamChunk {
-  type: 'done';
-  finishReason: 'stop' | 'length' | 'content_filter' | 'tool_calls' | null;
+  type: 'done'
+  finishReason: 'stop' | 'length' | 'content_filter' | 'tool_calls' | null
   usage?: {
-    promptTokens: number;
-    completionTokens: number;
-    totalTokens: number;
-  };
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
 }
 ```
 
 **Example:**
+
 ```json
 {
   "type": "done",
@@ -433,15 +444,16 @@ interface DoneStreamChunk extends BaseStreamChunk {
 
 **Finish Reasons:**
 
-| Reason | Description |
-|--------|-------------|
-| `stop` | Natural completion of the response |
-| `length` | Reached maximum token limit |
-| `content_filter` | Stopped by content filtering |
-| `tool_calls` | Stopped to execute tool calls |
-| `null` | Unknown or not provided by model |
+| Reason           | Description                        |
+| ---------------- | ---------------------------------- |
+| `stop`           | Natural completion of the response |
+| `length`         | Reached maximum token limit        |
+| `content_filter` | Stopped by content filtering       |
+| `tool_calls`     | Stopped to execute tool calls      |
+| `null`           | Unknown or not provided by model   |
 
 **Usage Notes:**
+
 - Marks end of successful stream
 - Clean up streaming state on receipt
 - Display token usage if available
@@ -460,15 +472,16 @@ Emitted when an error occurs during streaming. Terminates the stream.
 
 ```typescript
 interface ErrorStreamChunk extends BaseStreamChunk {
-  type: 'error';
+  type: 'error'
   error: {
-    message: string;  // Human-readable error message
-    code?: string;    // Optional error code
-  };
+    message: string // Human-readable error message
+    code?: string // Optional error code
+  }
 }
 ```
 
 **Example:**
+
 ```json
 {
   "type": "error",
@@ -484,15 +497,16 @@ interface ErrorStreamChunk extends BaseStreamChunk {
 
 **Common Error Codes:**
 
-| Code | Description |
-|------|-------------|
-| `rate_limit_exceeded` | API rate limit hit |
-| `invalid_request` | Malformed request |
-| `authentication_error` | API key issues |
-| `timeout` | Request timed out |
-| `server_error` | Internal server error |
+| Code                   | Description           |
+| ---------------------- | --------------------- |
+| `rate_limit_exceeded`  | API rate limit hit    |
+| `invalid_request`      | Malformed request     |
+| `authentication_error` | API key issues        |
+| `timeout`              | Request timed out     |
+| `server_error`         | Internal server error |
 
 **Usage Notes:**
+
 - Stream ends immediately after error chunk
 - Display error message to user
 - Implement retry logic client-side with exponential backoff
@@ -517,7 +531,7 @@ type StreamChunk =
   | ApprovalRequestedStreamChunk
   | ToolResultStreamChunk
   | DoneStreamChunk
-  | ErrorStreamChunk;
+  | ErrorStreamChunk
 ```
 
 This enables type-safe handling with TypeScript's type narrowing:
@@ -526,29 +540,29 @@ This enables type-safe handling with TypeScript's type narrowing:
 function handleChunk(chunk: StreamChunk) {
   switch (chunk.type) {
     case 'content':
-      console.log(chunk.delta); // TypeScript knows: ContentStreamChunk
-      break;
+      console.log(chunk.delta) // TypeScript knows: ContentStreamChunk
+      break
     case 'thinking':
-      console.log(chunk.content); // TypeScript knows: ThinkingStreamChunk
-      break;
+      console.log(chunk.content) // TypeScript knows: ThinkingStreamChunk
+      break
     case 'tool_call':
-      console.log(chunk.toolCall.function.name); // TypeScript knows structure
-      break;
+      console.log(chunk.toolCall.function.name) // TypeScript knows structure
+      break
     case 'tool-input-available':
-      executeClientTool(chunk.toolName, chunk.input);
-      break;
+      executeClientTool(chunk.toolName, chunk.input)
+      break
     case 'approval-requested':
-      showApprovalUI(chunk);
-      break;
+      showApprovalUI(chunk)
+      break
     case 'tool_result':
-      displayToolResult(chunk);
-      break;
+      displayToolResult(chunk)
+      break
     case 'done':
-      cleanupStreaming(chunk.finishReason);
-      break;
+      cleanupStreaming(chunk.finishReason)
+      break
     case 'error':
-      handleError(chunk.error);
-      break;
+      handleError(chunk.error)
+      break
   }
 }
 ```
@@ -572,7 +586,7 @@ graph LR
     Processor["StreamProcessor<br/>ChunkStrategy"]
     State["UIMessage<br/>parts: MessagePart[]"]
     UI["React/Solid UI<br/>useChat hook"]
-    
+
     Adapter -->|"StreamChunk"| Engine
     Engine -->|"Event emission<br/>aiEventClient.emit()"| Engine
     Engine -->|"StreamChunk"| Protocol
@@ -613,18 +627,18 @@ sequenceDiagram
     participant Engine as "ChatEngine"
     participant Adapter as "AIAdapter"
     participant Client as "Client"
-    
+
     Note over Engine,Client: "Simple content response"
-    
+
     Adapter->>Engine: "ContentStreamChunk (delta: 'Hello')"
     Engine->>Client: "ContentStreamChunk"
-    
+
     Adapter->>Engine: "ContentStreamChunk (delta: ' world')"
     Engine->>Client: "ContentStreamChunk"
-    
+
     Adapter->>Engine: "ContentStreamChunk (delta: '!')"
     Engine->>Client: "ContentStreamChunk"
-    
+
     Adapter->>Engine: "DoneStreamChunk (finishReason: 'stop')"
     Engine->>Client: "DoneStreamChunk"
 ```
@@ -638,18 +652,18 @@ sequenceDiagram
     participant Engine as "ChatEngine"
     participant Adapter as "AIAdapter"
     participant Client as "Client"
-    
+
     Note over Engine,Client: "Response with extended thinking"
-    
+
     Adapter->>Engine: "ThinkingStreamChunk (delta: 'I need to...')"
     Engine->>Client: "ThinkingStreamChunk"
-    
+
     Adapter->>Engine: "ThinkingStreamChunk (delta: ' check the weather')"
     Engine->>Client: "ThinkingStreamChunk"
-    
+
     Adapter->>Engine: "ContentStreamChunk (delta: 'Let me check')"
     Engine->>Client: "ContentStreamChunk"
-    
+
     Adapter->>Engine: "DoneStreamChunk (finishReason: 'stop')"
     Engine->>Client: "DoneStreamChunk"
 ```
@@ -741,14 +755,14 @@ Sources: [docs/protocol/sse-protocol.md:57-91](), [docs/protocol/http-stream-pro
 
 The `ChatClient` converts stream chunks into `MessagePart` objects for UI rendering:
 
-| StreamChunk Type | MessagePart Type | Notes |
-|-----------------|------------------|-------|
-| `ContentStreamChunk` | `TextPart` | Accumulated in `part.content` |
-| `ThinkingStreamChunk` | `ThinkingPart` | Stored separately, not sent back to model |
-| `ToolCallStreamChunk` | `ToolCallPart` | Includes state, input, approval, output fields |
-| `ToolResultStreamChunk` | `ToolResultPart` | Links to tool call via `toolCallId` |
-| `DoneStreamChunk` | N/A | Triggers state updates, not stored as part |
-| `ErrorStreamChunk` | N/A | Sets error state, terminates stream |
+| StreamChunk Type        | MessagePart Type | Notes                                          |
+| ----------------------- | ---------------- | ---------------------------------------------- |
+| `ContentStreamChunk`    | `TextPart`       | Accumulated in `part.content`                  |
+| `ThinkingStreamChunk`   | `ThinkingPart`   | Stored separately, not sent back to model      |
+| `ToolCallStreamChunk`   | `ToolCallPart`   | Includes state, input, approval, output fields |
+| `ToolResultStreamChunk` | `ToolResultPart` | Links to tool call via `toolCallId`            |
+| `DoneStreamChunk`       | N/A              | Triggers state updates, not stored as part     |
+| `ErrorStreamChunk`      | N/A              | Sets error state, terminates stream            |
 
 **State Transitions for ToolCallPart:**
 

@@ -38,8 +38,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes the OpenClaw continuous integration and deployment infrastructure, including the GitHub Actions workflow orchestration, intelligent scope detection that optimizes job execution, platform-specific test strategies, and caching mechanisms. For information about the release process itself (versioning, changelogs, distribution), see [Release Process](#8.2).
@@ -51,6 +49,7 @@ This document describes the OpenClaw continuous integration and deployment infra
 The OpenClaw CI pipeline executes on every push to `main` and every pull request. The workflow uses a two-phase scope detection system to skip expensive jobs when only documentation or platform-specific code has changed. This optimization reduces CI time for most PRs while maintaining full coverage for `main` branch pushes.
 
 The pipeline is defined in `.github/workflows/ci.yml` and consists of:
+
 - Early scope detection gates (`docs-scope`, `changed-scope`)
 - Static analysis jobs (`check`, `check-docs`, `deadcode`, `secrets`)
 - Platform-specific test suites (`checks`, `checks-windows`, `macos`, `android`)
@@ -70,25 +69,25 @@ graph TB
     Trigger["Push/PR Trigger"]
     DocsScope["docs-scope job"]
     ChangedScope["changed-scope job"]
-    
+
     DocsOnlyCheck{"docs_only == true?"}
-    
+
     SkipHeavy["Skip: checks, build-artifacts,<br/>macos, android, windows"]
     RunLint["Run: check, check-docs, secrets"]
-    
+
     ScopeOutputs["Scope outputs:<br/>run_node, run_macos,<br/>run_android, run_windows,<br/>run_skills_python"]
-    
+
     ConditionalJobs["Jobs check scope outputs<br/>via needs.changed-scope.outputs"]
-    
+
     Trigger --> DocsScope
     DocsScope --> DocsOnlyCheck
     DocsOnlyCheck -->|yes| SkipHeavy
     DocsOnlyCheck -->|no| ChangedScope
     DocsScope --> RunLint
-    
+
     ChangedScope --> ScopeOutputs
     ScopeOutputs --> ConditionalJobs
-    
+
     style DocsScope fill:#f9f9f9
     style ChangedScope fill:#f9f9f9
     style ScopeOutputs fill:#f9f9f9
@@ -111,36 +110,37 @@ The `detectChangedScope` function in `scripts/ci-changed-scope.mjs` examines cha
 ```mermaid
 graph LR
     ChangedFiles["Changed file paths<br/>(from git diff)"]
-    
+
     Patterns["Pattern Matching"]
-    
+
     NodeScope["NODE_SCOPE_RE<br/>src/, test/, extensions/,<br/>packages/, scripts/, ui/,<br/>.github/, config files"]
     MacOSScope["MACOS_NATIVE_RE<br/>apps/macos/, apps/ios/,<br/>apps/shared/, Swabble/"]
     AndroidScope["ANDROID_NATIVE_RE<br/>apps/android/,<br/>apps/shared/"]
     WindowsScope["WINDOWS_SCOPE_RE<br/>(NODE_SCOPE_RE subset +<br/>specific CI files)"]
     SkillsScope["SKILLS_PYTHON_SCOPE_RE<br/>skills/"]
-    
+
     Outputs["run_node: boolean<br/>run_macos: boolean<br/>run_android: boolean<br/>run_windows: boolean<br/>run_skills_python: boolean"]
-    
+
     ChangedFiles --> Patterns
-    
+
     Patterns --> NodeScope
     Patterns --> MacOSScope
     Patterns --> AndroidScope
     Patterns --> WindowsScope
     Patterns --> SkillsScope
-    
+
     NodeScope --> Outputs
     MacOSScope --> Outputs
     AndroidScope --> Outputs
     WindowsScope --> Outputs
     SkillsScope --> Outputs
-    
+
     style Patterns fill:#f9f9f9
     style Outputs fill:#f9f9f9
 ```
 
 Key patterns defined in [scripts/ci-changed-scope.mjs:6-17]():
+
 - `DOCS_PATH_RE`: matches `docs/` and `*.md` files
 - `NODE_SCOPE_RE`: matches Node/TypeScript source, tests, extensions, config files
 - `WINDOWS_SCOPE_RE`: narrower subset of Node scope plus CI workflow files
@@ -149,6 +149,7 @@ Key patterns defined in [scripts/ci-changed-scope.mjs:6-17]():
 - `SKILLS_PYTHON_SCOPE_RE`: matches `skills/` directory
 
 The function includes special logic ([scripts/ci-changed-scope.mjs:79-81]()):
+
 - Sets `runNode=true` as a fallback if non-docs, non-native files changed
 - Excludes generated protocol files from triggering macOS builds ([scripts/ci-changed-scope.mjs:58-60]())
 
@@ -162,8 +163,8 @@ Jobs declare dependencies and conditionals using the scope outputs:
 
 ```yaml
 needs: [docs-scope, changed-scope]
-if: needs.docs-scope.outputs.docs_only != 'true' && 
-    (github.event_name == 'push' || needs.changed-scope.outputs.run_node == 'true')
+if: needs.docs-scope.outputs.docs_only != 'true' &&
+  (github.event_name == 'push' || needs.changed-scope.outputs.run_node == 'true')
 ```
 
 This pattern appears in the `checks`, `check`, `build-artifacts`, and other jobs. Push events to `main` bypass PR optimizations to ensure full coverage ([.github/workflows/ci.yml:82](), [.github/workflows/ci.yml:141]()).
@@ -181,17 +182,17 @@ graph TB
         ChangedScope["changed-scope<br/>(analyze file paths)"]
         Secrets["secrets<br/>(detect-secrets, zizmor)"]
     end
-    
+
     subgraph "Static Analysis"
         Check["check<br/>(types, lint, format)"]
         CheckDocs["check-docs<br/>(markdown lint)"]
         Deadcode["deadcode<br/>(Knip report)"]
     end
-    
+
     subgraph "Build"
         BuildArtifacts["build-artifacts<br/>(pnpm build, upload dist/)"]
     end
-    
+
     subgraph "Platform Tests"
         Checks["checks (matrix)<br/>node test, bun test,<br/>extensions, protocol"]
         ChecksWindows["checks-windows (matrix)<br/>6-shard parallel tests"]
@@ -199,11 +200,11 @@ graph TB
         Android["android (matrix)<br/>(Gradle build + test)"]
         SkillsPython["skills-python<br/>(ruff + pytest)"]
     end
-    
+
     subgraph "Release Validation"
         ReleaseCheck["release-check<br/>(npm pack validation)"]
     end
-    
+
     DocsScope --> ChangedScope
     DocsScope --> CheckDocs
     DocsScope --> BuildArtifacts
@@ -214,7 +215,7 @@ graph TB
     DocsScope --> Android
     DocsScope --> SkillsPython
     DocsScope --> ReleaseCheck
-    
+
     ChangedScope --> BuildArtifacts
     ChangedScope --> Check
     ChangedScope --> Checks
@@ -222,11 +223,11 @@ graph TB
     ChangedScope --> MacOS
     ChangedScope --> Android
     ChangedScope --> SkillsPython
-    
+
     Check --> MacOS
-    
+
     BuildArtifacts --> ReleaseCheck
-    
+
     style DocsScope fill:#f9f9f9
     style ChangedScope fill:#f9f9f9
 ```
@@ -249,12 +250,12 @@ concurrency:
 
 The `checks` job ([.github/workflows/ci.yml:139-188]()) runs a matrix of Node and Bun test suites:
 
-| Runtime | Task | Command |
-|---------|------|---------|
-| node | test | `pnpm canvas:a2ui:bundle && pnpm test` |
-| node | extensions | `pnpm test:extensions` |
-| node | protocol | `pnpm protocol:check` |
-| bun | test | `pnpm canvas:a2ui:bundle && bunx vitest run` |
+| Runtime | Task       | Command                                      |
+| ------- | ---------- | -------------------------------------------- |
+| node    | test       | `pnpm canvas:a2ui:bundle && pnpm test`       |
+| node    | extensions | `pnpm test:extensions`                       |
+| node    | protocol   | `pnpm protocol:check`                        |
+| bun     | test       | `pnpm canvas:a2ui:bundle && bunx vitest run` |
 
 The Bun lane is skipped on push to `main` ([.github/workflows/ci.yml:160-162]()) to reduce queue time while still validating Bun compatibility on PRs.
 
@@ -302,6 +303,7 @@ OPENCLAW_TEST_SHARD_INDEX=${{ matrix.shard_index }}
 The `macos` job ([.github/workflows/ci.yml:493-569]()) runs all macOS validation sequentially on a single runner to avoid starving GitHub's 5-concurrent-macOS-job limit:
 
 **Execution order:**
+
 1. TypeScript tests (`pnpm test`)
 2. Swift lint (`swiftlint`, `swiftformat`)
 3. Swift release build (`swift build --configuration release`)
@@ -317,10 +319,10 @@ The job uses Xcode 26.1 ([.github/workflows/ci.yml:519-522]()) and includes retr
 
 The `android` job ([.github/workflows/ci.yml:730-776]()) runs a matrix of Gradle tasks:
 
-| Task | Command |
-|------|---------|
-| test | `./gradlew --no-daemon :app:testDebugUnitTest` |
-| build | `./gradlew --no-daemon :app:assembleDebug` |
+| Task  | Command                                        |
+| ----- | ---------------------------------------------- |
+| test  | `./gradlew --no-daemon :app:testDebugUnitTest` |
+| build | `./gradlew --no-daemon :app:assembleDebug`     |
 
 The job sets up Java 17 (JDK 21 causes sdkmanager crashes in CI, [.github/workflows/ci.yml:752-753]()), Android SDK packages, and Gradle 8.11.1.
 
@@ -362,30 +364,30 @@ Most jobs use the `setup-node-env` composite action ([.github/actions/setup-node
 ```mermaid
 graph TB
     PnpmStore["pnpm store path<br/>(from pnpm store path --silent)"]
-    
+
     StickyDiskCheck{"use-sticky-disk == true?"}
-    
+
     Blacksmith["useblacksmith/stickydisk@v1<br/>(persistent mount)"]
-    
+
     ActionsCacheCheck{"use-actions-cache == true?"}
     RestoreKeysCheck{"use-restore-keys == true?"}
-    
+
     ActionsCacheExact["actions/cache@v4<br/>(exact key only)"]
     ActionsCacheFallback["actions/cache@v4<br/>(with restore-keys)"]
-    
+
     NoCache["No caching"]
-    
+
     PnpmStore --> StickyDiskCheck
-    
+
     StickyDiskCheck -->|yes| Blacksmith
     StickyDiskCheck -->|no| ActionsCacheCheck
-    
+
     ActionsCacheCheck -->|yes| RestoreKeysCheck
     ActionsCacheCheck -->|no| NoCache
-    
+
     RestoreKeysCheck -->|yes| ActionsCacheFallback
     RestoreKeysCheck -->|no| ActionsCacheExact
-    
+
     style StickyDiskCheck fill:#f9f9f9
     style ActionsCacheCheck fill:#f9f9f9
     style RestoreKeysCheck fill:#f9f9f9
@@ -394,6 +396,7 @@ graph TB
 **Sticky disks** ([.github/actions/setup-pnpm-store-cache/action.yml:53-58]()): Blacksmith runners support persistent disk mounts keyed by repository and runner OS. This provides faster cache hits than `actions/cache` but is currently disabled for Windows shards ([.github/workflows/ci.yml:457]()).
 
 **Cache keys** ([.github/actions/setup-pnpm-store-cache/action.yml:65](), [.github/actions/setup-pnpm-store-cache/action.yml:72]()):
+
 ```
 ${{ runner.os }}-pnpm-store-${{ inputs.cache-key-suffix }}-${{ hashFiles('pnpm-lock.yaml') }}
 ```
@@ -427,6 +430,7 @@ This handles transient network failures when fetching submodules.
 The `secrets` job ([.github/workflows/ci.yml:290-371]()) runs security scans independently of scope detection to ensure they always execute:
 
 **Pre-commit hooks executed:**
+
 1. `detect-secrets`: Scans for leaked API keys, tokens, and credentials
 2. `detect-private-key`: Detects committed SSH/PGP private keys
 3. `zizmor`: Audits GitHub Actions workflows for security issues
@@ -503,11 +507,11 @@ This job is conditional on `docs_changed == 'true'` ([.github/workflows/ci.yml:2
 
 ### Runner Types
 
-| Runner | CPU | Jobs | Notes |
-|--------|-----|------|-------|
-| `blacksmith-16vcpu-ubuntu-2404` | 16 vCPU | scope detection, checks, build-artifacts, android, python | Blacksmith optimized Linux |
-| `blacksmith-32vcpu-windows-2025` | 32 vCPU | checks-windows (6 shards) | High concurrency for parallel tests |
-| `macos-latest` | varies | macos, ios (disabled) | GitHub-hosted macOS runner |
+| Runner                           | CPU     | Jobs                                                      | Notes                               |
+| -------------------------------- | ------- | --------------------------------------------------------- | ----------------------------------- |
+| `blacksmith-16vcpu-ubuntu-2404`  | 16 vCPU | scope detection, checks, build-artifacts, android, python | Blacksmith optimized Linux          |
+| `blacksmith-32vcpu-windows-2025` | 32 vCPU | checks-windows (6 shards)                                 | High concurrency for parallel tests |
+| `macos-latest`                   | varies  | macos, ios (disabled)                                     | GitHub-hosted macOS runner          |
 
 **Blacksmith runners** provide faster network, disk I/O, and better cache performance compared to standard GitHub-hosted runners. The configuration is declared in `.github/actionlint.yaml` ([.github/actionlint.yaml:4-12]()) for actionlint validation.
 
@@ -535,16 +539,16 @@ OPENCLAW_TEST_WORKERS=1  # Windows (per shard, due to observed instability)
 
 Developers can run CI checks locally without GitHub Actions:
 
-| CI Job | Local Command |
-|--------|---------------|
-| `check` | `pnpm check` |
-| `checks` (node test) | `pnpm test` |
-| `checks` (protocol) | `pnpm protocol:check` |
-| `checks` (extensions) | `pnpm test:extensions` |
-| `check-docs` | `pnpm check:docs` |
-| `release-check` | `pnpm release:check` |
-| `skills-python` | `python -m ruff check skills && python -m pytest -q skills` |
-| `deadcode` | `pnpm deadcode:report:ci:knip` |
+| CI Job                | Local Command                                               |
+| --------------------- | ----------------------------------------------------------- |
+| `check`               | `pnpm check`                                                |
+| `checks` (node test)  | `pnpm test`                                                 |
+| `checks` (protocol)   | `pnpm protocol:check`                                       |
+| `checks` (extensions) | `pnpm test:extensions`                                      |
+| `check-docs`          | `pnpm check:docs`                                           |
+| `release-check`       | `pnpm release:check`                                        |
+| `skills-python`       | `python -m ruff check skills && python -m pytest -q skills` |
+| `deadcode`            | `pnpm deadcode:report:ci:knip`                              |
 
 **Scope detection testing:** The scope detection logic has unit tests in `src/scripts/ci-changed-scope.test.ts` ([src/scripts/ci-changed-scope.test.ts:1-143]()) that can be run locally with `pnpm test`.
 

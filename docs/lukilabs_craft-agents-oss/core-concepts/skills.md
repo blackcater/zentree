@@ -12,8 +12,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page describes what skills are, how they are stored on disk, the `SKILL.md` file format, source priority resolution, and how skills are loaded and injected into the agent system prompt. For information on how automations can reference skills via `@mentions`, see [Hooks & Automation](#4.9). For source-level integration triggered by skills, see [Sources](#4.3).
 
 ---
@@ -32,15 +30,16 @@ Sources: [README.md:97-98](), [packages/shared/src/skills/types.ts:1-8]()
 
 Each skill is a directory containing a single `SKILL.md` file and an optional icon file. Skills can live in three locations, each corresponding to a different scope:
 
-| Scope | Path | Priority |
-|---|---|---|
-| Global | `~/.agents/skills/{slug}/` | Lowest |
-| Workspace | `~/.craft-agent/workspaces/{id}/skills/{slug}/` | Medium |
-| Project | `{projectRoot}/.agents/skills/{slug}/` | Highest |
+| Scope     | Path                                            | Priority |
+| --------- | ----------------------------------------------- | -------- |
+| Global    | `~/.agents/skills/{slug}/`                      | Lowest   |
+| Workspace | `~/.craft-agent/workspaces/{id}/skills/{slug}/` | Medium   |
+| Project   | `{projectRoot}/.agents/skills/{slug}/`          | Highest  |
 
 Skills with the same slug in a higher-priority scope override those from lower-priority scopes.
 
 **Skill directory layout (one skill):**
+
 ```
 skills/
 └── my-skill/
@@ -62,7 +61,7 @@ name: Python Code Reviewer
 description: Reviews Python code for style, correctness, and performance.
 icon: 🐍
 globs:
-  - "**/*.py"
+  - '**/*.py'
 alwaysAllow:
   - Bash(grep:*)
 requiredSources:
@@ -76,14 +75,14 @@ Check for type annotation completeness and test coverage.
 
 ### Frontmatter Fields
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `name` | `string` | ✅ | Display name shown in skill list |
-| `description` | `string` | ✅ | Short description shown in skill list |
-| `icon` | `string` | — | Emoji (rendered directly) or URL (auto-downloaded to `icon.{ext}`) |
-| `globs` | `string[]` | — | File patterns that auto-trigger this skill |
-| `alwaysAllow` | `string[]` | — | Tool patterns automatically approved when skill is active |
-| `requiredSources` | `string[]` | — | Source slugs auto-enabled when skill is invoked |
+| Field             | Type       | Required | Description                                                        |
+| ----------------- | ---------- | -------- | ------------------------------------------------------------------ |
+| `name`            | `string`   | ✅       | Display name shown in skill list                                   |
+| `description`     | `string`   | ✅       | Short description shown in skill list                              |
+| `icon`            | `string`   | —        | Emoji (rendered directly) or URL (auto-downloaded to `icon.{ext}`) |
+| `globs`           | `string[]` | —        | File patterns that auto-trigger this skill                         |
+| `alwaysAllow`     | `string[]` | —        | Tool patterns automatically approved when skill is active          |
+| `requiredSources` | `string[]` | —        | Source slugs auto-enabled when skill is invoked                    |
 
 The `icon` field accepts only an emoji or an HTTPS URL. Relative paths and inline SVG are rejected by `validateIconValue`.
 
@@ -173,16 +172,16 @@ Sources: [packages/shared/src/skills/index.ts:1-20](), [packages/shared/src/skil
 
 ### Storage Functions
 
-| Function | Signature | Description |
-|---|---|---|
-| `loadAllSkills` | `(workspaceRoot, projectRoot?) → LoadedSkill[]` | Loads skills from all three scopes with priority merge |
-| `loadWorkspaceSkills` | `(workspaceRoot) → LoadedSkill[]` | Loads only workspace-scoped skills |
-| `loadSkillBySlug` | `(workspaceRoot, slug, projectRoot?) → LoadedSkill \| null` | Loads one skill by slug; O(1) lookup |
-| `loadSkill` | `(workspaceRoot, slug) → LoadedSkill \| null` | Loads one workspace-scoped skill |
-| `deleteSkill` | `(workspaceRoot, slug) → boolean` | Removes the skill directory recursively |
-| `skillExists` | `(workspaceRoot, slug) → boolean` | Checks whether a skill directory and `SKILL.md` are present |
-| `listSkillSlugs` | `(workspaceRoot) → string[]` | Returns slugs of all valid workspace skills |
-| `downloadSkillIcon` | `(skillDir, iconUrl) → Promise<string \| null>` | Downloads an icon URL to `icon.{ext}` in the skill directory |
+| Function              | Signature                                                   | Description                                                  |
+| --------------------- | ----------------------------------------------------------- | ------------------------------------------------------------ |
+| `loadAllSkills`       | `(workspaceRoot, projectRoot?) → LoadedSkill[]`             | Loads skills from all three scopes with priority merge       |
+| `loadWorkspaceSkills` | `(workspaceRoot) → LoadedSkill[]`                           | Loads only workspace-scoped skills                           |
+| `loadSkillBySlug`     | `(workspaceRoot, slug, projectRoot?) → LoadedSkill \| null` | Loads one skill by slug; O(1) lookup                         |
+| `loadSkill`           | `(workspaceRoot, slug) → LoadedSkill \| null`               | Loads one workspace-scoped skill                             |
+| `deleteSkill`         | `(workspaceRoot, slug) → boolean`                           | Removes the skill directory recursively                      |
+| `skillExists`         | `(workspaceRoot, slug) → boolean`                           | Checks whether a skill directory and `SKILL.md` are present  |
+| `listSkillSlugs`      | `(workspaceRoot) → string[]`                                | Returns slugs of all valid workspace skills                  |
+| `downloadSkillIcon`   | `(skillDir, iconUrl) → Promise<string \| null>`             | Downloads an icon URL to `icon.{ext}` in the skill directory |
 
 Sources: [packages/shared/src/skills/storage.ts:100-354]()
 

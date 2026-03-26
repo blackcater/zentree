@@ -40,8 +40,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the organization of the Mastra monorepo, including its package hierarchy, dependencies, build system, and development workflows. The monorepo uses pnpm workspaces and Turborepo to manage over 100 packages across multiple categories.
 
 For information about the overall system architecture and how components interact, see [System Architecture Overview](#1.2).
@@ -58,7 +56,7 @@ graph TB
         PnpmLock["pnpm-lock.yaml<br/>Lockfile"]
         PnpmWorkspace["pnpm-workspace.yaml"]
     end
-    
+
     subgraph "Package Categories"
         Core["packages/*<br/>Core framework"]
         Clients["client-sdks/*<br/>Client libraries"]
@@ -71,7 +69,7 @@ graph TB
         Speech["speech/*<br/>Voice providers"]
         Examples["examples/*<br/>Sample projects"]
     end
-    
+
     RootPkg --> Core
     RootPkg --> Clients
     RootPkg --> Deploy
@@ -82,7 +80,7 @@ graph TB
     RootPkg --> Workspaces
     RootPkg --> Speech
     RootPkg --> Examples
-    
+
     TurboConfig -.-> Core
     TurboConfig -.-> Clients
     TurboConfig -.-> Deploy
@@ -94,15 +92,15 @@ graph TB
 
 The root `package.json` defines granular build scripts that correspond to workspace categories:
 
-| Script Pattern | Target | Example Packages |
-|----------------|--------|------------------|
-| `build:packages` | `./packages/*` | `@mastra/core`, `@mastra/server`, `@mastra/cli` |
-| `build:clients` | `./client-sdks/*` | `@mastra/client-js`, `@mastra/react` |
-| `build:deployers` | `./deployers/*` | `@mastra/deployer-cloudflare`, `@mastra/deployer-vercel` |
-| `build:combined-stores` | `./stores/*` | `@mastra/pg`, `@mastra/libsql`, `@mastra/mongodb` |
-| `build:auth` | `./auth/*` | `@mastra/auth-clerk`, `@mastra/auth-workos` |
-| `build:observability` | `./observability/*` | `@mastra/langfuse`, `@mastra/langsmith` |
-| `build:speech` | `./speech/*` | `@mastra/voice-openai`, `@mastra/voice-deepgram` |
+| Script Pattern          | Target              | Example Packages                                         |
+| ----------------------- | ------------------- | -------------------------------------------------------- |
+| `build:packages`        | `./packages/*`      | `@mastra/core`, `@mastra/server`, `@mastra/cli`          |
+| `build:clients`         | `./client-sdks/*`   | `@mastra/client-js`, `@mastra/react`                     |
+| `build:deployers`       | `./deployers/*`     | `@mastra/deployer-cloudflare`, `@mastra/deployer-vercel` |
+| `build:combined-stores` | `./stores/*`        | `@mastra/pg`, `@mastra/libsql`, `@mastra/mongodb`        |
+| `build:auth`            | `./auth/*`          | `@mastra/auth-clerk`, `@mastra/auth-workos`              |
+| `build:observability`   | `./observability/*` | `@mastra/langfuse`, `@mastra/langsmith`                  |
+| `build:speech`          | `./speech/*`        | `@mastra/voice-openai`, `@mastra/voice-deepgram`         |
 
 **Sources:** [package.json:32-54]()
 
@@ -119,26 +117,26 @@ graph LR
         Evals["@mastra/evals<br/>Evaluation system"]
         SchemaCompat["@mastra/schema-compat<br/>Zod/JSON Schema"]
     end
-    
+
     subgraph "Server & API"
         Server["@mastra/server<br/>Hono routes & handlers"]
         Auth["@mastra/auth<br/>Auth abstraction"]
         MCP["@mastra/mcp<br/>Model Context Protocol"]
     end
-    
+
     subgraph "Developer Tools"
         CLI["mastra (CLI)<br/>@mastra/cli"]
         CreateMastra["create-mastra<br/>Project scaffolding"]
         Deployer["@mastra/deployer<br/>Base bundler & analyzer"]
         PlaygroundUI["@mastra/playground-ui<br/>Studio React components"]
     end
-    
+
     subgraph "Utilities"
         Loggers["@mastra/loggers"]
         FastEmbed["@mastra/fastembed"]
         AgentBuilder["@mastra/agent-builder"]
     end
-    
+
     CLI --> Core
     CLI --> Deployer
     CLI --> PlaygroundUI
@@ -159,7 +157,7 @@ The core package exports multiple entry points for different subsystems:
 ```mermaid
 graph TB
     CorePkg["@mastra/core"]
-    
+
     CorePkg --> MainExport[".<br/>Main exports"]
     CorePkg --> ToolsExport["./tools/is-vercel-tool<br/>Tool utilities"]
     CorePkg --> WorkflowConst["./workflows/_constants<br/>Workflow constants"]
@@ -184,14 +182,14 @@ graph TB
 
 The CLI package (`mastra`) provides the primary developer interface:
 
-| Command | Implementation | Purpose |
-|---------|----------------|---------|
-| `create` | `create-mastra` package | Scaffold new projects |
-| `init` | CLI init command | Add Mastra to existing project |
-| `dev` | DevBundler + file watcher | Hot-reload development server |
-| `build` | Static analyzer + Rollup | Production bundle |
-| `deploy` | Platform deployers | Deploy to cloud platforms |
-| `studio` | Playground UI server | Launch Studio UI standalone |
+| Command  | Implementation            | Purpose                        |
+| -------- | ------------------------- | ------------------------------ |
+| `create` | `create-mastra` package   | Scaffold new projects          |
+| `init`   | CLI init command          | Add Mastra to existing project |
+| `dev`    | DevBundler + file watcher | Hot-reload development server  |
+| `build`  | Static analyzer + Rollup  | Production bundle              |
+| `deploy` | Platform deployers        | Deploy to cloud platforms      |
+| `studio` | Playground UI server      | Launch Studio UI standalone    |
 
 **Sources:** [packages/cli/package.json:9-11](), [packages/create-mastra/package.json:8-9]()
 
@@ -206,26 +204,26 @@ graph TB
         React["@mastra/react<br/>Hooks + Context providers"]
         AISDK["@mastra/ai-sdk<br/>AI SDK integration"]
     end
-    
+
     subgraph "Resources (client-js)"
         AgentResource["AgentResource<br/>generate, stream, listAgents"]
         MemoryResource["MemoryThreadResource<br/>getMessages, saveMessages"]
         ToolResource["ToolResource<br/>execute"]
         WorkflowResource["WorkflowResource<br/>run, status"]
     end
-    
+
     subgraph "React Hooks"
         UseAgent["useAgent<br/>Agent streaming"]
         UseMemory["useMemory<br/>Thread operations"]
         UseWorkflow["useWorkflow<br/>Workflow execution"]
     end
-    
+
     React --> ClientJS
     ClientJS --> AgentResource
     ClientJS --> MemoryResource
     ClientJS --> ToolResource
     ClientJS --> WorkflowResource
-    
+
     React --> UseAgent
     React --> UseMemory
     React --> UseWorkflow
@@ -259,31 +257,31 @@ graph TB
         BundlerClass["Bundler class<br/>Rollup orchestration"]
         Validator["Output validator<br/>VM execution test"]
     end
-    
+
     subgraph "Platform Deployers"
         Cloudflare["@mastra/deployer-cloudflare<br/>wrangler.jsonc + Workers"]
         Vercel["@mastra/deployer-vercel<br/>.vercel/output"]
         Netlify["@mastra/deployer-netlify<br/>.netlify/v1"]
         Cloud["@mastra/deployer-cloud<br/>Node.js runtime"]
     end
-    
+
     subgraph "Build Artifacts"
         WranglerConfig["wrangler.jsonc"]
         VercelConfig[".vercel/output/config.json"]
         NetlifyManifest["manifest.json"]
         NodeEntry["index.js + package.json"]
     end
-    
+
     Deployer --> Cloudflare
     Deployer --> Vercel
     Deployer --> Netlify
     Deployer --> Cloud
-    
+
     Cloudflare --> WranglerConfig
     Vercel --> VercelConfig
     Netlify --> NetlifyManifest
     Cloud --> NodeEntry
-    
+
     Deployer --> AnalyzeBundle
     Deployer --> BundlerClass
     Deployer --> Validator
@@ -295,15 +293,15 @@ graph TB
 
 The base deployer package provides multiple entry points for different stages of the build pipeline:
 
-| Export Path | Purpose | Used By |
-|-------------|---------|---------|
-| `.` | Main deployer classes | Platform deployers |
-| `./server` | Server creation utilities | CLI dev command |
-| `./services` | Service orchestration | Cloud deployer |
-| `./build` | Build orchestration | CLI build command |
-| `./bundler` | Bundler base class | Platform deployers |
-| `./analyze` | Static dependency analysis | All deployers |
-| `./loader` | Output validation | All deployers |
+| Export Path  | Purpose                    | Used By            |
+| ------------ | -------------------------- | ------------------ |
+| `.`          | Main deployer classes      | Platform deployers |
+| `./server`   | Server creation utilities  | CLI dev command    |
+| `./services` | Service orchestration      | Cloud deployer     |
+| `./build`    | Build orchestration        | CLI build command  |
+| `./bundler`  | Bundler base class         | Platform deployers |
+| `./analyze`  | Static dependency analysis | All deployers      |
+| `./loader`   | Output validation          | All deployers      |
 
 **Sources:** [packages/deployer/package.json:12-83]()
 
@@ -318,21 +316,21 @@ graph TB
         VectorInterface["MastraVector<br/>Embeddings + search"]
         MemoryStorage["MemoryStorage<br/>Base interface"]
     end
-    
+
     subgraph "SQL Adapters"
         PG["@mastra/pg<br/>PostgreSQL + pgvector"]
         LibSQL["@mastra/libsql<br/>SQLite + libsql"]
         ClickHouse["@mastra/clickhouse"]
         MSSQL["@mastra/mssql"]
     end
-    
+
     subgraph "NoSQL Adapters"
         MongoDB["@mastra/mongodb"]
         DynamoDB["@mastra/dynamodb"]
         Convex["@mastra/convex"]
         Couchbase["@mastra/couchbase"]
     end
-    
+
     subgraph "Vector Stores"
         Pinecone["@mastra/pinecone"]
         Qdrant["@mastra/qdrant"]
@@ -341,17 +339,17 @@ graph TB
         Lance["@mastra/lance"]
         Vectorize["@mastra/vectorize<br/>Cloudflare"]
     end
-    
+
     subgraph "Cloud Storage"
         S3Vectors["@mastra/s3vectors"]
         Upstash["@mastra/upstash"]
         CloudflareD1["@mastra/cloudflare-d1"]
     end
-    
+
     CompositeStore -.implements.-> PG
     CompositeStore -.implements.-> LibSQL
     CompositeStore -.implements.-> MongoDB
-    
+
     VectorInterface -.implements.-> Pinecone
     VectorInterface -.implements.-> Qdrant
     VectorInterface -.implements.-> Chroma
@@ -365,7 +363,6 @@ All storage adapters implement one or both of these interfaces:
 
 1. **`MastraCompositeStore`**: Full memory persistence (threads, messages, working memory, observational memory)
    - Examples: `@mastra/pg`, `@mastra/libsql`, `@mastra/mongodb`
-   
 2. **`MastraVector`**: Vector storage and semantic search
    - Examples: `@mastra/pinecone`, `@mastra/qdrant`, `@mastra/chroma`
 
@@ -383,7 +380,7 @@ graph TB
         AuthCore["@mastra/auth<br/>Base auth abstraction"]
         RequestContext["RequestContext<br/>Tenant isolation"]
     end
-    
+
     subgraph "OAuth Providers"
         Clerk["@mastra/auth-clerk<br/>Clerk Backend SDK"]
         WorkOS["@mastra/auth-workos<br/>WorkOS SDK + AuthKit"]
@@ -391,16 +388,16 @@ graph TB
         Supabase["@mastra/auth-supabase<br/>Supabase JS"]
         Firebase["@mastra/auth-firebase<br/>Firebase Admin"]
     end
-    
+
     subgraph "Full Stack Auth"
         BetterAuth["@mastra/auth-better-auth<br/>Better Auth integration"]
     end
-    
+
     subgraph "Studio & Cloud"
         Studio["@mastra/auth-studio<br/>Studio auth"]
         Cloud["@mastra/auth-cloud<br/>Mastra Cloud auth"]
     end
-    
+
     Clerk --> AuthCore
     WorkOS --> AuthCore
     Auth0 --> AuthCore
@@ -436,18 +433,18 @@ graph TB
         CreateHonoServer["createHonoServer()<br/>@mastra/server"]
         HonoApp["Hono app instance<br/>Routes + middleware"]
     end
-    
+
     subgraph "Adapters"
         HonoAdapter["@mastra/hono<br/>Direct Hono export"]
         ExpressAdapter["@mastra/express<br/>Express wrapper"]
         FastifyAdapter["@mastra/fastify<br/>Fastify wrapper"]
         KoaAdapter["@mastra/koa<br/>Koa wrapper"]
     end
-    
+
     subgraph "PubSub"
         GCPPubSub["@mastra/google-cloud-pubsub<br/>Cloud Pub/Sub integration"]
     end
-    
+
     CreateHonoServer --> HonoApp
     HonoApp --> HonoAdapter
     HonoApp --> ExpressAdapter
@@ -479,7 +476,7 @@ graph TB
         OTelExporter["@mastra/otel-exporter<br/>OTLP export"]
         OTelBridge["@mastra/otel-bridge<br/>Legacy bridge"]
     end
-    
+
     subgraph "LLM-Specific Vendors"
         Langfuse["@mastra/langfuse"]
         Langsmith["@mastra/langsmith"]
@@ -487,16 +484,16 @@ graph TB
         Arize["@mastra/arize"]
         Laminar["@mastra/laminar"]
     end
-    
+
     subgraph "APM Vendors"
         Datadog["@mastra/datadog"]
         Sentry["@mastra/sentry"]
     end
-    
+
     subgraph "Analytics"
         PostHog["@mastra/posthog"]
     end
-    
+
     ObsCore --> Langfuse
     ObsCore --> Langsmith
     ObsCore --> Datadog
@@ -529,13 +526,13 @@ graph TB
         S3["@mastra/s3<br/>AWS S3 workspace"]
         GCS["@mastra/gcs<br/>Google Cloud Storage"]
     end
-    
+
     subgraph "Sandboxed Environments"
         E2B["@mastra/e2b<br/>E2B sandbox"]
         Daytona["@mastra/daytona<br/>Daytona workspace"]
         Blaxel["@mastra/blaxel<br/>Blaxel sandbox"]
     end
-    
+
     subgraph "Local & Custom"
         AgentFS["@mastra/agentfs<br/>Local filesystem"]
     end
@@ -558,19 +555,19 @@ graph TB
         GoogleSTT["@mastra/voice-google"]
         Azure["@mastra/voice-azure"]
     end
-    
+
     subgraph "Text-to-Speech"
         ElevenLabs["@mastra/voice-elevenlabs"]
         PlayAI["@mastra/voice-playai"]
         Murf["@mastra/voice-murf"]
         Speechify["@mastra/voice-speechify"]
     end
-    
+
     subgraph "Full Duplex"
         OpenAIRealtime["@mastra/voice-openai-realtime<br/>WebSocket realtime"]
         GeminiLive["@mastra/voice-google-gemini-live"]
     end
-    
+
     subgraph "Standard Integration"
         OpenAI["@mastra/voice-openai"]
         Gladia["@mastra/voice-gladia"]
@@ -595,18 +592,18 @@ graph TB
         StorageTestUtils["@internal/storage-test-utils"]
         WorkflowTestUtils["@internal/workflow-test-utils"]
     end
-    
+
     subgraph "Vendored AI SDK"
         AISDK_v4["@internal/ai-sdk-v4<br/>Vercel AI SDK v4"]
         AISDK_v5["@internal/ai-sdk-v5<br/>Vercel AI SDK v5"]
         AI_v6["@internal/ai-v6<br/>Vercel AI SDK v6"]
     end
-    
+
     subgraph "Build & Release"
         ChangesetCLI["@internal/changeset-cli"]
         ExternalTypes["@internal/external-types"]
     end
-    
+
     subgraph "Private Apps"
         Playground["@internal/playground<br/>Studio dev server"]
         Core["@internal/core<br/>Core types"]
@@ -637,56 +634,56 @@ graph TB
     Server["@mastra/server<br/>API routes"]
     Deployer["@mastra/deployer<br/>Base bundler"]
     CLI["mastra (CLI)"]
-    
+
     Memory["@mastra/memory"]
     RAG["@mastra/rag"]
     MCP["@mastra/mcp"]
-    
+
     ClientJS["@mastra/client-js"]
     ReactSDK["@mastra/react"]
     PlaygroundUI["@mastra/playground-ui"]
-    
+
     CloudflareDep["@mastra/deployer-cloudflare"]
     VercelDep["@mastra/deployer-vercel"]
     NetlifyDep["@mastra/deployer-netlify"]
-    
+
     PG["@mastra/pg"]
     LibSQL["@mastra/libsql"]
     MongoDB["@mastra/mongodb"]
-    
+
     ClerkAuth["@mastra/auth-clerk"]
     WorkOSAuth["@mastra/auth-workos"]
-    
+
     HonoAdapter["@mastra/hono"]
     ExpressAdapter["@mastra/express"]
-    
+
     Core --> Memory
     Core --> RAG
     Core --> MCP
-    
+
     Server --> Core
     CLI --> Core
     CLI --> Deployer
     CLI --> PlaygroundUI
-    
+
     Deployer --> Server
     CloudflareDep --> Deployer
     VercelDep --> Deployer
     NetlifyDep --> Deployer
-    
+
     ClientJS --> Core
     ReactSDK --> ClientJS
     PlaygroundUI --> Core
     PlaygroundUI --> ClientJS
     PlaygroundUI --> ReactSDK
-    
+
     PG --> Core
     LibSQL --> Core
     MongoDB --> Core
-    
+
     ClerkAuth --> Core
     WorkOSAuth --> Core
-    
+
     HonoAdapter --> Server
     ExpressAdapter --> Server
 ```
@@ -702,28 +699,28 @@ The monorepo uses Turborepo to orchestrate builds across packages with proper de
 ```mermaid
 graph TB
     BuildAll["pnpm build<br/>Build all packages"]
-    
+
     BuildPackages["build:packages<br/>./packages/*"]
     BuildClients["build:clients<br/>./client-sdks/*"]
     BuildDeployers["build:deployers<br/>./deployers/*"]
     BuildStores["build:combined-stores<br/>./stores/*"]
     BuildAuth["build:auth<br/>./auth/*"]
     BuildObs["build:observability<br/>./observability/*"]
-    
+
     BuildCore["build:core<br/>@mastra/core"]
     BuildServer["build:server<br/>@mastra/server"]
     BuildDeployer["build:deployer<br/>@mastra/deployer"]
     BuildCLI["build:cli<br/>mastra"]
     BuildMemory["build:memory<br/>@mastra/memory"]
     BuildRAG["build:rag<br/>@mastra/rag"]
-    
+
     BuildAll --> BuildPackages
     BuildAll --> BuildClients
     BuildAll --> BuildDeployers
     BuildAll --> BuildStores
     BuildAll --> BuildAuth
     BuildAll --> BuildObs
-    
+
     BuildPackages --> BuildCore
     BuildPackages --> BuildServer
     BuildPackages --> BuildDeployer
@@ -738,12 +735,12 @@ graph TB
 
 The `turbo.json` configuration defines task dependencies and caching strategies. Key tasks include:
 
-| Task | Depends On | Outputs |
-|------|------------|---------|
-| `build` | `^build` (dependencies) | `dist/**` |
-| `test` | `build` | Test coverage |
-| `lint` | - | Lint results |
-| `typecheck` | - | Type check results |
+| Task        | Depends On              | Outputs            |
+| ----------- | ----------------------- | ------------------ |
+| `build`     | `^build` (dependencies) | `dist/**`          |
+| `test`      | `build`                 | Test coverage      |
+| `lint`      | -                       | Lint results       |
+| `typecheck` | -                       | Type check results |
 
 The `^build` dependency ensures that when building a package, all its workspace dependencies are built first.
 
@@ -758,23 +755,23 @@ graph LR
         VersionBump["pnpm version<br/>Bump versions"]
         Publish["pnpm publish<br/>Release packages"]
     end
-    
+
     subgraph "Changeset Files"
         ChangesetMD[".changeset/*.md<br/>Change descriptions"]
         PreJSON[".changeset/pre.json<br/>Pre-release mode"]
     end
-    
+
     subgraph "Generated Artifacts"
         PackageJSON["package.json<br/>Updated version"]
         Changelog["CHANGELOG.md<br/>Generated changelog"]
     end
-    
+
     AddChangeset --> ChangesetMD
     ChangesetMD --> VersionBump
     VersionBump --> PackageJSON
     VersionBump --> Changelog
     PackageJSON --> Publish
-    
+
     PreJSON -.-> VersionBump
 ```
 
@@ -796,16 +793,16 @@ The `initialVersions` object in `.changeset/pre.json` records the baseline versi
 
 Mastra follows consistent naming patterns across package categories:
 
-| Pattern | Category | Examples |
-|---------|----------|----------|
-| `@mastra/{name}` | Core packages | `@mastra/core`, `@mastra/server` |
-| `@mastra/deployer-{platform}` | Platform deployers | `@mastra/deployer-cloudflare` |
-| `@mastra/auth-{provider}` | Auth providers | `@mastra/auth-clerk` |
-| `@mastra/voice-{provider}` | Speech providers | `@mastra/voice-openai` |
-| `@mastra/{database}` | Storage adapters | `@mastra/pg`, `@mastra/libsql` |
-| `@internal/{util}` | Internal packages | `@internal/lint`, `@internal/test-utils` |
-| `mastra` | CLI package | Primary CLI command |
-| `create-mastra` | Scaffolding | Project creation |
+| Pattern                       | Category           | Examples                                 |
+| ----------------------------- | ------------------ | ---------------------------------------- |
+| `@mastra/{name}`              | Core packages      | `@mastra/core`, `@mastra/server`         |
+| `@mastra/deployer-{platform}` | Platform deployers | `@mastra/deployer-cloudflare`            |
+| `@mastra/auth-{provider}`     | Auth providers     | `@mastra/auth-clerk`                     |
+| `@mastra/voice-{provider}`    | Speech providers   | `@mastra/voice-openai`                   |
+| `@mastra/{database}`          | Storage adapters   | `@mastra/pg`, `@mastra/libsql`           |
+| `@internal/{util}`            | Internal packages  | `@internal/lint`, `@internal/test-utils` |
+| `mastra`                      | CLI package        | Primary CLI command                      |
+| `create-mastra`               | Scaffolding        | Project creation                         |
 
 **Sources:** Based on package naming patterns from [pnpm-lock.yaml]() and [.changeset/pre.json]()
 

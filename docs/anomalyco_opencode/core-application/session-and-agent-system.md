@@ -35,8 +35,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Session & Agent System is the core conversational runtime of OpenCode. It manages conversation threads (sessions), message/part structures, agent configurations, and the agentic execution loop that orchestrates LLM interactions with tools. This system bridges user input to AI-generated responses through a stateful, event-driven architecture.
 
 For information about tool execution and permissions during agent operations, see [Tool System & Permissions](#2.5). For provider and model configuration, see [AI Provider & Model Management](#2.4). For HTTP endpoints that expose session operations, see [HTTP Server & REST API](#2.6).
@@ -53,62 +51,63 @@ graph TB
         SDK["@opencode-ai/sdk<br/>Client API"]
         UI["UI Components<br/>SessionTurn, MessagePart"]
     end
-    
+
     subgraph "API Layer"
         SessionRoutes["SessionRoutes<br/>/session/*"]
         SSE["Server-Sent Events<br/>Real-time updates"]
     end
-    
+
     subgraph "Business Logic"
         SessionNS["Session namespace<br/>session/index.ts"]
         MessageV2["MessageV2 namespace<br/>message-v2.ts"]
         SessionPrompt["SessionPrompt namespace<br/>prompt.ts"]
         AgentNS["Agent namespace<br/>agent/agent.ts"]
     end
-    
+
     subgraph "Execution Runtime"
         PromptLoop["prompt() & loop()<br/>Agent execution cycle"]
         LLM["LLM.stream()<br/>AI SDK wrapper"]
         ToolExec["Tool.execute()<br/>Tool registry"]
         Compaction["SessionCompaction<br/>Context management"]
     end
-    
+
     subgraph "Storage"
         SessionTable["SessionTable<br/>session.sql"]
         MessageTable["MessageTable<br/>session.sql"]
         PartTable["PartTable<br/>session.sql"]
     end
-    
+
     subgraph "Configuration"
         ConfigAgent["Config.Agent<br/>config.ts"]
         AgentFiles["Agent files<br/>.opencode/agents/*.md"]
     end
-    
+
     SDK --> SessionRoutes
     UI --> SDK
     SessionRoutes --> SessionNS
     SessionRoutes --> SSE
-    
+
     SessionNS --> SessionTable
     SessionNS --> MessageV2
     MessageV2 --> MessageTable
     MessageV2 --> PartTable
-    
+
     SessionPrompt --> PromptLoop
     PromptLoop --> LLM
     PromptLoop --> ToolExec
     PromptLoop --> Compaction
     PromptLoop --> MessageV2
-    
+
     AgentNS --> ConfigAgent
     ConfigAgent --> AgentFiles
     SessionPrompt --> AgentNS
     LLM --> AgentNS
-    
+
     SSE -.Publishes.-> UI
 ```
 
 **Sources:**
+
 - [packages/opencode/src/session/index.ts:1-700]()
 - [packages/opencode/src/session/message-v2.ts:1-800]()
 - [packages/opencode/src/session/prompt.ts:1-600]()
@@ -140,23 +139,24 @@ graph LR
 
 **Key Fields:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | `SessionID` | Descending ULID for reverse-chronological ordering |
-| `slug` | `string` | Human-readable URL identifier (e.g., for shares) |
-| `projectID` | `ProjectID` | Links session to a project |
-| `workspaceID` | `WorkspaceID?` | Optional workspace isolation |
-| `parentID` | `SessionID?` | Parent session for child/subtask sessions |
-| `title` | `string` | User-visible name (auto-generated or custom) |
-| `permission` | `PermissionNext.Ruleset?` | Session-specific permission overrides |
-| `summary` | `{additions, deletions, files, diffs}?` | Git diff summary |
-| `share` | `{url}?` | Public share information |
-| `time.created` | `number` | Unix timestamp (ms) |
-| `time.updated` | `number` | Last modification timestamp |
-| `time.compacting` | `number?` | Timestamp of last compaction |
-| `time.archived` | `number?` | Archive timestamp (null = active) |
+| Field             | Type                                    | Description                                        |
+| ----------------- | --------------------------------------- | -------------------------------------------------- |
+| `id`              | `SessionID`                             | Descending ULID for reverse-chronological ordering |
+| `slug`            | `string`                                | Human-readable URL identifier (e.g., for shares)   |
+| `projectID`       | `ProjectID`                             | Links session to a project                         |
+| `workspaceID`     | `WorkspaceID?`                          | Optional workspace isolation                       |
+| `parentID`        | `SessionID?`                            | Parent session for child/subtask sessions          |
+| `title`           | `string`                                | User-visible name (auto-generated or custom)       |
+| `permission`      | `PermissionNext.Ruleset?`               | Session-specific permission overrides              |
+| `summary`         | `{additions, deletions, files, diffs}?` | Git diff summary                                   |
+| `share`           | `{url}?`                                | Public share information                           |
+| `time.created`    | `number`                                | Unix timestamp (ms)                                |
+| `time.updated`    | `number`                                | Last modification timestamp                        |
+| `time.compacting` | `number?`                               | Timestamp of last compaction                       |
+| `time.archived`   | `number?`                               | Archive timestamp (null = active)                  |
 
 **Sources:**
+
 - [packages/opencode/src/session/index.ts:122-164]()
 - [packages/opencode/src/session/session.sql:1-50]()
 
@@ -175,7 +175,7 @@ graph TD
     Unshare["Session.unshare(id)<br/>Removes share"]
     Remove["Session.remove(id)<br/>Cascades to messages/parts"]
     Touch["Session.touch(id)<br/>Updates time.updated"]
-    
+
     Create --> SessionTable["INSERT SessionTable"]
     Fork --> Clone["Clones all messages<br/>Updates parentID references"]
     Get --> SessionTable
@@ -189,16 +189,17 @@ graph TD
 
 **Common Functions:**
 
-| Function | Input | Output | Description |
-|----------|-------|--------|-------------|
-| `create()` | `{title?, parentID?, permission?, workspaceID?}` | `Session.Info` | Creates a new session |
-| `fork()` | `{sessionID, messageID?}` | `Session.Info` | Clones session up to messageID |
-| `get()` | `SessionID` | `Session.Info` | Retrieves by ID |
-| `list()` | `{directory?, workspaceID?, roots?, search?, limit?}` | `Session.Info[]` | Queries sessions |
-| `share()` | `SessionID` | `{url}` | Creates public share link |
-| `remove()` | `SessionID` | `void` | Deletes session + children |
+| Function   | Input                                                 | Output           | Description                    |
+| ---------- | ----------------------------------------------------- | ---------------- | ------------------------------ |
+| `create()` | `{title?, parentID?, permission?, workspaceID?}`      | `Session.Info`   | Creates a new session          |
+| `fork()`   | `{sessionID, messageID?}`                             | `Session.Info`   | Clones session up to messageID |
+| `get()`    | `SessionID`                                           | `Session.Info`   | Retrieves by ID                |
+| `list()`   | `{directory?, workspaceID?, roots?, search?, limit?}` | `Session.Info[]` | Queries sessions               |
+| `share()`  | `SessionID`                                           | `{url}`          | Creates public share link      |
+| `remove()` | `SessionID`                                           | `void`           | Deletes session + children     |
 
 **Sources:**
+
 - [packages/opencode/src/session/index.ts:219-684]()
 - [packages/sdk/openapi.json:1380-1900]()
 
@@ -213,7 +214,7 @@ Messages are ordered units within a session, alternating between `user` and `ass
 ```mermaid
 graph TB
     Message["Message<br/>Discriminated Union"]
-    
+
     subgraph "MessageV2.User"
         UserID["id: MessageID<br/>Ascending ULID"]
         UserRole["role: 'user'"]
@@ -223,7 +224,7 @@ graph TB
         UserSystem["system?: string<br/>Custom system prompt"]
         UserFormat["format?: OutputFormat<br/>text | json_schema"]
     end
-    
+
     subgraph "MessageV2.Assistant"
         AsstID["id: MessageID<br/>Ascending ULID"]
         AsstRole["role: 'assistant'"]
@@ -239,36 +240,37 @@ graph TB
         AsstError["error?: NamedError<br/>API errors, aborts"]
         AsstStructured["structured?: unknown<br/>JSON schema result"]
     end
-    
+
     Message --> MessageV2.User
     Message --> MessageV2.Assistant
 ```
 
 **User Message Fields:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | `MessageID` | Ascending ULID (ensures ordering) |
-| `role` | `"user"` | Message role |
-| `agent` | `string` | Agent name used for this prompt |
-| `model` | `{providerID, modelID}` | Selected model |
-| `format` | `OutputFormat?` | Structured output schema |
-| `system` | `string?` | Custom system prompt override |
+| Field    | Type                    | Description                       |
+| -------- | ----------------------- | --------------------------------- |
+| `id`     | `MessageID`             | Ascending ULID (ensures ordering) |
+| `role`   | `"user"`                | Message role                      |
+| `agent`  | `string`                | Agent name used for this prompt   |
+| `model`  | `{providerID, modelID}` | Selected model                    |
+| `format` | `OutputFormat?`         | Structured output schema          |
+| `system` | `string?`               | Custom system prompt override     |
 
 **Assistant Message Fields:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `parentID` | `MessageID` | Links to user message |
-| `mode` | `string` | Agent execution mode (e.g., "build", "compaction") |
-| `agent` | `string` | Agent name |
-| `tokens` | `object` | Token usage breakdown |
-| `cost` | `number` | Cost in USD |
-| `finish` | `string?` | Completion reason ("stop", "tool-calls", "length", "error") |
-| `error` | `NamedError?` | Error details if finish === "error" |
-| `structured` | `unknown?` | Parsed JSON schema output |
+| Field        | Type          | Description                                                 |
+| ------------ | ------------- | ----------------------------------------------------------- |
+| `parentID`   | `MessageID`   | Links to user message                                       |
+| `mode`       | `string`      | Agent execution mode (e.g., "build", "compaction")          |
+| `agent`      | `string`      | Agent name                                                  |
+| `tokens`     | `object`      | Token usage breakdown                                       |
+| `cost`       | `number`      | Cost in USD                                                 |
+| `finish`     | `string?`     | Completion reason ("stop", "tool-calls", "length", "error") |
+| `error`      | `NamedError?` | Error details if finish === "error"                         |
+| `structured` | `unknown?`    | Parsed JSON schema output                                   |
 
 **Sources:**
+
 - [packages/opencode/src/session/message-v2.ts:20-360]()
 - [packages/sdk/js/src/v2/gen/types.gen.ts:233-359]()
 
@@ -279,7 +281,7 @@ Parts are granular content units attached to messages. Each part has a unique ID
 ```mermaid
 graph TB
     Part["Part<br/>Discriminated Union by type"]
-    
+
     TextPart["TextPart<br/>type: 'text'<br/>text: string<br/>synthetic?: boolean"]
     ReasoningPart["ReasoningPart<br/>type: 'reasoning'<br/>text: string"]
     FilePart["FilePart<br/>type: 'file'<br/>url: string<br/>mime: string<br/>source?: FilePartSource"]
@@ -291,7 +293,7 @@ graph TB
     SnapshotPart["SnapshotPart<br/>type: 'snapshot'<br/>snapshot: string"]
     PatchPart["PatchPart<br/>type: 'patch'<br/>hash: string<br/>files: string[]"]
     RetryPart["RetryPart<br/>type: 'retry'<br/>attempt: number<br/>error: APIError"]
-    
+
     Part --> TextPart
     Part --> ReasoningPart
     Part --> FilePart
@@ -307,17 +309,17 @@ graph TB
 
 **Common Part Types:**
 
-| Type | Key Fields | Purpose |
-|------|-----------|---------|
-| `text` | `text: string` | User input or assistant text output |
-| `reasoning` | `text: string, time: {start, end}` | Extended thinking (e.g., o1, Claude thinking) |
-| `file` | `url: string, mime: string, source?` | File attachments (images, PDFs, code files) |
-| `tool` | `callID: string, tool: string, state: ToolState` | Tool invocation (pending → running → completed/error) |
-| `agent` | `name: string, source?` | Reference to agent invocation (e.g., `@build`) |
-| `subtask` | `prompt: string, agent: string` | Pending subtask for parallel execution |
-| `compaction` | `auto: boolean` | Marker for compaction operation |
-| `snapshot` | `snapshot: string` | Git snapshot hash for revert |
-| `patch` | `hash: string, files: string[]` | Git patch metadata |
+| Type         | Key Fields                                       | Purpose                                               |
+| ------------ | ------------------------------------------------ | ----------------------------------------------------- |
+| `text`       | `text: string`                                   | User input or assistant text output                   |
+| `reasoning`  | `text: string, time: {start, end}`               | Extended thinking (e.g., o1, Claude thinking)         |
+| `file`       | `url: string, mime: string, source?`             | File attachments (images, PDFs, code files)           |
+| `tool`       | `callID: string, tool: string, state: ToolState` | Tool invocation (pending → running → completed/error) |
+| `agent`      | `name: string, source?`                          | Reference to agent invocation (e.g., `@build`)        |
+| `subtask`    | `prompt: string, agent: string`                  | Pending subtask for parallel execution                |
+| `compaction` | `auto: boolean`                                  | Marker for compaction operation                       |
+| `snapshot`   | `snapshot: string`                               | Git snapshot hash for revert                          |
+| `patch`      | `hash: string, files: string[]`                  | Git patch metadata                                    |
 
 **Tool State Transitions:**
 
@@ -333,14 +335,15 @@ stateDiagram-v2
 
 **ToolState Schema:**
 
-| State | Fields | Description |
-|-------|--------|-------------|
-| `pending` | `input, raw` | Queued for execution |
-| `running` | `input, title?, metadata?, time.start` | Currently executing |
+| State       | Fields                                                           | Description          |
+| ----------- | ---------------------------------------------------------------- | -------------------- |
+| `pending`   | `input, raw`                                                     | Queued for execution |
+| `running`   | `input, title?, metadata?, time.start`                           | Currently executing  |
 | `completed` | `input, output, title, metadata, time.{start,end}, attachments?` | Successful execution |
-| `error` | `input, error, metadata?, time.{start,end}` | Failed execution |
+| `error`     | `input, error, metadata?, time.{start,end}`                      | Failed execution     |
 
 **Sources:**
+
 - [packages/opencode/src/session/message-v2.ts:81-500]()
 - [packages/sdk/js/src/v2/gen/types.gen.ts:378-600]()
 
@@ -351,16 +354,17 @@ graph LR
     UpdateMessage["Session.updateMessage(info)"]
     UpdatePart["Session.updatePart(part)"]
     Messages["Session.messages({sessionID})"]
-    
+
     UpdateMessage --> MessageTable["UPSERT MessageTable<br/>ON CONFLICT DO UPDATE"]
     UpdatePart --> PartTable["UPSERT PartTable<br/>ON CONFLICT DO UPDATE"]
     Messages --> Stream["MessageV2.stream(sessionID)<br/>Yields messages with parts"]
-    
+
     Stream --> Query["SELECT * FROM MessageTable<br/>ORDER BY id DESC"]
     Query --> Join["JOIN PartTable<br/>GROUP BY message"]
 ```
 
 **Sources:**
+
 - [packages/opencode/src/session/index.ts:686-750]()
 - [packages/opencode/src/session/message-v2.ts:690-850]()
 
@@ -393,27 +397,28 @@ graph TB
 
 **Key Agent Properties:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `model` | `ModelID?` | Model to use (overrides user selection) |
-| `variant` | `string?` | Reasoning variant (e.g., "high", "max") |
-| `temperature` | `number?` | Model temperature |
-| `prompt` | `string?` | System prompt template |
-| `mode` | `"subagent" \| "primary" \| "all"?` | Execution mode filter |
-| `hidden` | `boolean?` | Hide from autocomplete |
-| `steps` | `number?` | Max agentic iterations |
-| `permission` | `Permission?` | Permission rules (tool allow/deny/ask) |
-| `description` | `string?` | Agent purpose documentation |
+| Field         | Type                                | Description                             |
+| ------------- | ----------------------------------- | --------------------------------------- |
+| `model`       | `ModelID?`                          | Model to use (overrides user selection) |
+| `variant`     | `string?`                           | Reasoning variant (e.g., "high", "max") |
+| `temperature` | `number?`                           | Model temperature                       |
+| `prompt`      | `string?`                           | System prompt template                  |
+| `mode`        | `"subagent" \| "primary" \| "all"?` | Execution mode filter                   |
+| `hidden`      | `boolean?`                          | Hide from autocomplete                  |
+| `steps`       | `number?`                           | Max agentic iterations                  |
+| `permission`  | `Permission?`                       | Permission rules (tool allow/deny/ask)  |
+| `description` | `string?`                           | Agent purpose documentation             |
 
 **Agent Modes:**
 
-| Mode | Description | Usage |
-|------|-------------|-------|
-| `primary` | Top-level agents (user-facing) | Default mode, shown in agent selector |
-| `subagent` | Specialized agents (tool-invoked) | Invoked via `@agent` or `task` tool |
-| `all` | Dual-mode agents | Available in both contexts |
+| Mode       | Description                       | Usage                                 |
+| ---------- | --------------------------------- | ------------------------------------- |
+| `primary`  | Top-level agents (user-facing)    | Default mode, shown in agent selector |
+| `subagent` | Specialized agents (tool-invoked) | Invoked via `@agent` or `task` tool   |
+| `all`      | Dual-mode agents                  | Available in both contexts            |
 
 **Sources:**
+
 - [packages/opencode/src/config/config.ts:712-799]()
 - [packages/opencode/src/agent/agent.ts:1-300]()
 
@@ -430,14 +435,14 @@ graph TD
     DotOpencode["5. .opencode/ directory<br/>agents/**/*.md"]
     Inline["6. Inline config<br/>OPENCODE_CONFIG_CONTENT env var"]
     Managed["7. Managed config<br/>Enterprise overrides"]
-    
+
     Remote --> Global
     Global --> Custom
     Custom --> Project
     Project --> DotOpencode
     DotOpencode --> Inline
     Inline --> Managed
-    
+
     DotOpencode --> ParseMD["ConfigMarkdown.parse()<br/>Extracts frontmatter + body"]
     ParseMD --> AgentConfig["agent: {<br/>  name: filename<br/>  ...frontmatter<br/>  prompt: body<br/>}"]
 ```
@@ -459,6 +464,7 @@ Always explain your reasoning.
 ```
 
 **Sources:**
+
 - [packages/opencode/src/config/config.ts:78-224]()
 - [packages/opencode/src/config/config.ts:422-459]()
 - [packages/opencode/src/config/markdown.ts:1-100]()
@@ -467,15 +473,16 @@ Always explain your reasoning.
 
 OpenCode ships with default agents for common workflows:
 
-| Agent | Mode | Purpose |
-|-------|------|---------|
-| `build` | `primary` | Code generation and implementation |
-| `plan` | `primary` | Task planning and decomposition |
-| `explore` | `primary` | Codebase exploration and analysis |
-| `fix` | `primary` | Bug fixing and error resolution |
-| `compaction` | `subagent` | Context summarization |
+| Agent        | Mode       | Purpose                            |
+| ------------ | ---------- | ---------------------------------- |
+| `build`      | `primary`  | Code generation and implementation |
+| `plan`       | `primary`  | Task planning and decomposition    |
+| `explore`    | `primary`  | Codebase exploration and analysis  |
+| `fix`        | `primary`  | Bug fixing and error resolution    |
+| `compaction` | `subagent` | Context summarization              |
 
 **Sources:**
+
 - [packages/opencode/src/agent/agent.ts:50-200]()
 - [packages/opencode/prompt/agents/]()
 
@@ -493,7 +500,7 @@ sequenceDiagram
     participant SessionPrompt
     participant Session
     participant loop
-    
+
     Client->>SessionPrompt: prompt({sessionID, parts, model, agent})
     SessionPrompt->>Session: createUserMessage()
     Session-->>SessionPrompt: MessageV2.User
@@ -505,16 +512,17 @@ sequenceDiagram
 
 **`SessionPrompt.prompt()` Function:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `sessionID` | `SessionID` | Target session |
-| `parts` | `PartInput[]` | User input (text, files, agents) |
-| `model` | `{providerID, modelID}?` | Model override |
-| `agent` | `string?` | Agent override |
-| `format` | `OutputFormat?` | Structured output schema |
-| `noReply` | `boolean?` | Skip agent loop (just create message) |
+| Parameter   | Type                     | Description                           |
+| ----------- | ------------------------ | ------------------------------------- |
+| `sessionID` | `SessionID`              | Target session                        |
+| `parts`     | `PartInput[]`            | User input (text, files, agents)      |
+| `model`     | `{providerID, modelID}?` | Model override                        |
+| `agent`     | `string?`                | Agent override                        |
+| `format`    | `OutputFormat?`          | Structured output schema              |
+| `noReply`   | `boolean?`               | Skip agent loop (just create message) |
 
 **Sources:**
+
 - [packages/opencode/src/session/prompt.ts:161-188]()
 - [packages/opencode/src/session/prompt.ts:94-160]()
 
@@ -528,42 +536,42 @@ graph TD
     LoadMessages["Load messages<br/>MessageV2.stream(sessionID)"]
     FindLast["Find lastUser, lastAssistant"]
     CheckFinish{"lastAssistant.finish<br/>!== 'tool-calls'?"}
-    
+
     CheckSubtask{"Pending subtask?"}
     ExecuteSubtask["Execute task tool<br/>Create child session"]
-    
+
     CheckCompaction{"Pending compaction?"}
     Compaction["SessionCompaction.process()"]
-    
+
     BuildPrompt["Build LLM prompt<br/>SystemPrompt + messages"]
     GetTools["Get available tools<br/>Filter by permissions"]
     LLMStream["LLM.stream()<br/>AI SDK streamText"]
-    
+
     ProcessStream["Process stream chunks<br/>text, tool-calls, finish"]
     UpdateParts["Update parts real-time<br/>Session.updatePart()"]
     ExecuteTools["Execute tool calls<br/>Tool.execute()"]
-    
+
     CheckSteps{"step > agent.steps?"}
     ForceStop["Force text-only<br/>toolChoice: 'none'"]
-    
+
     Start --> LoadMessages
     LoadMessages --> FindLast
     FindLast --> CheckFinish
     CheckFinish -->|Yes| End["Return final message"]
     CheckFinish -->|No| CheckSubtask
-    
+
     CheckSubtask -->|Yes| ExecuteSubtask
     ExecuteSubtask --> LoadMessages
-    
+
     CheckSubtask -->|No| CheckCompaction
     CheckCompaction -->|Yes| Compaction
     Compaction --> LoadMessages
-    
+
     CheckCompaction -->|No| CheckSteps
     CheckSteps -->|Yes| ForceStop
     CheckSteps -->|No| BuildPrompt
     ForceStop --> BuildPrompt
-    
+
     BuildPrompt --> GetTools
     GetTools --> LLMStream
     LLMStream --> ProcessStream
@@ -574,16 +582,17 @@ graph TD
 
 **Loop State Variables:**
 
-| Variable | Type | Purpose |
-|----------|------|---------|
-| `step` | `number` | Iteration counter |
-| `lastUser` | `MessageV2.User` | Most recent user message |
-| `lastAssistant` | `MessageV2.Assistant?` | Most recent assistant message |
-| `lastFinished` | `MessageV2.Assistant?` | Most recent finished assistant |
-| `tasks` | `(CompactionPart \| SubtaskPart)[]` | Pending operations |
-| `structuredOutput` | `unknown?` | Structured output result |
+| Variable           | Type                                | Purpose                        |
+| ------------------ | ----------------------------------- | ------------------------------ |
+| `step`             | `number`                            | Iteration counter              |
+| `lastUser`         | `MessageV2.User`                    | Most recent user message       |
+| `lastAssistant`    | `MessageV2.Assistant?`              | Most recent assistant message  |
+| `lastFinished`     | `MessageV2.Assistant?`              | Most recent finished assistant |
+| `tasks`            | `(CompactionPart \| SubtaskPart)[]` | Pending operations             |
+| `structuredOutput` | `unknown?`                          | Structured output result       |
 
 **Sources:**
+
 - [packages/opencode/src/session/prompt.ts:273-690]()
 - [packages/opencode/src/session/prompt.ts:544-850]()
 
@@ -594,33 +603,34 @@ The `LLM.stream()` function wraps the AI SDK's `streamText()` with OpenCode-spec
 ```mermaid
 graph TB
     Input["LLM.StreamInput<br/>{messages, model, agent,<br/>tools, system, abort}"]
-    
+
     Transform["ProviderTransform.message()<br/>Normalize messages"]
     Options["ProviderTransform.options()<br/>Build provider options"]
     Plugin["Plugin.trigger('llm.stream.before')"]
-    
+
     ModelWrap["wrapLanguageModel()<br/>Add logging middleware"]
     StreamText["streamText()<br/>AI SDK"]
-    
+
     Input --> Transform
     Transform --> Options
     Options --> Plugin
     Plugin --> ModelWrap
     ModelWrap --> StreamText
-    
+
     StreamText --> Result["StreamTextResult<br/>{textStream, toolCalls,<br/>finishReason, usage}"]
 ```
 
 **Key Transformations:**
 
-| Transform | Purpose |
-|-----------|---------|
-| `ProviderTransform.message()` | Normalize message formats per provider |
-| `ProviderTransform.options()` | Apply provider-specific options (caching, reasoning effort) |
-| `ProviderTransform.temperature()` | Set default temperature per model |
-| `ProviderTransform.variants()` | Map variant to provider options |
+| Transform                         | Purpose                                                     |
+| --------------------------------- | ----------------------------------------------------------- |
+| `ProviderTransform.message()`     | Normalize message formats per provider                      |
+| `ProviderTransform.options()`     | Apply provider-specific options (caching, reasoning effort) |
+| `ProviderTransform.temperature()` | Set default temperature per model                           |
+| `ProviderTransform.variants()`    | Map variant to provider options                             |
 
 **Sources:**
+
 - [packages/opencode/src/session/llm.ts:47-200]()
 - [packages/opencode/src/provider/transform.ts:251-290]()
 
@@ -635,38 +645,39 @@ sequenceDiagram
     participant ToolRegistry
     participant Tool
     participant Session
-    
+
     Loop->>LLM: stream({messages, tools})
     LLM-->>Loop: toolCalls: [{id, tool, args}]
-    
+
     loop For each toolCall
         Loop->>Session: updatePart({type: 'tool', state: 'pending'})
         Loop->>ToolRegistry: get(toolName)
         ToolRegistry-->>Loop: Tool instance
-        
+
         Loop->>Tool: execute(args, context)
         Tool-->>Loop: {output, attachments?}
-        
+
         Loop->>Session: updatePart({state: 'completed', output})
     end
-    
+
     Loop->>Loop: Continue to next iteration
 ```
 
 **Tool Context:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `sessionID` | `SessionID` | Current session |
-| `messageID` | `MessageID` | Current assistant message |
-| `callID` | `string` | Tool call ID |
-| `agent` | `string` | Active agent name |
-| `abort` | `AbortSignal` | Cancellation signal |
-| `messages` | `MessageV2.WithParts[]` | Full message history |
+| Field        | Type                       | Description               |
+| ------------ | -------------------------- | ------------------------- |
+| `sessionID`  | `SessionID`                | Current session           |
+| `messageID`  | `MessageID`                | Current assistant message |
+| `callID`     | `string`                   | Tool call ID              |
+| `agent`      | `string`                   | Active agent name         |
+| `abort`      | `AbortSignal`              | Cancellation signal       |
+| `messages`   | `MessageV2.WithParts[]`    | Full message history      |
 | `metadata()` | `(input) => Promise<void>` | Update tool part metadata |
-| `ask()` | `(req) => Promise<void>` | Request permission |
+| `ask()`      | `(req) => Promise<void>`   | Request permission        |
 
 **Sources:**
+
 - [packages/opencode/src/session/prompt.ts:700-950]()
 - [packages/opencode/src/tool/tool.ts:1-200]()
 
@@ -684,11 +695,11 @@ graph TD
     GetContext["model.limit.context"]
     GetReserved["config.compaction.reserved<br/>Default: min(20k, maxOutput)"]
     CalcUsable["usable = limit.input - reserved"]
-    
+
     Compare{"tokens.total >= usable?"}
     AddCompactionPart["Add CompactionPart<br/>{auto: true, overflow: true}"]
     Continue["Continue loop"]
-    
+
     CheckTokens --> GetContext
     GetContext --> GetReserved
     GetReserved --> CalcUsable
@@ -707,6 +718,7 @@ COMPACTION_BUFFER = 20_000
 ```
 
 **Sources:**
+
 - [packages/opencode/src/session/compaction.ts:33-49]()
 - [packages/opencode/src/session/prompt.ts:855-890]()
 
@@ -717,32 +729,32 @@ When a `CompactionPart` is encountered, the loop invokes `SessionCompaction.proc
 ```mermaid
 graph TB
     Start["SessionCompaction.process()"]
-    
+
     Filter["Filter messages<br/>Exclude synthetic, compactions"]
     Replay{"overflow === true?"}
     FindReplay["Find last user message<br/>without compaction"]
     SliceMessages["messages = messages.slice(0, idx)"]
-    
+
     GetAgent["Get 'compaction' agent"]
     BuildPrompt["Build summary prompt<br/>Include full history"]
     LLMCall["LLM.stream({<br/>system: 'Summarize conversation',<br/>tools: {},<br/>toolChoice: 'none'<br/>})"]
-    
+
     CreateSummary["Create assistant message<br/>with summary text"]
     MarkSummary["message.summary = true"]
     DeleteOld["Delete old messages<br/>Keep recent N turns"]
-    
+
     Prune["SessionCompaction.prune()<br/>Clear old tool outputs"]
-    
+
     ReplayLoop{"replay exists?"}
     CreateReplayMsg["Create synthetic user message<br/>Replay original prompt"]
-    
+
     Start --> Filter
     Filter --> Replay
     Replay -->|Yes| FindReplay
     Replay -->|No| GetAgent
     FindReplay --> SliceMessages
     SliceMessages --> GetAgent
-    
+
     GetAgent --> BuildPrompt
     BuildPrompt --> LLMCall
     LLMCall --> CreateSummary
@@ -750,7 +762,7 @@ graph TB
     MarkSummary --> DeleteOld
     DeleteOld --> Prune
     Prune --> ReplayLoop
-    
+
     ReplayLoop -->|Yes| CreateReplayMsg
     ReplayLoop -->|No| End["Return 'continue'"]
     CreateReplayMsg --> End
@@ -773,6 +785,7 @@ PRUNE_PROTECT = 40_000  // Keep recent 40k tokens of tools
 ```
 
 **Sources:**
+
 - [packages/opencode/src/session/compaction.ts:102-200]()
 - [packages/opencode/src/session/compaction.ts:52-100]()
 
@@ -787,24 +800,24 @@ Agents respect permission rules defined at the session, agent, or config level. 
 ```mermaid
 graph TD
     ToolCall["Tool call received<br/>{tool, args}"]
-    
+
     GetRuleset["Merge rulesets:<br/>1. Session.permission<br/>2. Agent.permission<br/>3. Config.permission"]
-    
+
     Match["PermissionNext.match()<br/>Find matching rule"]
-    
+
     Action{"rule.action?"}
     Allow["Execute immediately"]
     Deny["Throw error<br/>Permission denied"]
     Ask["PermissionNext.ask()<br/>Wait for user response"]
-    
+
     ToolCall --> GetRuleset
     GetRuleset --> Match
     Match --> Action
-    
+
     Action -->|allow| Allow
     Action -->|deny| Deny
     Action -->|ask| Ask
-    
+
     Ask --> UserReply{"User reply?"}
     UserReply -->|approve| Allow
     UserReply -->|reject| Deny
@@ -827,6 +840,7 @@ graph TD
 3. Global config rules (lowest)
 
 **Sources:**
+
 - [packages/opencode/src/permission/next.ts:1-400]()
 - [packages/opencode/src/session/prompt.ts:800-850]()
 
@@ -838,14 +852,14 @@ All session, message, and part operations publish events to the global event bus
 
 ### Event Types
 
-| Event | Payload | Trigger |
-|-------|---------|---------|
-| `session.created` | `{info: Session.Info}` | New session created |
-| `session.updated` | `{info: Session.Info}` | Session metadata changed |
-| `session.deleted` | `{info: Session.Info}` | Session removed |
-| `message.updated` | `{info: Message}` | Message created/updated |
-| `message.part.updated` | `{part: Part, delta?: string}` | Part created/updated (streaming) |
-| `session.diff` | `{sessionID, diff: FileDiff[]}` | Git diff calculated |
+| Event                  | Payload                         | Trigger                          |
+| ---------------------- | ------------------------------- | -------------------------------- |
+| `session.created`      | `{info: Session.Info}`          | New session created              |
+| `session.updated`      | `{info: Session.Info}`          | Session metadata changed         |
+| `session.deleted`      | `{info: Session.Info}`          | Session removed                  |
+| `message.updated`      | `{info: Message}`               | Message created/updated          |
+| `message.part.updated` | `{part: Part, delta?: string}`  | Part created/updated (streaming) |
+| `session.diff`         | `{sessionID, diff: FileDiff[]}` | Git diff calculated              |
 
 **Event Flow:**
 
@@ -856,7 +870,7 @@ sequenceDiagram
     participant Bus
     participant SSE
     participant Client
-    
+
     Session->>Database: INSERT/UPDATE
     Database->>Database: Database.effect()
     Database->>Bus: Bus.publish(Event)
@@ -866,6 +880,7 @@ sequenceDiagram
 ```
 
 **Sources:**
+
 - [packages/opencode/src/session/index.ts:184-217]()
 - [packages/opencode/src/bus/index.ts:1-100]()
 - [packages/opencode/src/server/routes/session.ts:1-50]()
@@ -881,7 +896,7 @@ erDiagram
     SessionTable ||--o{ MessageTable : "session_id"
     MessageTable ||--o{ PartTable : "message_id"
     ProjectTable ||--o{ SessionTable : "project_id"
-    
+
     SessionTable {
         TEXT id PK
         TEXT slug
@@ -903,14 +918,14 @@ erDiagram
         INTEGER time_compacting
         INTEGER time_archived
     }
-    
+
     MessageTable {
         TEXT id PK
         TEXT session_id FK
         INTEGER time_created
         TEXT data
     }
-    
+
     PartTable {
         TEXT id PK
         TEXT session_id FK
@@ -926,6 +941,7 @@ erDiagram
 - `PartTable`: `(session_id, message_id, id DESC)`
 
 **Sources:**
+
 - [packages/opencode/src/session/session.sql:1-100]()
 - [packages/opencode/src/storage/db.ts:1-200]()
 
@@ -935,40 +951,41 @@ erDiagram
 
 ### Key Namespaces & Functions
 
-| Entity | Location | Purpose |
-|--------|----------|---------|
-| `Session` | [packages/opencode/src/session/index.ts:36]() | Session CRUD operations |
-| `Session.create()` | [packages/opencode/src/session/index.ts:219-237]() | Create new session |
-| `Session.createNext()` | [packages/opencode/src/session/index.ts:297-338]() | Internal session creation |
-| `Session.fork()` | [packages/opencode/src/session/index.ts:239-280]() | Clone session |
-| `Session.messages()` | [packages/opencode/src/session/index.ts:524-538]() | Get messages with parts |
-| `MessageV2` | [packages/opencode/src/session/message-v2.ts:20]() | Message & part operations |
-| `MessageV2.stream()` | [packages/opencode/src/session/message-v2.ts:850-950]() | Stream messages from DB |
-| `SessionPrompt.prompt()` | [packages/opencode/src/session/prompt.ts:161-188]() | Entry point for user input |
-| `SessionPrompt.loop()` | [packages/opencode/src/session/prompt.ts:277-690]() | Agentic execution loop |
-| `LLM.stream()` | [packages/opencode/src/session/llm.ts:47-200]() | LLM integration wrapper |
-| `SessionCompaction.process()` | [packages/opencode/src/session/compaction.ts:102-200]() | Context summarization |
-| `Agent.get()` | [packages/opencode/src/agent/agent.ts:50-100]() | Retrieve agent config |
-| `Config.Agent` | [packages/opencode/src/config/config.ts:712-799]() | Agent schema |
+| Entity                        | Location                                                | Purpose                    |
+| ----------------------------- | ------------------------------------------------------- | -------------------------- |
+| `Session`                     | [packages/opencode/src/session/index.ts:36]()           | Session CRUD operations    |
+| `Session.create()`            | [packages/opencode/src/session/index.ts:219-237]()      | Create new session         |
+| `Session.createNext()`        | [packages/opencode/src/session/index.ts:297-338]()      | Internal session creation  |
+| `Session.fork()`              | [packages/opencode/src/session/index.ts:239-280]()      | Clone session              |
+| `Session.messages()`          | [packages/opencode/src/session/index.ts:524-538]()      | Get messages with parts    |
+| `MessageV2`                   | [packages/opencode/src/session/message-v2.ts:20]()      | Message & part operations  |
+| `MessageV2.stream()`          | [packages/opencode/src/session/message-v2.ts:850-950]() | Stream messages from DB    |
+| `SessionPrompt.prompt()`      | [packages/opencode/src/session/prompt.ts:161-188]()     | Entry point for user input |
+| `SessionPrompt.loop()`        | [packages/opencode/src/session/prompt.ts:277-690]()     | Agentic execution loop     |
+| `LLM.stream()`                | [packages/opencode/src/session/llm.ts:47-200]()         | LLM integration wrapper    |
+| `SessionCompaction.process()` | [packages/opencode/src/session/compaction.ts:102-200]() | Context summarization      |
+| `Agent.get()`                 | [packages/opencode/src/agent/agent.ts:50-100]()         | Retrieve agent config      |
+| `Config.Agent`                | [packages/opencode/src/config/config.ts:712-799]()      | Agent schema               |
 
 ### Database Tables
 
-| Table | File | Purpose |
-|-------|------|---------|
-| `SessionTable` | [packages/opencode/src/session/session.sql:1-30]() | Session metadata |
-| `MessageTable` | [packages/opencode/src/session/session.sql:40-60]() | Messages (role, time, data) |
-| `PartTable` | [packages/opencode/src/session/session.sql:70-90]() | Parts (type-specific payloads) |
+| Table          | File                                                | Purpose                        |
+| -------------- | --------------------------------------------------- | ------------------------------ |
+| `SessionTable` | [packages/opencode/src/session/session.sql:1-30]()  | Session metadata               |
+| `MessageTable` | [packages/opencode/src/session/session.sql:40-60]() | Messages (role, time, data)    |
+| `PartTable`    | [packages/opencode/src/session/session.sql:70-90]() | Parts (type-specific payloads) |
 
 ### API Routes
 
-| Route | File | Operations |
-|-------|------|-----------|
-| `/session` | [packages/opencode/src/server/routes/session.ts:1-300]() | List, create, fork sessions |
-| `/session/:id` | [packages/opencode/src/server/routes/session.ts:100-200]() | Get, update, delete session |
-| `/session/:id/prompt` | [packages/opencode/src/server/routes/session.ts:200-250]() | Send user message |
-| `/session/:id/message` | [packages/opencode/src/server/routes/session.ts:250-300]() | List messages |
+| Route                  | File                                                       | Operations                  |
+| ---------------------- | ---------------------------------------------------------- | --------------------------- |
+| `/session`             | [packages/opencode/src/server/routes/session.ts:1-300]()   | List, create, fork sessions |
+| `/session/:id`         | [packages/opencode/src/server/routes/session.ts:100-200]() | Get, update, delete session |
+| `/session/:id/prompt`  | [packages/opencode/src/server/routes/session.ts:200-250]() | Send user message           |
+| `/session/:id/message` | [packages/opencode/src/server/routes/session.ts:250-300]() | List messages               |
 
 **Sources:**
+
 - [packages/opencode/src/session/index.ts:1-700]()
 - [packages/opencode/src/session/message-v2.ts:1-850]()
 - [packages/opencode/src/session/prompt.ts:1-950]()

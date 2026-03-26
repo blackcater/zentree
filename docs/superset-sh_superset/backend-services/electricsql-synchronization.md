@@ -18,14 +18,12 @@ The following files were used as context for generating this wiki page:
 - [apps/api/src/env.ts](apps/api/src/env.ts)
 - [apps/api/src/proxy.ts](apps/api/src/proxy.ts)
 - [apps/api/src/trpc/context.ts](apps/api/src/trpc/context.ts)
-- [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx)
-- [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts)
+- [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx)
+- [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts)
 - [apps/web/src/trpc/react.tsx](apps/web/src/trpc/react.tsx)
 - [fly.toml](fly.toml)
 
 </details>
-
-
 
 This page documents the ElectricSQL-based real-time data synchronization system that enables the Superset Desktop application to maintain a local copy of cloud data with millisecond-level updates. This system provides the foundation for multi-user collaboration, organization data sharing, and offline-capable features.
 
@@ -56,22 +54,22 @@ graph TB
         ElectricClient["Electric Client<br/>@electric-sql/client"]
         LocalCache["Collection Cache<br/>Map per org"]
     end
-    
+
     subgraph "API Application (Vercel)"
         ElectricProxy["Electric Proxy<br/>/api/electric/[...path]/route.ts"]
         Auth["Authentication<br/>JWT or Session"]
         RLS["Row-Level Security<br/>buildWhereClause()"]
     end
-    
+
     subgraph "ElectricSQL (Fly.io)"
         ElectricServer["Electric Server<br/>v1.4.13"]
         ShapeStream["Shape Stream<br/>CDC + Filtering"]
     end
-    
+
     subgraph "Database (Neon)"
         PostgreSQL["PostgreSQL<br/>Source of Truth"]
     end
-    
+
     Collections -->|"HTTP GET<br/>organizationId"| ElectricProxy
     ElectricProxy -->|"Authenticate"| Auth
     Auth -->|"Build WHERE"| RLS
@@ -83,20 +81,20 @@ graph TB
     Collections -->|"Update"| LocalCache
 ```
 
-**Sources:** [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:1-675](), [apps/api/src/app/api/electric/[...path]/route.ts:1-105](), [fly.toml:1-33]()
+**Sources:** [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:1-675](), [apps/api/src/app/api/electric/[...path]/route.ts:1-105](), [fly.toml:1-33]()
 
 ### ElectricSQL Server Deployment
 
 The ElectricSQL server runs as a containerized application on Fly.io, using the official Electric Docker image.
 
-| Configuration | Value |
-|---------------|-------|
-| **Image** | `electricsql/electric:1.4.13` |
-| **Region** | `iad` (US East) |
-| **Memory** | 8192 MB |
-| **CPU** | 4 performance cores |
-| **Port** | 3000 (internal) |
-| **Health Check** | `/v1/health` every 10s |
+| Configuration          | Value                                |
+| ---------------------- | ------------------------------------ |
+| **Image**              | `electricsql/electric:1.4.13`        |
+| **Region**             | `iad` (US East)                      |
+| **Memory**             | 8192 MB                              |
+| **CPU**                | 4 performance cores                  |
+| **Port**               | 3000 (internal)                      |
+| **Health Check**       | `/v1/health` every 10s               |
 | **Persistent Storage** | `/var/lib/electric` (mounted volume) |
 
 The server is configured with environment variables:
@@ -126,7 +124,7 @@ graph TB
     Return401["401 Unauthorized"]
     Return403["403 Forbidden"]
     Return400["400 Bad Request"]
-    
+
     Request --> AuthCheck
     AuthCheck -->|"No auth"| Return401
     AuthCheck -->|"Valid"| OrgCheck
@@ -158,30 +156,30 @@ The `buildWhereClause` function in [apps/api/src/app/api/electric/[...path]/util
 
 ### Supported Tables
 
-| Table | Filter Logic | Row Owner |
-|-------|--------------|-----------|
-| `tasks` | `organization_id = ?` | Organization |
-| `task_statuses` | `organization_id = ?` | Organization |
-| `projects` | `organization_id = ?` | Organization |
-| `v2_projects` | `organization_id = ?` | Organization |
-| `v2_devices` | `organization_id = ?` | Organization |
-| `v2_device_presence` | `organization_id = ?` | Organization |
-| `v2_users_devices` | `organization_id = ?` | Organization |
-| `v2_workspaces` | `organization_id = ?` | Organization |
-| `workspaces` | `organization_id = ?` | Organization |
-| `auth.members` | `organization_id = ?` | Organization |
-| `auth.invitations` | `organization_id = ?` | Organization |
-| `auth.organizations` | `id IN (user_orgs)` | User membership |
-| `auth.users` | `? = ANY(organization_ids)` | Organization membership |
-| `auth.apikeys` | `metadata LIKE '%organizationId":"..."'` | Metadata filter |
-| `device_presence` | `organization_id = ?` | Organization |
-| `agent_commands` | `organization_id = ?` | Organization |
-| `integration_connections` | `organization_id = ?` | Organization |
-| `subscriptions` | `reference_id = ?` | Organization (reference) |
-| `chat_sessions` | `organization_id = ?` | Organization |
-| `session_hosts` | `organization_id = ?` | Organization |
-| `github_repositories` | `organization_id = ?` | Organization |
-| `github_pull_requests` | `organization_id = ?` | Organization |
+| Table                     | Filter Logic                             | Row Owner                |
+| ------------------------- | ---------------------------------------- | ------------------------ |
+| `tasks`                   | `organization_id = ?`                    | Organization             |
+| `task_statuses`           | `organization_id = ?`                    | Organization             |
+| `projects`                | `organization_id = ?`                    | Organization             |
+| `v2_projects`             | `organization_id = ?`                    | Organization             |
+| `v2_devices`              | `organization_id = ?`                    | Organization             |
+| `v2_device_presence`      | `organization_id = ?`                    | Organization             |
+| `v2_users_devices`        | `organization_id = ?`                    | Organization             |
+| `v2_workspaces`           | `organization_id = ?`                    | Organization             |
+| `workspaces`              | `organization_id = ?`                    | Organization             |
+| `auth.members`            | `organization_id = ?`                    | Organization             |
+| `auth.invitations`        | `organization_id = ?`                    | Organization             |
+| `auth.organizations`      | `id IN (user_orgs)`                      | User membership          |
+| `auth.users`              | `? = ANY(organization_ids)`              | Organization membership  |
+| `auth.apikeys`            | `metadata LIKE '%organizationId":"..."'` | Metadata filter          |
+| `device_presence`         | `organization_id = ?`                    | Organization             |
+| `agent_commands`          | `organization_id = ?`                    | Organization             |
+| `integration_connections` | `organization_id = ?`                    | Organization             |
+| `subscriptions`           | `reference_id = ?`                       | Organization (reference) |
+| `chat_sessions`           | `organization_id = ?`                    | Organization             |
+| `session_hosts`           | `organization_id = ?`                    | Organization             |
+| `github_repositories`     | `organization_id = ?`                    | Organization             |
+| `github_pull_requests`    | `organization_id = ?`                    | Organization             |
 
 **Sources:** [apps/api/src/app/api/electric/[...path]/utils.ts:69-195]()
 
@@ -193,27 +191,27 @@ The `buildWhereClause` function in [apps/api/src/app/api/electric/[...path]/util
 // Pseudocode from utils.ts:113-137
 const userMemberships = await db.query.members.findMany({
   where: eq(members.userId, userId),
-  columns: { organizationId: true }
-});
-const orgIds = [...new Set(userMemberships.map(m => m.organizationId))];
-return { fragment: "id IN ($1, $2, ...)", params: orgIds };
+  columns: { organizationId: true },
+})
+const orgIds = [...new Set(userMemberships.map((m) => m.organizationId))]
+return { fragment: 'id IN ($1, $2, ...)', params: orgIds }
 ```
 
 **Users Table**: Filters users who have the organization in their `organization_ids` JSONB array:
 
 ```typescript
 // From utils.ts:139-142
-return { fragment: "$1 = ANY(organization_ids)", params: [organizationId] };
+return { fragment: '$1 = ANY(organization_ids)', params: [organizationId] }
 ```
 
 **API Keys Table**: Uses a LIKE pattern to match organization ID in JSON metadata:
 
 ```typescript
 // From utils.ts:154-157
-return { 
-  fragment: "metadata LIKE '%\"organizationId\":\"' || $1 || '\"%'",
-  params: [organizationId]
-};
+return {
+  fragment: 'metadata LIKE \'%"organizationId":"\' || $1 || \'"%\'',
+  params: [organizationId],
+}
 ```
 
 **Sources:** [apps/api/src/app/api/electric/[...path]/utils.ts:113-157]()
@@ -244,7 +242,7 @@ graph TB
     ShapeSubscribe["Shape Subscription<br/>{url, params, headers}"]
     CacheResult["collectionsCache.set()"]
     ReturnCached["Return cached<br/>collections"]
-    
+
     GetCollections --> CheckCache
     CheckCache -->|"No"| CreateCollections
     CreateCollections --> CreateShape
@@ -254,7 +252,7 @@ graph TB
     CheckCache -->|"Yes"| ReturnCached
 ```
 
-**Sources:** [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:652-672]()
+**Sources:** [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:652-672]()
 
 ### Collection Cache Structure
 
@@ -262,17 +260,17 @@ Collections are cached per organization using a compound key: `${organizationId}
 
 ```typescript
 // From collections.ts:115-122
-const collectionsCache = new Map<string, OrgCollections>();
+const collectionsCache = new Map<string, OrgCollections>()
 
 function getCollectionsCacheKey(
   organizationId: string,
   enableV2Cloud: boolean
 ): string {
-  return `${organizationId}:${enableV2Cloud ? "v2" : "legacy"}`;
+  return `${organizationId}:${enableV2Cloud ? 'v2' : 'legacy'}`
 }
 ```
 
-**Sources:** [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:114-122]()
+**Sources:** [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:114-122]()
 
 ### Electric Collection Options
 
@@ -286,23 +284,29 @@ createCollection(
     shapeOptions: {
       url: electricUrl, // NEXT_PUBLIC_ELECTRIC_URL/v1/shape
       params: {
-        table: "tasks",
-        organizationId: organizationId
+        table: 'tasks',
+        organizationId: organizationId,
       },
       headers: {
-        Authorization: () => `Bearer ${getJwt()}`
+        Authorization: () => `Bearer ${getJwt()}`,
       },
-      columnMapper: snakeCamelMapper() // snake_case -> camelCase
+      columnMapper: snakeCamelMapper(), // snake_case -> camelCase
     },
     getKey: (item) => item.id,
-    onInsert: async ({ transaction }) => { /* mutation handler */ },
-    onUpdate: async ({ transaction }) => { /* mutation handler */ },
-    onDelete: async ({ transaction }) => { /* mutation handler */ }
+    onInsert: async ({ transaction }) => {
+      /* mutation handler */
+    },
+    onUpdate: async ({ transaction }) => {
+      /* mutation handler */
+    },
+    onDelete: async ({ transaction }) => {
+      /* mutation handler */
+    },
   })
 )
 ```
 
-**Sources:** [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:175-207]()
+**Sources:** [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:175-207]()
 
 ### Dynamic Headers
 
@@ -312,13 +316,13 @@ The `Authorization` header is provided as a function that reads the current JWT 
 // From collections.ts:151-156
 const electricHeaders = {
   Authorization: () => {
-    const token = getJwt();
-    return token ? `Bearer ${token}` : "";
-  }
-};
+    const token = getJwt()
+    return token ? `Bearer ${token}` : ''
+  },
+}
 ```
 
-**Sources:** [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:151-156]()
+**Sources:** [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:151-156]()
 
 ---
 
@@ -332,7 +336,7 @@ sequenceDiagram
     participant Proxy as "API Proxy<br/>/api/electric"
     participant Electric as "Electric Server<br/>Fly.io"
     participant Postgres as "Neon PostgreSQL"
-    
+
     Client->>Proxy: GET /api/electric/v1/shape<br/>?table=tasks&organizationId={orgId}
     Proxy->>Proxy: Authenticate JWT
     Proxy->>Proxy: Verify org membership
@@ -346,7 +350,7 @@ sequenceDiagram
     Client->>Client: Populate collection state
 ```
 
-**Sources:** [apps/api/src/app/api/electric/[...path]/route.ts:34-104](), [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:175-207]()
+**Sources:** [apps/api/src/app/api/electric/[...path]/route.ts:34-104](), [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:175-207]()
 
 ### Incremental Updates
 
@@ -357,13 +361,13 @@ sequenceDiagram
     participant Client as "Desktop Client"
     participant Electric as "Electric Server"
     participant Postgres as "Neon PostgreSQL"
-    
+
     Note over Postgres: Row inserted/updated/deleted
     Postgres->>Electric: WAL event via CDC
     Electric->>Electric: Filter by WHERE clause
     Electric->>Client: Stream delta:<br/>{action: "insert", row: {...}}
     Client->>Client: Apply change to collection
-    
+
     Note over Client: User performs mutation
     Client->>Client: Optimistic update
     Client->>Client: tRPC mutation
@@ -373,7 +377,7 @@ sequenceDiagram
     Client->>Client: Reconcile optimistic state
 ```
 
-**Sources:** [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:188-205]()
+**Sources:** [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:188-205]()
 
 ---
 
@@ -392,7 +396,7 @@ graph TB
     FastForward["Electric fast-forward<br/>to txid"]
     StreamCatchUp["Stream catch-up<br/>from txid"]
     Reconcile["Reconcile optimistic<br/>with server state"]
-    
+
     UserAction --> OptimisticUpdate
     OptimisticUpdate --> TRPCMutation
     TRPCMutation --> ServerWrite
@@ -401,7 +405,7 @@ graph TB
     StreamCatchUp --> Reconcile
 ```
 
-**Sources:** [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:188-205]()
+**Sources:** [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:188-205]()
 
 ### Example: Task Update
 
@@ -410,16 +414,16 @@ The `tasks` collection defines an `onUpdate` handler that calls the tRPC mutatio
 ```typescript
 // From collections.ts:193-200
 onUpdate: async ({ transaction }) => {
-  const { original, changes } = transaction.mutations[0];
+  const { original, changes } = transaction.mutations[0]
   const result = await apiClient.task.update.mutate({
     ...changes,
-    id: original.id
-  });
-  return { txid: result.txid }; // Electric fast-forwards to this txid
+    id: original.id,
+  })
+  return { txid: result.txid } // Electric fast-forwards to this txid
 }
 ```
 
-**Sources:** [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:193-200]()
+**Sources:** [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:193-200]()
 
 ### tRPC Client Configuration
 
@@ -432,16 +436,16 @@ const apiClient = createTRPCProxyClient<AppRouter>({
     httpBatchLink({
       url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
       headers: () => {
-        const token = getAuthToken();
-        return token ? { Authorization: `Bearer ${token}` } : {};
+        const token = getAuthToken()
+        return token ? { Authorization: `Bearer ${token}` } : {}
       },
-      transformer: superjson
-    })
-  ]
-});
+      transformer: superjson,
+    }),
+  ],
+})
 ```
 
-**Sources:** [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:138-149]()
+**Sources:** [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:138-149]()
 
 ---
 
@@ -456,28 +460,28 @@ Collections are lazily initialized—they don't subscribe to shapes until access
 export async function preloadCollections(
   organizationId: string,
   options?: {
-    includeChatCollections?: boolean;
-    enableV2Cloud?: boolean;
+    includeChatCollections?: boolean
+    enableV2Cloud?: boolean
   }
 ): Promise<void> {
-  const { chatSessions, sessionHosts, ...collections } = 
-    getCollections(organizationId, enableV2Cloud);
-  
+  const { chatSessions, sessionHosts, ...collections } = getCollections(
+    organizationId,
+    enableV2Cloud
+  )
+
   const orgCollections = Object.entries(collections)
-    .filter(([name]) => name !== "organizations")
-    .map(([, collection]) => collection as Collection<object>);
-  
+    .filter(([name]) => name !== 'organizations')
+    .map(([, collection]) => collection as Collection<object>)
+
   const collectionsToPreload = includeChatCollections
     ? [...orgCollections, chatSessions, sessionHosts]
-    : orgCollections;
-  
-  await Promise.allSettled(
-    collectionsToPreload.map(c => c.preload())
-  );
+    : orgCollections
+
+  await Promise.allSettled(collectionsToPreload.map((c) => c.preload()))
 }
 ```
 
-**Sources:** [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:622-645]()
+**Sources:** [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:622-645]()
 
 ### CollectionsProvider Integration
 
@@ -487,23 +491,23 @@ The `CollectionsProvider` component manages the active organization's collection
 // From CollectionsProvider.tsx:47-62
 const switchOrganization = useCallback(
   async (organizationId: string) => {
-    if (organizationId === activeOrganizationId) return;
-    setIsSwitching(true);
+    if (organizationId === activeOrganizationId) return
+    setIsSwitching(true)
     try {
-      await authClient.organization.setActive({ organizationId });
+      await authClient.organization.setActive({ organizationId })
       await preloadCollections(organizationId, {
-        enableV2Cloud: isV2CloudEnabled
-      });
-      await refetchSession();
+        enableV2Cloud: isV2CloudEnabled,
+      })
+      await refetchSession()
     } finally {
-      setIsSwitching(false);
+      setIsSwitching(false)
     }
   },
   [activeOrganizationId, isV2CloudEnabled, refetchSession]
-);
+)
 ```
 
-**Sources:** [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx:47-62]()
+**Sources:** [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx:47-62]()
 
 ### Effect-Based Preloading
 
@@ -512,14 +516,11 @@ The provider also preloads collections when the active organization changes:
 ```typescript
 // From CollectionsProvider.tsx:64-69
 useEffect(() => {
-  preloadActiveOrganizationCollections(
-    activeOrganizationId,
-    isV2CloudEnabled
-  );
-}, [activeOrganizationId, isV2CloudEnabled]);
+  preloadActiveOrganizationCollections(activeOrganizationId, isV2CloudEnabled)
+}, [activeOrganizationId, isV2CloudEnabled])
 ```
 
-**Sources:** [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx:64-69]()
+**Sources:** [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx:64-69]()
 
 ---
 
@@ -533,14 +534,16 @@ const v2Projects = enableV2Cloud
   ? createCollection(
       electricCollectionOptions<SelectV2Project>({
         id: `v2_projects-${organizationId}`,
-        shapeOptions: { /* ... */ },
-        getKey: (item) => item.id
+        shapeOptions: {
+          /* ... */
+        },
+        getKey: (item) => item.id,
       })
     )
   : createDisabledCollection<SelectV2Project, string>(
       `v2_projects-disabled-${organizationId}`,
       (item) => item.id
-    );
+    )
 ```
 
 The `createDisabledCollection` helper creates a local-only collection with no data:
@@ -549,19 +552,19 @@ The `createDisabledCollection` helper creates a local-only collection with no da
 // From collections.ts:124-135
 function createDisabledCollection<
   T extends object,
-  TKey extends string | number
+  TKey extends string | number,
 >(id: string, getKey: (item: T) => TKey): Collection<T> {
   return createCollection(
     localOnlyCollectionOptions({
       id,
       getKey,
-      initialData: []
+      initialData: [],
     })
-  ) as unknown as Collection<T>;
+  ) as unknown as Collection<T>
 }
 ```
 
-**Sources:** [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:124-135](), [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:241-260]()
+**Sources:** [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:124-135](), [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:241-260]()
 
 ---
 
@@ -572,6 +575,7 @@ function createDisabledCollection<
 The production Electric server is deployed to Fly.io as part of the main deployment workflow:
 
 **Workflow Steps:**
+
 1. Stage secrets (`DATABASE_URL`, `ELECTRIC_SECRET`) using `flyctl secrets set --stage`
 2. Deploy using `flyctl deploy --remote-only` with [fly.toml:1-33]() configuration
 3. Server auto-starts and connects to Neon production database
@@ -583,6 +587,7 @@ The production Electric server is deployed to Fly.io as part of the main deploym
 Each pull request gets an isolated Electric instance for testing:
 
 **Deployment Process:**
+
 1. Create Neon branch database for PR
 2. Deploy Electric app: `superset-electric-pr-{number}`
 3. Configure with PR-specific database URL
@@ -590,6 +595,7 @@ Each pull request gets an isolated Electric instance for testing:
 5. Deploy API with PR-specific Electric URL
 
 **Cleanup Process:**
+
 - When PR closes, Neon branch is deleted
 - Electric Fly.io app is destroyed: `flyctl apps destroy superset-electric-pr-{number}`
 
@@ -597,11 +603,11 @@ Each pull request gets an isolated Electric instance for testing:
 
 ### Environment Configuration
 
-| Environment | API Application | Desktop Application |
-|-------------|----------------|---------------------|
-| **ELECTRIC_URL** | Server-side: `env.ELECTRIC_URL` | Client-side: `env.NEXT_PUBLIC_ELECTRIC_URL` |
-| **ELECTRIC_SECRET** | Server-side: `env.ELECTRIC_SECRET` | N/A (not exposed to client) |
-| **Purpose** | Proxy forwarding and auth | Shape subscription endpoint |
+| Environment         | API Application                    | Desktop Application                         |
+| ------------------- | ---------------------------------- | ------------------------------------------- |
+| **ELECTRIC_URL**    | Server-side: `env.ELECTRIC_URL`    | Client-side: `env.NEXT_PUBLIC_ELECTRIC_URL` |
+| **ELECTRIC_SECRET** | Server-side: `env.ELECTRIC_SECRET` | N/A (not exposed to client)                 |
+| **Purpose**         | Proxy forwarding and auth          | Shape subscription endpoint                 |
 
 The API application environment requires both the Electric URL and secret:
 
@@ -611,7 +617,7 @@ ELECTRIC_URL: z.string().url(),
 ELECTRIC_SECRET: z.string().min(16),
 ```
 
-**Sources:** [apps/api/src/env.ts:13-14](), [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:52]()
+**Sources:** [apps/api/src/env.ts:13-14](), [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:52]()
 
 ---
 
@@ -620,6 +626,7 @@ ELECTRIC_SECRET: z.string().min(16),
 The API proxy allows Electric-specific headers for cross-origin requests from the desktop app:
 
 **Exposed Headers:**
+
 - `electric-offset` - Current position in shape stream
 - `electric-handle` - Shape subscription handle
 - `electric-schema` - Table schema version
@@ -628,6 +635,7 @@ The API proxy allows Electric-specific headers for cross-origin requests from th
 - `electric-up-to-date` - Boolean indicating stream is caught up
 
 **Allowed Request Headers:**
+
 - `X-Electric-Backend` - Backend identifier
 - `Producer-Id`, `Producer-Epoch`, `Producer-Seq` - Durable streams metadata
 - `Stream-Closed` - Stream closure signal
@@ -663,4 +671,4 @@ ElectricSQL's shape protocol provides:
 3. **Live Queries** - Changes appear in real-time without polling
 4. **Type Safety** - Shapes map directly to TypeScript types
 
-**Sources:** [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:114-122](), [apps/api/src/app/api/electric/[...path]/route.ts:34-104]()
+**Sources:** [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:114-122](), [apps/api/src/app/api/electric/[...path]/route.ts:34-104]()

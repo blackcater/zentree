@@ -14,11 +14,10 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document provides an overview of AionUi's build and deployment architecture, explaining how source code is compiled, packaged, and distributed across multiple platforms. The system uses `electron-vite` for TypeScript/React compilation and `electron-builder` for creating platform-specific installers.
 
 For detailed information about specific aspects:
+
 - CI/CD pipeline implementation: See [Build Pipeline](#11.1)
 - Two-phase compilation process: See [Two-Phase Build Process](#11.2)
 - Native module rebuild strategies: See [Native Module Handling](#11.3)
@@ -40,14 +39,14 @@ graph TB
         SRC_RENDERER["src/renderer/**/*.tsx<br/>React App"]
         PKG["package.json<br/>Dependencies & Scripts"]
     end
-    
+
     subgraph "Phase 1: Compilation (electron-vite)"
         VITE["electron-vite build<br/>TypeScript + Vite"]
         VITE -->|transpiles| OUT_MAIN["out/main/index.js<br/>Bundled Main"]
         VITE -->|bundles| OUT_PRELOAD["out/preload/index.js<br/>Preload Bundle"]
         VITE -->|bundles| OUT_RENDERER["out/renderer/index.html<br/>React SPA"]
     end
-    
+
     subgraph "Phase 2: Packaging (electron-builder)"
         BUILDER["electron-builder<br/>build-with-builder.js"]
         BUILDER -->|processes| NATIVE["Native Module Rebuild<br/>better-sqlite3<br/>bcrypt<br/>node-pty"]
@@ -55,25 +54,25 @@ graph TB
         BUILDER -->|bundles| ELECTRON["Electron Binary<br/>Platform-specific"]
         BUILDER -->|generates| INSTALLERS["Installers<br/>DMG/NSIS/DEB/AppImage"]
     end
-    
+
     subgraph "Configuration Files"
         EBCONFIG["electron-builder.yml<br/>Package Config"]
         VITECONFIG["electron.vite.config.ts<br/>Build Config"]
     end
-    
+
     SRC_MAIN --> VITE
     SRC_PRELOAD --> VITE
     SRC_RENDERER --> VITE
     PKG --> VITE
-    
+
     OUT_MAIN --> BUILDER
     OUT_PRELOAD --> BUILDER
     OUT_RENDERER --> BUILDER
     PKG --> BUILDER
-    
+
     EBCONFIG --> BUILDER
     VITECONFIG --> VITE
-    
+
     INSTALLERS -->|uploaded to| GITHUB["GitHub Releases<br/>with auto-update metadata"]
 ```
 
@@ -83,14 +82,14 @@ graph TB
 
 The `package.json` defines several build entry points:
 
-| Script | Command | Purpose |
-|--------|---------|---------|
-| `package` | `electron-vite build` | Compile source code only |
-| `dist` | `node scripts/build-with-builder.js` | Full build (compile + package) |
-| `dist:mac` | `build-with-builder.js auto --mac` | macOS-only build |
-| `dist:win` | `build-with-builder.js auto --win` | Windows-only build |
-| `dist:linux` | `build-with-builder.js auto --linux` | Linux-only build |
-| `build-mac` | `build-with-builder.js auto --mac --arm64 --x64` | macOS universal build |
+| Script       | Command                                          | Purpose                        |
+| ------------ | ------------------------------------------------ | ------------------------------ |
+| `package`    | `electron-vite build`                            | Compile source code only       |
+| `dist`       | `node scripts/build-with-builder.js`             | Full build (compile + package) |
+| `dist:mac`   | `build-with-builder.js auto --mac`               | macOS-only build               |
+| `dist:win`   | `build-with-builder.js auto --win`               | Windows-only build             |
+| `dist:linux` | `build-with-builder.js auto --linux`             | Linux-only build               |
+| `build-mac`  | `build-with-builder.js auto --mac --arm64 --x64` | macOS universal build          |
 
 **Sources:** [package.json:18-31]()
 
@@ -120,6 +119,7 @@ graph LR
 The build script uses MD5 hashing to detect source changes and skip unnecessary recompilation:
 
 **Hash Computation** includes:
+
 - Configuration files: `package.json`, `tsconfig.json`, `electron.vite.config.ts`, `electron-builder.yml`
 - Source directories: `src/`, `public/`, `scripts/`
 - File metadata: size and modification time
@@ -139,7 +139,7 @@ graph TB
         PUSH_TAG["Push tag v*<br/>(excluding -dev- tags)"]
         MANUAL["Manual dispatch<br/>(with platform matrix)"]
     end
-    
+
     subgraph "Build Pipeline Job (_build-reusable.yml)"
         QUALITY["Code Quality Gates<br/>ESLint + Prettier<br/>TypeScript + Vitest"]
         MATRIX["Build Matrix<br/>5 parallel jobs"]
@@ -148,21 +148,21 @@ graph TB
         MATRIX --> WIN_X64["windows-2022 x64<br/>build-with-builder.js x64 --win"]
         MATRIX --> WIN_ARM["windows-2022 ARM64<br/>build-with-builder.js arm64 --win"]
         MATRIX --> LINUX["ubuntu-latest<br/>bun run dist:linux"]
-        
+
         MAC_ARM --> ARTIFACTS_MAC_ARM["Artifact:<br/>macos-build-arm64"]
         MAC_X64 --> ARTIFACTS_MAC_X64["Artifact:<br/>macos-build-x64"]
         WIN_X64 --> ARTIFACTS_WIN_X64["Artifact:<br/>windows-build-x64"]
         WIN_ARM --> ARTIFACTS_WIN_ARM["Artifact:<br/>windows-build-arm64"]
         LINUX --> ARTIFACTS_LINUX["Artifact:<br/>linux-build"]
     end
-    
+
     subgraph "Create Tag Job"
         TAG_LOGIC["create-tag job<br/>Generate tag name"]
         TAG_LOGIC -->|dev branch| DEV_TAG["v{VERSION}-dev-{COMMIT}"]
         TAG_LOGIC -->|version collision| BUMP["Increment patch version<br/>Update package.json"]
         DEV_TAG --> PUSH_NEW_TAG["Push tag to GitHub"]
     end
-    
+
     subgraph "Release Job"
         DOWNLOAD["Download all artifacts"]
         DOWNLOAD --> NORMALIZE["prepare-release-assets.sh<br/>Normalize updater metadata"]
@@ -170,17 +170,17 @@ graph TB
         CREATE_RELEASE -->|dev tag| PRERELEASE["Prerelease + Draft<br/>dev-release environment"]
         CREATE_RELEASE -->|prod tag| PRODRELEASE["Draft Release<br/>release environment"]
     end
-    
+
     subgraph "Auto Retry Job"
         RETRY_CHECK{{"failure() &&<br/>github.run_attempt == 1"}}
         RETRY_CHECK -->|Yes| WAIT["Wait 5 minutes"]
         WAIT --> RERUN["Trigger workflow rerun<br/>POST /actions/runs/{id}/rerun"]
     end
-    
+
     PUSH_DEV --> QUALITY
     PUSH_TAG --> QUALITY
     MANUAL --> QUALITY
-    
+
     QUALITY --> MATRIX
     MATRIX --> TAG_LOGIC
     TAG_LOGIC --> DOWNLOAD
@@ -196,16 +196,17 @@ The workflow defines a 5-platform build matrix in JSON format:
 ```json
 {
   "include": [
-    {"platform": "macos-arm64", "os": "macos-14", "arch": "arm64"},
-    {"platform": "macos-x64", "os": "macos-14", "arch": "x64"},
-    {"platform": "windows-x64", "os": "windows-2022", "arch": "x64"},
-    {"platform": "windows-arm64", "os": "windows-2022", "arch": "arm64"},
-    {"platform": "linux", "os": "ubuntu-latest", "arch": "x64-arm64"}
+    { "platform": "macos-arm64", "os": "macos-14", "arch": "arm64" },
+    { "platform": "macos-x64", "os": "macos-14", "arch": "x64" },
+    { "platform": "windows-x64", "os": "windows-2022", "arch": "x64" },
+    { "platform": "windows-arm64", "os": "windows-2022", "arch": "arm64" },
+    { "platform": "linux", "os": "ubuntu-latest", "arch": "x64-arm64" }
   ]
 }
 ```
 
 Each job runs independently with platform-specific setup:
+
 - **macOS**: Xcode tools, Python 3.12, code signing certificates
 - **Windows**: MSVC ARM64 toolchain, Python 3.12, prebuild-install
 - **Linux**: Standard build tools, multi-arch support (x64 + arm64)
@@ -254,6 +255,7 @@ The detection uses `!include "x64.nsh"` and checks `${RunningX64}` and `${IsNati
 
 **Native Module Handling:**
 Windows builds use a fallback strategy:
+
 1. Try `prebuild-install` to fetch prebuilt binaries
 2. If unavailable, fall back to `electron-rebuild` to compile from source
 
@@ -267,10 +269,12 @@ Before Windows builds, the script removes stale artifacts matching `/^win(?:-[a-
 ### Linux Builds
 
 Linux builds target two formats:
+
 - **DEB**: Debian package with desktop entry and MIME handler for `x-scheme-handler/aionui`
 - **AppImage**: Self-contained executable
 
 Both formats support `x64` and `arm64` architectures. The desktop entry includes:
+
 ```
 Categories: Office;Utility;
 MimeType: x-scheme-handler/aionui;
@@ -284,13 +288,14 @@ MimeType: x-scheme-handler/aionui;
 
 Three native modules require unpacking from the ASAR archive for runtime loading:
 
-| Module | Reason | Pattern |
-|--------|--------|---------|
-| `better-sqlite3` | Native binary + `.node` files | `**/node_modules/better-sqlite3/**/*` |
-| `bcrypt` | Native binary for password hashing | `**/node_modules/bcrypt/**/*` |
-| `node-pty` | PTY (pseudo-terminal) support for CLI agents | `**/node_modules/node-pty/**/*` |
+| Module           | Reason                                       | Pattern                               |
+| ---------------- | -------------------------------------------- | ------------------------------------- |
+| `better-sqlite3` | Native binary + `.node` files                | `**/node_modules/better-sqlite3/**/*` |
+| `bcrypt`         | Native binary for password hashing           | `**/node_modules/bcrypt/**/*`         |
+| `node-pty`       | PTY (pseudo-terminal) support for CLI agents | `**/node_modules/node-pty/**/*`       |
 
 Additional unpacked modules:
+
 - `web-tree-sitter` and `tree-sitter-bash`: WASM files need `fs.readFile` access
 - `rules/` and `skills/`: Built-in resources for `fs.readdir` with `withFileTypes`
 
@@ -317,6 +322,7 @@ JAR files and JNI libraries are also excluded to avoid macOS notarization failur
 After a successful build, artifacts are generated in the `out/` directory:
 
 **macOS:**
+
 - `AionUi-{version}-mac-arm64.dmg` - ARM64 disk image
 - `AionUi-{version}-mac-arm64.zip` - ARM64 portable archive
 - `AionUi-{version}-mac-x64.dmg` - x64 disk image
@@ -324,6 +330,7 @@ After a successful build, artifacts are generated in the `out/` directory:
 - `latest-mac.yml` - Auto-update metadata
 
 **Windows:**
+
 - `AionUi-{version}-win-x64.exe` - x64 NSIS installer
 - `AionUi-{version}-win-x64.zip` - x64 portable archive
 - `AionUi-{version}-win-arm64.exe` - ARM64 NSIS installer
@@ -331,6 +338,7 @@ After a successful build, artifacts are generated in the `out/` directory:
 - `latest.yml` - Auto-update metadata
 
 **Linux:**
+
 - `AionUi-{version}-linux-x64.deb` - x64 Debian package
 - `AionUi-{version}-linux-x64.AppImage` - x64 AppImage
 - `AionUi-{version}-linux-arm64.deb` - ARM64 Debian package
@@ -342,6 +350,7 @@ After a successful build, artifacts are generated in the `out/` directory:
 ### Auto-Update Metadata
 
 Each platform generates a `latest.yml` (or `latest-mac.yml` / `latest-linux.yml`) file containing:
+
 - Version number
 - Release date
 - File sizes and checksums (SHA512)
@@ -354,6 +363,7 @@ These files are consumed by `electron-updater` in the running application for au
 ### Compression Settings
 
 ASAR compression level is environment-aware:
+
 - **CI builds**: Level 9 (maximum compression) for smallest download size
 - **Local builds**: Level 7 (normal compression) for 30-50% faster ASAR packing
 
@@ -371,32 +381,32 @@ graph TD
     PARSE_ARCH -->|auto mode| DETECT["getTargetArchFromConfig()<br/>Read electron-builder.yml"]
     PARSE_ARCH -->|explicit| SET_ARCH["Use specified arch"]
     PARSE_ARCH -->|multiple| MULTI["Multi-arch mode<br/>Pass all --arch flags"]
-    
+
     DETECT --> CHECK_SKIP{{"shouldSkipViteBuild()<br/>--skip-vite or hash match?"}}
     SET_ARCH --> CHECK_SKIP
     MULTI --> CHECK_SKIP
-    
+
     CHECK_SKIP -->|Skip| CACHED["Use cached out/ directory"]
     CHECK_SKIP -->|Build| VITE["bunx electron-vite build<br/>ELECTRON_BUILDER_ARCH={arch}"]
-    
+
     VITE --> SAVE_HASH["saveCurrentHash()<br/>Update out/.build-hash"]
     CACHED --> VALIDATE{{"Validate output<br/>mainIndex exists?<br/>rendererIndex exists?"}}
     SAVE_HASH --> VALIDATE
-    
+
     VALIDATE -->|Invalid| ERROR["Throw Error"]
     VALIDATE -->|Valid| PACK_ONLY{{"--pack-only flag?"}}
-    
+
     PACK_ONLY -->|Yes| DONE["Exit: Package only"]
     PACK_ONLY -->|No| COMPRESSION["Set ELECTRON_BUILDER_COMPRESSION_LEVEL<br/>9 (CI) or 7 (local)"]
-    
+
     COMPRESSION --> WINDOWS{{"--win flag?"}}
     WINDOWS -->|Yes| CLEANUP["cleanupWindowsPackOutput()<br/>Remove stale artifacts"]
     WINDOWS -->|No| NSIS
-    
+
     CLEANUP --> NSIS{{"Single-arch Windows?"}}
     NSIS -->|Yes| ARCH_DETECT["Add NSIS include script<br/>windows-installer-{arch}.nsh"]
     NSIS -->|No| BUILDER_CMD
-    
+
     ARCH_DETECT --> BUILDER_CMD["buildWithDmgRetry()<br/>bunx electron-builder {args} --{arch}"]
     BUILDER_CMD -->|macOS| DMG_RETRY["DMG retry logic<br/>up to 3 attempts"]
     BUILDER_CMD -->|Other| SUCCESS["Build completed"]
@@ -407,14 +417,14 @@ graph TD
 
 ### Command-Line Flags
 
-| Flag | Effect |
-|------|--------|
-| `auto` | Auto-detect architecture from `electron-builder.yml` |
-| `--skip-vite` | Skip Vite compilation if `out/` exists |
-| `--skip-native` | Skip native module rebuilding (reserved) |
-| `--pack-only` | Skip electron-builder distributable creation |
-| `--force` | Force full rebuild, ignore hash cache |
-| `--mac`, `--win`, `--linux` | Target platform |
-| `--x64`, `--arm64`, `--ia32`, `--armv7l` | Target architecture |
+| Flag                                     | Effect                                               |
+| ---------------------------------------- | ---------------------------------------------------- |
+| `auto`                                   | Auto-detect architecture from `electron-builder.yml` |
+| `--skip-vite`                            | Skip Vite compilation if `out/` exists               |
+| `--skip-native`                          | Skip native module rebuilding (reserved)             |
+| `--pack-only`                            | Skip electron-builder distributable creation         |
+| `--force`                                | Force full rebuild, ignore hash cache                |
+| `--mac`, `--win`, `--linux`              | Target platform                                      |
+| `--x64`, `--arm64`, `--ia32`, `--armv7l` | Target architecture                                  |
 
 **Sources:** [scripts/build-with-builder.js:283-301]()

@@ -37,8 +37,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 OpenClaw's testing framework is a multi-tier suite built on Vitest that separates unit tests, integration tests, end-to-end tests, and live provider tests. The framework provides environment isolation, parallel execution orchestration, and adaptive worker allocation to balance speed and stability across development and CI environments.
 
 **For information about running tests locally, interpreting live test results, or adding regressions, see the [Testing Guide](docs/help/testing.md).**
@@ -49,14 +47,14 @@ OpenClaw's testing framework is a multi-tier suite built on Vitest that separate
 
 OpenClaw partitions tests into six distinct tiers, each with its own Vitest configuration and execution characteristics:
 
-| Tier | Config | Scope | Pool | Workers |
-|------|--------|-------|------|---------|
-| **Unit** | `vitest.unit.config.ts` | Core logic, isolated helpers | vmForks / forks | 2-16 |
-| **Extensions** | `vitest.extensions.config.ts` | Plugin/extension code | vmForks / forks | 1-6 |
-| **Gateway** | `vitest.gateway.config.ts` | Gateway server, WebSocket, RPC | forks | 1-6 |
-| **Channels** | `vitest.channels.config.ts` | Telegram, Discord, Slack, etc. | forks | CI-determined |
-| **E2E** | `vitest.e2e.config.ts` | Multi-instance gateway scenarios | forks | 1-4 |
-| **Live** | `vitest.live.config.ts` | Real provider API calls | forks | 1 |
+| Tier           | Config                        | Scope                            | Pool            | Workers       |
+| -------------- | ----------------------------- | -------------------------------- | --------------- | ------------- |
+| **Unit**       | `vitest.unit.config.ts`       | Core logic, isolated helpers     | vmForks / forks | 2-16          |
+| **Extensions** | `vitest.extensions.config.ts` | Plugin/extension code            | vmForks / forks | 1-6           |
+| **Gateway**    | `vitest.gateway.config.ts`    | Gateway server, WebSocket, RPC   | forks           | 1-6           |
+| **Channels**   | `vitest.channels.config.ts`   | Telegram, Discord, Slack, etc.   | forks           | CI-determined |
+| **E2E**        | `vitest.e2e.config.ts`        | Multi-instance gateway scenarios | forks           | 1-4           |
+| **Live**       | `vitest.live.config.ts`       | Real provider API calls          | forks           | 1             |
 
 **Sources:** [vitest.config.ts:1-205](), [vitest.unit.config.ts:1-31](), [vitest.e2e.config.ts:1-33](), [vitest.live.config.ts:1-17](), [vitest.gateway.config.ts:1-4](), [vitest.extensions.config.ts:1-4](), [vitest.channels.config.ts:1-21]()
 
@@ -67,21 +65,21 @@ OpenClaw partitions tests into six distinct tiers, each with its own Vitest conf
 ```mermaid
 graph TB
     CLI["pnpm test<br/>(scripts/test-parallel.mjs)"]
-    
+
     subgraph ProfileDetection["Test Profile Resolution"]
         EnvProfile["OPENCLAW_TEST_PROFILE<br/>(low/normal/max/serial)"]
         HostMem["Host Memory Detection<br/>os.totalmem()"]
         HostCPU["Host CPU Count<br/>os.cpus().length"]
         LoadAvg["Load Average<br/>os.loadavg()"]
     end
-    
+
     subgraph WorkerAllocation["Worker Budget Calculation"]
         Profile["Test Profile"]
         MemClass["Memory Class<br/>highMemLocalHost: ≥96 GiB<br/>lowMemLocalHost: <64 GiB"]
         LoadScale["Load Scale Factor<br/>extremeLoadScale"]
         Budget["Worker Budget<br/>defaultWorkerBudget"]
     end
-    
+
     subgraph TestLanes["Test Lane Routing"]
         UnitFast["unit-fast<br/>exclude unitIsolatedFiles"]
         UnitIsolated["unit-isolated<br/>unitIsolatedFiles only"]
@@ -89,13 +87,13 @@ graph TB
         Gateway["gateway<br/>src/gateway/**/*.test.ts"]
         Channels["channels<br/>src/telegram/, src/discord/, etc."]
     end
-    
+
     subgraph Execution["Parallel/Serial Execution"]
         ParallelRuns["Parallel Runs<br/>Promise.all(...)"]
         SerialRuns["Serial Runs<br/>keepGatewaySerial"]
         Sharding["Sharding<br/>OPENCLAW_TEST_SHARDS"]
     end
-    
+
     CLI --> EnvProfile
     EnvProfile --> Profile
     HostMem --> MemClass
@@ -104,17 +102,17 @@ graph TB
     Profile --> Budget
     MemClass --> Budget
     LoadScale --> Budget
-    
+
     Budget --> UnitFast
     Budget --> UnitIsolated
     Budget --> Extensions
     Budget --> Gateway
-    
+
     UnitFast --> ParallelRuns
     UnitIsolated --> ParallelRuns
     Extensions --> ParallelRuns
     Gateway --> SerialRuns
-    
+
     ParallelRuns --> Sharding
     SerialRuns --> Sharding
 ```
@@ -145,7 +143,7 @@ graph LR
     TempDir["mkdtemp<br/>/tmp/openclaw-test-home-*"]
     EnvOverride["process.env.HOME<br/>process.env.USERPROFILE<br/>process.env.XDG_*"]
     RestoreCleanup["afterAll(() => cleanup())"]
-    
+
     TestSetup --> TempDir
     TempDir --> EnvOverride
     EnvOverride --> RestoreCleanup
@@ -154,6 +152,7 @@ graph LR
 **Sources:** [test/test-env.ts:54-143](), [test/setup.ts:32-36]()
 
 The isolation routine:
+
 1. Creates a temporary directory via `mkdtemp`
 2. Overrides `HOME`, `USERPROFILE`, and XDG paths
 3. Clears sensitive env vars (`TELEGRAM_BOT_TOKEN`, `GITHUB_TOKEN`, etc.)
@@ -174,7 +173,7 @@ The global test setup creates a default plugin registry with stub implementation
 graph TB
     Setup["test/setup.ts<br/>beforeAll()"]
     CreateRegistry["createDefaultRegistry()"]
-    
+
     subgraph StubPlugins["Stub Channel Plugins"]
         Discord["ChannelPlugin<br/>id: discord"]
         Slack["ChannelPlugin<br/>id: slack"]
@@ -183,10 +182,10 @@ graph TB
         Signal["ChannelPlugin<br/>id: signal"]
         IMessage["ChannelPlugin<br/>id: imessage<br/>aliases: [imsg]"]
     end
-    
+
     Registry["DEFAULT_PLUGIN_REGISTRY<br/>setActivePluginRegistry(...)"]
     AfterEach["afterEach()<br/>restore if overridden"]
-    
+
     Setup --> CreateRegistry
     CreateRegistry --> Discord
     CreateRegistry --> Slack
@@ -194,20 +193,21 @@ graph TB
     CreateRegistry --> WhatsApp
     CreateRegistry --> Signal
     CreateRegistry --> IMessage
-    
+
     Discord --> Registry
     Slack --> Registry
     Telegram --> Registry
     WhatsApp --> Registry
     Signal --> Registry
     IMessage --> Registry
-    
+
     Registry --> AfterEach
 ```
 
 **Sources:** [test/setup.ts:141-186](), [test/setup.ts:192-199]()
 
 Each stub plugin provides:
+
 - `ChannelPlugin` interface implementation
 - `listAccountIds` and `resolveAccount` config helpers
 - `isConfigured` check
@@ -225,14 +225,15 @@ Tests that need custom plugin behavior can override the active registry and rest
 
 OpenClaw uses Vitest's `vmForks` pool on Node 22-24 for faster test startup, with automatic fallback to `forks` on Node 25+:
 
-| Pool | Node Support | Isolation | Startup | Env Leaks |
-|------|--------------|-----------|---------|-----------|
-| **vmForks** | 22-24 | VM contexts (shared process) | Fast | Possible (cleared via `unstubEnvs`) |
-| **forks** | All | Process isolation | Slower | None |
+| Pool        | Node Support | Isolation                    | Startup | Env Leaks                           |
+| ----------- | ------------ | ---------------------------- | ------- | ----------------------------------- |
+| **vmForks** | 22-24        | VM contexts (shared process) | Fast    | Possible (cleared via `unstubEnvs`) |
+| **forks**   | All          | Process isolation            | Slower  | None                                |
 
 **Sources:** [scripts/test-parallel.mjs:107-115](), [vitest.config.ts:79]()
 
 The orchestrator determines the pool:
+
 - Checks `OPENCLAW_TEST_VM_FORKS` env var (0 = force forks, 1 = force vmForks)
 - On Windows, forces `forks` regardless of Node version
 - On low-memory hosts (`<64 GiB`), forces `forks` to avoid OOM
@@ -246,17 +247,18 @@ Tests that require full process isolation are routed to the `unit-isolated` lane
 
 ```typescript
 const unitIsolatedFilesRaw = [
-  "src/plugins/loader.test.ts",
-  "src/security/temp-path-guard.test.ts",
-  "src/infra/git-commit.test.ts",
-  "src/imessage/monitor.shutdown.unhandled-rejection.test.ts",
+  'src/plugins/loader.test.ts',
+  'src/security/temp-path-guard.test.ts',
+  'src/infra/git-commit.test.ts',
+  'src/imessage/monitor.shutdown.unhandled-rejection.test.ts',
   // ... ~90 additional files
-];
+]
 ```
 
 **Sources:** [scripts/test-parallel.mjs:10-94]()
 
 These files are excluded from the `unit-fast` lane and run with forced `forks` pool to avoid:
+
 - Filesystem contention (temp path guards, git commit tests)
 - Process-level listener leaks (unhandled rejection handlers)
 - Module cache pollution (dynamic import tests)
@@ -269,12 +271,12 @@ These files are excluded from the `unit-fast` lane and run with forced `forks` p
 
 The orchestrator supports four test profiles:
 
-| Profile | Use Case | Unit Workers | Gateway Workers | Parallelism |
-|---------|----------|--------------|-----------------|-------------|
-| **low** | CI, low-memory hosts | 2 | 1 | Serial gateway |
-| **normal** | Default local | 2-8 (adaptive) | 1 | Serial gateway |
-| **max** | High-memory workstations | 4-14 (adaptive) | 2-6 | Parallel gateway opt-in |
-| **serial** | Debugging, flake isolation | 1 | 1 | Full serial |
+| Profile    | Use Case                   | Unit Workers    | Gateway Workers | Parallelism             |
+| ---------- | -------------------------- | --------------- | --------------- | ----------------------- |
+| **low**    | CI, low-memory hosts       | 2               | 1               | Serial gateway          |
+| **normal** | Default local              | 2-8 (adaptive)  | 1               | Serial gateway          |
+| **max**    | High-memory workstations   | 4-14 (adaptive) | 2-6             | Parallel gateway opt-in |
+| **serial** | Debugging, flake isolation | 1               | 1               | Full serial             |
 
 **Sources:** [scripts/test-parallel.mjs:510-553]()
 
@@ -283,9 +285,12 @@ The orchestrator supports four test profiles:
 On local (non-CI) runs, the orchestrator adjusts worker counts based on `os.loadavg()[0]`:
 
 ```typescript
-const loadRatio = os.loadavg()[0] / hostCpuCount;
-const extremeLoadScale = loadRatio >= 1.1 ? 0.75 : loadRatio >= 1 ? 0.85 : 1;
-const localWorkers = Math.max(4, Math.min(16, Math.floor(baseLocalWorkers * extremeLoadScale)));
+const loadRatio = os.loadavg()[0] / hostCpuCount
+const extremeLoadScale = loadRatio >= 1.1 ? 0.75 : loadRatio >= 1 ? 0.85 : 1
+const localWorkers = Math.max(
+  4,
+  Math.min(16, Math.floor(baseLocalWorkers * extremeLoadScale))
+)
 ```
 
 **Sources:** [scripts/test-parallel.mjs:499-508]()
@@ -298,12 +303,12 @@ This prevents overwhelming the host during active development while maintaining 
 
 OpenClaw enforces V8 coverage thresholds via `vitest.config.ts`:
 
-| Metric | Threshold | Provider |
-|--------|-----------|----------|
-| **Lines** | 70% | V8 |
-| **Functions** | 70% | V8 |
-| **Branches** | 55% | V8 |
-| **Statements** | 70% | V8 |
+| Metric         | Threshold | Provider |
+| -------------- | --------- | -------- |
+| **Lines**      | 70%       | V8       |
+| **Functions**  | 70%       | V8       |
+| **Branches**   | 55%       | V8       |
+| **Statements** | 70%       | V8       |
 
 **Sources:** [vitest.config.ts:103-114]()
 
@@ -331,7 +336,7 @@ The `all: false` setting ensures only exercised files count toward coverage, pre
 ```mermaid
 graph TB
     Base["vitest.config.ts<br/>Base Configuration"]
-    
+
     subgraph Configs["Specialized Configs"]
         Unit["vitest.unit.config.ts<br/>exclude: gateway, extensions, channels, agents"]
         Extensions["vitest.extensions.config.ts<br/>include: extensions/**/*.test.ts"]
@@ -340,20 +345,20 @@ graph TB
         E2E["vitest.e2e.config.ts<br/>include: **/*.e2e.test.ts"]
         Live["vitest.live.config.ts<br/>include: **/*.live.test.ts"]
     end
-    
+
     subgraph Shared["Shared Utilities"]
         Scoped["vitest.scoped-config.ts<br/>createScopedVitestConfig()"]
         Setup["test/setup.ts<br/>Global setup + plugin stubs"]
         TestEnv["test/test-env.ts<br/>withIsolatedTestHome()"]
     end
-    
+
     Base --> Unit
     Base --> E2E
     Base --> Live
     Scoped --> Extensions
     Scoped --> Gateway
     Base --> Channels
-    
+
     Setup --> Base
     TestEnv --> Setup
 ```
@@ -361,6 +366,7 @@ graph TB
 **Sources:** [vitest.config.ts:1-205](), [vitest.scoped-config.ts:1-18]()
 
 All configs extend `vitest.config.ts`, which provides:
+
 - Base test environment settings (`testTimeout`, `hookTimeout`)
 - Plugin SDK alias resolution
 - Coverage configuration
@@ -378,29 +384,29 @@ The `createScopedVitestConfig` helper simplifies creation of include/exclude-onl
 
 ### Common Commands
 
-| Command | Suite | Notes |
-|---------|-------|-------|
-| `pnpm test` | Unit (fast + isolated) | Default local gate |
-| `pnpm test:coverage` | Unit + coverage report | V8 thresholds enforced |
-| `pnpm test:gateway` | Gateway integration | Serial by default |
-| `pnpm test:extensions` | Plugin/extension tests | vmForks when available |
-| `pnpm test:channels` | Messaging channels | Telegram, Discord, Slack, etc. |
-| `pnpm test:e2e` | End-to-end scenarios | Multi-instance gateway |
-| `pnpm test:live` | Live provider tests | Requires API keys |
+| Command                | Suite                  | Notes                          |
+| ---------------------- | ---------------------- | ------------------------------ |
+| `pnpm test`            | Unit (fast + isolated) | Default local gate             |
+| `pnpm test:coverage`   | Unit + coverage report | V8 thresholds enforced         |
+| `pnpm test:gateway`    | Gateway integration    | Serial by default              |
+| `pnpm test:extensions` | Plugin/extension tests | vmForks when available         |
+| `pnpm test:channels`   | Messaging channels     | Telegram, Discord, Slack, etc. |
+| `pnpm test:e2e`        | End-to-end scenarios   | Multi-instance gateway         |
+| `pnpm test:live`       | Live provider tests    | Requires API keys              |
 
 **Sources:** [docs/help/testing.md:22-35]()
 
 ### Environment Variables
 
-| Variable | Purpose | Example |
-|----------|---------|---------|
-| `OPENCLAW_TEST_PROFILE` | Worker/parallelism profile | `low`, `normal`, `max`, `serial` |
-| `OPENCLAW_TEST_VM_FORKS` | Force pool strategy | `0` (forks), `1` (vmForks) |
-| `OPENCLAW_TEST_WORKERS` | Override worker count | `8` |
-| `OPENCLAW_TEST_SERIAL_GATEWAY` | Force serial gateway | `1` |
-| `OPENCLAW_TEST_LOAD_AWARE` | Disable load scaling | `0` |
-| `OPENCLAW_TEST_SHARDS` | Shard count | `2` (Windows CI default) |
-| `OPENCLAW_TEST_SHARD_INDEX` | Shard index | `1` (1-based) |
+| Variable                       | Purpose                    | Example                          |
+| ------------------------------ | -------------------------- | -------------------------------- |
+| `OPENCLAW_TEST_PROFILE`        | Worker/parallelism profile | `low`, `normal`, `max`, `serial` |
+| `OPENCLAW_TEST_VM_FORKS`       | Force pool strategy        | `0` (forks), `1` (vmForks)       |
+| `OPENCLAW_TEST_WORKERS`        | Override worker count      | `8`                              |
+| `OPENCLAW_TEST_SERIAL_GATEWAY` | Force serial gateway       | `1`                              |
+| `OPENCLAW_TEST_LOAD_AWARE`     | Disable load scaling       | `0`                              |
+| `OPENCLAW_TEST_SHARDS`         | Shard count                | `2` (Windows CI default)         |
+| `OPENCLAW_TEST_SHARD_INDEX`    | Shard index                | `1` (1-based)                    |
 
 **Sources:** [scripts/test-parallel.mjs:119-127](), [scripts/test-parallel.mjs:201-265]()
 
@@ -433,13 +439,14 @@ Gateway tests run **serially by default** to avoid port collisions on the defaul
 
 ```typescript
 const parallelGatewayEnabled =
-  process.env.OPENCLAW_TEST_PARALLEL_GATEWAY === "1" || (!isCI && highMemLocalHost);
+  process.env.OPENCLAW_TEST_PARALLEL_GATEWAY === '1' ||
+  (!isCI && highMemLocalHost)
 
 const keepGatewaySerial =
   isWindowsCi ||
-  process.env.OPENCLAW_TEST_SERIAL_GATEWAY === "1" ||
-  testProfile === "serial" ||
-  !parallelGatewayEnabled;
+  process.env.OPENCLAW_TEST_SERIAL_GATEWAY === '1' ||
+  testProfile === 'serial' ||
+  !parallelGatewayEnabled
 ```
 
 **Sources:** [scripts/test-parallel.mjs:489-496]()
@@ -455,13 +462,14 @@ On high-memory local hosts (≥96 GiB), gateway tests can run in parallel when `
 E2E tests use adaptive worker counts and default to silent mode:
 
 ```typescript
-const defaultWorkers = isCI 
-  ? Math.min(2, Math.max(1, Math.floor(cpuCount * 0.25))) 
-  : 1;
-const e2eWorkers = Number.isFinite(requestedWorkers) && requestedWorkers > 0
-  ? Math.min(16, requestedWorkers)
-  : defaultWorkers;
-const verboseE2E = process.env.OPENCLAW_E2E_VERBOSE === "1";
+const defaultWorkers = isCI
+  ? Math.min(2, Math.max(1, Math.floor(cpuCount * 0.25)))
+  : 1
+const e2eWorkers =
+  Number.isFinite(requestedWorkers) && requestedWorkers > 0
+    ? Math.min(16, requestedWorkers)
+    : defaultWorkers
+const verboseE2E = process.env.OPENCLAW_E2E_VERBOSE === '1'
 ```
 
 **Sources:** [vitest.e2e.config.ts:8-16]()
@@ -472,10 +480,10 @@ E2E tests always use process `forks` (not `vmForks`) to ensure deterministic iso
 
 ### E2E Environment Variables
 
-| Variable | Purpose | Default |
-|----------|---------|---------|
+| Variable               | Purpose               | Default           |
+| ---------------------- | --------------------- | ----------------- |
 | `OPENCLAW_E2E_WORKERS` | Worker count override | CI: 1-2, Local: 1 |
-| `OPENCLAW_E2E_VERBOSE` | Enable verbose logs | `0` (silent) |
+| `OPENCLAW_E2E_VERBOSE` | Enable verbose logs   | `0` (silent)      |
 
 **Sources:** [vitest.e2e.config.ts:10-15](), [docs/help/testing.md:69-71]()
 
@@ -487,13 +495,13 @@ Live tests bypass HOME isolation and load credentials from the real user environ
 
 ```typescript
 const live =
-  process.env.LIVE === "1" ||
-  process.env.OPENCLAW_LIVE_TEST === "1" ||
-  process.env.OPENCLAW_LIVE_GATEWAY === "1";
+  process.env.LIVE === '1' ||
+  process.env.OPENCLAW_LIVE_TEST === '1' ||
+  process.env.OPENCLAW_LIVE_GATEWAY === '1'
 
 if (live) {
-  loadProfileEnv();
-  return { cleanup: () => {}, tempHome: process.env.HOME ?? "" };
+  loadProfileEnv()
+  return { cleanup: () => {}, tempHome: process.env.HOME ?? '' }
 }
 ```
 
@@ -518,7 +526,7 @@ For detailed live test configuration (model allowlists, provider selection, imag
 The orchestrator supports sharding for CI stability, with automatic sharding on Windows CI:
 
 ```typescript
-const shardCount = configuredShardCount ?? (isWindowsCi ? 2 : 1);
+const shardCount = configuredShardCount ?? (isWindowsCi ? 2 : 1)
 ```
 
 **Sources:** [scripts/test-parallel.mjs:204]()
@@ -527,9 +535,13 @@ When sharding is enabled, each lane runs once per shard:
 
 ```typescript
 for (let shardIndex = 1; shardIndex <= shardCount; shardIndex += 1) {
-  const code = await runOnce(entry, ["--shard", `${shardIndex}/${shardCount}`, ...extraArgs]);
+  const code = await runOnce(entry, [
+    '--shard',
+    `${shardIndex}/${shardCount}`,
+    ...extraArgs,
+  ])
   if (code !== 0) {
-    return code;
+    return code
   }
 }
 ```

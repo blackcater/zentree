@@ -46,8 +46,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The cron system provides scheduled background execution of agent tasks and system events. Jobs run on fixed schedules (time-of-day, intervals, one-shot), execute agent turns or emit system events, and optionally deliver results to messaging channels or webhooks. For real-time message processing, see [Message Flow Architecture](#2.1). For agent execution outside cron context, see [Agent Execution Pipeline](#3.1).
 
 ---
@@ -67,7 +65,7 @@ graph TB
         RecomputeNext["recomputeNextRuns()<br/>Repair missing nextRunAtMs"]
         ArmTimer["armTimer()<br/>Schedule next wake"]
     end
-    
+
     subgraph "Timer Loop"
         OnTimer["onTimer()"]
         CheckRunning["state.running?<br/>Re-arm if busy"]
@@ -78,17 +76,17 @@ graph TB
         PersistResults["persist()<br/>Atomic write"]
         ReapSessions["sweepCronRunSessions()<br/>Delete old transcripts"]
     end
-    
+
     subgraph "Shutdown"
         StopTimer["stopTimer()<br/>clearTimeout"]
     end
-    
+
     LoadStore --> ClearStale
     ClearStale --> RunMissed
     RunMissed --> RecomputeNext
     RecomputeNext --> ArmTimer
     ArmTimer --> OnTimer
-    
+
     OnTimer --> CheckRunning
     CheckRunning -->|running=true| OnTimer
     CheckRunning -->|running=false| CollectDue
@@ -98,7 +96,7 @@ graph TB
     ApplyOutcome --> PersistResults
     PersistResults --> ReapSessions
     ReapSessions --> ArmTimer
-    
+
     StopTimer --> LoadStore
 ```
 
@@ -108,13 +106,13 @@ The service maintains a locked in-memory state synchronized with the on-disk sto
 
 **Key State Fields:**
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `store` | `CronStoreFile` | In-memory job list |
-| `timer` | `NodeJS.Timeout \| null` | Active timer handle |
-| `running` | `boolean` | Execution-in-progress guard |
-| `lock` | `Promise<void>` | Async mutex |
-| `storeChecksum` | `string \| null` | File mtime cache |
+| Field           | Type                     | Purpose                     |
+| --------------- | ------------------------ | --------------------------- |
+| `store`         | `CronStoreFile`          | In-memory job list          |
+| `timer`         | `NodeJS.Timeout \| null` | Active timer handle         |
+| `running`       | `boolean`                | Execution-in-progress guard |
+| `lock`          | `Promise<void>`          | Async mutex                 |
+| `storeChecksum` | `string \| null`         | File mtime cache            |
 
 **Sources:** [src/cron/service/state.ts:107-137]()
 
@@ -128,7 +126,7 @@ graph LR
     delay["delay = nextWake - now"]
     clamp["clampedDelay = min(delay, 60s)"]
     setTimeout["setTimeout(onTimer, clampedDelay)"]
-    
+
     nextWakeAtMs --> delay
     delay --> clamp
     clamp --> setTimeout
@@ -148,10 +146,10 @@ When no jobs have a valid `nextRunAtMs`, the timer remains inactive until a job 
 
 Cron jobs use one of two execution modes:
 
-| Target | Payload | Execution | Session Key |
-|--------|---------|-----------|-------------|
-| `main` | `systemEvent` | Enqueues text to main session queue | `agent:main:main` |
-| `isolated` | `agentTurn` | Runs full agent turn in isolated session | `agent:<agentId>:cron:<jobId>` or custom `sessionKey` |
+| Target     | Payload       | Execution                                | Session Key                                           |
+| ---------- | ------------- | ---------------------------------------- | ----------------------------------------------------- |
+| `main`     | `systemEvent` | Enqueues text to main session queue      | `agent:main:main`                                     |
+| `isolated` | `agentTurn`   | Runs full agent turn in isolated session | `agent:<agentId>:cron:<jobId>` or custom `sessionKey` |
 
 **Sources:** [src/cron/types.ts:16](), [src/cron/service/jobs.ts:134-141]()
 
@@ -168,13 +166,13 @@ graph TB
         Every["every: { everyMs, anchorMs? }<br/>Fixed interval from anchor"]
         Cron["cron: { expr, tz?, staggerMs? }<br/>Cron expression with optional stagger"]
     end
-    
+
     subgraph "Next Run Computation"
         AtCompute["parseAbsoluteTimeMs(at)<br/>Returns atMs if > lastRunAtMs"]
         EveryCompute["lastRunAtMs + everyMs<br/>or (now - anchor) % everyMs"]
         CronCompute["croner.parseCronExpression(expr, tz)<br/>+ job-specific stagger offset"]
     end
-    
+
     At --> AtCompute
     Every --> EveryCompute
     Cron --> CronCompute
@@ -196,10 +194,10 @@ Default stagger for top-of-hour expressions (`0 * * * *`, `0 0 * * *`) is 60 sec
 
 ### Wake Modes
 
-| Mode | Behavior | Use Case |
-|------|----------|----------|
-| `next-heartbeat` | Enqueues event, waits for next heartbeat poll | Non-urgent notifications |
-| `now` | Triggers immediate heartbeat via `requestHeartbeatNow()` or `runHeartbeatOnce()` | Time-sensitive alerts |
+| Mode             | Behavior                                                                         | Use Case                 |
+| ---------------- | -------------------------------------------------------------------------------- | ------------------------ |
+| `next-heartbeat` | Enqueues event, waits for next heartbeat poll                                    | Non-urgent notifications |
+| `now`            | Triggers immediate heartbeat via `requestHeartbeatNow()` or `runHeartbeatOnce()` | Time-sensitive alerts    |
 
 **Sources:** [src/cron/service/timer.ts:805-861]()
 
@@ -210,11 +208,13 @@ Wake mode `now` attempts synchronous heartbeat execution with retries if the hea
 ### Payload Configuration
 
 **System Event Payload:**
+
 ```typescript
 { kind: "systemEvent", text: string }
 ```
 
 **Agent Turn Payload:**
+
 ```typescript
 {
   kind: "agentTurn",
@@ -250,25 +250,25 @@ sequenceDiagram
     participant Session as "resolveCronSession()"
     participant Agent as "runEmbeddedPiAgent() /<br/>runCliAgent()"
     participant Delivery as "dispatchCronDelivery()"
-    
+
     Timer->>Exec: Due job found
     Exec->>IsoRun: job, message, abortSignal
-    
+
     IsoRun->>Session: Resolve/create session<br/>forceNew: isolated target
     Session-->>IsoRun: sessionEntry, store
-    
+
     IsoRun->>IsoRun: Resolve model precedence<br/>payload → session → subagent → hooks.gmail
     IsoRun->>IsoRun: Build skills snapshot<br/>with agent-level skillFilter
     IsoRun->>IsoRun: Wrap external hook content<br/>if !allowUnsafeExternalContent
-    
+
     IsoRun->>Agent: Prompt, model, skills, authProfileId
     Agent-->>IsoRun: payloads[], meta
-    
+
     IsoRun->>IsoRun: Check interim ack guardrail<br/>retry with continuation if needed
-    
+
     IsoRun->>Delivery: deliveryPlan, payloads
     Delivery-->>IsoRun: delivered, deliveryAttempted
-    
+
     IsoRun-->>Exec: status, summary, outputText, delivered
     Exec-->>Timer: outcome, telemetry
 ```
@@ -298,16 +298,16 @@ graph TB
     JobAgentId["job.agentId or defaultAgentId"]
     ResolveConfig["resolveAgentConfig(cfg, agentId)"]
     ExtractSkills["agentCfg.skills"]
-    
+
     CheckUndefined{"skills === undefined?"}
     NoFilter["skillFilter = undefined<br/>(all skills enabled)"]
-    
+
     CheckEmpty{"skills.length === 0?"}
     EmptyFilter["skillFilter = []<br/>(all skills disabled)"]
-    
+
     NormalizeFilter["Normalize & dedupe:<br/>trim, lowercase, unique"]
     ApplyFilter["buildWorkspaceSkillSnapshot(<br/>  skillFilter: normalized)"]
-    
+
     JobAgentId --> ResolveConfig
     ResolveConfig --> ExtractSkills
     ExtractSkills --> CheckUndefined
@@ -371,7 +371,7 @@ graph TB
         Announce["mode: announce<br/>channel: telegram/discord/slack/last<br/>to: chatId or @username<br/>accountId?: multi-account routing"]
         Webhook["mode: webhook<br/>to: https://example.com/hook<br/>POST JSON payload"]
     end
-    
+
     subgraph "Dispatch Logic"
         ResolveTarget["resolveDeliveryTarget()<br/>channel='last' → session lastChannel/lastTo"]
         CheckHeartbeat["isHeartbeatOnlyResponse()?<br/>Skip if HEARTBEAT_OK only"]
@@ -379,7 +379,7 @@ graph TB
         DirectSend["Direct channel send<br/>sendMessageTelegram() etc"]
         WebhookPost["fetchWithSsrFGuard()<br/>POST to webhook URL"]
     end
-    
+
     Announce --> ResolveTarget
     ResolveTarget --> CheckHeartbeat
     CheckHeartbeat --> CheckStructured
@@ -408,13 +408,13 @@ When the final agent payload is only `HEARTBEAT_OK` (or `HEARTBEAT_OK` with up t
 
 ```typescript
 function isHeartbeatOnlyResponse(payloads, ackMaxChars) {
-  const lastPayload = pickLastDeliverablePayload(payloads);
+  const lastPayload = pickLastDeliverablePayload(payloads)
   if (!lastPayload || lastPayload.mediaUrl || lastPayload.mediaUrls?.length) {
-    return false;  // Has structured content, deliver it
+    return false // Has structured content, deliver it
   }
-  const text = lastPayload.text?.trim() ?? "";
-  const withoutHeartbeat = text.replace(/^HEARTBEAT_OK\s*/i, "");
-  return withoutHeartbeat.length <= ackMaxChars;
+  const text = lastPayload.text?.trim() ?? ''
+  const withoutHeartbeat = text.replace(/^HEARTBEAT_OK\s*/i, '')
+  return withoutHeartbeat.length <= ackMaxChars
 }
 ```
 
@@ -433,10 +433,10 @@ graph TB
     AttemptDelivery["Attempt delivery"]
     DeliveryOk{"Success?"}
     BestEffort{"bestEffort?"}
-    
+
     ReturnOk["Return: status=ok<br/>delivered=false"]
     ReturnError["Return: status=error<br/>error=delivery failure"]
-    
+
     AttemptDelivery --> DeliveryOk
     DeliveryOk -->|yes| ReturnOk
     DeliveryOk -->|no| BestEffort
@@ -507,11 +507,11 @@ The webhook URL is validated to prevent SSRF attacks. Private IP ranges, localho
 
 Failed jobs are retried with exponential backoff based on `consecutiveErrors`:
 
-| Attempt | Delay |
-|---------|-------|
+| Attempt   | Delay      |
+| --------- | ---------- |
 | 1st error | 30 seconds |
-| 2nd error | 1 minute |
-| 3rd error | 5 minutes |
+| 2nd error | 1 minute   |
+| 3rd error | 5 minutes  |
 | 4th error | 15 minutes |
 | 5+ errors | 60 minutes |
 
@@ -527,23 +527,23 @@ The next run is scheduled at `max(naturalNextRun, endedAt + backoff)` so recurri
 graph TB
     ErrorOccurred["Job execution error"]
     ClassifyError["Match error against patterns:<br/>rate_limit, overloaded, network, timeout, server_error"]
-    
+
     Transient{"Transient?"}
     OneShot{"Schedule kind=at?"}
     AttemptCount{"consecutiveErrors <= maxAttempts?"}
-    
+
     ScheduleRetry["Schedule retry with backoff<br/>nextRunAtMs = now + backoff"]
     DisableJob["Disable job<br/>nextRunAtMs = undefined"]
     ApplyBackoff["Apply backoff to next natural run"]
-    
+
     ErrorOccurred --> ClassifyError
     ClassifyError --> Transient
     Transient -->|yes| OneShot
     Transient -->|no| OneShot
-    
+
     OneShot -->|yes| AttemptCount
     OneShot -->|no| ApplyBackoff
-    
+
     AttemptCount -->|yes| ScheduleRetry
     AttemptCount -->|no| DisableJob
 ```
@@ -554,12 +554,14 @@ graph TB
 
 ```typescript
 const TRANSIENT_PATTERNS = {
-  rate_limit: /(rate[_ ]limit|too many requests|429|resource has been exhausted|cloudflare|tokens per day)/i,
-  overloaded: /\b529\b|\boverloaded(?:_error)?\b|high demand|temporar(?:ily|y) overloaded|capacity exceeded/i,
+  rate_limit:
+    /(rate[_ ]limit|too many requests|429|resource has been exhausted|cloudflare|tokens per day)/i,
+  overloaded:
+    /\b529\b|\boverloaded(?:_error)?\b|high demand|temporar(?:ily|y) overloaded|capacity exceeded/i,
   network: /(network|econnreset|econnrefused|fetch failed|socket)/i,
   timeout: /(timeout|etimedout)/i,
-  server_error: /\b5\d{2}\b/
-};
+  server_error: /\b5\d{2}\b/,
+}
 ```
 
 **Sources:** [src/cron/service/timer.ts:133-141]()
@@ -592,16 +594,16 @@ stateDiagram-v2
     Running --> Skipped: status=skipped
     Running --> TransientError: Transient error
     Running --> PermanentError: Permanent error
-    
+
     TransientError --> RetryScheduled: attempts < maxAttempts
     TransientError --> Disabled: attempts >= maxAttempts
     RetryScheduled --> Running: Retry fires
-    
+
     Success --> Deleted: deleteAfterRun=true
     Success --> Disabled: deleteAfterRun=false
     Skipped --> Disabled
     PermanentError --> Disabled
-    
+
     Deleted --> [*]
     Disabled --> [*]
 ```
@@ -642,16 +644,16 @@ Alerts skip jobs with `delivery.bestEffort: true` or `payload.bestEffortDeliver:
 
 The Gateway exposes cron management via WebSocket RPC methods:
 
-| Method | Purpose | Scope |
-|--------|---------|-------|
-| `cron.list` | List jobs with filters | `read` |
-| `cron.listPage` | Paginated list with search | `read` |
-| `cron.add` | Create new job | `write` |
-| `cron.update` | Modify existing job | `write` |
-| `cron.remove` | Delete job | `write` |
-| `cron.run` | Manually trigger job | `write` |
-| `cron.status` | Service health check | `read` |
-| `cron.runsLog` | View execution history | `read` |
+| Method          | Purpose                    | Scope   |
+| --------------- | -------------------------- | ------- |
+| `cron.list`     | List jobs with filters     | `read`  |
+| `cron.listPage` | Paginated list with search | `read`  |
+| `cron.add`      | Create new job             | `write` |
+| `cron.update`   | Modify existing job        | `write` |
+| `cron.remove`   | Delete job                 | `write` |
+| `cron.run`      | Manually trigger job       | `write` |
+| `cron.status`   | Service health check       | `read`  |
+| `cron.runsLog`  | View execution history     | `read`  |
 
 **Sources:** [src/gateway/protocol/schema/cron.ts]()
 

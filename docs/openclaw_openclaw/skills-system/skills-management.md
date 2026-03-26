@@ -64,8 +64,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers the operational aspects of managing skills in OpenClaw: installing, enabling/disabling, checking readiness, and monitoring skill availability across agents. Skills management happens through CLI commands, the Control UI, and ClawHub integration. For the conceptual model of skills (sources, precedence, and loading rules), see [Skills Overview](#5.1). For configuration syntax and gating rules, see [Skills Configuration](#5.2).
 
 ---
@@ -93,6 +91,7 @@ openclaw skills info <name>
 ```
 
 The `info` subcommand displays full metadata for a single skill:
+
 - Description and purpose
 - Requirements (binaries, environment variables, config keys)
 - Source location (bundled, managed, workspace)
@@ -124,35 +123,35 @@ graph TB
         WorkspaceSkills["Workspace Skills<br/>(<workspace>/skills)"]
         PluginSkills["Plugin Skills<br/>(extensions/*/skills)"]
     end
-    
+
     subgraph "Skills Catalog"
         Discover["buildWorkspaceSkillsSnapshot()"]
         Merge["Merge + Precedence<br/>(workspace > managed > bundled)"]
         Filter["Filter by Gating Rules<br/>(skills.entries config)"]
     end
-    
+
     subgraph "Management Commands"
         List["openclaw skills list"]
         Info["openclaw skills info"]
         Check["openclaw skills check"]
     end
-    
+
     subgraph "External Tools"
         ClawHub["ClawHub<br/>(install/update/sync)"]
     end
-    
+
     BundledSkills --> Discover
     ManagedSkills --> Discover
     WorkspaceSkills --> Discover
     PluginSkills --> Discover
-    
+
     Discover --> Merge
     Merge --> Filter
-    
+
     Filter --> List
     Filter --> Info
     Filter --> Check
-    
+
     ClawHub --> ManagedSkills
     ClawHub --> WorkspaceSkills
 ```
@@ -199,10 +198,10 @@ Sync scans local skills, publishes updates to the registry, and optionally pulls
 
 In multi-agent configurations, each agent has its own workspace. Skills management operates at two scopes:
 
-| Scope | Location | Visibility |
-|-------|----------|-----------|
-| **Per-agent** | `<workspace>/skills` | Single agent only |
-| **Shared** | `~/.openclaw/skills` | All agents on the host |
+| Scope          | Location                | Visibility                     |
+| -------------- | ----------------------- | ------------------------------ |
+| **Per-agent**  | `<workspace>/skills`    | Single agent only              |
+| **Shared**     | `~/.openclaw/skills`    | All agents on the host         |
 | **Extra dirs** | `skills.load.extraDirs` | All agents (lowest precedence) |
 
 ### Per-Agent Allowlists
@@ -213,9 +212,9 @@ The `skills.entries` configuration supports per-agent overrides:
 {
   skills: {
     entries: {
-      "github-actions": {
+      'github-actions': {
         enabled: true,
-        agents: ["coding"], // Only available to 'coding' agent
+        agents: ['coding'], // Only available to 'coding' agent
       },
     },
   },
@@ -237,21 +236,21 @@ graph LR
         ConfigGating["skills.entries<br/>enabled/disabled state"]
         RequirementsCheck["Binary/env/config checks"]
     end
-    
+
     subgraph "Aggregation"
         StatusReport["Skills Status Report"]
     end
-    
+
     subgraph "Output Surfaces"
         CLI["openclaw skills<br/>list/info/check"]
         ControlUI["Control UI<br/>Skills tab"]
         Gateway["Gateway RPC<br/>skills.status method"]
     end
-    
+
     SkillsSnapshot --> StatusReport
     ConfigGating --> StatusReport
     RequirementsCheck --> StatusReport
-    
+
     StatusReport --> CLI
     StatusReport --> ControlUI
     StatusReport --> Gateway
@@ -261,16 +260,16 @@ graph LR
 
 The skills status report includes:
 
-| Field | Description |
-|-------|-------------|
-| `name` | Skill identifier |
-| `label` | Display name |
-| `description` | Purpose and usage |
-| `source` | `bundled`, `managed`, `workspace`, or `plugin` |
-| `enabled` | Whether skill is enabled via config |
-| `ready` | Whether all requirements are satisfied |
-| `requirements` | List of binaries, env vars, config keys |
-| `missingRequirements` | Specific unmet dependencies |
+| Field                 | Description                                    |
+| --------------------- | ---------------------------------------------- |
+| `name`                | Skill identifier                               |
+| `label`               | Display name                                   |
+| `description`         | Purpose and usage                              |
+| `source`              | `bundled`, `managed`, `workspace`, or `plugin` |
+| `enabled`             | Whether skill is enabled via config            |
+| `ready`               | Whether all requirements are satisfied         |
+| `requirements`        | List of binaries, env vars, config keys        |
+| `missingRequirements` | Specific unmet dependencies                    |
 
 **Sources:** [ui/src/ui/views/agents-utils.ts:1-24](), [ui/src/ui/views/skills.ts:1-7918]()
 
@@ -297,14 +296,14 @@ sequenceDiagram
     participant SkillsLoader as Skills Loader
     participant Config as Config Manager
     participant Workspace as Workspace
-    
+
     UI->>Gateway: GET /api/skills/status
     Gateway->>SkillsLoader: buildWorkspaceSkillsSnapshot()
     SkillsLoader->>Workspace: Read SKILL.md files
     SkillsLoader->>Config: Get skills.entries
     SkillsLoader-->>Gateway: Skills status report
     Gateway-->>UI: JSON response
-    
+
     UI->>UI: User toggles skill
     UI->>Gateway: POST /api/skills/enable
     Gateway->>Config: Update skills.entries
@@ -332,39 +331,39 @@ graph TB
         ScanPlugins["Scan plugin skills<br/>(enabled plugins)"]
         ScanExtra["Scan extra directories<br/>(skills.load.extraDirs)"]
     end
-    
+
     subgraph "Step 2: Parse Metadata"
         ParseYAML["Parse SKILL.md frontmatter"]
         ExtractRequirements["Extract requirements"]
     end
-    
+
     subgraph "Step 3: Apply Precedence"
         DedupeByName["Deduplicate by name<br/>(workspace > managed > bundled)"]
     end
-    
+
     subgraph "Step 4: Filter"
         CheckEnabled["Check skills.entries.enabled"]
         CheckAgents["Check skills.entries.agents"]
         CheckRequirements["Verify binary/env/config"]
     end
-    
+
     subgraph "Step 5: Build Snapshot"
         Snapshot["Skills Snapshot<br/>(ready + missing)"]
     end
-    
+
     ScanBundled --> ParseYAML
     ScanManaged --> ParseYAML
     ScanWorkspace --> ParseYAML
     ScanPlugins --> ParseYAML
     ScanExtra --> ParseYAML
-    
+
     ParseYAML --> ExtractRequirements
     ExtractRequirements --> DedupeByName
-    
+
     DedupeByName --> CheckEnabled
     CheckEnabled --> CheckAgents
     CheckAgents --> CheckRequirements
-    
+
     CheckRequirements --> Snapshot
 ```
 
@@ -385,13 +384,13 @@ Extra directories configured via `skills.load.extraDirs` have the lowest precede
 
 ## Skills Installation Locations
 
-| Location | Managed By | Purpose |
-|----------|------------|---------|
-| `<npm-prefix>/lib/node_modules/openclaw/skills` | npm package | Bundled skills shipped with OpenClaw |
-| `~/.openclaw/skills/<name>` | User/ClawHub | Shared skills for all agents |
-| `<workspace>/skills/<name>` | User/ClawHub | Per-agent workspace skills |
-| `<plugin-root>/skills/<name>` | Plugin author | Plugin-provided skills |
-| Paths in `skills.load.extraDirs` | User | Custom skill collections |
+| Location                                        | Managed By    | Purpose                              |
+| ----------------------------------------------- | ------------- | ------------------------------------ |
+| `<npm-prefix>/lib/node_modules/openclaw/skills` | npm package   | Bundled skills shipped with OpenClaw |
+| `~/.openclaw/skills/<name>`                     | User/ClawHub  | Shared skills for all agents         |
+| `<workspace>/skills/<name>`                     | User/ClawHub  | Per-agent workspace skills           |
+| `<plugin-root>/skills/<name>`                   | Plugin author | Plugin-provided skills               |
+| Paths in `skills.load.extraDirs`                | User          | Custom skill collections             |
 
 ### Workspace Skills Path Resolution
 

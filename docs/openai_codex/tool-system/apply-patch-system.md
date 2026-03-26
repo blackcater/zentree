@@ -15,8 +15,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page documents the `apply_patch` tool system: the patch format, parsing pipeline, interception mechanism, approval integration, and filesystem execution. Two invocation paths exist — a direct function tool call and a shell-level interception that detects heredoc-wrapped `apply_patch` calls before any subprocess is spawned.
@@ -29,14 +27,15 @@ For the general tool registry that registers `ApplyPatchHandler`, see [Tool Regi
 
 The apply_patch system uses a custom diff-like format bounded by `*** Begin Patch` / `*** End Patch` delimiters. Three hunk types are supported:
 
-| Hunk Keyword | Syntax | Effect |
-|---|---|---|
-| `*** Add File:` | Followed by `+<line>` lines | Creates a new file with the given lines |
-| `*** Delete File:` | Path only | Removes a file from the filesystem |
-| `*** Update File:` | Followed by `@@` sections with `+`/`-`/` ` lines | Applies a diff to an existing file |
-| `*** Move to:` | Inside an Update hunk | Combined with Update: renames the file |
+| Hunk Keyword       | Syntax                                           | Effect                                  |
+| ------------------ | ------------------------------------------------ | --------------------------------------- |
+| `*** Add File:`    | Followed by `+<line>` lines                      | Creates a new file with the given lines |
+| `*** Delete File:` | Path only                                        | Removes a file from the filesystem      |
+| `*** Update File:` | Followed by `@@` sections with `+`/`-`/` ` lines | Applies a diff to an existing file      |
+| `*** Move to:`     | Inside an Update hunk                            | Combined with Update: renames the file  |
 
 A minimal example:
+
 ```
 *** Begin Patch
 *** Add File: src/hello.txt
@@ -190,14 +189,14 @@ All parsing lives in the `codex-apply-patch` crate (`codex-rs/apply-patch/`).
 
 ### Entry Points
 
-| Function | File | Purpose |
-|---|---|---|
-| `parse_patch()` | `src/parser.rs` | Parse raw patch text into `Vec<Hunk>` |
-| `apply_patch()` | `src/lib.rs` | Parse and apply; write result to stdout/stderr writers |
-| `apply_hunks()` | `src/lib.rs` | Apply pre-parsed hunks |
-| `apply_hunks_to_files()` | `src/lib.rs` | Internal: execute filesystem mutations |
+| Function                             | File                | Purpose                                                              |
+| ------------------------------------ | ------------------- | -------------------------------------------------------------------- |
+| `parse_patch()`                      | `src/parser.rs`     | Parse raw patch text into `Vec<Hunk>`                                |
+| `apply_patch()`                      | `src/lib.rs`        | Parse and apply; write result to stdout/stderr writers               |
+| `apply_hunks()`                      | `src/lib.rs`        | Apply pre-parsed hunks                                               |
+| `apply_hunks_to_files()`             | `src/lib.rs`        | Internal: execute filesystem mutations                               |
 | `maybe_parse_apply_patch_verified()` | `src/invocation.rs` | Parse a shell argv to detect an apply_patch invocation and verify it |
-| `unified_diff_from_chunks()` | `src/lib.rs` | Compute a unified diff from update chunks (for display) |
+| `unified_diff_from_chunks()`         | `src/lib.rs`        | Compute a unified diff from update chunks (for display)              |
 
 Sources: [codex-rs/apply-patch/src/lib.rs:182-215](), [codex-rs/apply-patch/src/invocation.rs:1-50]()
 
@@ -213,12 +212,12 @@ Hunk::UpdateFile { path: PathBuf, move_path: Option<PathBuf>, chunks: Vec<Update
 
 Each `UpdateFileChunk` holds:
 
-| Field | Type | Description |
-|---|---|---|
+| Field            | Type             | Description                                     |
+| ---------------- | ---------------- | ----------------------------------------------- |
 | `change_context` | `Option<String>` | Anchor line (`@@ <text>`) for positional search |
-| `old_lines` | `Vec<String>` | Lines to be removed |
-| `new_lines` | `Vec<String>` | Replacement lines |
-| `is_end_of_file` | `bool` | Whether the chunk targets the end of file |
+| `old_lines`      | `Vec<String>`    | Lines to be removed                             |
+| `new_lines`      | `Vec<String>`    | Replacement lines                               |
+| `is_end_of_file` | `bool`           | Whether the chunk targets the end of file       |
 
 Sources: [codex-rs/apply-patch/src/parser.rs:1-50]()
 
@@ -236,14 +235,15 @@ Sources: [codex-rs/apply-patch/src/lib.rs:386-502]()
 
 `maybe_parse_apply_patch_verified()` is the gateway for the interception path. It parses a shell argv (extracting the patch body from heredoc syntax using a tree-sitter Bash parser) and returns one of:
 
-| Variant | Meaning |
-|---|---|
-| `Body(ApplyPatchAction)` | Valid apply_patch call; `action.changes` holds the file change map |
-| `ShellParseError(ExtractHeredocError)` | Shell syntax could not be parsed; ambiguous |
-| `CorrectnessError(ApplyPatchError)` | Recognized as apply_patch but patch is malformed |
-| `NotApplyPatch` | Command is definitely not an apply_patch invocation |
+| Variant                                | Meaning                                                            |
+| -------------------------------------- | ------------------------------------------------------------------ |
+| `Body(ApplyPatchAction)`               | Valid apply_patch call; `action.changes` holds the file change map |
+| `ShellParseError(ExtractHeredocError)` | Shell syntax could not be parsed; ambiguous                        |
+| `CorrectnessError(ApplyPatchError)`    | Recognized as apply_patch but patch is malformed                   |
+| `NotApplyPatch`                        | Command is definitely not an apply_patch invocation                |
 
 The `intercept_apply_patch()` function handles each variant:
+
 - `NotApplyPatch` → returns `Ok(None)`, shell/exec execution continues normally.
 - `ShellParseError` or `CorrectnessError` → returns a `FunctionCallError::RespondToModel` with an error description.
 - `Body(action)` → proceeds with patch application.
@@ -256,18 +256,18 @@ Sources: [codex-rs/apply-patch/src/lib.rs:111-123](), [codex-rs/apply-patch/src/
 
 `ApplyPatchAction` is the verified, post-parse representation:
 
-| Field | Type | Description |
-|---|---|---|
-| `changes` | `HashMap<PathBuf, ApplyPatchFileChange>` | Per-file operations |
-| `patch` | `String` | Canonical patch text (no heredoc wrapper) |
-| `cwd` | `PathBuf` | Working directory used for relative path resolution |
+| Field     | Type                                     | Description                                         |
+| --------- | ---------------------------------------- | --------------------------------------------------- |
+| `changes` | `HashMap<PathBuf, ApplyPatchFileChange>` | Per-file operations                                 |
+| `patch`   | `String`                                 | Canonical patch text (no heredoc wrapper)           |
+| `cwd`     | `PathBuf`                                | Working directory used for relative path resolution |
 
 `ApplyPatchFileChange` describes the intended operation per file:
 
-| Variant | Fields | Meaning |
-|---|---|---|
-| `Add` | `content: String` | File to create |
-| `Delete` | `content: String` | File to remove |
+| Variant  | Fields                                 | Meaning                         |
+| -------- | -------------------------------------- | ------------------------------- |
+| `Add`    | `content: String`                      | File to create                  |
+| `Delete` | `content: String`                      | File to remove                  |
 | `Update` | `unified_diff, move_path, new_content` | File to modify; optionally move |
 
 Sources: [codex-rs/apply-patch/src/lib.rs:85-180]()
@@ -291,10 +291,10 @@ Sources: [codex-rs/core/src/tools/handlers/apply_patch.rs:1-200](), [codex-rs/co
 
 `ApplyPatchHandler` implements `ToolHandler` and handles two payload variants:
 
-| `ToolPayload` Variant | Source | Parsing |
-|---|---|---|
+| `ToolPayload` Variant    | Source                            | Parsing                                             |
+| ------------------------ | --------------------------------- | --------------------------------------------------- |
 | `Function { arguments }` | JSON function call from the model | Deserializes `ApplyPatchToolArgs { input: String }` |
-| `Custom { input }` | Internal/freeform invocation | Uses `input` string directly |
+| `Custom { input }`       | Internal/freeform invocation      | Uses `input` string directly                        |
 
 After extracting the patch text, the handler:
 
@@ -326,13 +326,13 @@ The runtime builds a command of the form:
 
 ### `ApplyPatchRequest` Fields
 
-| Field | Type | Purpose |
-|---|---|---|
-| `action` | `ApplyPatchAction` | Parsed, verified patch |
-| `file_paths` | `Vec<AbsolutePathBuf>` | Approval cache keys |
-| `changes` | `HashMap<PathBuf, FileChange>` | Protocol representation for events |
-| `approval_policy` | `AskForApproval` | Governs whether to prompt the user |
-| `cwd` | `PathBuf` | Working directory for subprocess |
+| Field             | Type                           | Purpose                            |
+| ----------------- | ------------------------------ | ---------------------------------- |
+| `action`          | `ApplyPatchAction`             | Parsed, verified patch             |
+| `file_paths`      | `Vec<AbsolutePathBuf>`         | Approval cache keys                |
+| `changes`         | `HashMap<PathBuf, FileChange>` | Protocol representation for events |
+| `approval_policy` | `AskForApproval`               | Governs whether to prompt the user |
+| `cwd`             | `PathBuf`                      | Working directory for subprocess   |
 
 ### Approval
 
@@ -352,25 +352,25 @@ The apply_patch system emits two `EventMsg` variants via `ToolEmitter::ApplyPatc
 
 Emitted before execution starts. The `SharedTurnDiffTracker` is also notified via `on_patch_begin()` to track changes for turn diff reporting.
 
-| Field | Type | Description |
-|---|---|---|
-| `call_id` | `String` | Tool call identifier |
-| `turn_id` | `String` | Current turn sub-ID |
-| `auto_approved` | `bool` | Whether user approval was bypassed |
-| `changes` | `HashMap<PathBuf, FileChange>` | Proposed file changes |
+| Field           | Type                           | Description                        |
+| --------------- | ------------------------------ | ---------------------------------- |
+| `call_id`       | `String`                       | Tool call identifier               |
+| `turn_id`       | `String`                       | Current turn sub-ID                |
+| `auto_approved` | `bool`                         | Whether user approval was bypassed |
+| `changes`       | `HashMap<PathBuf, FileChange>` | Proposed file changes              |
 
 ### `PatchApplyEndEvent`
 
 Emitted after the subprocess completes.
 
-| Field | Type | Description |
-|---|---|---|
-| `call_id` | `String` | Tool call identifier |
-| `turn_id` | `String` | Current turn sub-ID |
-| `success` | `bool` | Whether the patch applied cleanly |
-| `stdout` | `String` | Subprocess stdout |
-| `stderr` | `String` | Subprocess stderr |
-| `status` | `PatchApplyStatus` | `Completed` or `Failed` |
+| Field     | Type               | Description                       |
+| --------- | ------------------ | --------------------------------- |
+| `call_id` | `String`           | Tool call identifier              |
+| `turn_id` | `String`           | Current turn sub-ID               |
+| `success` | `bool`             | Whether the patch applied cleanly |
+| `stdout`  | `String`           | Subprocess stdout                 |
+| `stderr`  | `String`           | Subprocess stderr                 |
+| `status`  | `PatchApplyStatus` | `Completed` or `Failed`           |
 
 Sources: [codex-rs/core/src/tools/events.rs:170-230]()
 
@@ -380,11 +380,11 @@ Sources: [codex-rs/core/src/tools/events.rs:170-230]()
 
 `apply_hunks_to_files()` in [codex-rs/apply-patch/src/lib.rs:278-339]() performs the actual writes:
 
-| Hunk Type | Filesystem Operations |
-|---|---|
-| `AddFile` | `fs::create_dir_all(parent)` + `fs::write(path, contents)` |
-| `DeleteFile` | `fs::remove_file(path)` |
-| `UpdateFile` | Read file → compute replacements → `fs::write(path, new_contents)` |
+| Hunk Type                  | Filesystem Operations                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------------------------- |
+| `AddFile`                  | `fs::create_dir_all(parent)` + `fs::write(path, contents)`                                        |
+| `DeleteFile`               | `fs::remove_file(path)`                                                                           |
+| `UpdateFile`               | Read file → compute replacements → `fs::write(path, new_contents)`                                |
 | `UpdateFile` + `move_path` | `fs::create_dir_all(dest_parent)` + `fs::write(dest, new_contents)` + `fs::remove_file(original)` |
 
 On success, `print_summary()` at [codex-rs/apply-patch/src/lib.rs:537-552]() writes to the provided stdout writer:

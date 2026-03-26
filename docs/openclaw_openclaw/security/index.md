@@ -40,8 +40,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes OpenClaw's security architecture, including access control, authentication, sandboxing, secret management, and network hardening. It provides an operational overview of the security model and references to implementation details.
@@ -61,31 +59,31 @@ graph TB
         Tailscale["Tailscale Serve/Funnel<br/>(optional remote access)"]
         TLS["TLS Configuration<br/>(certificate validation)"]
     end
-    
+
     subgraph "Access Control Layer"
         DmPolicy["DM Policy<br/>(pairing, allowlist, open, disabled)"]
         GroupPolicy["Group Policy<br/>(allowlist, open, disabled)"]
         PairingStore["Pairing Store<br/>(approved senders)"]
     end
-    
+
     subgraph "Authentication Layer"
         GatewayAuth["Gateway Auth<br/>(token or password)"]
         DevicePairing["Device Pairing<br/>(node authentication)"]
         OAuthProfiles["OAuth/API Key Profiles<br/>(model providers)"]
     end
-    
+
     subgraph "Execution Layer"
         ToolPolicy["Tool Policy<br/>(hierarchical filtering)"]
         Sandbox["Docker Sandbox<br/>(session isolation)"]
         OwnerOnly["Owner-Only Tools<br/>(elevated commands)"]
     end
-    
+
     subgraph "Data Layer"
         SecretRef["SecretRef Pattern<br/>(credential indirection)"]
         Redaction["Log Redaction<br/>(sensitive data masking)"]
         FilePolicy["File Policy<br/>(workspace boundaries)"]
     end
-    
+
     Bind --> DmPolicy
     Tailscale --> GatewayAuth
     DmPolicy --> DevicePairing
@@ -96,7 +94,7 @@ graph TB
     ToolPolicy --> OwnerOnly
     OAuthProfiles --> SecretRef
     Sandbox --> FilePolicy
-    
+
     style Bind fill:#f9f9f9
     style DmPolicy fill:#f9f9f9
     style GatewayAuth fill:#f9f9f9
@@ -105,6 +103,7 @@ graph TB
 ```
 
 **Threat Model:**
+
 - **Untrusted inbound messages**: DM senders and group members are treated as untrusted by default.
 - **Privileged tool access**: Tools like `exec`, `browser`, and `nodes` can perform privileged operations on the host.
 - **Credential exposure**: API keys, tokens, and OAuth credentials must be protected from logs and config leakage.
@@ -120,20 +119,20 @@ OpenClaw enforces access control at the channel level using **DM policies** and 
 
 ### DM Policy Modes
 
-| Mode | Behavior | Use Case |
-|------|----------|----------|
-| `pairing` (default) | Unknown senders receive a one-time pairing code; operator must approve | Multi-user deployments |
-| `allowlist` | Only senders in `allowFrom` or paired store can message | Locked-down access |
-| `open` | All inbound DMs accepted (requires `allowFrom: ["*"]`) | Public bots (high risk) |
-| `disabled` | All DMs ignored | Group-only bots |
+| Mode                | Behavior                                                               | Use Case                |
+| ------------------- | ---------------------------------------------------------------------- | ----------------------- |
+| `pairing` (default) | Unknown senders receive a one-time pairing code; operator must approve | Multi-user deployments  |
+| `allowlist`         | Only senders in `allowFrom` or paired store can message                | Locked-down access      |
+| `open`              | All inbound DMs accepted (requires `allowFrom: ["*"]`)                 | Public bots (high risk) |
+| `disabled`          | All DMs ignored                                                        | Group-only bots         |
 
 ### Group Policy Modes
 
-| Mode | Behavior |
-|------|----------|
-| `allowlist` (default) | Only groups matching configured allowlist |
-| `open` | Bypass group allowlists (mention-gating still applies) |
-| `disabled` | Block all group/room messages |
+| Mode                  | Behavior                                               |
+| --------------------- | ------------------------------------------------------ |
+| `allowlist` (default) | Only groups matching configured allowlist              |
+| `open`                | Bypass group allowlists (mention-gating still applies) |
+| `disabled`            | Block all group/room messages                          |
 
 ```mermaid
 sequenceDiagram
@@ -142,10 +141,10 @@ sequenceDiagram
     participant AccessControl as Access Control
     participant PairingStore as Pairing Store
     participant Agent
-    
+
     User->>Channel: Send DM
     Channel->>AccessControl: Check dmPolicy + allowFrom
-    
+
     alt dmPolicy=disabled
         AccessControl-->>Channel: Drop (silent)
     else dmPolicy=pairing && unknown sender
@@ -171,17 +170,17 @@ sequenceDiagram
 {
   channels: {
     telegram: {
-      dmPolicy: "pairing",             // pairing | allowlist | open | disabled
-      allowFrom: ["tg:123456"],        // sender allowlist
-      groupPolicy: "allowlist",        // allowlist | open | disabled
+      dmPolicy: 'pairing', // pairing | allowlist | open | disabled
+      allowFrom: ['tg:123456'], // sender allowlist
+      groupPolicy: 'allowlist', // allowlist | open | disabled
       groups: {
-        "*": { requireMention: true },
-        "-1001234567890": {
-          allowFrom: ["@admin"]        // per-group sender allowlist
-        }
-      }
-    }
-  }
+        '*': { requireMention: true },
+        '-1001234567890': {
+          allowFrom: ['@admin'], // per-group sender allowlist
+        },
+      },
+    },
+  },
 }
 ```
 
@@ -202,18 +201,18 @@ graph LR
     Client["Client<br/>(CLI, UI, Node)"]
     Gateway["Gateway<br/>:18789"]
     AuthMode{"gateway.auth.mode"}
-    
+
     Client -->|Connect| Gateway
     Gateway --> AuthMode
-    
+
     AuthMode -->|token| TokenAuth["Token Auth<br/>(operator token)"]
     AuthMode -->|password| PasswordAuth["Password Auth<br/>(shared secret)"]
     AuthMode -->|none| NoAuth["No Auth<br/>(loopback only)"]
-    
+
     TokenAuth -->|Authorization: Bearer| Authorized
     PasswordAuth -->|X-Password: header| Authorized
     NoAuth -->|Local only| Authorized
-    
+
     Authorized["Authorized Request"]
 ```
 
@@ -223,12 +222,12 @@ graph LR
 {
   gateway: {
     auth: {
-      mode: "token",                   // token | password | none
-      token: { $ref: "env/GATEWAY_TOKEN" },
-      allowTailscale: true             // trust Tailscale identity headers
+      mode: 'token', // token | password | none
+      token: { $ref: 'env/GATEWAY_TOKEN' },
+      allowTailscale: true, // trust Tailscale identity headers
     },
-    bind: "loopback"                   // loopback | private | public
-  }
+    bind: 'loopback', // loopback | private | public
+  },
 }
 ```
 
@@ -251,20 +250,20 @@ sequenceDiagram
     participant Gateway
     participant CLI as openclaw CLI
     participant Store as Device Store
-    
+
     Device->>Gateway: POST /devices/pair/request<br/>{deviceId, capabilities}
     Gateway->>Store: Generate pairing token
     Gateway-->>Device: {pairingToken, expiresAt}
-    
+
     Note over CLI: User reviews request
     CLI->>Gateway: POST /devices/pair/approve<br/>{pairingToken}
     Gateway->>Store: Mark approved
     Gateway-->>CLI: {deviceId, credential}
-    
+
     Device->>Gateway: POST /devices/pair/complete<br/>{pairingToken}
     Gateway->>Store: Issue device credential
     Gateway-->>Device: {credential, deviceId}
-    
+
     Note over Device: Store credential in keychain
     Device->>Gateway: WebSocket connect<br/>Authorization: Bearer {credential}
     Gateway->>Store: Validate credential
@@ -281,21 +280,21 @@ API keys and OAuth tokens for model providers use **auth profiles**:
 {
   auth: {
     profiles: {
-      "openai-main": {
-        provider: "openai",
-        mode: "api_key",              // api_key | oauth | token
-        email: "user@example.com"
+      'openai-main': {
+        provider: 'openai',
+        mode: 'api_key', // api_key | oauth | token
+        email: 'user@example.com',
       },
-      "anthropic-oauth": {
-        provider: "anthropic",
-        mode: "oauth"
-      }
+      'anthropic-oauth': {
+        provider: 'anthropic',
+        mode: 'oauth',
+      },
     },
     order: {
-      "openai": ["openai-main", "openai-fallback"],
-      "anthropic": ["anthropic-oauth"]
-    }
-  }
+      openai: ['openai-main', 'openai-fallback'],
+      anthropic: ['anthropic-oauth'],
+    },
+  },
 }
 ```
 
@@ -310,11 +309,13 @@ Sources: [src/config/zod-schema.ts:346-372](), [src/agents/model-auth.ts:1-100](
 OpenClaw can isolate agent sessions in Docker containers to limit host access. See [Sandboxing](#7.2) for full details.
 
 **Modes:**
+
 - `off`: No sandboxing (tools run on host)
 - `non-main`: Sandbox only non-main sessions (groups, channels)
 - `all`: Sandbox all sessions including direct chat
 
 **Scopes:**
+
 - `session`: One container per session (highest isolation)
 - `agent`: One container per agent (shared across sessions)
 - `shared`: One global container (lowest isolation)
@@ -324,30 +325,31 @@ graph TB
     Session["Session Start"]
     SandboxMode{"sandbox.mode"}
     SessionType{"Is main session?"}
-    
+
     Session --> SandboxMode
-    
+
     SandboxMode -->|off| HostExec["Execute on Host"]
     SandboxMode -->|non-main| SessionType
     SandboxMode -->|all| DockerExec["Execute in Docker"]
-    
+
     SessionType -->|Yes| HostExec
     SessionType -->|No| DockerExec
-    
+
     DockerExec --> ScopeCheck{"sandbox.scope"}
     ScopeCheck -->|session| SessionContainer["Dedicated Container"]
     ScopeCheck -->|agent| AgentContainer["Agent-Shared Container"]
     ScopeCheck -->|shared| SharedContainer["Global Container"]
-    
+
     SessionContainer --> ToolPolicy["Apply Tool Policy"]
     AgentContainer --> ToolPolicy
     SharedContainer --> ToolPolicy
     HostExec --> ToolPolicy
-    
+
     ToolPolicy --> ExecTool["exec/process/read/write"]
 ```
 
 **Default tool policy in sandbox:**
+
 - **Allow:** `bash`, `process`, `read`, `write`, `edit`, `sessions_*`
 - **Deny:** `browser`, `canvas`, `nodes`, `cron`, `discord`, `gateway`
 
@@ -362,9 +364,9 @@ OpenClaw uses the **SecretRef pattern** to avoid storing credentials directly in
 ### SecretRef Schema
 
 ```typescript
-type SecretRef = 
-  | { $ref: string }                    // "env/VAR_NAME" | "file/path" | "exec/command"
-  | string                              // plain value (discouraged for secrets)
+type SecretRef =
+  | { $ref: string } // "env/VAR_NAME" | "file/path" | "exec/command"
+  | string // plain value (discouraged for secrets)
 ```
 
 **Examples:**
@@ -373,23 +375,24 @@ type SecretRef =
 {
   channels: {
     telegram: {
-      botToken: { $ref: "env/TELEGRAM_BOT_TOKEN" }
+      botToken: { $ref: 'env/TELEGRAM_BOT_TOKEN' },
     },
     discord: {
-      token: { $ref: "file/~/.openclaw/credentials/discord.token" }
-    }
+      token: { $ref: 'file/~/.openclaw/credentials/discord.token' },
+    },
   },
   gateway: {
     auth: {
-      token: { $ref: "exec/pass openclaw/gateway-token" }
-    }
-  }
+      token: { $ref: 'exec/pass openclaw/gateway-token' },
+    },
+  },
 }
 ```
 
 ### Credential Storage
 
 **Channel credentials** are stored in `~/.openclaw/credentials/<channel>/`:
+
 - WhatsApp: Baileys session files
 - Telegram: Bot tokens (if using `tokenFile`)
 - Signal: signal-cli config
@@ -397,6 +400,7 @@ type SecretRef =
 **OAuth tokens** are stored in `~/.openclaw/auth/` as encrypted JSON files (per provider).
 
 **File permissions:**
+
 - Credential files: `0600` (owner read/write only)
 - Credential directories: `0700` (owner access only)
 - Cron store/backup: `0600` (enforced since v2026.3.3)
@@ -409,13 +413,14 @@ Sources: [src/config/zod-schema.ts:10-11](), [CHANGELOG.md:63](), [src/config/ty
 
 ### Gateway Bind Modes
 
-| Mode | Behavior | Risk |
-|------|----------|------|
+| Mode                 | Behavior                 | Risk                    |
+| -------------------- | ------------------------ | ----------------------- |
 | `loopback` (default) | Bind to `127.0.0.1` only | Low (local-only access) |
-| `private` | Bind to all private IPs | Medium (LAN exposure) |
-| `public` | Bind to `0.0.0.0` | High (requires auth) |
+| `private`            | Bind to all private IPs  | Medium (LAN exposure)   |
+| `public`             | Bind to `0.0.0.0`        | High (requires auth)    |
 
 **Enforcement:**
+
 - When `gateway.tailscale.mode` is `serve` or `funnel`, bind must be `loopback`.
 - When `gateway.bind` is `public`, `gateway.auth.mode` must be `token` or `password`.
 
@@ -425,24 +430,24 @@ graph TD
     BindMode{"gateway.bind"}
     TailscaleMode{"gateway.tailscale.mode"}
     AuthMode{"gateway.auth.mode"}
-    
+
     Start --> BindMode
-    
+
     BindMode -->|loopback| TailscaleMode
     BindMode -->|private| CheckAuth["Warn if no auth"]
     BindMode -->|public| RequireAuth["Require auth or fail"]
-    
+
     TailscaleMode -->|off| LocalOnly["Local-only access"]
     TailscaleMode -->|serve| TailnetAccess["Tailnet-only access"]
     TailscaleMode -->|funnel| PublicAccess["Public HTTPS access"]
-    
+
     PublicAccess --> RequirePassword["Require password auth"]
     TailnetAccess --> AuthMode
-    
+
     AuthMode -->|none| AllowIfTailscale["Allow if allowTailscale=true"]
     AuthMode -->|token| TokenAuth["Token required"]
     AuthMode -->|password| PasswordAuth["Password required"]
-    
+
     RequireAuth --> AuthMode
 ```
 
@@ -453,20 +458,21 @@ OpenClaw can auto-configure Tailscale **Serve** (tailnet-only) or **Funnel** (pu
 ```json5
 {
   gateway: {
-    bind: "loopback",
+    bind: 'loopback',
     tailscale: {
-      mode: "serve",                   // off | serve | funnel
-      resetOnExit: false               // cleanup on shutdown
+      mode: 'serve', // off | serve | funnel
+      resetOnExit: false, // cleanup on shutdown
     },
     auth: {
-      mode: "token",
-      allowTailscale: true             // trust Tailscale identity
-    }
-  }
+      mode: 'token',
+      allowTailscale: true, // trust Tailscale identity
+    },
+  },
 }
 ```
 
 **Security notes:**
+
 - `serve` mode uses Tailscale identity headers for auth (when `allowTailscale: true`)
 - `funnel` mode refuses to start without `gateway.auth.mode: "password"`
 - Break-glass support for `ws://` URLs via `OPENCLAW_ALLOW_INSECURE_PRIVATE_WS=1`
@@ -501,19 +507,20 @@ graph TD
     GroupPolicy["Group Tool Policy<br/>(channels.*.groups.*.tools)"]
     SubagentPolicy["Subagent Tool Policy<br/>(tools.subagents.policy)"]
     SandboxPolicy["Sandbox Tool Policy<br/>(agents.*.sandbox.tools)"]
-    
+
     GlobalPolicy --> AgentPolicy
     AgentPolicy --> ProviderPolicy
     ProviderPolicy --> GroupPolicy
     GroupPolicy --> SubagentPolicy
     SubagentPolicy --> SandboxPolicy
     SandboxPolicy --> FinalToolset["Final Tool Set"]
-    
+
     style GlobalPolicy fill:#f9f9f9
     style SandboxPolicy fill:#f9f9f9
 ```
 
 **Policy resolution order:**
+
 1. Start with all available tools
 2. Apply global `tools.policy` (allow/deny/profile)
 3. Apply per-agent `agents.<id>.tools.policy`
@@ -528,33 +535,33 @@ graph TD
 {
   tools: {
     policy: {
-      allow: ["read", "write", "exec"],
-      deny: ["browser", "nodes"]
+      allow: ['read', 'write', 'exec'],
+      deny: ['browser', 'nodes'],
     },
     byModelProvider: {
-      "xai": { deny: ["web_search"] }  // avoid duplicate xAI native tool
+      xai: { deny: ['web_search'] }, // avoid duplicate xAI native tool
     },
     subagents: {
       policy: {
-        allow: ["read", "message", "sessions_send"],
-        deny: ["exec", "browser", "nodes"]
-      }
-    }
+        allow: ['read', 'message', 'sessions_send'],
+        deny: ['exec', 'browser', 'nodes'],
+      },
+    },
   },
   agents: {
     list: [
       {
-        id: "main",
+        id: 'main',
         sandbox: {
-          mode: "non-main",
+          mode: 'non-main',
           tools: {
-            allow: ["bash", "process", "read", "write"],
-            deny: ["browser", "canvas", "nodes", "cron"]
-          }
-        }
-      }
-    ]
-  }
+            allow: ['bash', 'process', 'read', 'write'],
+            deny: ['browser', 'canvas', 'nodes', 'cron'],
+          },
+        },
+      },
+    ],
+  },
 }
 ```
 
@@ -569,6 +576,7 @@ Certain tools require `senderIsOwner` flag:
 - `/restart` command in groups
 
 Owner status is derived from:
+
 - Channel allowlist membership (`channels.<channel>.allowFrom`)
 - Group admin status (where applicable)
 - Device pairing credentials
@@ -582,9 +590,11 @@ Sources: [src/agents/tool-policy.ts:54-70](), [src/agents/openclaw-tools.ts:1-10
 ### Logging and Redaction
 
 **Log levels:**
+
 - `silent`, `fatal`, `error`, `warn`, `info`, `debug`, `trace`
 
 **Redaction modes:**
+
 - `off`: No redaction
 - `tools`: Redact sensitive tool arguments and config fields (default)
 
@@ -593,13 +603,13 @@ Sources: [src/agents/tool-policy.ts:54-70](), [src/agents/openclaw-tools.ts:1-10
 ```json5
 {
   logging: {
-    level: "info",
-    redactSensitive: "tools",         // off | tools
+    level: 'info',
+    redactSensitive: 'tools', // off | tools
     redactPatterns: [
-      "sk-[a-zA-Z0-9]{32,}",          // API keys
-      "\\d{3}-\\d{2}-\\d{4}"          // SSNs (custom)
-    ]
-  }
+      'sk-[a-zA-Z0-9]{32,}', // API keys
+      '\\d{3}-\\d{2}-\\d{4}', // SSNs (custom)
+    ],
+  },
 }
 ```
 
@@ -610,18 +620,19 @@ Sources: [src/config/zod-schema.ts:16](), [src/logging/redact.ts:1-50](), [CHANG
 ### Dependency Audits
 
 Recent security patches (v2026.3.3):
+
 - Pinned `hono@4.12.5` and `@hono/node-server@1.19.10` (transitive Hono vulnerabilities)
 - Bumped `tar@7.5.10` (hardlink path traversal - `GHSA-qffp-2rhf-9h96`)
 
 ```json5
 {
-  "pnpm": {
-    "overrides": {
-      "hono": "4.12.5",
-      "@hono/node-server": "1.19.10",
-      "tar": "7.5.10"
-    }
-  }
+  pnpm: {
+    overrides: {
+      hono: '4.12.5',
+      '@hono/node-server': '1.19.10',
+      tar: '7.5.10',
+    },
+  },
 }
 ```
 

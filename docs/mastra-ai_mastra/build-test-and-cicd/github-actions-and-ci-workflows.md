@@ -40,8 +40,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the continuous integration and deployment infrastructure for the Mastra monorepo, including the build system, testing strategy, code quality checks, version management, and release automation. The CI pipeline leverages pnpm workspaces, Turbo for parallelized builds, Vitest for testing, and Changesets for versioning and publishing.
 
 For information about the monorepo structure itself, see [Monorepo Configuration and Tooling](#12.1). For testing practices and patterns, see [Testing Infrastructure](#12.2). For release management details, see [Release Management with Changesets](#12.4).
@@ -60,7 +58,7 @@ graph TB
         DevCommit["Developer Commit"]
         PreCommit["Pre-commit Hooks<br/>husky + lint-staged"]
     end
-    
+
     subgraph "CI Validation"
         Checkout["Checkout Code"]
         Setup["Setup pnpm + Node"]
@@ -70,14 +68,14 @@ graph TB
         Build["Turbo Build<br/>turbo build"]
         Test["Vitest Test<br/>turbo test"]
     end
-    
+
     subgraph "Release Process"
         ChangesetCheck["Changeset Validation"]
         VersionBump["Version Bump<br/>changeset version"]
         Publish["Publish Packages<br/>pnpm ci:publish"]
         GitTag["Git Tag & Release"]
     end
-    
+
     DevCommit --> PreCommit
     PreCommit -->|push| Checkout
     Checkout --> Setup
@@ -114,24 +112,24 @@ graph LR
         Deployer["@mastra/deployer"]
         CLI["mastra (CLI)"]
     end
-    
+
     subgraph "Client SDKs"
         ClientJS["@mastra/client-js"]
         React["@mastra/react"]
     end
-    
+
     subgraph "Storage Adapters"
         LibSQL["@mastra/libsql"]
         PG["@mastra/pg"]
         Upstash["@mastra/upstash"]
     end
-    
+
     subgraph "Deployers"
         CloudflareDeployer["@mastra/deployer-cloudflare"]
         VercelDeployer["@mastra/deployer-vercel"]
         NetlifyDeployer["@mastra/deployer-netlify"]
     end
-    
+
     SchemaCompat --> Core
     Core --> Memory
     Core --> Server
@@ -151,16 +149,16 @@ graph LR
 
 **Build Scripts by Category:**
 
-| Script | Purpose | Filter Pattern |
-|--------|---------|---------------|
-| `build` | Build all packages except examples | `--filter "!./examples/*"` |
-| `build:core` | Build core package only | `--filter ./packages/core` |
-| `build:cli` | Build CLI package | `--filter ./packages/cli` |
-| `build:deployer` | Build deployer base | `--filter ./packages/deployer` |
-| `build:server` | Build server package | `--filter ./packages/server` |
-| `build:deployers` | Build all deployer implementations | `--filter "./deployers/*"` |
-| `build:clients` | Build all client SDKs | `--filter "./client-sdks/*"` |
-| `build:combined-stores` | Build all storage adapters | `--filter "./stores/*"` |
+| Script                  | Purpose                            | Filter Pattern                 |
+| ----------------------- | ---------------------------------- | ------------------------------ |
+| `build`                 | Build all packages except examples | `--filter "!./examples/*"`     |
+| `build:core`            | Build core package only            | `--filter ./packages/core`     |
+| `build:cli`             | Build CLI package                  | `--filter ./packages/cli`      |
+| `build:deployer`        | Build deployer base                | `--filter ./packages/deployer` |
+| `build:server`          | Build server package               | `--filter ./packages/server`   |
+| `build:deployers`       | Build all deployer implementations | `--filter "./deployers/*"`     |
+| `build:clients`         | Build all client SDKs              | `--filter "./client-sdks/*"`   |
+| `build:combined-stores` | Build all storage adapters         | `--filter "./stores/*"`        |
 
 **Sources:** [package.json:32-54]()
 
@@ -196,7 +194,7 @@ graph TB
         TestClients["pnpm test:clients"]
         TestStores["pnpm test:combined-stores"]
     end
-    
+
     subgraph "Package Tests"
         CoreTests["@mastra/core<br/>unit tests"]
         CLITests["mastra CLI<br/>integration tests"]
@@ -204,19 +202,19 @@ graph TB
         ClientTests["@mastra/client-js<br/>SDK tests"]
         StoreTests["Storage Adapters<br/>adapter tests"]
     end
-    
+
     subgraph "Test Types"
         Unit["Unit Tests<br/>vitest"]
         Integration["Integration Tests<br/>vitest"]
         E2E["E2E Tests<br/>vitest + msw"]
     end
-    
+
     TestAll --> CoreTests
     TestAll --> CLITests
     TestAll --> ServerTests
     TestAll --> ClientTests
     TestAll --> StoreTests
-    
+
     CoreTests --> Unit
     CLITests --> Integration
     ServerTests --> Integration
@@ -227,13 +225,13 @@ graph TB
 
 **Test Script Patterns:**
 
-| Package | Test Command | Test Type |
-|---------|-------------|-----------|
-| `@mastra/core` | `pnpm test:unit` | Unit tests excluding tool-builder |
-| `mastra` (CLI) | `pnpm test` | Integration tests with memfs mocking |
-| `@mastra/server` | `pnpm test` | API handler tests |
-| `@mastra/client-js` | `pnpm test:unit` | SDK unit tests with MSW |
-| `@mastra/deployer` | `pnpm test` | Bundler validation tests |
+| Package             | Test Command     | Test Type                            |
+| ------------------- | ---------------- | ------------------------------------ |
+| `@mastra/core`      | `pnpm test:unit` | Unit tests excluding tool-builder    |
+| `mastra` (CLI)      | `pnpm test`      | Integration tests with memfs mocking |
+| `@mastra/server`    | `pnpm test`      | API handler tests                    |
+| `@mastra/client-js` | `pnpm test:unit` | SDK unit tests with MSW              |
+| `@mastra/deployer`  | `pnpm test`      | Bundler validation tests             |
 
 **Sources:** [package.json:57-82](), [packages/core/package.json:218-220](), [packages/cli/package.json:28](), [packages/server/package.json:94]()
 
@@ -266,24 +264,24 @@ graph LR
         LintStaged["lint-staged"]
         Husky["husky pre-commit hook"]
     end
-    
+
     subgraph "CI Checks"
         ESLint["eslint .<br/>pnpm lint"]
         Prettier["prettier --check .<br/>pnpm prettier:format:check"]
         TSC["tsc --noEmit<br/>pnpm typecheck"]
     end
-    
+
     subgraph "Tools"
         ESLintConfig["@internal/lint<br/>workspace package"]
         PrettierConfig["prettier.config.js"]
         TSConfig["tsconfig.json"]
     end
-    
+
     Staged --> LintStaged
     LintStaged --> Husky
     Husky --> ESLint
     Husky --> Prettier
-    
+
     ESLint --> ESLintConfig
     Prettier --> PrettierConfig
     TSC --> TSConfig
@@ -291,14 +289,14 @@ graph LR
 
 **CI Script Mapping:**
 
-| Script | Purpose | Scope |
-|--------|---------|-------|
-| `lint` | Run ESLint across monorepo | `turbo --filter "!./examples/**/*" lint` |
-| `format` | Auto-fix lint issues | `turbo lint -- --fix` |
-| `prettier:format` | Format all files | `prettier --write . --log-level warn` |
-| `prettier:format:check` | Check formatting | `prettier --check .` |
-| `prettier:changed` | Format only changed files | Uses git diff to determine files |
-| `typecheck` | Type check all packages | `pnpm --filter "!./explorations/**/*" -r typecheck` |
+| Script                  | Purpose                    | Scope                                               |
+| ----------------------- | -------------------------- | --------------------------------------------------- |
+| `lint`                  | Run ESLint across monorepo | `turbo --filter "!./examples/**/*" lint`            |
+| `format`                | Auto-fix lint issues       | `turbo lint -- --fix`                               |
+| `prettier:format`       | Format all files           | `prettier --write . --log-level warn`               |
+| `prettier:format:check` | Check formatting           | `prettier --check .`                                |
+| `prettier:changed`      | Format only changed files  | Uses git diff to determine files                    |
+| `typecheck`             | Type check all packages    | `pnpm --filter "!./explorations/**/*" -r typecheck` |
 
 **Sources:** [package.json:83-92](), [pnpm-lock.yaml:78-86](), [pnpm-lock.yaml:82-84]()
 
@@ -330,26 +328,26 @@ graph TB
         AddChangeset["pnpm changeset<br/>Describe changes"]
         CommitChangeset["Commit .changeset/*.md"]
     end
-    
+
     subgraph "PR Review"
         OpenPR["Open Pull Request"]
         ChangesetValidation["Changeset Bot<br/>Validates changeset exists"]
     end
-    
+
     subgraph "Release Preparation"
         MergeToMain["Merge to main"]
         VersionCommand["changeset version<br/>Bump package.json versions"]
         UpdateChangelogs["Update CHANGELOG.md files"]
         VersionPR["Create Version PR"]
     end
-    
+
     subgraph "Publishing"
         MergeVersionPR["Merge Version PR"]
         PublishCommand["pnpm ci:publish<br/>pnpm publish -r"]
         NPMRegistry["NPM Registry"]
         GitTag["Git Tag & GitHub Release"]
     end
-    
+
     FeatureBranch --> AddChangeset
     AddChangeset --> CommitChangeset
     CommitChangeset --> OpenPR
@@ -429,12 +427,12 @@ sequenceDiagram
     participant PNPM as pnpm publish
     participant Registry as NPM Registry
     participant Git as GitHub
-    
+
     CI->>Changeset: Run changeset version
     Changeset->>Changeset: Update package.json versions
     Changeset->>Changeset: Generate CHANGELOG.md
     Changeset->>Git: Commit version changes
-    
+
     CI->>PNPM: Run pnpm ci:publish
     PNPM->>PNPM: Build all packages (turbo build)
     PNPM->>Registry: Publish @mastra/core
@@ -443,7 +441,7 @@ sequenceDiagram
     PNPM->>Registry: Publish mastra (CLI)
     PNPM->>Registry: Publish client SDKs
     PNPM->>Registry: Publish storage adapters
-    
+
     CI->>Git: Create Git tag (v1.14.0)
     CI->>Git: Create GitHub Release
     Git-->>CI: Release published
@@ -451,11 +449,11 @@ sequenceDiagram
 
 **Publish Scripts:**
 
-| Script | Command | Purpose |
-|--------|---------|---------|
-| `ci:publish` | `pnpm publish -r` | Publish all changed packages to NPM |
-| `changeset-cli` | `changeset` | Trigger changeset CLI directly |
-| `changeset` | `pnpm --filter @internal/changeset-cli start` | Run changeset via internal wrapper |
+| Script          | Command                                       | Purpose                             |
+| --------------- | --------------------------------------------- | ----------------------------------- |
+| `ci:publish`    | `pnpm publish -r`                             | Publish all changed packages to NPM |
+| `changeset-cli` | `changeset`                                   | Trigger changeset CLI directly      |
+| `changeset`     | `pnpm --filter @internal/changeset-cli start` | Run changeset via internal wrapper  |
 
 **Sources:** [package.json:29-31]()
 
@@ -485,25 +483,25 @@ graph TB
         Commit["git commit"]
         HuskyTrigger["Husky Pre-commit Hook"]
     end
-    
+
     subgraph "lint-staged Checks"
         FilterStaged["Get Staged Files"]
         ESLintRun["eslint --fix<br/>*.ts, *.tsx, *.js"]
         PrettierRun["prettier --write"]
         TSCRun["tsc-files --noEmit"]
     end
-    
+
     subgraph "Result"
         Pass["All Checks Pass<br/>Commit succeeds"]
         Fail["Check Failed<br/>Commit blocked"]
     end
-    
+
     Commit --> HuskyTrigger
     HuskyTrigger --> FilterStaged
     FilterStaged --> ESLintRun
     FilterStaged --> PrettierRun
     FilterStaged --> TSCRun
-    
+
     ESLintRun --> Pass
     ESLintRun --> Fail
     PrettierRun --> Pass
@@ -516,13 +514,13 @@ graph TB
 
 The repository uses these dev dependencies for pre-commit validation:
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| `husky` | `^9.1.7` | Git hook manager |
+| Tool          | Version   | Purpose                      |
+| ------------- | --------- | ---------------------------- |
+| `husky`       | `^9.1.7`  | Git hook manager             |
 | `lint-staged` | `^16.4.0` | Run commands on staged files |
-| `tsc-files` | `^1.1.4` | Type check only staged files |
-| `eslint` | `^9.39.4` | Linting with auto-fix |
-| `prettier` | `^3.8.1` | Code formatting |
+| `tsc-files`   | `^1.1.4`  | Type check only staged files |
+| `eslint`      | `^9.39.4` | Linting with auto-fix        |
+| `prettier`    | `^3.8.1`  | Code formatting              |
 
 **Sources:** [pnpm-lock.yaml:81-104](), [package.json:82-85]()
 
@@ -554,43 +552,43 @@ Based on the tooling configuration, the typical CI workflow follows these patter
 ```mermaid
 graph TB
     PROpen["PR Opened/Updated"]
-    
+
     subgraph "Parallel Checks"
         Checkout["Checkout Code"]
         Setup["Setup pnpm + Node 22.13+"]
         Install["pnpm install<br/>with frozen lockfile"]
-        
+
         Typecheck["Type Check<br/>pnpm typecheck"]
         Lint["Lint Check<br/>pnpm lint"]
         PrettierCheck["Format Check<br/>pnpm prettier:format:check"]
         BuildAll["Build All<br/>pnpm build"]
         TestAll["Test All<br/>pnpm test"]
     end
-    
+
     subgraph "Validation"
         ChangesetCheck["Changeset Required?<br/>Unless chore/docs"]
         AllPassed["All Checks Passed"]
     end
-    
+
     Merge["Ready to Merge"]
-    
+
     PROpen --> Checkout
     Checkout --> Setup
     Setup --> Install
-    
+
     Install --> Typecheck
     Install --> Lint
     Install --> PrettierCheck
     Install --> BuildAll
-    
+
     BuildAll --> TestAll
-    
+
     Typecheck --> AllPassed
     Lint --> AllPassed
     PrettierCheck --> AllPassed
     TestAll --> AllPassed
     ChangesetCheck --> AllPassed
-    
+
     AllPassed --> Merge
 ```
 
@@ -599,7 +597,7 @@ graph TB
 ```mermaid
 graph TB
     MainMerge["Merge to main"]
-    
+
     subgraph "Automated Release"
         CheckChanges["Detect Changesets"]
         RunVersion["changeset version<br/>Update versions"]
@@ -607,20 +605,20 @@ graph TB
         ReviewPR["Review & Approve"]
         MergePR["Merge Version PR"]
     end
-    
+
     subgraph "Publish"
         RunBuild["pnpm build<br/>Build all packages"]
         RunPublish["pnpm ci:publish<br/>Publish to NPM"]
         CreateTag["Create Git Tags"]
         CreateRelease["Create GitHub Release"]
     end
-    
+
     MainMerge --> CheckChanges
     CheckChanges -->|Has changesets| RunVersion
     RunVersion --> CreatePR
     CreatePR --> ReviewPR
     ReviewPR --> MergePR
-    
+
     MergePR --> RunBuild
     RunBuild --> RunPublish
     RunPublish --> CreateTag

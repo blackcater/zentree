@@ -46,8 +46,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents how cron jobs are configured and scheduled in OpenClaw. It covers job data structures, schedule types (at/every/cron), schedule computation algorithms, payload configuration, and validation rules. For information about the cron service lifecycle and timer loop, see [Cron Service Architecture](#6.1). For details on how isolated agent jobs execute, see [Isolated Agent Execution](#6.3).
 
 ---
@@ -84,19 +82,19 @@ Sources: [src/cron/types.ts:135-144](), [src/cron/types.ts:109-133]()
 
 The `CronJobState` tracks runtime scheduling information:
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `nextRunAtMs` | `number?` | Next scheduled execution timestamp (ms since epoch) |
-| `runningAtMs` | `number?` | Timestamp when current execution started; cleared on completion |
-| `lastRunAtMs` | `number?` | Timestamp of most recent execution |
-| `lastRunStatus` | `"ok"\|"error"\|"skipped"?` | Outcome of most recent execution |
-| `lastError` | `string?` | Error message from most recent failure |
-| `lastErrorReason` | `FailoverReason?` | Classified error reason (auth, rate_limit, etc.) |
-| `lastDurationMs` | `number?` | Duration of most recent execution |
-| `consecutiveErrors` | `number?` | Count of consecutive failures (reset on success) |
-| `lastDelivered` | `boolean?` | Whether output was delivered to target channel |
-| `lastDeliveryStatus` | `CronDeliveryStatus?` | Explicit delivery outcome |
-| `scheduleErrorCount` | `number?` | Consecutive schedule computation errors |
+| Field                | Type                        | Purpose                                                         |
+| -------------------- | --------------------------- | --------------------------------------------------------------- |
+| `nextRunAtMs`        | `number?`                   | Next scheduled execution timestamp (ms since epoch)             |
+| `runningAtMs`        | `number?`                   | Timestamp when current execution started; cleared on completion |
+| `lastRunAtMs`        | `number?`                   | Timestamp of most recent execution                              |
+| `lastRunStatus`      | `"ok"\|"error"\|"skipped"?` | Outcome of most recent execution                                |
+| `lastError`          | `string?`                   | Error message from most recent failure                          |
+| `lastErrorReason`    | `FailoverReason?`           | Classified error reason (auth, rate_limit, etc.)                |
+| `lastDurationMs`     | `number?`                   | Duration of most recent execution                               |
+| `consecutiveErrors`  | `number?`                   | Count of consecutive failures (reset on success)                |
+| `lastDelivered`      | `boolean?`                  | Whether output was delivered to target channel                  |
+| `lastDeliveryStatus` | `CronDeliveryStatus?`       | Explicit delivery outcome                                       |
+| `scheduleErrorCount` | `number?`                   | Consecutive schedule computation errors                         |
 
 Sources: [src/cron/types.ts:109-133]()
 
@@ -108,11 +106,11 @@ OpenClaw supports three schedule types: **at** (one-shot), **every** (interval),
 
 ### Schedule Type Comparison
 
-| Type | Use Case | Parameters | Next Run Computation |
-|------|----------|------------|---------------------|
-| `at` | One-time execution at specific timestamp | `at: string` (ISO 8601) | Parse ISO timestamp; re-arm if schedule updated after last run |
-| `every` | Fixed interval from anchor point | `everyMs: number`<br/>`anchorMs?: number` | `lastRunAtMs + everyMs` or `anchorMs + (n × everyMs)` |
-| `cron` | Complex schedules (daily, weekly, etc.) | `expr: string` (cron expression)<br/>`tz?: string` (timezone)<br/>`staggerMs?: number` | Parsed by `croner` library with optional stagger |
+| Type    | Use Case                                 | Parameters                                                                             | Next Run Computation                                           |
+| ------- | ---------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `at`    | One-time execution at specific timestamp | `at: string` (ISO 8601)                                                                | Parse ISO timestamp; re-arm if schedule updated after last run |
+| `every` | Fixed interval from anchor point         | `everyMs: number`<br/>`anchorMs?: number`                                              | `lastRunAtMs + everyMs` or `anchorMs + (n × everyMs)`          |
+| `cron`  | Complex schedules (daily, weekly, etc.)  | `expr: string` (cron expression)<br/>`tz?: string` (timezone)<br/>`staggerMs?: number` | Parsed by `croner` library with optional stagger               |
 
 Sources: [src/cron/types.ts:5-14]()
 
@@ -123,14 +121,14 @@ graph TB
     Start["computeJobNextRunAtMs<br/>(job, nowMs)"]
     CheckEnabled{"job.enabled?"}
     CheckKind{"schedule.kind?"}
-    
+
     AtPath["at schedule path"]
     ParseAt["parseAbsoluteTimeMs<br/>(schedule.at)"]
     CheckLastRun{"lastStatus=ok AND<br/>lastRunAtMs exists?"}
     CheckAfterLast{"atMs > lastRunAtMs?"}
     ReturnAt["return atMs"]
     ReturnUndef1["return undefined<br/>(already executed)"]
-    
+
     EveryPath["every schedule path"]
     CheckLastRunEvery{"lastRunAtMs exists<br/>and valid?"}
     ComputeFromLast["nextFromLastRun =<br/>lastRunAtMs + everyMs"]
@@ -139,7 +137,7 @@ graph TB
     ResolveAnchor["resolve anchorMs<br/>(from schedule or createdAtMs)"]
     ComputeFromAnchor["computeNextRunAtMs<br/>(anchorMs, everyMs, nowMs)"]
     ReturnEvery["return computed timestamp"]
-    
+
     CronPath["cron schedule path"]
     ResolveStagger["resolveCronStaggerMs<br/>(schedule)"]
     ComputeOffset["resolveStableCronOffsetMs<br/>(jobId, staggerMs)"]
@@ -149,11 +147,11 @@ graph TB
     CheckShifted{"shifted > nowMs?"}
     ReturnCron["return shifted"]
     Retry["retry with cursorMs + 1s"]
-    
+
     Start --> CheckEnabled
     CheckEnabled -->|false| ReturnUndef1
     CheckEnabled -->|true| CheckKind
-    
+
     CheckKind -->|at| AtPath
     AtPath --> ParseAt
     ParseAt --> CheckLastRun
@@ -161,7 +159,7 @@ graph TB
     CheckAfterLast -->|true| ReturnAt
     CheckAfterLast -->|false| ReturnUndef1
     CheckLastRun -->|false| ReturnAt
-    
+
     CheckKind -->|every| EveryPath
     EveryPath --> CheckLastRunEvery
     CheckLastRunEvery -->|true| ComputeFromLast
@@ -171,7 +169,7 @@ graph TB
     CheckLastRunEvery -->|false| ResolveAnchor
     ResolveAnchor --> ComputeFromAnchor
     ComputeFromAnchor --> ReturnEvery
-    
+
     CheckKind -->|cron| CronPath
     CronPath --> ResolveStagger
     ResolveStagger --> ComputeOffset
@@ -216,17 +214,18 @@ graph LR
     Isolated["isolated"]
     SystemEvent["Payload:<br/>systemEvent<br/>{text: string}"]
     AgentTurn["Payload:<br/>agentTurn<br/>{message, model, thinking,<br/>timeoutSeconds, fallbacks,<br/>allowUnsafeExternalContent,<br/>lightContext}"]
-    
+
     SessionTarget --> Main
     SessionTarget --> Isolated
     Main --> SystemEvent
     Isolated --> AgentTurn
-    
+
     style Main fill:#f9f9f9
     style Isolated fill:#f9f9f9
 ```
 
 **Validation Rules:**
+
 - `sessionTarget: "main"` **requires** `payload.kind: "systemEvent"`
 - `sessionTarget: "isolated"` **requires** `payload.kind: "agentTurn"`
 - Main jobs can only target the default agent (no `agentId` override)
@@ -235,19 +234,19 @@ Sources: [src/cron/service/jobs.ts:134-141](), [src/cron/service/jobs.ts:143-160
 
 ### Agent Turn Payload Fields
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `message` | `string` | Required. The prompt text sent to the agent |
-| `model` | `string?` | Optional model override (e.g., `"openai/gpt-4o"`, `"opus-4"`) |
-| `fallbacks` | `string[]?` | Per-job fallback models; overrides agent/global fallbacks |
-| `thinking` | `string?` | Thinking level override (`"low"`, `"normal"`, `"high"`, `"xhigh"`) |
-| `timeoutSeconds` | `number?` | Per-job timeout override (seconds) |
-| `allowUnsafeExternalContent` | `boolean?` | Skip external content security wrapping (Gmail hooks) |
-| `lightContext` | `boolean?` | Use lightweight bootstrap context (faster, less context) |
-| `deliver` | `boolean?` | **Deprecated**. Legacy delivery flag (use `delivery` object) |
-| `channel` | `string?` | **Deprecated**. Legacy delivery channel (use `delivery` object) |
-| `to` | `string?` | **Deprecated**. Legacy delivery target (use `delivery` object) |
-| `bestEffortDeliver` | `boolean?` | **Deprecated**. Legacy best-effort flag (use `delivery` object) |
+| Field                        | Type        | Purpose                                                            |
+| ---------------------------- | ----------- | ------------------------------------------------------------------ |
+| `message`                    | `string`    | Required. The prompt text sent to the agent                        |
+| `model`                      | `string?`   | Optional model override (e.g., `"openai/gpt-4o"`, `"opus-4"`)      |
+| `fallbacks`                  | `string[]?` | Per-job fallback models; overrides agent/global fallbacks          |
+| `thinking`                   | `string?`   | Thinking level override (`"low"`, `"normal"`, `"high"`, `"xhigh"`) |
+| `timeoutSeconds`             | `number?`   | Per-job timeout override (seconds)                                 |
+| `allowUnsafeExternalContent` | `boolean?`  | Skip external content security wrapping (Gmail hooks)              |
+| `lightContext`               | `boolean?`  | Use lightweight bootstrap context (faster, less context)           |
+| `deliver`                    | `boolean?`  | **Deprecated**. Legacy delivery flag (use `delivery` object)       |
+| `channel`                    | `string?`   | **Deprecated**. Legacy delivery channel (use `delivery` object)    |
+| `to`                         | `string?`   | **Deprecated**. Legacy delivery target (use `delivery` object)     |
+| `bestEffortDeliver`          | `boolean?`  | **Deprecated**. Legacy best-effort flag (use `delivery` object)    |
 
 Sources: [src/cron/types.ts:85-100](), [src/gateway/protocol/schema/cron.ts:4-22]()
 
@@ -266,38 +265,38 @@ graph TB
     ValidatePayload["resolveAllowedModelRef<br/>(payload.model)"]
     CheckAllowed1{"in allowlist?"}
     UsePayload["Use payload.model"]
-    
+
     SubagentModel{"subagents.model<br/>configured?"}
     ValidateSubagent["resolveAllowedModelRef<br/>(subagents.model)"]
     CheckAllowed2{"in allowlist?"}
     UseSubagent["Use subagents.model"]
-    
+
     GmailHook{"sessionKey starts with<br/>'hook:gmail:'?"}
     HooksGmailModel{"hooks.gmail.model<br/>configured?"}
     ValidateGmail["resolveAllowedModelRef<br/>(hooks.gmail.model)"]
     CheckAllowed3{"in allowlist?"}
     UseGmail["Use hooks.gmail.model"]
-    
+
     SessionModel{"session.modelOverride<br/>stored?"}
     ValidateSession["resolveAllowedModelRef<br/>(session.modelOverride)"]
     CheckAllowed4{"in allowlist?"}
     UseSession["Use session.modelOverride"]
-    
+
     DefaultModel["Use agents.defaults.model<br/>(or global default)"]
-    
+
     Start --> PayloadModel
     PayloadModel -->|yes| ValidatePayload
     ValidatePayload --> CheckAllowed1
     CheckAllowed1 -->|yes| UsePayload
     CheckAllowed1 -->|no| SubagentModel
     PayloadModel -->|no| SubagentModel
-    
+
     SubagentModel -->|yes| ValidateSubagent
     ValidateSubagent --> CheckAllowed2
     CheckAllowed2 -->|yes| UseSubagent
     CheckAllowed2 -->|no| GmailHook
     SubagentModel -->|no| GmailHook
-    
+
     GmailHook -->|yes| HooksGmailModel
     HooksGmailModel -->|yes| ValidateGmail
     ValidateGmail --> CheckAllowed3
@@ -305,7 +304,7 @@ graph TB
     CheckAllowed3 -->|no| SessionModel
     HooksGmailModel -->|no| SessionModel
     GmailHook -->|no| SessionModel
-    
+
     SessionModel -->|yes| ValidateSession
     ValidateSession --> CheckAllowed4
     CheckAllowed4 -->|yes| UseSession
@@ -364,10 +363,10 @@ graph LR
     PayloadTimeout["payload.timeoutSeconds"]
     AgentTimeout["agents.defaults.timeoutSeconds"]
     GlobalDefault["DEFAULT_JOB_TIMEOUT_MS<br/>(600,000 ms = 10 min)"]
-    
+
     Resolve["resolveAgentTimeoutMs"]
     Final["Final Timeout (ms)"]
-    
+
     PayloadTimeout -->|if defined| Resolve
     AgentTimeout -->|if defined| Resolve
     GlobalDefault --> Resolve
@@ -375,6 +374,7 @@ graph LR
 ```
 
 **Precedence:**
+
 1. `payload.timeoutSeconds` (converted to ms)
 2. `agents.defaults.timeoutSeconds` (converted to ms)
 3. `DEFAULT_JOB_TIMEOUT_MS` (600,000 ms)
@@ -391,11 +391,11 @@ Delivery configuration determines how job output is sent to users.
 
 ### Delivery Modes
 
-| Mode | Purpose | Required Fields | Target Resolution |
-|------|---------|-----------------|-------------------|
-| `none` | No delivery (execution only) | None | N/A |
-| `announce` | Send via messaging channel | `channel`, `to` | Resolved via `resolveDeliveryTarget` |
-| `webhook` | HTTP POST to URL | `to` (URL) | Validated URL with SSRF guard |
+| Mode       | Purpose                      | Required Fields | Target Resolution                    |
+| ---------- | ---------------------------- | --------------- | ------------------------------------ |
+| `none`     | No delivery (execution only) | None            | N/A                                  |
+| `announce` | Send via messaging channel   | `channel`, `to` | Resolved via `resolveDeliveryTarget` |
+| `webhook`  | HTTP POST to URL             | `to` (URL)      | Validated URL with SSRF guard        |
 
 ### Delivery Configuration Fields
 
@@ -443,7 +443,7 @@ graph TB
     ValidateFailureDest["assertFailureDestinationSupport<br/>(webhook modes)"]
     ComputeNext["computeJobNextRunAtMs<br/>(job, nowMs)"]
     Return["Return CronJob"]
-    
+
     Input --> GenerateId
     GenerateId --> ResolveSchedule
     ResolveSchedule --> SetDefaults
@@ -459,13 +459,13 @@ Sources: [src/cron/service/jobs.ts:503-559]()
 
 ### Validation Rules Summary
 
-| Rule | Constraint | Error Message |
-|------|------------|---------------|
-| **Payload/Target Alignment** | `main` → `systemEvent`, `isolated` → `agentTurn` | `"main cron jobs require payload.kind='systemEvent'"` |
-| **Main Agent Restriction** | `sessionTarget: "main"` must use default agent | `"sessionTarget 'main' is only valid for the default agent"` |
-| **Delivery Mode** | Channel delivery (`announce`) requires `isolated` | `"cron channel delivery config is only supported for sessionTarget='isolated'"` |
-| **Telegram Target Format** | Telegram `to` must use colons for topics (not slashes) | `"Use colon (:) as delimiter for topics, not slash"` |
-| **Webhook URL** | Webhook `to` must be valid http(s) URL | `"cron webhook delivery requires delivery.to to be a valid http(s) URL"` |
+| Rule                         | Constraint                                             | Error Message                                                                   |
+| ---------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| **Payload/Target Alignment** | `main` → `systemEvent`, `isolated` → `agentTurn`       | `"main cron jobs require payload.kind='systemEvent'"`                           |
+| **Main Agent Restriction**   | `sessionTarget: "main"` must use default agent         | `"sessionTarget 'main' is only valid for the default agent"`                    |
+| **Delivery Mode**            | Channel delivery (`announce`) requires `isolated`      | `"cron channel delivery config is only supported for sessionTarget='isolated'"` |
+| **Telegram Target Format**   | Telegram `to` must use colons for topics (not slashes) | `"Use colon (:) as delimiter for topics, not slash"`                            |
+| **Webhook URL**              | Webhook `to` must be valid http(s) URL                 | `"cron webhook delivery requires delivery.to to be a valid http(s) URL"`        |
 
 Sources: [src/cron/service/jobs.ts:134-222]()
 
@@ -478,19 +478,23 @@ Jobs are updated via `applyJobPatch(job, patch)`, which merges changes while pre
 ### Patch Merge Rules
 
 **Schedule Updates:**
+
 - Changing `schedule` recomputes `nextRunAtMs` immediately
 - Cron schedules preserve or recompute `staggerMs` based on expression
 
 **Payload Patching:**
+
 - `agentTurn` payloads are merged field-by-field (not replaced wholesale)
 - Undefined fields in patch leave existing values unchanged
 - Example: Patching `{payload: {kind: "agentTurn", model: "gpt-5"}}` updates only `model`, keeping `message` unchanged
 
 **Delivery Patching:**
+
 - Legacy `payload.deliver`/`payload.channel` fields are migrated to `delivery` object
 - New clients should use `delivery` directly; legacy fields are deprecated
 
 **Next Run Recomputation:**
+
 - `schedule` or `enabled` changes → recompute `nextRunAtMs`
 - Non-schedule updates → repair missing `nextRunAtMs` only (no unintended advancement)
 
@@ -505,30 +509,30 @@ graph TB
     Load["ensureLoaded<br/>(skipRecompute: true)"]
     Find["findJobOrThrow(id)"]
     ApplyPatch["applyJobPatch<br/>(job, patch)"]
-    
+
     CheckSchedule{"schedule or enabled<br/>changed?"}
     RecomputeFull["job.nextRunAtMs =<br/>computeJobNextRunAtMs<br/>(job, nowMs)"]
     CheckMissing{"nextRunAtMs<br/>missing/invalid?"}
     RepairOnly["Repair missing nextRunAtMs<br/>(don't advance others)"]
     SkipRecompute["Skip recomputation"]
-    
+
     Persist["persist(state)"]
     Arm["armTimer(state)"]
     Emit["emit 'updated' event"]
     Unlock["Release lock"]
     Return["Return updated job"]
-    
+
     Start --> Lock
     Lock --> Load
     Load --> Find
     Find --> ApplyPatch
     ApplyPatch --> CheckSchedule
-    
+
     CheckSchedule -->|yes| RecomputeFull
     CheckSchedule -->|no| CheckMissing
     CheckMissing -->|yes| RepairOnly
     CheckMissing -->|no| SkipRecompute
-    
+
     RecomputeFull --> Persist
     RepairOnly --> Persist
     SkipRecompute --> Persist
@@ -555,27 +559,27 @@ graph TB
     JobConfig["Job Configuration<br/>(schedule, payload, delivery)"]
     GlobalConfig["Global Config<br/>(agents.defaults, hooks, cron)"]
     AgentConfig["Per-Agent Config<br/>(agents.list[].model, skills, workspace)"]
-    
+
     MergeDefaults["buildCronAgentDefaultsConfig<br/>(merge agent overrides into defaults)"]
-    
+
     SessionResolution["resolveCronSession<br/>(create or load session entry)"]
     ModelResolution["Model/Fallback Resolution<br/>(precedence chain)"]
     AuthResolution["resolveSessionAuthProfileOverride<br/>(OAuth/API key selection)"]
     SkillsSnapshot["resolveCronSkillsSnapshot<br/>(per-agent skill filtering)"]
     TimeoutResolution["resolveAgentTimeoutMs"]
-    
+
     ExecutionConfig["Final Execution Config<br/>(passed to runEmbeddedPiAgent)"]
-    
+
     JobConfig --> MergeDefaults
     GlobalConfig --> MergeDefaults
     AgentConfig --> MergeDefaults
-    
+
     MergeDefaults --> SessionResolution
     MergeDefaults --> ModelResolution
     MergeDefaults --> AuthResolution
     MergeDefaults --> SkillsSnapshot
     MergeDefaults --> TimeoutResolution
-    
+
     SessionResolution --> ExecutionConfig
     ModelResolution --> ExecutionConfig
     AuthResolution --> ExecutionConfig
@@ -618,8 +622,8 @@ const cronSession = resolveCronSession({
   sessionKey: agentSessionKey,
   agentId,
   nowMs: now,
-  forceNew: params.job.sessionTarget === "isolated",  // Always fresh for isolated
-});
+  forceNew: params.job.sessionTarget === 'isolated', // Always fresh for isolated
+})
 ```
 
 This prevents context leakage across cron executions.
@@ -631,11 +635,15 @@ Sources: [src/cron/isolated-agent/run.ts:340-347]()
 Cron sessions without an explicit label receive an auto-generated label:
 
 ```typescript
-if (!cronSession.sessionEntry.label?.trim() && baseSessionKey.startsWith("cron:")) {
-  const labelSuffix = typeof params.job.name === "string" && params.job.name.trim()
-    ? params.job.name.trim()
-    : params.job.id;
-  cronSession.sessionEntry.label = `Cron: ${labelSuffix}`;
+if (
+  !cronSession.sessionEntry.label?.trim() &&
+  baseSessionKey.startsWith('cron:')
+) {
+  const labelSuffix =
+    typeof params.job.name === 'string' && params.job.name.trim()
+      ? params.job.name.trim()
+      : params.job.id
+  cronSession.sessionEntry.label = `Cron: ${labelSuffix}`
 }
 ```
 

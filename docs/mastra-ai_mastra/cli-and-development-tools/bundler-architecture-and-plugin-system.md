@@ -19,7 +19,7 @@ The following files were used as context for generating this wiki page:
 - [packages/cli/src/commands/studio/studio.ts](packages/cli/src/commands/studio/studio.ts)
 - [packages/core/src/bundler/index.ts](packages/core/src/bundler/index.ts)
 - [packages/deployer/src/build/analyze.ts](packages/deployer/src/build/analyze.ts)
-- [packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap](packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap)
+- [packages/deployer/src/build/analyze/**snapshots**/analyzeEntry.test.ts.snap](packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap)
 - [packages/deployer/src/build/analyze/analyzeEntry.test.ts](packages/deployer/src/build/analyze/analyzeEntry.test.ts)
 - [packages/deployer/src/build/analyze/analyzeEntry.ts](packages/deployer/src/build/analyze/analyzeEntry.ts)
 - [packages/deployer/src/build/analyze/bundleExternals.test.ts](packages/deployer/src/build/analyze/bundleExternals.test.ts)
@@ -30,7 +30,7 @@ The following files were used as context for generating this wiki page:
 - [packages/deployer/src/build/watcher.test.ts](packages/deployer/src/build/watcher.test.ts)
 - [packages/deployer/src/build/watcher.ts](packages/deployer/src/build/watcher.ts)
 - [packages/deployer/src/bundler/index.ts](packages/deployer/src/bundler/index.ts)
-- [packages/deployer/src/server/__tests__/option-studio-base.test.ts](packages/deployer/src/server/__tests__/option-studio-base.test.ts)
+- [packages/deployer/src/server/**tests**/option-studio-base.test.ts](packages/deployer/src/server/__tests__/option-studio-base.test.ts)
 - [packages/deployer/src/server/index.ts](packages/deployer/src/server/index.ts)
 - [packages/playground/e2e/tests/auth/infrastructure.spec.ts](packages/playground/e2e/tests/auth/infrastructure.spec.ts)
 - [packages/playground/e2e/tests/auth/viewer-role.spec.ts](packages/playground/e2e/tests/auth/viewer-role.spec.ts)
@@ -39,8 +39,6 @@ The following files were used as context for generating this wiki page:
 - [packages/playground/src/components/ui/app-sidebar.tsx](packages/playground/src/components/ui/app-sidebar.tsx)
 
 </details>
-
-
 
 This document describes the bundler abstraction hierarchy, platform detection mechanisms, and the Rollup/ESBuild plugin configuration system used to bundle Mastra applications for different deployment targets. For information about the dependency analysis process that determines what gets bundled, see [Build System and Dependency Analysis](#8.3). For information about platform-specific deployers, see [Platform Deployers](#8.5).
 
@@ -56,12 +54,26 @@ The `MastraBundler` class in `@mastra/core` defines the interface that all bundl
 // From packages/core/src/bundler/index.ts:20-50
 export abstract class MastraBundler extends MastraBase implements IBundler {
   async loadEnvVars(): Promise<Map<string, string>>
-  abstract getAllToolPaths(mastraDir: string, toolsPaths: (string | string[])[]): (string | string[])[]
+  abstract getAllToolPaths(
+    mastraDir: string,
+    toolsPaths: (string | string[])[]
+  ): (string | string[])[]
   abstract prepare(outputDirectory: string): Promise<void>
-  abstract writePackageJson(outputDirectory: string, dependencies: Map<string, string>): Promise<void>
+  abstract writePackageJson(
+    outputDirectory: string,
+    dependencies: Map<string, string>
+  ): Promise<void>
   abstract getEnvFiles(): Promise<string[]>
-  abstract bundle(entryFile: string, outputDirectory: string, options): Promise<void>
-  abstract lint(entryFile: string, outputDirectory: string, toolsPaths: (string | string[])[]): Promise<void>
+  abstract bundle(
+    entryFile: string,
+    outputDirectory: string,
+    options
+  ): Promise<void>
+  abstract lint(
+    entryFile: string,
+    outputDirectory: string,
+    toolsPaths: (string | string[])[]
+  ): Promise<void>
 }
 ```
 
@@ -81,10 +93,26 @@ export abstract class Bundler extends MastraBundler {
   protected platform: BundlerPlatform = 'node'
 
   async prepare(outputDirectory: string): Promise<void>
-  async writePackageJson(outputDirectory: string, dependencies: Map<string, string>): Promise<void>
-  protected async getUserBundlerOptions(mastraEntryFile: string, outputDirectory: string): Promise<Config['bundler']>
-  protected async analyze(entry: string | string[], mastraFile: string, outputDirectory: string)
-  protected async _bundle(serverFile: string, mastraEntryFile: string, options, toolsPaths, bundleLocation)
+  async writePackageJson(
+    outputDirectory: string,
+    dependencies: Map<string, string>
+  ): Promise<void>
+  protected async getUserBundlerOptions(
+    mastraEntryFile: string,
+    outputDirectory: string
+  ): Promise<Config['bundler']>
+  protected async analyze(
+    entry: string | string[],
+    mastraFile: string,
+    outputDirectory: string
+  )
+  protected async _bundle(
+    serverFile: string,
+    mastraEntryFile: string,
+    options,
+    toolsPaths,
+    bundleLocation
+  )
 }
 ```
 
@@ -99,29 +127,29 @@ graph TB
     subgraph "Core Abstraction"
         MB["MastraBundler<br/>(abstract)<br/>@mastra/core"]
     end
-    
+
     subgraph "Deployer Implementation"
         B["Bundler<br/>(abstract)<br/>@mastra/deployer"]
     end
-    
+
     subgraph "CLI Bundlers"
         DB["DevBundler<br/>platform: node/neutral"]
         BB["BuildBundler<br/>platform: node/neutral"]
     end
-    
+
     subgraph "Platform Deployers"
         CF["CloudflareDeployer<br/>platform: browser"]
         VC["VercelDeployer<br/>platform: node"]
         NL["NetlifyDeployer<br/>platform: node"]
     end
-    
+
     MB -->|"extends"| B
     B -->|"extends"| DB
     B -->|"extends"| BB
     B -->|"extends"| CF
     B -->|"extends"| VC
     B -->|"extends"| NL
-    
+
     DB -.->|"uses"| WR["watch()<br/>createWatcher"]
     BB -.->|"uses"| BU["_bundle()<br/>analyzeBundle"]
     CF -.->|"uses"| BU
@@ -149,15 +177,21 @@ export class DevBundler extends Bundler {
 // From packages/cli/src/commands/build/BuildBundler.ts:9-33
 export class BuildBundler extends Bundler {
   private studio: boolean
-  
+
   constructor({ studio }: { studio?: boolean } = {}) {
     super('Build')
     this.studio = studio ?? false
     this.platform = process.versions?.bun ? 'neutral' : 'node'
   }
-  
-  protected async getUserBundlerOptions(mastraEntryFile: string, outputDirectory: string): Promise<Config['bundler']> {
-    const bundlerOptions = await super.getUserBundlerOptions(mastraEntryFile, outputDirectory)
+
+  protected async getUserBundlerOptions(
+    mastraEntryFile: string,
+    outputDirectory: string
+  ): Promise<Config['bundler']> {
+    const bundlerOptions = await super.getUserBundlerOptions(
+      mastraEntryFile,
+      outputDirectory
+    )
     if (!bundlerOptions?.[IS_DEFAULT]) {
       return bundlerOptions
     }
@@ -199,17 +233,19 @@ The bundler supports three platform modes that control module resolution behavio
 export type BundlerPlatform = 'node' | 'browser' | 'neutral'
 ```
 
-| Platform | Use Case | Module Resolution | Built-in Handling |
-|----------|----------|-------------------|-------------------|
-| `node` | Node.js servers, standard deployments | `exportConditions: ['node']` | Externalized |
+| Platform  | Use Case                              | Module Resolution                                    | Built-in Handling      |
+| --------- | ------------------------------------- | ---------------------------------------------------- | ---------------------- |
+| `node`    | Node.js servers, standard deployments | `exportConditions: ['node']`                         | Externalized           |
 | `browser` | Cloudflare Workers, edge environments | `exportConditions: ['browser', 'worker', 'default']` | Polyfilled/unavailable |
-| `neutral` | Bun runtime | Standard resolution | Preserved as-is |
+| `neutral` | Bun runtime                           | Standard resolution                                  | Preserved as-is        |
 
 The platform determines the configuration passed to Rollup's `nodeResolve` plugin:
 
 ```typescript
 // From packages/deployer/src/build/utils.ts:27-39
-export function getNodeResolveOptions(platform: BundlerPlatform): RollupNodeResolveOptions {
+export function getNodeResolveOptions(
+  platform: BundlerPlatform
+): RollupNodeResolveOptions {
   if (platform === 'browser') {
     return {
       preferBuiltins: false,
@@ -253,32 +289,32 @@ graph TB
     subgraph "User Configuration"
         MC["mastra.ts<br/>new Mastra({<br/>  bundler: {<br/>    externals,<br/>    sourcemap,<br/>    transpilePackages<br/>  }<br/>})"]
     end
-    
+
     subgraph "Configuration Resolution"
         GBO["getBundlerOptions()<br/>packages/deployer/src/build/bundlerOptions.ts"]
         UBO["getUserBundlerOptions()<br/>Bundler.getUserBundlerOptions()"]
         DEF["Default Config<br/>{ externals: [],<br/>  sourcemap: false }"]
     end
-    
+
     subgraph "Platform Detection"
         PD["Platform Detection<br/>this.platform"]
         NRO["getNodeResolveOptions()<br/>platform-specific<br/>export conditions"]
     end
-    
+
     subgraph "Input Options Generation"
         GIO["getInputOptions()<br/>packages/deployer/src/build/bundler.ts:20-152"]
         PL["Plugin Pipeline<br/>Configuration"]
     end
-    
+
     subgraph "Rollup Configuration"
         RC["Rollup Config<br/>{ input, plugins,<br/>  external, treeshake }"]
     end
-    
+
     MC -->|"read at build time"| GBO
     GBO --> UBO
     UBO --> DEF
     UBO --> PD
-    
+
     PD --> NRO
     UBO --> GIO
     NRO --> PL
@@ -302,25 +338,26 @@ The `getAllToolPaths()` method normalizes paths and applies glob patterns to dis
 // From packages/deployer/src/bundler/index.ts:209-230
 getAllToolPaths(mastraDir: string, toolsPaths: (string | string[])[] = []): (string | string[])[] {
   const normalizedMastraDir = slash(mastraDir)
-  
+
   // Prepare default tools paths with glob patterns
   const defaultToolsPath = posix.join(normalizedMastraDir, 'tools/**/*.{js,ts}')
   const defaultToolsIgnorePaths = [
     `!${posix.join(normalizedMastraDir, 'tools/**/*.{test,spec}.{js,ts}')}`,
     `!${posix.join(normalizedMastraDir, 'tools/**/__tests__/**')}`,
   ]
-  
+
   const defaultPaths = [defaultToolsPath, ...defaultToolsIgnorePaths]
-  
+
   if (toolsPaths.length === 0) {
     return [defaultPaths]
   }
-  
+
   return [...toolsPaths, defaultPaths]
 }
 ```
 
 The method:
+
 1. Normalizes Windows paths to forward slashes using `slash()`
 2. Creates default glob patterns for `tools/**/*.{js,ts}`
 3. Excludes test files and `__tests__` directories
@@ -336,13 +373,13 @@ The `listToolsInputOptions()` method expands glob patterns and creates Rollup in
 // From packages/deployer/src/bundler/index.ts:232-267
 async listToolsInputOptions(toolsPaths: (string | string[])[]) {
   const inputs: Record<string, string> = {}
-  
+
   for (const toolPath of toolsPaths) {
     const expandedPaths = await glob(toolPath, {
       absolute: true,
       expandDirectories: false,
     })
-    
+
     for (const path of expandedPaths) {
       if (await fsExtra.pathExists(path)) {
         const fileService = new FileService()
@@ -351,19 +388,19 @@ async listToolsInputOptions(toolsPaths: (string | string[])[]) {
           join(path, 'index.js'),
           path,
         ])
-        
+
         if (!entryFile || (await stat(entryFile)).isDirectory()) {
           this.logger.warn(`No entry file found in ${path}, skipping...`)
           continue
         }
-        
+
         const uniqueToolID = crypto.randomUUID()
         const normalizedEntryFile = entryFile.replaceAll('\\', '/')
         inputs[`tools/${uniqueToolID}`] = normalizedEntryFile
       }
     }
   }
-  
+
   return inputs
 }
 ```
@@ -381,7 +418,7 @@ After bundling, a `tools.mjs` file is generated that exports all tool chunks:
 const toolImports: string[] = []
 const toolsExports: string[] = []
 Array.from(Object.keys(inputOptions.input || {}))
-  .filter(key => key.startsWith('tools/'))
+  .filter((key) => key.startsWith('tools/'))
   .forEach((key, index) => {
     const toolExport = `tool${index}`
     toolImports.push(`import * as ${toolExport} from './${key}.mjs';`)
@@ -390,8 +427,10 @@ Array.from(Object.keys(inputOptions.input || {}))
 
 await writeFile(
   join(bundleLocation, 'tools.mjs'),
-  `${toolImports.join('\
-')}
+  `${toolImports.join(
+    '\
+'
+  )}
 
 export const tools = [${toolsExports.join(', ')}]`
 )
@@ -414,29 +453,29 @@ graph LR
         AL["alias()<br/>Path aliases<br/>#mastra → entry file<br/>#server → @mastra/deployer/server"]
         TCP["tsConfigPaths()<br/>TypeScript path mapping"]
     end
-    
+
     subgraph "Module Resolution"
         AOD["alias-optimized-deps<br/>Resolve analyzed deps<br/>from .build/ dir"]
         SER["subpathExternalsResolver()<br/>Handle subpath externals"]
         NR["nodeResolve()<br/>Platform-specific<br/>export conditions"]
     end
-    
+
     subgraph "Transpilation"
         ES1["esbuild()<br/>TypeScript → JavaScript<br/>with platform defines"]
         ES2["esbuild()<br/>Tree-shake unused<br/>imports from entry"]
     end
-    
+
     subgraph "Format Conversion"
         CJS["commonjs()<br/>Convert CJS → ESM<br/>transformMixedEsModules"]
         ESH["esmShim()<br/>Inject __dirname/__filename<br/>for ESM"]
     end
-    
+
     subgraph "Optimization"
         LOD["optimizeLodashImports()<br/>Import lodash modules<br/>individually"]
         RD["removeDeployer()<br/>Remove deployer code<br/>from bundle"]
         JSON["json()<br/>JSON module support"]
     end
-    
+
     VRT --> AL
     AL --> TCP
     TCP --> AOD
@@ -465,13 +504,24 @@ export async function getInputOptions(
   entryFile: string,
   analyzedBundleInfo: Awaited<ReturnType<typeof analyzeBundle>>,
   platform: BundlerPlatform,
-  env: Record<string, string> = { 'process.env.NODE_ENV': JSON.stringify('production') },
-  { sourcemap = false, isDev = false, projectRoot, workspaceRoot, enableEsmShim = true, externalsPreset = false }
+  env: Record<string, string> = {
+    'process.env.NODE_ENV': JSON.stringify('production'),
+  },
+  {
+    sourcemap = false,
+    isDev = false,
+    projectRoot,
+    workspaceRoot,
+    enableEsmShim = true,
+    externalsPreset = false,
+  }
 ): Promise<InputOptions> {
   const nodeResolvePlugin = nodeResolve(getNodeResolveOptions(platform))
-  const externalsCopy = new Set<string>(analyzedBundleInfo.externalDependencies.keys())
+  const externalsCopy = new Set<string>(
+    analyzedBundleInfo.externalDependencies.keys()
+  )
   const externals = externalsPreset ? [] : Array.from(externalsCopy)
-  
+
   return {
     logLevel: process.env.MASTRA_BUNDLER_DEBUG === 'true' ? 'debug' : 'silent',
     treeshake: 'smallest',
@@ -480,27 +530,36 @@ export async function getInputOptions(
     plugins: [
       subpathExternalsResolver(externals),
       // ... alias-optimized-deps plugin for dependency resolution
-      alias({ entries: [/* #server, #mastra aliases */] }),
+      alias({
+        entries: [
+          /* #server, #mastra aliases */
+        ],
+      }),
       tsConfigPaths(),
       // ... tools-rewriter plugin
       esbuild({ platform, define: env }),
       optimizeLodashImports({ include: '**/*.{js,ts,mjs,cjs}' }),
-      externalsPreset ? null : commonjs({
-        extensions: ['.js', '.ts'],
-        transformMixedEsModules: true,
-        esmExternals(id) { return externals.includes(id) }
-      }),
+      externalsPreset
+        ? null
+        : commonjs({
+            extensions: ['.js', '.ts'],
+            transformMixedEsModules: true,
+            esmExternals(id) {
+              return externals.includes(id)
+            },
+          }),
       enableEsmShim ? esmShim() : undefined,
       externalsPreset ? nodeModulesExtensionResolver() : nodeResolvePlugin,
       json(),
       removeDeployer(entryFile, { sourcemap }),
-      esbuild({ include: entryFile, platform })
-    ].filter(Boolean)
+      esbuild({ include: entryFile, platform }),
+    ].filter(Boolean),
   }
 }
 ```
 
 Key configuration decisions:
+
 - **externalsPreset mode**: When `externals: true`, CommonJS transformation and nodeResolve are skipped, using `nodeModulesExtensionResolver` instead for faster workspace package handling
 - **Platform-specific esbuild**: The `platform` parameter controls how built-ins and globals are handled
 - **ESM shim**: Injected conditionally to provide `__dirname` and `__filename` in ESM contexts
@@ -528,7 +587,7 @@ export async function getInputOptions(
     isDev: true,
     bundlerOptions
   }, noopLogger)
-  
+
   // Extract only workspace dependencies
   const deps = new Map()
   for (const [dep, metadata] of analyzeEntryResult.dependencies.entries()) {
@@ -537,11 +596,11 @@ export async function getInputOptions(
       deps.set(dep, metadata)
     }
   }
-  
+
   const inputOptions = await getBundlerInputOptions(entryFile, { dependencies: deps, ... }, platform, env, {
     sourcemap, isDev: true, workspaceRoot, projectRoot, externalsPreset: bundlerOptions?.externals === true
   })
-  
+
   // Filter out node-resolve plugin, replace with custom tsconfig-paths
   const plugins = []
   inputOptions.plugins.forEach(plugin => {
@@ -552,16 +611,17 @@ export async function getInputOptions(
     }
     plugins.push(plugin)
   })
-  
+
   inputOptions.plugins = plugins
   inputOptions.plugins.push(aliasHono())
   inputOptions.plugins.push(nodeModulesExtensionResolver())
-  
+
   return inputOptions
 }
 ```
 
 Development mode differences:
+
 - **isDev: true**: Keeps workspace packages external instead of bundling them
 - **No node-resolve**: Replaced with `nodeModulesExtensionResolver` for direct external references
 - **Local TypeScript resolution**: `tsConfigPaths({ localResolve: true })` resolves paths locally without compilation
@@ -601,17 +661,17 @@ This allows deployers to generate platform-specific entry points as strings with
     if (!analyzedBundleInfo.dependencies.has(id)) {
       return null
     }
-    
+
     const filename = analyzedBundleInfo.dependencies.get(id)!
     const absolutePath = join(workspaceRoot || projectRoot, filename)
-    
+
     if (isDev) {
       return {
         id: process.platform === 'win32' ? pathToFileURL(absolutePath).href : absolutePath,
         external: true
       }
     }
-    
+
     return { id: absolutePath, external: false }
   }
 }
@@ -627,7 +687,8 @@ Sources: [packages/deployer/src/bundler/index.ts:194-201](), [packages/deployer/
 
 ```typescript
 // From deployers/cloudflare/src/index.ts:216-231
-const hasPostgresStore = (await this.deps.checkDependencies(['@mastra/pg'])) === `ok`
+const hasPostgresStore =
+  (await this.deps.checkDependencies(['@mastra/pg'])) === `ok`
 
 if (Array.isArray(inputOptions.plugins)) {
   inputOptions.plugins = [
@@ -635,12 +696,12 @@ if (Array.isArray(inputOptions.plugins)) {
       '#polyfills': `
 process.versions = process.versions || {};
 process.versions.node = '${process.versions.node}';
-      `
+      `,
     }),
     ...inputOptions.plugins,
     mastraInstanceWrapper(mastraEntryFile),
   ]
-  
+
   if (hasPostgresStore) {
     inputOptions.plugins.push(postgresStoreInstanceChecker())
   }
@@ -655,7 +716,7 @@ The `mastraInstanceWrapper` plugin transforms the Mastra instance export into a 
 // From packages/cli/src/commands/dev/DevBundler.ts:46-56
 async prepare(outputDirectory: string): Promise<void> {
   await super.prepare(outputDirectory)
-  
+
   const studioServePath = join(outputDirectory, this.outputDir, 'studio')
   await fsExtra.copy(join(dirname(__dirname), join('dist', 'studio')), studioServePath, {
     overwrite: true
@@ -673,7 +734,7 @@ Sources: [deployers/cloudflare/src/index.ts:216-231](), [packages/cli/src/comman
 // From packages/deployer/src/build/bundler.ts:111-114
 esbuild({
   platform,
-  define: env
+  define: env,
 })
 ```
 
@@ -714,22 +775,23 @@ export async function createBundler(
   outputOptions: Partial<OutputOptions> & { dir: string }
 ) {
   const bundler = await rollup(inputOptions)
-  
+
   return {
     write: () => {
       return bundler.write({
         ...outputOptions,
         format: 'esm',
         entryFileNames: '[name].mjs',
-        chunkFileNames: '[name].mjs'
+        chunkFileNames: '[name].mjs',
       })
     },
-    close: () => bundler.close()
+    close: () => bundler.close(),
   }
 }
 ```
 
 Output configuration enforces:
+
 - **ESM format**: All output uses ES modules
 - **`.mjs` extension**: Explicit ESM file extension
 - **Manual chunks**: Mastra entry is isolated in its own chunk via `manualChunks: { mastra: ['#mastra'] }`
@@ -769,14 +831,14 @@ async watch(entryFile: string, outputDirectory: string, toolsPaths: (string | st
   const envFiles = await this.getEnvFiles()
   const bundlerOptions = await this.getUserBundlerOptions(entryFile, outputDirectory)
   const sourcemapEnabled = !!bundlerOptions?.sourcemap
-  
+
   const inputOptions = await getWatcherInputOptions(entryFile, this.platform, {
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
   }, { sourcemap: sourcemapEnabled })
-  
+
   const toolsInputOptions = await this.listToolsInputOptions(toolsPaths)
   const outputDir = join(outputDirectory, this.outputDir)
-  
+
   const watcher = await createWatcher({
     ...inputOptions,
     plugins: [
@@ -804,7 +866,7 @@ async watch(entryFile: string, outputDirectory: string, toolsPaths: (string | st
     dir: outputDir,
     sourcemap: sourcemapEnabled
   })
-  
+
   return new Promise((resolve, reject) => {
     const cb = (event: RollupWatcherEvent) => {
       if (event.code === 'BUNDLE_END') {
@@ -824,6 +886,7 @@ async watch(entryFile: string, outputDirectory: string, toolsPaths: (string | st
 ```
 
 The watcher configuration:
+
 - **env-watcher plugin**: Adds `.env` files to the watch list for automatic reload on environment changes
 - **tools-watcher plugin**: Regenerates `tools.mjs` on every build to reflect tool changes
 - **Promise wrapper**: Waits for initial bundle completion before returning the watcher
@@ -843,13 +906,20 @@ watcher.on('event', (event: { code: string }) => {
   }
   if (event.code === 'BUNDLE_END') {
     devLogger.bundleComplete()
-    devLogger.info('[Mastra Dev] - Bundling finished, checking if restart is allowed...')
-    checkAndRestart(dotMastraPath, {
-      port: Number(portToUse),
-      host: hostToUse,
-      studioBasePath: studioBasePathToUse,
-      publicDir: join(mastraDir, 'public')
-    }, bundler, startOptions)
+    devLogger.info(
+      '[Mastra Dev] - Bundling finished, checking if restart is allowed...'
+    )
+    checkAndRestart(
+      dotMastraPath,
+      {
+        port: Number(portToUse),
+        host: hostToUse,
+        studioBasePath: studioBasePathToUse,
+        publicDir: join(mastraDir, 'public'),
+      },
+      bundler,
+      startOptions
+    )
   }
 })
 ```

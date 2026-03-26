@@ -54,8 +54,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Core Application is the main OpenCode server package ([packages/opencode]()) that provides the foundational AI agent capabilities. It implements a Hono-based HTTP server with an embedded CLI interface, managing AI conversations (sessions), tool execution, provider integrations, and real-time event streaming. The server can run in-process (local mode) or as a networked service (remote mode), exposing an OpenAPI-compliant REST API.
 
 For specific subsystems, see: CLI commands ([2.1](#2.1)), configuration loading ([2.2](#2.2)), session lifecycle ([2.3](#2.3)), provider integration ([2.4](#2.4)), tool execution ([2.5](#2.5)), HTTP routes ([2.6](#2.6)), event streaming ([2.7](#2.7)), LSP integration ([2.8](#2.8)), plugin system ([2.9](#2.9)), MCP servers ([2.10](#2.10)), and skills ([2.11](#2.11)).
@@ -74,13 +72,13 @@ graph TB
         CLI["CLI Entry<br/>(packages/opencode/src/index.ts)"]
         SDK["SDK Client<br/>(@opencode-ai/sdk)"]
     end
-    
+
     subgraph "Server Layer"
         Hono["Hono Server<br/>(src/server/server.ts::Server.Default)"]
         Routes["Route Handlers<br/>(src/server/routes/*)"]
         OpenAPI["OpenAPI Spec<br/>(packages/sdk/openapi.json)"]
     end
-    
+
     subgraph "Business Logic"
         Session["Session<br/>(src/session/index.ts::Session)"]
         MessageV2["MessageV2<br/>(src/session/message-v2.ts::MessageV2)"]
@@ -88,57 +86,57 @@ graph TB
         Agent["Agent<br/>(src/agent/agent.ts::Agent)"]
         Config["Config<br/>(src/config/config.ts::Config)"]
     end
-    
+
     subgraph "Execution Layer"
         ToolRegistry["ToolRegistry<br/>(src/tool/registry.ts::ToolRegistry)"]
         PermissionNext["PermissionNext<br/>(src/permission/next.ts::PermissionNext)"]
         LLM["LLM<br/>(src/session/llm.ts::LLM)"]
     end
-    
+
     subgraph "External Integrations"
         Provider["Provider<br/>(src/provider/provider.ts::Provider)"]
         LSP["LSP<br/>(src/lsp/index.ts::LSP)"]
         MCP["MCP<br/>(src/mcp/index.ts::MCP)"]
         Plugin["Plugin<br/>(src/plugin/index.ts::Plugin)"]
     end
-    
+
     subgraph "Event System"
         Bus["Bus<br/>(src/bus/index.ts::Bus)"]
         GlobalBus["GlobalBus<br/>(src/bus/global.ts::GlobalBus)"]
     end
-    
+
     subgraph "Storage"
         Database["Database<br/>(src/storage/db.ts::Database)"]
         Storage["Storage<br/>(src/storage/storage.ts::Storage)"]
     end
-    
+
     CLI --> Hono
     SDK --> Hono
     Hono --> Routes
     Routes --> Session
     Routes --> Config
     Routes --> Agent
-    
+
     Session --> MessageV2
     Session --> SessionPrompt
     SessionPrompt --> LLM
     SessionPrompt --> ToolRegistry
     SessionPrompt --> Agent
-    
+
     LLM --> Provider
     ToolRegistry --> PermissionNext
     ToolRegistry --> LSP
     ToolRegistry --> MCP
-    
+
     Session --> Database
     Session --> Storage
     Session --> Bus
     Bus --> GlobalBus
-    
+
     Config --> Plugin
     Plugin -.hooks.-> ToolRegistry
     Plugin -.hooks.-> SessionPrompt
-    
+
     style Hono fill:#f9f,stroke:#333,stroke-width:2px
     style Session fill:#bbf,stroke:#333,stroke-width:2px
     style Database fill:#bfb,stroke:#333,stroke-width:2px
@@ -165,25 +163,25 @@ sequenceDiagram
     participant Instance as "Instance.provide()"
     participant Config as "Config.state()"
     participant Server as "Server.Default"
-    
+
     Main->>Yargs: hideBin(process.argv)
     Yargs->>Log: middleware: Log.init()
     Log-->>Yargs: initialized
-    
+
     Yargs->>Database: Check opencode.db marker
     alt marker missing
         Yargs->>JsonMigration: run(Database.Client().$client)
         JsonMigration->>Database: migrate JSON to SQLite
         JsonMigration-->>Yargs: migration complete
     end
-    
+
     Yargs->>Command: parse command
     Command->>Instance: Instance.provide({ directory, init })
     Instance->>Config: Config.state()
     Config->>Config: load hierarchy (remote, global, project, inline)
     Config-->>Instance: merged config
     Instance-->>Command: initialized
-    
+
     alt serve command
         Command->>Server: Server.Default.listen()
         Server-->>Command: listening on port
@@ -211,16 +209,16 @@ The initialization sequence includes:
 
 The `Session` namespace ([packages/opencode/src/session/index.ts:36-753]()) manages conversation threads, messages, and parts. Each session tracks:
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `id` | `SessionID` | Descending ULID identifier |
-| `projectID` | `ProjectID` | Associated project |
-| `workspaceID` | `WorkspaceID?` | Optional workspace (worktree) |
-| `title` | `string` | Session title |
-| `permission` | `PermissionNext.Ruleset?` | Permission overrides |
-| `summary` | `SessionSummary?` | File diff statistics |
-| `share` | `{url: string}?` | Share link if published |
-| `revert` | `RevertInfo?` | Revert point information |
+| Property      | Type                      | Description                   |
+| ------------- | ------------------------- | ----------------------------- |
+| `id`          | `SessionID`               | Descending ULID identifier    |
+| `projectID`   | `ProjectID`               | Associated project            |
+| `workspaceID` | `WorkspaceID?`            | Optional workspace (worktree) |
+| `title`       | `string`                  | Session title                 |
+| `permission`  | `PermissionNext.Ruleset?` | Permission overrides          |
+| `summary`     | `SessionSummary?`         | File diff statistics          |
+| `share`       | `{url: string}?`          | Share link if published       |
+| `revert`      | `RevertInfo?`             | Revert point information      |
 
 Sessions contain `Message` entities (user/assistant) which contain `Part` entities (text, tool, file, reasoning, etc). See [2.3](#2.3) for detailed session lifecycle.
 
@@ -235,7 +233,7 @@ graph LR
     Session["Session<br/>(SessionTable)"]
     UserMsg["UserMessage<br/>role: user"]
     AsstMsg["AssistantMessage<br/>role: assistant"]
-    
+
     TextPart["TextPart<br/>type: text"]
     ToolPart["ToolPart<br/>type: tool"]
     FilePart["FilePart<br/>type: file"]
@@ -243,7 +241,7 @@ graph LR
     AgentPart["AgentPart<br/>type: agent"]
     SubtaskPart["SubtaskPart<br/>type: subtask"]
     CompactionPart["CompactionPart<br/>type: compaction"]
-    
+
     Session -->|"1:N"| UserMsg
     Session -->|"1:N"| AsstMsg
     UserMsg -->|"1:N"| TextPart
@@ -254,7 +252,7 @@ graph LR
     AsstMsg -->|"1:N"| ToolPart
     AsstMsg -->|"1:N"| ReasoningPart
     AsstMsg -->|"1:N"| CompactionPart
-    
+
     style Session fill:#f9f,stroke:#333,stroke-width:2px
 ```
 
@@ -301,7 +299,7 @@ graph TB
         ProviderGetModel["Provider.getModel()<br/>(src/provider/provider.ts:945-1023)"]
         ModelsDev["ModelsDev.fetch()<br/>(src/provider/models.ts:69-188)"]
     end
-    
+
     subgraph "AI SDK Wrappers"
         Anthropic["@ai-sdk/anthropic<br/>createAnthropic()"]
         OpenAI["@ai-sdk/openai<br/>createOpenAI()"]
@@ -309,12 +307,12 @@ graph TB
         GoogleVertex["@ai-sdk/google-vertex<br/>createVertex()"]
         Custom["Custom Loaders<br/>CUSTOM_LOADERS"]
     end
-    
+
     subgraph "Authentication"
         Auth["Auth.get(providerID)<br/>(src/auth/index.ts)"]
         Env["Env.get(key)<br/>(src/env/index.ts)"]
     end
-    
+
     ProviderList --> ModelsDev
     ProviderList --> Auth
     ProviderList --> Env
@@ -323,7 +321,7 @@ graph TB
     ProviderGetModel --> Bedrock
     ProviderGetModel --> GoogleVertex
     ProviderGetModel --> Custom
-    
+
     Custom --> Auth
     Custom --> Env
 ```
@@ -336,17 +334,17 @@ Sources: [packages/opencode/src/provider/provider.ts:52-1260](), [packages/openc
 
 The `ToolRegistry` ([packages/opencode/src/tool/registry.ts]()) manages tool registration and execution. Core tools include:
 
-| Tool ID | Purpose | Source |
-|---------|---------|--------|
-| `bash` | Execute shell commands | [src/tool/bash.ts]() |
-| `edit` | Edit file contents with 9 replacement strategies | [src/tool/edit.ts]() |
-| `read` | Read file contents with LSP integration | [src/tool/read.ts]() |
-| `write` | Write file contents | [src/tool/write.ts]() |
-| `grep` | Search file contents using ripgrep | [src/tool/grep.ts]() |
-| `glob` | Find files matching patterns | [src/tool/glob.ts]() |
-| `task` | Spawn parallel subagent tasks | [src/tool/task.ts]() |
-| `lsp-*` | LSP operations (hover, definition, diagnostics) | [src/lsp/]() |
-| `mcp-*` | MCP resource access | [src/mcp/]() |
+| Tool ID | Purpose                                          | Source                |
+| ------- | ------------------------------------------------ | --------------------- |
+| `bash`  | Execute shell commands                           | [src/tool/bash.ts]()  |
+| `edit`  | Edit file contents with 9 replacement strategies | [src/tool/edit.ts]()  |
+| `read`  | Read file contents with LSP integration          | [src/tool/read.ts]()  |
+| `write` | Write file contents                              | [src/tool/write.ts]() |
+| `grep`  | Search file contents using ripgrep               | [src/tool/grep.ts]()  |
+| `glob`  | Find files matching patterns                     | [src/tool/glob.ts]()  |
+| `task`  | Spawn parallel subagent tasks                    | [src/tool/task.ts]()  |
+| `lsp-*` | LSP operations (hover, definition, diagnostics)  | [src/lsp/]()          |
+| `mcp-*` | MCP resource access                              | [src/mcp/]()          |
 
 Tool execution is protected by the `PermissionNext` system ([packages/opencode/src/permission/next.ts]()) which enforces per-tool permissions with pattern matching. See [2.5](#2.5) for tool system details.
 
@@ -363,6 +361,7 @@ The `Server` namespace ([packages/opencode/src/server/server.ts:53-558]()) imple
 - Error handling with NamedError serialization ([packages/opencode/src/server/server.ts:61-78]())
 
 Routes are organized by resource:
+
 - `/global/*` - Global operations (health, config, events)
 - `/project/*` - Project management
 - `/session/*` - Session CRUD and prompting
@@ -387,18 +386,18 @@ graph LR
         ToolExec["Tool Execution<br/>(ToolRegistry.execute)"]
         FileOps["File Operations<br/>(FileTime, FileWatcher)"]
     end
-    
+
     subgraph "Event Bus"
         Bus["Bus.publish()<br/>(src/bus/index.ts)"]
         GlobalBus["GlobalBus.publish()<br/>(src/bus/global.ts)"]
     end
-    
+
     subgraph "Event Consumers"
         SSE["SSE Stream<br/>/global/event endpoint"]
         TUI["TUI Worker<br/>(src/cli/cmd/tui/worker.ts)"]
         SDK["SDK Clients<br/>(event listeners)"]
     end
-    
+
     SessionOps --> Bus
     MessageOps --> Bus
     ToolExec --> Bus
@@ -423,6 +422,7 @@ The `Plugin` namespace ([packages/opencode/src/plugin/index.ts]()) supports exte
 - `provider.options` - Modify provider request options
 
 Plugins are loaded from three sources:
+
 1. Global `~/.opencode/plugins/*.{js,ts}` directory
 2. Global `opencode.json` `plugin` array
 3. Project `.opencode/plugins/*.{js,ts}` directory
@@ -451,23 +451,23 @@ sequenceDiagram
     participant ToolRegistry as "ToolRegistry"
     participant Permission as "PermissionNext"
     participant Bus as "GlobalBus"
-    
+
     User->>SessionPrompt: prompt({ sessionID, parts, agent, model })
     SessionPrompt->>Session: createUserMessage()
     Session->>Bus: publish(message.updated)
     SessionPrompt->>Loop: loop({ sessionID })
-    
+
     loop Until finish != "tool-calls"
         Loop->>Session: messages({ sessionID })
         Loop->>LLM: stream({ messages, tools, model })
         LLM->>Provider: streamText({ messages, tools })
         Provider-->>LLM: stream chunks
-        
+
         loop For each chunk
             LLM->>Session: updatePart({ type: text, text: delta })
             Session->>Bus: publish(message.part.updated)
         end
-        
+
         alt Has tool calls
             Loop->>ToolRegistry: execute(tool, args, context)
             ToolRegistry->>Permission: check(permission, pattern, metadata)
@@ -481,12 +481,12 @@ sequenceDiagram
             Loop->>Session: updatePart({ type: tool, state: completed })
             Session->>Bus: publish(message.part.updated)
         end
-        
+
         alt Context overflow
             Loop->>Loop: process compaction
         end
     end
-    
+
     Loop-->>SessionPrompt: final message
     SessionPrompt-->>User: response
 ```
@@ -545,16 +545,16 @@ Sources: [packages/opencode/src/session/session.sql.ts:35-68]()
 
 The configuration schema ([packages/opencode/src/config/config.ts:42-1010]()) includes:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `agent` | `Record<string, Agent>` | Agent configurations |
-| `provider` | `Record<string, ProviderConfig>` | Provider settings |
-| `permission` | `Permission` | Global permission rules |
-| `plugin` | `string[]` | Plugin specifiers |
-| `mcp` | `Record<string, Mcp>` | MCP server configurations |
-| `command` | `Record<string, Command>` | Slash command templates |
-| `keybinds` | `Keybinds` | TUI keybindings |
-| `compaction` | `CompactionConfig` | Compaction settings |
+| Field        | Type                             | Description               |
+| ------------ | -------------------------------- | ------------------------- |
+| `agent`      | `Record<string, Agent>`          | Agent configurations      |
+| `provider`   | `Record<string, ProviderConfig>` | Provider settings         |
+| `permission` | `Permission`                     | Global permission rules   |
+| `plugin`     | `string[]`                       | Plugin specifiers         |
+| `mcp`        | `Record<string, Mcp>`            | MCP server configurations |
+| `command`    | `Record<string, Command>`        | Slash command templates   |
+| `keybinds`   | `Keybinds`                       | TUI keybindings           |
+| `compaction` | `CompactionConfig`               | Compaction settings       |
 
 See [2.2](#2.2) for full schema documentation.
 
@@ -590,20 +590,20 @@ graph TB
         CLI_Internal["CLI Command"]
         SDK_Internal["SDK Client<br/>(transport: internal)"]
         Server_Internal["Server.Default<br/>(in-process)"]
-        
+
         CLI_Internal --> SDK_Internal
         SDK_Internal --> Server_Internal
     end
-    
+
     subgraph "HTTP Mode"
         VSCode["VS Code Extension"]
         SDK_HTTP["SDK Client<br/>(transport: http)"]
         Server_HTTP["Server Process<br/>(listening on port)"]
-        
+
         VSCode --> SDK_HTTP
         SDK_HTTP -->|"HTTP/SSE"| Server_HTTP
     end
-    
+
     style Server_Internal fill:#f9f,stroke:#333,stroke-width:2px
     style Server_HTTP fill:#f9f,stroke:#333,stroke-width:2px
 ```

@@ -13,8 +13,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page guides you through the initial setup process for Craft Agents, from installation through authentication and workspace creation. The setup involves running the desktop application and completing an onboarding wizard that configures your AI provider connections and workspace.
 
 For detailed installation methods, see [Installation](#3.1). For environment variable configuration during builds, see [Environment Configuration](#3.2). For authentication details specific to each provider, see [Authentication Setup](#3.3).
@@ -62,17 +60,17 @@ Sources: [apps/electron/src/renderer/hooks/useOnboarding.ts:160-176](), [apps/el
 
 The wizard state is managed by the `OnboardingState` interface in `OnboardingWizard.tsx`:
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `step` | `'welcome' \| 'git-bash' \| 'provider-select' \| 'local-model' \| 'credentials' \| 'complete'` | Current wizard step |
-| `loginStatus` | `'idle' \| 'waiting' \| 'success' \| 'error'` | OAuth flow status |
-| `credentialStatus` | `'idle' \| 'validating' \| 'success' \| 'error'` | API key / OAuth validation status |
-| `completionStatus` | `'saving' \| 'complete'` | Configuration persistence status |
-| `apiSetupMethod` | `ApiSetupMethod \| null` | Selected authentication method |
-| `isExistingUser` | `boolean` | Whether user has prior configuration |
-| `gitBashStatus` | `GitBashStatus` | Git Bash detection result (Windows) |
-| `isCheckingGitBash` | `boolean` | Whether initial Git Bash check is pending |
-| `errorMessage` | `string?` | Current error message |
+| Field               | Type                                                                                           | Purpose                                   |
+| ------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `step`              | `'welcome' \| 'git-bash' \| 'provider-select' \| 'local-model' \| 'credentials' \| 'complete'` | Current wizard step                       |
+| `loginStatus`       | `'idle' \| 'waiting' \| 'success' \| 'error'`                                                  | OAuth flow status                         |
+| `credentialStatus`  | `'idle' \| 'validating' \| 'success' \| 'error'`                                               | API key / OAuth validation status         |
+| `completionStatus`  | `'saving' \| 'complete'`                                                                       | Configuration persistence status          |
+| `apiSetupMethod`    | `ApiSetupMethod \| null`                                                                       | Selected authentication method            |
+| `isExistingUser`    | `boolean`                                                                                      | Whether user has prior configuration      |
+| `gitBashStatus`     | `GitBashStatus`                                                                                | Git Bash detection result (Windows)       |
+| `isCheckingGitBash` | `boolean`                                                                                      | Whether initial Git Bash check is pending |
+| `errorMessage`      | `string?`                                                                                      | Current error message                     |
 
 Sources: [apps/electron/src/renderer/components/onboarding/OnboardingWizard.tsx:18-32]()
 
@@ -136,13 +134,13 @@ Sources: [apps/electron/src/renderer/hooks/useOnboarding.ts:89-96](), [apps/elec
 
 ### Method Characteristics
 
-| `ApiSetupMethod` | `ProviderChoice` | Base Slug | Flow Type | Backend |
-|---|---|---|---|---|
-| `anthropic_api_key` | `local` | `anthropic-api` | API key / custom endpoint | Claude SDK |
-| `claude_oauth` | `claude` | `claude-max` | Two-step browser OAuth | Claude SDK |
-| `pi_chatgpt_oauth` | `chatgpt` | `chatgpt-plus` | Native browser OAuth | Pi SDK |
-| `pi_copilot_oauth` | `copilot` | `github-copilot` | Device flow OAuth | Pi SDK |
-| `pi_api_key` | `api_key` | `pi-api-key` | API key input | Pi SDK |
+| `ApiSetupMethod`    | `ProviderChoice` | Base Slug        | Flow Type                 | Backend    |
+| ------------------- | ---------------- | ---------------- | ------------------------- | ---------- |
+| `anthropic_api_key` | `local`          | `anthropic-api`  | API key / custom endpoint | Claude SDK |
+| `claude_oauth`      | `claude`         | `claude-max`     | Two-step browser OAuth    | Claude SDK |
+| `pi_chatgpt_oauth`  | `chatgpt`        | `chatgpt-plus`   | Native browser OAuth      | Pi SDK     |
+| `pi_copilot_oauth`  | `copilot`        | `github-copilot` | Device flow OAuth         | Pi SDK     |
+| `pi_api_key`        | `api_key`        | `pi-api-key`     | API key input             | Pi SDK     |
 
 Slug uniqueness is ensured by `resolveSlugForMethod`, which appends `-2`, `-3`, etc. when the base slug is already taken.
 
@@ -162,13 +160,13 @@ sequenceDiagram
     participant Hook as "useOnboarding hook"
     participant IPC as "electronAPI.checkGitBash"
     participant Main as "Main Process"
-    
+
     UI->>Hook: "Mount (welcome step)"
     Hook->>IPC: "checkGitBash()"
     IPC->>Main: "IPC: CHECK_GIT_BASH"
     Main-->>IPC: "GitBashStatus"
     IPC-->>Hook: "{ platform, found, path? }"
-    
+
     alt "Git Bash found"
         Hook->>UI: "Skip git-bash step"
         UI->>UI: "Continue to api-setup"
@@ -254,19 +252,19 @@ sequenceDiagram
     participant Main as "Main Process"
     participant CredMgr as "CredentialManager"
     participant ConfigMgr as "ConfigManager"
-    
+
     Hook->>Hook: "Build LlmConnectionSetup"
     Hook->>IPC: "setupLlmConnection(setup)"
     IPC->>Main: "IPC: SETUP_LLM_CONNECTION"
-    
+
     Main->>CredMgr: "Save credential by slug"
     CredMgr->>CredMgr: "Encrypt with AES-256-GCM"
     CredMgr->>CredMgr: "Write credentials.enc"
-    
+
     Main->>ConfigMgr: "Update config.json"
     ConfigMgr->>ConfigMgr: "Add/update llmConnection"
     ConfigMgr->>ConfigMgr: "Write ~/.craft-agent/config.json"
-    
+
     Main-->>IPC: "{ success: true }"
     IPC-->>Hook: "Config saved"
     Hook->>Hook: "onConfigSaved() callback"
@@ -309,10 +307,10 @@ All credentials are encrypted using AES-256-GCM and stored in `~/.craft-agent/cr
 
 The credential storage format maps connection slugs to credential data:
 
-| Key Pattern | Value Type | Example |
-|-------------|------------|---------|
-| `llm-{slug}` | `string` (API key) or `{ accessToken, refreshToken, expiresAt }` (OAuth) | `llm-anthropic-api`, `llm-claude-max` |
-| `claude-oauth` | `{ accessToken, refreshToken, expiresAt, source: 'native' }` | Legacy key for validation |
+| Key Pattern    | Value Type                                                               | Example                               |
+| -------------- | ------------------------------------------------------------------------ | ------------------------------------- |
+| `llm-{slug}`   | `string` (API key) or `{ accessToken, refreshToken, expiresAt }` (OAuth) | `llm-anthropic-api`, `llm-claude-max` |
+| `claude-oauth` | `{ accessToken, refreshToken, expiresAt, source: 'native' }`             | Legacy key for validation             |
 
 For encryption details, see [Credential Storage & Encryption](#7.2).
 

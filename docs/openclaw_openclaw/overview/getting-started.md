@@ -58,8 +58,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers prerequisites, installation, the `openclaw onboard` wizard, the `openclaw doctor` command, and verifying a working setup. It targets first-time users going from zero to a running Gateway.
 
 For definitions of Gateway, Agent, Node, Channel, and Session, see [Core Concepts](#1.2). For deep Gateway configuration after setup is working, see [Configuration](#2.3). For the full CLI surface, see [Gateway](#2).
@@ -68,13 +66,13 @@ For definitions of Gateway, Agent, Node, Channel, and Session, see [Core Concept
 
 ## Prerequisites
 
-| Requirement | Details |
-|---|---|
-| **Node.js** | Version 22 or newer (`node --version` to check) |
-| **Package manager** | npm or pnpm; **pnpm is recommended** |
-| **OS** | macOS, Linux, or Windows via WSL2 (WSL2 strongly recommended on Windows) |
-| **RAM** | 512MB-1GB minimum for personal use; 2GB recommended with headroom for logs/media |
-| **Disk** | ~500MB for Gateway installation |
+| Requirement         | Details                                                                          |
+| ------------------- | -------------------------------------------------------------------------------- |
+| **Node.js**         | Version 22 or newer (`node --version` to check)                                  |
+| **Package manager** | npm or pnpm; **pnpm is recommended**                                             |
+| **OS**              | macOS, Linux, or Windows via WSL2 (WSL2 strongly recommended on Windows)         |
+| **RAM**             | 512MB-1GB minimum for personal use; 2GB recommended with headroom for logs/media |
+| **Disk**            | ~500MB for Gateway installation                                                  |
 
 The minimum runtime is enforced at process startup via `assertSupportedRuntime` before any commands run. Bun is **not recommended** for the Gateway.
 
@@ -86,32 +84,36 @@ Sources: [docs/help/faq.md:362-377](), [src/index.ts:44-45]()
 
 Three installation paths are supported:
 
-| Method | Command | Use case |
-|---|---|---|
+| Method                             | Command                                             | Use case                                                                                   |
+| ---------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | **Installer script (recommended)** | `curl -fsSL https://openclaw.ai/install.sh \| bash` | Most users; handles Node detection, installation, PATH setup, and onboarding automatically |
-| **npm/pnpm global** | `npm install -g openclaw@latest` | Clean installs with Node >= 22 already on PATH |
-| **From source (git)** | `git clone` + `pnpm install && pnpm build` | Contributors and development; allows local edits |
+| **npm/pnpm global**                | `npm install -g openclaw@latest`                    | Clean installs with Node >= 22 already on PATH                                             |
+| **From source (git)**              | `git clone` + `pnpm install && pnpm build`          | Contributors and development; allows local edits                                           |
 
 ### Installer Script (Recommended)
 
 The installer script automatically detects Node, installs it if missing, installs OpenClaw globally via npm, and launches the onboarding wizard.
 
 **macOS/Linux/WSL2:**
+
 ```bash
 curl -fsSL https://openclaw.ai/install.sh | bash
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 iwr -useb https://openclaw.ai/install.ps1 | iex
 ```
 
 **Skip onboarding (install binary only):**
+
 ```bash
 curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard
 ```
 
 **Install from git checkout (hackable install):**
+
 ```bash
 curl -fsSL https://openclaw.ai/install.sh | bash -s -- --install-method git
 ```
@@ -151,6 +153,7 @@ pnpm ui:build   # builds Control UI assets; auto-installs UI deps on first run
 ```
 
 For source installs:
+
 - `pnpm openclaw ...` runs TypeScript directly via `tsx`
 - `pnpm build` is required before running via Node or the packaged binary
 - `pnpm gateway:watch` provides hot-reload during development
@@ -168,6 +171,7 @@ Sources: [docs/help/faq.md:318-340](), [docs/install/index.md:34-69]()
 ## Running the Onboarding Wizard
 
 `openclaw onboard` is the recommended first step after installing. It is an interactive wizard that configures:
+
 - Model provider authentication (Anthropic, OpenAI, Google Gemini, local models, etc.)
 - Agent workspace directory
 - Gateway settings (port, bind address, authentication)
@@ -281,15 +285,15 @@ Search"]
     ADVCONF --> COMMON
 ```
 
-| Setting | QuickStart Default | Advanced |
-|---|---|---|
-| Gateway bind | `loopback` (127.0.0.1) | `loopback`, `lan`, `auto`, `custom`, or `tailnet` |
-| Gateway port | `18789` | Configurable |
-| Gateway auth | Token (auto-generated via `randomToken()`) | Token or Password |
-| Tailscale mode | Off | Off / Serve / Funnel |
-| Mode | Local only | Local or Remote |
-| DM isolation | `per-channel-peer` (implicit) | Explicit prompt |
-| Channel allowFrom | Auto-configured for QuickStart-eligible channels | Prompted per channel |
+| Setting           | QuickStart Default                               | Advanced                                          |
+| ----------------- | ------------------------------------------------ | ------------------------------------------------- |
+| Gateway bind      | `loopback` (127.0.0.1)                           | `loopback`, `lan`, `auto`, `custom`, or `tailnet` |
+| Gateway port      | `18789`                                          | Configurable                                      |
+| Gateway auth      | Token (auto-generated via `randomToken()`)       | Token or Password                                 |
+| Tailscale mode    | Off                                              | Off / Serve / Funnel                              |
+| Mode              | Local only                                       | Local or Remote                                   |
+| DM isolation      | `per-channel-peer` (implicit)                    | Explicit prompt                                   |
+| Channel allowFrom | Auto-configured for QuickStart-eligible channels | Prompted per channel                              |
 
 **Type reference:** `WizardFlow = "quickstart" | "advanced"` is defined in [src/wizard/onboarding.types.ts](). The `"manual"` CLI value is normalized to `"advanced"` before processing.
 
@@ -299,54 +303,54 @@ Sources: [src/wizard/onboarding.ts:108-139](), [src/wizard/onboarding.ts:229-279
 
 All wizard output is written to `~/.openclaw/openclaw.json` (resolved via `CONFIG_PATH` constant). The sections it populates:
 
-| Config key | What is set | Source function |
-|---|---|---|
-| `agents.defaults.workspace` | Workspace directory (default `~/.openclaw/workspace`) | `applyOnboardingLocalWorkspaceConfig()` |
-| `agents.defaults.model` | Primary model (e.g., `anthropic/claude-opus-4-6`) | `applyPrimaryModel()` |
-| `agents.defaults.models` | Model allowlist with aliases | `applyAuthChoice()` |
-| `auth.profiles.*` | Auth profile configurations | `applyAuthProfileConfig()` |
-| `gateway.mode` | `local` or `remote` | Wizard mode selection |
-| `gateway.port` | Default `18789` (`DEFAULT_GATEWAY_PORT`) | Gateway configuration flow |
-| `gateway.bind` | `loopback`, `lan`, `tailnet`, `custom`, or `auto` | Gateway configuration flow |
-| `gateway.auth.mode` | `token` or `password` | Gateway configuration flow |
-| `gateway.auth.token` | Auto-generated hex token via `randomToken()` | Gateway configuration flow |
-| `gateway.tailscale.mode` | `off`, `serve`, or `funnel` | Gateway configuration flow |
-| `gateway.tailscale.resetOnExit` | Boolean flag | Gateway configuration flow |
-| `channels.*` | Channel tokens and `allowFrom` lists | `setupChannels()` |
-| `memory.backend` | `qmd` or `builtin` | `setupSearch()` |
-| `skills.*` | Skills configuration | `setupSkills()` |
-| `hooks.newSession.appendMemory` | Session memory hook | `setupInternalHooks()` |
-| `wizard.lastRunAt` | ISO 8601 timestamp | `applyWizardMetadata()` |
-| `wizard.lastRunVersion` | Package version at run time | `applyWizardMetadata()` |
-| `wizard.lastRunCommand` | `"onboard"` | `applyWizardMetadata()` |
+| Config key                      | What is set                                           | Source function                         |
+| ------------------------------- | ----------------------------------------------------- | --------------------------------------- |
+| `agents.defaults.workspace`     | Workspace directory (default `~/.openclaw/workspace`) | `applyOnboardingLocalWorkspaceConfig()` |
+| `agents.defaults.model`         | Primary model (e.g., `anthropic/claude-opus-4-6`)     | `applyPrimaryModel()`                   |
+| `agents.defaults.models`        | Model allowlist with aliases                          | `applyAuthChoice()`                     |
+| `auth.profiles.*`               | Auth profile configurations                           | `applyAuthProfileConfig()`              |
+| `gateway.mode`                  | `local` or `remote`                                   | Wizard mode selection                   |
+| `gateway.port`                  | Default `18789` (`DEFAULT_GATEWAY_PORT`)              | Gateway configuration flow              |
+| `gateway.bind`                  | `loopback`, `lan`, `tailnet`, `custom`, or `auto`     | Gateway configuration flow              |
+| `gateway.auth.mode`             | `token` or `password`                                 | Gateway configuration flow              |
+| `gateway.auth.token`            | Auto-generated hex token via `randomToken()`          | Gateway configuration flow              |
+| `gateway.tailscale.mode`        | `off`, `serve`, or `funnel`                           | Gateway configuration flow              |
+| `gateway.tailscale.resetOnExit` | Boolean flag                                          | Gateway configuration flow              |
+| `channels.*`                    | Channel tokens and `allowFrom` lists                  | `setupChannels()`                       |
+| `memory.backend`                | `qmd` or `builtin`                                    | `setupSearch()`                         |
+| `skills.*`                      | Skills configuration                                  | `setupSkills()`                         |
+| `hooks.newSession.appendMemory` | Session memory hook                                   | `setupInternalHooks()`                  |
+| `wizard.lastRunAt`              | ISO 8601 timestamp                                    | `applyWizardMetadata()`                 |
+| `wizard.lastRunVersion`         | Package version at run time                           | `applyWizardMetadata()`                 |
+| `wizard.lastRunCommand`         | `"onboard"`                                           | `applyWizardMetadata()`                 |
 
 Sources: [src/commands/onboard-helpers.ts:40-62](), [src/wizard/onboarding.ts:409-537](), [src/config/config.ts:1-50]()
 
 ### Key `onboard` Flags
 
-| Flag | Effect | Use case |
-|---|---|---|
-| `--install-daemon` | Install Gateway as a launchd/systemd service | Persist Gateway across reboots |
-| `--flow quickstart\|advanced` | Skip the flow selection prompt | Automation or known preferences |
-| `--mode local\|remote` | Skip the mode selection prompt | Automation |
-| `--non-interactive` | Run without prompts; requires explicit flags for all options | CI/CD, automation scripts |
-| `--accept-risk` | Acknowledge security warning (required for `--non-interactive`) | Headless installs |
-| `--reset` | Clear config/credentials/sessions before running | Fresh start |
-| `--reset-scope config\|config+creds+sessions\|full` | Control reset granularity (`full` also removes workspace) | Targeted cleanup |
-| `--workspace <dir>` | Set workspace directory path | Custom workspace location |
-| `--auth-choice <choice>` | Set auth method (see [Auth Choice Options](#auth-choice-options)) | Non-interactive setup |
-| `--token-provider <provider>` | Provider for `--auth-choice token` | Non-interactive token auth |
-| `--token <value>` | Token value for `--auth-choice token` | Non-interactive token auth |
-| `--anthropic-api-key <key>` | Anthropic API key | Non-interactive API key auth |
-| `--openai-api-key <key>` | OpenAI API key | Non-interactive API key auth |
-| `--gemini-api-key <key>` | Google Gemini API key | Non-interactive API key auth |
-| `--gateway-port <port>` | Override gateway port (default `18789`) | Custom port binding |
-| `--gateway-bind <mode>` | Override bind address (`loopback\|lan\|tailnet\|custom\|auto`) | Network configuration |
-| `--gateway-auth <mode>` | Auth mode (`token\|password`) | Gateway authentication |
-| `--skip-channels` | Skip channel setup step | Fast initial setup |
-| `--skip-skills` | Skip skills install step | Fast initial setup |
-| `--skip-search` | Skip memory search setup | Fast initial setup |
-| `--secret-input-mode <mode>` | API key persistence mode (`plaintext\|ref`) | SecretRef configuration |
+| Flag                                                | Effect                                                            | Use case                        |
+| --------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------- |
+| `--install-daemon`                                  | Install Gateway as a launchd/systemd service                      | Persist Gateway across reboots  |
+| `--flow quickstart\|advanced`                       | Skip the flow selection prompt                                    | Automation or known preferences |
+| `--mode local\|remote`                              | Skip the mode selection prompt                                    | Automation                      |
+| `--non-interactive`                                 | Run without prompts; requires explicit flags for all options      | CI/CD, automation scripts       |
+| `--accept-risk`                                     | Acknowledge security warning (required for `--non-interactive`)   | Headless installs               |
+| `--reset`                                           | Clear config/credentials/sessions before running                  | Fresh start                     |
+| `--reset-scope config\|config+creds+sessions\|full` | Control reset granularity (`full` also removes workspace)         | Targeted cleanup                |
+| `--workspace <dir>`                                 | Set workspace directory path                                      | Custom workspace location       |
+| `--auth-choice <choice>`                            | Set auth method (see [Auth Choice Options](#auth-choice-options)) | Non-interactive setup           |
+| `--token-provider <provider>`                       | Provider for `--auth-choice token`                                | Non-interactive token auth      |
+| `--token <value>`                                   | Token value for `--auth-choice token`                             | Non-interactive token auth      |
+| `--anthropic-api-key <key>`                         | Anthropic API key                                                 | Non-interactive API key auth    |
+| `--openai-api-key <key>`                            | OpenAI API key                                                    | Non-interactive API key auth    |
+| `--gemini-api-key <key>`                            | Google Gemini API key                                             | Non-interactive API key auth    |
+| `--gateway-port <port>`                             | Override gateway port (default `18789`)                           | Custom port binding             |
+| `--gateway-bind <mode>`                             | Override bind address (`loopback\|lan\|tailnet\|custom\|auto`)    | Network configuration           |
+| `--gateway-auth <mode>`                             | Auth mode (`token\|password`)                                     | Gateway authentication          |
+| `--skip-channels`                                   | Skip channel setup step                                           | Fast initial setup              |
+| `--skip-skills`                                     | Skip skills install step                                          | Fast initial setup              |
+| `--skip-search`                                     | Skip memory search setup                                          | Fast initial setup              |
+| `--secret-input-mode <mode>`                        | API key persistence mode (`plaintext\|ref`)                       | SecretRef configuration         |
 
 Sources: [src/cli/program/register.onboard.ts:1-143](), [docs/cli/onboard.md]()
 
@@ -354,21 +358,21 @@ Sources: [src/cli/program/register.onboard.ts:1-143](), [docs/cli/onboard.md]()
 
 The `--auth-choice` flag accepts these values:
 
-| Value | Provider | Auth Method |
-|---|---|---|
-| `token` | Anthropic | Setup token (paste from `claude setup-token`) |
-| `apiKey` | Anthropic | API key |
-| `openai-codex` | OpenAI | Codex OAuth (ChatGPT subscription) |
-| `openai-api-key` | OpenAI | API key |
-| `gemini-api-key` | Google | Gemini API key |
-| `google-gemini-cli` | Google | Gemini CLI OAuth (unofficial) |
-| `github-copilot` | GitHub | Copilot (GitHub device login) |
-| `vllm` | vLLM | Local/self-hosted OpenAI-compatible server |
-| `minimax-portal` | MiniMax | OAuth |
-| `minimax-api` | MiniMax | API key |
-| `qwen-portal` | Qwen | OAuth |
-| `chutes` | Chutes | OAuth |
-| ... and many more | See [Auth Choice Options](#) | Various API keys and OAuth flows |
+| Value               | Provider                     | Auth Method                                   |
+| ------------------- | ---------------------------- | --------------------------------------------- |
+| `token`             | Anthropic                    | Setup token (paste from `claude setup-token`) |
+| `apiKey`            | Anthropic                    | API key                                       |
+| `openai-codex`      | OpenAI                       | Codex OAuth (ChatGPT subscription)            |
+| `openai-api-key`    | OpenAI                       | API key                                       |
+| `gemini-api-key`    | Google                       | Gemini API key                                |
+| `google-gemini-cli` | Google                       | Gemini CLI OAuth (unofficial)                 |
+| `github-copilot`    | GitHub                       | Copilot (GitHub device login)                 |
+| `vllm`              | vLLM                         | Local/self-hosted OpenAI-compatible server    |
+| `minimax-portal`    | MiniMax                      | OAuth                                         |
+| `minimax-api`       | MiniMax                      | API key                                       |
+| `qwen-portal`       | Qwen                         | OAuth                                         |
+| `chutes`            | Chutes                       | OAuth                                         |
+| ... and many more   | See [Auth Choice Options](#) | Various API keys and OAuth flows              |
 
 For the complete list, see [src/commands/auth-choice-options.ts:190-300]().
 
@@ -381,6 +385,7 @@ Sources: [src/commands/auth-choice-options.ts:20-188](), [src/commands/onboard-p
 `openclaw doctor` is the health check, repair, and migration tool. It validates config, checks auth profiles, migrates legacy state, repairs sandbox images, audits service configurations, and offers interactive fixes for detected issues.
 
 **When to run doctor:**
+
 - After initial installation (via onboarding wizard)
 - After upgrading OpenClaw (`openclaw update`)
 - When the Gateway won't start or behaves unexpectedly
@@ -486,47 +491,47 @@ Validate final state"]
 
 Sources: [src/commands/doctor.ts:72-363]()
 
-| Check category | What it examines | Module/Function |
-|---|---|---|
-| **Pre-flight update** | Offers update for git installs (interactive only) | `maybeOfferUpdateBeforeDoctor()` |
-| **UI protocol** | Rebuilds Control UI when protocol schema is newer | `maybeRepairUiProtocolFreshness()` |
-| **Source install** | pnpm workspace mismatch, missing UI assets, missing tsx binary | `noteSourceInstallIssues()` |
-| **Deprecated env vars** | Legacy `CLAWDBOT_*` env vars | `noteDeprecatedLegacyEnvVars()` |
-| **Config validity** | Validates `openclaw.json` against Zod schema; applies migrations | `loadAndMaybeMigrateDoctorConfig()` |
-| **Auth profiles** | OAuth/API key health; repairs Anthropic OAuth profile IDs; checks expiry/cooldown | `maybeRepairAnthropicOAuthProfileId()`, `noteAuthProfileHealth()` |
-| **Gateway token** | Ensures `gateway.auth.token` is set; offers to generate via `randomToken()` | Gateway token check in `doctorCommand()` |
-| **Legacy state** | Old session/agent file paths; WhatsApp auth migration | `detectLegacyStateMigrations()`, `runLegacyStateMigrations()` |
-| **State integrity** | Session lock health; dangling lock files; state directory permissions | `noteStateIntegrity()`, `noteSessionLockHealth()` |
-| **Sandbox images** | Docker image availability when `tools.sandbox.enabled: true` | `maybeRepairSandboxImages()` |
-| **Sandbox scope** | Warns if sandbox config violates security best practices | `noteSandboxScopeWarnings()` |
-| **Extra services** | Scans launchd/systemd/schtasks for duplicate gateway instances | `maybeScanExtraGatewayServices()` |
-| **Service config** | LaunchAgent/systemd unit config matches current settings | `maybeRepairGatewayServiceConfig()` |
-| **macOS overrides** | Cached launchd label; env var overrides in launchctl | `noteMacLaunchAgentOverrides()`, `noteMacLaunchctlGatewayEnvOverrides()` |
-| **Security** | Open DM policies, non-loopback bind without auth | `noteSecurityWarnings()` |
-| **OAuth TLS** | OpenAI Codex OAuth TLS prerequisites | `noteOpenAIOAuthTlsPrerequisites()` |
-| **Hooks config** | Validates `hooks.gmail.model` against model catalog | `resolveHooksGmailModel()`, `getModelRefStatus()` |
-| **systemd linger** | Ensures systemd user linger is enabled on Linux (prevents session kill on logout) | `ensureSystemdUserLingerInteractive()` |
-| **Workspace** | Workspace directory status; extra workspace dir detection | `noteWorkspaceStatus()` |
-| **Bootstrap size** | Warns if bootstrap files are unusually large | `noteBootstrapFileSize()` |
-| **Shell completion** | Tab completion installation for bash/zsh/fish | `doctorShellCompletion()` |
-| **Gateway health** | Live WebSocket probe; checks if Gateway is reachable | `checkGatewayHealth()` |
-| **Memory status** | Probes memory search backend readiness | `probeGatewayMemoryStatus()` |
-| **Memory health** | Memory backend configuration and status | `noteMemorySearchHealth()` |
-| **Daemon repair** | Service running status; offers restart/reload | `maybeRepairGatewayDaemon()` |
+| Check category          | What it examines                                                                  | Module/Function                                                          |
+| ----------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **Pre-flight update**   | Offers update for git installs (interactive only)                                 | `maybeOfferUpdateBeforeDoctor()`                                         |
+| **UI protocol**         | Rebuilds Control UI when protocol schema is newer                                 | `maybeRepairUiProtocolFreshness()`                                       |
+| **Source install**      | pnpm workspace mismatch, missing UI assets, missing tsx binary                    | `noteSourceInstallIssues()`                                              |
+| **Deprecated env vars** | Legacy `CLAWDBOT_*` env vars                                                      | `noteDeprecatedLegacyEnvVars()`                                          |
+| **Config validity**     | Validates `openclaw.json` against Zod schema; applies migrations                  | `loadAndMaybeMigrateDoctorConfig()`                                      |
+| **Auth profiles**       | OAuth/API key health; repairs Anthropic OAuth profile IDs; checks expiry/cooldown | `maybeRepairAnthropicOAuthProfileId()`, `noteAuthProfileHealth()`        |
+| **Gateway token**       | Ensures `gateway.auth.token` is set; offers to generate via `randomToken()`       | Gateway token check in `doctorCommand()`                                 |
+| **Legacy state**        | Old session/agent file paths; WhatsApp auth migration                             | `detectLegacyStateMigrations()`, `runLegacyStateMigrations()`            |
+| **State integrity**     | Session lock health; dangling lock files; state directory permissions             | `noteStateIntegrity()`, `noteSessionLockHealth()`                        |
+| **Sandbox images**      | Docker image availability when `tools.sandbox.enabled: true`                      | `maybeRepairSandboxImages()`                                             |
+| **Sandbox scope**       | Warns if sandbox config violates security best practices                          | `noteSandboxScopeWarnings()`                                             |
+| **Extra services**      | Scans launchd/systemd/schtasks for duplicate gateway instances                    | `maybeScanExtraGatewayServices()`                                        |
+| **Service config**      | LaunchAgent/systemd unit config matches current settings                          | `maybeRepairGatewayServiceConfig()`                                      |
+| **macOS overrides**     | Cached launchd label; env var overrides in launchctl                              | `noteMacLaunchAgentOverrides()`, `noteMacLaunchctlGatewayEnvOverrides()` |
+| **Security**            | Open DM policies, non-loopback bind without auth                                  | `noteSecurityWarnings()`                                                 |
+| **OAuth TLS**           | OpenAI Codex OAuth TLS prerequisites                                              | `noteOpenAIOAuthTlsPrerequisites()`                                      |
+| **Hooks config**        | Validates `hooks.gmail.model` against model catalog                               | `resolveHooksGmailModel()`, `getModelRefStatus()`                        |
+| **systemd linger**      | Ensures systemd user linger is enabled on Linux (prevents session kill on logout) | `ensureSystemdUserLingerInteractive()`                                   |
+| **Workspace**           | Workspace directory status; extra workspace dir detection                         | `noteWorkspaceStatus()`                                                  |
+| **Bootstrap size**      | Warns if bootstrap files are unusually large                                      | `noteBootstrapFileSize()`                                                |
+| **Shell completion**    | Tab completion installation for bash/zsh/fish                                     | `doctorShellCompletion()`                                                |
+| **Gateway health**      | Live WebSocket probe; checks if Gateway is reachable                              | `checkGatewayHealth()`                                                   |
+| **Memory status**       | Probes memory search backend readiness                                            | `probeGatewayMemoryStatus()`                                             |
+| **Memory health**       | Memory backend configuration and status                                           | `noteMemorySearchHealth()`                                               |
+| **Daemon repair**       | Service running status; offers restart/reload                                     | `maybeRepairGatewayDaemon()`                                             |
 
 Sources: [src/commands/doctor.ts:72-363](), [docs/gateway/doctor.md:59-86]()
 
 ### `doctor` Flags
 
-| Flag | Effect | When to use |
-|---|---|---|
-| `--yes` | Accept all prompts with defaults (including restart/service/sandbox repairs) | Automation, headless installs |
-| `--repair` / `--fix` | Apply recommended repairs without prompting (repairs + restarts where safe) | Automation, known issues |
-| `--force` | Apply aggressive repairs too (overwrites custom supervisor configs) | When `--repair` isn't enough |
-| `--non-interactive` | Run without prompts; only apply safe migrations (skips restart/service/sandbox) | CI/CD, read-only diagnostics |
-| `--deep` | Scan system services for extra gateway instances (launchd/systemd/schtasks) | Debugging multiple installs |
-| `--generate-gateway-token` | Generate and write a gateway token non-interactively | Headless token generation |
-| `--no-workspace-suggestions` | Suppress workspace memory hints | Clean output for automation |
+| Flag                         | Effect                                                                          | When to use                   |
+| ---------------------------- | ------------------------------------------------------------------------------- | ----------------------------- |
+| `--yes`                      | Accept all prompts with defaults (including restart/service/sandbox repairs)    | Automation, headless installs |
+| `--repair` / `--fix`         | Apply recommended repairs without prompting (repairs + restarts where safe)     | Automation, known issues      |
+| `--force`                    | Apply aggressive repairs too (overwrites custom supervisor configs)             | When `--repair` isn't enough  |
+| `--non-interactive`          | Run without prompts; only apply safe migrations (skips restart/service/sandbox) | CI/CD, read-only diagnostics  |
+| `--deep`                     | Scan system services for extra gateway instances (launchd/systemd/schtasks)     | Debugging multiple installs   |
+| `--generate-gateway-token`   | Generate and write a gateway token non-interactively                            | Headless token generation     |
+| `--no-workspace-suggestions` | Suppress workspace memory hints                                                 | Clean output for automation   |
 
 Sources: [src/commands/doctor-prompter.ts:1-50](), [docs/gateway/doctor.md:14-52]()
 
@@ -604,13 +609,13 @@ openclaw dashboard
 
 ### Expected Healthy Output
 
-| Command | Healthy Output | What it checks |
-|---|---|---|
-| `openclaw gateway status` | `Runtime: running` and `RPC probe: ok` | Service supervisor status + WebSocket reachability |
-| `openclaw status` | No blocking errors; shows configured channels and agents | Live Gateway health via RPC; agent/session/provider summary |
-| `openclaw doctor` | No critical issues; `Config valid: true` | All doctor checks pass; config validates against Zod schema |
-| `openclaw channels status` | Channels show `connected` or `ready` | Live channel connection status from running Gateway |
-| `openclaw dashboard` | Browser opens to `http://127.0.0.1:18789/` and renders Control UI | WebSocket auth succeeds; UI assets are built |
+| Command                    | Healthy Output                                                    | What it checks                                              |
+| -------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------- |
+| `openclaw gateway status`  | `Runtime: running` and `RPC probe: ok`                            | Service supervisor status + WebSocket reachability          |
+| `openclaw status`          | No blocking errors; shows configured channels and agents          | Live Gateway health via RPC; agent/session/provider summary |
+| `openclaw doctor`          | No critical issues; `Config valid: true`                          | All doctor checks pass; config validates against Zod schema |
+| `openclaw channels status` | Channels show `connected` or `ready`                              | Live channel connection status from running Gateway         |
+| `openclaw dashboard`       | Browser opens to `http://127.0.0.1:18789/` and renders Control UI | WebSocket auth succeeds; UI assets are built                |
 
 ### Troubleshooting Startup Issues
 
@@ -631,6 +636,7 @@ openclaw status --all
 ```
 
 **Common issues:**
+
 - **Port collision:** Another process is using port `18789`. Change `gateway.port` in config or stop the conflicting process.
 - **Missing auth token:** Run `openclaw doctor` to generate one.
 - **Invalid config:** Run `openclaw doctor` to repair and migrate.
@@ -642,18 +648,19 @@ Sources: [docs/help/faq.md:203-250](), [docs/help/troubleshooting.md:14-50]()
 
 ## Key Environment Variables
 
-| Variable | Effect | Default |
-|---|---|---|
-| `OPENCLAW_HOME` | Overrides the home directory for all internal path resolution | `~` |
-| `OPENCLAW_STATE_DIR` | Overrides the state directory | `~/.openclaw` |
-| `OPENCLAW_CONFIG_PATH` | Overrides config file path | `~/.openclaw/openclaw.json` |
-| `OPENCLAW_AGENT_DIR` | Overrides the agent directory (for auth profiles, sessions, memory) | `~/.openclaw/agents/main/agent` |
-| `OPENCLAW_GATEWAY_TOKEN` | Gateway auth token; read by both CLI and Gateway at startup | (none; must be set in config or env) |
-| `OPENCLAW_GATEWAY_PASSWORD` | Gateway password (alternative to token) | (none) |
-| `OPENCLAW_GATEWAY_PORT` | Overrides gateway port | `18789` |
-| `NODE_ENV` | Node environment (`production`, `development`, `test`) | (none) |
+| Variable                    | Effect                                                              | Default                              |
+| --------------------------- | ------------------------------------------------------------------- | ------------------------------------ |
+| `OPENCLAW_HOME`             | Overrides the home directory for all internal path resolution       | `~`                                  |
+| `OPENCLAW_STATE_DIR`        | Overrides the state directory                                       | `~/.openclaw`                        |
+| `OPENCLAW_CONFIG_PATH`      | Overrides config file path                                          | `~/.openclaw/openclaw.json`          |
+| `OPENCLAW_AGENT_DIR`        | Overrides the agent directory (for auth profiles, sessions, memory) | `~/.openclaw/agents/main/agent`      |
+| `OPENCLAW_GATEWAY_TOKEN`    | Gateway auth token; read by both CLI and Gateway at startup         | (none; must be set in config or env) |
+| `OPENCLAW_GATEWAY_PASSWORD` | Gateway password (alternative to token)                             | (none)                               |
+| `OPENCLAW_GATEWAY_PORT`     | Overrides gateway port                                              | `18789`                              |
+| `NODE_ENV`                  | Node environment (`production`, `development`, `test`)              | (none)                               |
 
 **Legacy aliases (deprecated):**
+
 - `CLAWDBOT_GATEWAY_TOKEN` → use `OPENCLAW_GATEWAY_TOKEN`
 - `CLAWDBOT_GATEWAY_PASSWORD` → use `OPENCLAW_GATEWAY_PASSWORD`
 
@@ -663,18 +670,18 @@ Sources: [docs/help/faq.md:123-127](), [src/config/paths.ts:1-50](), [src/comman
 
 ## Important Files and Paths
 
-| Path | Purpose | Constant/Function |
-|---|---|---|
-| `~/.openclaw/openclaw.json` | Primary config file | `CONFIG_PATH` |
-| `~/.openclaw/workspace/` | Default agent workspace root | `DEFAULT_WORKSPACE` constant |
-| `~/.openclaw/agents/main/agent/` | Default agent directory (auth profiles, sessions, memory) | `resolveOpenClawAgentDir()` |
-| `~/.openclaw/agents/main/agent/auth-profiles.json` | Model provider auth profiles | `authProfilePathForAgent()` |
-| `~/.openclaw/agents/main/agent/sessions/` | Session transcript storage | `resolveAgentSessionsDir()` |
-| `~/.openclaw/credentials/` | Channel credential storage (WhatsApp, etc.) | Channel-specific paths |
-| `/tmp/openclaw/openclaw-*.log` | Gateway log files (timestamped) | Log rotation in Gateway startup |
-| `~/Library/LaunchAgents/ai.openclaw.gateway.plist` | macOS launchd service config | `resolveGatewayService()` (macOS) |
-| `~/.config/systemd/user/openclaw-gateway.service` | Linux systemd user unit | `resolveGatewayService()` (Linux) |
-| `~/.openclaw/.backup/` | Config backups (`.json.bak` files) | Created by `writeConfigFile()` on migrations |
+| Path                                               | Purpose                                                   | Constant/Function                            |
+| -------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------- |
+| `~/.openclaw/openclaw.json`                        | Primary config file                                       | `CONFIG_PATH`                                |
+| `~/.openclaw/workspace/`                           | Default agent workspace root                              | `DEFAULT_WORKSPACE` constant                 |
+| `~/.openclaw/agents/main/agent/`                   | Default agent directory (auth profiles, sessions, memory) | `resolveOpenClawAgentDir()`                  |
+| `~/.openclaw/agents/main/agent/auth-profiles.json` | Model provider auth profiles                              | `authProfilePathForAgent()`                  |
+| `~/.openclaw/agents/main/agent/sessions/`          | Session transcript storage                                | `resolveAgentSessionsDir()`                  |
+| `~/.openclaw/credentials/`                         | Channel credential storage (WhatsApp, etc.)               | Channel-specific paths                       |
+| `/tmp/openclaw/openclaw-*.log`                     | Gateway log files (timestamped)                           | Log rotation in Gateway startup              |
+| `~/Library/LaunchAgents/ai.openclaw.gateway.plist` | macOS launchd service config                              | `resolveGatewayService()` (macOS)            |
+| `~/.config/systemd/user/openclaw-gateway.service`  | Linux systemd user unit                                   | `resolveGatewayService()` (Linux)            |
+| `~/.openclaw/.backup/`                             | Config backups (`.json.bak` files)                        | Created by `writeConfigFile()` on migrations |
 
 Sources: [src/config/config.ts:1-50](), [src/config/paths.ts:1-100](), [src/commands/onboard-helpers.ts:1-30](), [docs/help/faq.md:91-96]()
 
@@ -687,12 +694,12 @@ If you bypass the onboarding wizard and want a minimal hand-written config:
 ```json5
 {
   gateway: {
-    mode: "local",
-    auth: { mode: "token", token: "your-gateway-token-here" },
+    mode: 'local',
+    auth: { mode: 'token', token: 'your-gateway-token-here' },
   },
   agents: {
     defaults: {
-      model: "anthropic/claude-opus-4-6",
+      model: 'anthropic/claude-opus-4-6',
     },
   },
 }
@@ -708,12 +715,12 @@ Sources: [src/config/config.ts:1-100](), [src/config/validation.ts:1-100]()
 
 ## Next Steps
 
-| Goal | Where to go |
-|---|---|
-| Connect WhatsApp, Telegram, Discord | [Channels](#4) |
-| Learn Gateway, Agent, Session concepts | [Core Concepts](#1.2) |
-| Configure `openclaw.json` in detail | [Configuration](#2.3) |
-| Understand the Gateway WebSocket protocol | [WebSocket Protocol](#2.1) |
-| Set up authentication and device pairing | [Authentication & Device Pairing](#2.2) |
-| Understand the agent execution pipeline | [Agent Execution Pipeline](#3.1) |
-| Run a security audit | [Security Audit](#7.1) |
+| Goal                                      | Where to go                             |
+| ----------------------------------------- | --------------------------------------- |
+| Connect WhatsApp, Telegram, Discord       | [Channels](#4)                          |
+| Learn Gateway, Agent, Session concepts    | [Core Concepts](#1.2)                   |
+| Configure `openclaw.json` in detail       | [Configuration](#2.3)                   |
+| Understand the Gateway WebSocket protocol | [WebSocket Protocol](#2.1)              |
+| Set up authentication and device pairing  | [Authentication & Device Pairing](#2.2) |
+| Understand the agent execution pipeline   | [Agent Execution Pipeline](#3.1)        |
+| Run a security audit                      | [Security Audit](#7.1)                  |

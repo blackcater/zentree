@@ -8,7 +8,7 @@ The following files were used as context for generating this wiki page:
 - [examples/bird-checker-with-express/src/index.ts](examples/bird-checker-with-express/src/index.ts)
 - [examples/bird-checker-with-nextjs-and-eval/src/lib/mastra/actions.ts](examples/bird-checker-with-nextjs-and-eval/src/lib/mastra/actions.ts)
 - [packages/core/src/action/index.ts](packages/core/src/action/index.ts)
-- [packages/core/src/agent/__tests__/utils.test.ts](packages/core/src/agent/__tests__/utils.test.ts)
+- [packages/core/src/agent/**tests**/utils.test.ts](packages/core/src/agent/__tests__/utils.test.ts)
 - [packages/core/src/agent/agent-legacy.ts](packages/core/src/agent/agent-legacy.ts)
 - [packages/core/src/agent/agent.test.ts](packages/core/src/agent/agent.test.ts)
 - [packages/core/src/agent/agent.ts](packages/core/src/agent/agent.ts)
@@ -27,7 +27,7 @@ The following files were used as context for generating this wiki page:
 - [packages/core/src/llm/model/model.loop.types.ts](packages/core/src/llm/model/model.loop.types.ts)
 - [packages/core/src/llm/model/model.test.ts](packages/core/src/llm/model/model.test.ts)
 - [packages/core/src/llm/model/model.ts](packages/core/src/llm/model/model.ts)
-- [packages/core/src/loop/__snapshots__/loop.test.ts.snap](packages/core/src/loop/__snapshots__/loop.test.ts.snap)
+- [packages/core/src/loop/**snapshots**/loop.test.ts.snap](packages/core/src/loop/__snapshots__/loop.test.ts.snap)
 - [packages/core/src/loop/index.ts](packages/core/src/loop/index.ts)
 - [packages/core/src/loop/loop.test.ts](packages/core/src/loop/loop.test.ts)
 - [packages/core/src/loop/loop.ts](packages/core/src/loop/loop.ts)
@@ -64,8 +64,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document covers the tool builder system that normalizes tools from multiple formats into a unified AI SDK-compatible format. The `CoreToolBuilder` class and related utilities handle schema conversion, provider compatibility, and execution context transformation.
 
 For information about tool definition and execution contexts, see [Tool Definition and Execution Context](#6.1). For general tool system overview, see [Tool System](#6).
@@ -92,7 +90,7 @@ graph TB
         VT5["VercelToolV5<br/>(AI SDK v5)"]
         PDT["ProviderDefinedTool<br/>(google.tools.*)"]
     end
-    
+
     subgraph "CoreToolBuilder"
         CTB["CoreToolBuilder<br/>constructor"]
         DETECT["detectToolType"]
@@ -100,37 +98,37 @@ graph TB
         CREATE_EXEC["createExecute"]
         GET_PARAMS["getParameters"]
     end
-    
+
     subgraph "Schema Processing"
         EXTRACT["extractSchema"]
         ZOD_CONV["convertZodToAISDK"]
         COMPAT["applyCompatLayer"]
     end
-    
+
     subgraph "Output"
         CT["CoreTool<br/>{type, id, description,<br/>parameters, execute}"]
         ICT["InternalCoreTool<br/>(stricter typing)"]
     end
-    
+
     TA --> CTB
     VT4 --> CTB
     VT5 --> CTB
     PDT --> CTB
-    
+
     CTB --> DETECT
     DETECT -->|"provider-defined"| BUILD_PROVIDER
     DETECT -->|"mastra/vercel"| GET_PARAMS
-    
+
     GET_PARAMS --> EXTRACT
     EXTRACT --> ZOD_CONV
     ZOD_CONV --> COMPAT
-    
+
     BUILD_PROVIDER --> CT
     COMPAT --> CT
     CREATE_EXEC --> CT
-    
+
     CT --> ICT
-    
+
     style CTB fill:#f9f9f9
     style CT fill:#e8f5e9
 ```
@@ -163,7 +161,7 @@ classDiagram
         -createExecute() Function
         -createLogMessageOptions() LogMessageOptions
     }
-    
+
     class ToolOptions {
         +name: string
         +description: string
@@ -177,7 +175,7 @@ classDiagram
         +threadId?: string
         +resourceId?: string
     }
-    
+
     class ToolToConvert {
         <<union>>
         VercelTool
@@ -185,7 +183,7 @@ classDiagram
         VercelToolV5
         ProviderDefinedTool
     }
-    
+
     CoreToolBuilder --> ToolOptions
     CoreToolBuilder --> ToolToConvert
 ```
@@ -204,6 +202,7 @@ Extracts and normalizes input schemas from different tool formats:
 ```
 
 This method handles format variations:
+
 - AI SDK v4: `tool.parameters`
 - AI SDK v5: `tool.inputSchema`
 - Function-based schemas: Invokes the function to get the schema
@@ -216,6 +215,7 @@ Sources: [packages/core/src/tools/tool-builder/builder.ts:84-111]()
 Handles provider-defined tools (e.g., `google.tools.googleSearch()`):
 
 The method:
+
 1. Identifies tools with `type: 'provider-defined'` or `type: 'provider'`
 2. Validates the ID format (`provider.toolName`)
 3. Extracts parameters from either `parameters` or `inputSchema`
@@ -237,14 +237,14 @@ graph LR
     CONTEXT["Build Context"]
     TOOL_EXEC["Tool.execute<br/>(inputData, context)"]
     RESULT["Return Result"]
-    
+
     AI_SDK --> WRAPPER
     WRAPPER --> VALIDATE
     VALIDATE --> SPAN
     SPAN --> CONTEXT
     CONTEXT --> TOOL_EXEC
     TOOL_EXEC --> RESULT
-    
+
     style WRAPPER fill:#f9f9f9
     style CONTEXT fill:#e1f5ff
 ```
@@ -259,14 +259,15 @@ Sources: [packages/core/src/tools/tool-builder/builder.ts:245-459]()
 
 The execution wrapper builds different context structures based on the execution environment:
 
-| Environment | Context Properties | Identification |
-|-------------|-------------------|----------------|
-| **Agent** | `agent: { toolCallId, messages, suspend, resumeData, threadId, resourceId, outputWriter }` | Has `toolCallId` and `messages`, or `agentName` with `threadId` |
-| **Workflow** | `workflow: { runId, workflowId, state, setState, suspend, resumeData }` | Has `workflow` or `workflowId` properties |
-| **MCP** | `mcp: { extra, elicitation }` | Has `execOptions.mcp` |
-| **Direct** | Base context only | None of the above |
+| Environment  | Context Properties                                                                         | Identification                                                  |
+| ------------ | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| **Agent**    | `agent: { toolCallId, messages, suspend, resumeData, threadId, resourceId, outputWriter }` | Has `toolCallId` and `messages`, or `agentName` with `threadId` |
+| **Workflow** | `workflow: { runId, workflowId, state, setState, suspend, resumeData }`                    | Has `workflow` or `workflowId` properties                       |
+| **MCP**      | `mcp: { extra, elicitation }`                                                              | Has `execOptions.mcp`                                           |
+| **Direct**   | Base context only                                                                          | None of the above                                               |
 
 All contexts include base properties:
+
 - `mastra`: Wrapped Mastra instance with tracing context
 - `requestContext`: Request context (execution-time or build-time)
 - `workspace`: Workspace for file operations (execution-time or build-time)
@@ -289,28 +290,28 @@ graph TB
         JSON7["JSONSchema7<br/>{type: 'object', ...}"]
         AISDK["AI SDK Schema<br/>{jsonSchema: {...}}"]
     end
-    
+
     subgraph "Conversion Functions"
         IS_ZOD["isZodType()"]
         ZOD_TO_JSON["zodToJsonSchema()"]
         CONV_ZOD["convertZodSchemaToAISDKSchema()"]
         JSON_SCHEMA["jsonSchema()"]
     end
-    
+
     subgraph "Output"
         SCHEMA["AI SDK Schema<br/>{jsonSchema, ...}"]
     end
-    
+
     ZOD --> IS_ZOD
     IS_ZOD -->|"true"| ZOD_TO_JSON
     ZOD_TO_JSON --> CONV_ZOD
     CONV_ZOD --> SCHEMA
-    
+
     JSON7 --> JSON_SCHEMA
     JSON_SCHEMA --> SCHEMA
-    
+
     AISDK --> SCHEMA
-    
+
     style SCHEMA fill:#e8f5e9
 ```
 
@@ -326,20 +327,20 @@ For provider-defined tools:
 
 ```typescript
 // 1. Extract schema (may be Zod or AI SDK Schema)
-let parameters = tool.parameters || tool.inputSchema;
+let parameters = tool.parameters || tool.inputSchema
 
 // 2. Handle function-based schemas
 if (typeof parameters === 'function') {
-  parameters = parameters();
+  parameters = parameters()
 }
 
 // 3. Convert to AI SDK Schema if needed
 if (parameters && !('jsonSchema' in parameters)) {
   // It's a Zod schema, convert it
-  processedParameters = convertZodSchemaToAISDKSchema(parameters);
+  processedParameters = convertZodSchemaToAISDKSchema(parameters)
 } else {
   // Already AI SDK Schema format
-  processedParameters = parameters;
+  processedParameters = parameters
 }
 ```
 
@@ -359,7 +360,7 @@ graph TB
         SCHEMA["Original Schema<br/>(Zod or JSONSchema7)"]
         MODEL_INFO["Model Information<br/>{modelId, provider,<br/>supportsStructuredOutputs}"]
     end
-    
+
     subgraph "Compatibility Layers"
         OPENAI_REASON["OpenAIReasoningSchemaCompatLayer<br/>Removes unsupported constraints"]
         OPENAI["OpenAISchemaCompatLayer<br/>Structured outputs requirements"]
@@ -368,15 +369,15 @@ graph TB
         DEEPSEEK["DeepSeekSchemaCompatLayer<br/>Provider constraints"]
         META["MetaSchemaCompatLayer<br/>Llama requirements"]
     end
-    
+
     subgraph "Application"
         APPLY["applyCompatLayer<br/>{schema, compatLayers, mode}"]
     end
-    
+
     subgraph "Output"
         COMPAT_SCHEMA["Compatible Schema<br/>AI SDK Schema format"]
     end
-    
+
     SCHEMA --> APPLY
     MODEL_INFO --> OPENAI_REASON
     MODEL_INFO --> OPENAI
@@ -384,16 +385,16 @@ graph TB
     MODEL_INFO --> ANTHROPIC
     MODEL_INFO --> DEEPSEEK
     MODEL_INFO --> META
-    
+
     OPENAI_REASON --> APPLY
     OPENAI --> APPLY
     GOOGLE --> APPLY
     ANTHROPIC --> APPLY
     DEEPSEEK --> APPLY
     META --> APPLY
-    
+
     APPLY --> COMPAT_SCHEMA
-    
+
     style APPLY fill:#f9f9f9
     style COMPAT_SCHEMA fill:#e8f5e9
 ```
@@ -408,14 +409,14 @@ Sources: [packages/core/src/tools/tool-builder/builder.ts:1-11](), [packages/cor
 
 Each compatibility layer handles different provider constraints:
 
-| Provider | Compatibility Layer | Transformations |
-|----------|-------------------|-----------------|
-| **OpenAI** | `OpenAISchemaCompatLayer` | Enforces structured output format requirements, handles `additionalProperties: false` |
-| **OpenAI (Reasoning)** | `OpenAIReasoningSchemaCompatLayer` | Removes constraints unsupported by reasoning models (o1, o3) |
-| **Google** | `GoogleSchemaCompatLayer` | Enforces property count limits, validates schema depth |
-| **Anthropic** | `AnthropicSchemaCompatLayer` | Manages `additionalProperties` handling, ensures compatible schema structure |
-| **DeepSeek** | `DeepSeekSchemaCompatLayer` | Applies DeepSeek-specific constraints and requirements |
-| **Meta (Llama)** | `MetaSchemaCompatLayer` | Ensures compatibility with Llama model requirements |
+| Provider               | Compatibility Layer                | Transformations                                                                       |
+| ---------------------- | ---------------------------------- | ------------------------------------------------------------------------------------- |
+| **OpenAI**             | `OpenAISchemaCompatLayer`          | Enforces structured output format requirements, handles `additionalProperties: false` |
+| **OpenAI (Reasoning)** | `OpenAIReasoningSchemaCompatLayer` | Removes constraints unsupported by reasoning models (o1, o3)                          |
+| **Google**             | `GoogleSchemaCompatLayer`          | Enforces property count limits, validates schema depth                                |
+| **Anthropic**          | `AnthropicSchemaCompatLayer`       | Manages `additionalProperties` handling, ensures compatible schema structure          |
+| **DeepSeek**           | `DeepSeekSchemaCompatLayer`        | Applies DeepSeek-specific constraints and requirements                                |
+| **Meta (Llama)**       | `MetaSchemaCompatLayer`            | Ensures compatibility with Llama model requirements                                   |
 
 Sources: Referenced from imports in [packages/core/src/tools/tool-builder/builder.ts:1-11]()
 
@@ -427,14 +428,14 @@ The `_applySchemaCompat` method applies compatibility layers during tool convers
 private _applySchemaCompat(schema: ZodSchema | JSONSchema7): Schema {
   const model = this.#model;
   const schemaCompatLayers = [];
-  
+
   if (model) {
     const modelInfo = {
       modelId: model.modelId,
       supportsStructuredOutputs: model.supportsStructuredOutputs ?? false,
       provider: model.provider,
     };
-    
+
     // Add all compatibility layers
     schemaCompatLayers.push(
       new OpenAIReasoningSchemaCompatLayer(modelInfo),
@@ -445,7 +446,7 @@ private _applySchemaCompat(schema: ZodSchema | JSONSchema7): Schema {
       new MetaSchemaCompatLayer(modelInfo),
     );
   }
-  
+
   return applyCompatLayer({
     schema: schema,
     compatLayers: schemaCompatLayers,
@@ -471,14 +472,14 @@ graph TB
     CHECK_VERCEL{"Is Vercel<br/>Tool?"}
     BUILDER["CoreToolBuilder<br/>.toCoreToolInner()"]
     OUTPUT["CoreTool<br/>(normalized)"]
-    
+
     INPUT --> CHECK_CORE
     CHECK_CORE -->|"yes"| OUTPUT
     CHECK_CORE -->|"no"| CHECK_VERCEL
     CHECK_VERCEL -->|"yes"| BUILDER
     CHECK_VERCEL -->|"no (ToolAction)"| BUILDER
     BUILDER --> OUTPUT
-    
+
     style BUILDER fill:#f9f9f9
     style OUTPUT fill:#e8f5e9
 ```
@@ -495,7 +496,7 @@ Tools are normalized during registration with agents and workflows:
 
 ```typescript
 // In agent tool preparation
-const convertedTools: InternalCoreTool[] = [];
+const convertedTools: InternalCoreTool[] = []
 for (const [toolName, tool] of Object.entries(tools)) {
   const coreTool = ensureToolProperties(tool, {
     name: toolName,
@@ -503,8 +504,8 @@ for (const [toolName, tool] of Object.entries(tools)) {
     logger: this.logger,
     mastra: this.#mastra,
     // ... other options
-  });
-  convertedTools.push(coreTool);
+  })
+  convertedTools.push(coreTool)
 }
 ```
 
@@ -533,7 +534,7 @@ return new CoreToolBuilder({
   originalTool: tool,
   options,
   logType,
-}).toCoreTool();
+}).toCoreTool()
 ```
 
 Sources: [packages/core/src/utils.ts:349-356]()
@@ -546,12 +547,12 @@ graph LR
     ENSURE["ensureToolProperties"]
     MAKE["makeCoreTool"]
     BUILDER["CoreToolBuilder"]
-    
+
     EXTERNAL --> ENSURE
     ENSURE -->|"if not CoreTool"| MAKE
     MAKE --> BUILDER
     BUILDER -->|"toCoreTool()"| ENSURE
-    
+
     style ENSURE fill:#e1f5ff
     style BUILDER fill:#f9f9f9
 ```
@@ -578,7 +579,7 @@ graph TB
     VALIDATE_OUTPUT{"Validate Output<br/>Schema"}
     RETURN["Return Result"]
     ERROR["Return<br/>ValidationError"]
-    
+
     START --> VALIDATE_INPUT
     VALIDATE_INPUT -->|"valid"| VALIDATE_RESUME
     VALIDATE_INPUT -->|"invalid"| ERROR
@@ -589,7 +590,7 @@ graph TB
     VALIDATE_SUSPEND -->|"invalid"| ERROR
     VALIDATE_OUTPUT -->|"valid"| RETURN
     VALIDATE_OUTPUT -->|"invalid"| ERROR
-    
+
     style ERROR fill:#ffebee
     style RETURN fill:#e8f5e9
 ```
@@ -604,12 +605,12 @@ Sources: [packages/core/src/tools/tool-builder/builder.ts:418-459]()
 
 The tool builder uses validation functions from the validation module:
 
-| Function | Purpose | Returns |
-|----------|---------|---------|
-| `validateToolInput()` | Validates input against inputSchema | `{ error, message, validationErrors }` or validated data |
-| `validateToolOutput()` | Validates output against outputSchema | `{ error, message, validationErrors }` or validated data |
-| `validateToolSuspendData()` | Validates suspend payload against suspendSchema | `{ error, message, validationErrors }` or validated data |
-| `validateToolInput()` (for resume) | Validates resumeData against resumeSchema | `{ error, message, validationErrors }` or validated data |
+| Function                           | Purpose                                         | Returns                                                  |
+| ---------------------------------- | ----------------------------------------------- | -------------------------------------------------------- |
+| `validateToolInput()`              | Validates input against inputSchema             | `{ error, message, validationErrors }` or validated data |
+| `validateToolOutput()`             | Validates output against outputSchema           | `{ error, message, validationErrors }` or validated data |
+| `validateToolSuspendData()`        | Validates suspend payload against suspendSchema | `{ error, message, validationErrors }` or validated data |
+| `validateToolInput()` (for resume) | Validates resumeData against resumeSchema       | `{ error, message, validationErrors }` or validated data |
 
 All validation functions log warnings rather than throwing errors, allowing execution to continue with user-friendly error messages.
 
@@ -622,29 +623,34 @@ Sources: [packages/core/src/tools/tool-builder/builder.ts:421-440](), [packages/
 For tools that support suspend/resume, the tool builder automatically extends the input schema:
 
 ```typescript
-if (autoResumeSuspendedTools || 
-    tool.id?.startsWith('agent-') || 
-    tool.id?.startsWith('workflow-')) {
-  
-  let schema = this.originalTool.inputSchema;
+if (
+  autoResumeSuspendedTools ||
+  tool.id?.startsWith('agent-') ||
+  tool.id?.startsWith('workflow-')
+) {
+  let schema = this.originalTool.inputSchema
   if (typeof schema === 'function') {
-    schema = schema();
+    schema = schema()
   }
   if (!schema) {
-    schema = z.object({});
+    schema = z.object({})
   }
-  
+
   if (isZodObject(schema)) {
     this.originalTool.inputSchema = schema.extend({
-      suspendedToolRunId: z.string()
+      suspendedToolRunId: z
+        .string()
         .describe('The runId of the suspended tool')
         .nullable()
         .optional()
         .default(''),
-      resumeData: z.any()
-        .describe('The resumeData object created from the resumeSchema of suspended tool')
+      resumeData: z
+        .any()
+        .describe(
+          'The resumeData object created from the resumeSchema of suspended tool'
+        )
         .optional(),
-    });
+    })
   }
 }
 ```
@@ -658,14 +664,21 @@ Sources: [packages/core/src/tools/tool-builder/builder.ts:59-81]()
 During execution, the wrapper checks for resume data and validates it:
 
 ```typescript
-const resumeData = execOptions.resumeData;
+const resumeData = execOptions.resumeData
 
 if (resumeData) {
-  const resumeValidation = validateToolInput(resumeSchema, resumeData, options.name);
+  const resumeValidation = validateToolInput(
+    resumeSchema,
+    resumeData,
+    options.name
+  )
   if (resumeValidation.error) {
-    logger?.warn(resumeValidation.error.message);
-    toolSpan?.end({ output: resumeValidation.error, attributes: { success: false } });
-    return resumeValidation.error as any;
+    logger?.warn(resumeValidation.error.message)
+    toolSpan?.end({
+      output: resumeValidation.error,
+      attributes: { success: false },
+    })
+    return resumeValidation.error as any
   }
 }
 ```
@@ -676,13 +689,13 @@ Sources: [packages/core/src/tools/tool-builder/builder.ts:418-427]()
 
 ## Key Files Reference
 
-| File | Primary Purpose |
-|------|----------------|
-| `packages/core/src/tools/tool-builder/builder.ts` | CoreToolBuilder class implementation |
-| `packages/core/src/tools/types.ts` | Type definitions for CoreTool, ToolAction, execution contexts |
-| `packages/core/src/utils.ts` | makeCoreTool and ensureToolProperties utilities |
-| `packages/core/src/tools/validation.ts` | Schema validation functions |
-| `packages/core/src/tools/tool.ts` | Tool class with validation integration |
-| `packages/core/src/agent/workflows/prepare-stream/prepare-tools-step.ts` | Tool preparation in agent execution pipeline |
+| File                                                                     | Primary Purpose                                               |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| `packages/core/src/tools/tool-builder/builder.ts`                        | CoreToolBuilder class implementation                          |
+| `packages/core/src/tools/types.ts`                                       | Type definitions for CoreTool, ToolAction, execution contexts |
+| `packages/core/src/utils.ts`                                             | makeCoreTool and ensureToolProperties utilities               |
+| `packages/core/src/tools/validation.ts`                                  | Schema validation functions                                   |
+| `packages/core/src/tools/tool.ts`                                        | Tool class with validation integration                        |
+| `packages/core/src/agent/workflows/prepare-stream/prepare-tools-step.ts` | Tool preparation in agent execution pipeline                  |
 
 Sources: All files listed in table above

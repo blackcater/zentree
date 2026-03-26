@@ -11,8 +11,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the core data types for conversations and messages in AionUi, how conversations are instantiated for each agent type, and how `WorkerManage` maps a conversation ID to a live agent task. For how raw stream events become `TMessage` objects, see [Message Transformation Pipeline](#7.2). For the SQLite schema and CRUD operations that persist these types, see [Database System](#3.6). For the migration of legacy file-based records into the database, see [Data Migration](#8.3).
 
 ---
@@ -25,19 +23,19 @@ This page documents the core data types for conversations and messages in AionUi
 
 [src/common/storage.ts:131-145]()
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | `string` | UUID, unique conversation identifier |
-| `name` | `string` | Display name (usually the workspace path initially) |
-| `desc` | `string?` | Optional description |
-| `type` | `string` | Discriminant: `'gemini'`, `'acp'`, `'codex'`, `'openclaw-gateway'`, `'nanobot'` |
-| `extra` | `object` | Variant-specific fields (see below) |
-| `model` | `TProviderWithModel` | Provider + model selection |
-| `status` | `'pending' \| 'running' \| 'finished' \| undefined` | Runtime lifecycle state |
-| `createTime` | `number` | Unix timestamp (ms) |
-| `modifyTime` | `number` | Unix timestamp (ms) |
-| `source` | `ConversationSource?` | `'aionui' \| 'telegram' \| 'lark' \| 'dingtalk'` |
-| `channelChatId` | `string?` | Isolation key for channel-originated conversations |
+| Field           | Type                                                | Description                                                                     |
+| --------------- | --------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `id`            | `string`                                            | UUID, unique conversation identifier                                            |
+| `name`          | `string`                                            | Display name (usually the workspace path initially)                             |
+| `desc`          | `string?`                                           | Optional description                                                            |
+| `type`          | `string`                                            | Discriminant: `'gemini'`, `'acp'`, `'codex'`, `'openclaw-gateway'`, `'nanobot'` |
+| `extra`         | `object`                                            | Variant-specific fields (see below)                                             |
+| `model`         | `TProviderWithModel`                                | Provider + model selection                                                      |
+| `status`        | `'pending' \| 'running' \| 'finished' \| undefined` | Runtime lifecycle state                                                         |
+| `createTime`    | `number`                                            | Unix timestamp (ms)                                                             |
+| `modifyTime`    | `number`                                            | Unix timestamp (ms)                                                             |
+| `source`        | `ConversationSource?`                               | `'aionui' \| 'telegram' \| 'lark' \| 'dingtalk'`                                |
+| `channelChatId` | `string?`                                           | Isolation key for channel-originated conversations                              |
 
 > Note: the `acp`, `codex`, `openclaw-gateway`, and `nanobot` variants use `Omit<IChatConversation<...>, 'model'>` because those agents manage their own model state or do not require explicit model configuration.
 
@@ -146,32 +144,32 @@ Sources: [src/common/storage.ts:154-302]()
 
 #### Per-variant `extra` reference table
 
-| Field | `gemini` | `acp` | `codex` | `openclaw-gateway` | `nanobot` |
-|---|:---:|:---:|:---:|:---:|:---:|
-| `workspace` | ✔ (required) | ✔ (optional) | ✔ (optional) | ✔ (optional) | ✔ (optional) |
-| `customWorkspace` | ✔ | ✔ | ✔ | ✔ | ✔ |
-| `presetRules` / `presetContext` | `presetRules` | `presetContext` | `presetContext` | — | — |
-| `enabledSkills` | ✔ | ✔ | ✔ | ✔ | ✔ |
-| `presetAssistantId` | ✔ | ✔ | ✔ | ✔ | ✔ |
-| `sessionMode` | ✔ | ✔ | ✔ | — | — |
-| `pinned` / `pinnedAt` | ✔ | ✔ | ✔ | ✔ | ✔ |
-| `isHealthCheck` | ✔ | ✔ | ✔ | ✔ | ✔ |
-| `backend` (ACP type) | — | ✔ (required) | — | ✔ (optional) | — |
-| `acpSessionId` | — | ✔ | — | — | — |
-| `acpSessionUpdatedAt` | — | ✔ | — | — | — |
-| `currentModelId` | — | ✔ | — | — | — |
-| `codexModel` | — | — | ✔ | — | — |
-| `sandboxMode` | — | — | ✔ | — | — |
-| `gateway` (OpenClaw) | — | — | — | ✔ | — |
-| `sessionKey` | — | — | — | ✔ | — |
-| `runtimeValidation` | — | — | — | ✔ | — |
-| `webSearchEngine` | ✔ | — | — | — | — |
-| `lastTokenUsage` | ✔ | — | — | — | — |
-| `contextFileName` | ✔ | — | — | — | — |
-| `contextContent` | ✔ | — | — | — | — |
-| `agentName` | — | ✔ | — | ✔ | — |
-| `customAgentId` | — | ✔ | — | — | — |
-| `cliPath` | — | ✔ | ✔ | — | — |
+| Field                           |   `gemini`    |      `acp`      |     `codex`     | `openclaw-gateway` |  `nanobot`   |
+| ------------------------------- | :-----------: | :-------------: | :-------------: | :----------------: | :----------: |
+| `workspace`                     | ✔ (required)  |  ✔ (optional)   |  ✔ (optional)   |    ✔ (optional)    | ✔ (optional) |
+| `customWorkspace`               |       ✔       |        ✔        |        ✔        |         ✔          |      ✔       |
+| `presetRules` / `presetContext` | `presetRules` | `presetContext` | `presetContext` |         —          |      —       |
+| `enabledSkills`                 |       ✔       |        ✔        |        ✔        |         ✔          |      ✔       |
+| `presetAssistantId`             |       ✔       |        ✔        |        ✔        |         ✔          |      ✔       |
+| `sessionMode`                   |       ✔       |        ✔        |        ✔        |         —          |      —       |
+| `pinned` / `pinnedAt`           |       ✔       |        ✔        |        ✔        |         ✔          |      ✔       |
+| `isHealthCheck`                 |       ✔       |        ✔        |        ✔        |         ✔          |      ✔       |
+| `backend` (ACP type)            |       —       |  ✔ (required)   |        —        |    ✔ (optional)    |      —       |
+| `acpSessionId`                  |       —       |        ✔        |        —        |         —          |      —       |
+| `acpSessionUpdatedAt`           |       —       |        ✔        |        —        |         —          |      —       |
+| `currentModelId`                |       —       |        ✔        |        —        |         —          |      —       |
+| `codexModel`                    |       —       |        —        |        ✔        |         —          |      —       |
+| `sandboxMode`                   |       —       |        —        |        ✔        |         —          |      —       |
+| `gateway` (OpenClaw)            |       —       |        —        |        —        |         ✔          |      —       |
+| `sessionKey`                    |       —       |        —        |        —        |         ✔          |      —       |
+| `runtimeValidation`             |       —       |        —        |        —        |         ✔          |      —       |
+| `webSearchEngine`               |       ✔       |        —        |        —        |         —          |      —       |
+| `lastTokenUsage`                |       ✔       |        —        |        —        |         —          |      —       |
+| `contextFileName`               |       ✔       |        —        |        —        |         —          |      —       |
+| `contextContent`                |       ✔       |        —        |        —        |         —          |      —       |
+| `agentName`                     |       —       |        ✔        |        —        |         ✔          |      —       |
+| `customAgentId`                 |       —       |        ✔        |        —        |         —          |      —       |
+| `cliPath`                       |       —       |        ✔        |        ✔        |         —          |      —       |
 
 Sources: [src/common/storage.ts:154-302]()
 
@@ -252,6 +250,7 @@ Sources: [src/process/initAgent.ts:40-99](), [src/process/bridge/conversationBri
 Parameters: `model`, `workspace?`, `defaultFiles?`, `webSearchEngine?`, `customWorkspace?`, `contextFileName?`, `presetRules?`, `enabledSkills?`, `presetAssistantId?`, `sessionMode?`
 
 Key behaviors:
+
 - If no `workspace` is supplied, creates a temp directory at `<workDir>/gemini-temp-<timestamp>`.
 - Sets `contextContent` to `presetRules` for backward compatibility.
 - Assigns a UUID via `uuid()`.
@@ -263,6 +262,7 @@ Key behaviors:
 Parameters: `options: ICreateConversationParams` (provides `extra.backend`, `extra.workspace`, `extra.cliPath`, `extra.agentName`, `extra.customAgentId`, `extra.presetContext`, `extra.enabledSkills`, `extra.presetAssistantId`, `extra.sessionMode`, `extra.currentModelId`).
 
 Key behaviors:
+
 - Temp directory pattern: `<backend>-temp-<timestamp>`.
 - Does **not** set a `model` field (uses `Omit<..., 'model'>`).
 
@@ -279,6 +279,7 @@ Marked `@deprecated`. New Codex conversations use the ACP protocol path (`create
 Parameters: `options: ICreateConversationParams` (provides `extra.workspace`, `extra.backend`, `extra.agentName`, `extra.gateway`, `extra.sessionKey`, `extra.runtimeValidation`, etc.).
 
 Key behaviors:
+
 - Temp directory pattern: `openclaw-temp-<timestamp>`.
 - Does **not** set a `model` field (uses `Omit<..., 'model'>`).
 - Supports gateway configuration for external OpenClaw instances.
@@ -290,6 +291,7 @@ Key behaviors:
 Parameters: `options: ICreateConversationParams` (provides `extra.workspace`, `extra.customWorkspace`, `extra.enabledSkills`, `extra.presetAssistantId`).
 
 Key behaviors:
+
 - Simplified agent implementation without external dependencies.
 - Temp directory pattern: `nanobot-temp-<timestamp>`.
 - Does **not** set a `model` field (uses `Omit<..., 'model'>`).
@@ -300,12 +302,12 @@ Key behaviors:
 
 Conversations and messages are serialized to SQLite via row types in [src/process/database/types.ts](). Conversion functions handle the marshalling:
 
-| Conversion | Direction |
-|---|---|
-| `conversationToRow(c: TChatConversation): IConversationRow` | To SQLite |
+| Conversion                                                  | Direction   |
+| ----------------------------------------------------------- | ----------- |
+| `conversationToRow(c: TChatConversation): IConversationRow` | To SQLite   |
 | `rowToConversation(r: IConversationRow): TChatConversation` | From SQLite |
-| `messageToRow(m: TMessage): IMessageRow` | To SQLite |
-| `rowToMessage(r: IMessageRow): TMessage` | From SQLite |
+| `messageToRow(m: TMessage): IMessageRow`                    | To SQLite   |
+| `rowToMessage(r: IMessageRow): TMessage`                    | From SQLite |
 
 The `conversations` table schema includes a `type` CHECK constraint that enforces the five valid conversation types:
 
@@ -384,22 +386,22 @@ The method `getTaskByIdRollbackBuild` either retrieves an existing manager or la
 
 The `conversation` namespace in [src/common/ipcBridge.ts:25-55]() exposes all CRUD and lifecycle operations on `TChatConversation` from the renderer:
 
-| IPC Key | Handler | Description |
-|---|---|---|
-| `create-conversation` | `conversation.create` | Create and persist a new `TChatConversation` from `ICreateConversationParams` |
-| `create-conversation-with-conversation` | `conversation.createWithConversation` | Create from existing conversation (supports migration) |
-| `get-conversation` | `conversation.get` | Fetch by ID |
-| `get-associated-conversation` | `conversation.getAssociateConversation` | Fetch related conversations |
-| `remove-conversation` | `conversation.remove` | Delete conversation and messages |
-| `update-conversation` | `conversation.update` | Patch `Partial<TChatConversation>` with optional `mergeExtra` |
-| `reset-conversation` | `conversation.reset` | Reset conversation state |
-| `chat.stop.stream` | `conversation.stop` | Stop the active agent stream |
-| `chat.send.message` | `conversation.sendMessage` | Send a user message (unified interface for all agent types) |
-| `conversation.get-slash-commands` | `conversation.getSlashCommands` | Get available slash commands for the conversation |
-| `conversation.confirm.message` | `conversation.confirmMessage` | Unified confirmation for tool execution |
-| `chat.response.stream` | `conversation.responseStream` | Emitter for inbound `IResponseMessage` events |
-| `conversation.get-workspace` | `conversation.getWorkspace` | List workspace files and directories |
-| `conversation.reload-context` | `conversation.reloadContext` | Reload conversation context |
+| IPC Key                                 | Handler                                 | Description                                                                   |
+| --------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------- |
+| `create-conversation`                   | `conversation.create`                   | Create and persist a new `TChatConversation` from `ICreateConversationParams` |
+| `create-conversation-with-conversation` | `conversation.createWithConversation`   | Create from existing conversation (supports migration)                        |
+| `get-conversation`                      | `conversation.get`                      | Fetch by ID                                                                   |
+| `get-associated-conversation`           | `conversation.getAssociateConversation` | Fetch related conversations                                                   |
+| `remove-conversation`                   | `conversation.remove`                   | Delete conversation and messages                                              |
+| `update-conversation`                   | `conversation.update`                   | Patch `Partial<TChatConversation>` with optional `mergeExtra`                 |
+| `reset-conversation`                    | `conversation.reset`                    | Reset conversation state                                                      |
+| `chat.stop.stream`                      | `conversation.stop`                     | Stop the active agent stream                                                  |
+| `chat.send.message`                     | `conversation.sendMessage`              | Send a user message (unified interface for all agent types)                   |
+| `conversation.get-slash-commands`       | `conversation.getSlashCommands`         | Get available slash commands for the conversation                             |
+| `conversation.confirm.message`          | `conversation.confirmMessage`           | Unified confirmation for tool execution                                       |
+| `chat.response.stream`                  | `conversation.responseStream`           | Emitter for inbound `IResponseMessage` events                                 |
+| `conversation.get-workspace`            | `conversation.getWorkspace`             | List workspace files and directories                                          |
+| `conversation.reload-context`           | `conversation.reloadContext`            | Reload conversation context                                                   |
 
 Sources: [src/common/ipcBridge.ts:25-55]()
 

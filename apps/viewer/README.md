@@ -6,6 +6,7 @@ requiring an Acme installation, making it ideal for code reviews and
 collaboration.
 
 **Key Features:**
+
 - Read-only thread viewing
 - Syntax-highlighted code blocks
 - Message reactions and annotations

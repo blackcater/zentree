@@ -37,8 +37,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Agent Management interface provides a web-based control panel for inspecting and configuring individual agents. It exposes six panels for managing agent context, workspace files, tool policies, skill filters, channel bindings, and scheduled cron jobs.
 
 For general Control UI architecture and WebSocket connection setup, see [UI Overview](#7.1). For global skills management (not scoped to a single agent), see [Skills Management](#7.3).
@@ -56,16 +54,16 @@ graph TB
     AgentsView["renderAgents()<br/>(ui/src/ui/views/agents.ts)"]
     AgentSelector["Agent Selector<br/>Dropdown + Actions Menu"]
     TabNav["Tab Navigation<br/>overview|files|tools|skills|channels|cron"]
-    
+
     PanelOverview["renderAgentOverview()<br/>(agents-panels-overview.ts)"]
     PanelFiles["renderAgentFiles()<br/>(agents-panels-status-files.ts)"]
     PanelTools["renderAgentTools()<br/>(agents-panels-tools-skills.ts)"]
     PanelSkills["renderAgentSkills()<br/>(agents-panels-tools-skills.ts)"]
     PanelChannels["renderAgentChannels()<br/>(agents-panels-status-files.ts)"]
     PanelCron["renderAgentCron()<br/>(agents-panels-status-files.ts)"]
-    
+
     Gateway["Gateway RPC<br/>agents.list<br/>agents.identity<br/>agents.files.list<br/>config.form<br/>tools.catalog"]
-    
+
     AgentsView --> AgentSelector
     AgentsView --> TabNav
     TabNav --> PanelOverview
@@ -74,7 +72,7 @@ graph TB
     TabNav --> PanelSkills
     TabNav --> PanelChannels
     TabNav --> PanelCron
-    
+
     PanelOverview --> Gateway
     PanelFiles --> Gateway
     PanelTools --> Gateway
@@ -87,21 +85,21 @@ graph TB
 
 ### RPC Methods Used
 
-| Method | Purpose | Panel(s) |
-|--------|---------|----------|
-| `agents.list` | Fetch agent list + default agent ID | All |
-| `agents.identity` | Load runtime identity (name, avatar, emoji) | Overview, Files, Channels, Cron |
-| `agents.files.list` | List workspace files (SOUL.md, AGENTS.md, etc.) | Files |
-| `agents.files.read` | Read file content | Files |
-| `agents.files.write` | Save file changes | Files |
-| `config.form` | Load full config JSON for editing | Overview, Tools, Skills |
-| `config.update` | Apply config changes | Overview, Tools, Skills |
-| `tools.catalog` | Fetch tool registry (groups, profiles, metadata) | Tools |
-| `skills.status` | Load skill status report (per-agent filtering) | Skills |
-| `skills.update` | Toggle skill or update allowlist | Skills |
-| `channels.status` | Fetch channel status snapshot | Channels |
-| `cron.status` | Fetch cron job status | Cron |
-| `cron.run` | Trigger immediate job execution | Cron |
+| Method               | Purpose                                          | Panel(s)                        |
+| -------------------- | ------------------------------------------------ | ------------------------------- |
+| `agents.list`        | Fetch agent list + default agent ID              | All                             |
+| `agents.identity`    | Load runtime identity (name, avatar, emoji)      | Overview, Files, Channels, Cron |
+| `agents.files.list`  | List workspace files (SOUL.md, AGENTS.md, etc.)  | Files                           |
+| `agents.files.read`  | Read file content                                | Files                           |
+| `agents.files.write` | Save file changes                                | Files                           |
+| `config.form`        | Load full config JSON for editing                | Overview, Tools, Skills         |
+| `config.update`      | Apply config changes                             | Overview, Tools, Skills         |
+| `tools.catalog`      | Fetch tool registry (groups, profiles, metadata) | Tools                           |
+| `skills.status`      | Load skill status report (per-agent filtering)   | Skills                          |
+| `skills.update`      | Toggle skill or update allowlist                 | Skills                          |
+| `channels.status`    | Fetch channel status snapshot                    | Channels                        |
+| `cron.status`        | Fetch cron job status                            | Cron                            |
+| `cron.run`           | Trigger immediate job execution                  | Cron                            |
 
 **Sources:** [ui/src/ui/views/agents.ts:1-357](), [ui/src/ui/controllers/agents.ts:1-160]() (inferred), [ui/src/ui/controllers/skills.ts:46-68]()
 
@@ -115,13 +113,13 @@ Agent context includes workspace path, primary model, identity metadata, and ski
 
 ```typescript
 type AgentContext = {
-  workspace: string;       // Resolved workspace path
-  model: string;           // Primary model label + fallback count
-  identityName: string;    // Display name for agent
-  identityAvatar: string;  // "custom" or "—"
-  skillsLabel: string;     // "N selected" or "all skills"
-  isDefault: boolean;      // Is this the default agent?
-};
+  workspace: string // Resolved workspace path
+  model: string // Primary model label + fallback count
+  identityName: string // Display name for agent
+  identityAvatar: string // "custom" or "—"
+  skillsLabel: string // "N selected" or "all skills"
+  isDefault: boolean // Is this the default agent?
+}
 ```
 
 **Sources:** [ui/src/ui/views/agents-utils.ts:311-318]()
@@ -134,16 +132,16 @@ graph LR
     B["Per-Agent Config<br/>agents.list[agentId].workspace"]
     C["Global Defaults<br/>agents.defaults.workspace"]
     D["Fallback<br/>'default'"]
-    
+
     A -->|"if present"| Workspace
     B -->|"else if present"| Workspace
     C -->|"else if present"| Workspace
     D -->|"else"| Workspace
-    
+
     E["Runtime Identity<br/>agentIdentity.name"]
     F["Agent Config<br/>agents.list[agentId].name"]
     G["Agent ID<br/>agentId"]
-    
+
     E -->|"if present"| Name
     F -->|"else if present"| Name
     G -->|"else"| Name
@@ -155,10 +153,10 @@ graph LR
 
 The UI displays model configurations in three formats:
 
-| Config Shape | Display Label |
-|--------------|---------------|
-| `"openai/gpt-5.2"` (string) | `openai/gpt-5.2` |
-| `{ primary: "openai/gpt-5.2" }` | `openai/gpt-5.2` |
+| Config Shape                                                              | Display Label                  |
+| ------------------------------------------------------------------------- | ------------------------------ |
+| `"openai/gpt-5.2"` (string)                                               | `openai/gpt-5.2`               |
+| `{ primary: "openai/gpt-5.2" }`                                           | `openai/gpt-5.2`               |
 | `{ primary: "openai/gpt-5.2", fallbacks: ["anthropic/claude-opus-4-6"] }` | `openai/gpt-5.2 (+1 fallback)` |
 
 **Sources:** [ui/src/ui/views/agents-utils.ts:354-370]()
@@ -178,9 +176,9 @@ graph TB
     Model["Primary Model<br/>+ Fallback Count"]
     Skills["Skills Filter<br/>'N selected' or 'all skills'"]
     Default["Default Badge<br/>If agent is default"]
-    
+
     Overview["Overview Panel"]
-    
+
     Overview --> Identity
     Overview --> Workspace
     Overview --> Model
@@ -191,6 +189,7 @@ graph TB
 ### Model Configuration UI
 
 The overview panel allows editing:
+
 - **Primary model:** Dropdown of configured models from `agents.defaults.models`
 - **Fallback models:** Comma-separated text input
 
@@ -213,7 +212,7 @@ graph TB
     FilesAPI["agents.files.list RPC<br/>Returns AgentsFilesListResult"]
     FileList["File List Sidebar<br/>Name, Size, Modified"]
     FileEditor["File Editor<br/>Textarea + Save/Reset"]
-    
+
     FilesAPI --> FileList
     FileList -->|"onSelectFile(name)"| FileEditor
     FileEditor -->|"onFileSave(name)"| SaveRPC["agents.files.write RPC"]
@@ -230,10 +229,10 @@ graph TB
 
 ### File Metadata
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | File name (e.g., `SOUL.md`) |
-| `size` | number | File size in bytes |
+| Field      | Type   | Description                  |
+| ---------- | ------ | ---------------------------- |
+| `name`     | string | File name (e.g., `SOUL.md`)  |
+| `size`     | number | File size in bytes           |
 | `modified` | number | Last modified timestamp (ms) |
 
 **Sources:** [ui/src/ui/views/agents-panels-status-files.ts:236-361](), [ui/src/ui/views/agents-utils.ts:283-298]()
@@ -250,20 +249,20 @@ The tools panel manages tool access policies for the selected agent using a **pr
 graph TB
     GlobalTools["Global Tools Config<br/>tools.profile<br/>tools.allow/deny"]
     AgentTools["Per-Agent Tools Config<br/>agents.list[agentId].tools.profile<br/>agents.list[agentId].tools.allow/alsoAllow/deny"]
-    
+
     Profile["Selected Profile<br/>(minimal|coding|messaging|full)"]
     BasePolicy["Base Policy<br/>Profile allow/deny lists"]
     AlsoAllow["alsoAllow<br/>Additional allow patterns"]
     Deny["deny<br/>Deny patterns"]
-    
+
     EffectivePolicy["Effective Tool Access<br/>Per-tool enabled/disabled"]
-    
+
     AgentTools -->|"if set"| Profile
     GlobalTools -->|"else"| Profile
     Profile --> BasePolicy
     AgentTools --> AlsoAllow
     AgentTools --> Deny
-    
+
     BasePolicy --> EffectivePolicy
     AlsoAllow --> EffectivePolicy
     Deny --> EffectivePolicy
@@ -277,20 +276,20 @@ Tools are organized into **sections** (e.g., Files, Runtime, Web, Memory) with m
 
 ```typescript
 type AgentToolSection = {
-  id: string;           // "fs", "runtime", "web", etc.
-  label: string;        // "Files", "Runtime", etc.
-  source?: "core" | "plugin";
-  pluginId?: string;
-  tools: AgentToolEntry[];
-};
+  id: string // "fs", "runtime", "web", etc.
+  label: string // "Files", "Runtime", etc.
+  source?: 'core' | 'plugin'
+  pluginId?: string
+  tools: AgentToolEntry[]
+}
 
 type AgentToolEntry = {
-  id: string;           // "read", "write", "exec", etc.
-  label: string;
-  description: string;
-  optional?: boolean;
-  defaultProfiles?: string[];  // Profiles that include this tool
-};
+  id: string // "read", "write", "exec", etc.
+  label: string
+  description: string
+  optional?: boolean
+  defaultProfiles?: string[] // Profiles that include this tool
+}
 ```
 
 **Sources:** [ui/src/ui/views/agents-utils.ts:15-31]()
@@ -311,11 +310,11 @@ Per-tool toggles modify `alsoAllow` and `deny` arrays, then call `config.update`
 
 ```typescript
 const PROFILE_OPTIONS = [
-  { id: "minimal", label: "Minimal" },
-  { id: "coding", label: "Coding" },
-  { id: "messaging", label: "Messaging" },
-  { id: "full", label: "Full" },
-];
+  { id: 'minimal', label: 'Minimal' },
+  { id: 'coding', label: 'Coding' },
+  { id: 'messaging', label: 'Messaging' },
+  { id: 'full', label: 'Full' },
+]
 ```
 
 **Sources:** [ui/src/ui/views/agents-utils.ts:117-122]()
@@ -332,6 +331,7 @@ The skills panel allows per-agent skill filtering by managing the `agents.list[a
 - **Skills view (global):** Manages global skill enable/disable + API keys
 
 Both panels share the same `skills.status` RPC but filter differently:
+
 - Agent panel: Shows all skills, highlights which are in agent's allowlist
 - Global view: Shows all skills with global enable/disable toggle
 
@@ -339,11 +339,11 @@ Both panels share the same `skills.status` RPC but filter differently:
 
 ### Skill Filtering Modes
 
-| Config State | UI Display |
-|--------------|------------|
-| `skills: undefined` | "all skills" (no filter) |
-| `skills: ["skill-a", "skill-b"]` | "2 selected" |
-| `skills: []` | "0 selected" (disables all skills) |
+| Config State                     | UI Display                         |
+| -------------------------------- | ---------------------------------- |
+| `skills: undefined`              | "all skills" (no filter)           |
+| `skills: ["skill-a", "skill-b"]` | "2 selected"                       |
+| `skills: []`                     | "0 selected" (disables all skills) |
 
 **Sources:** [ui/src/ui/views/agents-utils.ts:342-350]()
 
@@ -355,7 +355,7 @@ graph TB
     ToggleOff["Disable Skill"]
     ClearFilter["Clear Filter"]
     DisableAll["Disable All Skills"]
-    
+
     ToggleOn -->|"Add to allowlist"| UpdateConfig["config.update<br/>agents.list[agentId].skills"]
     ToggleOff -->|"Remove from allowlist"| UpdateConfig
     ClearFilter -->|"Set skills=undefined"| UpdateConfig
@@ -367,6 +367,7 @@ graph TB
 ### Skill Status Display
 
 Each skill entry shows:
+
 - **Name & description**
 - **Status chips:** enabled/disabled, bundled, missing dependencies
 - **Per-agent toggle:** If skill is in agent's allowlist
@@ -388,10 +389,10 @@ graph TB
     ChannelsRPC["channels.status RPC<br/>Returns ChannelsStatusSnapshot"]
     ChannelList["Channel Entries<br/>Grouped by channel ID"]
     AccountSummary["Account Summary<br/>Connected/Configured/Enabled counts"]
-    
+
     ChannelsRPC --> ChannelList
     ChannelList --> AccountSummary
-    
+
     ConfigForm["Config Form<br/>Optional channel extras"]
     ChannelList --> ConfigForm
 ```
@@ -401,6 +402,7 @@ graph TB
 ### Account Summary Calculation
 
 For each channel (e.g., Telegram, Discord), the UI counts:
+
 - **Total accounts:** Number of configured accounts
 - **Connected:** Accounts with `connected: true` or `probe.ok: true`
 - **Configured:** Accounts with `configured: true`
@@ -428,7 +430,7 @@ graph TB
     JobFilter["Filter jobs by agentId"]
     JobList["Job List<br/>Name, Schedule, State, Next Run"]
     RunNow["Run Now Button<br/>cron.run RPC"]
-    
+
     CronRPC --> JobFilter
     JobFilter --> JobList
     JobList --> RunNow
@@ -438,13 +440,13 @@ graph TB
 
 ### Job Fields
 
-| Field | Display Format | Helper |
-|-------|----------------|--------|
-| `name` | Plain text | — |
+| Field      | Display Format                                   | Helper                 |
+| ---------- | ------------------------------------------------ | ---------------------- |
+| `name`     | Plain text                                       | —                      |
 | `schedule` | Human-readable (e.g., "every 1h", "Mon-Fri 9am") | `formatCronSchedule()` |
-| `state` | "idle", "running", "error" | `formatCronState()` |
-| `nextRun` | Relative timestamp or "—" | `formatNextRun()` |
-| `payload` | Formatted message/webhook/announce | `formatCronPayload()` |
+| `state`    | "idle", "running", "error"                       | `formatCronState()`    |
+| `nextRun`  | Relative timestamp or "—"                        | `formatNextRun()`      |
+| `payload`  | Formatted message/webhook/announce               | `formatCronPayload()`  |
 
 **Sources:** [ui/src/ui/views/agents-panels-status-files.ts:362-500](), [ui/src/ui/presenter.ts:1-200]() (inferred)
 
@@ -459,6 +461,7 @@ Clicking "Run Now" calls `cron.run` with the `jobId`, triggering an immediate ou
 ## Agent Actions Menu
 
 The agent selector includes an **actions menu** (three-dot button) with:
+
 - **Copy agent ID:** Copies `agentId` to clipboard
 - **Set as default:** Calls `config.update` to set `agents.defaultId`
 
@@ -470,16 +473,16 @@ The agent selector includes an **actions menu** (three-dot button) with:
 
 Agent management state is split across multiple controllers:
 
-| State Slice | Controller | Key Fields |
-|-------------|------------|------------|
-| Agent list + selection | `loadAgents()` | `agentsList`, `selectedAgentId` |
-| Agent identity | `loadAgentIdentity()` | `agentIdentityById[agentId]` |
-| Agent files | `loadAgentFiles()` | `agentFiles.list`, `agentFiles.contents` |
-| Configuration | `loadConfigForm()` | `config.form`, `config.dirty` |
-| Tools catalog | `loadToolsCatalog()` | `toolsCatalog.result` |
-| Skills status | `loadSkills()` | `agentSkills.report` |
-| Channels snapshot | `loadChannels()` | `channels.snapshot` |
-| Cron status | `loadCronStatus()` | `cron.status`, `cron.jobs` |
+| State Slice            | Controller            | Key Fields                               |
+| ---------------------- | --------------------- | ---------------------------------------- |
+| Agent list + selection | `loadAgents()`        | `agentsList`, `selectedAgentId`          |
+| Agent identity         | `loadAgentIdentity()` | `agentIdentityById[agentId]`             |
+| Agent files            | `loadAgentFiles()`    | `agentFiles.list`, `agentFiles.contents` |
+| Configuration          | `loadConfigForm()`    | `config.form`, `config.dirty`            |
+| Tools catalog          | `loadToolsCatalog()`  | `toolsCatalog.result`                    |
+| Skills status          | `loadSkills()`        | `agentSkills.report`                     |
+| Channels snapshot      | `loadChannels()`      | `channels.snapshot`                      |
+| Cron status            | `loadCronStatus()`    | `cron.status`, `cron.jobs`               |
 
 **Sources:** [ui/src/ui/views/agents.ts:68-107](), [ui/src/ui/controllers/agents.ts:1-160]() (inferred), [ui/src/ui/controllers/skills.ts:1-158]()
 
@@ -495,13 +498,13 @@ When config changes are made (model, tools, skills), the UI sets `config.dirty =
 
 Tab counts are displayed in the navigation bar:
 
-| Tab | Count Source |
-|-----|--------------|
-| Overview | Always visible |
-| Files | `agentFiles.list?.files?.length ?? null` |
-| Tools | Always visible |
-| Skills | `agentSkills.report?.skills?.length ?? null` |
+| Tab      | Count Source                                            |
+| -------- | ------------------------------------------------------- |
+| Overview | Always visible                                          |
+| Files    | `agentFiles.list?.files?.length ?? null`                |
+| Tools    | Always visible                                          |
+| Skills   | `agentSkills.report?.skills?.length ?? null`            |
 | Channels | `Object.keys(channels.snapshot.channelAccounts).length` |
-| Cron | Jobs filtered by `agentId` |
+| Cron     | Jobs filtered by `agentId`                              |
 
 **Sources:** [ui/src/ui/views/agents.ts:115-133]()

@@ -22,11 +22,9 @@ The following files were used as context for generating this wiki page:
 - [codex-rs/core/tests/suite/compact_remote.rs](codex-rs/core/tests/suite/compact_remote.rs)
 - [codex-rs/core/tests/suite/compact_resume_fork.rs](codex-rs/core/tests/suite/compact_resume_fork.rs)
 - [codex-rs/core/tests/suite/review.rs](codex-rs/core/tests/suite/review.rs)
-- [codex-rs/tui/src/chatwidget/snapshots/codex_tui__chatwidget__tests__image_generation_call_history_snapshot.snap](codex-rs/tui/src/chatwidget/snapshots/codex_tui__chatwidget__tests__image_generation_call_history_snapshot.snap)
+- [codex-rs/tui/src/chatwidget/snapshots/codex_tui**chatwidget**tests\_\_image_generation_call_history_snapshot.snap](codex-rs/tui/src/chatwidget/snapshots/codex_tui__chatwidget__tests__image_generation_call_history_snapshot.snap)
 
 </details>
-
-
 
 ## Purpose and Scope
 
@@ -42,13 +40,13 @@ The system supports two distinct compaction implementations, selected based on t
 
 ### Local vs Remote Compaction
 
-| Aspect | Local Compaction | Remote Compaction |
-|--------|-----------------|-------------------|
-| **Provider** | Non-OpenAI providers | OpenAI providers |
-| **Implementation** | `compact.rs::run_compact_task()` | `compact_remote.rs::run_remote_compact_task()` |
-| **Mechanism** | Injects `SUMMARIZATION_PROMPT` as user message | POST to `/v1/responses/compact` endpoint |
-| **Output** | Assistant reply used as summary | Server returns compacted `ResponseItem` list |
-| **Selection** | `!should_use_remote_compact_task()` | `should_use_remote_compact_task()` returns true |
+| Aspect             | Local Compaction                               | Remote Compaction                               |
+| ------------------ | ---------------------------------------------- | ----------------------------------------------- |
+| **Provider**       | Non-OpenAI providers                           | OpenAI providers                                |
+| **Implementation** | `compact.rs::run_compact_task()`               | `compact_remote.rs::run_remote_compact_task()`  |
+| **Mechanism**      | Injects `SUMMARIZATION_PROMPT` as user message | POST to `/v1/responses/compact` endpoint        |
+| **Output**         | Assistant reply used as summary                | Server returns compacted `ResponseItem` list    |
+| **Selection**      | `!should_use_remote_compact_task()`            | `should_use_remote_compact_task()` returns true |
 
 **Sources:** [codex-rs/core/src/compact.rs:50-52](), [codex-rs/core/src/compact_remote.rs:27-48](), [codex-rs/core/src/tasks/compact.rs:28-42]()
 
@@ -62,30 +60,30 @@ flowchart TB
     CheckProvider{"Provider type?"}
     LocalPath["run_compact_task()<br/>(local compaction)"]
     RemotePath["run_remote_compact_task()<br/>(remote compaction)"]
-    
+
     Start --> CheckProvider
     CheckProvider -->|"!is_openai()"| LocalPath
     CheckProvider -->|"is_openai()"| RemotePath
-    
+
     LocalPath --> LocalBuild["Build prompt with<br/>SUMMARIZATION_PROMPT"]
     RemotePath --> RemoteTrim["trim_function_call_history_to_fit_context_window()"]
-    
+
     LocalBuild --> LocalStream["ModelClientSession::stream()"]
     RemoteTrim --> RemoteCall["ModelClient::compact_conversation_history()"]
-    
+
     LocalStream --> LocalExtract["Extract last assistant<br/>message as summary"]
     RemoteCall --> RemoteProcess["process_compacted_history()"]
-    
+
     LocalExtract --> BuildHistory["build_compacted_history()"]
     RemoteProcess --> BuildHistory
-    
+
     BuildHistory --> InjectContext{"initial_context_injection<br/>mode?"}
     InjectContext -->|"BeforeLastUserMessage"| InsertContext["insert_initial_context_before_last_real_user_or_summary()"]
     InjectContext -->|"DoNotInject"| SkipContext["No context injection"]
-    
+
     InsertContext --> Replace["Session::replace_history()"]
     SkipContext --> Replace
-    
+
     Replace --> Persist["Persist RolloutItem::Compacted"]
     Persist --> EmitEvents["Emit ItemCompleted<br/>+ Warning event"]
     EmitEvents --> End["Complete"]
@@ -102,6 +100,7 @@ flowchart TB
 Manual compaction is triggered by `Op::Compact` submission, typically from a user command like `/compact`.
 
 **Flow:**
+
 1. `ThreadManager` receives `Op::Compact`
 2. Spawns `CompactTask` with empty input (no user message needed)
 3. Emits `TurnStarted` event with turn-specific `turn_id`
@@ -117,6 +116,7 @@ Automatic compaction occurs when a model response reports token usage exceeding 
 **Trigger location:** `regular_task.rs::auto_compact_if_needed()`
 
 **Differences from manual:**
+
 - Uses `InitialContextInjection::BeforeLastUserMessage` mode
 - No `TurnStarted` event (compaction runs within existing turn)
 - Compaction summary must remain last in history for model training
@@ -148,36 +148,36 @@ sequenceDiagram
     participant ContextManager
     participant ModelClientSession
     participant Model
-    
+
     Session->>ContextManager: clone_history()
     ContextManager-->>Session: history snapshot
-    
+
     Session->>ContextManager: extract_trailing_model_switch_update_for_compaction_request()
     Note over ContextManager: Strip <model_switch> if present<br/>at tail (after last user message)
-    
+
     Session->>ContextManager: record_items([SUMMARIZATION_PROMPT])
-    
+
     loop Retry on error
         Session->>ModelClientSession: stream(prompt with history + summarization)
         ModelClientSession->>Model: POST /v1/responses
         Model-->>ModelClientSession: ResponseEvent stream
         Session->>Session: drain_to_completed()
     end
-    
+
     Session->>Session: get_last_assistant_message_from_turn()
     Note over Session: Extract final assistant reply<br/>as summary text
-    
+
     Session->>Session: collect_user_messages(history)
     Session->>Session: build_compacted_history(user_messages, summary)
-    
+
     alt InitialContextInjection::BeforeLastUserMessage
         Session->>Session: insert_initial_context_before_last_real_user_or_summary()
     end
-    
+
     opt Model switch was stripped
         Session->>Session: Reattach model_switch_item to tail
     end
-    
+
     Session->>ContextManager: replace_history(new_history)
     Session->>Session: persist_rollout_items([Compacted])
     Session->>Session: emit_turn_item_completed + Warning
@@ -196,23 +196,28 @@ Remote compaction delegates summarization to OpenAI's specialized endpoint, whic
 **Endpoint:** `POST /v1/responses/compact`
 
 **Headers:**
+
 - `authorization: Bearer <access_token>`
 - `chatgpt-account-id: <account_id>` (from ChatGPT auth)
 
 **Request body:**
+
 ```json
 {
   "model": "gpt-4-...",
-  "input": [ /* history items */ ],
+  "input": [
+    /* history items */
+  ],
   "instructions": "base instructions text"
 }
 ```
 
 **Response:**
+
 ```json
 {
   "output": [
-    { "type": "compaction", "encrypted_content": "..." },
+    { "type": "compaction", "encrypted_content": "..." }
     /* optional user messages */
   ]
 }
@@ -227,6 +232,7 @@ Before sending the compact request, remote compaction trims function call histor
 **Function:** `trim_function_call_history_to_fit_context_window()`
 
 **Logic:**
+
 1. Estimate token count of history + base instructions
 2. If exceeds context window, remove last item if it's Codex-generated
 3. Repeat until under limit or no more eligible items
@@ -242,6 +248,7 @@ The server-returned history is processed to clean stale context:
 **Function:** `process_compacted_history()`
 
 **Filtering rules:**
+
 - **Drop:** All `developer` role messages (stale permissions/personality)
 - **Drop:** `user` messages that aren't real user content (session prefix wrappers)
 - **Keep:** `assistant` messages, `Compaction` items, real `UserMessage` items
@@ -257,11 +264,13 @@ The server-returned history is processed to clean stale context:
 ### Building Compacted History
 
 The `build_compacted_history()` function constructs the replacement history from:
+
 1. Initial context (may be empty)
 2. Selected user messages (up to 20,000 tokens)
 3. Summary message with `SUMMARY_PREFIX`
 
 **User message selection:**
+
 - Iterate user messages in reverse (newest first)
 - Include messages that fit within token budget
 - Truncate last message if it exceeds remaining budget
@@ -301,10 +310,10 @@ pub(crate) enum InitialContextInjection {
 }
 ```
 
-| Mode | Use Case | Behavior | Rationale |
-|------|----------|----------|-----------|
-| `DoNotInject` | Manual `/compact` or pre-turn compaction | Clears `reference_context_item`, next turn reinjects full context | Allows context to be refreshed on next request |
-| `BeforeLastUserMessage` | Mid-turn auto-compaction | Injects context before last real user message or summary | Model expects compaction item to remain last |
+| Mode                    | Use Case                                 | Behavior                                                          | Rationale                                      |
+| ----------------------- | ---------------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------- |
+| `DoNotInject`           | Manual `/compact` or pre-turn compaction | Clears `reference_context_item`, next turn reinjects full context | Allows context to be refreshed on next request |
+| `BeforeLastUserMessage` | Mid-turn auto-compaction                 | Injects context before last real user message or summary          | Model expects compaction item to remain last   |
 
 **Sources:** [codex-rs/core/src/compact.rs:35-48](), [codex-rs/core/src/compact.rs:238-261]()
 
@@ -313,6 +322,7 @@ pub(crate) enum InitialContextInjection {
 **Function:** `insert_initial_context_before_last_real_user_or_summary()`
 
 **Placement rules:**
+
 1. **Preferred:** Immediately before last real user message (non-summary)
 2. **Fallback:** Before last summary message if no real user messages
 3. **Fallback:** Before last compaction item if no user messages
@@ -333,6 +343,7 @@ When a model switch occurs between turns, the system injects a `<model_switch>` 
 **Function:** `extract_trailing_model_switch_update_for_compaction_request()`
 
 **Logic:**
+
 1. Find last user turn boundary
 2. Check if any developer message after that boundary starts with `<model_switch>\
 `
@@ -352,13 +363,13 @@ flowchart LR
         H2["Assistant reply"]
         H3["<model_switch> message<br/>(developer)"]
     end
-    
+
     subgraph "Compaction Request"
         C1["User message"]
         C2["Assistant reply"]
         C3["Summarization prompt"]
     end
-    
+
     subgraph "Post-Compaction History"
         P1["User message"]
         P2["Summary message"]
@@ -366,7 +377,7 @@ flowchart LR
         P4["New context"]
         P5["New user message"]
     end
-    
+
     H1 --> C1
     H2 --> C2
     H3 -.stripped.-> P3
@@ -376,7 +387,7 @@ flowchart LR
     P4 --> P5
 ```
 
-**Sources:** [codex-rs/core/src/compact.rs:140-142](), [codex-rs/core/src/compact.rs:247-251](), [codex-rs/core/tests/suite/snapshots/all__suite__compact__pre_turn_compaction_strips_incoming_model_switch_shapes.snap]()
+**Sources:** [codex-rs/core/src/compact.rs:140-142](), [codex-rs/core/src/compact.rs:247-251](), [codex-rs/core/tests/suite/snapshots/all**suite**compact\_\_pre_turn_compaction_strips_incoming_model_switch_shapes.snap]()
 
 ---
 
@@ -390,13 +401,13 @@ Sources: [codex-rs/core/src/tasks/review.rs:32-80]()
 
 `start_review_conversation()` ([codex-rs/core/src/tasks/review.rs:82-122]()) builds a restricted config for the sub-agent:
 
-| Config Setting | Value | Reason |
-|---|---|---|
-| `base_instructions` | `REVIEW_PROMPT` | Specialized review rubric |
-| `web_search_mode` | `Disabled` | Prevent external requests |
-| `Feature::Collab` | Disabled | Review-only scope |
-| `approval_policy` | `AskForApproval::Never` | Fully autonomous sub-agent |
-| `model` | `config.review_model` or session model | Configurable reviewer |
+| Config Setting      | Value                                  | Reason                     |
+| ------------------- | -------------------------------------- | -------------------------- |
+| `base_instructions` | `REVIEW_PROMPT`                        | Specialized review rubric  |
+| `web_search_mode`   | `Disabled`                             | Prevent external requests  |
+| `Feature::Collab`   | Disabled                               | Review-only scope          |
+| `approval_policy`   | `AskForApproval::Never`                | Fully autonomous sub-agent |
+| `model`             | `config.review_model` or session model | Configurable reviewer      |
 
 The sub-agent is launched via `run_codex_thread_one_shot()`. If that fails, `None` is returned immediately and the review exits with no output.
 
@@ -407,11 +418,12 @@ Sources: [codex-rs/core/src/tasks/review.rs:82-122]()
 `process_review_events()` ([codex-rs/core/src/tasks/review.rs:124-172]()) drains the sub-agent's event channel and selectively forwards events to the parent session:
 
 **Suppressed events** (not forwarded):
+
 - `AgentMessageContentDelta` — streaming content deltas
 - `AgentMessageDelta` — legacy streaming events
 - `ItemCompleted` for `TurnItem::AgentMessage` — prevents triggering legacy `AgentMessage` via `as_legacy_events()`
 
-**Special handling for `AgentMessage`:** Only the *last* received `AgentMessage` is forwarded; earlier ones are held in `prev_agent_message` and replaced. This ensures only the final non-streaming message surfaces.
+**Special handling for `AgentMessage`:** Only the _last_ received `AgentMessage` is forwarded; earlier ones are held in `prev_agent_message` and replaced. This ensures only the final non-streaming message surfaces.
 
 On `TurnComplete`, the `last_agent_message` field is parsed as a `ReviewOutputEvent`. On `TurnAborted`, the function returns `None`.
 
@@ -511,19 +523,20 @@ pub struct CompactedItem {
 
 During compaction, the system emits several event types:
 
-| Event | When | Purpose |
-|-------|------|---------|
-| `TurnStarted` | Manual compaction only | Indicates new compaction turn with `turn_id` |
-| `ItemStarted(ContextCompaction)` | Start of compaction | UI can show "Compacting..." indicator |
-| `ItemCompleted(ContextCompaction)` | End of compaction | UI can hide indicator |
-| `ContextCompacted` (legacy) | After compaction | Backward compatibility event |
-| `Warning` | After compaction | User warning about accuracy degradation |
-| `TokenCount` | After compaction | Updated token usage (local) or estimated (remote) |
+| Event                              | When                   | Purpose                                           |
+| ---------------------------------- | ---------------------- | ------------------------------------------------- |
+| `TurnStarted`                      | Manual compaction only | Indicates new compaction turn with `turn_id`      |
+| `ItemStarted(ContextCompaction)`   | Start of compaction    | UI can show "Compacting..." indicator             |
+| `ItemCompleted(ContextCompaction)` | End of compaction      | UI can hide indicator                             |
+| `ContextCompacted` (legacy)        | After compaction       | Backward compatibility event                      |
+| `Warning`                          | After compaction       | User warning about accuracy degradation           |
+| `TokenCount`                       | After compaction       | Updated token usage (local) or estimated (remote) |
 
 **Warning message:**
+
 ```
-"Heads up: Long threads and multiple compactions can cause the model to be 
-less accurate. Start a new thread when possible to keep threads small and 
+"Heads up: Long threads and multiple compactions can cause the model to be
+less accurate. Start a new thread when possible to keep threads small and
 targeted."
 ```
 
@@ -534,6 +547,7 @@ targeted."
 Compaction items use the same `turn_id` for `ItemStarted` and `ItemCompleted` events, matching the parent turn's lifecycle.
 
 **Assertion from tests:**
+
 ```rust
 assert_eq!(compact_started_id, Some(turn_started_id.clone()));
 assert_eq!(compact_completed_id, Some(turn_started_id));
@@ -571,6 +585,7 @@ Remote compaction does not receive token usage from the `/compact` endpoint, so 
 **Retry logic:** Up to `stream_max_retries()` attempts with exponential backoff
 
 **Context window exceeded handling:**
+
 1. If prompt too large for model, remove oldest history item
 2. Increment `truncated_count`
 3. Reset retry counter and try again
@@ -583,6 +598,7 @@ Remote compaction does not receive token usage from the `/compact` endpoint, so 
 ### Remote Compaction Errors
 
 **Failure logging:** On compact failure, logs detailed breakdown:
+
 - `last_api_response_total_tokens`
 - `all_history_items_model_visible_bytes`
 - `estimated_tokens_of_items_added_since_last_successful_api_response`
@@ -600,12 +616,12 @@ Remote compaction does not receive token usage from the `/compact` endpoint, so 
 
 The compaction system has extensive test coverage across multiple scenarios:
 
-| Test File | Focus Area |
-|-----------|------------|
-| `compact.rs` | Local compaction, manual/auto triggers, custom prompts, token events |
-| `compact_remote.rs` | Remote compaction, endpoint calls, history trimming |
-| `compact_resume_fork.rs` | Compaction + resume/fork interactions, history preservation |
-| `history_tests.rs` | ContextManager history operations, token estimation |
+| Test File                | Focus Area                                                           |
+| ------------------------ | -------------------------------------------------------------------- |
+| `compact.rs`             | Local compaction, manual/auto triggers, custom prompts, token events |
+| `compact_remote.rs`      | Remote compaction, endpoint calls, history trimming                  |
+| `compact_resume_fork.rs` | Compaction + resume/fork interactions, history preservation          |
+| `history_tests.rs`       | ContextManager history operations, token estimation                  |
 
 **Snapshot tests:** Several tests validate exact request/history shapes using insta snapshots, ensuring compaction behavior is deterministic.
 

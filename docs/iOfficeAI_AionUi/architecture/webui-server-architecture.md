@@ -5,7 +5,7 @@
 
 The following files were used as context for generating this wiki page:
 
-- [.github/workflows/_build-reusable.yml](.github/workflows/_build-reusable.yml)
+- [.github/workflows/\_build-reusable.yml](.github/workflows/_build-reusable.yml)
 - [.github/workflows/build-manual.yml](.github/workflows/build-manual.yml)
 - [bun.lock](bun.lock)
 - [src/index.ts](src/index.ts)
@@ -16,8 +16,6 @@ The following files were used as context for generating this wiki page:
 - [vitest.config.ts](vitest.config.ts)
 
 </details>
-
-
 
 ## Purpose and Scope
 
@@ -167,10 +165,10 @@ The server returns a `WebServerInstance` object containing all necessary referen
 
 ```typescript
 export interface WebServerInstance {
-  server: import('http').Server;
-  wss: import('ws').WebSocketServer;
-  port: number;
-  allowRemote: boolean;
+  server: import('http').Server
+  wss: import('ws').WebSocketServer
+  port: number
+  allowRemote: boolean
 }
 ```
 
@@ -184,13 +182,13 @@ Sources: [src/webserver/index.ts:230-235]()
 
 Server configuration is encapsulated in `SERVER_CONFIG` defined in `src/webserver/config/constants.ts`. Key defaults:
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `SERVER_CONFIG.DEFAULT_PORT` | `25808` | Default HTTP port |
-| `SERVER_CONFIG.DEFAULT_HOST` | `127.0.0.1` | Localhost-only binding |
-| `SERVER_CONFIG.REMOTE_HOST` | `0.0.0.0` | All-interface binding (remote mode) |
-| `WEBSOCKET_CONFIG.HEARTBEAT_INTERVAL` | `30000` ms | Server-side ping interval |
-| `WEBSOCKET_CONFIG.HEARTBEAT_TIMEOUT` | `60000` ms | Inactivity disconnect threshold |
+| Constant                              | Value       | Description                         |
+| ------------------------------------- | ----------- | ----------------------------------- |
+| `SERVER_CONFIG.DEFAULT_PORT`          | `25808`     | Default HTTP port                   |
+| `SERVER_CONFIG.DEFAULT_HOST`          | `127.0.0.1` | Localhost-only binding              |
+| `SERVER_CONFIG.REMOTE_HOST`           | `0.0.0.0`   | All-interface binding (remote mode) |
+| `WEBSOCKET_CONFIG.HEARTBEAT_INTERVAL` | `30000` ms  | Server-side ping interval           |
+| `WEBSOCKET_CONFIG.HEARTBEAT_TIMEOUT`  | `60000` ms  | Inactivity disconnect threshold     |
 
 `SERVER_CONFIG.setServerConfig(port, allowRemote)` is called at startup to store the active configuration for use by other modules (e.g., cookie options, CORS).
 
@@ -224,12 +222,12 @@ The WebUI server implements a multi-layered authentication system supporting tra
 
 ### Authentication Components
 
-| Component | File | Responsibility |
-|-----------|------|----------------|
-| `AuthService` | `src/webserver/auth/service/AuthService.ts` | Password hashing (bcrypt), JWT generation/validation, random password generation |
-| `UserRepository` | `src/webserver/auth/repository/UserRepository.ts` | SQLite CRUD operations for users, system user management |
-| `TokenMiddleware` | `src/webserver/auth/middleware/TokenMiddleware.ts` | Token extraction from cookies, token validation, request authentication |
-| `QR Code Login` | `src/process/bridge/webuiBridge.ts` | Temporary token generation for QR code authentication |
+| Component         | File                                               | Responsibility                                                                   |
+| ----------------- | -------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `AuthService`     | `src/webserver/auth/service/AuthService.ts`        | Password hashing (bcrypt), JWT generation/validation, random password generation |
+| `UserRepository`  | `src/webserver/auth/repository/UserRepository.ts`  | SQLite CRUD operations for users, system user management                         |
+| `TokenMiddleware` | `src/webserver/auth/middleware/TokenMiddleware.ts` | Token extraction from cookies, token validation, request authentication          |
+| `QR Code Login`   | `src/process/bridge/webuiBridge.ts`                | Temporary token generation for QR code authentication                            |
 
 ### Initial Admin Setup
 
@@ -241,10 +239,10 @@ sequenceDiagram
     participant Repo as UserRepository
     participant Auth as AuthService
     participant Console as Console Output
-    
+
     Init->>Repo: getSystemUser()
     Init->>Repo: findByUsername('admin')
-    
+
     alt Admin exists with valid password
         Repo-->>Init: Existing user
         Init-->>Caller: null (skip initialization)
@@ -253,7 +251,7 @@ sequenceDiagram
         Auth-->>Init: Random password
         Init->>Auth: hashPassword(password)
         Auth-->>Init: Hashed password
-        
+
         alt Admin record exists (no password)
             Init->>Repo: updatePassword(id, hash)
         else System user exists (placeholder)
@@ -261,12 +259,12 @@ sequenceDiagram
         else Fresh install
             Init->>Repo: createUser(username, hash)
         end
-        
+
         Repo-->>Init: Success
         Init->>Init: Store in initialAdminPassword
         Init-->>Caller: {username, password}
     end
-    
+
     Note over Caller,Console: If credentials returned
     Caller->>Console: displayInitialCredentials()
     Console->>Console: Print access URLs
@@ -323,6 +321,7 @@ req.user available"]
 **Diagram: JWT Authentication Flow**
 
 JWT token payload:
+
 ```
 { userId: string, username: string, iat: number, exp: number }
 issuer: "aionui", audience: "aionui-webui"
@@ -459,17 +458,17 @@ Sources: [src/webserver/setup.ts](), [src/webserver/routes/authRoutes.ts](), [sr
 
 Most auth routes are public (no JWT required). CSRF protection via `tiny-csrf` is applied globally but explicitly excluded for `/login` and `/api/auth/qr-login`.
 
-| Route | Method | Rate Limiter | Auth Required | Purpose |
-|-------|--------|-------------|---------------|---------|
-| `/login` | POST | `authRateLimiter` | No | Username/password login, sets `aionui-session` cookie |
-| `/logout` | POST | `apiRateLimiter` | Yes | Blacklists current token, clears cookie |
-| `/api/auth/status` | GET | `apiRateLimiter` | No | Check if users exist / setup needed |
-| `/api/auth/user` | GET | `apiRateLimiter` | Yes | Return current user info |
-| `/api/auth/change-password` | POST | `apiRateLimiter` | Yes | Change password, rotates JWT secret |
-| `/api/auth/refresh` | POST | `apiRateLimiter` | No | Refresh a valid JWT token |
-| `/api/ws-token` | GET | `apiRateLimiter` | No | Returns the main session token (for WS compat) |
-| `/api/auth/qr-login` | POST | `authRateLimiter` | No | Verify QR token, issue session cookie |
-| `/qr-login` | GET | — | No | Serves static QR login HTML page |
+| Route                       | Method | Rate Limiter      | Auth Required | Purpose                                               |
+| --------------------------- | ------ | ----------------- | ------------- | ----------------------------------------------------- |
+| `/login`                    | POST   | `authRateLimiter` | No            | Username/password login, sets `aionui-session` cookie |
+| `/logout`                   | POST   | `apiRateLimiter`  | Yes           | Blacklists current token, clears cookie               |
+| `/api/auth/status`          | GET    | `apiRateLimiter`  | No            | Check if users exist / setup needed                   |
+| `/api/auth/user`            | GET    | `apiRateLimiter`  | Yes           | Return current user info                              |
+| `/api/auth/change-password` | POST   | `apiRateLimiter`  | Yes           | Change password, rotates JWT secret                   |
+| `/api/auth/refresh`         | POST   | `apiRateLimiter`  | No            | Refresh a valid JWT token                             |
+| `/api/ws-token`             | GET    | `apiRateLimiter`  | No            | Returns the main session token (for WS compat)        |
+| `/api/auth/qr-login`        | POST   | `authRateLimiter` | No            | Verify QR token, issue session cookie                 |
+| `/qr-login`                 | GET    | —                 | No            | Serves static QR login HTML page                      |
 
 Sources: [src/webserver/routes/authRoutes.ts:93-416]()
 
@@ -477,12 +476,12 @@ Sources: [src/webserver/routes/authRoutes.ts:93-416]()
 
 Protected routes. `TokenMiddleware.validateToken({responseType: 'json'})` is applied before all handlers.
 
-| Route | Method | Purpose |
-|-------|--------|---------|
-| `/api/directory/browse` | GET | Browse directories (within `cwd` and `homedir`) |
-| `/api/directory/validate` | POST | Validate a file path |
-| `/api/directory/shortcuts` | GET | Get common directory shortcuts |
-| `/api` | GET | Generic API health check |
+| Route                      | Method | Purpose                                         |
+| -------------------------- | ------ | ----------------------------------------------- |
+| `/api/directory/browse`    | GET    | Browse directories (within `cwd` and `homedir`) |
+| `/api/directory/validate`  | POST   | Validate a file path                            |
+| `/api/directory/shortcuts` | GET    | Get common directory shortcuts                  |
+| `/api`                     | GET    | Generic API health check                        |
 
 All directory routes also apply `fileOperationLimiter` (30 req/min) via `directoryApi` router.
 
@@ -503,7 +502,7 @@ graph TD
     BuildPath["baseRoot = appPath +<br/>'.webpack/renderer'"]
     CheckIndex["indexHtml = baseRoot +<br/>'main_window/index.html'"]
     Exists["fs.existsSync(indexHtml)"]
-    
+
     Start --> GetAppPath
     GetAppPath --> BuildPath
     BuildPath --> CheckIndex
@@ -523,13 +522,15 @@ Sources: [src/webserver/routes/staticRoutes.ts:20-32]()
 ```javascript
 // Exclude: api, static, main_window, and webpack chunk directories
 // Also exclude files with extensions (.js, .css, .map, etc.)
-app.get(/^\/(?!api|static|main_window|react|arco|vendors|markdown|codemirror)(?!.*\.[a-zA-Z0-9]+$).*/, 
+app.get(
+  /^\/(?!api|static|main_window|react|arco|vendors|markdown|codemirror)(?!.*\.[a-zA-Z0-9]+$).*/,
   pageRateLimiter,
   serveApplication
-);
+)
 ```
 
 This regex ensures that:
+
 1. API routes (`/api/*`) are not caught
 2. Static asset directories are not caught
 3. Files with extensions (`.js`, `.css`, etc.) are served as static files
@@ -540,17 +541,17 @@ This regex ensures that:
 ```mermaid
 graph TB
     Request["HTTP Request"]
-    
+
     MainRoute["GET /<br/>serveApplication()"]
     SPARoute["GET /conversation/:id<br/>serveApplication()"]
     FaviconRoute["GET /favicon.ico<br/>204 No Content"]
-    
+
     StaticRoot["express.static(staticRoot)<br/>.webpack/renderer"]
     MainWindow["express.static(mainWindowDir)<br/>.webpack/renderer/main_window"]
     StaticDir["express.static(staticDir)<br/>.webpack/renderer/static"]
-    
+
     SyntaxHighlighter["express.static(staticRoot)<br/>Filter: react-syntax-highlighter"]
-    
+
     Request --> MainRoute
     Request --> SPARoute
     Request --> FaviconRoute
@@ -558,11 +559,11 @@ graph TB
     Request --> MainWindow
     Request --> StaticDir
     Request --> SyntaxHighlighter
-    
+
     MainRoute --> ReadIndex["fs.readFileSync(indexHtmlPath)"]
     SPARoute --> ReadIndex
     ReadIndex --> SendHTML["res.send(htmlContent)"]
-    
+
     StaticRoot --> ServeFile["Serve .js, .css, .map"]
     MainWindow --> ServeFile
     StaticDir --> ServeFile
@@ -574,22 +575,23 @@ The `serveApplication` function reads `index.html` and injects cache-control hea
 
 ```typescript
 const serveApplication = (req: Request, res: Response) => {
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  
-  const token = TokenMiddleware.extractToken(req);
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+  res.setHeader('Pragma', 'no-cache')
+  res.setHeader('Expires', '0')
+
+  const token = TokenMiddleware.extractToken(req)
   if (token && !TokenMiddleware.isTokenValid(token)) {
-    res.clearCookie(AUTH_CONFIG.COOKIE.NAME);
+    res.clearCookie(AUTH_CONFIG.COOKIE.NAME)
   }
-  
-  const htmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
-  res.setHeader('Content-Type', 'text/html');
-  res.send(htmlContent);
-};
+
+  const htmlContent = fs.readFileSync(indexHtmlPath, 'utf8')
+  res.setHeader('Content-Type', 'text/html')
+  res.send(htmlContent)
+}
 ```
 
 This approach ensures:
+
 - No browser caching of the HTML shell
 - Expired tokens are cleared on page load
 - Same HTML is served for all SPA routes
@@ -607,20 +609,20 @@ The WebUI server includes intelligent network detection to display the most usef
 ```mermaid
 graph TD
     Start["getServerIP()"]
-    
+
     subgraph "Priority Order"
         CheckLinux["Check if Linux headless<br/>!process.env.DISPLAY"]
         GetPublic["getPublicIP()<br/>curl ifconfig.me"]
         GetLAN["getLanIP()<br/>os.networkInterfaces()"]
     end
-    
+
     Start --> CheckLinux
     CheckLinux -->|Yes| GetPublic
     CheckLinux -->|No| GetLAN
-    
+
     GetPublic -->|Success| PublicIP["Return public IP<br/>e.g., 203.0.113.42"]
     GetPublic -->|Fail/Timeout| GetLAN
-    
+
     GetLAN --> FilterNets["Filter network interfaces"]
     FilterNets --> CheckIPv4["For each interface:<br/>family === 'IPv4'"]
     CheckIPv4 --> CheckInternal["!net.internal"]
@@ -636,34 +638,34 @@ Sources: [src/webserver/index.ts:64-130]()
 
 `getServerIP()` in `src/webserver/index.ts` implements platform-specific IP detection for display in the console:
 
-| Platform | Strategy | Implementation | Use Case |
-|----------|----------|----------------|----------|
-| Linux headless (`!process.env.DISPLAY`) | Public IP via `curl` | `getPublicIP()` — 2 s timeout | VPS/Cloud deployments |
-| All platforms | First non-internal IPv4 via `os.networkInterfaces()` | `getLanIP()` | Home/office LAN |
-| Fallback | `null` | Display `localhost` URL only | Local development |
+| Platform                                | Strategy                                             | Implementation                | Use Case              |
+| --------------------------------------- | ---------------------------------------------------- | ----------------------------- | --------------------- |
+| Linux headless (`!process.env.DISPLAY`) | Public IP via `curl`                                 | `getPublicIP()` — 2 s timeout | VPS/Cloud deployments |
+| All platforms                           | First non-internal IPv4 via `os.networkInterfaces()` | `getLanIP()`                  | Home/office LAN       |
+| Fallback                                | `null`                                               | Display `localhost` URL only  | Local development     |
 
 #### Code Entity Mapping
 
 ```mermaid
 graph TB
     GetServerIP["getServerIP()"]
-    
+
     CheckLinux{"process.platform === 'linux'<br/>&& !process.env.DISPLAY"}
-    
+
     GetPublicIP["getPublicIP()<br/>execSync curl"]
     GetLanIP["getLanIP()<br/>os.networkInterfaces()"]
-    
+
     PublicIP["Return public IP<br/>e.g., 203.0.113.42"]
     LanIP["Return LAN IP<br/>e.g., 192.168.1.100"]
     Null["Return null<br/>(use localhost)"]
-    
+
     GetServerIP --> CheckLinux
     CheckLinux -->|true| GetPublicIP
     CheckLinux -->|false| GetLanIP
-    
+
     GetPublicIP -->|Success| PublicIP
     GetPublicIP -->|Timeout/Fail| GetLanIP
-    
+
     GetLanIP -->|Found| LanIP
     GetLanIP -->|Not found| Null
 ```
@@ -671,6 +673,7 @@ graph TB
 **Diagram: getServerIP() Function Flow**
 
 **Public IP Detection** (`getPublicIP()`):
+
 ```bash
 curl -s --max-time 2 ifconfig.me || curl -s --max-time 2 api.ipify.org
 ```
@@ -685,19 +688,20 @@ Iterates through `os.networkInterfaces()` to find the first non-internal IPv4 ad
 
 ```typescript
 function getLanIP(): string | null {
-  const nets = networkInterfaces();
+  const nets = networkInterfaces()
   for (const name of Object.keys(nets)) {
     for (const net of nets[name]) {
       if (net.family === 'IPv4' && !net.internal) {
-        return net.address;
+        return net.address
       }
     }
   }
-  return null;
+  return null
 }
 ```
 
 This function filters out:
+
 - Loopback addresses (`127.0.0.1`)
 - IPv6 addresses
 - Internal/virtual interfaces
@@ -723,6 +727,7 @@ function displayInitialCredentials(
 ```
 
 Output format:
+
 ```
 ======================================================================
 🎉 AionUI Web Server Started Successfully! / AionUI Web 服务器启动成功！
@@ -760,6 +765,7 @@ function displayAccessInfo(
 ```
 
 Output format:
+
 ```
 🚀 Local access / 本地访问: http://localhost:3000
 🚀 Network access / 网络访问: http://192.168.1.100:3000
@@ -834,14 +840,14 @@ When running as a web browser client (no `window.electronAPI`), `src/adapter/bro
 
 **Key behaviors:**
 
-| Feature | Implementation |
-|---------|---------------|
-| Default connection URL | `ws://${window.location.host}` or `${hostname}:25808` |
-| Reconnection | Exponential backoff: 500 ms base, doubles each attempt, capped at 8000 ms |
-| Message queue | Outbound messages buffered in `messageQueue[]` when socket is not `OPEN`; flushed on reconnect via `flushQueue()` |
-| Heartbeat | Responds to server `ping` payloads with `{name: "pong", data: {timestamp}}` |
-| Auth expiry | On `auth-expired` message: stops reconnection (`shouldReconnect = false`), closes socket, redirects to `/login` after 1 s |
-| Post-login reconnect | `win.__websocketReconnect` is exposed; `AuthContext` calls it after successful login to re-establish the socket with the new session cookie |
+| Feature                | Implementation                                                                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Default connection URL | `ws://${window.location.host}` or `${hostname}:25808`                                                                                       |
+| Reconnection           | Exponential backoff: 500 ms base, doubles each attempt, capped at 8000 ms                                                                   |
+| Message queue          | Outbound messages buffered in `messageQueue[]` when socket is not `OPEN`; flushed on reconnect via `flushQueue()`                           |
+| Heartbeat              | Responds to server `ping` payloads with `{name: "pong", data: {timestamp}}`                                                                 |
+| Auth expiry            | On `auth-expired` message: stops reconnection (`shouldReconnect = false`), closes socket, redirects to `/login` after 1 s                   |
+| Post-login reconnect   | `win.__websocketReconnect` is exposed; `AuthContext` calls it after successful login to re-establish the socket with the new session cookie |
 
 ```mermaid
 sequenceDiagram
@@ -893,16 +899,16 @@ The WebUI server implements multiple security layers to protect against common w
 
 ### Security Components
 
-| Component | Implementation | Protection Against |
-|-----------|----------------|---------------------|
-| **HttpOnly Cookies** | `AUTH_CONFIG.COOKIE.NAME = 'aionui-session'`, `httpOnly: true` | XSS token theft |
-| **CSRF Protection** | `tiny-csrf` with `CSRF_SECRET`; token in `req.body._csrf` or `x-csrf-token` header | CSRF |
-| **CORS** | `setupCors()` — allowlist includes `localhost:{port}`, LAN IP (remote mode), `SERVER_BASE_URL`, `AIONUI_ALLOWED_ORIGINS` | Unauthorized cross-origin requests |
-| **Rate Limiting** | `express-rate-limit` via `authRateLimiter`, `apiRateLimiter`, etc. | Brute force, API abuse |
-| **JWT Expiry** | 24 h session token (`AUTH_CONFIG.TOKEN.SESSION_EXPIRY`) | Session hijacking |
-| **SameSite Cookie** | `strict` (local) or `lax` (remote HTTP mode) | CSRF via third-party sites |
-| **Token Blacklist** | SHA-256 hashed tokens in `AuthService.tokenBlacklist` Map | Post-logout token reuse |
-| **Security Headers** | `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Content-Security-Policy` | Clickjacking, MIME sniffing, XSS |
+| Component            | Implementation                                                                                                           | Protection Against                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| **HttpOnly Cookies** | `AUTH_CONFIG.COOKIE.NAME = 'aionui-session'`, `httpOnly: true`                                                           | XSS token theft                    |
+| **CSRF Protection**  | `tiny-csrf` with `CSRF_SECRET`; token in `req.body._csrf` or `x-csrf-token` header                                       | CSRF                               |
+| **CORS**             | `setupCors()` — allowlist includes `localhost:{port}`, LAN IP (remote mode), `SERVER_BASE_URL`, `AIONUI_ALLOWED_ORIGINS` | Unauthorized cross-origin requests |
+| **Rate Limiting**    | `express-rate-limit` via `authRateLimiter`, `apiRateLimiter`, etc.                                                       | Brute force, API abuse             |
+| **JWT Expiry**       | 24 h session token (`AUTH_CONFIG.TOKEN.SESSION_EXPIRY`)                                                                  | Session hijacking                  |
+| **SameSite Cookie**  | `strict` (local) or `lax` (remote HTTP mode)                                                                             | CSRF via third-party sites         |
+| **Token Blacklist**  | SHA-256 hashed tokens in `AuthService.tokenBlacklist` Map                                                                | Post-logout token reuse            |
+| **Security Headers** | `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Content-Security-Policy`                                    | Clickjacking, MIME sniffing, XSS   |
 
 ### CSRF Protection Flow
 
@@ -912,19 +918,19 @@ sequenceDiagram
     participant Server as Express Server
     participant CSRF as tiny-csrf Middleware
     participant Route as Route Handler
-    
+
     Client->>Server: GET /api/auth/status
     Server->>CSRF: Generate CSRF token
     CSRF->>CSRF: Create token pair (secret, token)
     CSRF->>Client: Set cookie: _csrf=secret
     CSRF-->>Client: Response header: X-CSRF-Token
-    
+
     Note over Client: Store X-CSRF-Token
-    
+
     Client->>Server: POST /api/auth/login<br/>Cookie: _csrf=secret<br/>Header: X-CSRF-Token=token
     Server->>CSRF: Validate token pair
     CSRF->>CSRF: Verify secret matches token
-    
+
     alt Valid CSRF token
         CSRF->>Route: Forward to handler
         Route-->>Client: Success response
@@ -941,12 +947,12 @@ Sources: [src/webserver/setup.ts](), [src/webserver/middleware/security.ts]()
 
 Rate limiters are defined in `src/webserver/middleware/security.ts` using `express-rate-limit`:
 
-| Limiter | Window | Max | Applied To |
-|---------|--------|-----|-----------|
-| `authRateLimiter` | 15 min | 5 | `POST /login`, `POST /api/auth/qr-login` |
-| `apiRateLimiter` | 1 min | 60 | Most `/api/*` endpoints |
-| `fileOperationLimiter` | 1 min | 30 | `/api/directory/*` routes |
-| `authenticatedActionLimiter` | 1 min | 20 | Sensitive endpoints; keyed by `user:{id}` or `ip:{address}` |
+| Limiter                      | Window | Max | Applied To                                                  |
+| ---------------------------- | ------ | --- | ----------------------------------------------------------- |
+| `authRateLimiter`            | 15 min | 5   | `POST /login`, `POST /api/auth/qr-login`                    |
+| `apiRateLimiter`             | 1 min  | 60  | Most `/api/*` endpoints                                     |
+| `fileOperationLimiter`       | 1 min  | 30  | `/api/directory/*` routes                                   |
+| `authenticatedActionLimiter` | 1 min  | 20  | Sensitive endpoints; keyed by `user:{id}` or `ip:{address}` |
 
 `authRateLimiter` sets `skipSuccessfulRequests: true`, so only failed login attempts count toward the limit.
 
@@ -965,6 +971,7 @@ JWT tokens are issued by `AuthService.generateToken()`:
 7. **`sameSite`**: `strict` in local mode; `lax` in remote HTTP mode (to support cross-origin LAN access)
 
 Token structure:
+
 ```
 { userId: string, username: string, iat: number, exp: number }
 issuer: "aionui", audience: "aionui-webui"
@@ -985,30 +992,30 @@ graph TB
     subgraph "Desktop Application"
         ElectronWindow["Electron BrowserWindow<br/>Direct IPC"]
     end
-    
+
     subgraph "Local Browser"
         LocalBrowser["Chrome/Firefox<br/>http://localhost:3000"]
     end
-    
+
     subgraph "Remote Browser"
         RemoteBrowser["Mobile/Tablet<br/>http://192.168.1.100:3000"]
     end
-    
+
     subgraph "Shared Backend"
         IPCBridge["IPC Bridge<br/>Unified API"]
         AgentManagers["Agent Managers<br/>Shared task cache"]
         Storage["Storage System<br/>SQLite + Files"]
     end
-    
+
     ElectronWindow -->|Direct IPC| IPCBridge
     LocalBrowser -->|WebSocket| WebAdapter["WebSocket Adapter"]
     RemoteBrowser -->|WebSocket| WebAdapter
-    
+
     WebAdapter --> IPCBridge
-    
+
     IPCBridge --> AgentManagers
     IPCBridge --> Storage
-    
+
     AgentManagers --> ConversationState["Conversation State<br/>Single source of truth"]
     Storage --> ConversationState
 ```
@@ -1026,6 +1033,7 @@ All clients access the same backend state through the IPC bridge:
 3. **Real-time Updates**: Stream events broadcasted to all connected clients via WebSocket
 
 This architecture ensures that:
+
 - Starting a conversation in the desktop app and continuing it in a browser works seamlessly
 - Multiple browser tabs show synchronized state
 - Agent responses stream to all connected clients simultaneously
@@ -1042,17 +1050,18 @@ The WebUI server can be launched via multiple CLI commands, each with different 
 
 When the server is started from within the Electron process via `webuiBridge.ts`, the `webui.*` IPC providers handle lifecycle control from the renderer:
 
-| IPC Provider | Action |
-|-------------|--------|
-| `webui.start.provider` | Calls `startWebServerWithInstance(port, allowRemote)`, stores instance, emits `webui.statusChanged` |
-| `webui.stop.provider` | Closes all WebSocket connections, calls `server.close()`, calls `cleanupWebAdapter()` |
-| `webui.getStatus.provider` | Returns `IWebUIStatus` via `WebuiService.getStatus()` |
-| `webui.changePassword.provider` | Delegates to `WebuiService.changePassword()` |
-| `webui.resetPassword.provider` | Generates new password via `WebuiService.resetPassword()`, emits `webui.resetPasswordResult` |
-| `webui.generateQRToken.provider` | Generates QR token, returns URL |
-| `webui.verifyQRToken.provider` | Validates QR token in `qrTokenStore` |
+| IPC Provider                     | Action                                                                                              |
+| -------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `webui.start.provider`           | Calls `startWebServerWithInstance(port, allowRemote)`, stores instance, emits `webui.statusChanged` |
+| `webui.stop.provider`            | Closes all WebSocket connections, calls `server.close()`, calls `cleanupWebAdapter()`               |
+| `webui.getStatus.provider`       | Returns `IWebUIStatus` via `WebuiService.getStatus()`                                               |
+| `webui.changePassword.provider`  | Delegates to `WebuiService.changePassword()`                                                        |
+| `webui.resetPassword.provider`   | Generates new password via `WebuiService.resetPassword()`, emits `webui.resetPasswordResult`        |
+| `webui.generateQRToken.provider` | Generates QR token, returns URL                                                                     |
+| `webui.verifyQRToken.provider`   | Validates QR token in `qrTokenStore`                                                                |
 
 There are also direct `ipcMain.handle` variants (prefixed `webui-direct-*`) used by `preload.ts` for calls that bypass the `@office-ai/platform` bridge library:
+
 - `webui-direct-reset-password`
 - `webui-direct-get-status`
 - `webui-direct-change-password`
@@ -1064,13 +1073,13 @@ Sources: [src/process/bridge/webuiBridge.ts:200-524](), [src/preload.ts:40-46]()
 
 ### Environment Variables
 
-| Variable | Purpose |
-|----------|---------|
-| `JWT_SECRET` | Override the JWT secret (bypasses database-stored secret) |
-| `CSRF_SECRET` | 32-character AES-256-CBC CSRF secret (random per session if not set) |
-| `SERVER_BASE_URL` | Override the base URL used for internal URL construction |
-| `AIONUI_ALLOWED_ORIGINS` | Comma-separated additional CORS origins |
-| `AIONUI_HTTPS` | Set to `true` to enable `secure` cookie flag |
+| Variable                 | Purpose                                                              |
+| ------------------------ | -------------------------------------------------------------------- |
+| `JWT_SECRET`             | Override the JWT secret (bypasses database-stored secret)            |
+| `CSRF_SECRET`            | 32-character AES-256-CBC CSRF secret (random per session if not set) |
+| `SERVER_BASE_URL`        | Override the base URL used for internal URL construction             |
+| `AIONUI_ALLOWED_ORIGINS` | Comma-separated additional CORS origins                              |
+| `AIONUI_HTTPS`           | Set to `true` to enable `secure` cookie flag                         |
 
 Sources: [src/webserver/config/constants.ts](), [src/webserver/auth/service/AuthService.ts:155-161](), [src/webserver/setup.ts:51-60]()
 
@@ -1095,9 +1104,9 @@ sequenceDiagram
     participant Repo as UserRepository
     participant Auth as AuthService
     participant Console as Console Output
-    
+
     CLI->>Repo: findByUsername(username)
-    
+
     alt User not found
         Repo-->>CLI: null
         CLI->>Console: Error: User not found
@@ -1124,6 +1133,7 @@ Sources: [src/utils/resetPasswordCLI.ts](), [src/index.ts:237-253]()
 ### Implementation
 
 The password reset utility:
+
 1. Loads user database without starting the server
 2. Verifies user exists
 3. Generates a new random password

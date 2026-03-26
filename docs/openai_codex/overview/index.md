@@ -25,8 +25,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 Codex CLI is an AI coding agent from OpenAI that runs locally on your computer. It provides an interactive terminal interface, non-interactive automation modes, and IDE integration capabilities for executing coding tasks with AI assistance. The system is implemented in Rust as a Cargo workspace and supports multiple execution modes, configurable sandboxing, tool extensibility via the Model Context Protocol (MCP), and multi-agent workflows.
 
 For detailed information about installation procedures, see [Installation and Setup](#1.1). For configuration options, see [Configuration System](#2.2). For IDE integration details, see [App Server and IDE Integration](#4.5).
@@ -44,7 +42,7 @@ graph TB
         app_server_entry["App Server (IDE)"]
         mcp_server_entry["MCP Server"]
     end
-    
+
     subgraph "Core Engine (codex-core)"
         ThreadManager["ThreadManager<br/>(thread_manager.rs)"]
         CodexThread["CodexThread<br/>(codex_thread.rs)"]
@@ -52,40 +50,40 @@ graph TB
         ContextManager["ContextManager<br/>(context_manager.rs)"]
         ModelClient["ModelClient<br/>(client.rs)"]
     end
-    
+
     subgraph "Tool Execution"
         ToolRouter["ToolRouter<br/>(tools/router.rs)"]
         UnifiedExec["UnifiedExecProcessManager<br/>(unified_exec.rs)"]
         McpConnectionManager["McpConnectionManager<br/>(mcp_connection_manager.rs)"]
         Sandbox["Platform Sandboxes<br/>(sandboxing/)"]
     end
-    
+
     subgraph "Configuration & State"
         ConfigBuilder["ConfigBuilder<br/>(config/mod.rs)"]
         RolloutRecorder["RolloutRecorder<br/>(rollout/mod.rs)"]
         StateDb["SQLite StateDb<br/>(state_db/)"]
     end
-    
+
     codex_bin --> tui_entry
     codex_bin --> exec_entry
     codex_bin --> app_server_entry
     codex_bin --> mcp_server_entry
-    
+
     tui_entry --> ThreadManager
     exec_entry --> ThreadManager
     app_server_entry --> ThreadManager
-    
+
     ThreadManager --> CodexThread
     CodexThread --> Session
     Session --> ContextManager
     Session --> ModelClient
     Session --> ToolRouter
     Session --> ConfigBuilder
-    
+
     ToolRouter --> UnifiedExec
     ToolRouter --> McpConnectionManager
     ToolRouter --> Sandbox
-    
+
     CodexThread --> RolloutRecorder
     ThreadManager --> StateDb
 ```
@@ -98,12 +96,12 @@ Codex supports four primary execution modes, each serving different use cases. A
 
 ### Execution Mode Comparison
 
-| Mode | Entry Point | Use Case | Session Persistence | User Interaction |
-|------|-------------|----------|---------------------|------------------|
-| **TUI** | `codex` (default) | Interactive development | Yes (rollout files) | Full interactive UI |
-| **Exec** | `codex exec` | Automation/CI | Yes (unless `--ephemeral`) | None (non-interactive) |
-| **App Server** | `codex app-server` | IDE integration | Yes | JSON-RPC protocol |
-| **MCP Server** | `codex mcp-server` | Tool delegation | Yes | MCP protocol (stdio) |
+| Mode           | Entry Point        | Use Case                | Session Persistence        | User Interaction       |
+| -------------- | ------------------ | ----------------------- | -------------------------- | ---------------------- |
+| **TUI**        | `codex` (default)  | Interactive development | Yes (rollout files)        | Full interactive UI    |
+| **Exec**       | `codex exec`       | Automation/CI           | Yes (unless `--ephemeral`) | None (non-interactive) |
+| **App Server** | `codex app-server` | IDE integration         | Yes                        | JSON-RPC protocol      |
+| **MCP Server** | `codex mcp-server` | Tool delegation         | Yes                        | MCP protocol (stdio)   |
 
 ```mermaid
 graph LR
@@ -112,7 +110,7 @@ graph LR
         brew["brew install<br/>--cask codex"]
         binary["GitHub Releases<br/>Platform Binaries"]
     end
-    
+
     subgraph "Commands"
         interactive["codex<br/>(TUI)"]
         exec["codex exec 'task'<br/>(Non-interactive)"]
@@ -120,23 +118,23 @@ graph LR
         mcp_server["codex mcp-server<br/>(MCP stdio)"]
         review["codex review<br/>(Code Review)"]
     end
-    
+
     subgraph "Core Runtime"
         thread_mgr["ThreadManager::new()"]
         config_load["ConfigBuilder::build()"]
         auth_mgr["AuthManager::shared()"]
     end
-    
+
     npm --> interactive
     brew --> interactive
     binary --> interactive
-    
+
     interactive --> config_load
     exec --> config_load
     app_server --> config_load
     mcp_server --> config_load
     review --> config_load
-    
+
     config_load --> auth_mgr
     auth_mgr --> thread_mgr
 ```
@@ -149,51 +147,51 @@ The Codex workspace is organized into focused crates with clear responsibilities
 
 ### Primary Crates
 
-| Crate | Path | Purpose |
-|-------|------|---------|
-| `codex-core` | `core/` | Core agent logic, session management, model client, tool orchestration |
-| `codex-tui` | `tui/` | Interactive terminal UI built with Ratatui |
-| `codex-exec` | `exec/` | Non-interactive headless CLI with JSONL output mode |
-| `codex-cli` | `cli/` | Multitool dispatcher, subcommand routing, feature toggles |
-| `codex-app-server` | `app-server/` | JSON-RPC server for VS Code, Cursor, and other IDE clients |
-| `codex-app-server-protocol` | `app-server-protocol/` | Protocol definitions for app server communication |
-| `codex-mcp-server` | `mcp-server/` | MCP server implementation exposing Codex as tools |
-| `codex-protocol` | `protocol/` | Shared protocol types for events, config, tool specs |
-| `codex-config` | `config/` | Configuration parsing, validation, layer merging |
+| Crate                       | Path                   | Purpose                                                                |
+| --------------------------- | ---------------------- | ---------------------------------------------------------------------- |
+| `codex-core`                | `core/`                | Core agent logic, session management, model client, tool orchestration |
+| `codex-tui`                 | `tui/`                 | Interactive terminal UI built with Ratatui                             |
+| `codex-exec`                | `exec/`                | Non-interactive headless CLI with JSONL output mode                    |
+| `codex-cli`                 | `cli/`                 | Multitool dispatcher, subcommand routing, feature toggles              |
+| `codex-app-server`          | `app-server/`          | JSON-RPC server for VS Code, Cursor, and other IDE clients             |
+| `codex-app-server-protocol` | `app-server-protocol/` | Protocol definitions for app server communication                      |
+| `codex-mcp-server`          | `mcp-server/`          | MCP server implementation exposing Codex as tools                      |
+| `codex-protocol`            | `protocol/`            | Shared protocol types for events, config, tool specs                   |
+| `codex-config`              | `config/`              | Configuration parsing, validation, layer merging                       |
 
 ```mermaid
 graph TB
     subgraph "User-Facing Binaries"
         cli_bin["codex<br/>(cli/src/main.rs)"]
     end
-    
+
     subgraph "Interface Crates"
         tui["codex-tui<br/>(tui/src/lib.rs)"]
         exec["codex-exec<br/>(exec/src/lib.rs)"]
         app_server["codex-app-server<br/>(app-server/src/lib.rs)"]
         mcp_server["codex-mcp-server<br/>(mcp-server/src/lib.rs)"]
     end
-    
+
     subgraph "Core Library"
         core["codex-core<br/>(core/src/lib.rs)"]
     end
-    
+
     subgraph "Shared Infrastructure"
         protocol["codex-protocol<br/>(protocol types)"]
         config["codex-config<br/>(config parsing)"]
         app_server_protocol["codex-app-server-protocol<br/>(JSON-RPC types)"]
     end
-    
+
     cli_bin --> tui
     cli_bin --> exec
     cli_bin --> app_server
     cli_bin --> mcp_server
-    
+
     tui --> core
     exec --> core
     app_server --> core
     mcp_server --> core
-    
+
     core --> protocol
     core --> config
     tui --> protocol
@@ -218,19 +216,19 @@ sequenceDiagram
     participant Sess as "Session<br/>(internal)"
     participant CM as "ContextManager<br/>(context_manager.rs)"
     participant MC as "ModelClient<br/>(client.rs)"
-    
+
     UI->>TM: NewThread{config, cwd}
     TM->>CT: spawn()
     CT->>Sess: new()
     Sess->>CM: new()
     Sess->>MC: new(session_id)
-    
+
     UI->>CT: submit(UserInput)
     CT->>Sess: process_user_turn()
     Sess->>CM: add_user_message()
     Sess->>CM: build_prompt()
     CM-->>Sess: Prompt with cache
-    
+
     Sess->>MC: stream_responses(prompt)
     loop SSE Events
         MC-->>Sess: ResponseEvent
@@ -238,7 +236,7 @@ sequenceDiagram
         Sess->>CT: emit(EventMsg)
         CT-->>UI: Event
     end
-    
+
     Sess->>Sess: execute_tools()
     Sess->>CM: update_token_usage()
     Sess->>CT: TurnComplete
@@ -249,15 +247,15 @@ sequenceDiagram
 
 ### Key Component Responsibilities
 
-| Component | File | Primary Responsibilities |
-|-----------|------|-------------------------|
-| `ThreadManager` | `core/src/thread_manager.rs` | Thread spawning/resuming, state database interaction, thread switching |
-| `CodexThread` | `core/src/codex_thread.rs` | Submission queue, event emission, task management, rollout recording |
-| `Session` (internal) | `core/src/codex.rs` | Turn orchestration, prompt building, model streaming, tool routing |
-| `ContextManager` | `core/src/context_manager.rs` | Message history, token tracking, compaction triggers, cached prefixes |
-| `ModelClient` | `core/src/client.rs` | HTTP/WebSocket transport, SSE parsing, retry logic, auth headers |
-| `ToolRouter` | `core/src/tools/` | Tool registration, approval checks, sandbox selection, execution |
-| `RolloutRecorder` | `core/src/rollout/mod.rs` | Session persistence, event filtering, thread indexing |
+| Component            | File                          | Primary Responsibilities                                               |
+| -------------------- | ----------------------------- | ---------------------------------------------------------------------- |
+| `ThreadManager`      | `core/src/thread_manager.rs`  | Thread spawning/resuming, state database interaction, thread switching |
+| `CodexThread`        | `core/src/codex_thread.rs`    | Submission queue, event emission, task management, rollout recording   |
+| `Session` (internal) | `core/src/codex.rs`           | Turn orchestration, prompt building, model streaming, tool routing     |
+| `ContextManager`     | `core/src/context_manager.rs` | Message history, token tracking, compaction triggers, cached prefixes  |
+| `ModelClient`        | `core/src/client.rs`          | HTTP/WebSocket transport, SSE parsing, retry logic, auth headers       |
+| `ToolRouter`         | `core/src/tools/`             | Tool registration, approval checks, sandbox selection, execution       |
+| `RolloutRecorder`    | `core/src/rollout/mod.rs`     | Session persistence, event filtering, thread indexing                  |
 
 **Sources:** [codex-rs/core/src/lib.rs:1-178](), [codex-rs/core/src/codex.rs](), [codex-rs/core/src/client.rs]()
 
@@ -276,19 +274,19 @@ graph TB
         global["~/.codex/config.toml<br/>(Global)"]
         defaults["Built-in Defaults<br/>(hardcoded)"]
     end
-    
+
     subgraph "Configuration Builder"
         builder["ConfigBuilder::build()<br/>(config/mod.rs)"]
         validator["Validation & Constraints<br/>(requirements.toml)"]
     end
-    
+
     subgraph "Final Configuration"
         config["Config struct<br/>(config/types.rs)"]
         model_provider["model_provider<br/>(ModelProviderInfo)"]
         permissions["permissions<br/>(sandbox, approval)"]
         mcp_servers["mcp_servers<br/>(server configs)"]
     end
-    
+
     cli --> builder
     features --> builder
     profile --> builder
@@ -296,10 +294,10 @@ graph TB
     project --> builder
     global --> builder
     defaults --> builder
-    
+
     builder --> validator
     validator --> config
-    
+
     config --> model_provider
     config --> permissions
     config --> mcp_servers
@@ -313,12 +311,12 @@ Codex provides built-in tools for shell execution, file patching, and web search
 
 ### Tool Architecture
 
-| Tool Type | Implementation | Examples |
-|-----------|----------------|----------|
-| Built-in | Compiled into `codex-core` | `shell_command`, `exec_command`, `apply_patch`, `web_search` |
-| MCP (stdio) | External process via stdin/stdout | User-defined MCP servers |
-| MCP (HTTP) | Remote HTTP endpoints | Cloud-based tool servers |
-| Code Mode | JavaScript REPL with yield/resume | Long-running scripts |
+| Tool Type   | Implementation                    | Examples                                                     |
+| ----------- | --------------------------------- | ------------------------------------------------------------ |
+| Built-in    | Compiled into `codex-core`        | `shell_command`, `exec_command`, `apply_patch`, `web_search` |
+| MCP (stdio) | External process via stdin/stdout | User-defined MCP servers                                     |
+| MCP (HTTP)  | Remote HTTP endpoints             | Cloud-based tool servers                                     |
+| Code Mode   | JavaScript REPL with yield/resume | Long-running scripts                                         |
 
 ```mermaid
 graph TB
@@ -327,26 +325,26 @@ graph TB
         mcp_stdio["MCP stdio Servers<br/>(command-based)"]
         mcp_http["MCP HTTP Servers<br/>(remote)"]
     end
-    
+
     subgraph "Tool Registration"
         registry["ToolRegistryBuilder<br/>(tools/registry.rs)"]
         router["ToolRouter<br/>(tools/router.rs)"]
     end
-    
+
     subgraph "Approval & Execution"
         orchestrator["ToolOrchestrator<br/>(tools/orchestrator.rs)"]
         approval["Approval Pipeline<br/>(policy + execpolicy)"]
         sandbox["Sandbox Selection<br/>(platform-specific)"]
         executor["Tool Executor<br/>(unified_exec, etc)"]
     end
-    
+
     builtin --> registry
     mcp_stdio --> registry
     mcp_http --> registry
-    
+
     registry --> router
     router --> orchestrator
-    
+
     orchestrator --> approval
     approval --> sandbox
     sandbox --> executor
@@ -360,13 +358,13 @@ Codex supports multiple model providers through a unified `ModelProviderInfo` re
 
 ### Provider Configuration
 
-| Provider Type | Authentication | Base URL | Wire Protocol |
-|--------------|----------------|----------|--------------|
-| OpenAI | API Key (`OPENAI_API_KEY`) | `https://api.openai.com/v1` | `responses` |
-| ChatGPT | OAuth token (stored in auth.json) | `https://chatgpt.com/backend-api/codex` | `responses` |
-| LM Studio | None (local) | `http://localhost:1234/v1` | `responses` |
-| Ollama | None (local) | `http://localhost:11434/v1` | `responses` |
-| Custom | Configurable env var | User-defined | `responses` |
+| Provider Type | Authentication                    | Base URL                                | Wire Protocol |
+| ------------- | --------------------------------- | --------------------------------------- | ------------- |
+| OpenAI        | API Key (`OPENAI_API_KEY`)        | `https://api.openai.com/v1`             | `responses`   |
+| ChatGPT       | OAuth token (stored in auth.json) | `https://chatgpt.com/backend-api/codex` | `responses`   |
+| LM Studio     | None (local)                      | `http://localhost:1234/v1`              | `responses`   |
+| Ollama        | None (local)                      | `http://localhost:11434/v1`             | `responses`   |
+| Custom        | Configurable env var              | User-defined                            | `responses`   |
 
 ```mermaid
 graph LR
@@ -374,24 +372,24 @@ graph LR
         builtin_providers["Built-in Providers<br/>(model_provider_info.rs)"]
         user_providers["User-Defined Providers<br/>(config.toml)"]
     end
-    
+
     subgraph "Authentication"
         api_key["API Key<br/>(env vars)"]
         chatgpt_oauth["ChatGPT OAuth<br/>(AuthManager)"]
     end
-    
+
     subgraph "Model Client"
         provider_config["ModelProviderInfo::to_api_provider()"]
         api_provider["ApiProvider<br/>(codex-api)"]
         http_client["HTTP Client<br/>(reqwest)"]
         ws_client["WebSocket Client<br/>(tokio-tungstenite)"]
     end
-    
+
     builtin_providers --> provider_config
     user_providers --> provider_config
     api_key --> provider_config
     chatgpt_oauth --> provider_config
-    
+
     provider_config --> api_provider
     api_provider --> http_client
     api_provider --> ws_client
@@ -415,6 +413,7 @@ Sessions are persisted as rollout files containing event streams that can be rep
 ```
 
 Each rollout file contains:
+
 - `RolloutLine::Meta`: Session metadata (thread_id, cwd, model, etc.)
 - `RolloutLine::Item`: Persisted events (user messages, agent messages, tool calls)
 
@@ -423,29 +422,29 @@ graph LR
     subgraph "Event Stream"
         events["Events<br/>(protocol::Event)"]
     end
-    
+
     subgraph "Rollout Recording"
         recorder["RolloutRecorder<br/>(rollout/mod.rs)"]
         policy["EventPersistenceMode<br/>(Full/Minimal/None)"]
         writer["Rollout Writer<br/>(JSONL + zstd)"]
     end
-    
+
     subgraph "Persistence"
         sessions_dir["~/.codex/sessions/<br/>YYYY-MM-DD/<br/>timestamp-uuid.jsonl.zst"]
         state_db["SQLite StateDb<br/>(thread index)"]
     end
-    
+
     subgraph "Replay"
         reader["Rollout Reader"]
         event_replay["Event Replay<br/>(resume/fork)"]
     end
-    
+
     events --> recorder
     recorder --> policy
     policy --> writer
     writer --> sessions_dir
     recorder --> state_db
-    
+
     sessions_dir --> reader
     reader --> event_replay
 ```
@@ -458,12 +457,12 @@ Codex supports spawning specialized sub-agents for tasks like code review, permi
 
 ### Sub-Agent Types
 
-| Agent Type | ThreadId Pattern | Purpose | Configuration |
-|------------|------------------|---------|---------------|
-| Primary | User-provided or UUID | Main conversation | User config |
-| Review | `review-*` | Code analysis | Restricted (no web search, `approval_policy = Never`) |
-| Guardian | Internal | Permission auto-approval | Specialized prompts |
-| Custom | `task-*` | Arbitrary sub-tasks | Forked from primary |
+| Agent Type | ThreadId Pattern      | Purpose                  | Configuration                                         |
+| ---------- | --------------------- | ------------------------ | ----------------------------------------------------- |
+| Primary    | User-provided or UUID | Main conversation        | User config                                           |
+| Review     | `review-*`            | Code analysis            | Restricted (no web search, `approval_policy = Never`) |
+| Guardian   | Internal              | Permission auto-approval | Specialized prompts                                   |
+| Custom     | `task-*`              | Arbitrary sub-tasks      | Forked from primary                                   |
 
 **Sources:** [codex-rs/core/src/thread_manager.rs](), [codex-rs/core/src/guardian.rs](), [codex-rs/core/src/review_prompts.rs]()
 
@@ -473,15 +472,15 @@ Codex is distributed through multiple channels: npm (cross-platform), Homebrew (
 
 ### Build Targets
 
-| Platform | Target Triple | Code Signing |
-|----------|---------------|--------------|
-| macOS (arm64) | `aarch64-apple-darwin` | Apple certificate + notarization |
-| macOS (x86_64) | `x86_64-apple-darwin` | Apple certificate + notarization |
-| Linux GNU (x86_64) | `x86_64-unknown-linux-gnu` | Cosign (Sigstore) |
-| Linux GNU (arm64) | `aarch64-unknown-linux-gnu` | Cosign (Sigstore) |
-| Linux MUSL (x86_64) | `x86_64-unknown-linux-musl` | Cosign (Sigstore) |
-| Linux MUSL (arm64) | `aarch64-unknown-linux-musl` | Cosign (Sigstore) |
-| Windows (x86_64) | `x86_64-pc-windows-msvc` | Azure Trusted Signing |
-| Windows (arm64) | `aarch64-pc-windows-msvc` | Azure Trusted Signing |
+| Platform            | Target Triple                | Code Signing                     |
+| ------------------- | ---------------------------- | -------------------------------- |
+| macOS (arm64)       | `aarch64-apple-darwin`       | Apple certificate + notarization |
+| macOS (x86_64)      | `x86_64-apple-darwin`        | Apple certificate + notarization |
+| Linux GNU (x86_64)  | `x86_64-unknown-linux-gnu`   | Cosign (Sigstore)                |
+| Linux GNU (arm64)   | `aarch64-unknown-linux-gnu`  | Cosign (Sigstore)                |
+| Linux MUSL (x86_64) | `x86_64-unknown-linux-musl`  | Cosign (Sigstore)                |
+| Linux MUSL (arm64)  | `aarch64-unknown-linux-musl` | Cosign (Sigstore)                |
+| Windows (x86_64)    | `x86_64-pc-windows-msvc`     | Azure Trusted Signing            |
+| Windows (arm64)     | `aarch64-pc-windows-msvc`    | Azure Trusted Signing            |
 
 **Sources:** [README.md:13-60](), [codex-rs/README.md:1-103](), [Cargo.toml:367-375]()

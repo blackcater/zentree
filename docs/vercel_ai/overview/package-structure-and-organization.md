@@ -34,8 +34,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the physical organization of the AI SDK monorepo, including the directory structure, package categorization, workspace dependency management, and build/distribution patterns. For the layered architecture and design principles that guide this organization, see [Architecture and Design Principles](#1.1). For development workflows and contribution guidelines, see [Development and Contribution](#6).
 
 ---
@@ -51,25 +49,25 @@ graph TB
     EXAMPLES["examples/"]
     TOOLS["tools/"]
     CONTENT["content/"]
-    
+
     ROOT --> PACKAGES
     ROOT --> EXAMPLES
     ROOT --> TOOLS
     ROOT --> CONTENT
-    
+
     PACKAGES --> CORE["Core SDK<br/>packages/ai"]
     PACKAGES --> PROVIDER_INTERFACE["Provider Interfaces<br/>packages/provider<br/>packages/provider-utils"]
     PACKAGES --> PROVIDERS["AI Providers (15+)<br/>packages/openai<br/>packages/anthropic<br/>packages/google<br/>packages/google-vertex<br/>packages/amazon-bedrock<br/>..."]
     PACKAGES --> UI_FRAMEWORKS["UI Frameworks<br/>packages/react<br/>packages/vue<br/>packages/svelte<br/>packages/angular<br/>packages/solid<br/>packages/rsc"]
     PACKAGES --> ADAPTERS["Adapters<br/>packages/langchain<br/>packages/llamaindex"]
-    
+
     EXAMPLES --> NEXT_EXAMPLES["Next.js Examples (10+)<br/>next<br/>next-agent<br/>next-langchain<br/>next-openai-telemetry<br/>..."]
     EXAMPLES --> FRAMEWORK_EXAMPLES["Framework Examples<br/>sveltekit-openai<br/>nuxt-openai<br/>angular<br/>..."]
     EXAMPLES --> SERVER_EXAMPLES["Server Examples<br/>express<br/>fastify<br/>hono<br/>nest<br/>node-http-server"]
-    
+
     TOOLS --> TSCONFIG["tools/tsconfig/base.json"]
     TOOLS --> ESLINT["tools/eslint-config"]
-    
+
     CONTENT --> PROVIDER_DOCS["providers/01-ai-sdk-providers/<br/>Provider documentation MDX files"]
 ```
 
@@ -83,36 +81,36 @@ Packages are organized into distinct layers matching the architectural design. E
 
 ### Core SDK Layer
 
-| Package | Path | Purpose |
-|---------|------|---------|
-| `ai` | `packages/ai` | Core SDK with `generateText`, `streamText`, structured outputs, tool calling |
-| `@ai-sdk/provider` | `packages/provider` | Provider-V3 specification interfaces |
-| `@ai-sdk/provider-utils` | `packages/provider-utils` | Shared utilities for provider implementations |
-| `@ai-sdk/gateway` | `packages/gateway` | Model routing and failover |
+| Package                  | Path                      | Purpose                                                                      |
+| ------------------------ | ------------------------- | ---------------------------------------------------------------------------- |
+| `ai`                     | `packages/ai`             | Core SDK with `generateText`, `streamText`, structured outputs, tool calling |
+| `@ai-sdk/provider`       | `packages/provider`       | Provider-V3 specification interfaces                                         |
+| `@ai-sdk/provider-utils` | `packages/provider-utils` | Shared utilities for provider implementations                                |
+| `@ai-sdk/gateway`        | `packages/gateway`        | Model routing and failover                                                   |
 
 **Sources:** [pnpm-lock.yaml:139-141](), Diagram 1 from context
 
 ### AI Provider Packages
 
-| Category | Packages | Description |
-|----------|----------|-------------|
-| **Native Implementations** | `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google` | Direct provider integrations with provider-specific features |
-| **OpenAI-Compatible** | `@ai-sdk/openai-compatible`, `@ai-sdk/xai`, `@ai-sdk/fireworks`, `@ai-sdk/cerebras`, `@ai-sdk/togetherai`, `@ai-sdk/deepseek` | Providers using shared OpenAI-compatible bridge |
-| **Specialized** | `@ai-sdk/azure`, `@ai-sdk/google-vertex`, `@ai-sdk/amazon-bedrock` | Providers that extend or compose other providers |
-| **Additional** | `@ai-sdk/mistral`, `@ai-sdk/cohere`, `@ai-sdk/groq`, `@ai-sdk/perplexity` | Other provider implementations |
+| Category                   | Packages                                                                                                                      | Description                                                  |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **Native Implementations** | `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google`                                                                       | Direct provider integrations with provider-specific features |
+| **OpenAI-Compatible**      | `@ai-sdk/openai-compatible`, `@ai-sdk/xai`, `@ai-sdk/fireworks`, `@ai-sdk/cerebras`, `@ai-sdk/togetherai`, `@ai-sdk/deepseek` | Providers using shared OpenAI-compatible bridge              |
+| **Specialized**            | `@ai-sdk/azure`, `@ai-sdk/google-vertex`, `@ai-sdk/amazon-bedrock`                                                            | Providers that extend or compose other providers             |
+| **Additional**             | `@ai-sdk/mistral`, `@ai-sdk/cohere`, `@ai-sdk/groq`, `@ai-sdk/perplexity`                                                     | Other provider implementations                               |
 
 **Sources:** [packages/google-vertex/package.json:1-100](), [packages/amazon-bedrock/package.json:1-89](), [packages/anthropic/package.json:1-85](), [packages/google/package.json:1-86]()
 
 ### UI Framework Packages
 
-| Package | Path | Peer Dependencies |
-|---------|------|-------------------|
-| `@ai-sdk/react` | `packages/react` | `react >= 18` |
-| `@ai-sdk/vue` | `packages/vue` | `vue >= 3.5` |
-| `@ai-sdk/svelte` | `packages/svelte` | `svelte >= 5` |
+| Package           | Path               | Peer Dependencies         |
+| ----------------- | ------------------ | ------------------------- |
+| `@ai-sdk/react`   | `packages/react`   | `react >= 18`             |
+| `@ai-sdk/vue`     | `packages/vue`     | `vue >= 3.5`              |
+| `@ai-sdk/svelte`  | `packages/svelte`  | `svelte >= 5`             |
 | `@ai-sdk/angular` | `packages/angular` | `@angular/core >= 16.0.0` |
-| `@ai-sdk/solid` | `packages/solid` | `solid-js` |
-| `@ai-sdk/rsc` | `packages/rsc` | `react`, `next >= 15` |
+| `@ai-sdk/solid`   | `packages/solid`   | `solid-js`                |
+| `@ai-sdk/rsc`     | `packages/rsc`     | `react`, `next >= 15`     |
 
 **Sources:** [examples/nuxt-openai/package.json:12-16](), [examples/sveltekit-openai/package.json:19-27](), [examples/angular/package.json:408-437]()
 
@@ -134,7 +132,7 @@ graph LR
     subgraph "Version 7.0.0-beta.7"
         AI["ai<br/>7.0.0-beta.7"]
     end
-    
+
     subgraph "Version 4.0.0-beta.x"
         REACT["@ai-sdk/react<br/>4.0.0-beta.7"]
         VUE["@ai-sdk/vue<br/>4.0.0-beta.7"]
@@ -143,31 +141,31 @@ graph LR
         ANTHROPIC["@ai-sdk/anthropic<br/>4.0.0-beta.1"]
         GOOGLE["@ai-sdk/google<br/>4.0.0-beta.3"]
     end
-    
+
     subgraph "Version 5.0.0-beta.x"
         VERTEX["@ai-sdk/google-vertex<br/>5.0.0-beta.3"]
         BEDROCK["@ai-sdk/amazon-bedrock<br/>5.0.0-beta.1"]
         PROVIDER_UTILS["@ai-sdk/provider-utils<br/>5.0.0-beta.1"]
     end
-    
+
     subgraph "Version 4.0.0-beta.0"
         PROVIDER["@ai-sdk/provider<br/>4.0.0-beta.0"]
     end
-    
+
     REACT -->|workspace:*| AI
     VUE -->|workspace:*| AI
     SVELTE -->|workspace:*| AI
-    
+
     OPENAI -->|workspace:*| PROVIDER
     OPENAI -->|workspace:*| PROVIDER_UTILS
-    
+
     ANTHROPIC -->|workspace:*| PROVIDER
     ANTHROPIC -->|workspace:*| PROVIDER_UTILS
-    
+
     VERTEX -->|workspace:*| GOOGLE
     VERTEX -->|workspace:*| ANTHROPIC
     VERTEX -->|workspace:*| PROVIDER_UTILS
-    
+
     BEDROCK -->|workspace:*| ANTHROPIC
     BEDROCK -->|workspace:*| PROVIDER_UTILS
 ```
@@ -200,24 +198,24 @@ All SDK packages follow a consistent dual-format export pattern supporting both 
 ```mermaid
 graph TB
     PKG["Package Root"]
-    
+
     PKG --> MAIN["main: ./dist/index.js"]
     PKG --> MODULE["module: ./dist/index.mjs"]
     PKG --> TYPES["types: ./dist/index.d.ts"]
-    
+
     PKG --> EXPORTS["exports"]
     EXPORTS --> PKG_JSON["./package.json"]
     EXPORTS --> DEFAULT[". (default entry)"]
     EXPORTS --> SUBPATHS["Subpath exports"]
-    
+
     DEFAULT --> DEFAULT_TYPES["types: ./dist/index.d.ts"]
     DEFAULT --> DEFAULT_IMPORT["import: ./dist/index.mjs"]
     DEFAULT --> DEFAULT_REQUIRE["require: ./dist/index.js"]
-    
+
     SUBPATHS --> EDGE["./edge"]
     SUBPATHS --> INTERNAL["./internal"]
     SUBPATHS --> SPECIALIZED["Provider-specific<br/>(e.g. ./anthropic)"]
-    
+
     EDGE --> EDGE_TYPES["types: ./dist/edge/index.d.ts"]
     EDGE --> EDGE_IMPORT["import: ./dist/edge/index.mjs"]
     EDGE --> EDGE_REQUIRE["require: ./dist/edge/index.js"]
@@ -256,6 +254,7 @@ The `@ai-sdk/google-vertex` package demonstrates the full export pattern:
 ```
 
 This enables usage like:
+
 - `import { vertex } from '@ai-sdk/google-vertex'` (default)
 - `import { vertex } from '@ai-sdk/google-vertex/edge'` (edge runtime)
 - `import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic'` (Anthropic via Vertex)
@@ -270,16 +269,16 @@ Each package includes specific files in its distribution, controlled by the `fil
 
 ### Standard Distribution Contents
 
-| File/Directory | Purpose |
-|----------------|---------|
-| `dist/**/*` | Compiled JavaScript, TypeScript declarations, source maps |
-| `docs/**/*` | Provider-specific documentation (copied during `prepack`) |
-| `src/` | Source TypeScript files (for source map resolution) |
-| `!src/**/*.test.ts` | Exclude test files |
-| `!src/**/__snapshots__` | Exclude test snapshots |
-| `CHANGELOG.md` | Version history |
-| `README.md` | Package documentation |
-| `*.d.ts` | TypeScript declaration files for subpath exports |
+| File/Directory          | Purpose                                                   |
+| ----------------------- | --------------------------------------------------------- |
+| `dist/**/*`             | Compiled JavaScript, TypeScript declarations, source maps |
+| `docs/**/*`             | Provider-specific documentation (copied during `prepack`) |
+| `src/`                  | Source TypeScript files (for source map resolution)       |
+| `!src/**/*.test.ts`     | Exclude test files                                        |
+| `!src/**/__snapshots__` | Exclude test snapshots                                    |
+| `CHANGELOG.md`          | Version history                                           |
+| `README.md`             | Package documentation                                     |
+| `*.d.ts`                | TypeScript declaration files for subpath exports          |
 
 ### Tree-Shaking Optimization
 
@@ -308,40 +307,40 @@ graph TB
         BUILD["pnpm build"]
         TSUP["tsup<br/>--tsconfig tsconfig.build.json"]
     end
-    
+
     subgraph "Pre-publish Phase"
         PREPACK["pnpm prepack"]
         COPY_DOCS["Copy provider docs<br/>content/providers/**/*.mdx → docs/"]
         DIST["dist/<br/>index.js, index.mjs, index.d.ts"]
         DOCS_DIR["docs/<br/>Provider documentation"]
     end
-    
+
     subgraph "Publish Phase"
         PUBLISH["pnpm publish"]
         NPM["npm registry"]
         POSTPACK["pnpm postpack"]
         CLEANUP["del-cli docs"]
     end
-    
+
     subgraph "Version Coordination"
         CHANGESET[".changeset/pre.json<br/>Beta pre-release mode"]
         VERSION["Version bump<br/>Synchronized across packages"]
         CHANGELOG["CHANGELOG.md<br/>Generated per package"]
     end
-    
+
     SRC --> BUILD
     BUILD --> TSUP
     TSUP --> DIST
-    
+
     DIST --> PREPACK
     PREPACK --> COPY_DOCS
     COPY_DOCS --> DOCS_DIR
-    
+
     DOCS_DIR --> PUBLISH
     PUBLISH --> NPM
     NPM --> POSTPACK
     POSTPACK --> CLEANUP
-    
+
     CHANGESET --> VERSION
     VERSION --> CHANGELOG
     CHANGELOG --> PUBLISH
@@ -362,6 +361,7 @@ Each package uses `tsup` for building with consistent configuration:
 ```
 
 The build process:
+
 1. **Clean** - Remove previous build artifacts (`dist/`, `docs/`, `*.tsbuildinfo`)
 2. **tsup** - Bundle TypeScript with `tsconfig.build.json`, generating CJS, ESM, and declarations
 3. **Watch mode** - Available for development with auto-rebuild
@@ -377,22 +377,22 @@ The monorepo implements a **documentation propagation system** that copies provi
 ```mermaid
 graph LR
     CONTENT["content/providers/<br/>01-ai-sdk-providers/"]
-    
+
     CONTENT --> GOOGLE_VERTEX_DOC["16-google-vertex.mdx"]
     CONTENT --> BEDROCK_DOC["08-amazon-bedrock.mdx"]
     CONTENT --> ANTHROPIC_DOC["05-anthropic.mdx"]
     CONTENT --> GOOGLE_DOC["15-google-generative-ai.mdx"]
-    
+
     GOOGLE_VERTEX_DOC -->|prepack| VERTEX_PKG["packages/google-vertex/docs/"]
     BEDROCK_DOC -->|prepack| BEDROCK_PKG["packages/amazon-bedrock/docs/"]
     ANTHROPIC_DOC -->|prepack| ANTHROPIC_PKG["packages/anthropic/docs/"]
     GOOGLE_DOC -->|prepack| GOOGLE_PKG["packages/google/docs/"]
-    
+
     VERTEX_PKG -->|included in npm package| NPM_VERTEX["@ai-sdk/google-vertex<br/>on npm"]
     BEDROCK_PKG -->|included in npm package| NPM_BEDROCK["@ai-sdk/amazon-bedrock<br/>on npm"]
     ANTHROPIC_PKG -->|included in npm package| NPM_ANTHROPIC["@ai-sdk/anthropic<br/>on npm"]
     GOOGLE_PKG -->|included in npm package| NPM_GOOGLE["@ai-sdk/google<br/>on npm"]
-    
+
     NPM_VERTEX -->|postpack| CLEANUP_VERTEX["del-cli docs"]
     NPM_BEDROCK -->|postpack| CLEANUP_BEDROCK["del-cli docs"]
 ```
@@ -409,6 +409,7 @@ graph LR
 ```
 
 This workflow ensures:
+
 1. Documentation is centrally maintained in `content/`
 2. Each published package includes its own documentation
 3. Documentation is cleaned up after publishing to avoid committing generated files
@@ -424,12 +425,12 @@ The repository includes 50+ example applications demonstrating SDK usage across 
 
 ### Example Categories
 
-| Category | Count | Examples |
-|----------|-------|----------|
-| **Next.js** | 10+ | `next`, `next-agent`, `next-langchain`, `next-openai-telemetry`, `next-openai-kasada-bot-protection`, `next-openai-upstash-rate-limits`, `next-fastapi`, `next-google-vertex` |
-| **Frontend Frameworks** | 3 | `sveltekit-openai`, `nuxt-openai`, `angular` |
-| **Server Frameworks** | 5 | `express`, `fastify`, `hono`, `nest`, `node-http-server` |
-| **Specialized** | 2+ | `mcp` (Model Context Protocol), `ai-functions` (comprehensive test suite) |
+| Category                | Count | Examples                                                                                                                                                                      |
+| ----------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Next.js**             | 10+   | `next`, `next-agent`, `next-langchain`, `next-openai-telemetry`, `next-openai-kasada-bot-protection`, `next-openai-upstash-rate-limits`, `next-fastapi`, `next-google-vertex` |
+| **Frontend Frameworks** | 3     | `sveltekit-openai`, `nuxt-openai`, `angular`                                                                                                                                  |
+| **Server Frameworks**   | 5     | `express`, `fastify`, `hono`, `nest`, `node-http-server`                                                                                                                      |
+| **Specialized**         | 2+    | `mcp` (Model Context Protocol), `ai-functions` (comprehensive test suite)                                                                                                     |
 
 ### Example Dependency Pattern
 

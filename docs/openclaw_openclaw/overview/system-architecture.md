@@ -72,8 +72,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document provides a high-level architectural overview of OpenClaw, explaining how the major subsystems interact to deliver a self-hosted multi-agent AI gateway. It covers the core components, data flow patterns, and key abstractions that define the system architecture.
@@ -94,42 +92,42 @@ graph TB
         Channels["Channel Plugins<br/>(WhatsApp, Telegram, Discord, etc)"]
         Nodes["Native Nodes<br/>(macOS/iOS/Android apps)"]
     end
-    
+
     subgraph "Gateway Control Plane"
         WSServer["WebSocket Server<br/>(GatewayServer)"]
         Protocol["Gateway Protocol v3<br/>(RequestFrame/ResponseFrame)"]
         Auth["Authentication<br/>(token/password/device)"]
         Router["Agent Router<br/>(multi-agent bindings)"]
     end
-    
+
     subgraph "Core Agent System"
         SessionMgr["Session Manager<br/>(JSONL stores)"]
         AgentRuntime["Pi Agent Runtime<br/>(@mariozechner/pi-ai)"]
         ToolRegistry["Tool Registry<br/>(policy enforcement)"]
         Compaction["Context Compaction<br/>(memory flush)"]
     end
-    
+
     subgraph "State & Storage"
         Config["Config<br/>(openclaw.json + Zod)"]
         Memory["Memory Index<br/>(SQLite + vector)"]
         Sessions["Session Stores<br/>(~/.openclaw/agents/)"]
         Workspace["Agent Workspace<br/>(SOUL.md, skills/)"]
     end
-    
+
     CLI --> WSServer
     WebUI --> WSServer
     Channels --> WSServer
     Nodes --> WSServer
-    
+
     WSServer --> Protocol
     Protocol --> Auth
     Auth --> Router
-    
+
     Router --> SessionMgr
     SessionMgr --> AgentRuntime
     AgentRuntime --> ToolRegistry
     AgentRuntime --> Compaction
-    
+
     Config --> Router
     Memory --> AgentRuntime
     SessionMgr --> Sessions
@@ -148,12 +146,12 @@ The Gateway is a WebSocket RPC server that implements protocol version 3. All cl
 
 **Key Components:**
 
-| Component | Location | Responsibility |
-|-----------|----------|----------------|
-| `GatewayServer` | [src/gateway/server.impl.js]() | WebSocket lifecycle, frame dispatch |
-| `startGatewayServer` | [src/gateway/server.impl.js]() | Server initialization function |
-| Protocol schemas | [src/gateway/protocol/schema.ts:1-19]() | Request/response/event frame definitions |
-| Method handlers | [src/gateway/server-methods.ts:1-24]() | RPC method implementations |
+| Component            | Location                                | Responsibility                           |
+| -------------------- | --------------------------------------- | ---------------------------------------- |
+| `GatewayServer`      | [src/gateway/server.impl.js]()          | WebSocket lifecycle, frame dispatch      |
+| `startGatewayServer` | [src/gateway/server.impl.js]()          | Server initialization function           |
+| Protocol schemas     | [src/gateway/protocol/schema.ts:1-19]() | Request/response/event frame definitions |
+| Method handlers      | [src/gateway/server-methods.ts:1-24]()  | RPC method implementations               |
 
 The Gateway binds to `gateway.bind` (default: loopback) and port `gateway.port` (default: 18789). It supports three authentication modes: `token`, `password`, and `none`.
 
@@ -164,7 +162,7 @@ graph LR
     Request["RequestFrame<br/>{type, id, method, params}"]
     Response["ResponseFrame<br/>{type, id, ok, payload, error}"]
     Event["EventFrame<br/>{type, event, payload, seq}"]
-    
+
     Request --> Response
     Event
 ```
@@ -186,7 +184,7 @@ graph TB
     SessionKey["Session Key<br/>(agentId + sessionId)"]
     SessionStore["Session Store<br/>(~/.openclaw/agents/<agentId>/sessions/)"]
     AgentInvoke["Agent Turn<br/>(runEmbeddedAttempt)"]
-    
+
     Inbound --> BindingMatch
     BindingMatch --> SessionKey
     SessionKey --> SessionStore
@@ -202,6 +200,7 @@ graph TB
 **Agent Invocation:**
 
 The core agent execution happens in `runEmbeddedAttempt` (Pi agent RPC mode), which:
+
 1. Loads session history from JSONL
 2. Constructs system prompt from `SOUL.md`, `AGENTS.md`, workspace files
 3. Invokes LLM with tool schemas
@@ -224,25 +223,25 @@ graph LR
     UserConfig["~/.openclaw/openclaw.json<br/>(JSON5 format)"]
     EnvVars["Environment Variables<br/>(API keys)"]
     SecretRefs["SecretRef Resolution<br/>(env:/file:/exec:)"]
-    
+
     UserConfig --> Parse["Parse JSON5"]
     Parse --> ZodValidate["Zod Schema Validation<br/>(zod-schema.ts)"]
     ZodValidate --> Normalize["Normalization<br/>(paths, defaults)"]
     Normalize --> ConfigCache["In-Memory Config"]
-    
+
     EnvVars --> SecretRefs
     SecretRefs --> ConfigCache
 ```
 
 **Key Configuration Sections:**
 
-| Section | Purpose | Schema Location |
-|---------|---------|-----------------|
-| `agent` | Default model selection | [src/gateway/protocol/schema/config.js]() |
-| `agents` | Multi-agent definitions | [src/gateway/protocol/schema/agents-models-skills.js]() |
-| `channels` | Channel accounts | [src/gateway/protocol/schema/channels.js]() |
-| `gateway` | Gateway bind/port/auth | [src/gateway/protocol/schema/config.js]() |
-| `tools` | Tool policies | [src/gateway/protocol/schema/config.js]() |
+| Section    | Purpose                 | Schema Location                                         |
+| ---------- | ----------------------- | ------------------------------------------------------- |
+| `agent`    | Default model selection | [src/gateway/protocol/schema/config.js]()               |
+| `agents`   | Multi-agent definitions | [src/gateway/protocol/schema/agents-models-skills.js]() |
+| `channels` | Channel accounts        | [src/gateway/protocol/schema/channels.js]()             |
+| `gateway`  | Gateway bind/port/auth  | [src/gateway/protocol/schema/config.js]()               |
+| `tools`    | Tool policies           | [src/gateway/protocol/schema/config.js]()               |
 
 **Hot Reload Mechanism:**
 
@@ -263,17 +262,17 @@ graph TB
     ChannelPlugin["ChannelPlugin Interface<br/>(plugin-sdk/core)"]
     Registry["Channel Registry<br/>(registerChannelPlugin)"]
     Delivery["Message Delivery<br/>(deliverToChannel)"]
-    
+
     TelegramPlugin["Telegram Plugin<br/>(grammY framework)"]
     WhatsAppPlugin["WhatsApp Plugin<br/>(Baileys)"]
     DiscordPlugin["Discord Plugin<br/>(discord.js)"]
     CustomPlugin["Custom Channel Plugin"]
-    
+
     TelegramPlugin --> ChannelPlugin
     WhatsAppPlugin --> ChannelPlugin
     DiscordPlugin --> ChannelPlugin
     CustomPlugin --> ChannelPlugin
-    
+
     ChannelPlugin --> Registry
     Registry --> Delivery
 ```
@@ -313,27 +312,27 @@ sequenceDiagram
     participant Session as "Session Mgr"
     participant Agent as "Pi Agent"
     participant Tools as "Tool Registry"
-    
+
     User->>Plugin: Message
     Plugin->>Plugin: Auth Check<br/>(DM policy)
     Plugin->>Gateway: Forward<br/>(chat.send)
-    
+
     Gateway->>Router: Route Message
     Router->>Router: Binding Match<br/>(6-tier priority)
     Router->>Session: Load Session
-    
+
     Session->>Session: Read JSONL
     Session->>Agent: Invoke Turn
-    
+
     Agent->>Agent: Build Prompt<br/>(SOUL.md + context)
     Agent->>Agent: LLM API Call
-    
+
     loop Tool Execution
         Agent->>Tools: Tool Call
         Tools->>Tools: Policy Check
         Tools-->>Agent: Result
     end
-    
+
     Agent-->>Session: Update JSONL
     Session-->>Gateway: Response
     Gateway->>Plugin: Deliver
@@ -363,17 +362,17 @@ Tools are the primary mechanism for agent-environment interaction. The tool syst
 ```mermaid
 graph TB
     Request["Tool Call Request<br/>(from agent)"]
-    
+
     GlobalPolicy["Global Policy<br/>(tools.allow/deny)"]
     AgentPolicy["Agent Policy<br/>(agents[id].tools)"]
     ProviderPolicy["Provider Policy<br/>(by model provider)"]
     GroupPolicy["Group Policy<br/>(groups[id].tools)"]
     SandboxPolicy["Sandbox Policy<br/>(sandbox.tools)"]
     PerToolPolicy["Per-Tool Policy<br/>(tool-specific gates)"]
-    
+
     Execute["Execute Tool"]
     Deny["Deny (policy)"]
-    
+
     Request --> GlobalPolicy
     GlobalPolicy --> AgentPolicy
     AgentPolicy --> ProviderPolicy
@@ -381,7 +380,7 @@ graph TB
     GroupPolicy --> SandboxPolicy
     SandboxPolicy --> PerToolPolicy
     PerToolPolicy --> Execute
-    
+
     GlobalPolicy -.-> Deny
     AgentPolicy -.-> Deny
     ProviderPolicy -.-> Deny
@@ -394,14 +393,14 @@ graph TB
 
 The system defines semantic tool groups that can be allowed/denied as a unit:
 
-| Group | Tools Included |
-|-------|----------------|
-| `coding` | `read`, `write`, `edit`, `exec`, `process` |
-| `browser` | `browser_*` actions |
-| `nodes` | `node.invoke`, device-local actions |
-| `canvas` | `canvas.*` visual workspace |
-| `sessions` | `sessions_list`, `sessions_send`, etc. |
-| `cron` | `cron_add`, `cron_remove`, etc. |
+| Group      | Tools Included                             |
+| ---------- | ------------------------------------------ |
+| `coding`   | `read`, `write`, `edit`, `exec`, `process` |
+| `browser`  | `browser_*` actions                        |
+| `nodes`    | `node.invoke`, device-local actions        |
+| `canvas`   | `canvas.*` visual workspace                |
+| `sessions` | `sessions_list`, `sessions_send`, etc.     |
+| `cron`     | `cron_add`, `cron_remove`, etc.            |
 
 **Tool Profile Presets:**
 
@@ -425,7 +424,7 @@ graph TB
     Indexer["Memory Indexer<br/>(sqlite-vec + FTS5)"]
     VectorDB["Vector Store<br/>(~/.openclaw/memory/<agentId>.sqlite)"]
     SearchQuery["memory_search Tool"]
-    
+
     MemoryFiles --> Indexer
     Indexer --> VectorDB
     SearchQuery --> VectorDB
@@ -443,6 +442,7 @@ graph TB
 **Search Strategy:**
 
 The `memory_search` tool performs **hybrid retrieval**:
+
 - Vector similarity search for semantic matches
 - FTS keyword search for exact phrases
 - Result fusion and re-ranking
@@ -462,30 +462,31 @@ sequenceDiagram
     participant App as "Native App"
     participant Gateway as "Gateway"
     participant User as "User (CLI)"
-    
+
     App->>Gateway: node.pair.request<br/>(deviceInfo)
     Gateway->>Gateway: Generate pairing code
     Gateway-->>App: pairing response<br/>(requestId, expires)
-    
+
     User->>Gateway: openclaw devices approve<br/>(requestId or --latest)
     Gateway->>Gateway: Create device token
     Gateway-->>App: device.paired event
-    
+
     App->>Gateway: connect<br/>(role=node, device.token)
     Gateway-->>App: hello.ok<br/>(capabilities)
 ```
 
 **Platform-Specific Builds:**
 
-| Platform | Build System | Output | Distribution |
-|----------|-------------|--------|--------------|
-| macOS | Xcode + SwiftPM | `.app` bundle | DMG + Sparkle updates |
-| iOS | XcodeGen + Xcode | `.ipa` | TestFlight/App Store |
-| Android | Gradle + Kotlin | `.apk` | GitHub releases |
+| Platform | Build System     | Output        | Distribution          |
+| -------- | ---------------- | ------------- | --------------------- |
+| macOS    | Xcode + SwiftPM  | `.app` bundle | DMG + Sparkle updates |
+| iOS      | XcodeGen + Xcode | `.ipa`        | TestFlight/App Store  |
+| Android  | Gradle + Kotlin  | `.apk`        | GitHub releases       |
 
 **Node Capabilities:**
 
 Nodes expose platform-specific capabilities via the `node.invoke` RPC method:
+
 - `system.run` (macOS only)
 - `camera.snap`, `camera.clip`
 - `screen.record`
@@ -505,28 +506,28 @@ OpenClaw uses a **monorepo** structure with platform-specific build targets orch
 ```mermaid
 graph TB
     Source["TypeScript Source<br/>(src/, extensions/)"]
-    
+
     TSDown["tsdown<br/>(bundle transpiler)"]
     NPMPack["npm pack<br/>(validation)"]
     NPMPublish["npm publish<br/>(provenance)"]
-    
+
     DockerAMD["Docker Build<br/>(amd64)"]
     DockerARM["Docker Build<br/>(arm64)"]
     Manifest["Multi-arch Manifest<br/>(ghcr.io)"]
-    
+
     XcodeMac["Xcode macOS"]
     XcodeiOS["Xcode iOS"]
     GradleAndroid["Gradle Android"]
-    
+
     Source --> TSDown
     TSDown --> NPMPack
     NPMPack --> NPMPublish
-    
+
     Source --> DockerAMD
     Source --> DockerARM
     DockerAMD --> Manifest
     DockerARM --> Manifest
-    
+
     Source --> XcodeMac
     Source --> XcodeiOS
     Source --> GradleAndroid
@@ -547,6 +548,7 @@ dist/plugin-sdk/discord.js
 **CI Scope Detection:**
 
 GitHub Actions workflows use path-based scope detection to skip irrelevant builds:
+
 - Changes to `docs/**` → skip platform builds
 - Changes to `apps/macos/**` → macOS build only
 - Changes to `src/**` → full build matrix
@@ -566,6 +568,7 @@ A **session key** uniquely identifies a conversation context:
 ```
 
 Examples:
+
 - `default:whatsapp:+1234567890` (WhatsApp DM)
 - `work:discord:guild123:thread456` (Discord thread)
 
@@ -610,19 +613,19 @@ This prevents plaintext secrets in config files.
 
 ## Technology Stack
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Runtime** | Node.js 22+ | JavaScript execution |
-| **Language** | TypeScript | Type-safe development |
-| **Build** | tsdown | Fast bundler |
-| **Validation** | Zod | Runtime schema validation |
-| **Database** | SQLite + sqlite-vec | Memory index storage |
-| **Protocol** | WebSocket (ws) | Gateway RPC transport |
-| **Agent** | Pi Agent (@mariozechner/pi-ai) | Embedded agent runtime |
-| **Channels** | grammY, Baileys, discord.js | Messaging SDKs |
-| **macOS** | Swift + SwiftUI | Native app framework |
-| **iOS** | Swift + SwiftUI | Native app framework |
-| **Android** | Kotlin + Jetpack Compose | Native app framework |
+| Layer          | Technology                     | Purpose                   |
+| -------------- | ------------------------------ | ------------------------- |
+| **Runtime**    | Node.js 22+                    | JavaScript execution      |
+| **Language**   | TypeScript                     | Type-safe development     |
+| **Build**      | tsdown                         | Fast bundler              |
+| **Validation** | Zod                            | Runtime schema validation |
+| **Database**   | SQLite + sqlite-vec            | Memory index storage      |
+| **Protocol**   | WebSocket (ws)                 | Gateway RPC transport     |
+| **Agent**      | Pi Agent (@mariozechner/pi-ai) | Embedded agent runtime    |
+| **Channels**   | grammY, Baileys, discord.js    | Messaging SDKs            |
+| **macOS**      | Swift + SwiftUI                | Native app framework      |
+| **iOS**        | Swift + SwiftUI                | Native app framework      |
+| **Android**    | Kotlin + Jetpack Compose       | Native app framework      |
 
 **Sources:** [package.json:342-473](), [apps/android/app/build.gradle.kts:33-154](), [apps/ios/project.yml:1-99]()
 

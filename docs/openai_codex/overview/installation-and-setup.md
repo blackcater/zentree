@@ -23,8 +23,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers installing Codex CLI, authenticating, and performing initial configuration. Codex is distributed as a native binary through npm, Homebrew, or direct download. After installation, you must authenticate using either ChatGPT OAuth or an API key.
 
 For building from source or development setup, see [Development Setup](#8.1).
@@ -33,11 +31,11 @@ For building from source or development setup, see [Development Setup](#8.1).
 
 **Supported Platforms:**
 
-| Operating System | Architecture | Notes |
-|-----------------|--------------|-------|
-| macOS 11+ | ARM64 (Apple Silicon), x86_64 (Intel) | Code-signed and notarized |
-| Linux | x86_64, ARM64 | Statically-linked musl binaries (no runtime dependencies) |
-| Windows 10+ | x86_64, ARM64 | Signed with Azure Trusted Signing |
+| Operating System | Architecture                          | Notes                                                     |
+| ---------------- | ------------------------------------- | --------------------------------------------------------- |
+| macOS 11+        | ARM64 (Apple Silicon), x86_64 (Intel) | Code-signed and notarized                                 |
+| Linux            | x86_64, ARM64                         | Statically-linked musl binaries (no runtime dependencies) |
+| Windows 10+      | x86_64, ARM64                         | Signed with Azure Trusted Signing                         |
 
 Codex binaries are self-contained native executables with no external dependencies. The Linux builds use musl libc for maximum compatibility across distributions [.github/workflows/rust-release.yml:71-77]().
 
@@ -66,14 +64,14 @@ graph TB
     MacArm["@openai/codex-darwin-arm64"]
     WinX64["@openai/codex-win32-x64"]
     WinArm["@openai/codex-win32-arm64"]
-    
+
     MainPkg -->|"optionalDependency"| LinuxX64
     MainPkg -->|"optionalDependency"| LinuxArm
     MainPkg -->|"optionalDependency"| MacX64
     MainPkg -->|"optionalDependency"| MacArm
     MainPkg -->|"optionalDependency"| WinX64
     MainPkg -->|"optionalDependency"| WinArm
-    
+
     LinuxX64 --> CodexBin["codex binary"]
     LinuxArm --> CodexBin
     MacX64 --> CodexBin
@@ -100,16 +98,17 @@ Sources: [README.md:24-26]()
 
 Download pre-compiled binaries from [GitHub Releases](https://github.com/openai/codex/releases/latest):
 
-| Platform | Recommended File |
-|----------|-----------------|
-| macOS ARM64 | `codex-aarch64-apple-darwin.tar.gz` or `.dmg` |
-| macOS x86_64 | `codex-x86_64-apple-darwin.tar.gz` or `.dmg` |
-| Linux x86_64 | `codex-x86_64-unknown-linux-musl.tar.gz` |
-| Linux ARM64 | `codex-aarch64-unknown-linux-musl.tar.gz` |
-| Windows x86_64 | `codex-x86_64-pc-windows-msvc.zip` |
-| Windows ARM64 | `codex-aarch64-pc-windows-msvc.zip` |
+| Platform       | Recommended File                              |
+| -------------- | --------------------------------------------- |
+| macOS ARM64    | `codex-aarch64-apple-darwin.tar.gz` or `.dmg` |
+| macOS x86_64   | `codex-x86_64-apple-darwin.tar.gz` or `.dmg`  |
+| Linux x86_64   | `codex-x86_64-unknown-linux-musl.tar.gz`      |
+| Linux ARM64    | `codex-aarch64-unknown-linux-musl.tar.gz`     |
+| Windows x86_64 | `codex-x86_64-pc-windows-msvc.zip`            |
+| Windows ARM64  | `codex-aarch64-pc-windows-msvc.zip`           |
 
 After extracting:
+
 1. Rename the binary to `codex` (or `codex.exe` on Windows)
 2. Move to a directory in your PATH (e.g., `/usr/local/bin` on Unix, or add a custom directory to PATH)
 3. Make executable (Unix): `chmod +x codex`
@@ -152,6 +151,7 @@ codex login
 ```
 
 The CLI launches a browser OAuth flow and stores credentials securely:
+
 - **macOS**: System keychain via `keyring` crate with `apple-native` feature [codex-rs/core/Cargo.toml:120]()
 - **Linux**: Encrypted file using `keyring` with `linux-native-async-persistent` [codex-rs/core/Cargo.toml:114]()
 - **Windows**: Windows Credential Manager via `keyring` with `windows-native` [codex-rs/core/Cargo.toml:131]()
@@ -164,22 +164,22 @@ The `AuthManager` (defined in `codex_core::auth`) handles credential storage and
 graph TB
     CLI["codex login<br/>(MultitoolCli)"]
     LoginCmd["LoginCommand<br/>codex-rs/cli/src/main.rs:257-289"]
-    
+
     RunLogin["run_login_with_chatgpt()<br/>codex-cli/src/login.rs"]
     AuthMgr["AuthManager::shared()<br/>codex-core/src/auth.rs"]
-    
+
     OAuth["OAuth flow<br/>(browser + callback server)"]
     Keyring["keyring crate<br/>(platform-specific storage)"]
-    
+
     ConfigLoad["find_codex_home()<br/>load_config_as_toml_with_cli_overrides()"]
     CloudAuth["CodexAuth trait<br/>(token provider)"]
-    
+
     CLI --> LoginCmd
     LoginCmd --> RunLogin
     RunLogin --> AuthMgr
     AuthMgr --> OAuth
     OAuth --> Keyring
-    
+
     AuthMgr --> ConfigLoad
     ConfigLoad --> CloudAuth
 ```
@@ -232,6 +232,7 @@ The `find_codex_home()` function locates the configuration directory [codex-rs/t
 2. `~/.codex` (default)
 
 Configuration is loaded hierarchically from multiple sources:
+
 - Built-in defaults
 - `~/.codex/config.toml` (user config)
 - `.codex/config.toml` (project config, if present)
@@ -301,42 +302,42 @@ graph TB
         Tag["Git tag: rust-v*.*.*<br/>.github/workflows/rust-release.yml:11-12"]
         TagCheck["tag-check job<br/>Validates Cargo.toml version"]
     end
-    
+
     subgraph "Build Matrix"
         BuildMac["build job: macOS<br/>aarch64 + x86_64"]
         BuildLinux["build job: Linux<br/>musl + gnu variants"]
         BuildWin["build-windows job<br/>x86_64 + arm64"]
         ShellMCP["shell-tool-mcp job<br/>Patched bash/zsh"]
     end
-    
+
     subgraph "Artifacts"
         SignedBin["Signed binaries<br/>.tar.gz, .dmg, .zip"]
         Sigstore["Cosign signatures<br/>.sigstore bundles"]
         ShellPkg["@openai/codex-shell-tool-mcp"]
     end
-    
+
     subgraph "Distribution"
         GHRelease["GitHub Releases<br/>All artifacts"]
         NPMReg["npm Registry<br/>OIDC publishing"]
         Homebrew["Homebrew Cask<br/>macOS DMG"]
     end
-    
+
     Tag --> TagCheck
     TagCheck --> BuildMac
     TagCheck --> BuildLinux
     TagCheck --> BuildWin
     TagCheck --> ShellMCP
-    
+
     BuildMac --> SignedBin
     BuildLinux --> SignedBin
     BuildLinux --> Sigstore
     BuildWin --> SignedBin
     ShellMCP --> ShellPkg
-    
+
     SignedBin --> GHRelease
     Sigstore --> GHRelease
     ShellPkg --> GHRelease
-    
+
     GHRelease --> NPMReg
     SignedBin --> Homebrew
 ```

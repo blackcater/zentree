@@ -32,8 +32,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 The Shell Tool MCP Build System is responsible for building and distributing patched versions of Bash and Zsh that support execution interception for Codex's shell tools. This system compiles customized shell binaries across 11 OS/distribution variants for both x86_64 and aarch64 architectures, packages them into an npm distribution, and publishes them to the npm registry. The patched shells enable the `EXEC_WRAPPER` mechanism used by Codex's shell escalation protocol to intercept and control command execution within sandboxed shell sessions.
@@ -53,34 +51,34 @@ The shell-tool-mcp system operates as a standalone workflow that builds patched 
 ```mermaid
 graph TB
     Trigger["Workflow Trigger<br/>rust-release calls shell-tool-mcp.yml"]
-    
+
     Metadata["metadata job<br/>Compute version/tags<br/>Determine publish settings"]
-    
+
     BashLinux["bash-linux job<br/>6 containers × Linux variants<br/>x86_64 + aarch64"]
     BashDarwin["bash-darwin job<br/>2 macOS versions<br/>aarch64"]
-    
+
     ZshLinux["zsh-linux job<br/>6 containers × Linux variants<br/>x86_64 + aarch64"]
     ZshDarwin["zsh-darwin job<br/>2 macOS versions<br/>aarch64"]
-    
+
     Package["package job<br/>Assemble vendor/ tree<br/>Create npm tarball"]
-    
+
     Publish["publish job<br/>npm publish to registry<br/>OIDC authentication"]
-    
+
     Artifacts["Build Artifacts<br/>shell-tool-mcp-bash-*<br/>shell-tool-mcp-zsh-*"]
-    
+
     NPM["npm Registry<br/>@openai/codex-shell-tool-mcp"]
-    
+
     Trigger --> Metadata
     Metadata --> BashLinux
     Metadata --> BashDarwin
     Metadata --> ZshLinux
     Metadata --> ZshDarwin
-    
+
     BashLinux --> Artifacts
     BashDarwin --> Artifacts
     ZshLinux --> Artifacts
     ZshDarwin --> Artifacts
-    
+
     Artifacts --> Package
     Package --> Publish
     Publish --> NPM
@@ -96,36 +94,36 @@ The `shell-tool-mcp.yml` workflow is designed as a reusable workflow that accept
 
 ### Workflow Inputs and Job Dependencies
 
-| Input | Type | Description | Default |
-|-------|------|-------------|---------|
-| `release-version` | string | Version to publish (x.y.z or x.y.z-alpha.N) | Derived from GITHUB_REF_NAME |
-| `release-tag` | string | Tag name for downloading release artifacts | rust-v{version} |
-| `publish` | boolean | Whether to publish to npm | true |
+| Input             | Type    | Description                                 | Default                      |
+| ----------------- | ------- | ------------------------------------------- | ---------------------------- |
+| `release-version` | string  | Version to publish (x.y.z or x.y.z-alpha.N) | Derived from GITHUB_REF_NAME |
+| `release-tag`     | string  | Tag name for downloading release artifacts  | rust-v{version}              |
+| `publish`         | boolean | Whether to publish to npm                   | true                         |
 
 ### Job Dependency Chain
 
 ```mermaid
 graph LR
     metadata["metadata<br/>Version computation"]
-    
+
     bash_linux["bash-linux<br/>11 matrix jobs"]
     bash_darwin["bash-darwin<br/>2 matrix jobs"]
     zsh_linux["zsh-linux<br/>11 matrix jobs"]
     zsh_darwin["zsh-darwin<br/>2 matrix jobs"]
-    
+
     package["package<br/>Assembly & tarball"]
     publish["publish<br/>npm publish"]
-    
+
     metadata --> bash_linux
     metadata --> bash_darwin
     metadata --> zsh_linux
     metadata --> zsh_darwin
-    
+
     bash_linux --> package
     bash_darwin --> package
     zsh_linux --> package
     zsh_darwin --> package
-    
+
     package --> publish
 ```
 
@@ -141,26 +139,26 @@ The workflow builds binaries across 11 OS/distribution variants, covering major 
 
 ### Linux Build Matrix
 
-| Variant | Container Image | Runner | Target Triple | Job Count |
-|---------|----------------|--------|---------------|-----------|
-| ubuntu-24.04 | ubuntu:24.04 | ubuntu-24.04 | x86_64-unknown-linux-musl | 1 |
-| ubuntu-24.04 | arm64v8/ubuntu:24.04 | ubuntu-24.04-arm | aarch64-unknown-linux-musl | 1 |
-| ubuntu-22.04 | ubuntu:22.04 | ubuntu-24.04 | x86_64-unknown-linux-musl | 1 |
-| ubuntu-22.04 | arm64v8/ubuntu:22.04 | ubuntu-24.04-arm | aarch64-unknown-linux-musl | 1 |
-| ubuntu-20.04 | arm64v8/ubuntu:20.04 | ubuntu-24.04-arm | aarch64-unknown-linux-musl | 1 |
-| debian-12 | debian:12 | ubuntu-24.04 | x86_64-unknown-linux-musl | 1 |
-| debian-12 | arm64v8/debian:12 | ubuntu-24.04-arm | aarch64-unknown-linux-musl | 1 |
-| debian-11 | debian:11 | ubuntu-24.04 | x86_64-unknown-linux-musl | 1 |
-| debian-11 | arm64v8/debian:11 | ubuntu-24.04-arm | aarch64-unknown-linux-musl | 1 |
-| centos-9 | quay.io/centos/centos:stream9 | ubuntu-24.04 | x86_64-unknown-linux-musl | 1 |
-| centos-9 | quay.io/centos/centos:stream9 | ubuntu-24.04-arm | aarch64-unknown-linux-musl | 1 |
+| Variant      | Container Image               | Runner           | Target Triple              | Job Count |
+| ------------ | ----------------------------- | ---------------- | -------------------------- | --------- |
+| ubuntu-24.04 | ubuntu:24.04                  | ubuntu-24.04     | x86_64-unknown-linux-musl  | 1         |
+| ubuntu-24.04 | arm64v8/ubuntu:24.04          | ubuntu-24.04-arm | aarch64-unknown-linux-musl | 1         |
+| ubuntu-22.04 | ubuntu:22.04                  | ubuntu-24.04     | x86_64-unknown-linux-musl  | 1         |
+| ubuntu-22.04 | arm64v8/ubuntu:22.04          | ubuntu-24.04-arm | aarch64-unknown-linux-musl | 1         |
+| ubuntu-20.04 | arm64v8/ubuntu:20.04          | ubuntu-24.04-arm | aarch64-unknown-linux-musl | 1         |
+| debian-12    | debian:12                     | ubuntu-24.04     | x86_64-unknown-linux-musl  | 1         |
+| debian-12    | arm64v8/debian:12             | ubuntu-24.04-arm | aarch64-unknown-linux-musl | 1         |
+| debian-11    | debian:11                     | ubuntu-24.04     | x86_64-unknown-linux-musl  | 1         |
+| debian-11    | arm64v8/debian:11             | ubuntu-24.04-arm | aarch64-unknown-linux-musl | 1         |
+| centos-9     | quay.io/centos/centos:stream9 | ubuntu-24.04     | x86_64-unknown-linux-musl  | 1         |
+| centos-9     | quay.io/centos/centos:stream9 | ubuntu-24.04-arm | aarch64-unknown-linux-musl | 1         |
 
 ### macOS Build Matrix
 
-| Variant | Runner | Target Triple |
-|---------|--------|---------------|
+| Variant  | Runner          | Target Triple        |
+| -------- | --------------- | -------------------- |
 | macos-15 | macos-15-xlarge | aarch64-apple-darwin |
-| macos-14 | macos-14 | aarch64-apple-darwin |
+| macos-14 | macos-14        | aarch64-apple-darwin |
 
 **Sources:** [.github/workflows/shell-tool-mcp.yml:70-125](), [.github/workflows/shell-tool-mcp.yml:168-182](), [.github/workflows/shell-tool-mcp.yml:209-263](), [.github/workflows/shell-tool-mcp.yml:334-349]()
 
@@ -175,19 +173,19 @@ The Bash build process clones upstream Bash from the GNU Savannah repository, ap
 ```mermaid
 graph TB
     Install["Install Build Prerequisites<br/>apt-get/dnf/yum install:<br/>git, build-essential, bison,<br/>autoconf, gettext, libncursesw5-dev"]
-    
+
     Clone["Clone Bash Repository<br/>git.savannah.gnu.org/git/bash<br/>Checkout: a8a1c2fac029404d..."]
-    
+
     Patch["Apply Patch<br/>bash-exec-wrapper.patch<br/>Adds EXEC_WRAPPER env support"]
-    
+
     Configure["Configure Build<br/>./configure --without-bash-malloc"]
-    
+
     Make["Compile<br/>make -j$(nproc)"]
-    
+
     Stage["Stage Binary<br/>Copy to artifacts/vendor/<br/>{target}/bash/{variant}/bash"]
-    
+
     Upload["Upload Artifact<br/>shell-tool-mcp-bash-{target}-{variant}"]
-    
+
     Install --> Clone
     Clone --> Patch
     Patch --> Configure
@@ -215,23 +213,23 @@ The Zsh build process is similar to Bash but includes an additional smoke test t
 ```mermaid
 graph TB
     Install["Install Build Prerequisites<br/>Same as Bash"]
-    
+
     Clone["Clone Zsh Repository<br/>git.code.sf.net/p/zsh/code<br/>Checkout: 77045ef899e53b95..."]
-    
+
     Patch["Apply Patch<br/>zsh-exec-wrapper.patch<br/>Adds EXEC_WRAPPER env support"]
-    
+
     Preconfig["Run Preconfig<br/>./Util/preconfig"]
-    
+
     Configure["Configure Build<br/>./configure"]
-    
+
     Make["Compile<br/>make -j$(nproc)"]
-    
+
     SmokeTest["Smoke Test<br/>Create test wrapper script<br/>EXEC_WRAPPER=/path/to/wrapper<br/>zsh -fc '/bin/echo smoke-zsh'<br/>Verify wrapper was invoked"]
-    
+
     Stage["Stage Binary<br/>Copy to artifacts/vendor/<br/>{target}/zsh/{variant}/zsh"]
-    
+
     Upload["Upload Artifact<br/>shell-tool-mcp-zsh-{target}-{variant}"]
-    
+
     Install --> Clone
     Clone --> Patch
     Patch --> Preconfig
@@ -295,21 +293,21 @@ vendor/
 ```mermaid
 graph TB
     Download["Download Build Artifacts<br/>actions/download-artifact@v8<br/>All shell-tool-mcp-* artifacts"]
-    
+
     CreateStaging["Create Staging Directory<br/>$RUNNER_TEMP/shell-tool-mcp"]
-    
+
     CopyMetadata["Copy Package Metadata<br/>README.md, package.json"]
-    
+
     AssembleVendor["Assemble vendor/ Tree<br/>rsync -av artifacts/*/vendor/<br/>staging/vendor/"]
-    
+
     UpdateVersion["Update package.json Version<br/>Node.js script to inject version"]
-    
+
     SetExecutable["Make Binaries Executable<br/>chmod +x vendor/*/bash/*/bash<br/>chmod +x vendor/*/zsh/*/zsh"]
-    
+
     CreateTarball["Create npm Tarball<br/>npm pack --ignore-scripts<br/>codex-shell-tool-mcp-npm-{version}.tgz"]
-    
+
     UploadArtifact["Upload Artifact<br/>codex-shell-tool-mcp-npm"]
-    
+
     Download --> CreateStaging
     CreateStaging --> CopyMetadata
     CopyMetadata --> AssembleVendor
@@ -331,28 +329,28 @@ The workflow supports two release channels: stable releases and alpha pre-releas
 
 ### Version Format and Distribution
 
-| Version Format | Example | should_publish | npm_tag | Distribution |
-|----------------|---------|----------------|---------|--------------|
-| Stable | 1.2.3 | true | (default) | npm (default tag) |
-| Alpha | 1.2.3-alpha.4 | true | alpha | npm (alpha tag) |
-| Other | 1.2.3-beta.1 | false | - | Skipped |
+| Version Format | Example       | should_publish | npm_tag   | Distribution      |
+| -------------- | ------------- | -------------- | --------- | ----------------- |
+| Stable         | 1.2.3         | true           | (default) | npm (default tag) |
+| Alpha          | 1.2.3-alpha.4 | true           | alpha     | npm (alpha tag)   |
+| Other          | 1.2.3-beta.1  | false          | -         | Skipped           |
 
 ### Publishing Process
 
 ```mermaid
 graph TB
     Check["Check Publish Condition<br/>inputs.publish && should_publish"]
-    
+
     SetupNode["Setup Node.js 22<br/>registry: registry.npmjs.org<br/>scope: @openai"]
-    
+
     UpdateNPM["Update npm CLI<br/>npm install -g npm@latest<br/>Required: >= 11.5.1 for OIDC"]
-    
+
     DownloadTarball["Download npm Tarball<br/>codex-shell-tool-mcp-npm-{version}.tgz"]
-    
+
     ComputeTag["Compute Tag Arguments<br/>tag_args = --tag {npm_tag}<br/>or empty for default"]
-    
+
     Publish["npm publish<br/>OIDC authentication<br/>No NODE_AUTH_TOKEN needed"]
-    
+
     Check -->|true| SetupNode
     Check -->|false| Skip["Skip Publication"]
     SetupNode --> UpdateNPM
@@ -376,26 +374,26 @@ The shell-tool-mcp workflow is invoked as a reusable workflow from the main `rus
 ```mermaid
 graph TB
     TagPush["Tag Push<br/>rust-v{version}"]
-    
+
     TagCheck["tag-check job<br/>Validate tag format<br/>Match Cargo.toml version"]
-    
+
     BuildJobs["build, build-windows jobs<br/>Build Codex binaries<br/>6 platforms"]
-    
+
     ShellToolMCP["shell-tool-mcp job<br/>Call shell-tool-mcp.yml<br/>Pass release-tag, publish=true"]
-    
+
     Release["release job<br/>Create GitHub Release<br/>Upload artifacts<br/>Stage npm packages"]
-    
+
     PublishNPM["publish-npm job<br/>Publish @openai/codex<br/>to npm registry"]
-    
+
     WinGet["winget job<br/>Publish to WinGet<br/>Stable releases only"]
-    
+
     TagPush --> TagCheck
     TagCheck --> BuildJobs
     TagCheck --> ShellToolMCP
-    
+
     BuildJobs --> Release
     ShellToolMCP --> Release
-    
+
     Release --> PublishNPM
     Release --> WinGet
 ```
@@ -425,6 +423,7 @@ macOS builds run directly on the host runner without containers. The workflow ch
 ### Build Parallelism
 
 All builds use `make -j` with core count detection:
+
 - Linux: `nproc` or `getconf _NPROCESSORS_ONLN`
 - macOS: `getconf _NPROCESSORS_ONLN`
 
@@ -441,17 +440,17 @@ The `@openai/codex-shell-tool-mcp` package includes TypeScript utilities for sel
 ```mermaid
 graph TB
     Start["Runtime Shell Selection"]
-    
+
     DetectPlatform["resolveTargetTriple()<br/>Determine platform/arch<br/>process.platform, process.arch"]
-    
+
     LocateVendor["Locate Vendor Root<br/>__dirname/../vendor/{target}"]
-    
+
     ReadOSRelease["readOsRelease()<br/>Parse /etc/os-release<br/>Linux only"]
-    
+
     ResolveBash["resolveBashPath()<br/>Match OS variant<br/>kernel version<br/>distribution ID"]
-    
+
     ReturnPath["Return Bash Path<br/>vendor/{target}/bash/{variant}/bash"]
-    
+
     Start --> DetectPlatform
     DetectPlatform --> LocateVendor
     LocateVendor --> ReadOSRelease
@@ -471,12 +470,12 @@ The shell-tool-mcp package has its own CI workflow that runs on pull requests an
 
 ### CI Job Structure
 
-| Step | Command | Purpose |
-|------|---------|---------|
-| Setup | `pnpm install --frozen-lockfile` | Install dependencies |
-| Format Check | `pnpm --filter @openai/codex-shell-tool-mcp run format` | Verify Prettier formatting |
-| Test | `pnpm --filter @openai/codex-shell-tool-mcp test` | Run Jest tests |
-| Build | `pnpm --filter @openai/codex-shell-tool-mcp run build` | Compile TypeScript with tsup |
+| Step         | Command                                                 | Purpose                      |
+| ------------ | ------------------------------------------------------- | ---------------------------- |
+| Setup        | `pnpm install --frozen-lockfile`                        | Install dependencies         |
+| Format Check | `pnpm --filter @openai/codex-shell-tool-mcp run format` | Verify Prettier formatting   |
+| Test         | `pnpm --filter @openai/codex-shell-tool-mcp test`       | Run Jest tests               |
+| Build        | `pnpm --filter @openai/codex-shell-tool-mcp run build`  | Compile TypeScript with tsup |
 
 The CI workflow uses Node.js 22 and runs on ubuntu-latest. It validates that the package builds correctly and passes all tests before allowing merge.
 
@@ -490,13 +489,13 @@ Build artifacts follow a consistent naming scheme to enable parallel builds and 
 
 ### Artifact Naming Convention
 
-| Job Type | Artifact Name Pattern | Contents |
-|----------|----------------------|----------|
-| Bash Linux | `shell-tool-mcp-bash-{target}-{variant}` | `artifacts/vendor/{target}/bash/{variant}/bash` |
-| Bash macOS | `shell-tool-mcp-bash-{target}-{variant}` | `artifacts/vendor/{target}/bash/{variant}/bash` |
-| Zsh Linux | `shell-tool-mcp-zsh-{target}-{variant}` | `artifacts/vendor/{target}/zsh/{variant}/zsh` |
-| Zsh macOS | `shell-tool-mcp-zsh-{target}-{variant}` | `artifacts/vendor/{target}/zsh/{variant}/zsh` |
-| Final Package | `codex-shell-tool-mcp-npm` | `dist/npm/codex-shell-tool-mcp-npm-{version}.tgz` |
+| Job Type      | Artifact Name Pattern                    | Contents                                          |
+| ------------- | ---------------------------------------- | ------------------------------------------------- |
+| Bash Linux    | `shell-tool-mcp-bash-{target}-{variant}` | `artifacts/vendor/{target}/bash/{variant}/bash`   |
+| Bash macOS    | `shell-tool-mcp-bash-{target}-{variant}` | `artifacts/vendor/{target}/bash/{variant}/bash`   |
+| Zsh Linux     | `shell-tool-mcp-zsh-{target}-{variant}`  | `artifacts/vendor/{target}/zsh/{variant}/zsh`     |
+| Zsh macOS     | `shell-tool-mcp-zsh-{target}-{variant}`  | `artifacts/vendor/{target}/zsh/{variant}/zsh`     |
+| Final Package | `codex-shell-tool-mcp-npm`               | `dist/npm/codex-shell-tool-mcp-npm-{version}.tgz` |
 
 All artifacts use GitHub Actions artifact storage with `if-no-files-found: error` to ensure upload failures are detected immediately.
 

@@ -5,6 +5,7 @@ Acme monorepo. It includes base configurations with strict type checking,
 Node.js target settings, and React-specific presets.
 
 **Configurations:**
+
 - `base.json` - Base configuration with strict mode
 - `nextjs.json` - Next.js specific settings
 - `react-native.json` - React Native settings

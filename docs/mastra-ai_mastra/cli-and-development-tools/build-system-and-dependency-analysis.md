@@ -19,7 +19,7 @@ The following files were used as context for generating this wiki page:
 - [packages/cli/src/commands/studio/studio.ts](packages/cli/src/commands/studio/studio.ts)
 - [packages/core/src/bundler/index.ts](packages/core/src/bundler/index.ts)
 - [packages/deployer/src/build/analyze.ts](packages/deployer/src/build/analyze.ts)
-- [packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap](packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap)
+- [packages/deployer/src/build/analyze/**snapshots**/analyzeEntry.test.ts.snap](packages/deployer/src/build/analyze/__snapshots__/analyzeEntry.test.ts.snap)
 - [packages/deployer/src/build/analyze/analyzeEntry.test.ts](packages/deployer/src/build/analyze/analyzeEntry.test.ts)
 - [packages/deployer/src/build/analyze/analyzeEntry.ts](packages/deployer/src/build/analyze/analyzeEntry.ts)
 - [packages/deployer/src/build/analyze/bundleExternals.test.ts](packages/deployer/src/build/analyze/bundleExternals.test.ts)
@@ -30,7 +30,7 @@ The following files were used as context for generating this wiki page:
 - [packages/deployer/src/build/watcher.test.ts](packages/deployer/src/build/watcher.test.ts)
 - [packages/deployer/src/build/watcher.ts](packages/deployer/src/build/watcher.ts)
 - [packages/deployer/src/bundler/index.ts](packages/deployer/src/bundler/index.ts)
-- [packages/deployer/src/server/__tests__/option-studio-base.test.ts](packages/deployer/src/server/__tests__/option-studio-base.test.ts)
+- [packages/deployer/src/server/**tests**/option-studio-base.test.ts](packages/deployer/src/server/__tests__/option-studio-base.test.ts)
 - [packages/deployer/src/server/index.ts](packages/deployer/src/server/index.ts)
 - [packages/playground/e2e/tests/auth/infrastructure.spec.ts](packages/playground/e2e/tests/auth/infrastructure.spec.ts)
 - [packages/playground/e2e/tests/auth/viewer-role.spec.ts](packages/playground/e2e/tests/auth/viewer-role.spec.ts)
@@ -39,8 +39,6 @@ The following files were used as context for generating this wiki page:
 - [packages/playground/src/components/ui/app-sidebar.tsx](packages/playground/src/components/ui/app-sidebar.tsx)
 
 </details>
-
-
 
 The build system and dependency analysis subsystem provides the core bundling infrastructure for Mastra applications. It orchestrates a three-phase pipeline that analyzes entry files, optimizes dependencies, and validates the generated bundles. This system enables Mastra to deploy to multiple platforms (Node.js, Cloudflare Workers, Vercel, Netlify) by performing sophisticated dependency tree-shaking, workspace package compilation, and external dependency tracking.
 
@@ -57,19 +55,19 @@ graph TB
         ANALYZE_ENTRY["analyzeEntry()"]
         DEPS_MAP["Dependencies Map<br/>DependencyMetadata"]
     end
-    
+
     subgraph "Phase 2: External Bundling"
         VIRTUAL_DEPS["createVirtualDependencies()"]
         BUNDLE_EXTERNALS["bundleExternals()"]
         ROLLUP_OUTPUT["Rollup Output<br/>(chunks + assets)"]
     end
-    
+
     subgraph "Phase 3: Output Validation"
         VALIDATE["validateOutput()"]
         VALIDATE_FILE["validateFile()<br/>(per chunk)"]
         FINAL_RESULT["Analysis Result<br/>(dependencies + externals)"]
     end
-    
+
     ENTRIES --> ANALYZE_ENTRY
     ANALYZE_ENTRY --> DEPS_MAP
     DEPS_MAP --> VIRTUAL_DEPS
@@ -78,7 +76,7 @@ graph TB
     ROLLUP_OUTPUT --> VALIDATE
     VALIDATE --> VALIDATE_FILE
     VALIDATE_FILE --> FINAL_RESULT
-    
+
     style ANALYZE_ENTRY fill:#f9f9f9
     style BUNDLE_EXTERNALS fill:#f9f9f9
     style VALIDATE fill:#f9f9f9
@@ -104,7 +102,7 @@ graph LR
         BUNDLE_PHASE["bundleExternals()"]
         VALIDATE_PHASE["validateOutput()"]
     end
-    
+
     CONFIG_CHECK --> WORKSPACE_INFO
     WORKSPACE_INFO --> LOOP_ENTRIES
     LOOP_ENTRIES --> ANALYZE_SINGLE
@@ -139,7 +137,7 @@ graph TB
         CAPTURE["captureDependenciesToOptimize()"]
         TRANSITIVE["checkTransitiveDependencies()<br/>(optional, recursive)"]
     end
-    
+
     ENTRY --> ROLLUP_PARSE
     PLUGINS --> ROLLUP_PARSE
     ROLLUP_PARSE --> GENERATE
@@ -151,9 +149,10 @@ graph TB
 
 **Diagram 3: analyzeEntry Function Flow**
 
-The `analyzeEntry` function [packages/deployer/src/build/analyze/analyzeEntry.ts:272-337]() accepts either a file path or virtual content string. For virtual files, it uses the `@rollup/plugin-virtual` plugin to create an in-memory module [packages/deployer/src/build/analyze/analyzeEntry.ts:31-37](). 
+The `analyzeEntry` function [packages/deployer/src/build/analyze/analyzeEntry.ts:272-337]() accepts either a file path or virtual content string. For virtual files, it uses the `@rollup/plugin-virtual` plugin to create an in-memory module [packages/deployer/src/build/analyze/analyzeEntry.ts:31-37]().
 
 The plugin chain includes:
+
 - **tsConfigPaths**: Resolves TypeScript path mappings from tsconfig.json [packages/deployer/src/build/analyze/analyzeEntry.ts:46]()
 - **custom-alias-resolver**: Maps `#server` to `@mastra/deployer/server` and `#mastra` to the actual Mastra entry file [packages/deployer/src/build/analyze/analyzeEntry.ts:48-60]()
 - **esbuild**: Transpiles TypeScript and modern JavaScript [packages/deployer/src/build/analyze/analyzeEntry.ts:62]()
@@ -176,7 +175,7 @@ graph LR
         WORKSPACE_CHECK["Check workspaceMap"]
         METADATA["DependencyMetadata<br/>{exports, rootPath,<br/>isWorkspace, version}"]
     end
-    
+
     IMPORTED_BINDINGS --> PKG_NAME
     PKG_NAME --> ROOT_PATH
     ROOT_PATH --> PKG_JSON
@@ -211,7 +210,7 @@ graph TB
     ADD_NEW["Add new workspace deps<br/>to depsToOptimize"]
     LOOP{"More deps<br/>added?"}
     FINAL["Final dependency set"]
-    
+
     INITIAL --> CHECK_TRANS
     CHECK_TRANS -->|"Yes (isDev || externals:true)"| SNAPSHOT
     CHECK_TRANS -->|"No"| FINAL
@@ -257,7 +256,7 @@ graph TB
         BUILD_RESOLVE_MAP["Build module<br/>resolve map"]
         USED_EXTERNALS["usedExternals<br/>Record<filepath, deps>"]
     end
-    
+
     DEPS_TO_OPT --> CREATE_VIRTUAL
     CREATE_VIRTUAL --> VIRTUAL_MAP
     VIRTUAL_MAP --> GET_PLUGINS
@@ -291,7 +290,7 @@ graph TB
         OUTPUT_PATH["Use output path:<br/>.mastra/.build/"]
         VIRTUAL_DEP["VirtualDependency<br/>{name, virtual}"]
     end
-    
+
     DEP_ENTRY --> FILE_NAME
     FILE_NAME --> EXPORTS_ARRAY
     EXPORTS_ARRAY --> CHECK_STAR
@@ -332,21 +331,21 @@ Sources: [packages/deployer/src/build/analyze/bundleExternals.ts:47-130](), [pac
 
 The `getInputPlugins` function [packages/deployer/src/build/analyze/bundleExternals.ts:136-284]() configures the Rollup plugin chain for bundling external dependencies:
 
-| Plugin | Purpose | Configuration |
-|--------|---------|---------------|
-| `virtual` | Provides virtual module definitions | Maps `#virtual-{dep}` to virtual file content |
-| `tsConfigPaths` | Resolves TypeScript path aliases | Uses project's tsconfig.json |
-| `subpathExternalsResolver` | Handles subpath imports (e.g., `lodash/fp`) | Marks matching externals |
-| `esbuild` | Transpiles workspace packages | Only processes packages in `transpilePackages` set |
-| `alias-optimized-deps` | Resolves workspace packages for `externals: true` mode | Reads package.json to find actual entry point |
-| `optimizeLodashImports` | Optimizes lodash imports | Converts to per-method imports |
-| `commonjs` | Converts CommonJS to ESM | With strict requires and mixed module support |
-| `nodeResolve` | Resolves Node.js modules | Platform-aware (node/browser/neutral) |
-| `esmShim` | Adds ESM compatibility shims | Only for `noBundling` mode |
-| `aliasHono` | Resolves hono from deployer | Uses deployer's hono installation |
-| `json` | Handles JSON imports | Standard JSON plugin |
-| `nodeGypDetector` | Detects native bindings | Throws error for `.node` files |
-| `moduleResolveMap` | Builds resolution map for validation | Tracks where externals are resolved |
+| Plugin                     | Purpose                                                | Configuration                                      |
+| -------------------------- | ------------------------------------------------------ | -------------------------------------------------- |
+| `virtual`                  | Provides virtual module definitions                    | Maps `#virtual-{dep}` to virtual file content      |
+| `tsConfigPaths`            | Resolves TypeScript path aliases                       | Uses project's tsconfig.json                       |
+| `subpathExternalsResolver` | Handles subpath imports (e.g., `lodash/fp`)            | Marks matching externals                           |
+| `esbuild`                  | Transpiles workspace packages                          | Only processes packages in `transpilePackages` set |
+| `alias-optimized-deps`     | Resolves workspace packages for `externals: true` mode | Reads package.json to find actual entry point      |
+| `optimizeLodashImports`    | Optimizes lodash imports                               | Converts to per-method imports                     |
+| `commonjs`                 | Converts CommonJS to ESM                               | With strict requires and mixed module support      |
+| `nodeResolve`              | Resolves Node.js modules                               | Platform-aware (node/browser/neutral)              |
+| `esmShim`                  | Adds ESM compatibility shims                           | Only for `noBundling` mode                         |
+| `aliasHono`                | Resolves hono from deployer                            | Uses deployer's hono installation                  |
+| `json`                     | Handles JSON imports                                   | Standard JSON plugin                               |
+| `nodeGypDetector`          | Detects native bindings                                | Throws error for `.node` files                     |
+| `moduleResolveMap`         | Builds resolution map for validation                   | Tracks where externals are resolved                |
 
 The `transpilePackages` set automatically includes all workspace packages [packages/deployer/src/build/analyze/bundleExternals.ts:488](). The esbuild plugin is configured with precise include patterns that match workspace package directories while excluding nested node_modules [packages/deployer/src/build/analyze/bundleExternals.ts:177-196]().
 
@@ -360,7 +359,7 @@ graph LR
     ROLLUP_CALL["rollup(inputOptions)"]
     WRITE["bundler.write()<br/>to outputDir"]
     OUTPUT["Output:<br/>- Chunks (.mjs)<br/>- Assets<br/>- Sourcemaps"]
-    
+
     INPUT_OPTIONS --> ROLLUP_CALL
     ROLLUP_CALL --> WRITE
     WRITE --> OUTPUT
@@ -394,7 +393,7 @@ graph TB
     CHECK_CHILD["Search child chunks<br/>recursively"]
     BUILD_MAP["Build moduleResolveMap<br/>{filepath: {ext: resolved}}"]
     USED_EXTERNALS["Return usedExternals<br/>Record format"]
-    
+
     OUTPUT_CHUNKS --> ITER_EXTERNALS
     ITER_EXTERNALS --> FIND_IMPORTER
     FIND_IMPORTER --> CHECK_IMPORTS
@@ -438,7 +437,7 @@ graph TB
     HANDLE_ERROR["validateError()"]
     PKG_ERROR["Throw MastraError<br/>with externals suggestion"]
     RESULT["Return analysis result"]
-    
+
     ROLLUP_OUTPUT --> BUILD_EXTERNAL_MAP
     BUILD_EXTERNAL_MAP --> READ_BINARY_MAP
     READ_BINARY_MAP --> ITER_CHUNKS
@@ -476,7 +475,7 @@ graph LR
     CATCH_ERROR["Catch validation errors"]
     ERROR_HANDLER["validateError()"]
     SUCCESS["Validation passed"]
-    
+
     CHUNK --> VALIDATE_CALL
     VALIDATE_CALL --> VM_CONTEXT
     VM_CONTEXT --> DYNAMIC_IMPORT
@@ -499,12 +498,12 @@ Sources: [packages/deployer/src/build/analyze.ts:158-207](), [packages/deployer/
 
 The `validateError` function uses stack trace analysis to identify the problematic package:
 
-| Error Type | Detection | Package Extraction | Error ID | Message Template |
-|------------|-----------|-------------------|----------|------------------|
-| TypeError | `err.type === 'TypeError'` | Parse stack trace or use chunk filename | `DEPLOYER_ANALYZE_TYPE_ERROR` | "Mastra wasn't able to bundle X, might be an older commonJS module" |
-| MODULE_NOT_FOUND | `[ERR_MODULE_NOT_FOUND]` in stack | Extract from error message | `DEPLOYER_ANALYZE_MODULE_NOT_FOUND` | "We couldn't load X from Y. Make sure X is installed" |
-| Native binding | "No native build was found" | Use binary-map.json data | `DEPLOYER_ANALYZE_MISSING_NATIVE_BUILD` | "We found a binary dependency but cannot bundle it yet" |
-| Workspace error | Package in workspaceMap | Direct from error | `DEPLOYER_ANALYZE_ERROR_IN_WORKSPACE` | "We found an error in the X workspace package" |
+| Error Type       | Detection                         | Package Extraction                      | Error ID                                | Message Template                                                    |
+| ---------------- | --------------------------------- | --------------------------------------- | --------------------------------------- | ------------------------------------------------------------------- |
+| TypeError        | `err.type === 'TypeError'`        | Parse stack trace or use chunk filename | `DEPLOYER_ANALYZE_TYPE_ERROR`           | "Mastra wasn't able to bundle X, might be an older commonJS module" |
+| MODULE_NOT_FOUND | `[ERR_MODULE_NOT_FOUND]` in stack | Extract from error message              | `DEPLOYER_ANALYZE_MODULE_NOT_FOUND`     | "We couldn't load X from Y. Make sure X is installed"               |
+| Native binding   | "No native build was found"       | Use binary-map.json data                | `DEPLOYER_ANALYZE_MISSING_NATIVE_BUILD` | "We found a binary dependency but cannot bundle it yet"             |
+| Workspace error  | Package in workspaceMap           | Direct from error                       | `DEPLOYER_ANALYZE_ERROR_IN_WORKSPACE`   | "We found an error in the X workspace package"                      |
 
 For TypeErrors, the system parses the stack trace using `stacktrace-parser` to find the first frame from `node_modules` [packages/deployer/src/build/analyze.ts:93-102]().
 
@@ -524,10 +523,10 @@ The build system tracks comprehensive metadata about each dependency to enable i
 
 ```typescript
 interface DependencyMetadata {
-  exports: string[];
-  rootPath: string | null;
-  isWorkspace: boolean;
-  version?: string;
+  exports: string[]
+  rootPath: string | null
+  isWorkspace: boolean
+  version?: string
 }
 ```
 
@@ -535,14 +534,15 @@ interface DependencyMetadata {
 
 The `DependencyMetadata` interface [packages/deployer/src/build/types.ts:4-21]() contains:
 
-| Field | Type | Purpose | Example |
-|-------|------|---------|---------|
-| `exports` | `string[]` | List of imported bindings from the dependency | `['map', 'filter', 'default']` or `['*']` |
-| `rootPath` | `string \| null` | Absolute path to the package root directory (normalized with forward slashes) | `'/project/node_modules/lodash'` or `'/workspace/packages/shared'` |
-| `isWorkspace` | `boolean` | Whether the dependency is a workspace package | `true` for `@workspace/utils`, `false` for `lodash` |
-| `version` | `string?` | Exact version from package.json | `'4.17.21'` |
+| Field         | Type             | Purpose                                                                       | Example                                                            |
+| ------------- | ---------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `exports`     | `string[]`       | List of imported bindings from the dependency                                 | `['map', 'filter', 'default']` or `['*']`                          |
+| `rootPath`    | `string \| null` | Absolute path to the package root directory (normalized with forward slashes) | `'/project/node_modules/lodash'` or `'/workspace/packages/shared'` |
+| `isWorkspace` | `boolean`        | Whether the dependency is a workspace package                                 | `true` for `@workspace/utils`, `false` for `lodash`                |
+| `version`     | `string?`        | Exact version from package.json                                               | `'4.17.21'`                                                        |
 
 The `exports` array uses special values:
+
 - `'*'` indicates a namespace import (`import * as foo from 'foo'`) or dynamic import
 - `'default'` indicates a default import (`import foo from 'foo'`)
 - Other strings are named imports (`import { map } from 'lodash'`)
@@ -563,7 +563,7 @@ graph TB
     SCAN_IMPORTS["Scan output.imports"]
     MERGE["Merge into<br/>externalDependencies"]
     FINAL_RESULT["Final analysis result"]
-    
+
     DURING_ANALYSIS --> CHECK_EXTERNAL
     CHECK_EXTERNAL -->|"Yes"| ADD_TO_EXTERNALS
     CHECK_EXTERNAL -->|"No"| ADD_TO_OPTIMIZE
@@ -585,10 +585,12 @@ The system maintains two separate maps during analysis:
 2. **allUsedExternals**: Dependencies that are marked external and won't be bundled [packages/deployer/src/build/analyze.ts:350]()
 
 During Phase 1, as each entry is analyzed, dependencies are categorized [packages/deployer/src/build/analyze.ts:365-388]():
+
 - If the dependency matches an external pattern or `externals: true` is set, and it's not a workspace package, it goes to `allUsedExternals`
 - Otherwise, it goes to `depsToOptimize` (or gets merged if already present)
 
 After Phase 2, the system scans all output chunks' `imports` arrays [packages/deployer/src/build/analyze.ts:442-470]() to catch any dependencies that weren't in the analysis (e.g., dependencies of dependencies). It filters out:
+
 - Built-in Node.js modules [packages/deployer/src/build/analyze.ts:448-450]()
 - Relative imports (local chunks) [packages/deployer/src/build/analyze.ts:452-455]()
 - Workspace packages [packages/deployer/src/build/analyze.ts:457-460]()
@@ -611,7 +613,7 @@ graph LR
     PKG_JSON["Read package.json<br/>workspaces field"]
     GLOB_PATTERNS["Expand glob patterns"]
     WORKSPACE_MAP["workspaceMap<br/>Map<pkgName, info>"]
-    
+
     MASTRA_ENTRY --> GET_WORKSPACE_INFO
     GET_WORKSPACE_INFO --> FIND_ROOT
     FIND_ROOT --> PKG_JSON
@@ -653,7 +655,7 @@ graph TB
     CACHE_PATH["packages/utils/<br/>node_modules/.cache/<br/>@workspace__utils.mjs"]
     ENTRY_NAME["Virtual entry name"]
     ROLLUP_OUTPUT["Rollup output location"]
-    
+
     WORKSPACE_PKG --> CHECK_DEV
     CHECK_DEV -->|"No"| NORMAL_PATH
     CHECK_DEV -->|"Yes"| CACHE_PATH
@@ -678,17 +680,17 @@ resolveId(id: string) {
   if (!analyzedBundleInfo.dependencies.has(id)) {
     return null;
   }
-  
+
   const filename = analyzedBundleInfo.dependencies.get(id)!;
   const absolutePath = join(workspaceRoot || projectRoot, filename);
-  
+
   if (isDev) {
     return {
       id: process.platform === 'win32' ? pathToFileURL(absolutePath).href : absolutePath,
       external: true,
     };
   }
-  
+
   return { id: absolutePath, external: false };
 }
 ```
@@ -706,7 +708,7 @@ When determining which dependencies to bundle, the system applies special logic 
 if (isDev || externalsPreset) {
   for (const [dep, metadata] of depsToOptimize.entries()) {
     if (!metadata.isWorkspace) {
-      depsToOptimize.delete(dep);
+      depsToOptimize.delete(dep)
     }
   }
 }
@@ -720,8 +722,8 @@ The `bundleExternals` function also handles this case by extracting non-workspac
 if (externalsPreset) {
   for (const [dep, metadata] of depsToOptimize.entries()) {
     if (!metadata.isWorkspace) {
-      extractedExternals.set(dep, metadata.rootPath ?? dep);
-      depsToOptimize.delete(dep);
+      extractedExternals.set(dep, metadata.rootPath ?? dep)
+      depsToOptimize.delete(dep)
     }
   }
 }
@@ -735,22 +737,24 @@ The build system supports three bundler platforms that affect module resolution 
 
 ### Platform Configuration
 
-| Platform | Use Case | Module Resolution | Built-ins | Example Deployer |
-|----------|----------|-------------------|-----------|------------------|
-| `'node'` | Node.js servers, serverless functions | Prefers Node.js export conditions | Externalizes Node.js built-in modules | BuildBundler, VercelDeployer, NetlifyDeployer |
-| `'browser'` | Browser-like runtimes with no Node.js built-ins | Prefers browser/worker export conditions | Polyfills or errors on Node.js built-ins | CloudflareDeployer |
-| `'neutral'` | Runtime-agnostic code, preserves all globals | No special export conditions | Preserves all globals as-is | DevBundler (when using Bun) |
+| Platform    | Use Case                                        | Module Resolution                        | Built-ins                                | Example Deployer                              |
+| ----------- | ----------------------------------------------- | ---------------------------------------- | ---------------------------------------- | --------------------------------------------- |
+| `'node'`    | Node.js servers, serverless functions           | Prefers Node.js export conditions        | Externalizes Node.js built-in modules    | BuildBundler, VercelDeployer, NetlifyDeployer |
+| `'browser'` | Browser-like runtimes with no Node.js built-ins | Prefers browser/worker export conditions | Polyfills or errors on Node.js built-ins | CloudflareDeployer                            |
+| `'neutral'` | Runtime-agnostic code, preserves all globals    | No special export conditions             | Preserves all globals as-is              | DevBundler (when using Bun)                   |
 
 Each `Bundler` subclass sets its platform in the constructor:
 
 **BuildBundler and DevBundler** [packages/cli/src/commands/build/BuildBundler.ts:15-16]():
+
 ```typescript
-this.platform = process.versions?.bun ? 'neutral' : 'node';
+this.platform = process.versions?.bun ? 'neutral' : 'node'
 ```
 
 **CloudflareDeployer** [deployers/cloudflare/src/index.ts:48]():
+
 ```typescript
-this.platform = 'browser';
+this.platform = 'browser'
 ```
 
 **VercelDeployer and NetlifyDeployer**: Inherit `'node'` from `Deployer` base class (default) [packages/deployer/src/bundler/index.ts:31]()
@@ -767,7 +771,7 @@ graph LR
     MARKED_EXTERNAL["Marked as external"]
     PKG_EXPORTS["Package with<br/>conditional exports"]
     NODE_ENTRY["Resolves to<br/>'node' condition"]
-    
+
     NODE_RESOLVE --> OPTIONS
     OPTIONS --> BUILTINS
     BUILTINS --> MARKED_EXTERNAL
@@ -787,10 +791,12 @@ For Node.js platform, `getNodeResolveOptions` returns [packages/deployer/src/bui
 ```
 
 This configuration:
+
 - **Externalizes built-in modules** like `fs`, `path`, `http`, etc., since they're available in the Node.js runtime
 - **Prefers the 'node' export condition** in package.json, so packages with conditional exports use their Node.js-specific implementations
 
 For example, a package with:
+
 ```json
 {
   "exports": {
@@ -816,7 +822,7 @@ graph LR
     POLYFILL_OR_ERROR["Polyfill or error"]
     PKG_EXPORTS["Package with<br/>conditional exports"]
     BROWSER_ENTRY["Resolves to<br/>'browser' or 'worker'"]
-    
+
     BROWSER_RESOLVE --> OPTIONS
     OPTIONS --> BUILTINS
     BUILTINS --> POLYFILL_OR_ERROR
@@ -843,6 +849,7 @@ This configuration is critical for Cloudflare Workers because:
 3. **Export condition order matters** - Tries `'browser'` first, then `'worker'`, then `'default'`
 
 For the Cloudflare SDK example mentioned in tests [deployers/cloudflare/src/index.test.ts:23-39](), with browser platform:
+
 - D1 REST API mode resolves to web runtime using global `fetch` (browser export condition)
 - Without browser platform, it would try to use Node.js HTTP modules and fail
 
@@ -855,16 +862,16 @@ The `'neutral'` platform is used when running under Bun to preserve Bun-specific
 ```typescript
 export function detectRuntime(): RuntimePlatform {
   if (process.versions?.bun) {
-    return 'bun';
+    return 'bun'
   }
-  return 'node';
+  return 'node'
 }
 ```
 
 The DevBundler and BuildBundler check the runtime and set platform accordingly [packages/cli/src/commands/dev/DevBundler.ts:19-20]():
 
 ```typescript
-this.platform = process.versions?.bun ? 'neutral' : 'node';
+this.platform = process.versions?.bun ? 'neutral' : 'node'
 ```
 
 With `'neutral'` platform, esbuild doesn't perform any platform-specific transformations, preserving all runtime-specific features. This is necessary because Bun provides its own set of globals that differ from both Node.js and browsers.
@@ -887,7 +894,7 @@ graph TB
         VERCEL_DEPLOYER["VercelDeployer"]
         NETLIFY_DEPLOYER["NetlifyDeployer"]
     end
-    
+
     subgraph "Build Process"
         PREPARE["prepare()"]
         ANALYZE["analyze()<br/>calls analyzeBundle"]
@@ -895,7 +902,7 @@ graph TB
         BUNDLE["_bundle()"]
         INSTALL_DEPS["installDependencies()"]
     end
-    
+
     MASTRA_BUNDLER --> BUNDLER
     BUNDLER --> DEV_BUNDLER
     BUNDLER --> BUILD_BUNDLER
@@ -903,7 +910,7 @@ graph TB
     DEPLOYER --> CF_DEPLOYER
     DEPLOYER --> VERCEL_DEPLOYER
     DEPLOYER --> NETLIFY_DEPLOYER
-    
+
     BUNDLER --> PREPARE
     BUNDLER --> ANALYZE
     BUNDLER --> GET_BUNDLER_OPTIONS
@@ -916,7 +923,7 @@ graph TB
 The `Bundler` class [packages/deployer/src/bundler/index.ts:28-463]() provides:
 
 1. **analyze()** - Wrapper that calls `analyzeBundle` with appropriate parameters [packages/deployer/src/bundler/index.ts:120-131]()
-2. **_bundle()** - Main bundling method that orchestrates the full process [packages/deployer/src/bundler/index.ts:269-454]()
+2. **\_bundle()** - Main bundling method that orchestrates the full process [packages/deployer/src/bundler/index.ts:269-454]()
 3. **getUserBundlerOptions()** - Reads bundler configuration from Mastra config [packages/deployer/src/bundler/index.ts:98-118]()
 4. **getBundlerOptions()** - Constructs Rollup input options using analysis results [packages/deployer/src/bundler/index.ts:170-207]()
 5. **getAllToolPaths()** - Discovers tool files using glob patterns [packages/deployer/src/bundler/index.ts:209-230]()
@@ -932,7 +939,7 @@ sequenceDiagram
     participant analyzeBundle
     participant bundleExternals
     participant Rollup
-    
+
     Deployer->>Bundler: _bundle(serverFile, mastraEntry)
     Bundler->>Bundler: getUserBundlerOptions()
     Bundler->>Bundler: listToolsInputOptions()
@@ -983,7 +990,7 @@ graph LR
     REBUILD["Auto-rebuild<br/>on file changes"]
     ENV_WATCH["Watch .env files"]
     TOOLS_WATCH["Watch tools/*"]
-    
+
     DEV_BUNDLER --> WATCHER_OPTIONS
     WATCHER_OPTIONS --> ANALYZE_SIMPLE
     ANALYZE_SIMPLE --> WORKSPACE_ONLY
@@ -1005,10 +1012,12 @@ The `DevBundler.watch()` method [packages/cli/src/commands/dev/DevBundler.ts:58-
 6. **Returns watcher** - Rollup watch instance that auto-rebuilds [packages/cli/src/commands/dev/DevBundler.ts:141-159]()
 
 The watcher plugins monitor:
+
 - **env-watcher**: All .env files discovered by `getEnvFiles()` [packages/cli/src/commands/dev/DevBundler.ts:101-107]()
 - **tools-watcher**: Tool directories, regenerating tools.mjs on changes [packages/cli/src/commands/dev/DevBundler.ts:108-128]()
 
 This approach enables fast rebuilds because:
+
 - Only workspace packages are compiled (external npm packages are used directly)
 - No dependency installation or validation occurs on each rebuild
 - Rollup's watch mode incrementally processes only changed files

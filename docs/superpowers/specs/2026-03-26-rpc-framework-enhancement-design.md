@@ -14,6 +14,7 @@
 ### 2.1 设计背景
 
 原设计使用 `WebContentsManager` 接口，但存在以下问题：
+
 - `getWebContents` 方法未被使用
 - `send` 方法职责不清晰（需根据 target 类型判断如何发送）
 
@@ -44,6 +45,7 @@ export interface WindowRegistry {
 ```
 
 **职责划分**：
+
 - `registerWindow`：注册窗口，自动生成 clientId 并返回，传入 `group` 时自动加入该组
 - `unregisterWindow`：注销窗口，通过 window 查找 clientId，自动从所有群组移除
 - `joinGroup`/`leaveGroup`：客户端加群/退群
@@ -330,8 +332,16 @@ export interface RpcCallOptions {
 }
 
 export interface RpcClient {
-  call<T>(event: string, options?: RpcCallOptions, ...args: unknown[]): Promise<T>
-  stream<T>(event: string, options?: RpcCallOptions, ...args: unknown[]): Rpc.StreamResult<T>
+  call<T>(
+    event: string,
+    options?: RpcCallOptions,
+    ...args: unknown[]
+  ): Promise<T>
+  stream<T>(
+    event: string,
+    options?: RpcCallOptions,
+    ...args: unknown[]
+  ): Rpc.StreamResult<T>
 }
 ```
 
@@ -403,7 +413,11 @@ const controller = new AbortController()
 setTimeout(() => controller.abort(), 5000)
 
 try {
-  const result = await client.call('event', { signal: controller.signal }, ...args)
+  const result = await client.call(
+    'event',
+    { signal: controller.signal },
+    ...args
+  )
 } catch (err) {
   if (err instanceof RpcError && err.code === 'ABORTED') {
     // 处理取消
@@ -444,23 +458,28 @@ apps/desktop/src/shared/rpc/
 ### 8.1 RpcClient.call() 签名变更
 
 **原签名**：
+
 ```typescript
 call<T>(event: string, ...args: unknown[]): Promise<T>
 ```
 
 **新签名**：
+
 ```typescript
 call<T>(event: string, options?: RpcCallOptions, ...args: unknown[]): Promise<T>
 ```
 
 **破坏性变更说明**：
 如果现有代码这样调用：
+
 ```typescript
 client.call('conversation/create', { title: 'Test' })
 ```
+
 新实现会将 `{ title: 'Test' }` 解释为 `options`，导致实际参数丢失。
 
 **迁移方案**：
+
 1. **首选方案**：应用层使用 Zod 等 schema 定义参数，由 schema 校验层处理参数解析
 2. **次选方案**：创建新方法 `callWithOptions()` 专门处理带选项的调用：
    ```typescript

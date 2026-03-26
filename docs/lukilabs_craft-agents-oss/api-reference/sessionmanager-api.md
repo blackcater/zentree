@@ -9,8 +9,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document provides a technical reference for the `SessionManager` class, the main process controller that manages session lifecycle, message processing, agent orchestration, and state persistence. The `SessionManager` sits in the Electron main process and coordinates between the UI (renderer process), agent backends (CraftAgent, CodexBackend, CopilotAgent), and persistent storage.
 
 For information about IPC channels that invoke `SessionManager` methods, see page 8.1. For session file formats and configuration files, see page 8.3. For the overall session lifecycle architecture, see page 2.7.
@@ -41,7 +39,7 @@ The `SessionManager` maintains an in-memory map of all sessions with metadata-on
 graph TB
     AppStart["app.whenReady()"]
     Initialize["sessionManager.initialize()"]
-    
+
     subgraph "Setup Phase"
         Migrations["Migrations:\
 - migrateLegacyLlmConnectionsConfig()\
@@ -54,7 +52,7 @@ graph TB
         MarkReady["initGate.markReady()\
 (unblocks IPC handlers)"]
     end
-    
+
     AppStart --> Initialize
     Initialize --> Migrations
     Migrations --> Auth
@@ -79,7 +77,7 @@ graph TB
         agent["agent: AgentInstance | null\
 (lazy-loaded)"]
     end
-    
+
     subgraph "Message State"
         messages["messages: Message[]\
 (lazy-loaded)"]
@@ -90,7 +88,7 @@ graph TB
         messageQueue["messageQueue: QueuedMessage[]\
 (runtime only)"]
     end
-    
+
     subgraph "Processing State"
         isProcessing["isProcessing: boolean\
 (runtime only)"]
@@ -99,7 +97,7 @@ graph TB
         processingGeneration["processingGeneration: number\
 (runtime only)"]
     end
-    
+
     subgraph "Session Metadata"
         name["name?: string"]
         preview["preview?: string"]
@@ -108,7 +106,7 @@ graph TB
         messageCount["messageCount?: number"]
         lastMessageRole["lastMessageRole?: 'user'|'assistant'|'plan'|'tool'|'error'"]
     end
-    
+
     subgraph "Workspace Configuration"
         workingDirectory["workingDirectory?: string"]
         sdkCwd["sdkCwd?: string"]
@@ -118,7 +116,7 @@ graph TB
         connectionLocked["connectionLocked?: boolean"]
         thinkingLevel["thinkingLevel?: ThinkingLevel"]
     end
-    
+
     subgraph "User Flags"
         isFlagged["isFlagged: boolean"]
         isArchived["isArchived?: boolean"]
@@ -128,7 +126,7 @@ graph TB
         hasUnread["hasUnread?: boolean"]
         permissionMode["permissionMode?: PermissionMode"]
     end
-    
+
     subgraph "Infrastructure"
         sdkSessionId["sdkSessionId?: string"]
         tokenUsage["tokenUsage?: TokenUsage"]
@@ -149,23 +147,23 @@ Sources: [apps/electron/src/main/sessions.ts:553-697]()
 
 The `ManagedSession` interface ([apps/electron/src/main/sessions.ts:553-697]()) contains:
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `id` | `string` | Unique session ID (UUID v4) |
-| `workspace` | `Workspace` | Workspace context with root path and metadata |
-| `agent` | `AgentInstance \| null` | Lazy-loaded backend agent |
-| `messages` | `Message[]` | Message array (lazy-loaded from disk) |
-| `isProcessing` | `boolean` | Whether agent is currently processing |
-| `messageQueue` | `QueuedMessage[]` | Pending messages during processing |
-| `lastMessageAt` | `number` | Timestamp of last message (ms since epoch) |
-| `tokenUsage` | `TokenUsage` | Cumulative token usage from SDK |
-| `permissionMode` | `PermissionMode` | Session permission level: `'safe'` \| `'ask'` \| `'allow-all'` |
-| `enabledSourceSlugs` | `string[]` | Active source slugs for this session |
-| `tokenRefreshManager` | `TokenRefreshManager` | OAuth token refresh with rate limiting (runtime only) |
-| `sdkSessionId` | `string \| undefined` | SDK session ID for conversation continuity |
-| `sessionStatus` | `string \| undefined` | Dynamic status ID referencing workspace status config |
-| `mcpPool` | `McpClientPool \| undefined` | Centralized MCP client pool (runtime only) |
-| `poolServer` | `McpPoolServer \| undefined` | HTTP MCP server for external SDK subprocesses (runtime only) |
+| Property              | Type                         | Description                                                    |
+| --------------------- | ---------------------------- | -------------------------------------------------------------- |
+| `id`                  | `string`                     | Unique session ID (UUID v4)                                    |
+| `workspace`           | `Workspace`                  | Workspace context with root path and metadata                  |
+| `agent`               | `AgentInstance \| null`      | Lazy-loaded backend agent                                      |
+| `messages`            | `Message[]`                  | Message array (lazy-loaded from disk)                          |
+| `isProcessing`        | `boolean`                    | Whether agent is currently processing                          |
+| `messageQueue`        | `QueuedMessage[]`            | Pending messages during processing                             |
+| `lastMessageAt`       | `number`                     | Timestamp of last message (ms since epoch)                     |
+| `tokenUsage`          | `TokenUsage`                 | Cumulative token usage from SDK                                |
+| `permissionMode`      | `PermissionMode`             | Session permission level: `'safe'` \| `'ask'` \| `'allow-all'` |
+| `enabledSourceSlugs`  | `string[]`                   | Active source slugs for this session                           |
+| `tokenRefreshManager` | `TokenRefreshManager`        | OAuth token refresh with rate limiting (runtime only)          |
+| `sdkSessionId`        | `string \| undefined`        | SDK session ID for conversation continuity                     |
+| `sessionStatus`       | `string \| undefined`        | Dynamic status ID referencing workspace status config          |
+| `mcpPool`             | `McpClientPool \| undefined` | Centralized MCP client pool (runtime only)                     |
+| `poolServer`          | `McpPoolServer \| undefined` | HTTP MCP server for external SDK subprocesses (runtime only)   |
 
 `ManagedSession` objects are constructed via `createManagedSession()` ([apps/electron/src/main/sessions.ts:704-734]()), which spreads all session-like fields from the source so new persistent fields automatically propagate without manual copying.
 
@@ -198,14 +196,14 @@ Map<workspaceRootPath, ConfigWatcher>"]
         automationSystems["automationSystems:\
 Map<workspaceRootPath, AutomationSystem>"]
     end
-    
+
     subgraph "Event Batching"
         pendingDeltas["pendingDeltas:\
 Map<sessionId, PendingDelta>"]
         deltaFlushTimers["deltaFlushTimers:\
 Map<sessionId, NodeJS.Timeout>"]
     end
-    
+
     subgraph "Auth and Permission Tracking"
         pendingCredentialResolvers["pendingCredentialResolvers:\
 Map<requestId, resolver>"]
@@ -216,17 +214,17 @@ Map<sessionId:commandHash, {createdAt, expiresAt}>"]
         privilegedExecutionBroker["privilegedExecutionBroker:\
 PrivilegedExecutionBroker"]
     end
-    
+
     subgraph "View Tracking"
         activeViewingSession["activeViewingSession:\
 Map<workspaceId, sessionId>"]
     end
-    
+
     subgraph "Message Loading"
         messageLoadingPromises["messageLoadingPromises:\
 Map<sessionId, Promise<void>>"]
     end
-    
+
     subgraph "Shared Resources"
         windowManager["windowManager: WindowManager | null"]
         browserPaneManager["browserPaneManager:\
@@ -246,6 +244,7 @@ Sources: [apps/electron/src/main/sessions.ts:800-836]()
 Creates a new session with workspace defaults and optional overrides.
 
 **Signature:**
+
 ```typescript
 async createSession(
   workspaceId: string,
@@ -254,6 +253,7 @@ async createSession(
 ```
 
 **Options:**
+
 - `permissionMode`: Override workspace default permission mode
 - `workingDirectory`: 'user_default' | 'none' | absolute path
 - `enabledSourceSlugs`: Initial enabled sources
@@ -281,7 +281,7 @@ graph TB
 - enabledSourceSlugs"]
     ResolveContext["resolveBackendContext()\
 (determines provider/connection)"]
-    
+
     BranchValidation{"options.branchFromSessionId\
 provided?"}
     ValidateBranch["Validate branch:\
@@ -290,7 +290,7 @@ provided?"}
 - same provider as target"]
     CopyMessages["Copy messages up to branchIdx\
 into new session JSONL"]
-    
+
     CreateStored["createStoredSession()\
 (writes session.jsonl)"]
     CreateManaged["createManagedSession()\
@@ -300,7 +300,7 @@ into new session JSONL"]
     InitAutomation["automationSystem.setInitialSessionMetadata()"]
     Return["Return Session (metadata only,\
 or with messages if branch)"]
-    
+
     Create --> ValidateWS
     ValidateWS --> LoadDefaults
     LoadDefaults --> ResolveContext
@@ -322,11 +322,13 @@ Sources: [apps/electron/src/main/sessions.ts:1966-2229]()
 Deletes a single session and cleans up all resources.
 
 **Signature:**
+
 ```typescript
 async deleteSession(sessionId: string): Promise<void>
 ```
 
 **Cleanup sequence:**
+
 1. Force-abort agent if processing (with 100ms drain wait)
 2. Clear delta flush timers
 3. Cancel pending persistence (`sessionPersistenceQueue.cancel()`)
@@ -349,6 +351,7 @@ Sources: [apps/electron/src/main/sessions.ts:3921-3989]()
 Sends a message to the agent and streams responses back to the UI.
 
 **Signature:**
+
 ```typescript
 async sendMessage(
   sessionId: string,
@@ -370,10 +373,10 @@ sequenceDiagram
     participant SM as "SessionManager.sendMessage()"
     participant Agent as "AgentInstance.chat()"
     participant SDK as "AI SDK"
-    
+
     UI->>IPC: SEND_MESSAGE
     IPC->>SM: sendMessage(sessionId, message, attachments)
-    
+
     alt Session is Processing
         SM->>SM: Queue message
         SM->>SM: Set message.isQueued = true
@@ -388,7 +391,7 @@ sequenceDiagram
         SM->>SM: Load sources, build servers
         SM->>SM: Proactive OAuth token refresh
         SM->>Agent: chat(message, attachments)
-        
+
         loop Stream Events
             Agent->>SM: yield AgentEvent
             SM->>SM: processEvent(managed, event)
@@ -399,7 +402,7 @@ sequenceDiagram
                 SM-->>UI: Immediate event
             end
         end
-        
+
         Agent->>SM: complete event
         SM->>SM: onProcessingStopped('complete')
         SM-->>UI: complete event
@@ -427,27 +430,28 @@ When a message arrives during processing, the SessionManager:
 Cancels the current message processing.
 
 **Signature:**
+
 ```typescript
 async cancelProcessing(sessionId: string, silent = false): Promise<void>
 ```
 
 **Silent mode:** Skips injecting a "Response interrupted" status message but still forces abort. Used when redirecting (sending a new message while processing).
 
-Sources: [apps/electron/src/main/sessions.ts:4136-4183]()  *(approximate; adjust based on latest file)*
+Sources: [apps/electron/src/main/sessions.ts:4136-4183]() _(approximate; adjust based on latest file)_
 
 #### Event Processing
 
 The `processEvent()` method handles events from the agent:
 
-| Event Type | `SessionManager` Action |
-|------------|-----------------------|
-| `text_delta` | Batch deltas for 50ms, then flush via `flushPendingDeltas()` |
-| `text_complete` | Create assistant message, emit to UI |
-| `tool_start` | Resolve tool metadata via `resolveToolDisplayMeta()`, create tool message with `toolStatus: 'executing'` |
-| `tool_result` | Update tool message with result, set `toolStatus: 'completed'` |
-| `task_progress` | Update tool message with elapsed time |
-| `usage_update` | Update `managed.tokenUsage` with cumulative totals |
-| `complete` | Handled in `sendMessage()` try-catch, triggers `onProcessingStopped()` |
+| Event Type      | `SessionManager` Action                                                                                  |
+| --------------- | -------------------------------------------------------------------------------------------------------- |
+| `text_delta`    | Batch deltas for 50ms, then flush via `flushPendingDeltas()`                                             |
+| `text_complete` | Create assistant message, emit to UI                                                                     |
+| `tool_start`    | Resolve tool metadata via `resolveToolDisplayMeta()`, create tool message with `toolStatus: 'executing'` |
+| `tool_result`   | Update tool message with result, set `toolStatus: 'completed'`                                           |
+| `task_progress` | Update tool message with elapsed time                                                                    |
+| `usage_update`  | Update `managed.tokenUsage` with cumulative totals                                                       |
+| `complete`      | Handled in `sendMessage()` try-catch, triggers `onProcessingStopped()`                                   |
 
 **Delta Batching:** Text deltas are batched at `DELTA_BATCH_INTERVAL_MS = 50` ms ([apps/electron/src/main/sessions.ts:792]()) to reduce IPC overhead from 50+ events/sec to ~20 events/sec.
 
@@ -458,6 +462,7 @@ Sources: [apps/electron/src/main/sessions.ts:792-797]()
 Central handler for when processing stops (any reason). Single source of truth for cleanup and queue processing.
 
 **Signature:**
+
 ```typescript
 private async onProcessingStopped(
   sessionId: string,
@@ -466,6 +471,7 @@ private async onProcessingStopped(
 ```
 
 **Actions:**
+
 1. Clear `isProcessing` and `stopRequested` flags
 2. Notify power manager (may allow display sleep)
 3. Handle unread state based on `isSessionBeingViewed()`
@@ -480,6 +486,7 @@ private async onProcessingStopped(
 Returns metadata-only list of sessions (messages not included).
 
 **Signature:**
+
 ```typescript
 getSessions(workspaceId?: string): Session[]
 ```
@@ -493,6 +500,7 @@ Sources: [apps/electron/src/main/sessions.ts:1783-1796]()
 Loads a single session with all messages (lazy loading).
 
 **Signature:**
+
 ```typescript
 async getSession(sessionId: string): Promise<Session | null>
 ```
@@ -506,6 +514,7 @@ Sources: [apps/electron/src/main/sessions.ts:1871-1879](), [apps/electron/src/ma
 Returns the filesystem path to a session's storage folder.
 
 **Signature:**
+
 ```typescript
 getSessionPath(sessionId: string): string | null
 ```
@@ -517,6 +526,7 @@ Sources: [apps/electron/src/main/sessions.ts:1960-1964]()
 Aggregates unread state across all workspaces, excluding hidden and archived sessions.
 
 **Signature:**
+
 ```typescript
 getUnreadSummary(): UnreadSummary
 ```
@@ -532,6 +542,7 @@ Sources: [apps/electron/src/main/sessions.ts:1802-1827]()
 Enqueues a session for async persistence with debouncing.
 
 **Implementation:**
+
 ```typescript
 private persistSession(managed: ManagedSession): void
 ```
@@ -545,6 +556,7 @@ Sources: [apps/electron/src/main/sessions.ts:1434-1462]()
 Immediately flushes pending writes, bypassing the debounce.
 
 **Signatures:**
+
 ```typescript
 async flushSession(sessionId: string): Promise<void>
 async flushAllSessions(): Promise<void>
@@ -563,6 +575,7 @@ Sources: [apps/electron/src/main/sessions.ts:1465-1472]()
 Updates session name and persists to disk.
 
 **Signature:**
+
 ```typescript
 async renameSession(sessionId: string, name: string): Promise<void>
 ```
@@ -576,11 +589,13 @@ Sources: [apps/electron/src/main/sessions.ts:3698-3706]()
 Regenerates session title using AI based on recent messages.
 
 **Signature:**
+
 ```typescript
 async refreshTitle(sessionId: string): Promise<{ success: boolean; title?: string; error?: string }>
 ```
 
 **Flow:**
+
 1. Ensure messages are loaded
 2. Get last 3 user messages + last assistant response
 3. Use session's agent or create temporary agent from `llmConnection`
@@ -597,6 +612,7 @@ Sources: [apps/electron/src/main/sessions.ts:3713-3817]()
 Toggles flagged state (pin to top of session list).
 
 **Signatures:**
+
 ```typescript
 async flagSession(sessionId: string): Promise<void>
 async unflagSession(sessionId: string): Promise<void>
@@ -611,6 +627,7 @@ Sources: [apps/electron/src/main/sessions.ts:3162-3184]()
 Toggles archived state (hidden from active session list).
 
 **Signatures:**
+
 ```typescript
 async archiveSession(sessionId: string): Promise<void>
 async unarchiveSession(sessionId: string): Promise<void>
@@ -625,6 +642,7 @@ Sources: [apps/electron/src/main/sessions.ts:3186-3212]()
 Updates session's dynamic status (references workspace status config by ID).
 
 **Signature:**
+
 ```typescript
 async setSessionStatus(sessionId: string, sessionStatus: SessionStatus): Promise<void>
 ```
@@ -640,11 +658,13 @@ Sources: [apps/electron/src/main/sessions.ts:3214-3224]()
 Updates working directory for bash commands. Also updates `sdkCwd` if no messages have been sent yet.
 
 **Signature:**
+
 ```typescript
 updateWorkingDirectory(sessionId: string, path: string): void
 ```
 
 **Conditions for updating `sdkCwd`:**
+
 - `messages.length === 0` (no messages sent)
 - `!sdkSessionId` (no SDK session)
 - `!agent` (no agent created)
@@ -660,6 +680,7 @@ Sources: [apps/electron/src/main/sessions.ts:3827-3858]()
 Updates model for a session. Pass `null` to clear (falls back to global config).
 
 **Signature:**
+
 ```typescript
 async updateSessionModel(
   sessionId: string,
@@ -678,6 +699,7 @@ Sources: [apps/electron/src/main/sessions.ts:3865-3895]()
 Updates the content of a specific message in a session (used by preview window to save edits).
 
 **Signature:**
+
 ```typescript
 updateMessageContent(sessionId: string, messageId: string, content: string): void
 ```
@@ -689,6 +711,7 @@ Sources: [apps/electron/src/main/sessions.ts:3901-3919]()
 Sets LLM connection for a session. Can only be changed before the first message (connection is locked after).
 
 **Signature:**
+
 ```typescript
 async setSessionConnection(sessionId: string, connectionSlug: string): Promise<void>
 ```
@@ -704,6 +727,7 @@ Sources: [apps/electron/src/main/sessions.ts:3231-3265]()
 Sets which session the user is actively viewing (per workspace).
 
 **Signature:**
+
 ```typescript
 setActiveViewingSession(sessionId: string | null, workspaceId: string): void
 ```
@@ -717,6 +741,7 @@ Sources: [apps/electron/src/main/sessions.ts:3592-3603]()
 Explicitly marks a session as read or unread.
 
 **Signatures:**
+
 ```typescript
 async markSessionRead(sessionId: string): Promise<void>
 async markSessionUnread(sessionId: string): Promise<void>
@@ -731,6 +756,7 @@ Sources: [apps/electron/src/main/sessions.ts:3624-3674]()
 Marks all non-hidden, non-archived, non-processing sessions in a workspace as read.
 
 **Signature:**
+
 ```typescript
 async markAllSessionsRead(workspaceId: string): Promise<void>
 ```
@@ -756,11 +782,13 @@ Agents are only instantiated when the first message is sent. `getOrCreateAgent()
 Creates the appropriate agent backend based on the session's LLM connection.
 
 **Signature:**
+
 ```typescript
 private async getOrCreateAgent(managed: ManagedSession): Promise<AgentInstance>
 ```
 
 **Provider Resolution Order:**
+
 1. `managed.llmConnection` (locked after first message)
 2. `workspace.defaults.defaultLlmConnection`
 3. Global `defaultLlmConnection`
@@ -798,7 +826,7 @@ if not already locked"]
     ApplyMode["setPermissionMode()\
 (applies persisted mode to agent)"]
     Ready["Agent ready"]
-    
+
     Entry --> Resolve
     Resolve --> LockConn
     LockConn --> SetupPool
@@ -822,7 +850,7 @@ The `SessionManager` wires callbacks on each `AgentBackend` instance during `get
 graph LR
     Agent["AgentBackend\
 (managed.agent)"]
-    
+
     subgraph "Permission Flow"
         onPermReq["onPermissionRequest"]
         Broker["PrivilegedExecutionBroker\
@@ -832,7 +860,7 @@ graph LR
         PermEvent["permission_request event → UI"]
         respondToPermission["respondToPermission()"]
     end
-    
+
     subgraph "Auth Flow"
         onAuthReq["onAuthRequest"]
         AuthMsg["Add auth-request Message\
@@ -842,7 +870,7 @@ to managed.messages"]
         completeAuthRequest["completeAuthRequest()\
 or startSessionOAuth()"]
     end
-    
+
     subgraph "Plan Flow"
         onPlanSubmitted["onPlanSubmitted"]
         PlanMsg["Add plan Message\
@@ -850,40 +878,40 @@ to managed.messages"]
         ForceAbortPlan["forceAbort(AbortReason.PlanSubmitted)"]
         PlanEvent["plan_submitted event → UI"]
     end
-    
+
     subgraph "Source Activation"
         onSourceAct["onSourceActivationRequest"]
         BuildServers["buildServersFromSources()"]
         SetServers["agent.setSourceServers()"]
     end
-    
+
     subgraph "Session Spawning"
         onSpawn["onSpawnSession"]
         CreateChild["createSession()\
 + sendMessage() fire-and-forget"]
     end
-    
+
     Agent --> onPermReq
     onPermReq --> Broker
     Broker --> RememberWindow
     onPermReq --> PermEvent
     PermEvent --> respondToPermission
-    
+
     Agent --> onAuthReq
     onAuthReq --> AuthMsg
     AuthMsg --> ForceAbortAuth
     ForceAbortAuth --> AuthEvent
     AuthEvent --> completeAuthRequest
-    
+
     Agent --> onPlanSubmitted
     onPlanSubmitted --> PlanMsg
     PlanMsg --> ForceAbortPlan
     ForceAbortPlan --> PlanEvent
-    
+
     Agent --> onSourceAct
     onSourceAct --> BuildServers
     BuildServers --> SetServers
-    
+
     Agent --> onSpawn
     onSpawn --> CreateChild
 ```
@@ -897,6 +925,7 @@ Sources: [apps/electron/src/main/sessions.ts:2766-3049]()
 Updates enabled sources for a session and rebuilds servers if agent exists.
 
 **Signature:**
+
 ```typescript
 async setSessionSources(sessionId: string, sourceSlugs: string[]): Promise<void>
 ```
@@ -909,7 +938,7 @@ graph TB
     CleanupCache["cleanupSourceRuntimeArtifacts()\
 (for disabled sources)"]
     UpdateManaged["managed.enabledSourceSlugs = sourceSlugs"]
-    
+
     CheckAgent{"managed.agent\
 exists?"}
     BuildServers["buildServersFromSources()"]
@@ -917,22 +946,22 @@ exists?"}
     ApplyBridge["applyBridgeUpdates()\
 (per-backend bridge config)"]
     SetServers["agent.setSourceServers(mcpServers, apiServers, intendedSlugs)"]
-    
+
     Persist["persistSession()"]
     Broadcast["sources_changed event → renderer"]
-    
+
     SetSources --> CleanupCache
     CleanupCache --> UpdateManaged
     UpdateManaged --> CheckAgent
-    
+
     CheckAgent -- "yes" --> BuildServers
     CheckAgent -- "no" --> Persist
-    
+
     BuildServers --> SetAll
     SetAll --> ApplyBridge
     ApplyBridge --> SetServers
     SetServers --> Persist
-    
+
     Persist --> Broadcast
 ```
 
@@ -945,6 +974,7 @@ Sources: [apps/electron/src/main/sessions.ts:3497-3558]()
 Returns enabled source slugs for a session.
 
 **Signature:**
+
 ```typescript
 getSessionSources(sessionId: string): string[]
 ```
@@ -958,16 +988,18 @@ Sources: [apps/electron/src/main/sessions.ts:3564-3567]()
 Module-level helper that builds MCP and API servers from source configurations.
 
 **Signature:**
+
 ```typescript
 async function buildServersFromSources(
   sources: LoadedSource[],
   sessionPath?: string,
   tokenRefreshManager?: TokenRefreshManager,
   summarize?: SummarizeCallback
-): Promise<{ mcpServers, apiServers, errors }>
+): Promise<{ mcpServers; apiServers; errors }>
 ```
 
 **Steps:**
+
 1. Load credentials for all sources via `getSourceCredentialManager()`
 2. Build token getter for OAuth sources (uses `TokenRefreshManager` if provided)
 3. Call `serverBuilder.buildAll()` with credentials and token getters
@@ -982,17 +1014,19 @@ Sources: [apps/electron/src/main/sessions.ts:166-219]()
 Proactively refreshes expired OAuth tokens before each `agent.chat()` call.
 
 **Signature:**
+
 ```typescript
 async function refreshOAuthTokensIfNeeded(
   agent: AgentInstance,
   sources: LoadedSource[],
   sessionPath: string,
   tokenRefreshManager: TokenRefreshManager,
-  options?: { sessionId?, workspaceRootPath?, poolServerUrl? }
+  options?: { sessionId?; workspaceRootPath?; poolServerUrl? }
 ): Promise<OAuthTokenRefreshResult>
 ```
 
 **Flow:**
+
 1. `tokenRefreshManager.getSourcesNeedingRefresh(sources)` — rate-limited check
 2. `tokenRefreshManager.refreshSources(needRefresh)`
 3. Rebuild server configs with fresh tokens via `buildServersFromSources()`
@@ -1010,6 +1044,7 @@ Sources: [apps/electron/src/main/sessions.ts:247-296]()
 Delivers the user's permission decision to the agent.
 
 **Signature:**
+
 ```typescript
 respondToPermission(
   sessionId: string,
@@ -1026,6 +1061,7 @@ Returns `true` if delivered, `false` if agent/session is gone. For `admin_approv
 Sets permission mode for a session.
 
 **Signature:**
+
 ```typescript
 setSessionPermissionMode(sessionId: string, mode: PermissionMode): void
 ```
@@ -1034,11 +1070,11 @@ Updates `managed.permissionMode` and applies to agent via the global `setPermiss
 
 **Permission Modes:**
 
-| Mode | Enforcement | Use Case |
-|------|------------|----------|
-| `safe` | Read-only tools only, blocks all mutations | Exploring unfamiliar codebases |
-| `ask` | Prompts for file writes, bash, MCP mutations | Normal development |
-| `allow-all` | Auto-approves with restrictions | Trusted automations |
+| Mode        | Enforcement                                  | Use Case                       |
+| ----------- | -------------------------------------------- | ------------------------------ |
+| `safe`      | Read-only tools only, blocks all mutations   | Exploring unfamiliar codebases |
+| `ask`       | Prompts for file writes, bash, MCP mutations | Normal development             |
+| `allow-all` | Auto-approves with restrictions              | Trusted automations            |
 
 Enforcement logic lives in the agent's `PreToolUse` hook in `packages/shared/src/agent/mode-manager.ts`.
 
@@ -1049,11 +1085,13 @@ Enforcement logic lives in the agent's `PreToolUse` hook in `packages/shared/src
 Reinitializes authentication environment variables after credential changes.
 
 **Signature:**
+
 ```typescript
 async reinitializeAuth(connectionSlug?: string): Promise<void>
 ```
 
 **Steps:**
+
 1. Clear all auth env vars (`ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`, `ANTHROPIC_BASE_URL`)
 2. Load connection (explicit parameter or default)
 3. Call `resolveAuthEnvVars(connection, slug, manager, getValidClaudeOAuthToken)` — provider-agnostic env resolution
@@ -1079,13 +1117,13 @@ When an agent fires `onAuthRequest`:
 
 **Auth Request Types:**
 
-| Type | Trigger | UI Action |
-|------|---------|-----------|
-| `oauth` | MCP OAuth source | Show "Sign in" button → `startSessionOAuth()` |
-| `oauth-google` | Gmail/Calendar/Drive | Show Google OAuth dialog |
-| `oauth-slack` | Slack integration | Show Slack OAuth dialog |
-| `oauth-microsoft` | Microsoft 365 | Show Microsoft OAuth dialog |
-| `credential` | API key / bearer / basic | Show inline credential form → `handleCredentialInput()` |
+| Type              | Trigger                  | UI Action                                               |
+| ----------------- | ------------------------ | ------------------------------------------------------- |
+| `oauth`           | MCP OAuth source         | Show "Sign in" button → `startSessionOAuth()`           |
+| `oauth-google`    | Gmail/Calendar/Drive     | Show Google OAuth dialog                                |
+| `oauth-slack`     | Slack integration        | Show Slack OAuth dialog                                 |
+| `oauth-microsoft` | Microsoft 365            | Show Microsoft OAuth dialog                             |
+| `credential`      | API key / bearer / basic | Show inline credential form → `handleCredentialInput()` |
 
 Sources: [apps/electron/src/main/sessions.ts:2939-2999]()
 
@@ -1094,11 +1132,13 @@ Sources: [apps/electron/src/main/sessions.ts:2939-2999]()
 Completes an auth request and resumes conversation.
 
 **Signature:**
+
 ```typescript
 async completeAuthRequest(sessionId: string, result: AuthResult): Promise<void>
 ```
 
 **Steps:**
+
 1. Find and update pending `auth-request` message `authStatus`
 2. Emit `auth_completed` event
 3. Auto-enable source in session (`enabledSourceSlugs`) on success
@@ -1114,6 +1154,7 @@ Sources: [apps/electron/src/main/sessions.ts:1607-1682]()
 Handles credential input from UI (for non-OAuth auth).
 
 **Signature:**
+
 ```typescript
 async handleCredentialInput(
   sessionId: string,
@@ -1124,12 +1165,12 @@ async handleCredentialInput(
 
 **Supported Modes:**
 
-| Mode | Storage Key Type | Value Format |
-|------|-----------------|--------------|
-| `basic` | `source_basic` | `JSON.stringify({ username, password })` |
-| `bearer` | `source_bearer` | token string |
-| `multi-header` | `source_apikey` | `JSON.stringify({ "Header-Name": "value", ... })` |
-| `header` / `query` | `source_apikey` | single API key string |
+| Mode               | Storage Key Type | Value Format                                      |
+| ------------------ | ---------------- | ------------------------------------------------- |
+| `basic`            | `source_basic`   | `JSON.stringify({ username, password })`          |
+| `bearer`           | `source_bearer`  | token string                                      |
+| `multi-header`     | `source_apikey`  | `JSON.stringify({ "Header-Name": "value", ... })` |
+| `header` / `query` | `source_apikey`  | single API key string                             |
 
 After storing, calls `markSourceAuthenticated()` and `agent.markSourceUnseen()`, then `completeAuthRequest()`.
 
@@ -1142,6 +1183,7 @@ Sources: [apps/electron/src/main/sessions.ts:1688-1769]()
 Sets up ConfigWatcher for a workspace to broadcast live updates.
 
 **Signature:**
+
 ```typescript
 setupConfigWatcher(workspaceRootPath: string, workspaceId: string): void
 ```
@@ -1149,6 +1191,7 @@ setupConfigWatcher(workspaceRootPath: string, workspaceId: string): void
 Called during window init and workspace switch. One ConfigWatcher per workspace.
 
 **Watched Files:**
+
 - `sources/*/config.json`: Source configuration
 - `sources/*/guide.md`: Source documentation
 - `statuses/status-config.json`: Status workflow
@@ -1162,7 +1205,7 @@ Called during window init and workspace switch. One ConfigWatcher per workspace.
 ```mermaid
 graph LR
     ConfigWatcher["ConfigWatcher.start()"]
-    
+
     subgraph "File Change Events"
         SourceChange["onSourceChange"]
         SourcesList["onSourcesListChange"]
@@ -1173,14 +1216,14 @@ graph LR
         PermChange["onDefaultPermissionsChange"]
         SessionMeta["onSessionMetadataChange"]
     end
-    
+
     subgraph "Actions"
         ReloadSources["reloadSessionSources()<br/>(for all workspace sessions)"]
         BroadcastIPC["broadcastToAll() via WindowManager"]
         ReloadHooks["hookSystem.reloadConfig()"]
         EmitHookEvent["hookSystem.emitLabelConfigChange()"]
     end
-    
+
     ConfigWatcher --> SourceChange
     ConfigWatcher --> SourcesList
     ConfigWatcher --> StatusChange
@@ -1189,7 +1232,7 @@ graph LR
     ConfigWatcher --> ThemeChange
     ConfigWatcher --> PermChange
     ConfigWatcher --> SessionMeta
-    
+
     SourceChange --> ReloadSources
     SourcesList --> ReloadSources
     SourceChange --> BroadcastIPC
@@ -1208,11 +1251,13 @@ graph LR
 The SessionManager initializes a `HookSystem` for each workspace to handle event-driven automation:
 
 **Features:**
+
 - Scheduler for cron-based triggers
 - Event diffing for metadata changes
 - Command and prompt hook execution
 
 **Hooks Triggered:**
+
 - `LabelAdd` / `LabelRemove` / `LabelValueChange`
 - `LabelConfigChange` (when label config file changes)
 - `FlagAdd` / `FlagRemove`
@@ -1230,11 +1275,13 @@ The SessionManager initializes a `HookSystem` for each workspace to handle event
 Uploads session to web viewer and returns shareable URL.
 
 **Signature:**
+
 ```typescript
 async shareToViewer(sessionId: string): Promise<ShareResult>
 ```
 
 **Flow:**
+
 1. Load session directly from disk (StoredSession format)
 2. POST to `${VIEWER_URL}/s/api` with session data
 3. Store returned `{ id, url }` in `managed.sharedUrl` and `managed.sharedId`
@@ -1250,6 +1297,7 @@ Sets `isAsyncOperationOngoing` flag for shimmer effect during upload.
 Re-uploads session data to existing shared URL.
 
 **Signature:**
+
 ```typescript
 async updateShare(sessionId: string): Promise<ShareResult>
 ```
@@ -1263,11 +1311,13 @@ Uses PUT request to `${VIEWER_URL}/s/api/${sharedId}` with updated session data.
 Deletes shared session from viewer and clears local state.
 
 **Signature:**
+
 ```typescript
 async revokeShare(sessionId: string): Promise<ShareResult>
 ```
 
 **Steps:**
+
 1. DELETE request to `${VIEWER_URL}/s/api/${sharedId}`
 2. Clear `sharedUrl` and `sharedId` from managed session
 3. Update session metadata on disk
@@ -1286,6 +1336,7 @@ The SessionManager tracks pending plan execution state for "Accept & Compact" fl
 Persists plan path for execution after compaction.
 
 **Signature:**
+
 ```typescript
 async setPendingPlanExecution(sessionId: string, planPath: string): Promise<void>
 ```
@@ -1299,6 +1350,7 @@ Called when user clicks "Accept & Compact" button.
 Marks compaction as complete (allows reload recovery to know execution can proceed).
 
 **Signature:**
+
 ```typescript
 async markCompactionComplete(sessionId: string): Promise<void>
 ```
@@ -1312,6 +1364,7 @@ Called when `compaction_complete` event fires from SDK.
 Clears pending plan state (after execution or on new message).
 
 **Signature:**
+
 ```typescript
 async clearPendingPlanExecution(sessionId: string): Promise<void>
 ```
@@ -1325,6 +1378,7 @@ Acts as safety valve - if user sends new message, old plan is no longer relevant
 Retrieves pending plan state (for reload recovery).
 
 **Signature:**
+
 ```typescript
 getPendingPlanExecution(sessionId: string): { planPath: string; awaitingCompaction: boolean } | null
 ```
@@ -1338,11 +1392,13 @@ getPendingPlanExecution(sessionId: string): { planPath: string; awaitingCompacti
 Terminates a background shell by ID.
 
 **Signature:**
+
 ```typescript
 async killShell(sessionId: string, shellId: string): Promise<{ success: boolean; error?: string }>
 ```
 
 **Flow:**
+
 1. Get stored command from `managed.backgroundShellCommands`
 2. Use `pgrep -f` to find process PIDs matching command
 3. Send `SIGTERM` to each PID
@@ -1356,6 +1412,7 @@ async killShell(sessionId: string, shellId: string): Promise<{ success: boolean;
 Placeholder for retrieving background task output (not yet implemented).
 
 **Signature:**
+
 ```typescript
 async getTaskOutput(taskId: string): Promise<string | null>
 ```
@@ -1403,9 +1460,12 @@ const allowed = await requestToolPermission(
   'example_tool',
   'rm -rf /important/data',
   'Delete important data'
-);
+)
 if (!allowed) {
-  return { content: [{ type: 'text', text: 'Permission denied' }], isError: true };
+  return {
+    content: [{ type: 'text', text: 'Permission denied' }],
+    isError: true,
+  }
 }
 ```
 
@@ -1426,10 +1486,10 @@ In non-headless mode, the agent starts a `ConfigWatcher` that monitors workspace
 
 ```typescript
 interface ConfigWatcherCallbacks {
-  onSourceChange?: (slug: string, source: LoadedSource | null) => void;
-  onSourcesListChange?: (sources: LoadedSource[]) => void;
-  onValidationError?: (file: string, errors: ValidationIssue[]) => void;
-  onError?: (file: string, error: Error) => void;
+  onSourceChange?: (slug: string, source: LoadedSource | null) => void
+  onSourcesListChange?: (sources: LoadedSource[]) => void
+  onValidationError?: (file: string, errors: ValidationIssue[]) => void
+  onError?: (file: string, error: Error) => void
 }
 ```
 
@@ -1440,25 +1500,25 @@ interface ConfigWatcherCallbacks {
 ```mermaid
 stateDiagram-v2
     [*] --> Created: new CraftAgent(config)
-    
+
     Created --> Initialized: initializeModeState()<br/>registerSessionScopedToolCallbacks()<br/>startConfigWatcher()
-    
+
     Initialized --> Ready: First chat() call
-    
+
     state Ready {
         [*] --> PinPrompt: Pin system prompt components
         PinPrompt --> BuildMessage: buildTextPrompt() / buildSDKUserMessage()
         BuildMessage --> QuerySDK: query({ prompt, options })
     }
-    
+
     Ready --> Streaming: SDK starts streaming
-    
+
     state Streaming {
         [*] --> ProcessEvent: Receive SDKMessage
         ProcessEvent --> ConvertEvent: convertSDKMessage()
         ConvertEvent --> YieldEvent: yield AgentEvent
         YieldEvent --> ProcessEvent: Next message
-        
+
         state ToolExecution {
             [*] --> PreHook: PreToolUse hook
             PreHook --> PermCheck: Check permission mode
@@ -1467,29 +1527,29 @@ stateDiagram-v2
             Validate --> PromptUser: Prompt if needed (ask mode)
             PromptUser --> [*]: Allow or block
         }
-        
+
         ProcessEvent --> ToolExecution: Tool call
         ToolExecution --> ConvertEvent: Continue
     }
-    
+
     Streaming --> Complete: result message
     Complete --> Ready: await next chat() call
-    
+
     Streaming --> Aborted: forceAbort()
     Aborted --> Ready: await next chat() call
-    
+
     Streaming --> RecoverSession: Empty response detected
     RecoverSession --> Retry: buildRecoveryContext()<br/>chat(messageWithContext, attachments, true)
     Retry --> Streaming
-    
+
     Streaming --> RecoverExpired: Session expired error
     RecoverExpired --> Retry
-    
+
     Ready --> Disposed: dispose()
     Streaming --> Disposed: dispose()
     Aborted --> Disposed: dispose()
     Complete --> Disposed: dispose()
-    
+
     Disposed --> [*]: Cleanup:<br/>- stopConfigWatcher()<br/>- cleanupModeState()<br/>- cleanupSessionScopedTools()<br/>- Clear callbacks
 ```
 

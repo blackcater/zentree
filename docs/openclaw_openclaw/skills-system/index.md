@@ -64,8 +64,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Skills System provides modular, declarative functionality extensions for OpenClaw agents. Skills are directories containing a `SKILL.md` file with YAML frontmatter and instructions that teach agents how to use specific tools or perform specialized tasks. The system supports bundled skills (shipped with OpenClaw), managed skills (installed to `~/.openclaw/skills`), workspace skills (per-agent in `<workspace>/skills`), and plugin-provided skills.
 
 For overall tool architecture and execution, see [Tools System](#3.4). For skill installation and registry browsing, see [Skills Management](#5.3). For detailed configuration syntax, see [Skills Configuration](#5.2).
@@ -73,6 +71,7 @@ For overall tool architecture and execution, see [Tools System](#3.4). For skill
 ## Skills Architecture
 
 A skill is a self-contained directory with:
+
 - **SKILL.md**: Markdown file with YAML frontmatter defining metadata and runtime requirements
 - **Instructions**: Agent-readable documentation explaining when and how to use the skill
 - **Optional assets**: Additional files referenced by the skill
@@ -89,24 +88,24 @@ flowchart TD
     BundledSkills["Bundled Skills<br/>(npm package)"]
     PluginSkills["Plugin Skills<br/>(plugin manifest)"]
     ExtraDirs["Extra Directories<br/>(skills.load.extraDirs)"]
-    
+
     ConfigFilter["Configuration Filter<br/>(skills.entries)"]
     GatingRules["Gating Rules<br/>(env/config/binary checks)"]
     SkillSnapshot["Skill Snapshot<br/>(merged and filtered)"]
     SystemPrompt["System Prompt Injection"]
-    
+
     AgentBootstrap --> WorkspaceSkills
     AgentBootstrap --> ManagedSkills
     AgentBootstrap --> BundledSkills
     AgentBootstrap --> PluginSkills
     AgentBootstrap --> ExtraDirs
-    
+
     WorkspaceSkills --> ConfigFilter
     ManagedSkills --> ConfigFilter
     BundledSkills --> ConfigFilter
     PluginSkills --> ConfigFilter
     ExtraDirs --> ConfigFilter
-    
+
     ConfigFilter --> GatingRules
     GatingRules --> SkillSnapshot
     SkillSnapshot --> SystemPrompt
@@ -118,13 +117,13 @@ flowchart TD
 
 Skills are loaded from multiple locations with strict precedence rules:
 
-| Priority | Location | Scope | Example Path |
-|----------|----------|-------|--------------|
-| 1 (highest) | Workspace | Per-agent | `~/.openclaw/workspace/skills/` |
-| 2 | Managed | Shared across agents | `~/.openclaw/skills/` |
-| 3 | Bundled | Shipped with install | `node_modules/openclaw/skills/` |
-| 4 | Plugin | Plugin-specific | `extensions/mattermost/skills/` |
-| 5 (lowest) | Extra dirs | Custom shared folders | `skills.load.extraDirs[0]` |
+| Priority    | Location   | Scope                 | Example Path                    |
+| ----------- | ---------- | --------------------- | ------------------------------- |
+| 1 (highest) | Workspace  | Per-agent             | `~/.openclaw/workspace/skills/` |
+| 2           | Managed    | Shared across agents  | `~/.openclaw/skills/`           |
+| 3           | Bundled    | Shipped with install  | `node_modules/openclaw/skills/` |
+| 4           | Plugin     | Plugin-specific       | `extensions/mattermost/skills/` |
+| 5 (lowest)  | Extra dirs | Custom shared folders | `skills.load.extraDirs[0]`      |
 
 When a skill name conflicts, the higher-priority location wins. This allows workspace skills to override bundled defaults.
 
@@ -164,14 +163,14 @@ Example invocations and expected outcomes.
 
 ### Frontmatter Fields
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `name` | string | Unique skill identifier |
-| `description` | string | Brief summary for UI display |
-| `requires.env` | string[] | Required environment variables |
-| `requires.config` | string[] | Required config paths (dot notation) |
-| `requires.binaries` | string[] | Required system binaries |
-| `metadata.openclaw.tags` | string[] | Categorization tags |
+| Field                               | Type     | Purpose                                |
+| ----------------------------------- | -------- | -------------------------------------- |
+| `name`                              | string   | Unique skill identifier                |
+| `description`                       | string   | Brief summary for UI display           |
+| `requires.env`                      | string[] | Required environment variables         |
+| `requires.config`                   | string[] | Required config paths (dot notation)   |
+| `requires.binaries`                 | string[] | Required system binaries               |
+| `metadata.openclaw.tags`            | string[] | Categorization tags                    |
 | `metadata.openclaw.requires.config` | string[] | Alternative config requirements format |
 
 **Sources**: [docs/tools/skills.md:73-132](), [docs/tools/skills.md:134-173]()
@@ -186,20 +185,20 @@ Skills are configured via `skills.entries` in `~/.openclaw/openclaw.json`:
 {
   skills: {
     entries: {
-      "skill-name": {
+      'skill-name': {
         enabled: true,
         env: {
-          API_KEY: "secret-value-or-ref"
+          API_KEY: 'secret-value-or-ref',
         },
         config: {
-          "some.path": "override-value"
-        }
-      }
+          'some.path': 'override-value',
+        },
+      },
     },
     load: {
-      extraDirs: ["/path/to/custom/skills"]
-    }
-  }
+      extraDirs: ['/path/to/custom/skills'],
+    },
+  },
 }
 ```
 
@@ -210,15 +209,15 @@ Skills are configured via `skills.entries` in `~/.openclaw/openclaw.json`:
 ```mermaid
 flowchart LR
     SkillCandidate["Skill Candidate"]
-    
+
     EnabledCheck["Enabled Check<br/>(skills.entries[name].enabled)"]
     EnvCheck["Environment Check<br/>(requires.env)"]
     ConfigCheck["Config Check<br/>(requires.config)"]
     BinaryCheck["Binary Check<br/>(requires.binaries)"]
-    
+
     Passed["Include in Snapshot"]
     Failed["Skip Skill"]
-    
+
     SkillCandidate --> EnabledCheck
     EnabledCheck -->|false| Failed
     EnabledCheck -->|true/unset| EnvCheck
@@ -231,6 +230,7 @@ flowchart LR
 ```
 
 **Gating logic**:
+
 1. **Explicit disable**: If `skills.entries[name].enabled: false`, skip immediately
 2. **Environment**: All `requires.env` variables must be set (either in process env or via `skills.entries[name].env`)
 3. **Configuration**: All `requires.config` paths must exist in the active config
@@ -248,18 +248,19 @@ Environment variables can be injected per-skill:
 {
   skills: {
     entries: {
-      "web-search": {
+      'web-search': {
         env: {
-          PERPLEXITY_API_KEY: { source: "env", name: "PERPLEXITY_API_KEY" },
-          BRAVE_SEARCH_API_KEY: "literal-value-here"
-        }
-      }
-    }
-  }
+          PERPLEXITY_API_KEY: { source: 'env', name: 'PERPLEXITY_API_KEY' },
+          BRAVE_SEARCH_API_KEY: 'literal-value-here',
+        },
+      },
+    },
+  },
 }
 ```
 
 Values can be:
+
 - **Literal strings**: Plaintext values
 - **SecretRef objects**: `{ source: "env"|"file"|"exec", name: "..." }` for secure credential management
 
@@ -277,18 +278,18 @@ graph TB
         MainWorkspace["Workspace<br/>~/.openclaw/workspace/skills/"]
         MainAgentDir["Agent Dir<br/>~/.openclaw/agents/main/"]
     end
-    
+
     subgraph "Agent: coding"
         CodingWorkspace["Workspace<br/>~/.openclaw/workspace-coding/skills/"]
         CodingAgentDir["Agent Dir<br/>~/.openclaw/agents/coding/"]
     end
-    
+
     SharedSkills["Shared Skills<br/>~/.openclaw/skills/"]
     BundledSkills["Bundled Skills"]
-    
+
     MainWorkspace -.->|per-agent| MainAgentDir
     CodingWorkspace -.->|per-agent| CodingAgentDir
-    
+
     MainAgentDir --> SharedSkills
     CodingAgentDir --> SharedSkills
     SharedSkills --> BundledSkills
@@ -301,6 +302,7 @@ graph TB
 - **Skill precedence applies per-agent**: Each agent independently resolves workspace → managed → bundled → plugin → extra
 
 This isolation allows:
+
 - **Specialized agents**: Each agent can have unique skills for its role (e.g., coding agent has git skills, social agent has scheduling skills)
 - **Shared utilities**: Common skills live in `~/.openclaw/skills` and are available to all
 - **Override behavior**: Agents can override shared skills by placing same-named skills in their workspace
@@ -319,6 +321,7 @@ Plugins can ship skills by declaring `skills` directories in their `openclaw.plu
 ```
 
 Plugin skills:
+
 - Load when the plugin is `enabled: true` in `plugins.entries`
 - Participate in normal precedence rules (workspace/managed override plugin skills)
 - Can be gated via `metadata.openclaw.requires.config` in the skill's frontmatter
@@ -345,14 +348,14 @@ sequenceDiagram
     participant Registry["clawhub.com"]
     participant Workspace["Workspace<br/>./skills/"]
     participant Agent["Agent Runtime"]
-    
+
     User->>ClawHub: clawhub install skill-name
     ClawHub->>Registry: GET /skills/skill-name
     Registry-->>ClawHub: Skill metadata + tarball URL
     ClawHub->>ClawHub: Download and extract
     ClawHub->>Workspace: Write skill files
     Workspace-->>User: Installed
-    
+
     User->>Agent: Start session
     Agent->>Workspace: Scan skills/
     Workspace-->>Agent: skill-name loaded
@@ -389,6 +392,7 @@ openclaw skills list --verbose
 ```
 
 **Output includes**:
+
 - Skill name and description
 - Source location (workspace/managed/bundled/plugin)
 - Ready status (whether all requirements are met)
@@ -399,12 +403,14 @@ openclaw skills list --verbose
 ### Control UI
 
 The web-based Control UI (`http://127.0.0.1:18789/`) provides:
+
 - Skills status table showing ready/blocked state
 - API key injection forms for skills requiring credentials
 - Enable/disable toggles for `skills.entries[name].enabled`
 - Visual indication of missing requirements
 
 **UI sections**:
+
 1. **Agent Management → Skills tab**: Per-agent skill status
 2. **Skills status report**: Aggregated view across all sources
 3. **Configuration forms**: Inject environment variables and config overrides
@@ -418,19 +424,20 @@ The `SkillStatusReport` structure provides runtime skill state:
 ```typescript
 type SkillStatusReport = {
   skills: {
-    id: string;
-    name: string;
-    description: string;
-    source: "workspace" | "managed" | "bundled" | "plugin";
-    ready: boolean;
-    missingEnv?: string[];
-    missingConfig?: string[];
-    missingBinaries?: string[];
-  }[];
+    id: string
+    name: string
+    description: string
+    source: 'workspace' | 'managed' | 'bundled' | 'plugin'
+    ready: boolean
+    missingEnv?: string[]
+    missingConfig?: string[]
+    missingBinaries?: string[]
+  }[]
 }
 ```
 
 This report is used by:
+
 - **CLI**: `openclaw skills check` for console output
 - **Control UI**: Skills management panels
 - **Gateway RPC**: `skills.status` method for client queries
@@ -448,11 +455,12 @@ stateDiagram-v2
     Gated --> Merged: Passed requirements
     Merged --> Injected: Build system prompt
     Injected --> [*]: Agent session starts
-    
+
     Excluded --> [*]: Silently skipped
 ```
 
 **Lifecycle stages**:
+
 1. **Discovery**: Scan all skill directories (workspace, managed, bundled, plugin, extra)
 2. **Parsing**: Read `SKILL.md` frontmatter and extract metadata
 3. **Gating**: Check `enabled`, environment variables, config paths, binaries

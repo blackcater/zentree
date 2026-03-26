@@ -10,8 +10,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 Labels provide a flexible tagging system for sessions within workspaces. They enable users to categorize conversations by topic, priority, project, or any custom dimension. Labels complement the status workflow system (see page 4.6) and integrate with the automation system (see page 4.9) to enable event-driven workflows based on label changes.
@@ -26,13 +24,13 @@ Labels are workspace-scoped tags that can be applied to sessions for organizatio
 
 ### Key Features
 
-| Feature | Description |
-|---------|-------------|
+| Feature               | Description                                                                                     |
+| --------------------- | ----------------------------------------------------------------------------------------------- |
 | **Hierarchy Support** | Labels can be organized in parent-child relationships (e.g., `projects/web`, `projects/mobile`) |
-| **Auto-Apply Rules** | Labels can be automatically applied based on session content or context |
-| **Event Integration** | Label changes trigger `LabelAdd` and `LabelRemove` events for hook automation |
-| **Multiple Labels** | Sessions can have multiple labels applied simultaneously |
-| **Live Reload** | Label configuration changes are detected and applied without restart |
+| **Auto-Apply Rules**  | Labels can be automatically applied based on session content or context                         |
+| **Event Integration** | Label changes trigger `LabelAdd` and `LabelRemove` events for hook automation                   |
+| **Multiple Labels**   | Sessions can have multiple labels applied simultaneously                                        |
+| **Live Reload**       | Label configuration changes are detected and applied without restart                            |
 
 Sources: [README.md:1-412](), [packages/shared/src/config/storage.ts:285-300]()
 
@@ -48,26 +46,26 @@ graph TB
         WSRoot --> Sessions["sessions/"]
         WSRoot --> WSConfig["config.json"]
     end
-    
+
     subgraph "Label Files"
         LabelsDir --> LabelConfig["labels.json<br/>Label definitions"]
         LabelsDir --> RulesConfig["rules.json<br/>Auto-apply rules"]
     end
-    
+
     subgraph "Session Integration"
         Sessions --> SessionFile["session-{id}.jsonl"]
         SessionFile --> Metadata["metadata<br/>labels: string[]"]
     end
-    
+
     subgraph "Live Reload System"
         CW["ConfigWatcher"]
         CW -->|watches| LabelsDir
         CW -->|broadcasts| UIUpdate["UI Components"]
     end
-    
+
     LabelConfig -->|referenced by| Metadata
     RulesConfig -->|applied to| SessionFile
-    
+
     style LabelsDir fill:#f5f5f5
     style CW fill:#f5f5f5
 ```
@@ -118,13 +116,13 @@ Labels are defined in `workspaces/{id}/labels/labels.json` with the following st
 
 **Label Properties**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | string | Yes | Unique identifier for the label (slug format) |
-| `name` | string | Yes | Display name shown in UI |
-| `color` | string | No | Hex color code for visual identification |
-| `description` | string | No | Human-readable description of label purpose |
-| `parent` | string | No | ID of parent label for hierarchical organization |
+| Field         | Type   | Required | Description                                      |
+| ------------- | ------ | -------- | ------------------------------------------------ |
+| `id`          | string | Yes      | Unique identifier for the label (slug format)    |
+| `name`        | string | Yes      | Display name shown in UI                         |
+| `color`       | string | No       | Hex color code for visual identification         |
+| `description` | string | No       | Human-readable description of label purpose      |
+| `parent`      | string | No       | ID of parent label for hierarchical organization |
 
 ### Hierarchical Labels
 
@@ -133,11 +131,11 @@ Labels support parent-child relationships for nested organization. Child labels 
 ```json
 {
   "labels": [
-    {"id": "work", "name": "Work"},
-    {"id": "work-meetings", "name": "Meetings", "parent": "work"},
-    {"id": "work-planning", "name": "Planning", "parent": "work"},
-    {"id": "personal", "name": "Personal"},
-    {"id": "personal-learning", "name": "Learning", "parent": "personal"}
+    { "id": "work", "name": "Work" },
+    { "id": "work-meetings", "name": "Meetings", "parent": "work" },
+    { "id": "work-planning", "name": "Planning", "parent": "work" },
+    { "id": "personal", "name": "Personal" },
+    { "id": "personal-learning", "name": "Learning", "parent": "personal" }
   ]
 }
 ```
@@ -157,35 +155,35 @@ graph LR
         MessageSent["Message Sent"]
         ToolUsed["Tool Executed"]
     end
-    
+
     subgraph "Rule Evaluation"
         RuleEngine["Rule Matcher"]
         ContentMatch["Content Pattern Match"]
         MetadataMatch["Metadata Condition Match"]
         ToolMatch["Tool Usage Pattern"]
     end
-    
+
     subgraph "Rule Actions"
         ApplyLabel["Apply Label"]
         RemoveLabel["Remove Label"]
         TriggerHook["Trigger Hook Event"]
     end
-    
+
     NewSession --> RuleEngine
     MessageSent --> RuleEngine
     ToolUsed --> RuleEngine
-    
+
     RuleEngine --> ContentMatch
     RuleEngine --> MetadataMatch
     RuleEngine --> ToolMatch
-    
+
     ContentMatch --> ApplyLabel
     MetadataMatch --> ApplyLabel
     ToolMatch --> ApplyLabel
-    
+
     ApplyLabel --> TriggerHook
     RemoveLabel --> TriggerHook
-    
+
     style RuleEngine fill:#f5f5f5
     style TriggerHook fill:#f5f5f5
 ```
@@ -224,12 +222,12 @@ Auto-apply rules automatically tag sessions based on content patterns, metadata 
 
 **Rule Trigger Types**
 
-| Trigger | Description | Pattern Format |
-|---------|-------------|----------------|
-| `message_content` | Match against message text | Regular expression |
-| `tool_used` | Match tool name patterns | Regular expression (tool name) |
-| `session_metadata` | Evaluate session metadata | JavaScript expression |
-| `source_connected` | Match source configuration | Source slug pattern |
+| Trigger            | Description                | Pattern Format                 |
+| ------------------ | -------------------------- | ------------------------------ |
+| `message_content`  | Match against message text | Regular expression             |
+| `tool_used`        | Match tool name patterns   | Regular expression (tool name) |
+| `session_metadata` | Evaluate session metadata  | JavaScript expression          |
+| `source_connected` | Match source configuration | Source slug pattern            |
 
 **Rule Actions**
 
@@ -250,21 +248,21 @@ sequenceDiagram
     participant LabelSystem as "Label System"
     participant Hooks as "Hook System"
     participant Action as "Hook Actions"
-    
+
     User->>Session: Apply label "urgent"
     Session->>LabelSystem: addLabel(sessionId, "urgent")
     LabelSystem->>LabelSystem: Update session metadata
     LabelSystem->>Hooks: emit LabelAdd event
-    
+
     Hooks->>Hooks: Match hook rules<br/>matcher: "^urgent$"
     Hooks->>Action: Execute matched hooks
-    
+
     alt Command Hook
         Action->>Action: Run shell command<br/>$CRAFT_LABEL="urgent"
     else Prompt Hook
         Action->>Session: Create new session<br/>with prompt template
     end
-    
+
     Action-->>User: Notification sent
     Session-->>User: Label applied
 ```
@@ -273,9 +271,9 @@ Label changes emit events that integrate with the hook system, enabling automate
 
 **Label Events**
 
-| Event | Emitted When | Environment Variables |
-|-------|-------------|----------------------|
-| `LabelAdd` | Label applied to session | `$CRAFT_LABEL`, `$CRAFT_SESSION_ID`, `$CRAFT_WORKSPACE_ID` |
+| Event         | Emitted When               | Environment Variables                                      |
+| ------------- | -------------------------- | ---------------------------------------------------------- |
+| `LabelAdd`    | Label applied to session   | `$CRAFT_LABEL`, `$CRAFT_SESSION_ID`, `$CRAFT_WORKSPACE_ID` |
 | `LabelRemove` | Label removed from session | `$CRAFT_LABEL`, `$CRAFT_SESSION_ID`, `$CRAFT_WORKSPACE_ID` |
 
 **Hook Configuration Example**
@@ -323,6 +321,7 @@ Label changes emit events that integrate with the hook system, enabling automate
 **Hook Matcher Patterns**
 
 The `matcher` field accepts regular expressions to filter which label changes trigger the hook:
+
 - `^urgent$` - Exact match for "urgent" label
 - `^projects-.*` - Any label starting with "projects-"
 - `.*-review$` - Any label ending with "-review"
@@ -338,14 +337,17 @@ Sources: [README.md:302-346](), [packages/shared/src/config/storage.ts:283-300](
 Labels can be applied through multiple mechanisms:
 
 **1. Manual Application**
+
 - User applies labels through the UI session metadata panel
 - Labels are stored in session JSONL file metadata
 
 **2. Auto-Apply Rules**
+
 - Rule engine evaluates patterns on session events
 - Matching rules automatically apply configured labels
 
 **3. Hook-Triggered Application**
+
 - Prompt hooks can include label directives
 - Agent can apply labels via session-scoped tools
 
@@ -367,12 +369,12 @@ Session files (`workspaces/{id}/sessions/session-{id}.jsonl`) store labels in th
 
 **Label Operations**
 
-| Operation | Behavior |
-|-----------|----------|
-| Add Label | Appends to `labels` array if not present, emits `LabelAdd` |
-| Remove Label | Filters from `labels` array, emits `LabelRemove` |
-| List Labels | Returns all labels from session metadata |
-| Clear Labels | Removes all labels, emits `LabelRemove` for each |
+| Operation    | Behavior                                                   |
+| ------------ | ---------------------------------------------------------- |
+| Add Label    | Appends to `labels` array if not present, emits `LabelAdd` |
+| Remove Label | Filters from `labels` array, emits `LabelRemove`           |
+| List Labels  | Returns all labels from session metadata                   |
+| Clear Labels | Removes all labels, emits `LabelRemove` for each           |
 
 Sources: [packages/shared/src/config/storage.ts:4-22]()
 
@@ -386,38 +388,38 @@ graph TB
         LabelsJSON["labels/labels.json"]
         RulesJSON["labels/rules.json"]
     end
-    
+
     subgraph "ConfigWatcher System"
         Watcher["ConfigWatcher<br/>chokidar file watcher"]
         WatchLabels["Watch labels/"]
         WatchRules["Watch rules.json"]
     end
-    
+
     subgraph "Event Broadcasting"
         EventBus["Event Bus"]
         IPCBridge["IPC Bridge"]
     end
-    
+
     subgraph "UI Components"
         LabelList["Label Selector"]
         SessionMetadata["Session Metadata Panel"]
         FilterView["Label Filter View"]
     end
-    
+
     LabelsJSON -->|file change| Watcher
     RulesJSON -->|file change| Watcher
-    
+
     Watcher --> WatchLabels
     Watcher --> WatchRules
-    
+
     WatchLabels --> EventBus
     WatchRules --> EventBus
-    
+
     EventBus --> IPCBridge
     IPCBridge --> LabelList
     IPCBridge --> SessionMetadata
     IPCBridge --> FilterView
-    
+
     style Watcher fill:#f5f5f5
     style EventBus fill:#f5f5f5
 ```
@@ -429,6 +431,7 @@ The `ConfigWatcher` system monitors the `labels/` directory for changes and broa
 - **Multi-Window Sync**: All open workspace windows receive label updates simultaneously
 
 **Watched Paths**
+
 - `workspaces/{id}/labels/labels.json` - Label definitions
 - `workspaces/{id}/labels/rules.json` - Auto-apply rule configuration
 
@@ -446,9 +449,9 @@ Sources: [packages/shared/src/config/storage.ts:283-300]()
 ```json
 {
   "labels": [
-    {"id": "project-alpha", "name": "Project Alpha", "color": "#3498DB"},
-    {"id": "project-beta", "name": "Project Beta", "color": "#E74C3C"},
-    {"id": "research", "name": "Research", "color": "#9B59B6"}
+    { "id": "project-alpha", "name": "Project Alpha", "color": "#3498DB" },
+    { "id": "project-beta", "name": "Project Beta", "color": "#E74C3C" },
+    { "id": "research", "name": "Research", "color": "#9B59B6" }
   ],
   "rules": [
     {
@@ -468,10 +471,10 @@ Sources: [packages/shared/src/config/storage.ts:283-300]()
 ```json
 {
   "labels": [
-    {"id": "p0", "name": "P0 - Critical", "color": "#FF0000"},
-    {"id": "p1", "name": "P1 - High", "color": "#FF8C00"},
-    {"id": "p2", "name": "P2 - Medium", "color": "#FFD700"},
-    {"id": "p3", "name": "P3 - Low", "color": "#90EE90"}
+    { "id": "p0", "name": "P0 - Critical", "color": "#FF0000" },
+    { "id": "p1", "name": "P1 - High", "color": "#FF8C00" },
+    { "id": "p2", "name": "P2 - Medium", "color": "#FFD700" },
+    { "id": "p3", "name": "P3 - Low", "color": "#90EE90" }
   ],
   "rules": [
     {
@@ -490,9 +493,9 @@ Sources: [packages/shared/src/config/storage.ts:283-300]()
 ```json
 {
   "labels": [
-    {"id": "github", "name": "GitHub", "color": "#24292E"},
-    {"id": "linear", "name": "Linear", "color": "#5E6AD2"},
-    {"id": "slack", "name": "Slack", "color": "#4A154B"}
+    { "id": "github", "name": "GitHub", "color": "#24292E" },
+    { "id": "linear", "name": "Linear", "color": "#5E6AD2" },
+    { "id": "slack", "name": "Slack", "color": "#4A154B" }
   ],
   "rules": [
     {

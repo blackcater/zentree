@@ -21,8 +21,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the Angular and Solid.js framework integrations for the AI SDK. These packages provide reactive UI components and services for building AI-powered chat interfaces using framework-specific patterns. Angular integration leverages Angular's signals and dependency injection system, while Solid integration uses Solid's reactive primitives.
 
 For React integration patterns, see [React Integration](#4.2). For Vue and Svelte integrations, see [Vue and Svelte Integrations](#4.3). For the underlying framework-agnostic architecture, see [Framework-Agnostic Chat Architecture](#4.1).
@@ -33,10 +31,10 @@ For React integration patterns, see [React Integration](#4.2). For Vue and Svelt
 
 The Angular and Solid integrations exist as separate packages in the monorepo structure:
 
-| Package | Version | Peer Dependencies | Purpose |
-|---------|---------|-------------------|---------|
-| `@ai-sdk/angular` | 3.0.0-beta.7 | `@angular/core >=16.0.0` | Angular services and components using signals and DI |
-| `@ai-sdk/solid` | (Not in provided files) | TBD | Solid.js reactive primitives integration |
+| Package           | Version                 | Peer Dependencies        | Purpose                                              |
+| ----------------- | ----------------------- | ------------------------ | ---------------------------------------------------- |
+| `@ai-sdk/angular` | 3.0.0-beta.7            | `@angular/core >=16.0.0` | Angular services and components using signals and DI |
+| `@ai-sdk/solid`   | (Not in provided files) | TBD                      | Solid.js reactive primitives integration             |
 
 **Sources:** [packages/angular/package.json:1-60]()
 
@@ -53,21 +51,21 @@ graph TB
         ANGULAR_DIST["dist/<br/>index.cjs, index.mjs, index.d.ts"]
         ANGULAR_SRC["src/<br/>Implementation files"]
     end
-    
+
     subgraph "Dependencies"
         AI_CORE["ai<br/>workspace:*"]
         PROVIDER_UTILS["@ai-sdk/provider-utils<br/>workspace:*"]
     end
-    
+
     subgraph "Peer Dependencies"
         ANGULAR_CORE["@angular/core<br/>>=16.0.0"]
     end
-    
+
     subgraph "Build System"
         TSUP["tsup<br/>Bundle tool"]
         VITEST["vitest<br/>Testing"]
     end
-    
+
     ANGULAR_PKG --> ANGULAR_DIST
     ANGULAR_SRC --> ANGULAR_DIST
     ANGULAR_PKG --> AI_CORE
@@ -85,13 +83,13 @@ graph TB
 
 Angular integration differs from other framework integrations in several key ways:
 
-| Feature | Angular Pattern | React/Vue Pattern |
-|---------|----------------|-------------------|
-| Reactivity | Signals (`signal()`, `computed()`) | Hooks/Refs (`useState`, `ref()`) |
-| Dependency Management | Dependency Injection (`@Injectable`) | Import/Context |
-| Lifecycle | Services (singleton/scoped) | Hooks lifecycle |
-| State Management | RxJS + Signals | State hooks |
-| Minimum Version | Angular 16.0.0+ (signals support) | React 18+ / Vue 3.3.4+ |
+| Feature               | Angular Pattern                      | React/Vue Pattern                |
+| --------------------- | ------------------------------------ | -------------------------------- |
+| Reactivity            | Signals (`signal()`, `computed()`)   | Hooks/Refs (`useState`, `ref()`) |
+| Dependency Management | Dependency Injection (`@Injectable`) | Import/Context                   |
+| Lifecycle             | Services (singleton/scoped)          | Hooks lifecycle                  |
+| State Management      | RxJS + Signals                       | State hooks                      |
+| Minimum Version       | Angular 16.0.0+ (signals support)    | React 18+ / Vue 3.3.4+           |
 
 The requirement for `@angular/core >=16.0.0` indicates that the integration leverages Angular's signals API, introduced in Angular 16 as a first-class reactive primitive.
 
@@ -108,25 +106,25 @@ graph LR
         WATCH["build:watch<br/>tsup --watch"]
         CLEAN["clean<br/>del-cli dist"]
     end
-    
+
     subgraph "Quality Scripts"
         LINT["lint<br/>eslint"]
         TYPE["type-check<br/>tsc --build"]
         PRETTIER["prettier-check"]
     end
-    
+
     subgraph "Test Scripts"
         TEST["test<br/>vitest --run"]
         TEST_WATCH["test:watch<br/>vitest"]
         TEST_UPDATE["test:update<br/>vitest -u"]
     end
-    
+
     subgraph "Output"
         DIST_CJS["dist/index.cjs"]
         DIST_MJS["dist/index.mjs"]
         DIST_DTS["dist/index.d.ts"]
     end
-    
+
     BUILD --> DIST_CJS
     BUILD --> DIST_MJS
     BUILD --> DIST_DTS
@@ -150,28 +148,28 @@ graph TB
         COMPONENT["ChatComponent<br/>@Component"]
         TEMPLATE["Template<br/>HTML with signals"]
     end
-    
+
     subgraph "Angular Services"
         CHAT_SERVICE["ChatService<br/>@Injectable"]
         SIGNALS["Signals<br/>messages(), status()"]
     end
-    
+
     subgraph "Core AI SDK"
         ABSTRACT_CHAT["AbstractChat<br/>Base implementation"]
         CHAT_TRANSPORT["ChatTransport<br/>HTTP communication"]
     end
-    
+
     subgraph "Framework Integration"
         DI_CONTAINER["DI Container<br/>Angular Injector"]
     end
-    
+
     COMPONENT --> CHAT_SERVICE
     COMPONENT --> SIGNALS
     CHAT_SERVICE --> ABSTRACT_CHAT
     CHAT_SERVICE --> CHAT_TRANSPORT
     CHAT_SERVICE --> SIGNALS
     DI_CONTAINER --> CHAT_SERVICE
-    
+
     TEMPLATE -.binds to.-> SIGNALS
 ```
 
@@ -183,13 +181,13 @@ graph TB
 
 Angular 16+ signals would provide reactive state management:
 
-| State Property | Signal Type | Purpose |
-|----------------|-------------|---------|
-| `messages()` | `Signal<UIMessage[]>` | Readonly message list |
-| `input()` | `WritableSignal<string>` | User input binding |
-| `status()` | `Signal<ChatStatus>` | Chat state (ready/submitted/streaming) |
-| `error()` | `Signal<Error \| undefined>` | Error state |
-| `isLoading()` | `Computed<boolean>` | Derived from status |
+| State Property | Signal Type                  | Purpose                                |
+| -------------- | ---------------------------- | -------------------------------------- |
+| `messages()`   | `Signal<UIMessage[]>`        | Readonly message list                  |
+| `input()`      | `WritableSignal<string>`     | User input binding                     |
+| `status()`     | `Signal<ChatStatus>`         | Chat state (ready/submitted/streaming) |
+| `error()`      | `Signal<Error \| undefined>` | Error state                            |
+| `isLoading()`  | `Computed<boolean>`          | Derived from status                    |
 
 This pattern aligns with Angular's shift toward signals as the primary reactivity mechanism, replacing RxJS Observables for simpler use cases.
 
@@ -207,22 +205,22 @@ graph LR
         PKG_JSON["./package.json"]
         DEFAULT[".<br/>Main export"]
     end
-    
+
     subgraph "Module Formats"
         TYPES["types<br/>./dist/index.d.ts"]
         IMPORT["import<br/>./dist/index.mjs"]
         REQUIRE["require<br/>./dist/index.js"]
     end
-    
+
     subgraph "Bundlers"
         ESM_BUNDLER["ESM Bundler<br/>Vite, Webpack 5+"]
         CJS_BUNDLER["CJS Bundler<br/>Node.js, older tools"]
     end
-    
+
     DEFAULT --> TYPES
     DEFAULT --> IMPORT
     DEFAULT --> REQUIRE
-    
+
     IMPORT --> ESM_BUNDLER
     REQUIRE --> CJS_BUNDLER
 ```
@@ -240,21 +238,21 @@ graph TB
     subgraph "Application Layer"
         APP["Angular App<br/>@angular/core >=16.0.0"]
     end
-    
+
     subgraph "@ai-sdk/angular"
         ANGULAR_PKG["@ai-sdk/angular<br/>3.0.0-beta.7"]
     end
-    
+
     subgraph "Workspace Dependencies"
         AI_CORE["ai<br/>7.0.0-beta.7"]
         PROVIDER_UTILS["@ai-sdk/provider-utils<br/>5.0.0-beta.1"]
     end
-    
+
     subgraph "Core Dependencies"
         PROVIDER["@ai-sdk/provider<br/>Provider interfaces"]
         GATEWAY["@ai-sdk/gateway<br/>Model routing"]
     end
-    
+
     APP --> ANGULAR_PKG
     ANGULAR_PKG --> AI_CORE
     ANGULAR_PKG --> PROVIDER_UTILS
@@ -282,15 +280,15 @@ graph LR
         ANGULAR_3["@ai-sdk/angular@3.0.0-beta.7"]
         PROVIDER_5["@ai-sdk/provider-utils@5.0.0-beta.1"]
     end
-    
+
     subgraph "Previous Stable"
         AI_6["ai@6.0.116"]
         ANGULAR_2["@ai-sdk/angular@2.0.116"]
     end
-    
+
     AI_7 -.coordinated release.-> ANGULAR_3
     AI_7 -.coordinated release.-> PROVIDER_5
-    
+
     AI_6 -.previous version.-> AI_7
     ANGULAR_2 -.previous version.-> ANGULAR_3
 ```
@@ -307,11 +305,11 @@ Version bumps are coordinated through Changesets (`.changeset/pre.json` indicate
 
 The Angular package uses Vitest for testing, configured with:
 
-| Script | Command | Purpose |
-|--------|---------|---------|
-| `test` | `vitest --config vitest.config.ts --run` | Run tests once |
-| `test:watch` | `vitest --config vitest.config.ts` | Watch mode for development |
-| `test:update` | `vitest --config vitest.config.ts --run -u` | Update snapshots |
+| Script        | Command                                     | Purpose                    |
+| ------------- | ------------------------------------------- | -------------------------- |
+| `test`        | `vitest --config vitest.config.ts --run`    | Run tests once             |
+| `test:watch`  | `vitest --config vitest.config.ts`          | Watch mode for development |
+| `test:update` | `vitest --config vitest.config.ts --run -u` | Update snapshots           |
 
 The use of `jsdom` as a dev dependency suggests browser environment testing for DOM interactions.
 
@@ -332,16 +330,16 @@ graph TB
     subgraph "Solid Application"
         SOLID_COMPONENT["Solid Component<br/>JSX"]
     end
-    
+
     subgraph "@ai-sdk/solid (Expected)"
         CREATE_CHAT["createChat()<br/>Reactive hook"]
         SOLID_SIGNALS["Solid Signals<br/>createSignal, createMemo"]
     end
-    
+
     subgraph "Core AI SDK"
         ABSTRACT_CHAT["AbstractChat<br/>Base implementation"]
     end
-    
+
     SOLID_COMPONENT --> CREATE_CHAT
     CREATE_CHAT --> SOLID_SIGNALS
     CREATE_CHAT --> ABSTRACT_CHAT
@@ -357,12 +355,12 @@ Solid's reactive primitives (`createSignal`, `createMemo`, `createEffect`) would
 
 ### Package Size and Complexity
 
-| Framework | Package Version | Key Dependencies | Reactivity Model |
-|-----------|----------------|------------------|------------------|
-| React | `@ai-sdk/react@4.0.0-beta.7` | `swr`, `throttleit` | Hooks + External state (SWR) |
-| Vue | `@ai-sdk/vue@4.0.0-beta.7` | `swrv` | Composables + Reactive refs |
-| Svelte | `@ai-sdk/svelte@5.0.0-beta.7` | None (uses $state runes) | Built-in reactivity |
-| Angular | `@ai-sdk/angular@3.0.0-beta.7` | None | Signals (Angular 16+) |
+| Framework | Package Version                | Key Dependencies         | Reactivity Model             |
+| --------- | ------------------------------ | ------------------------ | ---------------------------- |
+| React     | `@ai-sdk/react@4.0.0-beta.7`   | `swr`, `throttleit`      | Hooks + External state (SWR) |
+| Vue       | `@ai-sdk/vue@4.0.0-beta.7`     | `swrv`                   | Composables + Reactive refs  |
+| Svelte    | `@ai-sdk/svelte@5.0.0-beta.7`  | None (uses $state runes) | Built-in reactivity          |
+| Angular   | `@ai-sdk/angular@3.0.0-beta.7` | None                     | Signals (Angular 16+)        |
 
 Angular and Svelte integrations are unique in not requiring external state management libraries, relying entirely on framework-native reactivity systems.
 
@@ -381,11 +379,11 @@ graph LR
         ANGULAR["Angular: 3.0.0-beta.7"]
         RSC["RSC: 3.0.0-beta.7"]
     end
-    
+
     subgraph "Core SDK"
         AI["ai: 7.0.0-beta.7"]
     end
-    
+
     AI -.coordinates.-> SVELTE
     AI -.coordinates.-> REACT
     AI -.coordinates.-> VUE
@@ -394,6 +392,7 @@ graph LR
 ```
 
 The major version numbers differ across framework packages:
+
 - Svelte: v5 (aligns with Svelte 5 requirement)
 - React/Vue: v4
 - Angular/RSC: v3
@@ -417,21 +416,21 @@ graph TB
         BUILD_WATCH["pnpm build:watch<br/>Watch mode compilation"]
         TEST_WATCH["pnpm test:watch<br/>Test watch mode"]
     end
-    
+
     subgraph "Quality Checks"
         LINT["pnpm lint<br/>ESLint check"]
         TYPE_CHECK["pnpm type-check<br/>TypeScript validation"]
         PRETTIER["pnpm prettier-check<br/>Code formatting"]
     end
-    
+
     subgraph "Output"
         DIST["dist/ directory<br/>Compiled outputs"]
     end
-    
+
     INSTALL --> BUILD_WATCH
     BUILD_WATCH --> DIST
     BUILD_WATCH --> TEST_WATCH
-    
+
     LINT -.validation.-> DIST
     TYPE_CHECK -.validation.-> DIST
     PRETTIER -.validation.-> DIST
@@ -453,22 +452,22 @@ graph TB
         CHANGELOG["CHANGELOG.md"]
         README["README.md"]
     end
-    
+
     subgraph "Excluded Files"
         TESTS["src/**/*.test.ts"]
         SNAPSHOTS["src/**/__snapshots__"]
         FIXTURES["src/**/__fixtures__"]
     end
-    
+
     subgraph "NPM Registry"
         PUBLISHED["@ai-sdk/angular<br/>Public package"]
     end
-    
+
     DIST --> PUBLISHED
     SRC --> PUBLISHED
     CHANGELOG --> PUBLISHED
     README --> PUBLISHED
-    
+
     TESTS -.-x PUBLISHED
     SNAPSHOTS -.-x PUBLISHED
     FIXTURES -.-x PUBLISHED
@@ -492,18 +491,18 @@ graph TB
         SVELTE_CLASS["Svelte<br/>Chat class<br/>$state runes"]
         ANGULAR_SERVICE["Angular<br/>ChatService (expected)<br/>signals"]
     end
-    
+
     subgraph "Shared Base"
         ABSTRACT["AbstractChat<br/>Framework-agnostic logic"]
         CHAT_STATE["ChatState interface<br/>messages, status, error"]
         TRANSPORT["ChatTransport<br/>HTTP/custom"]
     end
-    
+
     REACT_HOOK --> ABSTRACT
     VUE_COMPOSABLE --> ABSTRACT
     SVELTE_CLASS --> ABSTRACT
     ANGULAR_SERVICE --> ABSTRACT
-    
+
     ABSTRACT --> CHAT_STATE
     ABSTRACT --> TRANSPORT
 ```

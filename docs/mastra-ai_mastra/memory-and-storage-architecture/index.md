@@ -33,8 +33,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page provides an overview of Mastra's memory and storage architecture, which enables agents to maintain conversation context, persist data, and retrieve relevant information across sessions. The architecture separates concerns between:
@@ -58,40 +56,40 @@ graph TB
     subgraph "User-Facing Memory Classes"
         Memory["Memory<br/>(packages/memory/src/index.ts)"]
     end
-    
+
     subgraph "Core Abstraction Layer"
         MastraMemory["MastraMemory<br/>(packages/core/src/memory/memory.ts)"]
         MastraBase["MastraBase"]
     end
-    
+
     subgraph "Configuration and Types"
         MemoryConfig["MemoryConfig<br/>MemoryConfigInternal"]
         SharedMemoryConfig["SharedMemoryConfig"]
         ThreadOMMetadata["ThreadOMMetadata"]
         WorkingMemory["WorkingMemory"]
     end
-    
+
     subgraph "Storage Interfaces"
         MastraCompositeStore["MastraCompositeStore<br/>(packages/core/src/storage)"]
         MemoryStorage["MemoryStorage<br/>interface"]
     end
-    
+
     subgraph "Vector Interfaces"
         MastraVector["MastraVector<br/>interface"]
         MastraEmbeddingModel["MastraEmbeddingModel"]
     end
-    
+
     Memory -->|extends| MastraMemory
     MastraMemory -->|extends| MastraBase
     Memory -->|uses| MemoryConfig
     MastraMemory -->|uses| SharedMemoryConfig
-    
+
     Memory -->|requires| MastraCompositeStore
     MastraCompositeStore -->|provides| MemoryStorage
-    
+
     Memory -->|optional| MastraVector
     Memory -->|optional| MastraEmbeddingModel
-    
+
     MemoryConfig -->|contains| WorkingMemory
     MemoryConfig -->|contains| ThreadOMMetadata
 ```
@@ -111,12 +109,12 @@ graph TB
         Memory_saveMessages["memory.saveMessages()"]
         Memory_listThreads["memory.listThreads()"]
     end
-    
+
     subgraph "Storage Abstraction"
         MastraCompositeStore["MastraCompositeStore"]
         getStore["getStore('memory')"]
     end
-    
+
     subgraph "Memory Domain Interface"
         MemoryStorage["MemoryStorage interface"]
         listMessages["listMessages()"]
@@ -129,26 +127,26 @@ graph TB
         updateResource["updateResource()"]
         getResourceById["getResourceById()"]
     end
-    
+
     subgraph "Storage Adapters"
         PostgresStore["PostgresStore<br/>(stores/pg)"]
         LibSQLStore["LibSQLStore<br/>(stores/libsql)"]
         UpstashStore["UpstashStore<br/>(stores/upstash)"]
         InMemoryStore["InMemoryStore<br/>(core)"]
     end
-    
+
     subgraph "Database Tables"
         threads["threads table"]
         messages["messages table"]
         resources["resources table"]
     end
-    
+
     Memory_recall --> getStore
     Memory_saveMessages --> getStore
     Memory_listThreads --> getStore
-    
+
     getStore --> MemoryStorage
-    
+
     MemoryStorage --> listMessages
     MemoryStorage --> saveMessages
     MemoryStorage --> getThreadById
@@ -158,12 +156,12 @@ graph TB
     MemoryStorage --> deleteThread
     MemoryStorage --> updateResource
     MemoryStorage --> getResourceById
-    
+
     PostgresStore -.implements.-> MemoryStorage
     LibSQLStore -.implements.-> MemoryStorage
     UpstashStore -.implements.-> MemoryStorage
     InMemoryStore -.implements.-> MemoryStorage
-    
+
     PostgresStore --> threads
     PostgresStore --> messages
     PostgresStore --> resources
@@ -184,14 +182,14 @@ graph TB
         InputProcessors["Input Processors"]
         OutputProcessors["Output Processors"]
     end
-    
+
     subgraph "Memory Types (Runtime)"
         MessageHistory["MessageHistory<br/>Recent conversation"]
         WorkingMemory_Processor["WorkingMemory<br/>Structured state"]
         SemanticRecall["SemanticRecall<br/>Vector retrieval"]
         ObservationalMemory["ObservationalMemory<br/>Long-term context"]
     end
-    
+
     subgraph "Memory Storage"
         Memory_Class["Memory class"]
         recall["recall()"]
@@ -199,42 +197,42 @@ graph TB
         getWorkingMemory["getWorkingMemory()"]
         updateWorkingMemory["updateWorkingMemory()"]
     end
-    
+
     subgraph "Storage Layer"
         MemoryStorage_Domain["MemoryStorage domain"]
         messages_table["messages table"]
         threads_table["threads table<br/>(metadata.workingMemory)"]
         resources_table["resources table<br/>(workingMemory field)"]
     end
-    
+
     subgraph "Vector Layer"
         VectorIndex["Vector Index<br/>(memory_messages_1536)"]
         Embedder["Embedding Model"]
     end
-    
+
     Agent --> InputProcessors
     InputProcessors --> MessageHistory
     InputProcessors --> WorkingMemory_Processor
     InputProcessors --> SemanticRecall
     InputProcessors --> ObservationalMemory
-    
+
     MessageHistory --> recall
     WorkingMemory_Processor --> getWorkingMemory
     SemanticRecall --> recall
-    
+
     Agent --> OutputProcessors
     OutputProcessors --> saveMessages
     OutputProcessors --> updateWorkingMemory
-    
+
     recall --> MemoryStorage_Domain
     saveMessages --> MemoryStorage_Domain
     getWorkingMemory --> MemoryStorage_Domain
     updateWorkingMemory --> MemoryStorage_Domain
-    
+
     MemoryStorage_Domain --> messages_table
     MemoryStorage_Domain --> threads_table
     MemoryStorage_Domain --> resources_table
-    
+
     saveMessages --> Embedder
     Embedder --> VectorIndex
     SemanticRecall --> VectorIndex
@@ -257,35 +255,35 @@ graph LR
         embedMessageContent["embedMessageContent()"]
         createEmbeddingIndex["createEmbeddingIndex()"]
     end
-    
+
     subgraph "Embedding Generation"
         chunkText["chunkText()"]
         embedMany["embedMany()<br/>(AI SDK v4/v5/v6)"]
         embeddingCache["embeddingCache<br/>(xxhash keyed)"]
     end
-    
+
     subgraph "Vector Store"
         vectorUpsert["vector.upsert()"]
         indexName["Index Name<br/>memory_messages_1536"]
         metadata["Metadata<br/>{message_id, thread_id, resource_id}"]
     end
-    
+
     subgraph "Semantic Recall Flow"
         recall_vectorSearch["recall(vectorSearchString)"]
         vectorQuery["vector.query()"]
         includeMessages["Include surrounding messages<br/>(before/after range)"]
     end
-    
+
     saveMessages --> embedMessageContent
     embedMessageContent --> chunkText
     chunkText --> embedMany
     embedMany --> embeddingCache
     embedMessageContent --> createEmbeddingIndex
     embedMessageContent --> vectorUpsert
-    
+
     vectorUpsert --> indexName
     vectorUpsert --> metadata
-    
+
     recall_vectorSearch --> vectorQuery
     vectorQuery --> indexName
     vectorQuery --> includeMessages
@@ -299,10 +297,10 @@ graph LR
 
 Working memory can be scoped at either the **resource** level (shared across threads) or **thread** level (isolated per conversation).
 
-| Scope | Storage Location | Use Case | Access Pattern |
-|-------|-----------------|----------|----------------|
-| `resource` (default) | `resources.workingMemory` field | User preferences, facts that persist across conversations | Shared by all threads for same `resourceId` |
-| `thread` | `threads.metadata.workingMemory` field | Conversation-specific context | Isolated per thread |
+| Scope                | Storage Location                       | Use Case                                                  | Access Pattern                              |
+| -------------------- | -------------------------------------- | --------------------------------------------------------- | ------------------------------------------- |
+| `resource` (default) | `resources.workingMemory` field        | User preferences, facts that persist across conversations | Shared by all threads for same `resourceId` |
+| `thread`             | `threads.metadata.workingMemory` field | Conversation-specific context                             | Isolated per thread                         |
 
 ```mermaid
 graph TB
@@ -312,7 +310,7 @@ graph TB
         Thread2["Thread 2"]
         Thread3["Thread 3"]
         ResourceWM["resources.workingMemory<br/>{firstName, lastName, preferences}"]
-        
+
         Resource --> Thread1
         Resource --> Thread2
         Resource --> Thread3
@@ -320,13 +318,13 @@ graph TB
         Thread2 -.reads/writes.-> ResourceWM
         Thread3 -.reads/writes.-> ResourceWM
     end
-    
+
     subgraph "Thread-Scoped Working Memory"
         ThreadA["Thread A"]
         ThreadB["Thread B"]
         ThreadAWM["threads[A].metadata.workingMemory<br/>{currentTopic, conversationState}"]
         ThreadBWM["threads[B].metadata.workingMemory<br/>{currentTopic, conversationState}"]
-        
+
         ThreadA --> ThreadAWM
         ThreadB --> ThreadBWM
     end
@@ -348,31 +346,31 @@ graph TB
         LLM["LLM generates tool call"]
         updateWorkingMemoryTool["updateWorkingMemory tool"]
     end
-    
+
     subgraph "Tool Execution"
         getWorkingMemory["memory.getWorkingMemory()"]
         parseExisting["JSON.parse(existing)"]
         deepMergeWorkingMemory["deepMergeWorkingMemory()"]
         updateWorkingMemory["memory.updateWorkingMemory()"]
     end
-    
+
     subgraph "Merge Logic"
         nullDelete["null → delete property"]
         arrayReplace["array → replace entirely"]
         objectRecurse["object → recursive merge"]
         primitiveOverwrite["primitive → overwrite"]
     end
-    
+
     LLM --> updateWorkingMemoryTool
     updateWorkingMemoryTool --> getWorkingMemory
     getWorkingMemory --> parseExisting
     parseExisting --> deepMergeWorkingMemory
-    
+
     deepMergeWorkingMemory --> nullDelete
     deepMergeWorkingMemory --> arrayReplace
     deepMergeWorkingMemory --> objectRecurse
     deepMergeWorkingMemory --> primitiveOverwrite
-    
+
     deepMergeWorkingMemory --> updateWorkingMemory
 ```
 
@@ -393,45 +391,45 @@ graph TB
         vectorSearchString["vectorSearchString (optional)"]
         threadConfig["threadConfig (optional)"]
     end
-    
+
     subgraph "Configuration Merging"
         getMergedThreadConfig["getMergedThreadConfig()"]
         effectivePerPage["Effective perPage<br/>(arg || config.lastMessages)"]
         historyDisabled["historyDisabledByConfig<br/>(lastMessages: false)"]
     end
-    
+
     subgraph "Vector Search (if enabled)"
         embedMessageContent_recall["embedMessageContent()"]
         vectorQuery_recall["vector.query()"]
         vectorResults["Vector results<br/>(ids, scores, metadata)"]
     end
-    
+
     subgraph "Storage Query"
         listMessages["memoryStore.listMessages()"]
         orderByDESC["orderBy: DESC<br/>(get newest)"]
         includeVectorResults["include: vector IDs<br/>+ messageRange"]
         reverseResults["Reverse to chronological"]
     end
-    
+
     subgraph "Message Processing"
         MessageList_construct["new MessageList()"]
         getAll["list.get.all.db()"]
     end
-    
+
     threadId --> getMergedThreadConfig
     threadConfig --> getMergedThreadConfig
     getMergedThreadConfig --> effectivePerPage
     getMergedThreadConfig --> historyDisabled
-    
+
     vectorSearchString --> embedMessageContent_recall
     embedMessageContent_recall --> vectorQuery_recall
     vectorQuery_recall --> vectorResults
-    
+
     effectivePerPage --> listMessages
     vectorResults --> includeVectorResults
     includeVectorResults --> listMessages
     orderByDESC --> listMessages
-    
+
     listMessages --> reverseResults
     reverseResults --> MessageList_construct
     MessageList_construct --> getAll
@@ -447,12 +445,12 @@ All storage adapters implement the `MemoryStorage` interface, allowing different
 
 ### Adapter Implementations
 
-| Adapter | Package | Database | Vector Support | Use Case |
-|---------|---------|----------|----------------|----------|
-| `PostgresStore` | `@mastra/pg` | PostgreSQL + pgvector | Yes (via `PgVector`) | Production, complex queries |
-| `LibSQLStore` | `@mastra/libsql` | LibSQL (SQLite fork) | Yes (via `LibSQLVector`) | Edge, serverless |
-| `UpstashStore` | `@mastra/upstash` | Upstash Redis | Yes (via `UpstashVector`) | Serverless, low-latency |
-| `InMemoryStore` | `@mastra/core` | In-memory | No | Testing, development |
+| Adapter         | Package           | Database              | Vector Support            | Use Case                    |
+| --------------- | ----------------- | --------------------- | ------------------------- | --------------------------- |
+| `PostgresStore` | `@mastra/pg`      | PostgreSQL + pgvector | Yes (via `PgVector`)      | Production, complex queries |
+| `LibSQLStore`   | `@mastra/libsql`  | LibSQL (SQLite fork)  | Yes (via `LibSQLVector`)  | Edge, serverless            |
+| `UpstashStore`  | `@mastra/upstash` | Upstash Redis         | Yes (via `UpstashVector`) | Serverless, low-latency     |
+| `InMemoryStore` | `@mastra/core`    | In-memory             | No                        | Testing, development        |
 
 ```mermaid
 graph TB
@@ -465,34 +463,34 @@ graph TB
         updateResource_sig["updateResource(args)"]
         getResourceById_sig["getResourceById(resourceId)"]
     end
-    
+
     subgraph "PostgreSQL Adapter"
         PostgresStore_impl["PostgresStore"]
         pgPool["pg.Pool"]
         pgVector["pgvector extension"]
     end
-    
+
     subgraph "LibSQL Adapter"
         LibSQLStore_impl["LibSQLStore"]
         libsqlClient["@libsql/client"]
     end
-    
+
     subgraph "Upstash Adapter"
         UpstashStore_impl["UpstashStore"]
         upstashRedis["@upstash/redis"]
     end
-    
+
     MemoryStorage_Interface --> saveMessages_sig
     MemoryStorage_Interface --> listMessages_sig
     MemoryStorage_Interface --> getThreadById_sig
     MemoryStorage_Interface --> listThreads_sig
     MemoryStorage_Interface --> updateResource_sig
     MemoryStorage_Interface --> getResourceById_sig
-    
+
     PostgresStore_impl -.implements.-> MemoryStorage_Interface
     LibSQLStore_impl -.implements.-> MemoryStorage_Interface
     UpstashStore_impl -.implements.-> MemoryStorage_Interface
-    
+
     PostgresStore_impl --> pgPool
     PostgresStore_impl --> pgVector
     LibSQLStore_impl --> libsqlClient
@@ -512,14 +510,14 @@ erDiagram
     resources ||--o{ threads : "owns"
     threads ||--o{ messages : "contains"
     resources ||--o{ messages : "created by"
-    
+
     resources {
         string id PK
         string workingMemory "Resource-scoped working memory"
         timestamp createdAt
         timestamp updatedAt
     }
-    
+
     threads {
         string id PK
         string resourceId FK
@@ -528,7 +526,7 @@ erDiagram
         timestamp createdAt
         timestamp updatedAt
     }
-    
+
     messages {
         string id PK
         string threadId FK
@@ -556,7 +554,7 @@ graph TB
         lastObservedAt["lastObservedAt"]
         lastObservedMessageCursor["lastObservedMessageCursor"]
     end
-    
+
     subgraph "Resource-Level OM Record"
         omRecords["om_records table"]
         recordId["id (resourceId)"]
@@ -565,23 +563,23 @@ graph TB
         patterns["patterns"]
         reflections["reflections"]
     end
-    
+
     subgraph "Helper Functions"
         getThreadOMMetadata["getThreadOMMetadata()"]
         setThreadOMMetadata["setThreadOMMetadata()"]
     end
-    
+
     threadMetadata --> currentTask
     threadMetadata --> suggestedResponse
     threadMetadata --> lastObservedAt
     threadMetadata --> lastObservedMessageCursor
-    
+
     omRecords --> recordId
     omRecords --> activeObservations
     omRecords --> bufferedObservations
     omRecords --> patterns
     omRecords --> reflections
-    
+
     getThreadOMMetadata --> threadMetadata
     setThreadOMMetadata --> threadMetadata
 ```
@@ -599,25 +597,25 @@ Memory behavior is controlled through `MemoryConfig` which supports various opti
 ```typescript
 // From packages/core/src/memory/types.ts
 type MemoryConfig = {
-  lastMessages?: number | false;  // Message history limit
-  semanticRecall?: boolean | SemanticRecall;  // Vector retrieval
-  generateTitle?: boolean;  // Auto-generate thread titles
-  workingMemory?: WorkingMemory;  // Structured state
-  observationalMemory?: boolean | ObservationalMemoryOptions;  // Long-term context
-  readOnly?: boolean;  // Disable writes (for shared contexts)
-};
+  lastMessages?: number | false // Message history limit
+  semanticRecall?: boolean | SemanticRecall // Vector retrieval
+  generateTitle?: boolean // Auto-generate thread titles
+  workingMemory?: WorkingMemory // Structured state
+  observationalMemory?: boolean | ObservationalMemoryOptions // Long-term context
+  readOnly?: boolean // Disable writes (for shared contexts)
+}
 ```
 
 ### Default Configuration
 
-| Option | Default Value | Description |
-|--------|--------------|-------------|
-| `lastMessages` | `10` | Number of recent messages to include |
-| `semanticRecall` | `false` | Disabled by default |
-| `generateTitle` | `false` | No auto-title generation |
-| `workingMemory.enabled` | `false` | Working memory disabled |
-| `workingMemory.scope` | `'resource'` | Resource-scoped when enabled |
-| `observationalMemory` | `undefined` | Disabled by default |
+| Option                  | Default Value | Description                          |
+| ----------------------- | ------------- | ------------------------------------ |
+| `lastMessages`          | `10`          | Number of recent messages to include |
+| `semanticRecall`        | `false`       | Disabled by default                  |
+| `generateTitle`         | `false`       | No auto-title generation             |
+| `workingMemory.enabled` | `false`       | Working memory disabled              |
+| `workingMemory.scope`   | `'resource'`  | Resource-scoped when enabled         |
+| `observationalMemory`   | `undefined`   | Disabled by default                  |
 
 **Sources**: [packages/core/src/memory/memory.ts:79-98](), [packages/memory/src/index.ts:79-93]()
 
@@ -634,38 +632,38 @@ graph LR
         LLM["LLM Execution"]
         OutputProcessors["Output Processors"]
     end
-    
+
     subgraph "Memory as ProcessorProvider"
         getInputProcessors["memory.getInputProcessors()"]
         getOutputProcessors["memory.getOutputProcessors()"]
     end
-    
+
     subgraph "Auto-Registered Processors"
         MessageHistory_Input["MessageHistory<br/>(input)"]
         WorkingMemory_Input["WorkingMemory<br/>(input)"]
         SemanticRecall_Input["SemanticRecall<br/>(input)"]
-        
+
         MessageHistory_Output["MessageHistory<br/>(output)"]
         SemanticRecall_Output["SemanticRecall<br/>(output)"]
     end
-    
+
     getInputProcessors --> MessageHistory_Input
     getInputProcessors --> WorkingMemory_Input
     getInputProcessors --> SemanticRecall_Input
-    
+
     getOutputProcessors --> MessageHistory_Output
     getOutputProcessors --> SemanticRecall_Output
-    
+
     InputProcessors --> MessageHistory_Input
     InputProcessors --> WorkingMemory_Input
     InputProcessors --> SemanticRecall_Input
-    
+
     MessageHistory_Input --> LLM
     WorkingMemory_Input --> LLM
     SemanticRecall_Input --> LLM
-    
+
     LLM --> OutputProcessors
-    
+
     OutputProcessors --> MessageHistory_Output
     OutputProcessors --> SemanticRecall_Output
 ```
@@ -685,13 +683,13 @@ graph TB
         Call2["Agent Call 2<br/>updateWorkingMemory"]
         Call3["Agent Call 3<br/>updateWorkingMemory"]
     end
-    
+
     subgraph "Mutex Management"
         getMutex["Get/Create Mutex<br/>(by scope key)"]
         mutexKey["Mutex Key<br/>resource-{id} or thread-{id}"]
         updateWorkingMemoryMutexes["Map<string, Mutex>"]
     end
-    
+
     subgraph "Protected Update"
         acquireLock["mutex.acquire()"]
         getExisting["getWorkingMemory()"]
@@ -699,15 +697,15 @@ graph TB
         saveToStorage["updateWorkingMemory()"]
         releaseLock["release()"]
     end
-    
+
     Call1 --> getMutex
     Call2 --> getMutex
     Call3 --> getMutex
-    
+
     getMutex --> mutexKey
     mutexKey --> updateWorkingMemoryMutexes
     updateWorkingMemoryMutexes --> acquireLock
-    
+
     acquireLock --> getExisting
     getExisting --> mergeOrReplace
     mergeOrReplace --> saveToStorage
@@ -725,23 +723,23 @@ Messages are stored in a V2 format with a `parts` array for structured content r
 ```typescript
 // From packages/core/src/agent/message-list.ts
 type MastraDBMessage = {
-  id: string;
-  threadId?: string;
-  resourceId?: string;
-  role: 'user' | 'assistant' | 'system' | 'tool';
+  id: string
+  threadId?: string
+  resourceId?: string
+  role: 'user' | 'assistant' | 'system' | 'tool'
   content: {
-    format: 2;
-    content?: string;  // Plain text representation
+    format: 2
+    content?: string // Plain text representation
     parts: Array<
       | { type: 'text'; text: string }
       | { type: 'image'; image: string | Uint8Array }
       | { type: 'tool-invocation'; toolInvocation: ToolInvocation }
       | { type: 'file'; data: string | Uint8Array; mimeType: string }
-    >;
-    experimental_attachments?: Attachment[];
-  };
-  createdAt: Date;
-};
+    >
+    experimental_attachments?: Attachment[]
+  }
+  createdAt: Date
+}
 ```
 
 **Sources**: [packages/core/src/agent/message-list.ts](), [packages/memory/src/index.ts:869-912]()

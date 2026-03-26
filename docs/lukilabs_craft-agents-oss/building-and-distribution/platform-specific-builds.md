@@ -10,8 +10,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents how to produce distributable builds of the Craft Agents Electron application for each supported target platform: macOS (arm64 and x64 DMGs), Windows (NSIS installer), and Linux. It covers the platform-specific scripts, the OAuth environment variable injection differences between platforms, and the invocation order for each target.
 
 For the general build pipeline (esbuild, Vite, preload, renderer) that runs before packaging, see [Build System](#5.2). For the `electron-builder.yml` configuration, asset bundling, and `extraResources`, see [Electron Packaging](#6.2).
@@ -22,12 +20,12 @@ For the general build pipeline (esbuild, Vite, preload, renderer) that runs befo
 
 The monorepo exposes two levels of distribution scripts: root-level convenience scripts in `package.json` and platform-level scripts inside `apps/electron/package.json`.
 
-| Platform | Root Script | Electron Package Script | Underlying Tool |
-|---|---|---|---|
-| macOS arm64 | `electron:dist:mac` | `dist:mac` | `build-dmg.sh arm64` |
-| macOS x64 | _(invoke directly)_ | `dist:mac:x64` | `build-dmg.sh x64` |
-| Windows | `electron:dist:win` | `dist:win` | `build-win.ps1` |
-| Linux | `electron:dist:linux` | _(via electron-builder)_ | `electron-builder --linux` |
+| Platform    | Root Script           | Electron Package Script  | Underlying Tool            |
+| ----------- | --------------------- | ------------------------ | -------------------------- |
+| macOS arm64 | `electron:dist:mac`   | `dist:mac`               | `build-dmg.sh arm64`       |
+| macOS x64   | _(invoke directly)_   | `dist:mac:x64`           | `build-dmg.sh x64`         |
+| Windows     | `electron:dist:win`   | `dist:win`               | `build-win.ps1`            |
+| Linux       | `electron:dist:linux` | _(via electron-builder)_ | `electron-builder --linux` |
 
 Sources: [package.json:38-41](), [apps/electron/package.json:32-35]()
 
@@ -82,10 +80,10 @@ Sources: [package.json:27-41](), [apps/electron/package.json:18-35]()
 
 macOS distribution is triggered through `apps/electron/scripts/build-dmg.sh`, which accepts a single architecture argument.
 
-| Invocation | Architecture | Output |
-|---|---|---|
-| `dist:mac` → `build-dmg.sh arm64` | Apple Silicon | `.dmg` (arm64) |
-| `dist:mac:x64` → `build-dmg.sh x64` | Intel | `.dmg` (x64) |
+| Invocation                          | Architecture  | Output         |
+| ----------------------------------- | ------------- | -------------- |
+| `dist:mac` → `build-dmg.sh arm64`   | Apple Silicon | `.dmg` (arm64) |
+| `dist:mac:x64` → `build-dmg.sh x64` | Intel         | `.dmg` (x64)   |
 
 From the root workspace, the shortcut `electron:dist:mac` runs `electron:build` followed by `electron-builder --config electron-builder.yml --project apps/electron --mac`.
 
@@ -101,13 +99,13 @@ source ../../.env 2>/dev/null || true
 
 This injects OAuth client IDs and secrets as compile-time `--define` flags directly into the bundled `dist/main.cjs`:
 
-| `--define` key | Environment variable |
-|---|---|
-| `process.env.GOOGLE_OAUTH_CLIENT_ID` | `GOOGLE_OAUTH_CLIENT_ID` |
+| `--define` key                           | Environment variable         |
+| ---------------------------------------- | ---------------------------- |
+| `process.env.GOOGLE_OAUTH_CLIENT_ID`     | `GOOGLE_OAUTH_CLIENT_ID`     |
 | `process.env.GOOGLE_OAUTH_CLIENT_SECRET` | `GOOGLE_OAUTH_CLIENT_SECRET` |
-| `process.env.SLACK_OAUTH_CLIENT_ID` | `SLACK_OAUTH_CLIENT_ID` |
-| `process.env.SLACK_OAUTH_CLIENT_SECRET` | `SLACK_OAUTH_CLIENT_SECRET` |
-| `process.env.MICROSOFT_OAUTH_CLIENT_ID` | `MICROSOFT_OAUTH_CLIENT_ID` |
+| `process.env.SLACK_OAUTH_CLIENT_ID`      | `SLACK_OAUTH_CLIENT_ID`      |
+| `process.env.SLACK_OAUTH_CLIENT_SECRET`  | `SLACK_OAUTH_CLIENT_SECRET`  |
+| `process.env.MICROSOFT_OAUTH_CLIENT_ID`  | `MICROSOFT_OAUTH_CLIENT_ID`  |
 
 Sources: [apps/electron/package.json:18]()
 
@@ -219,10 +217,10 @@ flowchart LR
 
 **`apps/electron/package.json` platform scripts**
 
-| Script | Shell | Invokes |
-|---|---|---|
-| `dist:mac` | bash | `scripts/build-dmg.sh arm64` |
-| `dist:mac:x64` | bash | `scripts/build-dmg.sh x64` |
-| `dist:win` | PowerShell | `scripts/build-win.ps1` |
+| Script         | Shell      | Invokes                      |
+| -------------- | ---------- | ---------------------------- |
+| `dist:mac`     | bash       | `scripts/build-dmg.sh arm64` |
+| `dist:mac:x64` | bash       | `scripts/build-dmg.sh x64`   |
+| `dist:win`     | PowerShell | `scripts/build-win.ps1`      |
 
 Sources: [package.json:38-41](), [apps/electron/package.json:32-35]()

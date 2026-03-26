@@ -33,8 +33,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page catalogs the quickstart guides and runnable example applications in the `vercel/ai` repository. It describes what each example demonstrates, which packages it uses, and where to find it in the source tree.
 
 For deep documentation on the core SDK functions used across these examples — such as `streamText`, `generateText`, and `useChat` — see page [2](). For provider-specific setup, see page [3](). For UI integration details, see page [4]().
@@ -45,10 +43,10 @@ For deep documentation on the core SDK functions used across these examples — 
 
 The repository splits learning material into two forms:
 
-| Type | Location | Purpose |
-|---|---|---|
-| Quickstart guides | `content/docs/02-getting-started/` | Step-by-step instructions for building a first app |
-| Runnable examples | `examples/` | Fully wired applications that can be cloned and run |
+| Type              | Location                           | Purpose                                             |
+| ----------------- | ---------------------------------- | --------------------------------------------------- |
+| Quickstart guides | `content/docs/02-getting-started/` | Step-by-step instructions for building a first app  |
+| Runnable examples | `examples/`                        | Fully wired applications that can be cloned and run |
 
 Each quickstart document has a corresponding runnable example application. The examples are included in the pnpm workspace and reference workspace-local packages via `workspace:*` or pinned version links.
 
@@ -62,14 +60,14 @@ Quickstart guides live in `content/docs/02-getting-started/` and teach the minim
 
 All quickstart guides default to the Vercel AI Gateway as the model provider, configured via the `AI_GATEWAY_API_KEY` environment variable. The provider can be replaced with any SDK provider without changing other code.
 
-| File | Framework | UI Package |
-|---|---|---|
-| `02-nextjs-app-router.mdx` | Next.js App Router | `@ai-sdk/react` |
-| `03-nextjs-pages-router.mdx` | Next.js Pages Router | `@ai-sdk/react` |
-| `04-svelte.mdx` | SvelteKit | `@ai-sdk/svelte` |
-| `05-nuxt.mdx` | Nuxt (Vue) | `@ai-sdk/vue` |
-| `06-nodejs.mdx` | Node.js (CLI) | none |
-| `07-expo.mdx` | Expo (React Native) | `@ai-sdk/react` |
+| File                         | Framework            | UI Package       |
+| ---------------------------- | -------------------- | ---------------- |
+| `02-nextjs-app-router.mdx`   | Next.js App Router   | `@ai-sdk/react`  |
+| `03-nextjs-pages-router.mdx` | Next.js Pages Router | `@ai-sdk/react`  |
+| `04-svelte.mdx`              | SvelteKit            | `@ai-sdk/svelte` |
+| `05-nuxt.mdx`                | Nuxt (Vue)           | `@ai-sdk/vue`    |
+| `06-nodejs.mdx`              | Node.js (CLI)        | none             |
+| `07-expo.mdx`                | Expo (React Native)  | `@ai-sdk/react`  |
 
 **Sources:** [content/docs/02-getting-started/02-nextjs-app-router.mdx:1-130](), [content/docs/02-getting-started/04-svelte.mdx:1-80](), [content/docs/02-getting-started/05-nuxt.mdx:1-130](), [content/docs/02-getting-started/06-nodejs.mdx:1-70](), [content/docs/02-getting-started/07-expo.mdx:1-80]()
 
@@ -189,15 +187,15 @@ graph TD
 
 For detailed documentation, see page [5.1]().
 
-| Example | Directory | Key Packages |
-|---|---|---|
-| App Router basic chat | `examples/next` | `ai`, `@ai-sdk/react`, `resumable-stream` |
-| Agent with tools | `examples/next-agent` | `ai`, `@ai-sdk/openai`, `@ai-sdk/react` |
-| Pages Router | `examples/next-openai-pages` | `ai`, `@ai-sdk/openai`, `@ai-sdk/react` |
-| LangChain + LangGraph | `examples/next-langchain` | `ai`, `@ai-sdk/langchain`, `@langchain/langgraph` |
-| Google Vertex AI | `examples/next-google-vertex` | `ai`, `@ai-sdk/google-vertex` |
-| Python FastAPI backend | `examples/next-fastapi` | `ai`, `@ai-sdk/react` (frontend) + Python uvicorn (backend) |
-| E2E test suite | `examples/ai-e2e-next` | Most provider packages, `@ai-sdk/mcp`, `resumable-stream` |
+| Example                | Directory                     | Key Packages                                                |
+| ---------------------- | ----------------------------- | ----------------------------------------------------------- |
+| App Router basic chat  | `examples/next`               | `ai`, `@ai-sdk/react`, `resumable-stream`                   |
+| Agent with tools       | `examples/next-agent`         | `ai`, `@ai-sdk/openai`, `@ai-sdk/react`                     |
+| Pages Router           | `examples/next-openai-pages`  | `ai`, `@ai-sdk/openai`, `@ai-sdk/react`                     |
+| LangChain + LangGraph  | `examples/next-langchain`     | `ai`, `@ai-sdk/langchain`, `@langchain/langgraph`           |
+| Google Vertex AI       | `examples/next-google-vertex` | `ai`, `@ai-sdk/google-vertex`                               |
+| Python FastAPI backend | `examples/next-fastapi`       | `ai`, `@ai-sdk/react` (frontend) + Python uvicorn (backend) |
+| E2E test suite         | `examples/ai-e2e-next`        | Most provider packages, `@ai-sdk/mcp`, `resumable-stream`   |
 
 The `examples/next` application demonstrates resumable streams using the `resumable-stream` package and `redis` for persistence. The `examples/next-agent` application adds OpenAI-specific tools on top of the basic pattern.
 
@@ -211,12 +209,12 @@ The `examples/ai-e2e-next` application is the broadest, pulling in nearly every 
 
 For detailed documentation, see page [5.2]().
 
-| Example | Directory | Key Packages | Dev Script |
-|---|---|---|---|
-| SvelteKit | `examples/sveltekit-openai` | `@ai-sdk/svelte`, `@ai-sdk/openai`, `ai` | `vite dev` |
-| Nuxt (Vue) | `examples/nuxt-openai` | `@ai-sdk/vue`, `@ai-sdk/openai`, `ai` | `nuxt dev` |
-| Angular | `examples/angular` | `@ai-sdk/angular`, `@ai-sdk/openai`, `express` | `concurrently` (Angular CLI + Express) |
-| Expo (React Native) | (quickstart only, no full example) | `@ai-sdk/react`, `ai` | — |
+| Example             | Directory                          | Key Packages                                   | Dev Script                             |
+| ------------------- | ---------------------------------- | ---------------------------------------------- | -------------------------------------- |
+| SvelteKit           | `examples/sveltekit-openai`        | `@ai-sdk/svelte`, `@ai-sdk/openai`, `ai`       | `vite dev`                             |
+| Nuxt (Vue)          | `examples/nuxt-openai`             | `@ai-sdk/vue`, `@ai-sdk/openai`, `ai`          | `nuxt dev`                             |
+| Angular             | `examples/angular`                 | `@ai-sdk/angular`, `@ai-sdk/openai`, `express` | `concurrently` (Angular CLI + Express) |
+| Expo (React Native) | (quickstart only, no full example) | `@ai-sdk/react`, `ai`                          | —                                      |
 
 The Angular example runs an Express server (`express: 5.0.1`) alongside the Angular dev server, managed with `concurrently`. The SvelteKit example uses Vite and the `@sveltejs/adapter-vercel` adapter.
 
@@ -230,14 +228,14 @@ For detailed documentation, see page [5.3]().
 
 All server framework examples follow the same pattern: accept a POST request, pipe the body into `streamText`, and pipe the resulting stream back to the HTTP response. None include a browser-side UI component; they are designed to be called with `curl` or a custom client.
 
-| Example | Directory | Framework | Version |
-|---|---|---|---|
-| Express | `examples/express` | `express` | 5.0.1 |
-| Fastify | `examples/fastify` | `fastify` | 5.1.0 |
-| Hono | `examples/hono` | `hono` + `@hono/node-server` | 4.6.9 |
-| NestJS | `examples/nest` | `@nestjs/platform-express` | 10.x |
-| Node.js HTTP | `examples/node-http-server` | Node.js built-ins | — |
-| MCP server | `examples/mcp` | `express` + `@modelcontextprotocol/sdk` | — |
+| Example      | Directory                   | Framework                               | Version |
+| ------------ | --------------------------- | --------------------------------------- | ------- |
+| Express      | `examples/express`          | `express`                               | 5.0.1   |
+| Fastify      | `examples/fastify`          | `fastify`                               | 5.1.0   |
+| Hono         | `examples/hono`             | `hono` + `@hono/node-server`            | 4.6.9   |
+| NestJS       | `examples/nest`             | `@nestjs/platform-express`              | 10.x    |
+| Node.js HTTP | `examples/node-http-server` | Node.js built-ins                       | —       |
+| MCP server   | `examples/mcp`              | `express` + `@modelcontextprotocol/sdk` | —       |
 
 All server examples use `tsx` for TypeScript execution during development. The `examples/hono` package also includes a `hono-streaming.ts` entry point demonstrating Hono's native streaming helpers alongside the AI SDK.
 
@@ -253,15 +251,15 @@ For detailed documentation, see page [5.4]().
 
 These examples show how to layer production concerns on top of a working chat API.
 
-| Example | Directory | Added Concern | Key Dependencies |
-|---|---|---|---|
-| Rate limiting | `examples/next-openai-upstash-rate-limits` | Upstash Ratelimit + Vercel KV | `@upstash/ratelimit`, `@vercel/kv`, `sonner` |
-| Bot protection | `examples/next-openai-kasada-bot-protection` | Kasada bot detection | `@vercel/functions`, `sonner` |
-| OpenTelemetry | `examples/next-openai-telemetry` | `@vercel/otel` tracing | `@vercel/otel`, `@opentelemetry/api-logs` |
-| OTel + Sentry | `examples/next-openai-telemetry-sentry` | Sentry error reporting | `@sentry/nextjs`, `@sentry/opentelemetry`, `@vercel/otel` |
-| LangChain | `examples/next-langchain` | LangGraph agent backend | `@ai-sdk/langchain`, `@langchain/langgraph` |
-| Google Vertex | `examples/next-google-vertex` | Vertex AI auth | `@ai-sdk/google-vertex` |
-| FastAPI backend | `examples/next-fastapi` | Python AI backend | Python uvicorn + FastAPI (separate process) |
+| Example         | Directory                                    | Added Concern                 | Key Dependencies                                          |
+| --------------- | -------------------------------------------- | ----------------------------- | --------------------------------------------------------- |
+| Rate limiting   | `examples/next-openai-upstash-rate-limits`   | Upstash Ratelimit + Vercel KV | `@upstash/ratelimit`, `@vercel/kv`, `sonner`              |
+| Bot protection  | `examples/next-openai-kasada-bot-protection` | Kasada bot detection          | `@vercel/functions`, `sonner`                             |
+| OpenTelemetry   | `examples/next-openai-telemetry`             | `@vercel/otel` tracing        | `@vercel/otel`, `@opentelemetry/api-logs`                 |
+| OTel + Sentry   | `examples/next-openai-telemetry-sentry`      | Sentry error reporting        | `@sentry/nextjs`, `@sentry/opentelemetry`, `@vercel/otel` |
+| LangChain       | `examples/next-langchain`                    | LangGraph agent backend       | `@ai-sdk/langchain`, `@langchain/langgraph`               |
+| Google Vertex   | `examples/next-google-vertex`                | Vertex AI auth                | `@ai-sdk/google-vertex`                                   |
+| FastAPI backend | `examples/next-fastapi`                      | Python AI backend             | Python uvicorn + FastAPI (separate process)               |
 
 **Sources:** [examples/next-openai-upstash-rate-limits/package.json:1-33](), [examples/next-openai-kasada-bot-protection/package.json:1-32](), [examples/next-openai-telemetry/package.json:1-35](), [examples/next-openai-telemetry-sentry/package.json:1-37]()
 
@@ -335,9 +333,9 @@ graph LR
 
 ## Sub-pages
 
-| Page | Content |
-|---|---|
-| [5.1]() | Next.js App Router and Pages Router examples in detail |
-| [5.2]() | SvelteKit, Nuxt, and Expo examples |
-| [5.3]() | Express, Fastify, Hono, NestJS, and Node.js HTTP server examples |
+| Page    | Content                                                                                          |
+| ------- | ------------------------------------------------------------------------------------------------ |
+| [5.1]() | Next.js App Router and Pages Router examples in detail                                           |
+| [5.2]() | SvelteKit, Nuxt, and Expo examples                                                               |
+| [5.3]() | Express, Fastify, Hono, NestJS, and Node.js HTTP server examples                                 |
 | [5.4]() | Production examples: rate limiting, bot protection, telemetry, LangChain, Google Vertex, FastAPI |

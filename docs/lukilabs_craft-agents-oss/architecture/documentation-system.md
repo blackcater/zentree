@@ -10,8 +10,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 The Documentation System provides built-in reference material that agents use when performing configuration tasks, along with contextual help links for users in the UI. The system manages two types of documentation: (1) markdown files stored at `~/.craft-agent/docs/` that agents can read to understand how to configure sources, skills, permissions, and other features, and (2) online documentation links with summaries displayed in UI help popovers.
@@ -30,15 +28,15 @@ graph TB
         ResourcesDocs["apps/electron/resources/docs/*.md"]
         AssetLoader["getBundledAssetsDir('docs')"]
         BundledCache["_bundledDocs cache<br/>(lazy-loaded)"]
-        
+
         ResourcesDocs --> AssetLoader
         AssetLoader --> BundledCache
     end
-    
+
     subgraph "Local Synchronized Docs"
         DocsDir["~/.craft-agent/docs/"]
         InitDocs["initializeDocs()"]
-        
+
         DocsDir --> SourcesMd["sources.md"]
         DocsDir --> PermissionsMd["permissions.md"]
         DocsDir --> SkillsMd["skills.md"]
@@ -49,35 +47,35 @@ graph TB
         DocsDir --> MermaidMd["mermaid.md"]
         DocsDir --> DataTablesMd["data-tables.md"]
         DocsDir --> ToolIconsMd["tool-icons.md"]
-        
+
         BundledCache --> InitDocs
         InitDocs --> DocsDir
     end
-    
+
     subgraph "Agent Access"
         DocRefs["DOC_REFS constants"]
         AgentTools["Session-scoped tools"]
         SystemPrompts["Agent system prompts"]
-        
+
         DocRefs --> DocsDir
         AgentTools --> DocRefs
         SystemPrompts --> DocRefs
     end
-    
+
     subgraph "UI Documentation Links"
         DocLinks["DOCS registry"]
         OnlineDocs["https://agents.craft.do/docs"]
         HelpPopovers["UI help popovers"]
-        
+
         DocLinks --> OnlineDocs
         HelpPopovers --> DocLinks
     end
-    
+
     subgraph "Source Guides"
         SourceGuideParser["parseSourceGuide()"]
         GuideRetrieval["getSourceGuide(slug)"]
         DomainLookup["getSourceGuideForDomain(url)"]
-        
+
         DocsDir --> SourceGuideParser
         SourceGuideParser --> GuideRetrieval
         SourceGuideParser --> DomainLookup
@@ -92,18 +90,18 @@ graph TB
 
 The system maintains several categories of documentation files that serve different purposes for agents and users.
 
-| File Name | Purpose | Referenced By | Key Content |
-|-----------|---------|---------------|-------------|
-| `sources.md` | Guide for connecting external data sources | `config_validate`, `source_test` tools | MCP server setup, REST API configuration, local filesystem access |
-| `permissions.md` | Explanation of permission modes | Agent system prompts | Safe mode, Ask to Edit, Allow All behavior |
-| `skills.md` | How to create and use reusable instructions | `skill_validate` tool | SKILL.md format, @mention syntax, parameter binding |
-| `themes.md` | Theme customization reference | UI settings, agents | 6-color system, theme.json structure, preset themes |
-| `statuses.md` | Status workflow configuration | Agents, UI | Open/closed states, custom status definitions |
-| `labels.md` | Label system and auto-apply rules | Agents, UI | Hierarchical labels, regex matchers, typed values |
-| `hooks.md` | Event-driven automation guide | Agents | Hook configuration, event types, command/prompt actions |
-| `mermaid.md` | Mermaid diagram syntax reference | `mermaid_validate` tool | Supported diagram types, syntax examples |
-| `data-tables.md` | Data table formatting guide | Agents | Structured data presentation |
-| `tool-icons.md` | Custom tool icon configuration | Agents, UI | Icon mapping for MCP tools |
+| File Name        | Purpose                                     | Referenced By                          | Key Content                                                       |
+| ---------------- | ------------------------------------------- | -------------------------------------- | ----------------------------------------------------------------- |
+| `sources.md`     | Guide for connecting external data sources  | `config_validate`, `source_test` tools | MCP server setup, REST API configuration, local filesystem access |
+| `permissions.md` | Explanation of permission modes             | Agent system prompts                   | Safe mode, Ask to Edit, Allow All behavior                        |
+| `skills.md`      | How to create and use reusable instructions | `skill_validate` tool                  | SKILL.md format, @mention syntax, parameter binding               |
+| `themes.md`      | Theme customization reference               | UI settings, agents                    | 6-color system, theme.json structure, preset themes               |
+| `statuses.md`    | Status workflow configuration               | Agents, UI                             | Open/closed states, custom status definitions                     |
+| `labels.md`      | Label system and auto-apply rules           | Agents, UI                             | Hierarchical labels, regex matchers, typed values                 |
+| `hooks.md`       | Event-driven automation guide               | Agents                                 | Hook configuration, event types, command/prompt actions           |
+| `mermaid.md`     | Mermaid diagram syntax reference            | `mermaid_validate` tool                | Supported diagram types, syntax examples                          |
+| `data-tables.md` | Data table formatting guide                 | Agents                                 | Structured data presentation                                      |
+| `tool-icons.md`  | Custom tool icon configuration              | Agents, UI                             | Icon mapping for MCP tools                                        |
 
 **Sources:** [packages/shared/src/docs/index.ts:101-114]()
 
@@ -121,10 +119,10 @@ sequenceDiagram
     participant Assets as "resources/docs/"
     participant DocsDir as "~/.craft-agent/docs/"
     participant Flag as "docsInitialized flag"
-    
+
     App->>Init: Call on startup
     Init->>Flag: Check if already initialized
-    
+
     alt First call this session
         Flag-->>Init: Not initialized
         Init->>DocsDir: Create directory if missing
@@ -132,11 +130,11 @@ sequenceDiagram
         Loader->>Assets: readdirSync() + readFileSync()
         Assets-->>Loader: All .md files
         Loader-->>Init: Record<filename, content>
-        
+
         loop For each bundled doc
             Init->>DocsDir: writeFileSync(filename, content)
         end
-        
+
         Init->>Flag: Set docsInitialized = true
     else Already initialized
         Flag-->>Init: Skip (prevent hot reload re-init)
@@ -162,7 +160,7 @@ The system provides typed constants for documentation paths used throughout the 
 
 ```typescript
 // From packages/shared/src/docs/index.ts
-export const APP_ROOT = '~/.craft-agent';
+export const APP_ROOT = '~/.craft-agent'
 
 export const DOC_REFS = {
   appRoot: APP_ROOT,
@@ -177,10 +175,11 @@ export const DOC_REFS = {
   mermaid: `${APP_ROOT}/docs/mermaid.md`,
   dataTables: `${APP_ROOT}/docs/data-tables.md`,
   docsDir: `${APP_ROOT}/docs/`,
-} as const;
+} as const
 ```
 
 These constants are used in:
+
 - **Tool descriptions** - Session-scoped tools reference specific docs when prompting agents
 - **Error messages** - Validation failures point users to relevant documentation
 - **System prompts** - Agent initialization includes references to available docs
@@ -188,12 +187,12 @@ These constants are used in:
 
 **Utility functions:**
 
-| Function | Purpose | Returns |
-|----------|---------|---------|
-| `getDocsDir()` | Get the docs directory path | `~/.craft-agent/docs` |
-| `getDocPath(filename)` | Get path to a specific doc file | Full path to file |
-| `docsExist()` | Check if docs directory exists | boolean |
-| `listDocs()` | List available doc files | Array of .md filenames |
+| Function               | Purpose                         | Returns                |
+| ---------------------- | ------------------------------- | ---------------------- |
+| `getDocsDir()`         | Get the docs directory path     | `~/.craft-agent/docs`  |
+| `getDocPath(filename)` | Get path to a specific doc file | Full path to file      |
+| `docsExist()`          | Check if docs directory exists  | boolean                |
+| `listDocs()`           | List available doc files        | Array of .md filenames |
 
 **Sources:** [packages/shared/src/docs/index.ts:93-130]()
 
@@ -209,37 +208,37 @@ graph TB
         GuideFile["source-guide-*.md"]
         Frontmatter["YAML frontmatter"]
         Content["Markdown content"]
-        
+
         GuideFile --> Frontmatter
         GuideFile --> Content
-        
+
         Frontmatter --> Slug["slug: 'linear'"]
         Frontmatter --> Name["name: 'Linear'"]
         Frontmatter --> Domain["domain: 'linear.app'"]
         Frontmatter --> AuthTypes["authTypes: ['oauth']"]
         Frontmatter --> MCPServer["mcpServer?: package name"]
     end
-    
+
     subgraph "Parsing & Retrieval"
         Parser["parseSourceGuide(content)"]
         GetBySlug["getSourceGuide(slug)"]
         GetByDomain["getSourceGuideForDomain(url)"]
         ExtractDomain["extractDomainFromUrl(url)"]
-        
+
         GuideFile --> Parser
         Parser --> ParsedGuide["ParsedSourceGuide object"]
-        
+
         ParsedGuide --> GetBySlug
         ParsedGuide --> GetByDomain
         GetByDomain --> ExtractDomain
     end
-    
+
     subgraph "Agent Usage"
         DiscoverySources["Source discovery conversation"]
         CredPrompt["source_credential_prompt tool"]
         OAuthTrigger["source_oauth_trigger tool"]
         SourceTest["source_test tool"]
-        
+
         GetBySlug --> DiscoverySources
         GetByDomain --> CredPrompt
         ParsedGuide --> OAuthTrigger
@@ -251,16 +250,16 @@ graph TB
 
 ```typescript
 interface SourceGuideFrontmatter {
-  slug: string;           // Unique identifier (e.g., 'linear')
-  name: string;           // Display name (e.g., 'Linear')
-  domain?: string;        // Primary domain for URL matching
-  authTypes?: string[];   // Supported auth methods
-  mcpServer?: string;     // MCP package name if applicable
+  slug: string // Unique identifier (e.g., 'linear')
+  name: string // Display name (e.g., 'Linear')
+  domain?: string // Primary domain for URL matching
+  authTypes?: string[] // Supported auth methods
+  mcpServer?: string // MCP package name if applicable
 }
 
 interface ParsedSourceGuide {
-  frontmatter: SourceGuideFrontmatter;
-  content: string;        // Full markdown content
+  frontmatter: SourceGuideFrontmatter
+  content: string // Full markdown content
 }
 ```
 
@@ -287,7 +286,7 @@ The UI documentation system provides contextual help throughout the interface wi
 graph TB
     subgraph "Documentation Registry"
         DocsRegistry["DOCS: Record<DocFeature, DocInfo>"]
-        
+
         DocsRegistry --> Sources["sources: overview"]
         DocsRegistry --> SourcesAPI["sources-api: APIs"]
         DocsRegistry --> SourcesMCP["sources-mcp: MCP Servers"]
@@ -301,30 +300,30 @@ graph TB
         DocsRegistry --> AppSettings["app-settings: config"]
         DocsRegistry --> Preferences["preferences: config"]
     end
-    
+
     subgraph "DocInfo Structure"
         DocInfo["DocInfo interface"]
-        
+
         DocInfo --> Path["path: string"]
         DocInfo --> Title["title: string"]
         DocInfo --> Summary["summary: string (1-2 sentences)"]
     end
-    
+
     subgraph "UI Components"
         HelpButton["Help button/icon"]
         Popover["Help popover"]
         LearnMore["Learn more link"]
-        
+
         HelpButton --> Popover
         Popover --> Summary
         Popover --> LearnMore
         LearnMore --> OnlineDocs["https://agents.craft.do/docs"]
     end
-    
+
     subgraph "API Functions"
         GetDocUrl["getDocUrl(feature)"]
         GetDocInfo["getDocInfo(feature)"]
-        
+
         DocsRegistry --> GetDocUrl
         DocsRegistry --> GetDocInfo
         GetDocUrl --> FullURL["Full URL string"]
@@ -334,33 +333,33 @@ graph TB
 
 **DocFeature types:**
 
-| Feature | Path | Use Case |
-|---------|------|----------|
-| `sources` | `/sources/overview` | Main sources configuration page |
-| `sources-api` | `/sources/apis/overview` | REST API configuration |
-| `sources-mcp` | `/sources/mcp-servers/overview` | MCP server setup |
-| `sources-local` | `/sources/local-filesystems` | Local folder access |
-| `skills` | `/skills/overview` | Skill creation and usage |
-| `statuses` | `/statuses/overview` | Status workflow configuration |
-| `permissions` | `/core-concepts/permissions` | Permission mode explanation |
-| `labels` | `/labels/overview` | Label system and auto-apply |
-| `workspaces` | `/go-further/workspaces` | Workspace isolation |
-| `themes` | `/go-further/themes` | Theme customization |
-| `app-settings` | `/reference/config/config-file` | Global settings |
-| `preferences` | `/reference/config/preferences` | User preferences |
+| Feature         | Path                            | Use Case                        |
+| --------------- | ------------------------------- | ------------------------------- |
+| `sources`       | `/sources/overview`             | Main sources configuration page |
+| `sources-api`   | `/sources/apis/overview`        | REST API configuration          |
+| `sources-mcp`   | `/sources/mcp-servers/overview` | MCP server setup                |
+| `sources-local` | `/sources/local-filesystems`    | Local folder access             |
+| `skills`        | `/skills/overview`              | Skill creation and usage        |
+| `statuses`      | `/statuses/overview`            | Status workflow configuration   |
+| `permissions`   | `/core-concepts/permissions`    | Permission mode explanation     |
+| `labels`        | `/labels/overview`              | Label system and auto-apply     |
+| `workspaces`    | `/go-further/workspaces`        | Workspace isolation             |
+| `themes`        | `/go-further/themes`            | Theme customization             |
+| `app-settings`  | `/reference/config/config-file` | Global settings                 |
+| `preferences`   | `/reference/config/preferences` | User preferences                |
 
 **Example usage in UI:**
 
 ```typescript
-import { getDocUrl, getDocInfo } from '@craft-agent/shared/docs';
+import { getDocUrl, getDocInfo } from '@craft-agent/shared/docs'
 
 // Display help popover
-const info = getDocInfo('sources');
+const info = getDocInfo('sources')
 // info.title: "Sources"
 // info.summary: "Connect external data like MCP servers..."
 
 // Open documentation
-const url = getDocUrl('sources');
+const url = getDocUrl('sources')
 // url: "https://agents.craft.do/docs/sources/overview"
 ```
 
@@ -379,38 +378,38 @@ graph TB
     subgraph "Agent Context Loading"
         AgentInit["Agent initialization"]
         SystemPrompt["System prompt includes doc paths"]
-        
+
         AgentInit --> SystemPrompt
         SystemPrompt --> DocRefs["DOC_REFS constants"]
     end
-    
+
     subgraph "Tool-Based Documentation Access"
         ConfigValidate["config_validate tool"]
         SkillValidate["skill_validate tool"]
         MermaidValidate["mermaid_validate tool"]
         SourceTest["source_test tool"]
-        
+
         ConfigValidate --> SourcesDoc["References sources.md"]
         ConfigValidate --> PermissionsDoc["References permissions.md"]
         SkillValidate --> SkillsDoc["References skills.md"]
         MermaidValidate --> MermaidDoc["References mermaid.md"]
         SourceTest --> SourceGuides["References source guides"]
     end
-    
+
     subgraph "Error Handling"
         ValidationError["Validation errors"]
         ToolDescription["Tool descriptions"]
-        
+
         ValidationError --> DocPointer["Points to relevant .md file"]
         ToolDescription --> UsageExample["Includes doc references"]
     end
-    
+
     subgraph "Conversational Discovery"
         UserRequest["User: 'add GitHub source'"]
         AgentReads["Agent reads source guide"]
         GatherCreds["Prompt for credentials"]
         ConfigureSource["Configure source"]
-        
+
         UserRequest --> AgentReads
         AgentReads --> SourceGuides
         SourceGuides --> GatherCreds
@@ -429,6 +428,7 @@ graph TB
 **Example: Source Configuration Flow**
 
 When an agent configures a new source, it:
+
 1. Reads `DOC_REFS.sources` to understand source types (MCP, REST, local)
 2. Calls `getSourceGuide(slug)` to retrieve service-specific instructions
 3. Uses `source_credential_prompt` to gather authentication details (references doc for auth types)
@@ -452,19 +452,19 @@ sequenceDiagram
     participant Init as "initializeDocs()"
     participant Disk as "~/.craft-agent/docs/"
     participant Agent as "Agent"
-    
+
     Dev->>Resource: Edit documentation
     Dev->>Build: Run build
     Build->>Bundle: Copy to dist/resources/docs/
-    
+
     Note over Bundle,Disk: On app launch
-    
+
     Init->>Bundle: loadBundledDocs()
     Bundle-->>Init: Record<filename, content>
     Init->>Disk: writeFileSync for each doc
-    
+
     Note over Disk,Agent: During conversation
-    
+
     Agent->>Agent: Reference DOC_REFS path
     Agent->>Disk: Read documentation file
     Disk-->>Agent: Markdown content
@@ -474,7 +474,7 @@ sequenceDiagram
 **Key characteristics:**
 
 - **Source of truth:** Documentation source files live in [apps/electron/resources/docs/]() for easier editing during development
-- **Build-time copying:** Build process copies docs to `dist/resources/docs/` 
+- **Build-time copying:** Build process copies docs to `dist/resources/docs/`
 - **Launch-time sync:** Every app launch syncs bundled docs to `~/.craft-agent/docs/`
 - **No hot reload:** Documentation changes require app restart (controlled by `docsInitialized` flag)
 - **Version consistency:** Syncing on launch ensures docs match the running app version

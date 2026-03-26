@@ -21,8 +21,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document explains the SQLite-based persistence layer that stores conversation metadata and message history. The database system provides durable storage for all chat interactions and implements a sophisticated message batching mechanism to handle high-throughput streaming responses without degrading performance.
 
 For information about the in-memory storage layer (ConfigStorage, ChatStorage), see [Storage System](#3.4). For details on how conversations are created and managed, see [Inter-Process Communication](#3.3).
@@ -33,11 +31,11 @@ For information about the in-memory storage layer (ConfigStorage, ChatStorage), 
 
 AionUi uses SQLite as its primary database for persisting conversations and messages. The database stores two main categories of data:
 
-| Data Type | Storage Location | Purpose |
-|-----------|-----------------|---------|
-| Conversation metadata | `conversations` table | Session configuration, workspace paths, agent settings |
-| Message history | `messages` table | User inputs, agent responses, tool calls, streaming content |
-| Configuration | JSON files (ConfigStorage) | Model providers, system settings, user preferences |
+| Data Type             | Storage Location           | Purpose                                                     |
+| --------------------- | -------------------------- | ----------------------------------------------------------- |
+| Conversation metadata | `conversations` table      | Session configuration, workspace paths, agent settings      |
+| Message history       | `messages` table           | User inputs, agent responses, tool calls, streaming content |
+| Configuration         | JSON files (ConfigStorage) | Model providers, system settings, user preferences          |
 
 The database system is designed to handle streaming AI responses efficiently through a batching mechanism that prevents database write contention during rapid message updates.
 
@@ -70,13 +68,13 @@ erDiagram
 
 The `type` field determines which fields are populated in the `extra` JSON column:
 
-| Type | Extra Fields | Description |
-|------|-------------|-------------|
-| `gemini` | `workspace`, `webSearchEngine`, `contextFileName`, `presetRules`, `enabledSkills`, `sessionMode` | Gemini agent configuration with tool settings |
-| `acp` | `workspace`, `backend`, `cliPath`, `agentName`, `customAgentId`, `acpSessionId`, `sessionMode`, `currentModelId` | ACP protocol agents (Claude, Qwen, etc.) |
-| `codex` | `workspace`, `cliPath`, `sandboxMode`, `codexModel` | Legacy Codex agent (deprecated) |
-| `openclaw-gateway` | `workspace`, `backend`, `gateway`, `sessionKey`, `runtimeValidation` | OpenClaw gateway connections |
-| `nanobot` | `workspace`, `enabledSkills` | Simplified built-in agent |
+| Type               | Extra Fields                                                                                                     | Description                                   |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `gemini`           | `workspace`, `webSearchEngine`, `contextFileName`, `presetRules`, `enabledSkills`, `sessionMode`                 | Gemini agent configuration with tool settings |
+| `acp`              | `workspace`, `backend`, `cliPath`, `agentName`, `customAgentId`, `acpSessionId`, `sessionMode`, `currentModelId` | ACP protocol agents (Claude, Qwen, etc.)      |
+| `codex`            | `workspace`, `cliPath`, `sandboxMode`, `codexModel`                                                              | Legacy Codex agent (deprecated)               |
+| `openclaw-gateway` | `workspace`, `backend`, `gateway`, `sessionKey`, `runtimeValidation`                                             | OpenClaw gateway connections                  |
+| `nanobot`          | `workspace`, `enabledSkills`                                                                                     | Simplified built-in agent                     |
 
 **Sources:** [src/common/storage.ts:133-302](), [src/process/initAgent.ts:1-189]()
 
@@ -96,7 +94,7 @@ erDiagram
         json content "Message content (text/tool calls)"
         number created_at "Creation timestamp (ms)"
     }
-    
+
     conversations ||--o{ messages : "contains"
 ```
 
@@ -123,18 +121,18 @@ sequenceDiagram
     participant Agent as "Agent Manager"
     participant Queue as "Message Queue"
     participant DB as "SQLite Database"
-    
+
     UI->>IPC: sendMessage(text)
     IPC->>Agent: Process message
     Agent->>DB: Write user message<br/>(immediate)
     Agent->>UI: Stream response events<br/>(real-time via IPC)
-    
+
     loop Streaming Response
         Agent->>Queue: Buffer response chunk
         Agent->>UI: responseStream event
         Note over Queue: 2-second debounce timer
     end
-    
+
     Queue->>DB: Batch write response<br/>(addOrUpdateMessage)
     Queue->>UI: Final response complete
 ```
@@ -143,11 +141,11 @@ sequenceDiagram
 
 The system uses different persistence strategies based on message source:
 
-| Message Source | Write Strategy | Rationale |
-|---------------|---------------|-----------|
-| User input | **Immediate write** to database | Ensures durability; user messages are infrequent |
+| Message Source  | Write Strategy                      | Rationale                                                  |
+| --------------- | ----------------------------------- | ---------------------------------------------------------- |
+| User input      | **Immediate write** to database     | Ensures durability; user messages are infrequent           |
 | Agent streaming | **Buffered write** with 2s debounce | Prevents write contention; streaming chunks arrive rapidly |
-| Tool execution | **Immediate write** per tool call | Tool results need immediate persistence for resume support |
+| Tool execution  | **Immediate write** per tool call   | Tool results need immediate persistence for resume support |
 
 This dual strategy is visible in the renderer's optimistic UI updates:
 
@@ -171,7 +169,7 @@ graph TB
     Bridge["ipcBridge.database"]
     Main["Main Process<br/>(Database Access)"]
     SQLite["SQLite Database"]
-    
+
     Renderer -->|getUserConversations| Bridge
     Renderer -->|getConversationMessages| Bridge
     Bridge -->|IPC invoke| Main
@@ -188,7 +186,7 @@ Fetches all conversations for the current user with pagination support:
 ```typescript
 ipcBridge.database.getUserConversations.invoke({
   page: 0,
-  pageSize: 10000
+  pageSize: 10000,
 })
 // Returns: TChatConversation[]
 ```
@@ -228,7 +226,7 @@ sequenceDiagram
     participant IPC as "database.getUserConversations"
     participant DB as "SQLite Database"
     participant State as "React State"
-    
+
     UI->>IPC: invoke({ page: 0, pageSize: 10000 })
     IPC->>DB: SELECT * FROM conversations<br/>ORDER BY modifyTime DESC
     DB-->>IPC: TChatConversation[]
@@ -268,6 +266,7 @@ graph LR
 ```
 
 This architecture ensures:
+
 - User messages are never lost (immediate persistence)
 - UI remains responsive during streaming (decoupled from DB writes)
 - Database write load is manageable (batched updates)
@@ -294,12 +293,12 @@ ipcBridge.conversation.update.invoke({
 
 Common update scenarios:
 
-| Update Type | Fields Modified | Triggers Refresh |
-|-------------|----------------|------------------|
-| Rename conversation | `name`, `modifyTime` | `chat.history.refresh` event |
-| Change model | `model`, `modifyTime` | No event (component-level state) |
-| Update workspace | `extra.workspace` | No event (internal state only) |
-| Set session mode | `extra.sessionMode` | No event (runtime state) |
+| Update Type         | Fields Modified       | Triggers Refresh                 |
+| ------------------- | --------------------- | -------------------------------- |
+| Rename conversation | `name`, `modifyTime`  | `chat.history.refresh` event     |
+| Change model        | `model`, `modifyTime` | No event (component-level state) |
+| Update workspace    | `extra.workspace`     | No event (internal state only)   |
+| Set session mode    | `extra.sessionMode`   | No event (runtime state)         |
 
 Example from conversation rename flow:
 
@@ -316,17 +315,17 @@ graph TB
         B["conversation.update"]
         C["conversation.remove"]
     end
-    
+
     subgraph "Renderer Event Bus"
         D["chat.history.refresh"]
     end
-    
+
     subgraph "UI Components"
         E["ChatHistory"]
         F["ChatConversation"]
         G["WorkspaceGroupedHistory"]
     end
-    
+
     A --> D
     B --> D
     C --> D
@@ -345,11 +344,11 @@ Components subscribe to the `chat.history.refresh` event to reload data after mu
 
 The SQLite database file is stored in the application's user data directory, which varies by platform:
 
-| Platform | Database Path |
-|----------|--------------|
-| macOS | `~/Library/Application Support/AionUi/` |
-| Windows | `%APPDATA%/AionUi/` |
-| Linux | `~/.config/AionUi/` |
+| Platform | Database Path                           |
+| -------- | --------------------------------------- |
+| macOS    | `~/Library/Application Support/AionUi/` |
+| Windows  | `%APPDATA%/AionUi/`                     |
+| Linux    | `~/.config/AionUi/`                     |
 
 Database initialization and schema migrations are handled by the storage system during application startup. The database connection is maintained by the main process and accessed through IPC from renderer processes.
 
@@ -363,11 +362,11 @@ Database initialization and schema migrations are handled by the storage system 
 
 The 2-second debounce window significantly reduces database write load during streaming responses:
 
-| Scenario | Without Batching | With Batching |
-|----------|-----------------|---------------|
-| 1000-token response at 50 tokens/sec | ~20 database writes | 1 database write |
-| 10 concurrent streaming conversations | ~200 writes/sec | ~5 writes/sec |
-| Database lock contention | High (write conflicts) | Low (serialized batch) |
+| Scenario                              | Without Batching       | With Batching          |
+| ------------------------------------- | ---------------------- | ---------------------- |
+| 1000-token response at 50 tokens/sec  | ~20 database writes    | 1 database write       |
+| 10 concurrent streaming conversations | ~200 writes/sec        | ~5 writes/sec          |
+| Database lock contention              | High (write conflicts) | Low (serialized batch) |
 
 ### Query Performance
 

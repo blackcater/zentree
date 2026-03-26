@@ -13,8 +13,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents the monorepo workspace layout — all packages and apps, their declared purposes, and the dependency relationships between them. For how the Electron application itself is structured internally, see [Electron Application Architecture](#2.2). For build pipeline details, see [Build System](#5.2).
 
 ---
@@ -63,16 +61,16 @@ Sources: [package.json:7-11]()
 
 The `packages/` directory contains shared libraries consumed by one or more apps. All packages use `"type": "module"` and point their `main` and `types` fields directly to TypeScript source — they are not pre-compiled; consumers (Vite, esbuild, or Bun itself) handle transpilation.
 
-| npm name | Path | Description |
-|---|---|---|
-| `@craft-agent/core` | `packages/core` | Core types, storage primitives, and agent event types. No workspace dependencies. |
-| `@craft-agent/shared` | `packages/shared` | Business logic: agent backends, auth, config, credentials, MCP integration, sessions, sources, workspaces. |
-| `@craft-agent/ui` | `packages/ui` | Shared React component library: session viewer, chat display, markdown rendering. |
-| `@craft-agent/session-tools-core` | `packages/session-tools-core` | Shared utilities and Zod schemas for session-scoped tools (used by both Claude and Codex paths). |
-| `@craft-agent/mermaid` | `packages/mermaid` | Mermaid diagram rendering wrapper used by the UI. |
-| `@craft-agent/codex-types` | `packages/codex-types` | Type definitions for Codex integration. |
-| `bridge-mcp-server` | `packages/bridge-mcp-server` | Stdio JSON-RPC MCP server binary. See [MCP Server Binaries](#8.6). |
-| `session-mcp-server` | `packages/session-mcp-server` | MCP server that exposes session-scoped tools via stdio transport. See [MCP Server Binaries](#8.6). |
+| npm name                          | Path                          | Description                                                                                                |
+| --------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `@craft-agent/core`               | `packages/core`               | Core types, storage primitives, and agent event types. No workspace dependencies.                          |
+| `@craft-agent/shared`             | `packages/shared`             | Business logic: agent backends, auth, config, credentials, MCP integration, sessions, sources, workspaces. |
+| `@craft-agent/ui`                 | `packages/ui`                 | Shared React component library: session viewer, chat display, markdown rendering.                          |
+| `@craft-agent/session-tools-core` | `packages/session-tools-core` | Shared utilities and Zod schemas for session-scoped tools (used by both Claude and Codex paths).           |
+| `@craft-agent/mermaid`            | `packages/mermaid`            | Mermaid diagram rendering wrapper used by the UI.                                                          |
+| `@craft-agent/codex-types`        | `packages/codex-types`        | Type definitions for Codex integration.                                                                    |
+| `bridge-mcp-server`               | `packages/bridge-mcp-server`  | Stdio JSON-RPC MCP server binary. See [MCP Server Binaries](#8.6).                                         |
+| `session-mcp-server`              | `packages/session-mcp-server` | MCP server that exposes session-scoped tools via stdio transport. See [MCP Server Binaries](#8.6).         |
 
 Sources: [packages/core/package.json:1-21](), [packages/shared/package.json:1-80](), [packages/ui/package.json:1-67](), [packages/session-tools-core/package.json:1-23]()
 
@@ -80,12 +78,12 @@ Sources: [packages/core/package.json:1-21](), [packages/shared/package.json:1-80
 
 ## Apps
 
-| Path | Description | Build tool |
-|---|---|---|
-| `apps/electron` | Main Electron desktop application (main process + preload + renderer). | esbuild (main/preload), Vite (renderer) |
-| `apps/viewer` | Standalone web app for viewing and sharing session transcripts. | Vite |
-| `apps/marketing` | Marketing website. | Vite |
-| `apps/online-docs` | Mintlify-based documentation site. Excluded from Bun workspaces. | npm + Mintlify |
+| Path               | Description                                                            | Build tool                              |
+| ------------------ | ---------------------------------------------------------------------- | --------------------------------------- |
+| `apps/electron`    | Main Electron desktop application (main process + preload + renderer). | esbuild (main/preload), Vite (renderer) |
+| `apps/viewer`      | Standalone web app for viewing and sharing session transcripts.        | Vite                                    |
+| `apps/marketing`   | Marketing website.                                                     | Vite                                    |
+| `apps/online-docs` | Mintlify-based documentation site. Excluded from Bun workspaces.       | npm + Mintlify                          |
 
 Sources: [package.json:28-48]()
 
@@ -137,11 +135,11 @@ Sources: [packages/core/package.json:14-17](), [packages/shared/package.json:60-
 
 The base layer. Contains no workspace dependencies. Exposes three subpath exports:
 
-| Export path | Entry file |
-|---|---|
-| `.` | `src/index.ts` |
-| `./types` | `src/types/index.ts` |
-| `./utils` | `src/utils/index.ts` |
+| Export path | Entry file           |
+| ----------- | -------------------- |
+| `.`         | `src/index.ts`       |
+| `./types`   | `src/types/index.ts` |
+| `./utils`   | `src/utils/index.ts` |
 
 Peer dependencies: `@anthropic-ai/claude-agent-sdk >=0.2.19`, `@modelcontextprotocol/sdk >=1.0.0`.
 
@@ -153,21 +151,21 @@ Sources: [packages/core/package.json:1-21]()
 
 The largest shared package. Depends on `@craft-agent/core` and `@craft-agent/session-tools-core` via `workspace:*`. Exposes a large surface of named subpath exports grouped by domain:
 
-| Export path | Domain |
-|---|---|
-| `./agent` | Agent backends, mode types, thinking levels |
-| `./auth` | OAuth flows, callback page, provider types |
-| `./config` | `StoredConfig`, config types |
-| `./credentials` | `CredentialManager` |
-| `./mcp` | MCP client integration |
-| `./sessions` | Session persistence and management |
-| `./sources` | Source types and configuration |
-| `./workspaces` | Workspace management |
-| `./automations` | Automation schema and scheduling |
-| `./tools` | Tool definitions |
-| `./mentions` | @mention parsing |
-| `./search` | Fuzzy search |
-| `./docs` | Documentation file management |
+| Export path     | Domain                                      |
+| --------------- | ------------------------------------------- |
+| `./agent`       | Agent backends, mode types, thinking levels |
+| `./auth`        | OAuth flows, callback page, provider types  |
+| `./config`      | `StoredConfig`, config types                |
+| `./credentials` | `CredentialManager`                         |
+| `./mcp`         | MCP client integration                      |
+| `./sessions`    | Session persistence and management          |
+| `./sources`     | Source types and configuration              |
+| `./workspaces`  | Workspace management                        |
+| `./automations` | Automation schema and scheduling            |
+| `./tools`       | Tool definitions                            |
+| `./mentions`    | @mention parsing                            |
+| `./search`      | Fuzzy search                                |
+| `./docs`        | Documentation file management               |
 
 Peer dependencies: `@anthropic-ai/claude-agent-sdk ^0.2.19`, `@modelcontextprotocol/sdk >=1.0.0`, `zod >=3.0.0`.
 
@@ -179,16 +177,16 @@ Sources: [packages/shared/package.json:1-80]()
 
 The shared React component library. Depends on `@craft-agent/core` and `beautiful-mermaid`. Has a large set of peer dependencies (Radix UI primitives, Tailwind, Shiki, react-markdown, KaTeX) that are satisfied by the consuming app. Exposes:
 
-| Export path | Contents |
-|---|---|
-| `.` | All public components and hooks |
-| `./chat` | `SessionViewer`, turn utilities |
-| `./chat/SessionViewer` | `SessionViewer` component |
-| `./chat/TurnCard` | `TurnCard` component |
-| `./chat/turn-utils` | Turn data utilities |
-| `./markdown` | Markdown rendering components |
-| `./context` | React context providers |
-| `./styles` | `src/styles/index.css` (Tailwind entrypoint) |
+| Export path            | Contents                                     |
+| ---------------------- | -------------------------------------------- |
+| `.`                    | All public components and hooks              |
+| `./chat`               | `SessionViewer`, turn utilities              |
+| `./chat/SessionViewer` | `SessionViewer` component                    |
+| `./chat/TurnCard`      | `TurnCard` component                         |
+| `./chat/turn-utils`    | Turn data utilities                          |
+| `./markdown`           | Markdown rendering components                |
+| `./context`            | React context providers                      |
+| `./styles`             | `src/styles/index.css` (Tailwind entrypoint) |
 
 Sources: [packages/ui/package.json:1-67]()
 
@@ -235,16 +233,16 @@ Sources: [packages/shared/package.json:13-58]()
 
 The root `package.json` provides the primary developer entry points. Key script groups:
 
-| Script prefix | Purpose |
-|---|---|
-| `electron:build:*` | Step-by-step build of main, preload, renderer, resources, and assets |
-| `electron:build` | Full sequential build of all Electron artifacts |
-| `electron:dev` | Dev mode launcher (watches and rebuilds) |
-| `electron:dist*` | Packaged distribution builds (all platforms or specific platform) |
-| `viewer:*` | Vite dev/build/preview for `apps/viewer` |
-| `marketing:*` | Vite dev/build/preview for `apps/marketing` |
-| `typecheck` / `typecheck:all` | Type checking across packages |
-| `lint` / `lint:*` | ESLint per package |
-| `sync-secrets` | Injects OAuth credentials from secrets store |
+| Script prefix                 | Purpose                                                              |
+| ----------------------------- | -------------------------------------------------------------------- |
+| `electron:build:*`            | Step-by-step build of main, preload, renderer, resources, and assets |
+| `electron:build`              | Full sequential build of all Electron artifacts                      |
+| `electron:dev`                | Dev mode launcher (watches and rebuilds)                             |
+| `electron:dist*`              | Packaged distribution builds (all platforms or specific platform)    |
+| `viewer:*`                    | Vite dev/build/preview for `apps/viewer`                             |
+| `marketing:*`                 | Vite dev/build/preview for `apps/marketing`                          |
+| `typecheck` / `typecheck:all` | Type checking across packages                                        |
+| `lint` / `lint:*`             | ESLint per package                                                   |
+| `sync-secrets`                | Injects OAuth credentials from secrets store                         |
 
 Sources: [package.json:12-54]()

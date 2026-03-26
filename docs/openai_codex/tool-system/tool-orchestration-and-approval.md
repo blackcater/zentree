@@ -15,13 +15,12 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page documents `ToolOrchestrator` and the surrounding infrastructure that centralizes **approval prompting**, **additional permissions handling**, **sandbox type selection**, and **retry-on-denial** semantics for all executable tool runtimes. It covers the shared traits (`Approvable`, `Sandboxable`, `ToolRuntime`), the `ExecApprovalRequirement` computation, permission validation via `normalize_and_validate_additional_permissions`, guardian sub-agent approval, and how those pieces coordinate across the three concrete runtimes: `ShellRuntime`, `UnifiedExecRuntime`, and `ApplyPatchRuntime`.
 
 Key approval flows covered:
+
 - **Sandbox escalation approval**: Commands requiring `require_escalated` sandbox permissions
 - **Additional permissions approval**: Commands requesting granular filesystem/network permissions via `with_additional_permissions`
 - **Guardian auto-approval**: AI-powered low-risk command pre-approval
@@ -36,7 +35,7 @@ For the `request_permissions` tool, see [Permission Request System](#5.10).
 
 ## Architecture Overview
 
-Every executable tool — whether a shell command, a unified exec session, or an apply\_patch invocation — passes through the same three-phase orchestration pipeline before the OS actually runs anything.
+Every executable tool — whether a shell command, a unified exec session, or an apply_patch invocation — passes through the same three-phase orchestration pipeline before the OS actually runs anything.
 
 **Orchestration pipeline diagram:**
 
@@ -64,7 +63,7 @@ required?"}
     CacheCheck -->|"cache miss"| GuardianCheck{"Guardian\
 approval\
 enabled?"}
-    
+
     GuardianCheck -->|"yes"| GuardianAgent["Spawn guardian sub-agent"]
     GuardianAgent --> GuardianDecision{"Guardian\
 risk level"}
@@ -163,19 +162,19 @@ classDiagram
 
 Sources: [codex-rs/core/src/tools/sandboxing.rs:1-50](), [codex-rs/core/src/tools/runtimes/shell.rs:1-45](), [codex-rs/core/src/tools/runtimes/unified_exec.rs:41-82]()
 
-| Type | File | Role |
-|---|---|---|
-| `ToolOrchestrator` | `tools/orchestrator.rs` | Drives approval → sandbox → run → retry |
-| `ApprovalStore` | `tools/sandboxing.rs` | Per-invocation approval decision cache |
-| `ExecApprovalRequirement` | `tools/sandboxing.rs` | Pre-computed approval requirement |
-| `Approvable<R>` | `tools/sandboxing.rs` | Trait for prompting logic |
-| `Sandboxable` | `tools/sandboxing.rs` | Trait for sandbox preferences |
-| `ToolRuntime<R>` | `tools/sandboxing.rs` | Combined execution trait |
-| `ShellRuntime` | `tools/runtimes/shell.rs` | Shell/shell_command execution |
-| `UnifiedExecRuntime` | `tools/runtimes/unified_exec.rs` | Unified exec PTY execution |
-| `ApplyPatchRuntime` | `tools/runtimes/apply_patch.rs` | Patch application execution |
-| `ToolCtx` | `tools/sandboxing.rs` | Call context (session, turn, call_id, tool_name) |
-| `SandboxAttempt` | `tools/sandboxing.rs` | First or Retry attempt enum |
+| Type                      | File                             | Role                                             |
+| ------------------------- | -------------------------------- | ------------------------------------------------ |
+| `ToolOrchestrator`        | `tools/orchestrator.rs`          | Drives approval → sandbox → run → retry          |
+| `ApprovalStore`           | `tools/sandboxing.rs`            | Per-invocation approval decision cache           |
+| `ExecApprovalRequirement` | `tools/sandboxing.rs`            | Pre-computed approval requirement                |
+| `Approvable<R>`           | `tools/sandboxing.rs`            | Trait for prompting logic                        |
+| `Sandboxable`             | `tools/sandboxing.rs`            | Trait for sandbox preferences                    |
+| `ToolRuntime<R>`          | `tools/sandboxing.rs`            | Combined execution trait                         |
+| `ShellRuntime`            | `tools/runtimes/shell.rs`        | Shell/shell_command execution                    |
+| `UnifiedExecRuntime`      | `tools/runtimes/unified_exec.rs` | Unified exec PTY execution                       |
+| `ApplyPatchRuntime`       | `tools/runtimes/apply_patch.rs`  | Patch application execution                      |
+| `ToolCtx`                 | `tools/sandboxing.rs`            | Call context (session, turn, call_id, tool_name) |
+| `SandboxAttempt`          | `tools/sandboxing.rs`            | First or Retry attempt enum                      |
 
 ---
 
@@ -200,13 +199,13 @@ let exec_approval_requirement = session
 
 `ExecApprovalRequest` fields:
 
-| Field | Type | Description |
-|---|---|---|
-| `command` | `&[String]` | The full command vector |
-| `approval_policy` | `AskForApproval` | Per-turn approval mode |
-| `sandbox_policy` | `SandboxPolicy` | Per-turn sandbox level |
-| `sandbox_permissions` | `SandboxPermissions` | Model-requested permission level |
-| `prefix_rule` | `Option<Vec<String>>` | Command prefix allowlist (bypass approval) |
+| Field                 | Type                  | Description                                |
+| --------------------- | --------------------- | ------------------------------------------ |
+| `command`             | `&[String]`           | The full command vector                    |
+| `approval_policy`     | `AskForApproval`      | Per-turn approval mode                     |
+| `sandbox_policy`      | `SandboxPolicy`       | Per-turn sandbox level                     |
+| `sandbox_permissions` | `SandboxPermissions`  | Model-requested permission level           |
+| `prefix_rule`         | `Option<Vec<String>>` | Command prefix allowlist (bypass approval) |
 
 The resulting `ExecApprovalRequirement` is embedded into the request struct (e.g., `ShellRequest`, `UnifiedExecRequest`) and read by the orchestrator.
 
@@ -218,25 +217,25 @@ Sources: [codex-rs/core/src/tools/handlers/shell.rs:384-408](), [codex-rs/core/s
 
 `AskForApproval` (defined in `codex-rs/protocol/src/protocol.rs`) controls when the system emits an `ExecApprovalRequestEvent`:
 
-| Variant | Behavior |
-|---|---|
-| `Never` | Approval always bypassed; command runs directly (or is sandboxed per policy) |
-| `OnFailure` | Approval requested only after a sandbox failure |
-| `Always` | Approval required before every non-safe command |
-| `OnRequest` | Approval required only when the model requests escalated sandbox permissions |
+| Variant                            | Behavior                                                                                                                |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `Never`                            | Approval always bypassed; command runs directly (or is sandboxed per policy)                                            |
+| `OnFailure`                        | Approval requested only after a sandbox failure                                                                         |
+| `Always`                           | Approval required before every non-safe command                                                                         |
+| `OnRequest`                        | Approval required only when the model requests escalated sandbox permissions                                            |
 | `Granular(GranularApprovalConfig)` | Fine-grained approval control with separate flags for sandbox, rules, skills, request_permissions, and MCP elicitations |
 
 ### Granular Approval Configuration
 
 `GranularApprovalConfig` allows selective approval requirements:
 
-| Field | Type | Description |
-|---|---|
-| `sandbox_approval` | `bool` | Enable approval prompts for sandbox escalation |
-| `rules` | `bool` | Enable exec policy rule checking |
-| `skill_approval` | `bool` | Enable approval for skill execution |
+| Field                 | Type   | Description                                          |
+| --------------------- | ------ | ---------------------------------------------------- |
+| `sandbox_approval`    | `bool` | Enable approval prompts for sandbox escalation       |
+| `rules`               | `bool` | Enable exec policy rule checking                     |
+| `skill_approval`      | `bool` | Enable approval for skill execution                  |
 | `request_permissions` | `bool` | Enable approval for `request_permissions` tool calls |
-| `mcp_elicitations` | `bool` | Enable approval for MCP elicitation requests |
+| `mcp_elicitations`    | `bool` | Enable approval for MCP elicitation requests         |
 
 When `request_permissions` is `false`, the `request_permissions` tool auto-denies without prompting the user and returns an empty `PermissionProfile`.
 
@@ -248,13 +247,14 @@ Sources: [codex-rs/core/tests/suite/request_permissions.rs:407-413](), [codex-rs
 
 `SandboxPermissions` is an enum that the model can set via tool arguments to request specific sandbox behavior:
 
-| Variant | Description |
-|---|---|
-| `UseDefault` | Use the default sandbox policy from turn context |
-| `RequireEscalated` | Request running without sandbox restrictions; requires `justification` parameter |
+| Variant                     | Description                                                                                                                             |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `UseDefault`                | Use the default sandbox policy from turn context                                                                                        |
+| `RequireEscalated`          | Request running without sandbox restrictions; requires `justification` parameter                                                        |
 | `WithAdditionalPermissions` | Request additional sandboxed permissions; requires `additional_permissions` parameter when `ExecPermissionApprovals` feature is enabled |
 
 When `SandboxPermissions::WithAdditionalPermissions` is used:
+
 - The model must provide an `additional_permissions` object with `network` and/or `file_system` fields
 - If `ExecPermissionApprovals` feature is disabled, fresh inline requests are rejected (but preapproved sticky grants still apply)
 - Path-based permissions are normalized to absolute canonical paths via `normalize_additional_permissions()`
@@ -327,10 +327,10 @@ When approval is required and not cached, `runtime.start_approval_async()` is ca
 
 The UI (TUI overlay or `exec` mode output) receives this event and presents the command to the user. The user responds with `Op::ExecApproval`, which carries a `ReviewDecision`:
 
-| `ReviewDecision` variant | Effect |
-|---|---|
-| `Approved` | Orchestrator proceeds with sandbox selection |
-| `Denied` | Orchestrator returns `ToolError::Rejected` |
+| `ReviewDecision` variant | Effect                                       |
+| ------------------------ | -------------------------------------------- |
+| `Approved`               | Orchestrator proceeds with sandbox selection |
+| `Denied`                 | Orchestrator returns `ToolError::Rejected`   |
 
 The interaction is shown in the following sequence:
 
@@ -372,11 +372,11 @@ After approval is obtained (or bypassed), `sandbox_override_for_first_attempt()`
 
 `SandboxablePreference` returned by `Sandboxable::sandbox_preference()`:
 
-| Variant | Meaning |
-|---|---|
-| `Auto` | Use sandbox when available (default for `UnifiedExecRuntime`) |
-| `Prefer(SandboxType)` | Prefer a specific sandbox type |
-| `Forbid` | Never sandbox (used for apply\_patch self-invocations) |
+| Variant               | Meaning                                                       |
+| --------------------- | ------------------------------------------------------------- |
+| `Auto`                | Use sandbox when available (default for `UnifiedExecRuntime`) |
+| `Prefer(SandboxType)` | Prefer a specific sandbox type                                |
+| `Forbid`              | Never sandbox (used for apply_patch self-invocations)         |
 
 `SandboxPolicy` is provided by the user/client per turn. `DangerFullAccess` disables sandboxing; other variants activate platform-specific sandbox implementations.
 
@@ -436,7 +436,7 @@ Sources: [codex-rs/core/src/unified_exec/process_manager.rs:1-50](), [codex-rs/c
 
 ### ApplyPatchRuntime
 
-`ApplyPatchRuntime` is used by `ApplyPatchHandler` and by `intercept_apply_patch()` (the shell/unified\_exec apply\_patch interception path). It:
+`ApplyPatchRuntime` is used by `ApplyPatchHandler` and by `intercept_apply_patch()` (the shell/unified_exec apply_patch interception path). It:
 
 - Emits `ApplyPatchApprovalRequestEvent` instead of `ExecApprovalRequestEvent`.
 - Returns empty approval keys (no cross-call caching).
@@ -468,16 +468,16 @@ flowchart LR
     SessionGrants["session.granted_session_permissions()"] --> Merge1["merge_permission_profiles()"]
     TurnGrants["session.granted_turn_permissions()"] --> Merge1
     Merge1 --> GrantedPerms["granted_permissions"]
-    
+
     InlinePerms["additional_permissions\
 (from tool args)"] --> Merge2["merge_permission_profiles()"]
     GrantedPerms --> Merge2
     Merge2 --> EffectivePerms["effective_permissions"]
-    
+
     EffectivePerms --> PreapprovedCheck{"effective ⊆ granted?"}
     PreapprovedCheck -->|"yes"| Preapproved["permissions_preapproved = true"]
     PreapprovedCheck -->|"no"| NotPreapproved["permissions_preapproved = false"]
-    
+
     Preapproved --> Return["EffectiveAdditionalPermissions"]
     NotPreapproved --> Return
 ```
@@ -532,7 +532,7 @@ flowchart TD
 enabled?"}
     GuardianEnabled -->|"no"| UserPrompt["Prompt user directly"]
     GuardianEnabled -->|"yes"| SpawnGuardian["Spawn guardian sub-agent"]
-    
+
     SpawnGuardian --> GuardianPrompt["Guardian analyzes:\
 - command\
 - additional_permissions\
@@ -543,18 +543,19 @@ enabled?"}
 - risk_score\
 - rationale\
 - evidence"]
-    
+
     GuardianResponse --> RiskCheck{"risk_level"}
     RiskCheck -->|"low"| AutoApprove["Auto-approve\
 (ReviewDecision::Approved)"]
     RiskCheck -->|"medium/high"| UserPrompt
-    
+
     AutoApprove --> ExecuteCommand["Execute command"]
     UserPrompt --> AwaitDecision["Await user decision"]
     AwaitDecision --> ExecuteCommand
 ```
 
 The guardian sub-agent:
+
 - Runs with `SessionSource::SubAgent(SubAgentSource::Other("guardian"))`
 - Has restricted configuration (disabled web search, `approval_policy = Never`)
 - Does NOT inherit parent exec policy rules
@@ -592,15 +593,15 @@ Sources: [codex-rs/core/src/unified_exec/process_manager.rs:17-25](), [codex-rs/
 
 The following `EventMsg` variants are emitted during orchestration:
 
-| Event | When |
-|---|---|
-| `EventMsg::ExecApprovalRequest(ExecApprovalRequestEvent)` | Approval needed for shell/exec command |
-| `EventMsg::ApplyPatchApprovalRequest(ApplyPatchApprovalRequestEvent)` | Approval needed for patch |
-| `EventMsg::ExecCommandBegin(ExecCommandBeginEvent)` | Just before command is run |
-| `EventMsg::ExecCommandEnd(ExecCommandEndEvent)` | After command finishes |
-| `EventMsg::PatchApplyBegin(PatchApplyBeginEvent)` | Before patch is applied |
-| `EventMsg::PatchApplyEnd(PatchApplyEndEvent)` | After patch finishes |
-| `EventMsg::TerminalInteraction(TerminalInteractionEvent)` | When `write_stdin` is called on a live session |
+| Event                                                                 | When                                           |
+| --------------------------------------------------------------------- | ---------------------------------------------- |
+| `EventMsg::ExecApprovalRequest(ExecApprovalRequestEvent)`             | Approval needed for shell/exec command         |
+| `EventMsg::ApplyPatchApprovalRequest(ApplyPatchApprovalRequestEvent)` | Approval needed for patch                      |
+| `EventMsg::ExecCommandBegin(ExecCommandBeginEvent)`                   | Just before command is run                     |
+| `EventMsg::ExecCommandEnd(ExecCommandEndEvent)`                       | After command finishes                         |
+| `EventMsg::PatchApplyBegin(PatchApplyBeginEvent)`                     | Before patch is applied                        |
+| `EventMsg::PatchApplyEnd(PatchApplyEndEvent)`                         | After patch finishes                           |
+| `EventMsg::TerminalInteraction(TerminalInteractionEvent)`             | When `write_stdin` is called on a live session |
 
 The `ExecCommandBegin`/`ExecCommandEnd` pair is emitted by `ToolEmitter` (in `tools/events.rs`), which is constructed by each tool handler before calling the orchestrator.
 

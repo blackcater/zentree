@@ -12,8 +12,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The theme system provides cascading theme configuration at both application and workspace levels, allowing users to customize the visual appearance of Craft Agents globally or on a per-workspace basis. Workspace themes override application-level defaults, enabling context-specific styling for different projects.
 
 For information about general workspace configuration, see [Workspaces](#4.1). For storage and configuration file structure, see [Storage & Configuration](#2.8).
@@ -34,11 +32,11 @@ Sources: [packages/shared/src/config/storage.ts:877-914]()
 
 Theme configuration follows a three-tier structure:
 
-| Level | Location | Type | Priority |
-|-------|----------|------|----------|
-| **Preset selection** | `colorTheme` field in `~/.craft-agent/config.json` | `string` (theme ID) | Base |
-| **App-level overrides** | `~/.craft-agent/theme.json` | `ThemeOverrides` | Middle |
-| **Workspace overrides** | Workspace `config.json` theme fields | Workspace-scoped | Highest |
+| Level                   | Location                                           | Type                | Priority |
+| ----------------------- | -------------------------------------------------- | ------------------- | -------- |
+| **Preset selection**    | `colorTheme` field in `~/.craft-agent/config.json` | `string` (theme ID) | Base     |
+| **App-level overrides** | `~/.craft-agent/theme.json`                        | `ThemeOverrides`    | Middle   |
+| **Workspace overrides** | Workspace `config.json` theme fields               | Workspace-scoped    | Highest  |
 
 Preset themes live at `~/.craft-agent/themes/<id>.json` and are represented by the `ThemeFile` type. The selected preset is identified by the `colorTheme` string ID. Fine-grained `ThemeOverrides` written to `theme.json` apply on top of the preset.
 
@@ -76,11 +74,11 @@ Sources: [packages/shared/src/config/storage.ts:880-881](), [packages/shared/src
 
 The theme system uses three TypeScript types, all imported from `packages/shared/src/config/theme.ts`:
 
-| Type | Purpose |
-|------|---------|
-| `ThemeFile` | Schema for a preset theme JSON file (colors, name, `backgroundImage`, etc.) |
-| `ThemeOverrides` | Partial override object written to `~/.craft-agent/theme.json` |
-| `PresetTheme` | Runtime object: `{ id: string, path: string, theme: ThemeFile }` |
+| Type             | Purpose                                                                     |
+| ---------------- | --------------------------------------------------------------------------- |
+| `ThemeFile`      | Schema for a preset theme JSON file (colors, name, `backgroundImage`, etc.) |
+| `ThemeOverrides` | Partial override object written to `~/.craft-agent/theme.json`              |
+| `PresetTheme`    | Runtime object: `{ id: string, path: string, theme: ThemeFile }`            |
 
 The `PresetTheme` objects returned by `loadPresetThemes()` have their `backgroundImage` field resolved from relative paths to data URLs by `resolveThemeBackgroundImage()`, because `file://` URLs are blocked in the renderer when running on localhost in dev mode.
 
@@ -88,12 +86,12 @@ Sources: [packages/shared/src/config/storage.ts:877-878](), [packages/shared/src
 
 ## File Locations
 
-| File | Description |
-|------|-------------|
-| `~/.craft-agent/config.json` | Contains `colorTheme` field (selected preset ID) |
-| `~/.craft-agent/theme.json` | App-level `ThemeOverrides` |
-| `~/.craft-agent/themes/` | Directory of preset `ThemeFile` JSON files |
-| `~/.craft-agent/themes/<id>.json` | Individual preset theme (e.g., `dracula.json`) |
+| File                              | Description                                      |
+| --------------------------------- | ------------------------------------------------ |
+| `~/.craft-agent/config.json`      | Contains `colorTheme` field (selected preset ID) |
+| `~/.craft-agent/theme.json`       | App-level `ThemeOverrides`                       |
+| `~/.craft-agent/themes/`          | Directory of preset `ThemeFile` JSON files       |
+| `~/.craft-agent/themes/<id>.json` | Individual preset theme (e.g., `dracula.json`)   |
 
 Sources: [packages/shared/src/config/storage.ts:880-881]()
 
@@ -103,11 +101,11 @@ Preset themes are bundled with the application inside the Electron resources dir
 
 **Sync behavior (per bundled file):**
 
-| Condition | Action |
-|-----------|--------|
-| File does not exist on disk | Copy from bundle |
-| File exists but fails `isValidThemeFile()` | Copy from bundle (auto-heal) |
-| File exists and is valid | Skip (preserve user customizations) |
+| Condition                                  | Action                              |
+| ------------------------------------------ | ----------------------------------- |
+| File does not exist on disk                | Copy from bundle                    |
+| File exists but fails `isValidThemeFile()` | Copy from bundle (auto-heal)        |
+| File exists and is valid                   | Skip (preserve user customizations) |
 
 User-created custom theme files with non-bundled filenames are never touched. The `resetPresetTheme(id)` function lets the user restore a bundled preset to its default by overwriting the disk copy.
 
@@ -182,16 +180,16 @@ graph LR
     getAppThemesDir -->|"returns path to"| APP_THEMES_DIR
 ```
 
-| Function | Description |
-|----------|-------------|
-| `loadAppTheme()` | Reads `ThemeOverrides` from `~/.craft-agent/theme.json`; returns `null` if absent |
-| `saveAppTheme(theme)` | Writes `ThemeOverrides` to `~/.craft-agent/theme.json` |
-| `loadPresetThemes()` | Returns all `PresetTheme[]` from `~/.craft-agent/themes/`, sorted (`default` first) |
-| `loadPresetTheme(id)` | Returns a single `PresetTheme` by ID (filename without `.json`) |
-| `ensurePresetThemes()` | Syncs bundled presets to disk; runs once per app session |
-| `resetPresetTheme(id)` | Overwrites a preset file with the bundled version |
-| `getColorTheme()` | Returns selected preset ID from `StoredConfig.colorTheme`; defaults to `loadConfigDefaults()` value |
-| `setColorTheme(id)` | Persists selected preset ID to `StoredConfig.colorTheme` in `config.json` |
+| Function               | Description                                                                                         |
+| ---------------------- | --------------------------------------------------------------------------------------------------- |
+| `loadAppTheme()`       | Reads `ThemeOverrides` from `~/.craft-agent/theme.json`; returns `null` if absent                   |
+| `saveAppTheme(theme)`  | Writes `ThemeOverrides` to `~/.craft-agent/theme.json`                                              |
+| `loadPresetThemes()`   | Returns all `PresetTheme[]` from `~/.craft-agent/themes/`, sorted (`default` first)                 |
+| `loadPresetTheme(id)`  | Returns a single `PresetTheme` by ID (filename without `.json`)                                     |
+| `ensurePresetThemes()` | Syncs bundled presets to disk; runs once per app session                                            |
+| `resetPresetTheme(id)` | Overwrites a preset file with the bundled version                                                   |
+| `getColorTheme()`      | Returns selected preset ID from `StoredConfig.colorTheme`; defaults to `loadConfigDefaults()` value |
+| `setColorTheme(id)`    | Persists selected preset ID to `StoredConfig.colorTheme` in `config.json`                           |
 
 Sources: [packages/shared/src/config/storage.ts:897-914](), [packages/shared/src/config/storage.ts:1147-1164]()
 
@@ -259,6 +257,7 @@ Sources: [packages/shared/src/config/storage.ts:897-1013]()
 The override pattern allows selective customization without full duplication:
 
 **Application Theme Example:**
+
 ```json
 {
   "colors": {
@@ -274,6 +273,7 @@ The override pattern allows selective customization without full duplication:
 ```
 
 **Workspace Theme Example (Partial Override):**
+
 ```json
 {
   "colors": {
@@ -283,16 +283,17 @@ The override pattern allows selective customization without full duplication:
 ```
 
 **Resulting Merged Theme:**
+
 ```json
 {
   "colors": {
-    "primary": "#10b981",          // Overridden
-    "secondary": "#64748b",        // Inherited
-    "background": "#ffffff"        // Inherited
+    "primary": "#10b981", // Overridden
+    "secondary": "#64748b", // Inherited
+    "background": "#ffffff" // Inherited
   },
   "spacing": {
-    "sessionGap": "8px",          // Inherited
-    "sidebarWidth": "240px"       // Inherited
+    "sessionGap": "8px", // Inherited
+    "sidebarWidth": "240px" // Inherited
   }
 }
 ```

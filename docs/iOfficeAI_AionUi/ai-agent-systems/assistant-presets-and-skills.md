@@ -27,8 +27,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes the assistant preset system and skill management in AionUi. Assistant presets define pre-configured AI agents with specific capabilities and behaviors, while skills provide modular, reusable functionality that can be enabled or disabled for any assistant. For information about the broader agent architecture, see [AI Agent Systems](#4). For model configuration, see [Model Configuration & API Management](#4.7).
 
 ---
@@ -50,12 +48,12 @@ AionUi ships with **12 built-in assistant presets** and supports custom skill cr
 
 Each assistant preset consists of:
 
-| Component | Description | Location |
-|-----------|-------------|----------|
-| **System Rules** | Core behavioral instructions and guidelines | Injected into `userMemory` at agent initialization |
-| **Default Model** | Preferred model for the assistant | Stored in configuration as `assistant.*.defaultModel` |
-| **Enabled Skills** | List of skill names to load | Stored as `assistant.*.enabledSkills` array |
-| **Agent Type** | Backend agent implementation (gemini, acp, codex, etc.) | Stored as `assistant.*.agent` |
+| Component          | Description                                             | Location                                              |
+| ------------------ | ------------------------------------------------------- | ----------------------------------------------------- |
+| **System Rules**   | Core behavioral instructions and guidelines             | Injected into `userMemory` at agent initialization    |
+| **Default Model**  | Preferred model for the assistant                       | Stored in configuration as `assistant.*.defaultModel` |
+| **Enabled Skills** | List of skill names to load                             | Stored as `assistant.*.enabledSkills` array           |
+| **Agent Type**     | Backend agent implementation (gemini, acp, codex, etc.) | Stored as `assistant.*.agent`                         |
 
 **Built-in Assistant Presets:**
 
@@ -86,22 +84,22 @@ graph TD
     CONFIG["ConfigStorage<br/>assistant.* settings"]
     OPTIONS["GeminiAgent2Options"]
     AGENT["GeminiAgent<br/>constructor"]
-    
+
     PRESET -->|defines rules| OPTIONS
     CONFIG -->|provides enabledSkills| OPTIONS
     CONFIG -->|provides skillsDir| OPTIONS
     OPTIONS -->|"presetRules<br/>enabledSkills<br/>skillsDir"| AGENT
-    
+
     AGENT -->|initialize| BOOTSTRAP["bootstrap: Promise<void>"]
     BOOTSTRAP -->|calls| LOADCONFIG["loadCliConfig()"]
     LOADCONFIG -->|returns| CORECONFIG["Config (aioncli-core)"]
-    
+
     CORECONFIG -->|stores| MEMORY["userMemory<br/>(system instructions)"]
     CORECONFIG -->|manages| SKILLMGR["SkillManager"]
-    
+
     AGENT -->|"injects presetRules<br/>into userMemory"| MEMORY
     AGENT -->|"filters skills by<br/>enabledSkills"| SKILLMGR
-    
+
     style AGENT fill:#e1f5ff
     style MEMORY fill:#fff4e6
     style SKILLMGR fill:#e8f5e9
@@ -150,13 +148,13 @@ graph LR
         OPTS["GeminiAgent2Options"]
         OPTS -->|"skillsDir<br/>enabledSkills"| LOADCLI["loadCliConfig()"]
     end
-    
+
     subgraph "Load Phase"
         LOADCLI -->|"skillsDir path"| LOADSKILLS["loadSkillsFromDir()"]
         LOADSKILLS -->|returns| SKILLARRAY["SkillDefinition[]"]
         SKILLARRAY -->|stored in| CONFIG["Config object"]
     end
-    
+
     subgraph "Filter Phase"
         CONFIG -->|"getSkillManager()"| SKILLMGR["SkillManager"]
         ENABLEDSET["Set<string><br/>(from enabledSkills)"]
@@ -164,12 +162,12 @@ graph LR
         ENABLEDSET -.->|used by| FILTER
         FILTER -->|keeps only| FILTERED["Filtered Skills"]
     end
-    
+
     subgraph "Injection Phase"
         FILTERED -->|"getSkillsIndexMarkdown()"| INDEX["Skills Index Markdown"]
         INDEX -->|"prepended to first message"| FIRSTMSG["First User Message"]
     end
-    
+
     style CONFIG fill:#e1f5ff
     style SKILLMGR fill:#e8f5e9
     style FILTER fill:#fff4e6
@@ -196,19 +194,19 @@ graph TD
     START["Config.initialize()"]
     START -->|"calls discoverSkills()"| DISCOVER["SkillManager.discoverSkills()"]
     DISCOVER -->|"loads all skills from<br/>user skills directory"| ALLSKILLS["All Skills Loaded"]
-    
+
     ALLSKILLS -->|"overrides loadCliConfig<br/>filtering"| CHECK{"enabledSkills<br/>array provided?"}
-    
+
     CHECK -->|Yes| CREATESET["Create Set<string><br/>from enabledSkills"]
     CREATESET -->|"filterSkills(predicate)"| FILTERYES["Keep only skills where<br/>enabledSet.has(skill.name)"]
     FILTERYES --> LOGYES["Log filtered skill names"]
-    
+
     CHECK -->|"No (non-preset)"| FILTERALL["filterSkills(() => false)"]
     FILTERALL -->|"Clear all optional skills"| LOGNO["Cron injected via<br/>system instructions"]
-    
+
     LOGYES --> DONE["Filtered Skills Ready"]
     LOGNO --> DONE
-    
+
     style CHECK fill:#fff4e6
     style FILTERYES fill:#e8f5e9
     style FILTERALL fill:#ffe6e6
@@ -216,10 +214,10 @@ graph TD
 
 **Key Implementation Details:**
 
-| Scenario | Behavior | Code Location |
-|----------|----------|---------------|
-| **Preset with enabledSkills** | Filter to only enabled skills | [src/agent/gemini/index.ts:335-339]() |
-| **Non-preset agent** | Clear all optional skills (cron via system instructions) | [src/agent/gemini/index.ts:340-342]() |
+| Scenario                      | Behavior                                                  | Code Location                         |
+| ----------------------------- | --------------------------------------------------------- | ------------------------------------- |
+| **Preset with enabledSkills** | Filter to only enabled skills                             | [src/agent/gemini/index.ts:335-339]() |
+| **Non-preset agent**          | Clear all optional skills (cron via system instructions)  | [src/agent/gemini/index.ts:340-342]() |
 | **After Config.initialize()** | Re-apply filter (discoverSkills overrides initial filter) | [src/agent/gemini/index.ts:331-342]() |
 
 **Sources:** [src/agent/gemini/index.ts:329-342]()
@@ -239,7 +237,7 @@ graph TD
         INIT -->|"injects presetRules"| USERMEM["config.userMemory"]
         USERMEM -->|"[Assistant System Rules]<br/>+ preset rules"| COMBINED["Combined Memory"]
     end
-    
+
     subgraph "First Message Phase"
         SEND["send() called"]
         SEND -->|"check skillsIndexPrependedOnce"| CHECKFLAG{"Already prepended?"}
@@ -250,9 +248,9 @@ graph TD
         FIRSTQUERY -->|"set flag = true"| SUBMIT["Submit to model"]
         NORMALQUERY --> SUBMIT
     end
-    
+
     COMBINED -.->|"included in all<br/>model requests"| SUBMIT
-    
+
     style USERMEM fill:#fff4e6
     style GETINDEX fill:#e8f5e9
     style SUBMIT fill:#e1f5ff
@@ -260,10 +258,10 @@ graph TD
 
 **Injection Timing:**
 
-| Component | Injection Point | Persistence | Code Reference |
-|-----------|----------------|-------------|----------------|
-| **presetRules** | Agent initialization | Persisted in `userMemory` for all requests | [src/agent/gemini/index.ts:372-385]() |
-| **Skills Index** | First message send | Prepended once via flag `skillsIndexPrependedOnce` | [src/agent/gemini/index.ts:107-108]() |
+| Component        | Injection Point      | Persistence                                        | Code Reference                        |
+| ---------------- | -------------------- | -------------------------------------------------- | ------------------------------------- |
+| **presetRules**  | Agent initialization | Persisted in `userMemory` for all requests         | [src/agent/gemini/index.ts:372-385]() |
+| **Skills Index** | First message send   | Prepended once via flag `skillsIndexPrependedOnce` | [src/agent/gemini/index.ts:107-108]() |
 
 **Backward Compatibility:**
 
@@ -271,7 +269,7 @@ The system maintains backward compatibility with `contextContent`:
 
 ```typescript
 // Prefer presetRules, fallback to contextContent
-this.contextContent = options.contextContent || options.presetRules;
+this.contextContent = options.contextContent || options.presetRules
 ```
 
 [src/agent/gemini/index.ts:135]()
@@ -288,21 +286,21 @@ The `GeminiAgent2Options` interface defines how presets and skills are configure
 
 ```typescript
 interface GeminiAgent2Options {
-  workspace: string;
-  model: TProviderWithModel;
+  workspace: string
+  model: TProviderWithModel
   // ... other options
-  
+
   // System rules, injected into userMemory at initialization
-  presetRules?: string;
-  
+  presetRules?: string
+
   // Builtin skills directory path (loaded by aioncli-core SkillManager)
-  skillsDir?: string;
-  
+  skillsDir?: string
+
   // Enabled skills list for filtering skills in SkillManager
-  enabledSkills?: string[];
-  
+  enabledSkills?: string[]
+
   // Backward compatible (deprecated)
-  contextContent?: string;
+  contextContent?: string
 }
 ```
 
@@ -314,15 +312,15 @@ Skills and presets flow through `loadCliConfig()` to configure the `Config` obje
 
 ```typescript
 interface LoadCliConfigOptions {
-  workspace: string;
-  settings: Settings;
+  workspace: string
+  settings: Settings
   // ... other options
-  
+
   // Builtin skills directory path
-  skillsDir?: string;
-  
+  skillsDir?: string
+
   // Enabled skills list for filtering loaded skills
-  enabledSkills?: string[];
+  enabledSkills?: string[]
 }
 ```
 
@@ -350,10 +348,10 @@ Assistant preset settings are stored in `ConfigStorage`:
 ```typescript
 interface IConfigStorageRefer {
   // Per-assistant configuration
-  'assistant.*.defaultModel': string;      // Preferred model
-  'assistant.*.agent': string;             // Agent type (gemini, acp, etc.)
-  'assistant.*.enabledSkills': string[];   // Enabled skill names
-  
+  'assistant.*.defaultModel': string // Preferred model
+  'assistant.*.agent': string // Agent type (gemini, acp, etc.)
+  'assistant.*.enabledSkills': string[] // Enabled skill names
+
   // ... other config fields
 }
 ```
@@ -392,16 +390,16 @@ System rules are injected into `userMemory` during agent initialization:
 ```typescript
 // Inject presetRules into userMemory at initialization
 if (this.presetRules) {
-  const currentMemory = this.config.getUserMemory();
+  const currentMemory = this.config.getUserMemory()
   const rulesSection = `[Assistant System Rules]\
-${this.presetRules}`;
-  const combined = currentMemory 
+${this.presetRules}`
+  const combined = currentMemory
     ? `${rulesSection}\
 \
-${currentMemory}` 
-    : rulesSection;
-  this.config.setUserMemory(combined);
-  console.log(`[GeminiAgent] Injected presetRules into userMemory`);
+${currentMemory}`
+    : rulesSection
+  this.config.setUserMemory(combined)
+  console.log(`[GeminiAgent] Injected presetRules into userMemory`)
 }
 ```
 
@@ -453,14 +451,14 @@ Skills must be re-filtered after `Config.initialize()` completes:
 // aioncli-core's SkillManager.discoverSkills() reloads all skills,
 // overriding our filtering in loadCliConfig, so re-apply filter here
 if (this.enabledSkills && this.enabledSkills.length > 0) {
-  const enabledSet = new Set(this.enabledSkills);
-  this.config.getSkillManager().filterSkills(
-    (skill) => enabledSet.has(skill.name)
-  );
-  console.log(`[GeminiAgent] Filtered skills: ${this.enabledSkills.join(', ')}`);
+  const enabledSet = new Set(this.enabledSkills)
+  this.config
+    .getSkillManager()
+    .filterSkills((skill) => enabledSet.has(skill.name))
+  console.log(`[GeminiAgent] Filtered skills: ${this.enabledSkills.join(', ')}`)
 } else {
   // Non-preset agent: clear all optional skills
-  this.config.getSkillManager().filterSkills(() => false);
+  this.config.getSkillManager().filterSkills(() => false)
 }
 ```
 
@@ -497,23 +495,27 @@ if (this.enabledSkills && this.enabledSkills.length > 0) {
      model: modelConfig,
      presetRules: fs.readFileSync('assistant/my-assistant.md', 'utf-8'),
      skillsDir: '/path/to/skills',
-     enabledSkills: ['pptx', 'docx', 'mermaid']
-   });
+     enabledSkills: ['pptx', 'docx', 'mermaid'],
+   })
    ```
 
 ### Creating a Custom Skill
 
 1. **Create skill file**: `skills/my-skill.md`
+
    ```markdown
    # My Custom Skill
-   
+
    ## Capabilities
+
    - Tool X: Does action Y
    - Tool Z: Processes data W
-   
+
    ## Usage
+
    Use tool X when you need to...
    ```
+
 2. **Enable in assistant configuration**:
    ```typescript
    'assistant.my-assistant.enabledSkills': ['my-skill', 'pptx']
@@ -526,13 +528,13 @@ if (this.enabledSkills && this.enabledSkills.length > 0) {
 
 ## Key Takeaways
 
-| Aspect | Summary |
-|--------|---------|
-| **Assistant Presets** | Pre-configured agents with system rules, default models, and enabled skills |
-| **Skills** | Modular capability definitions in markdown files, loaded from `skills/` directory |
+| Aspect                 | Summary                                                                            |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| **Assistant Presets**  | Pre-configured agents with system rules, default models, and enabled skills        |
+| **Skills**             | Modular capability definitions in markdown files, loaded from `skills/` directory  |
 | **Injection Strategy** | Two-phase: presetRules → userMemory (init), skills index → first message (runtime) |
-| **Filtering** | Skills filtered by `enabledSkills` array after `Config.initialize()` completes |
-| **Storage** | Assistant settings stored in ConfigStorage with `assistant.*` keys |
-| **Extensibility** | Users can create custom assistants and skills by adding markdown files |
+| **Filtering**          | Skills filtered by `enabledSkills` array after `Config.initialize()` completes     |
+| **Storage**            | Assistant settings stored in ConfigStorage with `assistant.*` keys                 |
+| **Extensibility**      | Users can create custom assistants and skills by adding markdown files             |
 
 **Sources:** [src/agent/gemini/index.ts:63-385](), [src/agent/gemini/cli/config.ts:54-152](), [readme.md:143-178]()

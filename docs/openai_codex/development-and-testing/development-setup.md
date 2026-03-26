@@ -24,8 +24,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This page documents the development environment setup for working on the Codex Rust codebase. It covers workspace organization, build configuration, development tooling, code formatting, and schema generation workflows. For information about testing practices and infrastructure, see [Testing Infrastructure](#8.2). For code organization conventions and review guidelines, see [Code Organization Patterns](#8.3).
@@ -51,12 +49,12 @@ license = "Apache-2.0"
 
 Different platforms require specific native libraries:
 
-| Platform | Dependencies | Purpose |
-|----------|-------------|---------|
-| **Linux** | `libssl-dev`, `pkg-config` | OpenSSL (vendored for musl targets) |
-| **macOS** | Xcode Command Line Tools | Core Foundation, Keychain access |
-| **Windows** | MSVC Build Tools | Windows SDK, restricted token APIs |
-| **All** | `cmake` (optional) | Building vendored C dependencies |
+| Platform    | Dependencies               | Purpose                             |
+| ----------- | -------------------------- | ----------------------------------- |
+| **Linux**   | `libssl-dev`, `pkg-config` | OpenSSL (vendored for musl targets) |
+| **macOS**   | Xcode Command Line Tools   | Core Foundation, Keychain access    |
+| **Windows** | MSVC Build Tools           | Windows SDK, restricted token APIs  |
+| **All**     | `cmake` (optional)         | Building vendored C dependencies    |
 
 For **Linux MUSL targets** (static binaries), OpenSSL is built from source via the `vendored` feature flag in [codex-rs/core/Cargo.toml:131-135]():
 
@@ -87,36 +85,36 @@ graph TB
         AppServer["codex-app-server<br/>(bin: codex-app-server)<br/>app-server/src/main.rs"]
         McpServer["codex-mcp-server<br/>(bin: codex-mcp-server)<br/>mcp-server/src/main.rs"]
     end
-    
+
     subgraph "Core Engine"
         Core["codex-core<br/>(lib)<br/>core/src/lib.rs"]
         Protocol["codex-protocol<br/>(lib)<br/>protocol/"]
         Config["codex-config<br/>(lib)<br/>config/"]
         State["codex-state<br/>(lib)<br/>state/"]
     end
-    
+
     subgraph "Client Layer"
         API["codex-api<br/>(lib)<br/>codex-api/"]
         Client["codex-client<br/>(lib)<br/>codex-client/"]
         RmcpClient["codex-rmcp-client<br/>(lib)<br/>rmcp-client/"]
     end
-    
+
     subgraph "Execution"
         ExecPolicy["codex-execpolicy<br/>(lib)<br/>execpolicy/"]
         ShellCmd["codex-shell-command<br/>(lib)<br/>shell-command/"]
         Sandbox["codex-linux-sandbox<br/>(bin: codex-linux-sandbox)<br/>linux-sandbox/"]
     end
-    
+
     subgraph "Utilities"
         Utils["codex-utils-*<br/>(20+ utility crates)<br/>utils/"]
     end
-    
+
     CLI --> Core
     TUI --> Core
     Exec --> Core
     AppServer --> Core
     McpServer --> Core
-    
+
     Core --> Protocol
     Core --> Config
     Core --> State
@@ -125,7 +123,7 @@ graph TB
     Core --> RmcpClient
     Core --> ExecPolicy
     Core --> ShellCmd
-    
+
     Core --> Utils
     Protocol --> Utils
     Config --> Utils
@@ -136,6 +134,7 @@ graph TB
 The workspace defines all members in [codex-rs/Cargo.toml:2-71]():
 
 **Primary Crates:**
+
 - `codex-cli` — Multitool dispatcher and main entry point [codex-rs/cli/src/main.rs:1-800]()
 - `codex-core` — Session management, tool orchestration, model client [codex-rs/core/src/lib.rs:1-178]()
 - `codex-tui` — Terminal UI built with Ratatui [codex-rs/tui/src/lib.rs:1-531]()
@@ -143,6 +142,7 @@ The workspace defines all members in [codex-rs/Cargo.toml:2-71]():
 - `codex-app-server` — JSON-RPC server for IDE integrations [app-server/]()
 
 **Supporting Libraries:**
+
 - `codex-protocol` — Shared types and event definitions
 - `codex-config` — Configuration loading and validation
 - `codex-state` — SQLite-based state management
@@ -151,6 +151,7 @@ The workspace defines all members in [codex-rs/Cargo.toml:2-71]():
 
 **Utilities (20+ crates):**
 Located in `utils/` subdirectory, including:
+
 - `codex-utils-absolute-path` — Path normalization
 - `codex-utils-cargo-bin` — Test binary location helpers
 - `codex-utils-cli` — CLI argument parsing utilities
@@ -200,11 +201,11 @@ opt-level = 0
 
 **Profile Usage:**
 
-| Profile | Purpose | Command |
-|---------|---------|---------|
-| `dev` (default) | Fast iteration, incremental builds | `cargo build` |
-| `release` | Production binaries, fat LTO | `cargo build --release` |
-| `ci-test` | CI testing with minimal debug info | `cargo test --profile ci-test` |
+| Profile         | Purpose                            | Command                        |
+| --------------- | ---------------------------------- | ------------------------------ |
+| `dev` (default) | Fast iteration, incremental builds | `cargo build`                  |
+| `release`       | Production binaries, fat LTO       | `cargo build --release`        |
+| `ci-test`       | CI testing with minimal debug info | `cargo test --profile ci-test` |
 
 The `release` profile uses `codegen-units = 1` to enable maximum cross-crate optimization, addressing performance issues documented in GitHub issue #1411.
 
@@ -267,24 +268,24 @@ graph LR
         DebugBin["target/debug/<br/>- codex<br/>- codex-tui<br/>- codex-exec<br/>- codex-app-server<br/>- codex-mcp-server<br/>- codex-linux-sandbox"]
         ReleaseBin["target/release/<br/>(same binaries)"]
     end
-    
+
     subgraph "npm Package Structure"
         NPM["@openai/codex<br/>Platform-specific binaries<br/>bundled in node_modules"]
     end
-    
+
     subgraph "Platform Targets"
         MacOS["target/<br/>aarch64-apple-darwin/<br/>x86_64-apple-darwin/"]
         Linux["target/<br/>x86_64-unknown-linux-gnu/<br/>x86_64-unknown-linux-musl/<br/>aarch64-unknown-linux-gnu/<br/>aarch64-unknown-linux-musl/"]
         Win["target/<br/>x86_64-pc-windows-msvc/<br/>aarch64-pc-windows-msvc/"]
     end
-    
+
     DebugBin -->|cargo build| MacOS
     DebugBin -->|cargo build| Linux
     DebugBin -->|cargo build| Win
     ReleaseBin -->|cargo build --release| MacOS
     ReleaseBin -->|cargo build --release| Linux
     ReleaseBin -->|cargo build --release| Win
-    
+
     ReleaseBin -.->|packaged via npm| NPM
 ```
 
@@ -312,11 +313,11 @@ unwrap_used = "deny"
 
 **Key Denied Patterns:**
 
-| Lint | Reason | Alternative |
-|------|--------|-------------|
-| `expect_used` | Prevents panic in production | Use `?` or explicit error handling |
-| `unwrap_used` | Same as above | Use pattern matching or `?` |
-| `print_stdout`, `print_stderr` | Prevents accidental I/O in libraries | Use `tracing` macros |
+| Lint                           | Reason                               | Alternative                        |
+| ------------------------------ | ------------------------------------ | ---------------------------------- |
+| `expect_used`                  | Prevents panic in production         | Use `?` or explicit error handling |
+| `unwrap_used`                  | Same as above                        | Use pattern matching or `?`        |
+| `print_stdout`, `print_stderr` | Prevents accidental I/O in libraries | Use `tracing` macros               |
 
 Several crates explicitly deny stdout/stderr writes to prevent accidental output in library code:
 
@@ -479,40 +480,40 @@ graph TB
         Test["cargo test<br/>cargo nextest run"]
         Run["cargo run -p <crate>"]
     end
-    
+
     subgraph "Build System"
         CargoToml["Cargo.toml<br/>Workspace manifest"]
         CargoLock["Cargo.lock<br/>Dependency resolution"]
         RustToolchain["rust-toolchain.toml<br/>(if present)"]
     end
-    
+
     subgraph "Build Artifacts"
         DebugTarget["target/debug/"]
         ReleaseTarget["target/release/"]
         TestBin["test binaries<br/>in target/debug/deps/"]
     end
-    
+
     subgraph "Code Quality Checks"
         Rustfmt["rustfmt<br/>Code formatting"]
         ClippyLints["Clippy lints<br/>40+ workspace rules"]
         EditionCheck["2024 edition<br/>syntax checking"]
     end
-    
+
     Edit --> Format
     Format --> Lint
     Lint --> Build
     Build --> Test
     Test --> Run
-    
+
     Format --> Rustfmt
     Lint --> ClippyLints
     Build --> CargoToml
     CargoToml --> CargoLock
-    
+
     Build --> DebugTarget
     Build --> ReleaseTarget
     Test --> TestBin
-    
+
     ClippyLints -.->|"deny: unwrap_used<br/>expect_used<br/>print_stdout"| Edit
 ```
 
@@ -568,30 +569,30 @@ openssl-sys = { workspace = true, features = ["vendored"] }
 
 ### Quick Reference Table
 
-| Task | Command | Notes |
-|------|---------|-------|
-| **Build workspace** | `cargo build` | Debug profile, all crates |
-| **Build release** | `cargo build --release` | Fat LTO, stripped symbols |
-| **Run TUI** | `cargo run -p codex-tui` | Interactive mode |
-| **Run exec** | `cargo run -p codex-exec -- "prompt"` | Headless execution |
-| **Format code** | `cargo fmt` | Applies rustfmt to workspace |
-| **Check format** | `cargo fmt -- --check` | CI-friendly formatting check |
-| **Lint code** | `cargo clippy --all-targets` | Runs workspace Clippy rules |
-| **Run tests** | `cargo test` | Standard test runner |
-| **Run tests (nextest)** | `cargo nextest run` | Parallel test executor (see [#8.2](#8.2)) |
-| **Generate config schema** | `cargo run --bin codex-write-config-schema` | JSON schema output |
-| **Generate TS bindings** | `codex app-server generate-ts --out <dir>` | App-server protocol types |
-| **Check dependencies** | `cargo tree` | Display dependency graph |
-| **Update Cargo.lock** | `cargo update` | Refresh dependency versions |
+| Task                       | Command                                     | Notes                                     |
+| -------------------------- | ------------------------------------------- | ----------------------------------------- |
+| **Build workspace**        | `cargo build`                               | Debug profile, all crates                 |
+| **Build release**          | `cargo build --release`                     | Fat LTO, stripped symbols                 |
+| **Run TUI**                | `cargo run -p codex-tui`                    | Interactive mode                          |
+| **Run exec**               | `cargo run -p codex-exec -- "prompt"`       | Headless execution                        |
+| **Format code**            | `cargo fmt`                                 | Applies rustfmt to workspace              |
+| **Check format**           | `cargo fmt -- --check`                      | CI-friendly formatting check              |
+| **Lint code**              | `cargo clippy --all-targets`                | Runs workspace Clippy rules               |
+| **Run tests**              | `cargo test`                                | Standard test runner                      |
+| **Run tests (nextest)**    | `cargo nextest run`                         | Parallel test executor (see [#8.2](#8.2)) |
+| **Generate config schema** | `cargo run --bin codex-write-config-schema` | JSON schema output                        |
+| **Generate TS bindings**   | `codex app-server generate-ts --out <dir>`  | App-server protocol types                 |
+| **Check dependencies**     | `cargo tree`                                | Display dependency graph                  |
+| **Update Cargo.lock**      | `cargo update`                              | Refresh dependency versions               |
 
 ### Environment Variables for Development
 
-| Variable | Purpose | Example |
-|----------|---------|---------|
-| `RUST_LOG` | Tracing filter | `RUST_LOG=codex_core=debug,codex_tui=info` |
-| `CODEX_RS_SSE_FIXTURE` | Offline test fixture path | Used in integration tests |
-| `OPENAI_API_KEY` | API authentication | Required for live API tests |
-| `OPENAI_BASE_URL` | Override default endpoint | For testing with proxies |
+| Variable               | Purpose                   | Example                                    |
+| ---------------------- | ------------------------- | ------------------------------------------ |
+| `RUST_LOG`             | Tracing filter            | `RUST_LOG=codex_core=debug,codex_tui=info` |
+| `CODEX_RS_SSE_FIXTURE` | Offline test fixture path | Used in integration tests                  |
+| `OPENAI_API_KEY`       | API authentication        | Required for live API tests                |
+| `OPENAI_BASE_URL`      | Override default endpoint | For testing with proxies                   |
 
 **Sources:** [codex-rs/core/src/flags.rs:1-7](), [codex-rs/core/src/model_provider_info.rs:226-228]()
 
@@ -602,6 +603,7 @@ openssl-sys = { workspace = true, features = ["vendored"] }
 ### Common Build Failures
 
 **OpenSSL linking errors on Linux:**
+
 ```bash
 # Install development headers
 sudo apt-get install libssl-dev pkg-config  # Debian/Ubuntu
@@ -610,6 +612,7 @@ sudo dnf install openssl-devel              # Fedora/RHEL
 
 **Keyring errors on Linux:**
 The workspace uses different keyring backends per platform. On headless Linux systems without a secret service:
+
 ```bash
 # Use file-based storage (less secure)
 # Set in environment or use sync-secret-service feature
@@ -617,6 +620,7 @@ The workspace uses different keyring backends per platform. On headless Linux sy
 
 **Clippy failures:**
 Workspace lints deny common patterns. If you encounter denials:
+
 - Use `?` operator instead of `.unwrap()` or `.expect()`
 - Use `tracing::info!()` instead of `println!()` in library code
 - Add `#[allow(clippy::specific_lint)]` only when absolutely necessary
@@ -624,6 +628,7 @@ Workspace lints deny common patterns. If you encounter denials:
 ### Dependency Resolution
 
 If `Cargo.lock` causes conflicts:
+
 ```bash
 # Regenerate lock file
 rm Cargo.lock

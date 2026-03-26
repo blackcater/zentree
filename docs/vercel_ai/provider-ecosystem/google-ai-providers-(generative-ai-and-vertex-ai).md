@@ -56,8 +56,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes the Google provider packages (`@ai-sdk/google` and `@ai-sdk/google-vertex`) that implement support for Google's Gemini models through both the Google Generative AI API and Vertex AI. These packages provide language model support implementing the `LanguageModelV3` interface from the Provider V3 specification. The document covers the `GoogleGenerativeAILanguageModel` class implementation, supported model IDs, provider-specific options (thinking configuration, safety settings, media resolution), provider-defined tools (Google Search, Google Maps, URL Context, File Search, Code Execution, RAG Store), grounding metadata extraction, the architectural differences between the Google AI and Vertex AI provider configurations, and the additional model types available exclusively in `@ai-sdk/google-vertex`: embedding models (`GoogleVertexEmbeddingModel`), image models (`GoogleVertexImageModel`), video models (`GoogleVertexVideoModel`), and the Vertex Anthropic sub-provider.
@@ -84,54 +82,54 @@ graph TB
         createGoogleGenerativeAI["createGoogleGenerativeAI()"]
         createVertex["createVertex()"]
     end
-    
+
     subgraph "Model Instance Creation"
         GoogleGenerativeAILanguageModel["GoogleGenerativeAILanguageModel<br/>implements LanguageModelV3"]
     end
-    
+
     subgraph "Configuration"
         GoogleGenerativeAIConfig["GoogleGenerativeAIConfig<br/>{provider, baseURL, headers,<br/>fetch, generateId}"]
         GoogleGenerativeAIModelId["GoogleGenerativeAIModelId<br/>gemini-1.5-flash, gemini-2.5-pro,<br/>gemini-3-pro-preview, etc."]
     end
-    
+
     subgraph "Core Methods"
         doGenerate["doGenerate()<br/>Single-shot generation"]
         doStream["doStream()<br/>Streaming generation"]
         getArgs["getArgs()<br/>Prepare request arguments"]
     end
-    
+
     subgraph "Request Processing"
         convertToGoogleGenerativeAIMessages["convertToGoogleGenerativeAIMessages()<br/>Message format conversion"]
         prepareTools["prepareTools()<br/>Tool configuration"]
         convertJSONSchemaToOpenAPISchema["convertJSONSchemaToOpenAPISchema()<br/>Schema conversion"]
     end
-    
+
     subgraph "Response Processing"
         extractSources["extractSources()<br/>Grounding metadata extraction"]
         mapGoogleGenerativeAIFinishReason["mapGoogleGenerativeAIFinishReason()<br/>Finish reason mapping"]
         convertGoogleGenerativeAIUsage["convertGoogleGenerativeAIUsage()<br/>Token usage conversion"]
     end
-    
+
     createGoogleGenerativeAI --> GoogleGenerativeAILanguageModel
     createVertex --> GoogleGenerativeAILanguageModel
-    
+
     GoogleGenerativeAIConfig --> GoogleGenerativeAILanguageModel
     GoogleGenerativeAIModelId --> GoogleGenerativeAILanguageModel
-    
+
     GoogleGenerativeAILanguageModel --> doGenerate
     GoogleGenerativeAILanguageModel --> doStream
-    
+
     doGenerate --> getArgs
     doStream --> getArgs
-    
+
     getArgs --> convertToGoogleGenerativeAIMessages
     getArgs --> prepareTools
     getArgs --> convertJSONSchemaToOpenAPISchema
-    
+
     doGenerate --> extractSources
     doGenerate --> mapGoogleGenerativeAIFinishReason
     doGenerate --> convertGoogleGenerativeAIUsage
-    
+
     doStream --> extractSources
     doStream --> mapGoogleGenerativeAIFinishReason
     doStream --> convertGoogleGenerativeAIUsage
@@ -141,14 +139,14 @@ graph TB
 
 The class constructor accepts a model ID and configuration object. The configuration differs between Google AI and Vertex AI based on the `provider` field:
 
-| Configuration Field | Type | Purpose |
-|-------------------|------|---------|
-| `provider` | `string` | Provider identifier (e.g., "google", "google.vertex.us-central1") |
-| `baseURL` | `string` | API endpoint base URL |
-| `headers` | `Resolvable<Record<string, string>>` | Request headers (can be async/function) |
-| `fetch` | `FetchFunction` | Custom fetch implementation |
-| `generateId` | `() => string` | ID generator for tool calls and sources |
-| `supportedUrls` | `() => LanguageModelV3['supportedUrls']` | Supported URL types for file inputs |
+| Configuration Field | Type                                     | Purpose                                                           |
+| ------------------- | ---------------------------------------- | ----------------------------------------------------------------- |
+| `provider`          | `string`                                 | Provider identifier (e.g., "google", "google.vertex.us-central1") |
+| `baseURL`           | `string`                                 | API endpoint base URL                                             |
+| `headers`           | `Resolvable<Record<string, string>>`     | Request headers (can be async/function)                           |
+| `fetch`             | `FetchFunction`                          | Custom fetch implementation                                       |
+| `generateId`        | `() => string`                           | ID generator for tool calls and sources                           |
+| `supportedUrls`     | `() => LanguageModelV3['supportedUrls']` | Supported URL types for file inputs                               |
 
 **Sources**: [packages/google/src/google-generative-ai-language-model.ts:45-56]()
 
@@ -160,45 +158,45 @@ graph LR
         LanguageModelV3CallOptions["LanguageModelV3CallOptions<br/>{prompt, tools, providerOptions,<br/>responseFormat, temperature...}"]
         parseProviderOptions["parseProviderOptions()<br/>Extract google/vertex options"]
     end
-    
+
     subgraph "Message Conversion"
         convertToGoogleGenerativeAIMessages_func["convertToGoogleGenerativeAIMessages()<br/>Returns {contents, systemInstruction}"]
         contents["contents: GoogleGenerativeAIContent[]<br/>User/model conversation parts"]
         systemInstruction["systemInstruction: GoogleGenerativeAIContent<br/>System message (excluded for Gemma)"]
     end
-    
+
     subgraph "Tool Preparation"
         prepareTools_func["prepareTools()<br/>{tools, toolConfig, toolWarnings}"]
         functionDeclarations["functionDeclarations<br/>For function tools"]
         googleTools["googleTools<br/>For provider-defined tools"]
     end
-    
+
     subgraph "Request Body"
         generationConfig["generationConfig<br/>{maxOutputTokens, temperature,<br/>thinkingConfig, responseSchema...}"]
         requestBody["Final Request Body<br/>{contents, systemInstruction,<br/>generationConfig, tools, toolConfig,<br/>cachedContent, safetySettings...}"]
     end
-    
+
     subgraph "API Call"
         postJsonToApi["postJsonToApi()<br/>:generateContent or<br/>:streamGenerateContent"]
     end
-    
+
     LanguageModelV3CallOptions --> parseProviderOptions
     parseProviderOptions --> convertToGoogleGenerativeAIMessages_func
-    
+
     convertToGoogleGenerativeAIMessages_func --> contents
     convertToGoogleGenerativeAIMessages_func --> systemInstruction
-    
+
     LanguageModelV3CallOptions --> prepareTools_func
     prepareTools_func --> functionDeclarations
     prepareTools_func --> googleTools
-    
+
     parseProviderOptions --> generationConfig
     contents --> requestBody
     systemInstruction --> requestBody
     functionDeclarations --> requestBody
     googleTools --> requestBody
     generationConfig --> requestBody
-    
+
     requestBody --> postJsonToApi
 ```
 
@@ -212,15 +210,15 @@ The Google provider supports multiple Gemini model families with different capab
 
 ### Model Family Overview
 
-| Model Family | Example IDs | Key Features |
-|-------------|------------|--------------|
-| **Gemini 1.5** | `gemini-1.5-flash`, `gemini-1.5-flash-8b`, `gemini-1.5-pro` | Stable models, multi-modal support, tool calling |
-| **Gemini 2.0** | `gemini-2.0-flash`, `gemini-2.0-flash-lite`, `gemini-2.0-flash-exp-image-generation` | Enhanced reasoning, thinking tokens with `thinkingBudget`, image generation |
-| **Gemini 2.5** | `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`, `gemini-2.5-flash-preview-tts`, `gemini-2.5-flash-native-audio-latest`, `gemini-2.5-computer-use-preview-10-2025` | Advanced thinking, File Search, implicit caching, TTS, native audio, computer use |
-| **Gemini 3** (Preview) | `gemini-3-pro-preview`, `gemini-3-flash-preview`, `gemini-3.1-pro-preview`, `gemini-3.1-flash-image-preview` | Latest generation, `thinkingLevel` control, custom tools support |
-| **Gemma** | `gemma-3-12b-it`, `gemma-3-27b-it`, `gemma-3n-e4b-it`, `gemma-3n-e2b-it` | Open-weights models, no system instruction support |
-| **Latest Aliases** | `gemini-pro-latest`, `gemini-flash-latest`, `gemini-flash-lite-latest` | Automatically updated to latest stable version |
-| **Specialized** | `deep-research-pro-preview-12-2025`, `nano-banana-pro-preview` | Research-focused, experimental models |
+| Model Family           | Example IDs                                                                                                                                                                      | Key Features                                                                      |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **Gemini 1.5**         | `gemini-1.5-flash`, `gemini-1.5-flash-8b`, `gemini-1.5-pro`                                                                                                                      | Stable models, multi-modal support, tool calling                                  |
+| **Gemini 2.0**         | `gemini-2.0-flash`, `gemini-2.0-flash-lite`, `gemini-2.0-flash-exp-image-generation`                                                                                             | Enhanced reasoning, thinking tokens with `thinkingBudget`, image generation       |
+| **Gemini 2.5**         | `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`, `gemini-2.5-flash-preview-tts`, `gemini-2.5-flash-native-audio-latest`, `gemini-2.5-computer-use-preview-10-2025` | Advanced thinking, File Search, implicit caching, TTS, native audio, computer use |
+| **Gemini 3** (Preview) | `gemini-3-pro-preview`, `gemini-3-flash-preview`, `gemini-3.1-pro-preview`, `gemini-3.1-flash-image-preview`                                                                     | Latest generation, `thinkingLevel` control, custom tools support                  |
+| **Gemma**              | `gemma-3-12b-it`, `gemma-3-27b-it`, `gemma-3n-e4b-it`, `gemma-3n-e2b-it`                                                                                                         | Open-weights models, no system instruction support                                |
+| **Latest Aliases**     | `gemini-pro-latest`, `gemini-flash-latest`, `gemini-flash-lite-latest`                                                                                                           | Automatically updated to latest stable version                                    |
+| **Specialized**        | `deep-research-pro-preview-12-2025`, `nano-banana-pro-preview`                                                                                                                   | Research-focused, experimental models                                             |
 
 **Sources**: [packages/google/src/google-generative-ai-options.ts:4-46]()
 
@@ -236,26 +234,26 @@ graph TB
         google_chat["google('gemini-2.5-flash')"]
         google_languageModel["google.languageModel('gemini-3-pro-preview')"]
     end
-    
+
     subgraph "Vertex AI Provider"
         createVertex_factory["createVertex()"]
         vertex_instance["vertex instance"]
         vertex_chat["vertex('gemini-2.5-pro')"]
         vertex_languageModel["vertex.languageModel('gemini-1.5-flash')"]
     end
-    
+
     subgraph "Shared Model Implementation"
         GoogleGenerativeAILanguageModel_impl["GoogleGenerativeAILanguageModel<br/>with specific modelId"]
     end
-    
+
     createGoogleGenerativeAI_factory --> google_instance
     google_instance --> google_chat
     google_instance --> google_languageModel
-    
+
     createVertex_factory --> vertex_instance
     vertex_instance --> vertex_chat
     vertex_instance --> vertex_languageModel
-    
+
     google_chat --> GoogleGenerativeAILanguageModel_impl
     google_languageModel --> GoogleGenerativeAILanguageModel_impl
     vertex_chat --> GoogleGenerativeAILanguageModel_impl
@@ -275,12 +273,12 @@ graph TD
     getArgs["getArgs()<br/>packages/google/src/google-generative-ai-language-model.ts"]
     checkModelId["isGemmaModel = modelId.toLowerCase()<br/>.startsWith('gemma-')"]
     convertMessages["convertToGoogleGenerativeAIMessages(prompt,<br/>{isGemmaModel, providerOptionsName})"]
-    
+
     includeSystemInstruction["isGemmaModel === false<br/>systemInstruction: {role: 'user', parts}"]
     excludeSystemInstruction["isGemmaModel === true<br/>systemInstruction: undefined"]
-    
+
     requestBody["Request Body<br/>{contents, systemInstruction?,<br/>generationConfig, tools...}"]
-    
+
     getArgs --> checkModelId
     checkModelId --> convertMessages
     convertMessages --> includeSystemInstruction
@@ -307,28 +305,28 @@ graph TB
         cachedContent["cachedContent<br/>string<br/>cachedContents/{id}"]
         structuredOutputs["structuredOutputs<br/>boolean<br/>Enable/disable schema validation"]
     end
-    
+
     subgraph "Safety and Content"
         safetySettings["safetySettings<br/>[{category, threshold}]<br/>Content filtering rules"]
         threshold["threshold<br/>string (optional)<br/>Standalone threshold setting"]
     end
-    
+
     subgraph "Media Processing"
         audioTimestamp["audioTimestamp<br/>boolean<br/>Enable audio timestamp understanding"]
         mediaResolution["mediaResolution<br/>enum<br/>LOW, MEDIUM, HIGH, UNSPECIFIED"]
         imageConfig["imageConfig<br/>{aspectRatio?, imageSize?}<br/>Image generation settings"]
     end
-    
+
     subgraph "Grounding and Retrieval"
         retrievalConfig["retrievalConfig<br/>{latLng?}<br/>Location context for grounding"]
     end
-    
+
     subgraph "Vertex-Only"
         labels["labels<br/>Record<string, string><br/>Billing labels"]
     end
-    
+
     googleGenerativeAIProviderOptions["googleGenerativeAIProviderOptions<br/>Zod Schema"]
-    
+
     googleGenerativeAIProviderOptions --> responseModalities
     googleGenerativeAIProviderOptions --> thinkingConfig
     googleGenerativeAIProviderOptions --> cachedContent
@@ -353,17 +351,17 @@ The `getArgs()` method in `GoogleGenerativeAILanguageModel` resolves provider op
 ```mermaid
 graph TD
     getArgs["getArgs()<br/>packages/google/src/google-generative-ai-language-model.ts:83"]
-    
+
     checkProvider["providerOptionsName = this.config.provider<br/>.includes('vertex') ? 'vertex' : 'google'"]
-    
+
     parseOptions["parseProviderOptions({<br/>provider: providerOptionsName,<br/>providerOptions,<br/>schema: googleLanguageModelOptions<br/>})"]
-    
+
     checkNull{"googleOptions<br/>== null AND<br/>providerOptionsName !== 'google'?"}
-    
+
     fallbackParse["parseProviderOptions({<br/>provider: 'google',<br/>providerOptions,<br/>schema: googleLanguageModelOptions<br/>})"]
-    
+
     useOptions["Use resolved googleOptions<br/>in request configuration"]
-    
+
     getArgs --> checkProvider
     checkProvider --> parseOptions
     parseOptions --> checkNull
@@ -380,11 +378,11 @@ This design allows Vertex AI users to specify options under either `providerOpti
 
 The `thinkingConfig` option controls the model's internal reasoning process:
 
-| Field | Type | Models | Description |
-|-------|------|--------|-------------|
-| `thinkingBudget` | `number` | Gemini 2.5 | Token budget for thinking. Set to 0 to disable. Allocated tokens used for internal reasoning. |
-| `thinkingLevel` | `'minimal' \| 'low' \| 'medium' \| 'high'` | Gemini 3 | Reasoning depth control. Flash supports all 4 levels, Pro supports 'low' and 'high'. |
-| `includeThoughts` | `boolean` | Gemini 2.5+, Gemini 3 | Return synthesized thought summaries in response. When `true`, the `reasoning` field in the response contains the thought process. |
+| Field             | Type                                       | Models                | Description                                                                                                                        |
+| ----------------- | ------------------------------------------ | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `thinkingBudget`  | `number`                                   | Gemini 2.5            | Token budget for thinking. Set to 0 to disable. Allocated tokens used for internal reasoning.                                      |
+| `thinkingLevel`   | `'minimal' \| 'low' \| 'medium' \| 'high'` | Gemini 3              | Reasoning depth control. Flash supports all 4 levels, Pro supports 'low' and 'high'.                                               |
+| `includeThoughts` | `boolean`                                  | Gemini 2.5+, Gemini 3 | Return synthesized thought summaries in response. When `true`, the `reasoning` field in the response contains the thought process. |
 
 **Safety Settings**: The schema includes both a `safetySettings` array (with per-category thresholds) and a standalone `threshold` option. The standalone threshold applies to all harm categories. Valid threshold values: `HARM_BLOCK_THRESHOLD_UNSPECIFIED`, `BLOCK_LOW_AND_ABOVE`, `BLOCK_MEDIUM_AND_ABOVE`, `BLOCK_ONLY_HIGH`, `BLOCK_NONE`, `OFF`.
 
@@ -404,61 +402,61 @@ graph TB
         textPart_with_thought["Text Part<br/>{text: string,<br/>thought: true,<br/>thoughtSignature?: string}"]
         textPart_without_thought["Text Part<br/>{text: string,<br/>thought: false or undefined,<br/>thoughtSignature?: string}"]
     end
-    
+
     subgraph "doGenerate Processing"
         check_thought_flag{"part.thought<br/>=== true?"}
         create_reasoning_content["Create content with<br/>type: 'reasoning'"]
         create_text_content["Create content with<br/>type: 'text'"]
         add_thoughtSignature_metadata["Add thoughtSignature to<br/>providerMetadata if present"]
     end
-    
+
     subgraph "doStream Processing"
         stream_check_thought{"part.thought<br/>=== true?"}
         reasoning_block_active{"currentReasoningBlockId<br/>!== null?"}
         text_block_active{"currentTextBlockId<br/>!== null?"}
-        
+
         emit_reasoning_start["Emit reasoning-start<br/>with new block ID"]
         emit_reasoning_delta["Emit reasoning-delta<br/>with text"]
         emit_reasoning_end["Emit reasoning-end<br/>on flush or type change"]
-        
+
         emit_text_start["Emit text-start<br/>with new block ID"]
         emit_text_delta["Emit text-delta<br/>with text"]
         emit_text_end["Emit text-end<br/>on flush or type change"]
     end
-    
+
     subgraph "Final Response"
         generateText_result["generateText result<br/>{reasoning, reasoningText, text}"]
         streamText_result["streamText result<br/>Stream with reasoning<br/>and text-delta parts"]
     end
-    
+
     textPart_with_thought --> check_thought_flag
     textPart_without_thought --> check_thought_flag
-    
+
     check_thought_flag -->|true| create_reasoning_content
     check_thought_flag -->|false| create_text_content
-    
+
     create_reasoning_content --> add_thoughtSignature_metadata
     create_text_content --> add_thoughtSignature_metadata
-    
+
     add_thoughtSignature_metadata --> generateText_result
-    
+
     textPart_with_thought --> stream_check_thought
     textPart_without_thought --> stream_check_thought
-    
+
     stream_check_thought -->|true| reasoning_block_active
     stream_check_thought -->|false| text_block_active
-    
+
     reasoning_block_active -->|false| emit_reasoning_start
     reasoning_block_active -->|true| emit_reasoning_delta
     emit_reasoning_start --> emit_reasoning_delta
-    
+
     text_block_active -->|false| emit_text_start
     text_block_active -->|true| emit_text_delta
     emit_text_start --> emit_text_delta
-    
+
     emit_reasoning_delta --> emit_reasoning_end
     emit_text_delta --> emit_text_end
-    
+
     emit_reasoning_end --> streamText_result
     emit_text_end --> streamText_result
 ```
@@ -476,29 +474,29 @@ graph LR
         currentReasoningBlockId["currentReasoningBlockId<br/>string | null"]
         blockCounter["blockCounter<br/>incrementing integer"]
     end
-    
+
     subgraph "Block Lifecycle - Reasoning"
         reasoning_inactive["Reasoning block inactive<br/>currentReasoningBlockId === null"]
         reasoning_start["Emit reasoning-start<br/>Set currentReasoningBlockId"]
         reasoning_deltas["Emit multiple reasoning-delta<br/>Same block ID"]
         reasoning_end["Emit reasoning-end<br/>Set currentReasoningBlockId = null"]
     end
-    
+
     subgraph "Block Lifecycle - Text"
         text_inactive["Text block inactive<br/>currentTextBlockId === null"]
         text_start["Emit text-start<br/>Set currentTextBlockId"]
         text_deltas["Emit multiple text-delta<br/>Same block ID"]
         text_end["Emit text-end<br/>Set currentTextBlockId = null"]
     end
-    
+
     blockCounter --> reasoning_start
     blockCounter --> text_start
-    
+
     reasoning_inactive --> reasoning_start
     reasoning_start --> reasoning_deltas
     reasoning_deltas --> reasoning_end
     reasoning_end --> reasoning_inactive
-    
+
     text_inactive --> text_start
     text_start --> text_deltas
     text_deltas --> text_end
@@ -528,22 +526,22 @@ graph TB
         vertexRagStore["vertexRagStore()<br/>google.vertex_rag_store"]
         enterpriseWebSearch["enterpriseWebSearch()<br/>google.enterprise_web_search"]
     end
-    
+
     subgraph "Tool Preparation Logic"
         prepareTools_func["prepareTools()<br/>{tools, toolConfig, toolWarnings}"]
         hasProviderTools{"tools.some<br/>(tool.type === 'provider')?"}
         checkModelSupport["Check model ID for<br/>tool compatibility"]
-        
+
         googleTools_array["googleTools array<br/>[{googleSearch: {}}, {codeExecution: {}}, ...]"]
         functionDeclarations_array["functionDeclarations array<br/>[{name, description, parameters}, ...]"]
         toolWarnings_array["toolWarnings array<br/>Unsupported tool warnings"]
     end
-    
+
     subgraph "API Request Format"
         tools_field["tools field in request<br/>Array of tool declarations"]
         toolConfig_field["toolConfig field in request<br/>{functionCallingConfig: {mode, allowedFunctionNames?}}"]
     end
-    
+
     googleSearch --> prepareTools_func
     googleMaps --> prepareTools_func
     urlContext --> prepareTools_func
@@ -551,14 +549,14 @@ graph TB
     codeExecution --> prepareTools_func
     vertexRagStore --> prepareTools_func
     enterpriseWebSearch --> prepareTools_func
-    
+
     prepareTools_func --> hasProviderTools
     hasProviderTools -->|true| checkModelSupport
     hasProviderTools -->|false| functionDeclarations_array
-    
+
     checkModelSupport --> googleTools_array
     checkModelSupport --> toolWarnings_array
-    
+
     googleTools_array --> tools_field
     functionDeclarations_array --> tools_field
     toolWarnings_array --> prepareTools_func
@@ -568,15 +566,15 @@ graph TB
 
 ### Tool Catalog with Model Requirements
 
-| Tool ID | Tool Name | Supported Models | Purpose | API Format |
-|---------|-----------|------------------|---------|------------|
-| `google.google_search` | `google_search` | Gemini 2.0+, Gemini 3, or Gemini 1.5 Flash (non-8b) | Real-time web search grounding | `{googleSearch: {}}` or `{googleSearchRetrieval: {}}` |
-| `google.google_maps` | `google_maps` | Gemini 2.0+, Gemini 3 | Location-based grounding with Maps data | `{googleMaps: {}}` |
-| `google.url_context` | `url_context` | Gemini 2.0+, Gemini 3 | Direct URL content retrieval (up to 20 URLs) | `{urlContext: {}}` |
-| `google.file_search` | `file_search` | Gemini 2.5, Gemini 3 | RAG from File Search stores | `{fileSearch: {fileSearchStoreNames, metadataFilter?, topK?}}` |
-| `google.code_execution` | `code_execution` | Gemini 2.0+, Gemini 3 | Python code generation and execution | `{codeExecution: {}}` |
-| `google.vertex_rag_store` | `vertex_rag_store` | Gemini 2.0+, Gemini 3 (Vertex only) | RAG from Vertex RAG Engine corpus | `{retrieval: {vertex_rag_store: {rag_resources, similarity_top_k?}}}` |
-| `google.enterprise_web_search` | `enterprise_web_search` | Gemini 2.0+, Gemini 3 (Vertex only) | Compliance-focused web grounding | `{enterpriseWebSearch: {}}` |
+| Tool ID                        | Tool Name               | Supported Models                                    | Purpose                                      | API Format                                                            |
+| ------------------------------ | ----------------------- | --------------------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------- |
+| `google.google_search`         | `google_search`         | Gemini 2.0+, Gemini 3, or Gemini 1.5 Flash (non-8b) | Real-time web search grounding               | `{googleSearch: {}}` or `{googleSearchRetrieval: {}}`                 |
+| `google.google_maps`           | `google_maps`           | Gemini 2.0+, Gemini 3                               | Location-based grounding with Maps data      | `{googleMaps: {}}`                                                    |
+| `google.url_context`           | `url_context`           | Gemini 2.0+, Gemini 3                               | Direct URL content retrieval (up to 20 URLs) | `{urlContext: {}}`                                                    |
+| `google.file_search`           | `file_search`           | Gemini 2.5, Gemini 3                                | RAG from File Search stores                  | `{fileSearch: {fileSearchStoreNames, metadataFilter?, topK?}}`        |
+| `google.code_execution`        | `code_execution`        | Gemini 2.0+, Gemini 3                               | Python code generation and execution         | `{codeExecution: {}}`                                                 |
+| `google.vertex_rag_store`      | `vertex_rag_store`      | Gemini 2.0+, Gemini 3 (Vertex only)                 | RAG from Vertex RAG Engine corpus            | `{retrieval: {vertex_rag_store: {rag_resources, similarity_top_k?}}}` |
+| `google.enterprise_web_search` | `enterprise_web_search` | Gemini 2.0+, Gemini 3 (Vertex only)                 | Compliance-focused web grounding             | `{enterpriseWebSearch: {}}`                                           |
 
 **Sources**: [packages/google/src/google-prepare-tools.ts:74-189]()
 
@@ -587,30 +585,30 @@ The `prepareTools()` function checks model ID patterns to determine tool support
 ```mermaid
 graph TD
     checkModelId["Check modelId"]
-    
+
     isLatest{"modelId in<br/>['gemini-flash-latest',<br/>'gemini-flash-lite-latest',<br/>'gemini-pro-latest']?"}
-    
+
     isGemini2orNewer{"modelId.includes<br/>('gemini-2') ||<br/>modelId.includes('gemini-3')<br/>|| isLatest?"}
-    
+
     supportsDynamicRetrieval{"modelId.includes<br/>('gemini-1.5-flash')<br/>&& !modelId.includes('-8b')?"}
-    
+
     supportsFileSearch{"modelId.includes<br/>('gemini-2.5') ||<br/>modelId.includes('gemini-3')?"}
-    
+
     tool_fully_supported["Tool API format added<br/>to googleTools array"]
     tool_fallback_supported["Fallback API format used<br/>(googleSearchRetrieval)"]
     tool_not_supported["Warning added to<br/>toolWarnings array"]
-    
+
     checkModelId --> isLatest
     isLatest --> isGemini2orNewer
     isLatest --> supportsDynamicRetrieval
     isLatest --> supportsFileSearch
-    
+
     isGemini2orNewer -->|true| tool_fully_supported
     isGemini2orNewer -->|false| supportsDynamicRetrieval
-    
+
     supportsDynamicRetrieval -->|true| tool_fallback_supported
     supportsDynamicRetrieval -->|false| tool_not_supported
-    
+
     supportsFileSearch -->|true| tool_fully_supported
     supportsFileSearch -->|false| tool_not_supported
 ```
@@ -627,23 +625,23 @@ graph LR
         executableCode_part["Part with executableCode<br/>{language: 'python',<br/>code: string}"]
         codeExecutionResult_part["Part with codeExecutionResult<br/>{outcome: string,<br/>output: string}"]
     end
-    
+
     subgraph "Content Processing"
         generate_toolCallId["Generate toolCallId<br/>Store as lastCodeExecutionToolCallId"]
         create_tool_call["Create tool-call content<br/>{type: 'tool-call',<br/>toolName: 'code_execution',<br/>providerExecuted: true}"]
         create_tool_result["Create tool-result content<br/>{type: 'tool-result',<br/>toolCallId: lastCodeExecutionToolCallId,<br/>result: {outcome, output}}"]
         clear_toolCallId["Clear lastCodeExecutionToolCallId"]
     end
-    
+
     subgraph "Response Content"
         toolCall_in_content["tool-call in content array"]
         toolResult_in_content["tool-result in content array"]
     end
-    
+
     executableCode_part --> generate_toolCallId
     generate_toolCallId --> create_tool_call
     create_tool_call --> toolCall_in_content
-    
+
     codeExecutionResult_part --> create_tool_result
     create_tool_result --> toolResult_in_content
     toolResult_in_content --> clear_toolCallId
@@ -660,19 +658,19 @@ The File Search tool accepts configuration parameters for filtering and ranking:
 ```mermaid
 graph TB
     fileSearch_factory["fileSearch({<br/>fileSearchStoreNames,<br/>metadataFilter?,<br/>topK?<br/>})"]
-    
+
     fileSearchStoreNames["fileSearchStoreNames<br/>string[]<br/>Fully-qualified store names<br/>'projects/X/locations/Y/fileSearchStores/Z'"]
-    
+
     metadataFilter["metadataFilter<br/>string (optional)<br/>Filter expression<br/>'author = \"Robert Graves\"'"]
-    
+
     topK["topK<br/>number (optional)<br/>Maximum chunks to retrieve"]
-    
+
     api_format["API Format<br/>{fileSearch: {<br/>fileSearchStoreNames: [...],<br/>metadataFilter?: string,<br/>topK?: number<br/>}}"]
-    
+
     fileSearch_factory --> fileSearchStoreNames
     fileSearch_factory --> metadataFilter
     fileSearch_factory --> topK
-    
+
     fileSearchStoreNames --> api_format
     metadataFilter --> api_format
     topK --> api_format
@@ -699,30 +697,30 @@ graph TB
         groundingSupports["groundingSupports: array<br/>Text segment attributions"]
         retrievalMetadata["retrievalMetadata<br/>{webDynamicRetrievalScore?: number}"]
     end
-    
+
     subgraph "Grounding Chunk Types"
         web_chunk["web chunk<br/>{uri: string,<br/>title?: string}"]
         retrievedContext_chunk["retrievedContext chunk<br/>{uri?: string, title?: string,<br/>text?: string,<br/>fileSearchStore?: string}"]
         maps_chunk["maps chunk<br/>{uri?: string, title?: string,<br/>placeId?: string}"]
     end
-    
+
     subgraph "Grounding Support Details"
         segment["segment<br/>{startIndex, endIndex, text}"]
         groundingChunkIndices["groundingChunkIndices: number[]<br/>References to chunks"]
         confidenceScores["confidenceScores: number[]<br/>Confidence per chunk"]
     end
-    
+
     groundingMetadata --> webSearchQueries
     groundingMetadata --> retrievalQueries
     groundingMetadata --> searchEntryPoint
     groundingMetadata --> groundingChunks
     groundingMetadata --> groundingSupports
     groundingMetadata --> retrievalMetadata
-    
+
     groundingChunks --> web_chunk
     groundingChunks --> retrievedContext_chunk
     groundingChunks --> maps_chunk
-    
+
     groundingSupports --> segment
     groundingSupports --> groundingChunkIndices
     groundingSupports --> confidenceScores
@@ -737,55 +735,55 @@ The `extractSources()` function converts grounding chunks into `LanguageModelV3S
 ```mermaid
 graph TD
     extractSources_start["extractSources({<br/>groundingMetadata,<br/>generateId<br/>})"]
-    
+
     check_groundingChunks{"groundingMetadata<br/>.groundingChunks<br/>exists?"}
-    
+
     iterate_chunks["Iterate each chunk"]
-    
+
     check_web{"chunk.web<br/>!= null?"}
     check_retrievedContext{"chunk.retrievedContext<br/>!= null?"}
     check_maps{"chunk.maps<br/>!= null?"}
-    
+
     web_to_url_source["Create url source<br/>{sourceType: 'url',<br/>url: chunk.web.uri,<br/>title: chunk.web.title}"]
-    
+
     check_uri_format{"uri starts with<br/>'http://' or 'https://'?"}
     retrievedContext_to_url_source["Create url source<br/>from retrievedContext.uri"]
-    
+
     check_uri_exists{"uri exists<br/>and is file path?"}
     infer_mediaType["Infer mediaType<br/>from file extension<br/>(pdf, txt, docx, etc.)"]
     retrievedContext_to_document_source["Create document source<br/>{sourceType: 'document',<br/>mediaType, filename, title}"]
-    
+
     check_fileSearchStore{"fileSearchStore<br/>exists?"}
     fileSearchStore_to_document_source["Create document source<br/>from fileSearchStore<br/>(new format)"]
-    
+
     maps_to_url_source["Create url source<br/>from maps.uri"]
-    
+
     sources_array["Return LanguageModelV3Source[]<br/>or undefined if empty"]
-    
+
     extractSources_start --> check_groundingChunks
     check_groundingChunks -->|false| sources_array
     check_groundingChunks -->|true| iterate_chunks
-    
+
     iterate_chunks --> check_web
     iterate_chunks --> check_retrievedContext
     iterate_chunks --> check_maps
-    
+
     check_web -->|true| web_to_url_source
     web_to_url_source --> sources_array
-    
+
     check_retrievedContext -->|true| check_uri_format
     check_uri_format -->|true| retrievedContext_to_url_source
     check_uri_format -->|false| check_uri_exists
     retrievedContext_to_url_source --> sources_array
-    
+
     check_uri_exists -->|true| infer_mediaType
     infer_mediaType --> retrievedContext_to_document_source
     retrievedContext_to_document_source --> sources_array
-    
+
     check_uri_exists -->|false| check_fileSearchStore
     check_fileSearchStore -->|true| fileSearchStore_to_document_source
     fileSearchStore_to_document_source --> sources_array
-    
+
     check_maps -->|true| maps_to_url_source
     maps_to_url_source --> sources_array
 ```
@@ -799,13 +797,13 @@ The URL Context tool provides additional metadata about retrieved URLs through `
 ```mermaid
 graph TB
     urlContextMetadata["urlContextMetadata<br/>(in candidate)"]
-    
+
     urlMetadata_array["urlMetadata: array<br/>Details about each URL"]
-    
+
     retrievedUrl["retrievedUrl: string<br/>The URL that was retrieved"]
-    
+
     urlRetrievalStatus["urlRetrievalStatus: string<br/>Status code<br/>(e.g., 'URL_RETRIEVAL_STATUS_SUCCESS')"]
-    
+
     urlContextMetadata --> urlMetadata_array
     urlMetadata_array --> retrievedUrl
     urlMetadata_array --> urlRetrievalStatus
@@ -820,29 +818,29 @@ In streaming mode, sources are deduplicated to prevent emitting the same URL sou
 ```mermaid
 graph LR
     emittedSourceUrls["emittedSourceUrls<br/>Set<string><br/>Tracks emitted URLs"]
-    
+
     extractSources_call["extractSources()<br/>Returns sources from chunk"]
-    
+
     check_each_source["For each source"]
-    
+
     check_url_type{"sourceType<br/>=== 'url'?"}
-    
+
     check_already_emitted{"URL in<br/>emittedSourceUrls?"}
-    
+
     add_to_set["Add URL to<br/>emittedSourceUrls"]
-    
+
     enqueue_source["Enqueue source part<br/>to stream"]
-    
+
     skip_source["Skip (already emitted)"]
-    
+
     extractSources_call --> check_each_source
     check_each_source --> check_url_type
     check_url_type -->|true| check_already_emitted
     check_url_type -->|false| enqueue_source
-    
+
     check_already_emitted -->|false| add_to_set
     check_already_emitted -->|true| skip_source
-    
+
     add_to_set --> enqueue_source
 ```
 
@@ -866,7 +864,7 @@ graph TB
         google_provider["provider: 'google'"]
         google_tools["Available Tools<br/>google_search, google_maps,<br/>url_context, file_search,<br/>code_execution"]
     end
-    
+
     subgraph "Vertex AI (Node.js)"
         vertex_baseURL["baseURL<br/>https://{location}-aiplatform<br/>.googleapis.com/v1/projects/<br/>{project}/locations/{location}/<br/>publishers/google"]
         vertex_auth["Authentication<br/>OAuth via google-auth-library<br/>(ADC, service account, etc.)"]
@@ -874,12 +872,12 @@ graph TB
         vertex_tools["Available Tools<br/>All Google AI tools +<br/>vertex_rag_store,<br/>enterprise_web_search"]
         vertex_labels["Additional Options<br/>labels (billing metadata)"]
     end
-    
+
     subgraph "Vertex AI (Edge Runtime)"
         vertex_edge_auth["Authentication<br/>JWT via GOOGLE_CLIENT_EMAIL,<br/>GOOGLE_PRIVATE_KEY"]
         vertex_edge_import["Import<br/>@ai-sdk/google-vertex/edge"]
     end
-    
+
     subgraph "Vertex Express Mode"
         vertex_express_auth["Authentication<br/>API Key via GOOGLE_VERTEX_API_KEY"]
         vertex_express_no_project["No project/location required"]
@@ -890,15 +888,15 @@ graph TB
 
 ### Tool Availability Matrix
 
-| Tool | Google AI | Vertex AI | Notes |
-|------|-----------|-----------|-------|
-| `google_search` | ✓ | ✓ | Real-time web search |
-| `google_maps` | ✓ | ✓ | Location-based grounding |
-| `url_context` | ✓ | ✓ | Direct URL retrieval |
-| `file_search` | ✓ | ✓ | File Search stores |
-| `code_execution` | ✓ | ✓ | Python code execution |
-| `vertex_rag_store` | ✗ | ✓ | Vertex RAG Engine only |
-| `enterprise_web_search` | ✗ | ✓ | Compliance-focused search |
+| Tool                    | Google AI | Vertex AI | Notes                     |
+| ----------------------- | --------- | --------- | ------------------------- |
+| `google_search`         | ✓         | ✓         | Real-time web search      |
+| `google_maps`           | ✓         | ✓         | Location-based grounding  |
+| `url_context`           | ✓         | ✓         | Direct URL retrieval      |
+| `file_search`           | ✓         | ✓         | File Search stores        |
+| `code_execution`        | ✓         | ✓         | Python code execution     |
+| `vertex_rag_store`      | ✗         | ✓         | Vertex RAG Engine only    |
+| `enterprise_web_search` | ✗         | ✓         | Compliance-focused search |
 
 The `prepareTools()` function emits a warning if `vertex_rag_store` is used with a non-Vertex provider:
 
@@ -908,11 +906,11 @@ The `prepareTools()` function emits a warning if `vertex_rag_store` is used with
 
 Vertex AI supports three distinct authentication paths depending on runtime:
 
-| Method | Runtime | How Configured |
-|--------|---------|---------------|
-| Application Default Credentials | Node.js | `GOOGLE_APPLICATION_CREDENTIALS` env var pointing to a JSON key file, or ADC via `google-auth-library` |
-| JWT | Edge (`/edge` sub-module) | `GOOGLE_CLIENT_EMAIL` + `GOOGLE_PRIVATE_KEY` env vars |
-| API Key (Express Mode) | Node.js + Edge | `apiKey` option or `GOOGLE_VERTEX_API_KEY` env var |
+| Method                          | Runtime                   | How Configured                                                                                         |
+| ------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Application Default Credentials | Node.js                   | `GOOGLE_APPLICATION_CREDENTIALS` env var pointing to a JSON key file, or ADC via `google-auth-library` |
+| JWT                             | Edge (`/edge` sub-module) | `GOOGLE_CLIENT_EMAIL` + `GOOGLE_PRIVATE_KEY` env vars                                                  |
+| API Key (Express Mode)          | Node.js + Edge            | `apiKey` option or `GOOGLE_VERTEX_API_KEY` env var                                                     |
 
 **Express Mode** is automatically activated when an API key is provided. It changes the base URL to `https://aiplatform.googleapis.com/v1/publishers/google` (defined as `EXPRESS_MODE_BASE_URL` in `google-vertex-provider.ts`), bypassing the project/location-specific URL format used for standard Vertex AI. The `createExpressModeFetch()` function wraps the underlying fetch to inject the API key as an `x-goog-api-key` header on every request. No `project` or `location` configuration is required in Express Mode.
 
@@ -921,19 +919,19 @@ Vertex AI supports three distinct authentication paths depending on runtime:
 ```mermaid
 graph LR
     createVertex["createVertex({apiKey})<br/>packages/google-vertex/src/google-vertex-provider.ts"]
-    
+
     detectExpressMode["apiKey provided?<br/>Activate Express Mode"]
-    
+
     createExpressModeFetch["createExpressModeFetch(originalFetch, apiKey)<br/>Returns wrapped fetch function"]
-    
+
     injectHeader["Wrapped fetch injects<br/>x-goog-api-key: apiKey<br/>into every request"]
-    
+
     expressBaseURL["baseURL = EXPRESS_MODE_BASE_URL<br/>'https://aiplatform.googleapis.com/v1/publishers/google'"]
-    
+
     vertexModel["vertex('gemini-2.5-flash')<br/>Uses Express Mode configuration"]
-    
+
     apiCall["API Call to<br/>https://aiplatform.googleapis.com/v1/publishers/google/models/{id}:generateContent<br/>with x-goog-api-key header"]
-    
+
     createVertex --> detectExpressMode
     detectExpressMode --> createExpressModeFetch
     detectExpressMode --> expressBaseURL
@@ -952,28 +950,28 @@ Vertex AI users can specify provider options under either `providerOptions.verte
 ```mermaid
 graph LR
     providerOptions["providerOptions in<br/>generateText/streamText"]
-    
+
     vertex_key["providerOptions.vertex"]
     google_key["providerOptions.google"]
-    
+
     parseProviderOptions_vertex["parseProviderOptions()<br/>provider: 'vertex'<br/>schema: googleGenerativeAIProviderOptions"]
-    
+
     parseProviderOptions_google["parseProviderOptions()<br/>provider: 'google'<br/>schema: googleGenerativeAIProviderOptions"]
-    
+
     result_not_null{"Result != null?"}
-    
+
     use_vertex_options["Use vertex options"]
     fallback_to_google["Try google options<br/>as fallback"]
-    
+
     providerOptions --> vertex_key
     providerOptions --> google_key
-    
+
     vertex_key --> parseProviderOptions_vertex
     parseProviderOptions_vertex --> result_not_null
-    
+
     result_not_null -->|true| use_vertex_options
     result_not_null -->|false| fallback_to_google
-    
+
     fallback_to_google --> google_key
     google_key --> parseProviderOptions_google
 ```
@@ -1038,21 +1036,21 @@ Sources: [packages/google-vertex/src/google-vertex-provider.ts](), [packages/goo
 
 **Supported Model IDs** (`GoogleVertexEmbeddingModelId` from [packages/google-vertex/src/google-vertex-embedding-options.ts]()):
 
-| Model ID | Notes |
-|----------|-------|
-| `text-embedding-004` | Standard English embeddings |
-| `text-embedding-005` | Latest standard model |
-| `text-multilingual-embedding-002` | Multilingual support |
-| `textembedding-gecko@001` | Legacy gecko model |
-| `textembedding-gecko@003` | Legacy gecko model |
-| `textembedding-gecko-multilingual@001` | Legacy multilingual |
+| Model ID                               | Notes                       |
+| -------------------------------------- | --------------------------- |
+| `text-embedding-004`                   | Standard English embeddings |
+| `text-embedding-005`                   | Latest standard model       |
+| `text-multilingual-embedding-002`      | Multilingual support        |
+| `textembedding-gecko@001`              | Legacy gecko model          |
+| `textembedding-gecko@003`              | Legacy gecko model          |
+| `textembedding-gecko-multilingual@001` | Legacy multilingual         |
 
 **Provider Options** (via `providerOptions.vertex`):
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `taskType` | `string` | Embedding purpose: `RETRIEVAL_DOCUMENT`, `RETRIEVAL_QUERY`, `SEMANTIC_SIMILARITY`, `CLASSIFICATION`, `CLUSTERING`, `QUESTION_ANSWERING`, `FACT_VERIFICATION` |
-| `outputDimensionality` | `number` | Override output vector dimensions (model-dependent) |
+| Option                 | Type     | Description                                                                                                                                                  |
+| ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `taskType`             | `string` | Embedding purpose: `RETRIEVAL_DOCUMENT`, `RETRIEVAL_QUERY`, `SEMANTIC_SIMILARITY`, `CLASSIFICATION`, `CLUSTERING`, `QUESTION_ANSWERING`, `FACT_VERIFICATION` |
+| `outputDimensionality` | `number` | Override output vector dimensions (model-dependent)                                                                                                          |
 
 Sources: [packages/google-vertex/src/google-vertex-embedding-model.ts](), [packages/google-vertex/src/google-vertex-embedding-options.ts]()
 
@@ -1065,6 +1063,7 @@ Sources: [packages/google-vertex/src/google-vertex-embedding-model.ts](), [packa
 Two sub-types are handled internally:
 
 **Imagen Models** — `GoogleVertexImageModelId` from [packages/google-vertex/src/google-vertex-image-settings.ts]():
+
 - `imagen-3.0-generate-001`
 - `imagen-3.0-generate-002`
 - `imagen-3.0-fast-generate-001`
@@ -1097,11 +1096,11 @@ Sources: [packages/google-vertex/src/google-vertex-image-model.ts](), [packages/
 
 **Provider Options** (`GoogleVertexImageModelOptions`):
 
-| Option | Description |
-|--------|-------------|
-| `aspectRatio` | Image ratio string (e.g., `"1:1"`, `"16:9"`, `"9:16"`) |
-| `imageSize` | Pixel dimensions (e.g., `"1024x1024"`) — Imagen 4+ |
-| `negativePrompt` | Text describing elements to exclude from the image |
+| Option           | Description                                            |
+| ---------------- | ------------------------------------------------------ |
+| `aspectRatio`    | Image ratio string (e.g., `"1:1"`, `"16:9"`, `"9:16"`) |
+| `imageSize`      | Pixel dimensions (e.g., `"1024x1024"`) — Imagen 4+     |
+| `negativePrompt` | Text describing elements to exclude from the image     |
 
 ---
 
@@ -1110,6 +1109,7 @@ Sources: [packages/google-vertex/src/google-vertex-image-model.ts](), [packages/
 `GoogleVertexVideoModel` (in `packages/google-vertex/src/google-vertex-video-model.ts`) implements `Experimental_VideoModelV3`. Accessed via `vertex.videoModel(modelId)`.
 
 **Supported Model IDs** (`GoogleVertexVideoModelId`):
+
 - `veo-2.0-generate-001`
 - `veo-3.0-generate-preview`
 
@@ -1124,9 +1124,9 @@ Sources: [packages/google-vertex/CHANGELOG.md:90-133](), [content/providers/01-a
 The `@ai-sdk/google-vertex/anthropic` sub-module wraps `@ai-sdk/anthropic`'s `AnthropicMessagesLanguageModel` with Vertex AI OAuth authentication instead of an Anthropic API key. It is a separate export from the main `@ai-sdk/google-vertex` package:
 
 ```ts
-import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic'
 // or for Edge runtime:
-import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic/edge';
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic/edge'
 ```
 
 `createVertexAnthropic()` is the factory function for customized instances. All Claude model capabilities — extended thinking, cache control (`cacheControl`), provider-defined tools (bash, text editor, computer use), MCP servers — work identically to the direct Anthropic provider. See page [3.4] for full documentation. The Vertex variant differs only in that `GOOGLE_APPLICATION_CREDENTIALS` (or the edge JWT env vars) provide authentication instead of `ANTHROPIC_API_KEY`.
@@ -1144,19 +1144,19 @@ The Google provider includes rich metadata in responses, exposed through `provid
 ```mermaid
 graph TB
     providerMetadata["providerMetadata<br/>(in response)"]
-    
+
     google_or_vertex_key["Key: 'google' or 'vertex'<br/>Based on provider"]
-    
+
     promptFeedback["promptFeedback<br/>{blockReason?, safetyRatings?}<br/>Input safety assessment"]
-    
+
     groundingMetadata_field["groundingMetadata<br/>Detailed grounding information<br/>(see Grounding Metadata section)"]
-    
+
     urlContextMetadata_field["urlContextMetadata<br/>URL retrieval status<br/>(for url_context tool)"]
-    
+
     safetyRatings_field["safetyRatings<br/>[{category, probability,<br/>probabilityScore, severity,<br/>severityScore, blocked?}]<br/>Output safety assessment"]
-    
+
     usageMetadata_field["usageMetadata<br/>{cachedContentTokenCount?,<br/>thoughtsTokenCount?,<br/>promptTokenCount,<br/>candidatesTokenCount,<br/>totalTokenCount,<br/>trafficType?}"]
-    
+
     providerMetadata --> google_or_vertex_key
     google_or_vertex_key --> promptFeedback
     google_or_vertex_key --> groundingMetadata_field
@@ -1171,39 +1171,39 @@ graph TB
 
 The `usageMetadata` field provides detailed token counts:
 
-| Field | Description | Availability |
-|-------|-------------|--------------|
-| `cachedContentTokenCount` | Tokens loaded from cache | Models with caching support |
-| `thoughtsTokenCount` | Tokens used for thinking/reasoning | Gemini 2.5+, Gemini 3 with thinking |
-| `promptTokenCount` | Input tokens (excluding cache hits) | All models |
-| `candidatesTokenCount` | Output tokens | All models |
-| `totalTokenCount` | Sum of all token types | All models |
-| `trafficType` | Traffic classification (Vertex only) | Vertex AI models |
+| Field                     | Description                          | Availability                        |
+| ------------------------- | ------------------------------------ | ----------------------------------- |
+| `cachedContentTokenCount` | Tokens loaded from cache             | Models with caching support         |
+| `thoughtsTokenCount`      | Tokens used for thinking/reasoning   | Gemini 2.5+, Gemini 3 with thinking |
+| `promptTokenCount`        | Input tokens (excluding cache hits)  | All models                          |
+| `candidatesTokenCount`    | Output tokens                        | All models                          |
+| `totalTokenCount`         | Sum of all token types               | All models                          |
+| `trafficType`             | Traffic classification (Vertex only) | Vertex AI models                    |
 
 The `convertGoogleGenerativeAIUsage()` function maps these to the standardized usage format:
 
 ```mermaid
 graph LR
     usageMetadata["usageMetadata<br/>from API response"]
-    
+
     convertGoogleGenerativeAIUsage_func["convertGoogleGenerativeAIUsage()"]
-    
+
     inputTokens["inputTokens<br/>{total, noCache, cacheRead,<br/>cacheWrite}"]
-    
+
     outputTokens["outputTokens<br/>{total, text, reasoning}"]
-    
+
     raw_field["raw<br/>Original usageMetadata"]
-    
+
     usageMetadata --> convertGoogleGenerativeAIUsage_func
-    
+
     convertGoogleGenerativeAIUsage_func --> inputTokens
     convertGoogleGenerativeAIUsage_func --> outputTokens
     convertGoogleGenerativeAIUsage_func --> raw_field
-    
+
     inputTokens --> total["total = promptTokenCount"]
     inputTokens --> noCache["noCache = promptTokenCount<br/>- cachedContentTokenCount"]
     inputTokens --> cacheRead["cacheRead =<br/>cachedContentTokenCount"]
-    
+
     outputTokens --> total_out["total = candidatesTokenCount"]
     outputTokens --> text_out["text = candidatesTokenCount<br/>- thoughtsTokenCount"]
     outputTokens --> reasoning_out["reasoning = thoughtsTokenCount"]
@@ -1218,19 +1218,19 @@ Safety ratings assess content safety across multiple harm categories:
 ```mermaid
 graph TB
     safetyRating["SafetyRating"]
-    
+
     category["category: string<br/>HARM_CATEGORY_HATE_SPEECH,<br/>HARM_CATEGORY_DANGEROUS_CONTENT,<br/>HARM_CATEGORY_HARASSMENT,<br/>HARM_CATEGORY_SEXUALLY_EXPLICIT,<br/>HARM_CATEGORY_CIVIC_INTEGRITY"]
-    
+
     probability["probability: string<br/>NEGLIGIBLE, LOW,<br/>MEDIUM, HIGH"]
-    
+
     probabilityScore["probabilityScore: number<br/>0.0 to 1.0"]
-    
+
     severity["severity: string<br/>HARM_SEVERITY_NEGLIGIBLE,<br/>HARM_SEVERITY_LOW,<br/>HARM_SEVERITY_MEDIUM,<br/>HARM_SEVERITY_HIGH"]
-    
+
     severityScore["severityScore: number<br/>0.0 to 1.0"]
-    
+
     blocked["blocked: boolean<br/>(optional)<br/>Whether content was blocked"]
-    
+
     safetyRating --> category
     safetyRating --> probability
     safetyRating --> probabilityScore
@@ -1256,39 +1256,39 @@ graph LR
     subgraph "Application Layer"
         generateText_call["generateText({<br/>model: google('gemini-2.5-flash'),<br/>prompt: string,<br/>tools?: {...},<br/>providerOptions?: {...}<br/>})"]
     end
-    
+
     subgraph "AI SDK Core"
         validateModel["Validate model implements<br/>LanguageModelV3"]
         prepareRequest["Prepare LanguageModelV3CallOptions"]
         callDoGenerate["Call model.doGenerate()"]
         processResponse["Process result<br/>Extract text, reasoning, sources"]
     end
-    
+
     subgraph "Google Provider"
         GoogleGenerativeAILanguageModel_class["GoogleGenerativeAILanguageModel"]
         doGenerate_method["doGenerate()<br/>Returns LanguageModelV3GenerateResult"]
         doStream_method["doStream()<br/>Returns LanguageModelV3StreamResult"]
     end
-    
+
     subgraph "Google API"
         generateContent_endpoint[":generateContent endpoint"]
         streamGenerateContent_endpoint[":streamGenerateContent?alt=sse"]
     end
-    
+
     generateText_call --> validateModel
     validateModel --> prepareRequest
     prepareRequest --> callDoGenerate
-    
+
     callDoGenerate --> GoogleGenerativeAILanguageModel_class
     GoogleGenerativeAILanguageModel_class --> doGenerate_method
     GoogleGenerativeAILanguageModel_class --> doStream_method
-    
+
     doGenerate_method --> generateContent_endpoint
     doStream_method --> streamGenerateContent_endpoint
-    
+
     generateContent_endpoint --> doGenerate_method
     streamGenerateContent_endpoint --> doStream_method
-    
+
     doGenerate_method --> processResponse
     doStream_method --> processResponse
 ```
@@ -1299,18 +1299,18 @@ graph LR
 
 The Google provider fully supports the following AI SDK Core features:
 
-| Feature | Support Level | Notes |
-|---------|--------------|-------|
-| Text Generation | Full | `generateText`, `streamText` |
-| Tool Calling | Full | Function tools and provider-defined tools |
-| Structured Output | Full | Native via `responseSchema` (when `structuredOutputs: true`) |
-| Streaming | Full | Server-sent events with fine-grained deltas |
-| Multi-modal Input | Full | Text, images, audio, video, PDF files |
-| Reasoning Tokens | Full | Via `thinkingConfig` for Gemini 2.5+ and 3.0 |
-| Sources | Full | From grounding tools via `extractSources()` |
-| Provider Metadata | Full | Safety ratings, grounding metadata, usage details |
-| Prompt Caching | Full | Implicit (2.5) and explicit (2.0+, 2.5) caching |
-| Abort Signals | Full | Cancellation via `AbortSignal` |
+| Feature           | Support Level | Notes                                                        |
+| ----------------- | ------------- | ------------------------------------------------------------ |
+| Text Generation   | Full          | `generateText`, `streamText`                                 |
+| Tool Calling      | Full          | Function tools and provider-defined tools                    |
+| Structured Output | Full          | Native via `responseSchema` (when `structuredOutputs: true`) |
+| Streaming         | Full          | Server-sent events with fine-grained deltas                  |
+| Multi-modal Input | Full          | Text, images, audio, video, PDF files                        |
+| Reasoning Tokens  | Full          | Via `thinkingConfig` for Gemini 2.5+ and 3.0                 |
+| Sources           | Full          | From grounding tools via `extractSources()`                  |
+| Provider Metadata | Full          | Safety ratings, grounding metadata, usage details            |
+| Prompt Caching    | Full          | Implicit (2.5) and explicit (2.0+, 2.5) caching              |
+| Abort Signals     | Full          | Cancellation via `AbortSignal`                               |
 
 **Sources**: [packages/google/src/google-generative-ai-language-model.ts]()
 
@@ -1322,28 +1322,28 @@ The provider uses Zod schemas for response validation with lazy evaluation to av
 graph TB
     responseSchema["responseSchema<br/>lazySchema(() => zodSchema(...))"]
     chunkSchema["chunkSchema<br/>lazySchema(() => zodSchema(...))"]
-    
+
     getContentSchema["getContentSchema()<br/>Validates content.parts structure"]
     getGroundingMetadataSchema["getGroundingMetadataSchema()<br/>Validates groundingMetadata"]
     getUrlContextMetadataSchema["getUrlContextMetadataSchema()<br/>Validates urlContextMetadata"]
     getSafetyRatingSchema["getSafetyRatingSchema()<br/>Validates safetyRatings"]
     usageSchema["usageSchema<br/>Validates usageMetadata"]
-    
+
     responseSchema --> getContentSchema
     responseSchema --> getGroundingMetadataSchema
     responseSchema --> getUrlContextMetadataSchema
     responseSchema --> getSafetyRatingSchema
     responseSchema --> usageSchema
-    
+
     chunkSchema --> getContentSchema
     chunkSchema --> getGroundingMetadataSchema
     chunkSchema --> getUrlContextMetadataSchema
     chunkSchema --> getSafetyRatingSchema
     chunkSchema --> usageSchema
-    
+
     createJsonResponseHandler["createJsonResponseHandler(responseSchema)<br/>Used in doGenerate()"]
     createEventSourceResponseHandler["createEventSourceResponseHandler(chunkSchema)<br/>Used in doStream()"]
-    
+
     responseSchema --> createJsonResponseHandler
     chunkSchema --> createEventSourceResponseHandler
 ```

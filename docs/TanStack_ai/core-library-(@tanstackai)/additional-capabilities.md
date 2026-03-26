@@ -28,22 +28,20 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document covers specialized AI capabilities provided by TanStack AI beyond conversational chat: text summarization, embeddings, image generation, video generation, text-to-speech, and audio transcription. These capabilities use dedicated functions and adapters separate from the `chat()` function documented in [chat() Function](#3.1).
 
 ## Overview
 
 TanStack AI provides several specialized functions for non-chat AI tasks:
 
-| Capability | Core Function | Purpose |
-|-----------|---------------|---------|
-| Summarization | `summarize()` | Condense long text into concise summaries |
-| Embeddings | `embedding()` | Generate vector embeddings for semantic search |
-| Image Generation | `generateImage()` | Generate images from text prompts |
-| Video Generation | `generateVideo()` | Generate videos from text prompts (async) |
-| Text-to-Speech | `generateSpeech()` | Convert text to audio |
-| Transcription | `generateTranscription()` | Convert audio to text |
+| Capability       | Core Function             | Purpose                                        |
+| ---------------- | ------------------------- | ---------------------------------------------- |
+| Summarization    | `summarize()`             | Condense long text into concise summaries      |
+| Embeddings       | `embedding()`             | Generate vector embeddings for semantic search |
+| Image Generation | `generateImage()`         | Generate images from text prompts              |
+| Video Generation | `generateVideo()`         | Generate videos from text prompts (async)      |
+| Text-to-Speech   | `generateSpeech()`        | Convert text to audio                          |
+| Transcription    | `generateTranscription()` | Convert audio to text                          |
 
 Each capability uses a specialized adapter that implements the capability-specific interface. Unlike `chat()`, which returns a stream, most of these functions return a single result object. Video generation uses an asynchronous job pattern with polling.
 
@@ -59,7 +57,7 @@ graph TB
         TTS["generateSpeech()"]
         TRANS["generateTranscription()"]
     end
-    
+
     subgraph "OpenAI Adapters"
         OISUMM["openaiSummarize()"]
         OIEMB["openaiEmbed()"]
@@ -67,42 +65,42 @@ graph TB
         OITTS["openaiTTS()"]
         OITRANS["openaiTranscription()"]
     end
-    
+
     subgraph "Anthropic Adapters"
         ANTSUMM["anthropicSummarize()"]
     end
-    
+
     subgraph "Gemini Adapters"
         GEMSUMM["geminiSummarize()"]
         GEMIMG["geminiImage()"]
         GEMTTS["geminiSpeech()"]
     end
-    
+
     subgraph "Ollama Adapters"
         OLLSUMM["ollamaSummarize()"]
     end
-    
+
     subgraph "Community Adapters"
         DECIMG["decartImage()"]
         DECVID["decartVideo()"]
     end
-    
+
     SUMM --> OISUMM
     SUMM --> ANTSUMM
     SUMM --> GEMSUMM
     SUMM --> OLLSUMM
-    
+
     EMB --> OIEMB
-    
+
     IMG --> OIIMG
     IMG --> GEMIMG
     IMG --> DECIMG
-    
+
     VID --> DECVID
-    
+
     TTS --> OITTS
     TTS --> GEMTTS
-    
+
     TRANS --> OITRANS
 ```
 
@@ -115,17 +113,17 @@ The `summarize()` function condenses long text content into shorter summaries. I
 ### API
 
 ```typescript
-import { summarize } from "@tanstack/ai";
-import { openaiSummarize } from "@tanstack/ai-openai";
+import { summarize } from '@tanstack/ai'
+import { openaiSummarize } from '@tanstack/ai-openai'
 
 const result = await summarize({
-  adapter: openaiSummarize("gpt-4o-mini"),
-  text: "Your long text to summarize...",
+  adapter: openaiSummarize('gpt-4o-mini'),
+  text: 'Your long text to summarize...',
   maxLength: 100,
-  style: "concise",
-});
+  style: 'concise',
+})
 
-console.log(result.summary);
+console.log(result.summary)
 ```
 
 **Summarization Data Flow**
@@ -136,7 +134,7 @@ sequenceDiagram
     participant Core["summarize()"]
     participant Adapter["SummarizeAdapter<br/>(openaiSummarize,<br/>anthropicSummarize,<br/>geminiSummarize,<br/>ollamaSummarize)"]
     participant LLM["LLM Service"]
-    
+
     App->>Core: "summarize({<br/>  adapter,<br/>  text,<br/>  maxLength,<br/>  style<br/>})"
     Core->>Adapter: "Process options"
     Adapter->>Adapter: "Build prompt from<br/>text + constraints"
@@ -152,14 +150,14 @@ Sources: [docs/api/ai.md:46-73](), [docs/adapters/openai.md:135-151]()
 
 The `SummarizationOptions` interface defines available parameters:
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `adapter` | Adapter instance | The summarization adapter with model |
-| `text` | `string` | Text content to summarize |
-| `maxLength?` | `number` | Maximum length of summary |
-| `style?` | `"concise"` \| `"bullet-points"` \| `"paragraph"` | Summary format style |
-| `focus?` | `string[]` | Specific topics to focus on |
-| `modelOptions?` | Provider-specific | Additional model options |
+| Property        | Type                                              | Description                          |
+| --------------- | ------------------------------------------------- | ------------------------------------ |
+| `adapter`       | Adapter instance                                  | The summarization adapter with model |
+| `text`          | `string`                                          | Text content to summarize            |
+| `maxLength?`    | `number`                                          | Maximum length of summary            |
+| `style?`        | `"concise"` \| `"bullet-points"` \| `"paragraph"` | Summary format style                 |
+| `focus?`        | `string[]`                                        | Specific topics to focus on          |
+| `modelOptions?` | Provider-specific                                 | Additional model options             |
 
 Sources: [docs/reference/interfaces/SummarizationOptions.md:1-59]()
 
@@ -167,41 +165,41 @@ Sources: [docs/reference/interfaces/SummarizationOptions.md:1-59]()
 
 The `SummarizationResult` interface provides the summary output:
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `id` | `string` | Unique identifier for the summarization |
-| `model` | `string` | Model used for summarization |
-| `summary` | `string` | The generated summary text |
-| `usage` | Object | Token usage statistics (`promptTokens`, `completionTokens`, `totalTokens`) |
+| Property  | Type     | Description                                                                |
+| --------- | -------- | -------------------------------------------------------------------------- |
+| `id`      | `string` | Unique identifier for the summarization                                    |
+| `model`   | `string` | Model used for summarization                                               |
+| `summary` | `string` | The generated summary text                                                 |
+| `usage`   | Object   | Token usage statistics (`promptTokens`, `completionTokens`, `totalTokens`) |
 
 Sources: [docs/reference/interfaces/SummarizationResult.md:1-67]()
 
 ### Provider Support
 
-| Provider | Adapter Function | Models |
-|----------|------------------|--------|
-| OpenAI | `openaiSummarize()` | `gpt-4o`, `gpt-4o-mini`, `gpt-4` |
+| Provider  | Adapter Function       | Models                                 |
+| --------- | ---------------------- | -------------------------------------- |
+| OpenAI    | `openaiSummarize()`    | `gpt-4o`, `gpt-4o-mini`, `gpt-4`       |
 | Anthropic | `anthropicSummarize()` | `claude-sonnet-4-5`, `claude-opus-4-5` |
-| Gemini | `geminiSummarize()` | `gemini-2.5-pro` |
-| Ollama | `ollamaSummarize()` | `llama3`, `mistral`, etc. |
+| Gemini    | `geminiSummarize()`    | `gemini-2.5-pro`                       |
+| Ollama    | `ollamaSummarize()`    | `llama3`, `mistral`, etc.              |
 
 Sources: [docs/adapters/openai.md:135-151](), [docs/adapters/anthropic.md:160-177](), [docs/adapters/gemini.md:141-157](), [docs/adapters/ollama.md:173-189]()
 
 ### Example: Concise Summary
 
 ```typescript
-import { summarize } from "@tanstack/ai";
-import { anthropicSummarize } from "@tanstack/ai-anthropic";
+import { summarize } from '@tanstack/ai'
+import { anthropicSummarize } from '@tanstack/ai-anthropic'
 
 const result = await summarize({
-  adapter: anthropicSummarize("claude-sonnet-4-5"),
+  adapter: anthropicSummarize('claude-sonnet-4-5'),
   text: `
     Long article text spanning multiple paragraphs
     discussing various topics...
   `,
   maxLength: 50,
-  style: "concise",
-});
+  style: 'concise',
+})
 
 // result.summary: "Brief one-sentence summary..."
 ```
@@ -211,15 +209,15 @@ Sources: [docs/adapters/anthropic.md:160-177]()
 ### Example: Bullet Points
 
 ```typescript
-import { summarize } from "@tanstack/ai";
-import { geminiSummarize } from "@tanstack/ai-gemini";
+import { summarize } from '@tanstack/ai'
+import { geminiSummarize } from '@tanstack/ai-gemini'
 
 const result = await summarize({
-  adapter: geminiSummarize("gemini-2.5-pro"),
-  text: "Long documentation...",
-  style: "bullet-points",
-  focus: ["key features", "limitations"],
-});
+  adapter: geminiSummarize('gemini-2.5-pro'),
+  text: 'Long documentation...',
+  style: 'bullet-points',
+  focus: ['key features', 'limitations'],
+})
 
 // result.summary:
 // "- Feature 1: ...
@@ -236,16 +234,16 @@ The `embedding()` function generates vector embeddings from text. Embeddings are
 ### API
 
 ```typescript
-import { embedding } from "@tanstack/ai";
-import { openaiEmbed } from "@tanstack/ai-openai";
+import { embedding } from '@tanstack/ai'
+import { openaiEmbed } from '@tanstack/ai-openai'
 
 const result = await embedding({
-  adapter: openaiEmbed("text-embedding-3-small"),
-  input: "What is the meaning of life?",
-});
+  adapter: openaiEmbed('text-embedding-3-small'),
+  input: 'What is the meaning of life?',
+})
 
-console.log(result.embeddings); // Array of number arrays
-console.log(result.embeddings[0].length); // Embedding dimension (e.g., 1536)
+console.log(result.embeddings) // Array of number arrays
+console.log(result.embeddings[0].length) // Embedding dimension (e.g., 1536)
 ```
 
 **Embedding Generation Flow**
@@ -256,7 +254,7 @@ sequenceDiagram
     participant Core["embedding()"]
     participant Adapter["EmbeddingAdapter<br/>(openaiEmbed)"]
     participant LLM["Embedding Service"]
-    
+
     App->>Core: "embedding({<br/>  adapter,<br/>  input<br/>})"
     Core->>Adapter: "Process input"
     Adapter->>LLM: "Send embedding<br/>request"
@@ -272,12 +270,12 @@ Sources: [docs/config.json:243-245](), [docs/config.json:370-376]()
 
 The `EmbeddingOptions` interface defines available parameters:
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `adapter` | Adapter instance | The embedding adapter with model |
-| `input` | `string \| string[]` | Text or array of texts to embed |
-| `dimensions?` | `number` | Output dimension (model-dependent) |
-| `modelOptions?` | Provider-specific | Additional model options |
+| Property        | Type                 | Description                        |
+| --------------- | -------------------- | ---------------------------------- |
+| `adapter`       | Adapter instance     | The embedding adapter with model   |
+| `input`         | `string \| string[]` | Text or array of texts to embed    |
+| `dimensions?`   | `number`             | Output dimension (model-dependent) |
+| `modelOptions?` | Provider-specific    | Additional model options           |
 
 Sources: [docs/config.json:370-376]()
 
@@ -285,10 +283,10 @@ Sources: [docs/config.json:370-376]()
 
 The `EmbeddingResult` interface provides the embedding output:
 
-| Property | Type | Description |
-|----------|------|-------------|
+| Property     | Type         | Description                |
+| ------------ | ------------ | -------------------------- |
 | `embeddings` | `number[][]` | Array of embedding vectors |
-| `usage` | Object | Token usage statistics |
+| `usage`      | Object       | Token usage statistics     |
 
 Each embedding is a dense vector of floating-point numbers. The dimension depends on the model (e.g., `text-embedding-3-small` produces 1536-dimensional vectors).
 
@@ -296,9 +294,9 @@ Sources: [docs/config.json:370-376]()
 
 ### Provider Support
 
-| Provider | Adapter Function | Models | Dimensions |
-|----------|------------------|--------|-----------|
-| OpenAI | `openaiEmbed()` | `text-embedding-3-small`, `text-embedding-3-large`, `text-embedding-ada-002` | 1536, 3072, 1536 |
+| Provider | Adapter Function | Models                                                                       | Dimensions       |
+| -------- | ---------------- | ---------------------------------------------------------------------------- | ---------------- |
+| OpenAI   | `openaiEmbed()`  | `text-embedding-3-small`, `text-embedding-3-large`, `text-embedding-ada-002` | 1536, 3072, 1536 |
 
 **Note:** Currently, only OpenAI provides embedding adapters in TanStack AI. Embeddings are primarily used with OpenAI models for semantic search and retrieval-augmented generation (RAG) applications.
 
@@ -307,21 +305,21 @@ Sources: [README.md:56-73]()
 ### Example: Batch Embeddings
 
 ```typescript
-import { embedding } from "@tanstack/ai";
-import { openaiEmbed } from "@tanstack/ai-openai";
+import { embedding } from '@tanstack/ai'
+import { openaiEmbed } from '@tanstack/ai-openai'
 
 // Embed multiple texts in one request
 const result = await embedding({
-  adapter: openaiEmbed("text-embedding-3-small"),
+  adapter: openaiEmbed('text-embedding-3-small'),
   input: [
-    "What is artificial intelligence?",
-    "How do neural networks work?",
-    "What is machine learning?",
+    'What is artificial intelligence?',
+    'How do neural networks work?',
+    'What is machine learning?',
   ],
-});
+})
 
 // result.embeddings has 3 vectors
-console.log(result.embeddings.length); // 3
+console.log(result.embeddings.length) // 3
 ```
 
 Sources: [README.md:56-73]()
@@ -329,41 +327,41 @@ Sources: [README.md:56-73]()
 ### Example: Semantic Search
 
 ```typescript
-import { embedding } from "@tanstack/ai";
-import { openaiEmbed } from "@tanstack/ai-openai";
+import { embedding } from '@tanstack/ai'
+import { openaiEmbed } from '@tanstack/ai-openai'
 
 // Embed query
 const queryResult = await embedding({
-  adapter: openaiEmbed("text-embedding-3-small"),
-  input: "How to deploy a web app?",
-});
+  adapter: openaiEmbed('text-embedding-3-small'),
+  input: 'How to deploy a web app?',
+})
 
 // Embed documents
 const docResult = await embedding({
-  adapter: openaiEmbed("text-embedding-3-small"),
+  adapter: openaiEmbed('text-embedding-3-small'),
   input: [
-    "Deploy using Docker containers",
-    "Use serverless functions for scaling",
-    "Configure CI/CD pipelines",
+    'Deploy using Docker containers',
+    'Use serverless functions for scaling',
+    'Configure CI/CD pipelines',
   ],
-});
+})
 
 // Calculate cosine similarity
 function cosineSimilarity(a: number[], b: number[]) {
-  const dotProduct = a.reduce((sum, val, i) => sum + val * b[i], 0);
-  const magA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
-  const magB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
-  return dotProduct / (magA * magB);
+  const dotProduct = a.reduce((sum, val, i) => sum + val * b[i], 0)
+  const magA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0))
+  const magB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0))
+  return dotProduct / (magA * magB)
 }
 
-const queryVector = queryResult.embeddings[0];
-const similarities = docResult.embeddings.map(docVector =>
+const queryVector = queryResult.embeddings[0]
+const similarities = docResult.embeddings.map((docVector) =>
   cosineSimilarity(queryVector, docVector)
-);
+)
 
 // Find most similar document
-const maxIndex = similarities.indexOf(Math.max(...similarities));
-console.log("Most relevant:", maxIndex); // Likely index 0 or 1
+const maxIndex = similarities.indexOf(Math.max(...similarities))
+console.log('Most relevant:', maxIndex) // Likely index 0 or 1
 ```
 
 Sources: [README.md:56-73]()
@@ -375,17 +373,17 @@ The `generateImage()` function creates images from text prompts. It supports mul
 ### API
 
 ```typescript
-import { generateImage } from "@tanstack/ai";
-import { openaiImage } from "@tanstack/ai-openai";
+import { generateImage } from '@tanstack/ai'
+import { openaiImage } from '@tanstack/ai-openai'
 
 const result = await generateImage({
-  adapter: openaiImage("gpt-image-1"),
-  prompt: "A futuristic cityscape at sunset",
+  adapter: openaiImage('gpt-image-1'),
+  prompt: 'A futuristic cityscape at sunset',
   numberOfImages: 1,
-  size: "1024x1024",
-});
+  size: '1024x1024',
+})
 
-console.log(result.images); // Array of image data
+console.log(result.images) // Array of image data
 ```
 
 **Image Generation Flow**
@@ -396,7 +394,7 @@ sequenceDiagram
     participant Core["generateImage()"]
     participant Adapter["ImageAdapter<br/>(openaiImage,<br/>geminiImage)"]
     participant ImgSvc["Image Service<br/>(DALL-E, Imagen)"]
-    
+
     App->>Core: "generateImage({<br/>  adapter,<br/>  prompt,<br/>  numberOfImages,<br/>  size<br/>})"
     Core->>Adapter: "Process request"
     Adapter->>ImgSvc: "Send generation<br/>request"
@@ -410,10 +408,10 @@ Sources: [docs/adapters/openai.md:153-182](), [docs/adapters/gemini.md:159-188](
 
 ### Provider Support
 
-| Provider | Adapter Function | Models | Supported Sizes |
-|----------|------------------|--------|-----------------|
-| OpenAI | `openaiImage()` | `gpt-image-1`, `dall-e-3`, `dall-e-2` | `1024x1024`, `1792x1024`, `1024x1792` |
-| Gemini | `geminiImage()` | `imagen-3.0-generate-002` | Aspect ratios: `1:1`, `3:4`, `4:3`, `9:16`, `16:9` |
+| Provider | Adapter Function | Models                                | Supported Sizes                                    |
+| -------- | ---------------- | ------------------------------------- | -------------------------------------------------- |
+| OpenAI   | `openaiImage()`  | `gpt-image-1`, `dall-e-3`, `dall-e-2` | `1024x1024`, `1792x1024`, `1024x1792`              |
+| Gemini   | `geminiImage()`  | `imagen-3.0-generate-002`             | Aspect ratios: `1:1`, `3:4`, `4:3`, `9:16`, `16:9` |
 
 **Note:** Anthropic and Ollama do not support image generation.
 
@@ -423,13 +421,13 @@ Sources: [docs/adapters/openai.md:153-182](), [docs/adapters/gemini.md:159-188](
 
 ```typescript
 const result = await generateImage({
-  adapter: openaiImage("gpt-image-1"),
-  prompt: "...",
+  adapter: openaiImage('gpt-image-1'),
+  prompt: '...',
   modelOptions: {
-    quality: "hd",        // "standard" | "hd"
-    style: "natural",     // "natural" | "vivid"
+    quality: 'hd', // "standard" | "hd"
+    style: 'natural', // "natural" | "vivid"
   },
-});
+})
 ```
 
 Sources: [docs/adapters/openai.md:172-182]()
@@ -438,14 +436,14 @@ Sources: [docs/adapters/openai.md:172-182]()
 
 ```typescript
 const result = await generateImage({
-  adapter: geminiImage("imagen-3.0-generate-002"),
-  prompt: "...",
+  adapter: geminiImage('imagen-3.0-generate-002'),
+  prompt: '...',
   modelOptions: {
-    aspectRatio: "16:9",                    // "1:1" | "3:4" | "4:3" | "9:16" | "16:9"
-    personGeneration: "DONT_ALLOW",         // Control person generation
-    safetyFilterLevel: "BLOCK_SOME",        // Safety filtering
+    aspectRatio: '16:9', // "1:1" | "3:4" | "4:3" | "9:16" | "16:9"
+    personGeneration: 'DONT_ALLOW', // Control person generation
+    safetyFilterLevel: 'BLOCK_SOME', // Safety filtering
   },
-});
+})
 ```
 
 Sources: [docs/adapters/gemini.md:176-188]()
@@ -453,19 +451,19 @@ Sources: [docs/adapters/gemini.md:176-188]()
 ### Example: High-Quality Image
 
 ```typescript
-import { generateImage } from "@tanstack/ai";
-import { openaiImage } from "@tanstack/ai-openai";
+import { generateImage } from '@tanstack/ai'
+import { openaiImage } from '@tanstack/ai-openai'
 
 const result = await generateImage({
-  adapter: openaiImage("dall-e-3"),
-  prompt: "A serene mountain landscape with a lake reflecting the sky",
+  adapter: openaiImage('dall-e-3'),
+  prompt: 'A serene mountain landscape with a lake reflecting the sky',
   numberOfImages: 1,
-  size: "1792x1024",
+  size: '1792x1024',
   modelOptions: {
-    quality: "hd",
-    style: "vivid",
+    quality: 'hd',
+    style: 'vivid',
   },
-});
+})
 
 // result.images[0] contains base64-encoded image data
 ```
@@ -481,16 +479,16 @@ The `generateVideo()` function creates videos from text prompts. Unlike other ca
 Video generation involves two steps: job creation and status polling.
 
 ```typescript
-import { generateVideo } from "@tanstack/ai";
-import { decartVideo } from "@decartai/tanstack-ai-adapter";
+import { generateVideo } from '@tanstack/ai'
+import { decartVideo } from '@decartai/tanstack-ai-adapter'
 
 // Step 1: Create video generation job
 const { jobId } = await generateVideo({
-  adapter: decartVideo("lucy-pro-t2v"),
-  prompt: "A cat playing with a ball of yarn",
-});
+  adapter: decartVideo('lucy-pro-t2v'),
+  prompt: 'A cat playing with a ball of yarn',
+})
 
-console.log("Job started:", jobId);
+console.log('Job started:', jobId)
 ```
 
 **Video Generation Flow (Async)**
@@ -501,7 +499,7 @@ sequenceDiagram
     participant Core["generateVideo()"]
     participant Adapter["VideoAdapter<br/>(decartVideo)"]
     participant VideoSvc["Video Service"]
-    
+
     App->>Core: "generateVideo({<br/>  adapter,<br/>  prompt<br/>})"
     Core->>Adapter: "Create job"
     Adapter->>VideoSvc: "Submit generation<br/>request"
@@ -509,9 +507,9 @@ sequenceDiagram
     VideoSvc-->>Adapter: "Return jobId"
     Adapter-->>Core: "{ jobId }"
     Core-->>App: "{ jobId }"
-    
+
     Note over App,VideoSvc: Polling Phase
-    
+
     loop Poll until complete
         App->>Core: "getVideoJobStatus({<br/>  adapter, jobId<br/>})"
         Core->>Adapter: "Check status"
@@ -529,18 +527,18 @@ Sources: [docs/community-adapters/decart.md:89-159]()
 After creating a job, poll for completion using `getVideoJobStatus()`:
 
 ```typescript
-import { getVideoJobStatus } from "@tanstack/ai";
-import { decartVideo } from "@decartai/tanstack-ai-adapter";
+import { getVideoJobStatus } from '@tanstack/ai'
+import { decartVideo } from '@decartai/tanstack-ai-adapter'
 
 const status = await getVideoJobStatus({
-  adapter: decartVideo("lucy-pro-t2v"),
+  adapter: decartVideo('lucy-pro-t2v'),
   jobId,
-});
+})
 
-console.log("Status:", status.status); // "pending" | "processing" | "completed" | "failed"
+console.log('Status:', status.status) // "pending" | "processing" | "completed" | "failed"
 
-if (status.status === "completed" && status.url) {
-  console.log("Video URL:", status.url);
+if (status.status === 'completed' && status.url) {
+  console.log('Video URL:', status.url)
 }
 ```
 
@@ -549,37 +547,37 @@ Sources: [docs/community-adapters/decart.md:107-123]()
 ### Complete Example with Polling
 
 ```typescript
-import { generateVideo, getVideoJobStatus } from "@tanstack/ai";
-import { decartVideo } from "@decartai/tanstack-ai-adapter";
+import { generateVideo, getVideoJobStatus } from '@tanstack/ai'
+import { decartVideo } from '@decartai/tanstack-ai-adapter'
 
 async function createVideo(prompt: string) {
-  const adapter = decartVideo("lucy-pro-t2v");
+  const adapter = decartVideo('lucy-pro-t2v')
 
   // Create the job
-  const { jobId } = await generateVideo({ adapter, prompt });
-  console.log("Job created:", jobId);
+  const { jobId } = await generateVideo({ adapter, prompt })
+  console.log('Job created:', jobId)
 
   // Poll for completion
-  let status = "pending";
-  while (status !== "completed" && status !== "failed") {
-    await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
+  let status = 'pending'
+  while (status !== 'completed' && status !== 'failed') {
+    await new Promise((resolve) => setTimeout(resolve, 5000)) // Wait 5 seconds
 
-    const result = await getVideoJobStatus({ adapter, jobId });
-    status = result.status;
-    console.log(`Status: ${status}`);
+    const result = await getVideoJobStatus({ adapter, jobId })
+    status = result.status
+    console.log(`Status: ${status}`)
 
-    if (result.status === "failed") {
-      throw new Error("Video generation failed");
+    if (result.status === 'failed') {
+      throw new Error('Video generation failed')
     }
 
-    if (result.status === "completed" && result.url) {
-      return result.url;
+    if (result.status === 'completed' && result.url) {
+      return result.url
     }
   }
 }
 
-const videoUrl = await createVideo("A drone shot over a tropical beach");
-console.log("Video ready:", videoUrl);
+const videoUrl = await createVideo('A drone shot over a tropical beach')
+console.log('Video ready:', videoUrl)
 ```
 
 Sources: [docs/community-adapters/decart.md:125-159]()
@@ -588,23 +586,23 @@ Sources: [docs/community-adapters/decart.md:125-159]()
 
 ```typescript
 const { jobId } = await generateVideo({
-  adapter: decartVideo("lucy-pro-t2v"),
-  prompt: "A timelapse of a blooming flower",
+  adapter: decartVideo('lucy-pro-t2v'),
+  prompt: 'A timelapse of a blooming flower',
   modelOptions: {
-    resolution: "720p",        // "720p" | "480p"
-    orientation: "landscape",  // "portrait" | "landscape"
-    seed: 42,                  // Seed for reproducible generation
+    resolution: '720p', // "720p" | "480p"
+    orientation: 'landscape', // "portrait" | "landscape"
+    seed: 42, // Seed for reproducible generation
   },
-});
+})
 ```
 
 Sources: [docs/community-adapters/decart.md:160-179]()
 
 ### Provider Support
 
-| Provider | Adapter Package | Models | Notes |
-|----------|----------------|--------|-------|
-| Decart | `@decartai/tanstack-ai-adapter` | `lucy-pro-t2v` | Async job-based generation |
+| Provider | Adapter Package                 | Models         | Notes                      |
+| -------- | ------------------------------- | -------------- | -------------------------- |
+| Decart   | `@decartai/tanstack-ai-adapter` | `lucy-pro-t2v` | Async job-based generation |
 
 **Note:** Video generation is currently provided by community adapters like Decart. The async job pattern is necessary because video generation can take several minutes to complete.
 
@@ -617,18 +615,18 @@ The `generateSpeech()` function converts text to audio. It supports multiple voi
 ### API
 
 ```typescript
-import { generateSpeech } from "@tanstack/ai";
-import { openaiTTS } from "@tanstack/ai-openai";
+import { generateSpeech } from '@tanstack/ai'
+import { openaiTTS } from '@tanstack/ai-openai'
 
 const result = await generateSpeech({
-  adapter: openaiTTS("tts-1"),
-  text: "Hello, welcome to TanStack AI!",
-  voice: "alloy",
-  format: "mp3",
-});
+  adapter: openaiTTS('tts-1'),
+  text: 'Hello, welcome to TanStack AI!',
+  voice: 'alloy',
+  format: 'mp3',
+})
 
-console.log(result.audio);  // Base64-encoded audio
-console.log(result.format); // "mp3"
+console.log(result.audio) // Base64-encoded audio
+console.log(result.format) // "mp3"
 ```
 
 **Text-to-Speech Flow**
@@ -639,7 +637,7 @@ sequenceDiagram
     participant Core["generateSpeech()"]
     participant Adapter["SpeechAdapter<br/>(openaiTTS,<br/>geminiSpeech)"]
     participant TTSSvc["TTS Service"]
-    
+
     App->>Core: "generateSpeech({<br/>  adapter,<br/>  text,<br/>  voice,<br/>  format<br/>})"
     Core->>Adapter: "Process request"
     Adapter->>TTSSvc: "Send synthesis<br/>request"
@@ -654,10 +652,10 @@ Sources: [docs/adapters/openai.md:184-217](), [docs/adapters/gemini.md:190-207](
 
 ### Provider Support
 
-| Provider | Adapter Function | Models | Voices |
-|----------|------------------|--------|--------|
-| OpenAI | `openaiTTS()` | `tts-1`, `tts-1-hd` | `alloy`, `echo`, `fable`, `onyx`, `nova`, `shimmer`, `ash`, `ballad`, `coral`, `sage`, `verse` |
-| Gemini | `geminiSpeech()` | `gemini-2.5-flash-preview-tts` | (Experimental) |
+| Provider | Adapter Function | Models                         | Voices                                                                                         |
+| -------- | ---------------- | ------------------------------ | ---------------------------------------------------------------------------------------------- |
+| OpenAI   | `openaiTTS()`    | `tts-1`, `tts-1-hd`            | `alloy`, `echo`, `fable`, `onyx`, `nova`, `shimmer`, `ash`, `ballad`, `coral`, `sage`, `verse` |
+| Gemini   | `geminiSpeech()` | `gemini-2.5-flash-preview-tts` | (Experimental)                                                                                 |
 
 **Note:** Gemini TTS is experimental and may require the Live API for full functionality.
 
@@ -667,13 +665,13 @@ Sources: [docs/adapters/openai.md:184-217](), [docs/adapters/gemini.md:190-207](
 
 ```typescript
 const result = await generateSpeech({
-  adapter: openaiTTS("tts-1-hd"),
-  text: "High quality speech",
-  voice: "nova",
+  adapter: openaiTTS('tts-1-hd'),
+  text: 'High quality speech',
+  voice: 'nova',
   modelOptions: {
     speed: 1.0, // 0.25 to 4.0
   },
-});
+})
 ```
 
 Sources: [docs/adapters/openai.md:208-217]()
@@ -681,24 +679,24 @@ Sources: [docs/adapters/openai.md:208-217]()
 ### Example: Multiple Formats
 
 ```typescript
-import { generateSpeech } from "@tanstack/ai";
-import { openaiTTS } from "@tanstack/ai-openai";
+import { generateSpeech } from '@tanstack/ai'
+import { openaiTTS } from '@tanstack/ai-openai'
 
 // Generate MP3 audio
 const mp3 = await generateSpeech({
-  adapter: openaiTTS("tts-1"),
-  text: "This will be saved as MP3",
-  voice: "alloy",
-  format: "mp3",
-});
+  adapter: openaiTTS('tts-1'),
+  text: 'This will be saved as MP3',
+  voice: 'alloy',
+  format: 'mp3',
+})
 
 // Generate WAV audio for better quality
 const wav = await generateSpeech({
-  adapter: openaiTTS("tts-1-hd"),
-  text: "This will be saved as WAV",
-  voice: "shimmer",
-  format: "wav",
-});
+  adapter: openaiTTS('tts-1-hd'),
+  text: 'This will be saved as WAV',
+  voice: 'shimmer',
+  format: 'wav',
+})
 ```
 
 Sources: [docs/adapters/openai.md:184-217]()
@@ -710,16 +708,16 @@ The `generateTranscription()` function converts audio files to text. It supports
 ### API
 
 ```typescript
-import { generateTranscription } from "@tanstack/ai";
-import { openaiTranscription } from "@tanstack/ai-openai";
+import { generateTranscription } from '@tanstack/ai'
+import { openaiTranscription } from '@tanstack/ai-openai'
 
 const result = await generateTranscription({
-  adapter: openaiTranscription("whisper-1"),
+  adapter: openaiTranscription('whisper-1'),
   audio: audioFile, // File object or base64 string
-  language: "en",
-});
+  language: 'en',
+})
 
-console.log(result.text); // Transcribed text
+console.log(result.text) // Transcribed text
 ```
 
 **Transcription Flow**
@@ -730,7 +728,7 @@ sequenceDiagram
     participant Core["generateTranscription()"]
     participant Adapter["TranscriptionAdapter<br/>(openaiTranscription)"]
     participant Whisper["Whisper Service"]
-    
+
     App->>Core: "generateTranscription({<br/>  adapter,<br/>  audio,<br/>  language<br/>})"
     Core->>Adapter: "Process request"
     Adapter->>Whisper: "Send audio data"
@@ -744,9 +742,9 @@ Sources: [docs/adapters/openai.md:219-252]()
 
 ### Provider Support
 
-| Provider | Adapter Function | Models |
-|----------|------------------|--------|
-| OpenAI | `openaiTranscription()` | `whisper-1` |
+| Provider | Adapter Function        | Models      |
+| -------- | ----------------------- | ----------- |
+| OpenAI   | `openaiTranscription()` | `whisper-1` |
 
 **Note:** Currently, only OpenAI provides transcription through TanStack AI adapters.
 
@@ -756,17 +754,17 @@ Sources: [docs/adapters/openai.md:219-252]()
 
 ```typescript
 const result = await generateTranscription({
-  adapter: openaiTranscription("whisper-1"),
+  adapter: openaiTranscription('whisper-1'),
   audio: audioFile,
   modelOptions: {
-    response_format: "verbose_json", // Get timestamps
-    temperature: 0,                   // More deterministic
-    prompt: "Technical terms: API, SDK", // Context hints
+    response_format: 'verbose_json', // Get timestamps
+    temperature: 0, // More deterministic
+    prompt: 'Technical terms: API, SDK', // Context hints
   },
-});
+})
 
 // Access segments with timestamps
-console.log(result.segments);
+console.log(result.segments)
 ```
 
 Sources: [docs/adapters/openai.md:236-252]()
@@ -774,29 +772,29 @@ Sources: [docs/adapters/openai.md:236-252]()
 ### Example: Multi-Language Transcription
 
 ```typescript
-import { generateTranscription } from "@tanstack/ai";
-import { openaiTranscription } from "@tanstack/ai-openai";
+import { generateTranscription } from '@tanstack/ai'
+import { openaiTranscription } from '@tanstack/ai-openai'
 
 // English transcription
 const englishResult = await generateTranscription({
-  adapter: openaiTranscription("whisper-1"),
+  adapter: openaiTranscription('whisper-1'),
   audio: englishAudioFile,
-  language: "en",
-});
+  language: 'en',
+})
 
 // Spanish transcription
 const spanishResult = await generateTranscription({
-  adapter: openaiTranscription("whisper-1"),
+  adapter: openaiTranscription('whisper-1'),
   audio: spanishAudioFile,
-  language: "es",
-});
+  language: 'es',
+})
 
 // Auto-detect language
 const autoResult = await generateTranscription({
-  adapter: openaiTranscription("whisper-1"),
+  adapter: openaiTranscription('whisper-1'),
   audio: unknownAudioFile,
   // No language specified - auto-detect
-});
+})
 ```
 
 Sources: [docs/adapters/openai.md:219-252]()
@@ -817,7 +815,7 @@ graph LR
         TI["SpeechAdapter"]
         TRI["TranscriptionAdapter"]
     end
-    
+
     subgraph "Provider Implementations"
         OSI["openaiSummarize"]
         OEI["openaiEmbed"]
@@ -832,23 +830,23 @@ graph LR
         DII["decartImage"]
         DVI["decartVideo"]
     end
-    
+
     SI --> OSI
     SI --> ASI
     SI --> GSI
     SI --> OLSI
-    
+
     EI --> OEI
-    
+
     II --> OII
     II --> GII
     II --> DII
-    
+
     VI --> DVI
-    
+
     TI --> OTI
     TI --> GTI
-    
+
     TRI --> OTRI
 ```
 
@@ -876,9 +874,9 @@ Sources: [docs/adapters/openai.md:261-328](), [docs/adapters/anthropic.md:186-22
 4. **Error Handling** - Wrap activity calls in try-catch blocks:
    ```typescript
    try {
-     const result = await summarize({ adapter, text });
+     const result = await summarize({ adapter, text })
    } catch (error) {
-     console.error("Summarization failed:", error);
+     console.error('Summarization failed:', error)
    }
    ```
 

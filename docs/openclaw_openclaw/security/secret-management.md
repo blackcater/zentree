@@ -56,8 +56,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 OpenClaw's secret management system provides a unified abstraction for storing and accessing sensitive credentials across configuration, environment variables, files, and external secret stores. This page documents the `SecretRef` system, secret providers, resolution mechanics, and integration points throughout the codebase.
 
 For general configuration patterns, see [Configuration](#2.3). For environment variable handling, see [Configuration Reference](#2.3.1).
@@ -90,13 +88,13 @@ Sources: [src/config/types.secrets.ts:1-40](), [docs/gateway/configuration.md:55
 Every secret-capable configuration field accepts a `SecretInput`:
 
 ```typescript
-type SecretInput = string | SecretRef;
+type SecretInput = string | SecretRef
 
 type SecretRef = {
-  source: "env" | "file" | "exec";
-  provider?: string;
-  id: string;
-};
+  source: 'env' | 'file' | 'exec'
+  provider?: string
+  id: string
+}
 ```
 
 **String form**: Direct plaintext value or bare environment variable name (uppercase-only, detected by regex).
@@ -132,23 +130,24 @@ Sources: [src/config/zod-schema.core.ts:47-57](), [src/config/types.secrets.ts:1
 Environment variable sources resolve secrets from the process environment at runtime.
 
 **Configuration**:
+
 ```json5
 {
   models: {
     providers: {
       openai: {
-        apiKey: { source: "env", provider: "default", id: "OPENAI_API_KEY" }
-      }
-    }
+        apiKey: { source: 'env', provider: 'default', id: 'OPENAI_API_KEY' },
+      },
+    },
   },
   secrets: {
     providers: {
       default: {
-        source: "env",
-        env: { prefix: "" }
-      }
-    }
-  }
+        source: 'env',
+        env: { prefix: '' },
+      },
+    },
+  },
 }
 ```
 
@@ -169,6 +168,7 @@ graph LR
 ```
 
 **Provider configuration**:
+
 - `env.prefix`: Optional prefix prepended to the ID when reading from `process.env`
 
 Sources: [src/config/zod-schema.core.ts:27-36](), [src/agents/models-config.providers.ts:84-100]()
@@ -180,27 +180,28 @@ Sources: [src/config/zod-schema.core.ts:27-36](), [src/agents/models-config.prov
 File sources read secrets from the filesystem, useful for Docker secrets, mounted credential files, or managed secret directories.
 
 **Configuration**:
+
 ```json5
 {
   skills: {
     entries: {
-      "nano-banana-pro": {
+      'nano-banana-pro': {
         apiKey: {
-          source: "file",
-          provider: "filemain",
-          id: "/skills/entries/nano-banana-pro/apiKey"
-        }
-      }
-    }
+          source: 'file',
+          provider: 'filemain',
+          id: '/skills/entries/nano-banana-pro/apiKey',
+        },
+      },
+    },
   },
   secrets: {
     providers: {
       filemain: {
-        source: "file",
-        file: { root: "~/.openclaw/secrets" }
-      }
-    }
-  }
+        source: 'file',
+        file: { root: '~/.openclaw/secrets' },
+      },
+    },
+  },
 }
 ```
 
@@ -225,10 +226,12 @@ graph LR
 ```
 
 **Provider configuration**:
+
 - `file.root`: Base directory for relative secret paths (resolved with `~` expansion)
 - ID is joined to root if relative; absolute IDs bypass root
 
 **Security**:
+
 - Files are read synchronously during resolution
 - Symlinks are followed (no validation)
 - File permissions are not enforced by OpenClaw (rely on OS-level access control)
@@ -242,29 +245,30 @@ Sources: [src/config/zod-schema.core.ts:37-44]()
 Executable sources invoke an external command to retrieve secrets, enabling integration with `vault`, `pass`, `1password`, or custom secret backends.
 
 **Configuration**:
+
 ```json5
 {
   channels: {
     googlechat: {
       serviceAccountRef: {
-        source: "exec",
-        provider: "vault",
-        id: "channels/googlechat/serviceAccount"
-      }
-    }
+        source: 'exec',
+        provider: 'vault',
+        id: 'channels/googlechat/serviceAccount',
+      },
+    },
   },
   secrets: {
     providers: {
       vault: {
-        source: "exec",
+        source: 'exec',
         exec: {
-          command: "vault",
-          args: ["kv", "get", "-field=value"],
-          timeoutMs: 5000
-        }
-      }
-    }
-  }
+          command: 'vault',
+          args: ['kv', 'get', '-field=value'],
+          timeoutMs: 5000,
+        },
+      },
+    },
+  },
 }
 ```
 
@@ -291,11 +295,13 @@ graph LR
 ```
 
 **Provider configuration**:
+
 - `exec.command`: Binary name or absolute path to executable
 - `exec.args`: Optional argument array (ID is appended as final argument)
 - `exec.timeoutMs`: Max execution time (default varies by context)
 
 **Security**:
+
 - Command and args are **not** shell-evaluated (no injection risk from ID)
 - Stdout is captured; stderr is discarded
 - Non-zero exit codes fail resolution
@@ -314,24 +320,24 @@ The `secrets.providers` section defines reusable provider configurations:
 {
   secrets: {
     providers: {
-      "default": {
-        source: "env",
-        env: { prefix: "" }
+      default: {
+        source: 'env',
+        env: { prefix: '' },
       },
-      "filemain": {
-        source: "file",
-        file: { root: "~/.openclaw/secrets" }
+      filemain: {
+        source: 'file',
+        file: { root: '~/.openclaw/secrets' },
       },
-      "vault": {
-        source: "exec",
+      vault: {
+        source: 'exec',
         exec: {
-          command: "vault",
-          args: ["kv", "get", "-field=value"],
-          timeoutMs: 5000
-        }
-      }
-    }
-  }
+          command: 'vault',
+          args: ['kv', 'get', '-field=value'],
+          timeoutMs: 5000,
+        },
+      },
+    },
+  },
 }
 ```
 
@@ -344,7 +350,7 @@ graph TB
     LookupProvider["Look up secrets.providers[provider]"]
     UseDefault["Use source-specific defaults"]
     ProviderConfig["Resolved provider config"]
-    
+
     SecretRef --> HasProvider
     HasProvider -->|Yes| LookupProvider
     HasProvider -->|No| UseDefault
@@ -353,6 +359,7 @@ graph TB
 ```
 
 **Default providers** (when `provider` field is omitted):
+
 - `env` source: reads directly from `process.env[id]`
 - `file` source: treats `id` as absolute path
 - `exec` source: **not supported** (provider is required)
@@ -372,17 +379,18 @@ API keys for LLM providers are the most common secret type:
   models: {
     providers: {
       openai: {
-        apiKey: { source: "env", provider: "default", id: "OPENAI_API_KEY" }
+        apiKey: { source: 'env', provider: 'default', id: 'OPENAI_API_KEY' },
       },
       anthropic: {
-        apiKey: { source: "file", provider: "filemain", id: "anthropic/key" }
-      }
-    }
-  }
+        apiKey: { source: 'file', provider: 'filemain', id: 'anthropic/key' },
+      },
+    },
+  },
 }
 ```
 
 **Resolution sites**:
+
 - [src/agents/models-config.providers.ts:152-224]() — `resolveApiKeyFromCredential`
 - [src/agents/model-auth.ts:1-500]() — `resolveEnvApiKey`, `resolveModelAuth`
 
@@ -396,14 +404,15 @@ Gateway tokens and passwords support SecretRef:
 {
   gateway: {
     auth: {
-      mode: "token",
-      token: { source: "file", provider: "filemain", id: "gateway/token" }
-    }
-  }
+      mode: 'token',
+      token: { source: 'file', provider: 'filemain', id: 'gateway/token' },
+    },
+  },
 }
 ```
 
 **Resolution sites**:
+
 - [src/config/zod-schema.ts:663-664]() — `gateway.auth.token`, `gateway.auth.password` schemas
 - [src/wizard/onboarding.ts:284-324]() — onboarding wizard resolution
 
@@ -417,23 +426,32 @@ Channel plugins use SecretRef for bot tokens, service accounts, and webhook secr
 {
   channels: {
     telegram: {
-      botToken: { source: "env", provider: "default", id: "TELEGRAM_BOT_TOKEN" }
+      botToken: {
+        source: 'env',
+        provider: 'default',
+        id: 'TELEGRAM_BOT_TOKEN',
+      },
     },
     googlechat: {
       serviceAccountRef: {
-        source: "exec",
-        provider: "vault",
-        id: "channels/googlechat/serviceAccount"
-      }
-    }
+        source: 'exec',
+        provider: 'vault',
+        id: 'channels/googlechat/serviceAccount',
+      },
+    },
   },
   cron: {
-    webhookToken: { source: "file", provider: "filemain", id: "cron/webhook-secret" }
-  }
+    webhookToken: {
+      source: 'file',
+      provider: 'filemain',
+      id: 'cron/webhook-secret',
+    },
+  },
 }
 ```
 
 **Schema definitions**:
+
 - [src/config/zod-schema.ts:508]() — `cron.webhookToken`
 - [src/config/zod-schema.ts:567]() — `hooks.token`
 - Channel-specific schemas in provider files
@@ -448,11 +466,11 @@ Skills can reference external API keys via SecretRef:
 {
   skills: {
     entries: {
-      "weather-api": {
-        apiKey: { source: "env", provider: "default", id: "WEATHER_API_KEY" }
-      }
-    }
-  }
+      'weather-api': {
+        apiKey: { source: 'env', provider: 'default', id: 'WEATHER_API_KEY' },
+      },
+    },
+  },
 }
 ```
 
@@ -493,6 +511,7 @@ graph TB
 ```
 
 **Key functions**:
+
 - [src/utils/normalize-secret-input.ts:1-100]() — `normalizeSecretInput`, `normalizeOptionalSecretInput`
 - [src/config/types.secrets.ts:40-80]() — `coerceSecretRef`, `resolveSecretInputRef`
 
@@ -505,6 +524,7 @@ Bare strings are coerced to SecretRef objects when they match the environment va
 **Pattern**: `/^[A-Z_][A-Z0-9_]*$/`
 
 **Example**:
+
 - Input: `"OPENAI_API_KEY"`
 - Coerced: `{ source: "env", provider: "default", id: "OPENAI_API_KEY" }`
 
@@ -523,6 +543,7 @@ apiKey: SecretInputSchema.optional().register(sensitive)
 ```
 
 This enables:
+
 - **Logging redaction**: sensitive paths are masked in logs when `logging.redactSensitive` is enabled
 - **UI masking**: Control UI renders these fields as password inputs
 - **Schema introspection**: `schema.hints[path].sensitive === true`
@@ -535,27 +556,30 @@ Sources: [src/config/zod-schema.sensitive.ts:1-30](), [src/config/schema.hints.t
 
 ### Plaintext vs. SecretRef
 
-| Aspect | Plaintext String | SecretRef |
-|--------|-----------------|-----------|
-| **Config file exposure** | Credential visible in version control | Reference only; no credential in config |
-| **Runtime resolution** | Static value at config load | Dynamic read at usage time |
-| **Rotation support** | Requires config edit + reload | File/exec sources support external rotation |
-| **Audit trail** | Config history shows changes | Source system maintains audit log |
-| **Recommended for** | Development, testing | Production, shared configs |
+| Aspect                   | Plaintext String                      | SecretRef                                   |
+| ------------------------ | ------------------------------------- | ------------------------------------------- |
+| **Config file exposure** | Credential visible in version control | Reference only; no credential in config     |
+| **Runtime resolution**   | Static value at config load           | Dynamic read at usage time                  |
+| **Rotation support**     | Requires config edit + reload         | File/exec sources support external rotation |
+| **Audit trail**          | Config history shows changes          | Source system maintains audit log           |
+| **Recommended for**      | Development, testing                  | Production, shared configs                  |
 
 ### Source-Specific Risks
 
 **Environment variables**:
+
 - Exposed to all child processes
 - Visible in `ps` output on some systems
 - Leaked in error messages if not redacted
 
 **File sources**:
+
 - Filesystem permissions are the only access control
 - No built-in encryption
 - Symlink attacks possible if root is writable by untrusted users
 
 **Exec sources**:
+
 - Command execution overhead on every resolution
 - Timeout failures can cause startup delays
 - Malicious provider config can execute arbitrary commands (treat `secrets.providers` as trusted input)
@@ -579,30 +603,31 @@ Sources: [docs/gateway/configuration.md:558-593](), [src/config/schema.help.ts:1
 
 Defines reusable provider configurations for secret resolution.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `source` | `"env" \| "file" \| "exec"` | Source type for this provider |
-| `env.prefix` | `string?` | Prefix prepended to env var names |
-| `file.root` | `string?` | Base directory for relative file paths |
-| `exec.command` | `string` | Executable name or path (required for `exec`) |
-| `exec.args` | `string[]?` | Arguments prepended before secret ID |
-| `exec.timeoutMs` | `number?` | Max execution time in milliseconds |
+| Field            | Type                        | Description                                   |
+| ---------------- | --------------------------- | --------------------------------------------- |
+| `source`         | `"env" \| "file" \| "exec"` | Source type for this provider                 |
+| `env.prefix`     | `string?`                   | Prefix prepended to env var names             |
+| `file.root`      | `string?`                   | Base directory for relative file paths        |
+| `exec.command`   | `string`                    | Executable name or path (required for `exec`) |
+| `exec.args`      | `string[]?`                 | Arguments prepended before secret ID          |
+| `exec.timeoutMs` | `number?`                   | Max execution time in milliseconds            |
 
 **Example**:
+
 ```json5
 {
   secrets: {
     providers: {
-      "aws-secrets": {
-        source: "exec",
+      'aws-secrets': {
+        source: 'exec',
         exec: {
-          command: "aws",
-          args: ["secretsmanager", "get-secret-value", "--secret-id"],
-          timeoutMs: 10000
-        }
-      }
-    }
-  }
+          command: 'aws',
+          args: ['secretsmanager', 'get-secret-value', '--secret-id'],
+          timeoutMs: 10000,
+        },
+      },
+    },
+  },
 }
 ```
 
@@ -621,6 +646,7 @@ openclaw config set models.providers.openai.apiKey '{"source":"file","id":"opena
 ```
 
 **Resolution flow**:
+
 ```mermaid
 graph LR
     CLICommand["CLI command execution"]
@@ -640,6 +666,7 @@ graph LR
 ```
 
 **Implementation**:
+
 - [src/cli/command-secret-gateway.ts:1-200]() — `resolveCommandSecretRefsViaGateway`
 - [src/cli/command-secret-targets.ts:1-100]() — Target detection for memory, config, and other commands
 
@@ -656,6 +683,7 @@ The Gateway WebSocket protocol exposes secret resolution as an RPC method:
 **Method**: `secrets.resolve`
 
 **Params**:
+
 ```typescript
 {
   refs: SecretRef[];
@@ -663,6 +691,7 @@ The Gateway WebSocket protocol exposes secret resolution as an RPC method:
 ```
 
 **Result**:
+
 ```typescript
 {
   values: (string | null)[];  // null for resolution failures
@@ -679,9 +708,9 @@ The onboarding wizard resolves SecretRef values when probing gateway connectivit
 const resolvedToken = await resolveOnboardingSecretInputString({
   config: baseConfig,
   value: baseConfig.gateway?.auth?.token,
-  path: "gateway.auth.token",
+  path: 'gateway.auth.token',
   env: process.env,
-});
+})
 ```
 
 Sources: [src/wizard/onboarding.ts:286-303](), [src/wizard/onboarding.secret-input.ts:1-100]()
@@ -694,18 +723,20 @@ In addition to SecretRef, OpenClaw supports **inline substitution** of environme
 
 ```json5
 {
-  gateway: { auth: { token: "${OPENCLAW_GATEWAY_TOKEN}" } },
-  models: { providers: { custom: { apiKey: "${CUSTOM_API_KEY}" } } }
+  gateway: { auth: { token: '${OPENCLAW_GATEWAY_TOKEN}' } },
+  models: { providers: { custom: { apiKey: '${CUSTOM_API_KEY}' } } },
 }
 ```
 
 **Rules**:
+
 - Only uppercase names matched: `[A-Z_][A-Z0-9_]*`
 - Missing/empty vars throw an error at config load time
 - Escape with `$${VAR}` for literal output
 - Works inside `$include` files
 
 **Difference from SecretRef**:
+
 - Substitution happens **once at config load**
 - SecretRef happens **at usage time**
 - Substitution uses literal `${}` syntax in config

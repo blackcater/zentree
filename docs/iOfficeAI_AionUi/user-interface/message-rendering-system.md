@@ -17,8 +17,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents how AionUi renders conversation messages in the UI: the virtualized `MessageList`, the `MessageItem` type dispatcher, the `MarkdownView` component with Shadow DOM isolation, `CodeBlock` syntax highlighting, and the specialized renderers for tool calls, tips, and agent statuses. For information about how raw AI stream events are transformed into `TMessage` objects before reaching the UI, see page [7.2](). For the input box that sends new messages, see page [5.5]().
 
 ---
@@ -79,12 +77,12 @@ Sources: [src/renderer/messages/MessageList.tsx:47-92](), [src/renderer/messages
 
 Before rendering, `MessageList` collapses certain message sequences into summary views:
 
-| Input message sequence | Output rendered element |
-|---|---|
-| `codex_tool_call` with `subtype='turn_diff'` | `MessageFileChanges` (via `file_summary` virtual item) |
-| `tool_group` whose single item is a `WriteFile` with a diff | `MessageFileChanges` |
-| Consecutive `tool_group` or `acp_tool_call` messages | `MessageToolGroupSummary` (via `tool_summary` virtual item) |
-| Any other type | Rendered directly as `MessageItem` |
+| Input message sequence                                      | Output rendered element                                     |
+| ----------------------------------------------------------- | ----------------------------------------------------------- |
+| `codex_tool_call` with `subtype='turn_diff'`                | `MessageFileChanges` (via `file_summary` virtual item)      |
+| `tool_group` whose single item is a `WriteFile` with a diff | `MessageFileChanges`                                        |
+| Consecutive `tool_group` or `acp_tool_call` messages        | `MessageToolGroupSummary` (via `tool_summary` virtual item) |
+| Any other type                                              | Rendered directly as `MessageItem`                          |
 
 This pre-processing runs inside a `useMemo` over `list` ([src/renderer/messages/MessageList.tsx:99-147]()).
 
@@ -98,19 +96,19 @@ Sources: [src/renderer/messages/MessageList.tsx:94-213]()
 
 The inner render function uses a `switch` statement on `message.type`:
 
-| `message.type` | Rendered component |
-|---|---|
-| `text` | `MessageText` |
-| `tips` | `MessageTips` |
-| `tool_call` | `MessageToolCall` |
-| `tool_group` | `MessageToolGroup` |
-| `agent_status` | `MessageAgentStatus` |
-| `acp_permission` | `MessageAcpPermission` |
-| `acp_tool_call` | `MessageAcpToolCall` |
-| `codex_permission` | `null` (handled by `ConversationChatConfirm`) |
-| `codex_tool_call` | `MessageCodexToolCall` |
-| `plan` | `MessagePlan` |
-| `available_commands` | `null` |
+| `message.type`       | Rendered component                            |
+| -------------------- | --------------------------------------------- |
+| `text`               | `MessageText`                                 |
+| `tips`               | `MessageTips`                                 |
+| `tool_call`          | `MessageToolCall`                             |
+| `tool_group`         | `MessageToolGroup`                            |
+| `agent_status`       | `MessageAgentStatus`                          |
+| `acp_permission`     | `MessageAcpPermission`                        |
+| `acp_tool_call`      | `MessageAcpToolCall`                          |
+| `codex_permission`   | `null` (handled by `ConversationChatConfirm`) |
+| `codex_tool_call`    | `MessageCodexToolCall`                        |
+| `plan`               | `MessagePlan`                                 |
+| `available_commands` | `null`                                        |
 
 The outer `MessageItem` div uses `message.position` (`left`, `right`, `center`) to set flex alignment, and `message.type` as a class name for targeted CSS.
 
@@ -160,13 +158,13 @@ Sources: [src/renderer/components/Markdown.tsx:409-521](), [src/renderer/compone
 
 `MarkdownView` passes the following plugins to `ReactMarkdown`:
 
-| Plugin | Purpose |
-|---|---|
-| `remarkGfm` | GitHub Flavored Markdown (tables, strikethrough, task lists) |
-| `remarkMath` | Parse `$...$` and `$$...$$` math syntax |
-| `remarkBreaks` | Treat single newlines as `<br>` |
-| `rehypeKatex` | Render math as KaTeX HTML |
-| `rehypeRaw` | Allow raw HTML (only when `allowHtml` prop is `true`) |
+| Plugin         | Purpose                                                      |
+| -------------- | ------------------------------------------------------------ |
+| `remarkGfm`    | GitHub Flavored Markdown (tables, strikethrough, task lists) |
+| `remarkMath`   | Parse `$...$` and `$$...$$` math syntax                      |
+| `remarkBreaks` | Treat single newlines as `<br>`                              |
+| `rehypeKatex`  | Render math as KaTeX HTML                                    |
+| `rehypeRaw`    | Allow raw HTML (only when `allowHtml` prop is `true`)        |
 
 Custom component overrides:
 
@@ -201,6 +199,7 @@ flowchart TD
 ```
 
 Key behaviors:
+
 - **Collapsible**: Code blocks are **collapsed by default**. The header bar shows the language label and a fold/unfold button. An `Up` icon at the bottom of the expanded block collapses it again.
 - **Copy button**: Clicking the `Copy` icon writes `formatCode(children)` to the clipboard (tries JSON pretty-print first, falls back to raw string).
 - **Theme-aware**: A `MutationObserver` on `data-theme` switches between the `vs` (light) and `vs2015` (dark) highlight.js styles from `react-syntax-highlighter`.
@@ -219,7 +218,7 @@ Sources: [src/renderer/components/Markdown.tsx:71-241]()
 
 1. **Think-tag filtering**: `hasThinkTags` / `stripThinkTags` remove `` blocks before rendering.
 2. **File marker extraction**: `parseFileMarker` splits content at `AIONUI_FILES_MARKER` into a text body and a list of file paths. File paths are rendered as `FilePreview` chips above the text bubble.
-3. **JSON detection**: `useFormatContent` tries to `JSON.parse` the text. If it succeeds, the content is rendered as a collapsible `` ```json `` code block via `MarkdownView` inside `CollapsibleContent`.
+3. **JSON detection**: `useFormatContent` tries to `JSON.parse` the text. If it succeeds, the content is rendered as a collapsible ` ```json ` code block via `MarkdownView` inside `CollapsibleContent`.
 
 **Layout rules:**
 
@@ -236,7 +235,7 @@ Sources: [src/renderer/messages/MessagetText.tsx:1-149]()
 
 `MessageTips` ([src/renderer/messages/MessageTips.tsx:35-67]()) renders `IMessageTips` messages, which carry a `type` (`success`, `warning`, or `error`) and a `content` string.
 
-- JSON content is rendered as a `` ```json `` block inside `MarkdownView`.
+- JSON content is rendered as a ` ```json ` block inside `MarkdownView`.
 - Plain text uses `dangerouslySetInnerHTML` inside a `CollapsibleContent` with `maxHeight={48}` and a gradient mask — long tip messages collapse by default.
 - Icon variants: `CheckOne` for success, `Attention` for warning/error, themed with `FunctionalColor` values.
 
@@ -248,13 +247,13 @@ Sources: [src/renderer/messages/MessageTips.tsx:1-67]()
 
 `MessageToolCall` ([src/renderer/messages/MessageToolCall.tsx:32-51]()) renders `IMessageToolCall` messages (individual tool calls, primarily from the Gemini agent).
 
-| Tool name | Display |
-|---|---|
-| `list_directory`, `read_file`, `write_file` | Arco `Alert` with operation name + path |
-| `google_web_search` | Arco `Alert` with search icon and query |
-| `run_shell_command` | `MarkdownView` rendering a `` ```shell `` block |
-| `replace` | `ReplacePreview` – computes a unified diff using `createTwoFilesPatch` and renders it as a `FileChangesPanel` |
-| (any other) | Plain `<div>` with the tool name |
+| Tool name                                   | Display                                                                                                       |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `list_directory`, `read_file`, `write_file` | Arco `Alert` with operation name + path                                                                       |
+| `google_web_search`                         | Arco `Alert` with search icon and query                                                                       |
+| `run_shell_command`                         | `MarkdownView` rendering a ` ```shell ` block                                                                 |
+| `replace`                                   | `ReplacePreview` – computes a unified diff using `createTwoFilesPatch` and renders it as a `FileChangesPanel` |
+| (any other)                                 | Plain `<div>` with the tool name                                                                              |
 
 Sources: [src/renderer/messages/MessageToolCall.tsx:1-51]()
 
@@ -266,30 +265,31 @@ Sources: [src/renderer/messages/MessageToolCall.tsx:1-51]()
 
 ### Item rendering rules
 
-| Condition | Display |
-|---|---|
-| `confirmationDetails` present | `ConfirmationDetails` component (radio buttons to approve/deny) |
-| `name === 'WriteFile'` with `fileDiff` | `MessageFileChanges` (deduplicated: only the first WriteFile renders the summary) |
-| `name === 'ImageGeneration'` with `img_url` | `ImageDisplay` component |
-| Status `Confirming` | Radio group with `ProceedOnce`, `ProceedAlways`, `Cancel` options |
-| All other cases | Arco `Alert` with status type, tool name tag, description, and collapsible `ToolResultDisplay` |
+| Condition                                   | Display                                                                                        |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `confirmationDetails` present               | `ConfirmationDetails` component (radio buttons to approve/deny)                                |
+| `name === 'WriteFile'` with `fileDiff`      | `MessageFileChanges` (deduplicated: only the first WriteFile renders the summary)              |
+| `name === 'ImageGeneration'` with `img_url` | `ImageDisplay` component                                                                       |
+| Status `Confirming`                         | Radio group with `ProceedOnce`, `ProceedAlways`, `Cancel` options                              |
+| All other cases                             | Arco `Alert` with status type, tool name tag, description, and collapsible `ToolResultDisplay` |
 
 ### ConfirmationDetails
 
 For tool calls in `Confirming` state, `ConfirmationDetails` renders confirmation UI depending on the `confirmationDetails.type`:
 
-| `type` | Displayed content |
-|---|---|
-| `edit` | `EditConfirmationDiff` (diff panel with file changes) |
-| `exec` | `` ```bash `` code block via `MarkdownView` |
-| `info` | Plain text prompt |
-| `mcp` | Tool display name + server-scoped "always allow" options |
+| `type` | Displayed content                                        |
+| ------ | -------------------------------------------------------- |
+| `edit` | `EditConfirmationDiff` (diff panel with file changes)    |
+| `exec` | ` ```bash ` code block via `MarkdownView`                |
+| `info` | Plain text prompt                                        |
+| `mcp`  | Tool display name + server-scoped "always allow" options |
 
 On confirmation, `ipcBridge.geminiConversation.confirmMessage.invoke` is called with the chosen `ToolConfirmationOutcome`.
 
 ### ImageDisplay
 
 `ImageDisplay` ([src/renderer/messages/MessageToolGroup.tsx:194-364]()) handles image results from `ImageGeneration`:
+
 - Local paths are loaded as base64 via `ipcBridge.fs.getImageBase64.invoke`.
 - Renders an Arco `Image` inside the `ImagePreviewContext` group.
 - Provides copy (via Clipboard API with canvas fallback) and download buttons.
@@ -336,14 +336,14 @@ Batches incoming `TMessage` updates with a `setTimeout`-based flush loop ([src/r
 - The flush processes the entire batch in one `update` call, using an O(1) indexed lookup strategy (`getOrBuildIndex`) keyed on `msg_id`, `callId`, and `toolCallId`.
 - `tool_group` messages fall back to `composeMessage` from `chatLib` because they need inner-array merging logic.
 
-| Message type | Merge key | Strategy |
-|---|---|---|
-| `text` | `msg_id` | Append `.content.content` string |
-| `tool_call` | `content.callId` | Shallow object merge |
-| `codex_tool_call` | `content.toolCallId` | Shallow object merge |
-| `acp_tool_call` | `content.update.toolCallId` | Shallow object merge |
-| `tool_group` | (inner callIds) | `composeMessage` from chatLib |
-| Others | `msg_id` (last item) | Replace last item |
+| Message type      | Merge key                   | Strategy                         |
+| ----------------- | --------------------------- | -------------------------------- |
+| `text`            | `msg_id`                    | Append `.content.content` string |
+| `tool_call`       | `content.callId`            | Shallow object merge             |
+| `codex_tool_call` | `content.toolCallId`        | Shallow object merge             |
+| `acp_tool_call`   | `content.update.toolCallId` | Shallow object merge             |
+| `tool_group`      | (inner callIds)             | `composeMessage` from chatLib    |
+| Others            | `msg_id` (last item)        | Replace last item                |
 
 Sources: [src/renderer/messages/hooks.ts:195-262](), [src/renderer/messages/hooks.ts:33-64]()
 
@@ -365,10 +365,10 @@ Sources: [src/renderer/messages/MessageList.tsx:150-210]()
 
 For file change visualization, two components are available:
 
-| Component | Used by | Approach |
-|---|---|---|
-| `MessageFileChanges` | `MessageList` pre-processing, `MessageToolGroup` | Parses unified diffs via `parseDiff`, renders `FileChangesPanel` |
-| `Diff2Html` ([src/renderer/components/Diff2Html.tsx:1-175]()) | Preview panel, `FileChangesPanel` | Converts diff to HTML via `diff2html` library, with side-by-side toggle and collapse |
+| Component                                                     | Used by                                          | Approach                                                                             |
+| ------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `MessageFileChanges`                                          | `MessageList` pre-processing, `MessageToolGroup` | Parses unified diffs via `parseDiff`, renders `FileChangesPanel`                     |
+| `Diff2Html` ([src/renderer/components/Diff2Html.tsx:1-175]()) | Preview panel, `FileChangesPanel`                | Converts diff to HTML via `diff2html` library, with side-by-side toggle and collapse |
 
 `Diff2Html` uses `ReactDOM.createPortal` to inject a React-managed button bar (`side-by-side` checkbox, preview button, collapse toggle) into the `div.d2h-file-header` element generated by the `diff2html` library's HTML output.
 

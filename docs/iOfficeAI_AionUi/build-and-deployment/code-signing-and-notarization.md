@@ -14,8 +14,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes the code signing and notarization mechanisms used to ensure AionUi's distributables are trusted by operating systems. Code signing cryptographically proves the application's origin and integrity, while notarization (macOS-specific) validates the application through Apple's automated security checks.
@@ -40,12 +38,12 @@ mac:
   entitlementsInherit: entitlements.plist
 ```
 
-| Configuration Key | Value | Purpose |
-|------------------|-------|---------|
-| `hardenedRuntime` | `true` | Enables Apple's hardened runtime, enforcing security restrictions |
-| `gatekeeperAssess` | `false` | Disables Gatekeeper assessment during build (handled by notarization) |
-| `entitlements` | `entitlements.plist` | Main entitlements file for the application bundle |
-| `entitlementsInherit` | `entitlements.plist` | Entitlements inherited by child processes |
+| Configuration Key     | Value                | Purpose                                                               |
+| --------------------- | -------------------- | --------------------------------------------------------------------- |
+| `hardenedRuntime`     | `true`               | Enables Apple's hardened runtime, enforcing security restrictions     |
+| `gatekeeperAssess`    | `false`              | Disables Gatekeeper assessment during build (handled by notarization) |
+| `entitlements`        | `entitlements.plist` | Main entitlements file for the application bundle                     |
+| `entitlementsInherit` | `entitlements.plist` | Entitlements inherited by child processes                             |
 
 The hardened runtime requires explicit entitlements for operations like JIT compilation, dynamic library loading, and debugger attachment. These are declared in `entitlements.plist` (not shown in provided files but referenced in configuration).
 
@@ -66,6 +64,7 @@ afterPack: scripts/afterPack.js
 ```
 
 While the `afterPack.js` file is not provided in the source list, this hook typically handles:
+
 - Verification of signed binaries
 - Additional signing of plugins or native modules
 - Pre-notarization cleanup
@@ -97,54 +96,54 @@ graph TB
         PACK["Create .app Bundle"]
         EB -->|creates| PACK
     end
-    
+
     subgraph "Signing Phase"
         SIGN["codesign<br/>(electron-builder internal)"]
         HARDENED["Apply Hardened Runtime"]
         ENT["Apply entitlements.plist"]
-        
+
         PACK -->|triggers| SIGN
         SIGN -->|enforces| HARDENED
         SIGN -->|reads| ENT
     end
-    
+
     subgraph "afterPack Hook"
         AFTERPACK["scripts/afterPack.js"]
         VERIFY["Verify Signatures"]
-        
+
         SIGN -->|completes| AFTERPACK
         AFTERPACK -->|runs| VERIFY
     end
-    
+
     subgraph "afterSign Hook"
         AFTERSIGN["scripts/afterSign.js"]
         NOTARIZE["@electron/notarize"]
         UPLOAD["Upload to Apple Notary API"]
         POLL["Poll for Notarization Status"]
         TIMEOUT["Timeout Detection<br/>(degraded mode)"]
-        
+
         AFTERPACK -->|success| AFTERSIGN
         AFTERSIGN -->|invokes| NOTARIZE
         NOTARIZE -->|submits| UPLOAD
         UPLOAD -->|waits| POLL
         POLL -->|checks| TIMEOUT
     end
-    
+
     subgraph "DMG Creation Phase"
         DMG["Create DMG"]
         RETRY["DMG Retry Logic<br/>(build-with-builder.js)"]
-        
+
         TIMEOUT -->|success or timeout| DMG
         TIMEOUT -->|failure| RETRY
         DMG -->|Device not configured| RETRY
         RETRY -->|attempts 1-3| DMG
     end
-    
+
     subgraph "Environment Variables"
         SECRETS["CI Secrets"]
         APPLEDEV["APPLE_ID<br/>APPLE_ID_PASSWORD<br/>APPLE_TEAM_ID"]
         CERT["CSC_LINK<br/>CSC_KEY_PASSWORD"]
-        
+
         SECRETS -->|provides| APPLEDEV
         SECRETS -->|provides| CERT
         APPLEDEV -->|authenticates| NOTARIZE
@@ -161,27 +160,29 @@ The build system implements a "degraded mode" that allows DMG creation to procee
 The DMG retry logic detects notarization failures by checking if the `.app` bundle exists but the `.dmg` file is missing, indicating a failure during DMG creation:
 
 ```javascript
-const appDir = isMac ? findAppDir(outDir) : null;
-if (!appDir || dmgExists(outDir)) throw error;
+const appDir = isMac ? findAppDir(outDir) : null
+if (!appDir || dmgExists(outDir)) throw error
 
 // .app exists but no .dmg → DMG creation failed
-console.log('\
-🔄 Build failed during DMG creation (.app exists, .dmg missing)');
+console.log(
+  '\
+🔄 Build failed during DMG creation (.app exists, .dmg missing)'
+)
 ```
 
 The retry mechanism attempts DMG creation up to 3 times with 30-second intervals, using the `--prepackaged` flag to preserve styling:
 
 ```javascript
 for (let attempt = 1; attempt <= DMG_RETRY_MAX; attempt++) {
-  cleanupDiskImages();
-  spawnSync('sleep', [String(DMG_RETRY_DELAY_SEC)]);
-  
+  cleanupDiskImages()
+  spawnSync('sleep', [String(DMG_RETRY_DELAY_SEC)])
+
   try {
     console.log(`\
-📀 DMG retry attempt ${attempt}/${DMG_RETRY_MAX}...`);
-    createDmgWithPrepackaged(appDir, targetArch);
-    console.log('✅ DMG created successfully on retry');
-    return;
+📀 DMG retry attempt ${attempt}/${DMG_RETRY_MAX}...`)
+    createDmgWithPrepackaged(appDir, targetArch)
+    console.log('✅ DMG created successfully on retry')
+    return
   } catch (retryError) {
     // Continue to next attempt
   }
@@ -198,13 +199,13 @@ The GitHub Actions workflow provides code signing credentials through encrypted 
 
 ### Required Secrets for macOS
 
-| Secret Name | Purpose | Used By |
-|-------------|---------|---------|
-| `APPLE_ID` | Apple Developer account email | Notarization authentication |
-| `APPLE_ID_PASSWORD` | App-specific password | Notarization authentication |
-| `APPLE_TEAM_ID` | Developer Team ID | Notarization team identification |
-| `CSC_LINK` | Base64-encoded .p12 certificate | Code signing certificate |
-| `CSC_KEY_PASSWORD` | Certificate password | Unlocking keychain |
+| Secret Name         | Purpose                         | Used By                          |
+| ------------------- | ------------------------------- | -------------------------------- |
+| `APPLE_ID`          | Apple Developer account email   | Notarization authentication      |
+| `APPLE_ID_PASSWORD` | App-specific password           | Notarization authentication      |
+| `APPLE_TEAM_ID`     | Developer Team ID               | Notarization team identification |
+| `CSC_LINK`          | Base64-encoded .p12 certificate | Code signing certificate         |
+| `CSC_KEY_PASSWORD`  | Certificate password            | Unlocking keychain               |
 
 The build matrix defines macOS jobs for both ARM64 and x64 architectures:
 
@@ -235,30 +236,30 @@ graph LR
         DETECT["build-with-builder.js<br/>Architecture Detection"]
         ARM64CHECK["targetArch === 'arm64'"]
         X64CHECK["targetArch === 'x64'"]
-        
+
         DETECT -->|checks| ARM64CHECK
         DETECT -->|checks| X64CHECK
     end
-    
+
     subgraph "ARM64 Installer"
         ARM64NSH["resources/windows-installer-arm64.nsh"]
         ARM64FUNC[".onVerifyInstDir Function"]
         ARM64GUARD["${IsNativeARM64} Check"]
         ARM64BLOCK["MessageBox + Quit"]
-        
+
         ARM64CHECK -->|includes| ARM64NSH
         ARM64NSH -->|defines| ARM64FUNC
         ARM64FUNC -->|validates| ARM64GUARD
         ARM64GUARD -->|fails| ARM64BLOCK
     end
-    
+
     subgraph "x64 Installer"
         X64NSH["resources/windows-installer-x64.nsh"]
         X64FUNC[".onVerifyInstDir Function"]
         X64RUN["${RunningX64} Check"]
         X64ARM["${IsNativeARM64} Check"]
         X64BLOCK["MessageBox + Quit"]
-        
+
         X64CHECK -->|includes| X64NSH
         X64NSH -->|defines| X64FUNC
         X64FUNC -->|validates| X64RUN
@@ -266,11 +267,11 @@ graph LR
         X64RUN -->|fails| X64BLOCK
         X64ARM -->|succeeds| X64BLOCK
     end
-    
+
     subgraph "Build Configuration"
         NSISCONFIG["--config.nsis.include"]
         EBUILD["electron-builder"]
-        
+
         ARM64NSH -->|via| NSISCONFIG
         X64NSH -->|via| NSISCONFIG
         NSISCONFIG -->|passed to| EBUILD
@@ -309,7 +310,7 @@ Function .onVerifyInstDir
       "This AionUi installer is designed for x64 architecture..."
     Quit
   ${EndIf}
-  
+
   ; Block installation on ARM64 systems
   ${If} ${IsNativeARM64}
     MessageBox MB_OK|MB_ICONSTOP \
@@ -335,14 +336,20 @@ Before each retry attempt, the script detaches all mounted disk images that may 
 
 ```javascript
 function cleanupDiskImages() {
-  const result = spawnSync('sh', ['-c',
-    'hdiutil info 2>/dev/null | grep /dev/disk | awk \'{print $1}\' | xargs -I {} hdiutil detach {} -force 2>/dev/null'
-  ], { stdio: 'ignore' });
-  return result.status === 0;
+  const result = spawnSync(
+    'sh',
+    [
+      '-c',
+      "hdiutil info 2>/dev/null | grep /dev/disk | awk '{print $1}' | xargs -I {} hdiutil detach {} -force 2>/dev/null",
+    ],
+    { stdio: 'ignore' }
+  )
+  return result.status === 0
 }
 ```
 
 This pipeline:
+
 1. Lists all mounted disk images via `hdiutil info`
 2. Extracts device paths (`/dev/diskN`) using `grep` and `awk`
 3. Force-detaches each device using `hdiutil detach -force`
@@ -355,13 +362,13 @@ When retrying DMG creation, the script uses electron-builder's `--prepackaged` f
 
 ```javascript
 function createDmgWithPrepackaged(appDir, targetArch) {
-  const appName = fs.readdirSync(appDir).find(f => f.endsWith('.app'));
-  const appPath = path.join(appDir, appName);
-  
+  const appName = fs.readdirSync(appDir).find((f) => f.endsWith('.app'))
+  const appPath = path.join(appDir, appName)
+
   execSync(
     `bunx electron-builder --mac dmg --${targetArch} --prepackaged "${appPath}" --publish=never`,
     { stdio: 'inherit', shell: process.platform === 'win32' }
-  );
+  )
 }
 ```
 
@@ -375,14 +382,14 @@ This approach reuses the already-signed `.app` bundle, avoiding redundant compil
 
 The following table summarizes how code signing and notarization integrate with the build system:
 
-| Phase | Tool/Script | Configuration | Environment Variables |
-|-------|-------------|---------------|----------------------|
-| **Bundle Creation** | electron-builder | `electron-builder.yml` | `ELECTRON_BUILDER_ARCH` |
-| **Code Signing** | codesign (via electron-builder) | `mac.hardenedRuntime`, `mac.entitlements` | `CSC_LINK`, `CSC_KEY_PASSWORD` |
-| **Post-Pack Hook** | `scripts/afterPack.js` | `afterPack` in electron-builder.yml | (varies) |
-| **Notarization** | `scripts/afterSign.js` + `@electron/notarize` | `afterSign` in electron-builder.yml | `APPLE_ID`, `APPLE_ID_PASSWORD`, `APPLE_TEAM_ID` |
-| **DMG Creation** | electron-builder + retry logic | `dmg` section, `--prepackaged` flag | N/A |
-| **Windows Validation** | NSIS scripts | `--config.nsis.include` | N/A |
+| Phase                  | Tool/Script                                   | Configuration                             | Environment Variables                            |
+| ---------------------- | --------------------------------------------- | ----------------------------------------- | ------------------------------------------------ |
+| **Bundle Creation**    | electron-builder                              | `electron-builder.yml`                    | `ELECTRON_BUILDER_ARCH`                          |
+| **Code Signing**       | codesign (via electron-builder)               | `mac.hardenedRuntime`, `mac.entitlements` | `CSC_LINK`, `CSC_KEY_PASSWORD`                   |
+| **Post-Pack Hook**     | `scripts/afterPack.js`                        | `afterPack` in electron-builder.yml       | (varies)                                         |
+| **Notarization**       | `scripts/afterSign.js` + `@electron/notarize` | `afterSign` in electron-builder.yml       | `APPLE_ID`, `APPLE_ID_PASSWORD`, `APPLE_TEAM_ID` |
+| **DMG Creation**       | electron-builder + retry logic                | `dmg` section, `--prepackaged` flag       | N/A                                              |
+| **Windows Validation** | NSIS scripts                                  | `--config.nsis.include`                   | N/A                                              |
 
 The entire process is orchestrated by `build-with-builder.js`, which wraps electron-builder and implements retry logic for DMG creation failures.
 

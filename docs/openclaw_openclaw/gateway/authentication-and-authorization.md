@@ -54,8 +54,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes the authentication and authorization mechanisms in the OpenClaw Gateway. It covers:
@@ -79,7 +77,7 @@ The Gateway supports multiple authentication modes to secure WebSocket RPC conne
 OpenClaw supports three authentication modes configured via `gateway.auth.mode`:
 
 | Mode       | Credential Type | Use Case                                    |
-|------------|-----------------|---------------------------------------------|
+| ---------- | --------------- | ------------------------------------------- |
 | `token`    | Shared token    | Default; suitable for single-user setups    |
 | `password` | Shared password | Alternative to token; required for Funnel   |
 | `none`     | No auth         | Loopback-only; blocked on non-loopback bind |
@@ -94,10 +92,10 @@ Gateway authentication is configured in `~/.openclaw/openclaw.json`:
 {
   gateway: {
     auth: {
-      mode: "token",           // "token" | "password" | "none"
-      token: "secret-token",   // Shared token for mode="token"
-      password: "secret-pwd",  // Shared password for mode="password"
-      allowTailscale: true,    // Allow Tailscale identity headers
+      mode: 'token', // "token" | "password" | "none"
+      token: 'secret-token', // Shared token for mode="token"
+      password: 'secret-pwd', // Shared password for mode="password"
+      allowTailscale: true, // Allow Tailscale identity headers
     },
   },
 }
@@ -114,11 +112,11 @@ Tokens and passwords can be stored as `SecretRef` objects instead of plaintext:
   gateway: {
     auth: {
       token: {
-        source: "env",
-        key: "OPENCLAW_GATEWAY_TOKEN"
-      }
-    }
-  }
+        source: 'env',
+        key: 'OPENCLAW_GATEWAY_TOKEN',
+      },
+    },
+  },
 }
 ```
 
@@ -139,20 +137,20 @@ graph TB
     Roles["Gateway Roles"]
     Operator["operator<br/>(CLI, Control UI, Mobile Apps)"]
     Node["node<br/>(macOS/iOS/Android Nodes)"]
-    
+
     Roles --> Operator
     Roles --> Node
-    
+
     Operator --> OpScopes["Scopes:<br/>operator.admin<br/>operator.read<br/>operator.write<br/>..."]
     Node --> NodeMethods["Allowed Methods:<br/>node.pair.verify<br/>node.pending.drain<br/>node.invoke.result<br/>..."]
 ```
 
 **Diagram: Role Hierarchy**
 
-| Role       | Description                                      | Default Scopes       |
-|------------|--------------------------------------------------|----------------------|
-| `operator` | CLI clients, Control UI, mobile apps (non-node) | `operator.admin`     |
-| `node`     | Paired device nodes (macOS/iOS/Android)         | (implicit node set)  |
+| Role       | Description                                     | Default Scopes      |
+| ---------- | ----------------------------------------------- | ------------------- |
+| `operator` | CLI clients, Control UI, mobile apps (non-node) | `operator.admin`    |
+| `node`     | Paired device nodes (macOS/iOS/Android)         | (implicit node set) |
 
 Roles are declared in the `connect` request via `ConnectParams.role`.
 
@@ -163,7 +161,7 @@ Roles are declared in the `connect` request via `ConnectParams.role`.
 Scopes provide fine-grained authorization for operator clients:
 
 | Scope              | Grants Access To                          |
-|--------------------|-------------------------------------------|
+| ------------------ | ----------------------------------------- |
 | `operator.admin`   | All methods (superuser)                   |
 | `operator.read`    | Read-only methods (config.get, logs, etc) |
 | `operator.write`   | Write methods (config.apply, update, etc) |
@@ -185,7 +183,7 @@ graph LR
     ScopeCheck{"authorizeOperatorScopesForMethod"}
     Execute["Execute Handler"]
     Deny["ErrorCodes.INVALID_REQUEST"]
-    
+
     Request --> Auth
     Auth --> RoleCheck
     RoleCheck -->|role mismatch| Deny
@@ -218,21 +216,21 @@ sequenceDiagram
     participant N as Node Client
     participant G as Gateway
     participant O as Operator CLI
-    
+
     N->>G: node.pair.request<br/>{deviceId, deviceInfo}
     G->>G: Store pending request
     G->>N: {requestId, expires}
-    
+
     O->>G: device.pair.list
     G->>O: [pending requests]
-    
+
     O->>G: device.pair.approve<br/>{requestId, role, scopes}
     G->>G: Generate device token
     G->>O: {deviceId, token}
-    
+
     N->>G: node.pair.verify<br/>{deviceId, requestId}
     G->>N: {approved, token, role, scopes}
-    
+
     N->>G: connect<br/>{role, auth: {deviceToken}}
     G->>N: hello.ok
 ```
@@ -276,12 +274,12 @@ Channel access control operates independently from Gateway authentication, gover
 
 Each channel supports DM-level access policies via `dmPolicy`:
 
-| Policy      | Behavior                                                 |
-|-------------|----------------------------------------------------------|
-| `pairing`   | Unknown senders receive pairing code; require approval   |
-| `allowlist` | Only senders in `allowFrom` can message                  |
-| `open`      | All senders allowed (requires `"*"` in `allowFrom`)      |
-| `disabled`  | All DMs blocked                                          |
+| Policy      | Behavior                                               |
+| ----------- | ------------------------------------------------------ |
+| `pairing`   | Unknown senders receive pairing code; require approval |
+| `allowlist` | Only senders in `allowFrom` can message                |
+| `open`      | All senders allowed (requires `"*"` in `allowFrom`)    |
+| `disabled`  | All DMs blocked                                        |
 
 Configuration example:
 
@@ -289,8 +287,8 @@ Configuration example:
 {
   channels: {
     telegram: {
-      dmPolicy: "pairing",
-      allowFrom: ["+15555550123"],
+      dmPolicy: 'pairing',
+      allowFrom: ['+15555550123'],
     },
   },
 }
@@ -306,18 +304,18 @@ sequenceDiagram
     participant C as Channel Plugin
     participant G as Gateway
     participant O as Operator
-    
+
     U->>C: DM: "Hello"
     C->>G: Inbound message
     G->>G: Check dmPolicy="pairing"<br/>Sender not in allowlist
     G->>G: Generate pairing code
     G->>C: Reply: "Pairing code: ABC123"
     C->>U: "Pairing code: ABC123"
-    
+
     O->>G: openclaw pairing approve telegram ABC123
     G->>G: Add sender to allowlist
     G->>O: Approved
-    
+
     U->>C: DM: "Hello again"
     C->>G: Inbound message
     G->>G: Sender in allowlist ✓
@@ -348,16 +346,16 @@ Groups support additional access controls:
 sequenceDiagram
     participant C as Client
     participant G as Gateway
-    
+
     C->>G: WebSocket Connect
     G->>C: connect.challenge<br/>{nonce, expiresAt}
-    
+
     C->>G: connect request<br/>{role, scopes, auth, device}
-    
+
     G->>G: Validate auth token/password
     G->>G: Verify device signature (if device auth)
     G->>G: Check role authorization
-    
+
     alt Auth Success
         G->>C: hello.ok<br/>{protocol, snapshot, features, policy}
     else Auth Failure
@@ -428,14 +426,14 @@ On successful authentication, the Gateway responds with `HelloOk`:
 
 ### Authentication Errors
 
-| Error Code                     | Meaning                                  | Client Action                          |
-|--------------------------------|------------------------------------------|----------------------------------------|
-| `AUTH_TOKEN_MISSING`           | Required token not provided              | Send token in `auth.token`             |
-| `AUTH_TOKEN_MISMATCH`          | Token does not match gateway config      | Check token, retry with device token   |
-| `AUTH_DEVICE_TOKEN_MISMATCH`   | Device token invalid/revoked             | Re-pair device                         |
-| `PAIRING_REQUIRED`             | Device known but not approved            | Approve via `device.pair.approve`      |
-| `NOT_PAIRED`                   | Node not paired                          | Initiate pairing via `node.pair.request` |
-| `INVALID_REQUEST`              | Role/scope unauthorized for method       | Check role and scopes                  |
+| Error Code                   | Meaning                             | Client Action                            |
+| ---------------------------- | ----------------------------------- | ---------------------------------------- |
+| `AUTH_TOKEN_MISSING`         | Required token not provided         | Send token in `auth.token`               |
+| `AUTH_TOKEN_MISMATCH`        | Token does not match gateway config | Check token, retry with device token     |
+| `AUTH_DEVICE_TOKEN_MISMATCH` | Device token invalid/revoked        | Re-pair device                           |
+| `PAIRING_REQUIRED`           | Device known but not approved       | Approve via `device.pair.approve`        |
+| `NOT_PAIRED`                 | Node not paired                     | Initiate pairing via `node.pair.request` |
+| `INVALID_REQUEST`            | Role/scope unauthorized for method  | Check role and scopes                    |
 
 **Sources:** [docs/gateway/troubleshooting.md:120-145](), [apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift:7-13]()
 
@@ -470,7 +468,7 @@ graph LR
     Check{"consumeControlPlaneWriteBudget"}
     Allow["Execute method"]
     Deny["UNAVAILABLE<br/>retryAfterMs"]
-    
+
     Request --> Check
     Check -->|budget available| Allow
     Check -->|rate limit exceeded| Deny
@@ -492,8 +490,8 @@ Rate limiting is keyed by actor identity (device ID, IP, or client metadata) and
 {
   gateway: {
     auth: {
-      mode: "token",
-      token: "your-secret-token",
+      mode: 'token',
+      token: 'your-secret-token',
     },
   },
 }
@@ -505,13 +503,13 @@ Rate limiting is keyed by actor identity (device ID, IP, or client metadata) and
 {
   gateway: {
     auth: {
-      mode: "token",                    // "token" | "password" | "none"
-      token: "your-secret-token",       // or SecretRef
-      password: "your-secret-password", // or SecretRef
-      allowTailscale: true,             // Allow Tailscale identity
-      trustedProxies: ["127.0.0.1"],   // Trusted proxy IPs
+      mode: 'token', // "token" | "password" | "none"
+      token: 'your-secret-token', // or SecretRef
+      password: 'your-secret-password', // or SecretRef
+      allowTailscale: true, // Allow Tailscale identity
+      trustedProxies: ['127.0.0.1'], // Trusted proxy IPs
     },
-    bind: "loopback",                   // "loopback" | "lan" | "tailnet" | ...
+    bind: 'loopback', // "loopback" | "lan" | "tailnet" | ...
     port: 18789,
   },
 }
@@ -523,10 +521,10 @@ Rate limiting is keyed by actor identity (device ID, IP, or client metadata) and
 {
   channels: {
     telegram: {
-      dmPolicy: "pairing",              // "pairing" | "allowlist" | "open" | "disabled"
-      allowFrom: ["+15555550123"],
+      dmPolicy: 'pairing', // "pairing" | "allowlist" | "open" | "disabled"
+      allowFrom: ['+15555550123'],
       groups: {
-        "*": {
+        '*': {
           requireMention: true,
         },
       },

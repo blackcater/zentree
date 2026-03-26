@@ -47,8 +47,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes OpenCode's provider and model system, including provider discovery, authentication, model selection, and the provider transform layer. It covers how OpenCode integrates with 75+ LLM providers through the AI SDK and Models.dev, and explains the curated services OpenCode Zen and OpenCode Go.
 
 For information about configuring providers in your project, see [Configuration Options](#9.3). For TUI commands to manage providers and models, see [TUI Commands](#9.2).
@@ -65,32 +63,32 @@ OpenCode's provider system abstracts away differences between LLM providers, all
 graph TB
     Config["Config Layer<br/>opencode.json<br/>Environment Variables"]
     Auth["Authentication Storage<br/>~/.local/share/opencode/auth.json"]
-    
+
     Discover["Provider Discovery<br/>Provider.list()"]
     Load["Provider Loading<br/>NPM Package Install"]
-    
+
     Transform["Provider Transform<br/>Message Normalization<br/>Caching Strategy"]
-    
+
     AISDK["AI SDK<br/>@ai-sdk/*"]
     ModelsDev["Models.dev<br/>Model Metadata"]
-    
+
     Provider["Provider Instance<br/>key, options, models"]
     Model["Model Instance<br/>ID, capabilities, limits"]
-    
+
     Session["Session System<br/>SessionPrompt"]
-    
+
     Config --> Discover
     Auth --> Discover
     Discover --> Load
     Load --> Provider
-    
+
     ModelsDev --> Model
     Provider --> Model
-    
+
     Model --> Transform
     Transform --> AISDK
     AISDK --> Session
-    
+
     Config -.-> Provider
     Auth -.-> Provider
 ```
@@ -110,31 +108,31 @@ The `Provider.list()` function orchestrates provider discovery:
 ```mermaid
 graph TD
     Start["Provider.list()"]
-    
+
     CheckConfig["Read Config Files<br/>1. Remote (.well-known/opencode)<br/>2. Global (~/.config/opencode)<br/>3. Custom (OPENCODE_CONFIG)<br/>4. Project (./opencode.json)"]
-    
+
     CheckAuth["Read Auth Storage<br/>~/.local/share/opencode/auth.json"]
-    
+
     CheckEnv["Check Environment<br/>AWS_*, OPENAI_*, ANTHROPIC_*<br/>GITLAB_TOKEN, etc."]
-    
+
     FilterDisabled["Apply Filters<br/>disabled_providers<br/>enabled_providers"]
-    
+
     InstallNPM["Install Provider Packages<br/>~/.cache/opencode/<br/>@ai-sdk/openai<br/>@ai-sdk/anthropic"]
-    
+
     CreateInstance["Create Provider Instances<br/>key, options, models"]
-    
+
     Merge["Merge Results<br/>Deduplicate by ID"]
-    
+
     Return["Return Provider Map"]
-    
+
     Start --> CheckConfig
     Start --> CheckAuth
     Start --> CheckEnv
-    
+
     CheckConfig --> FilterDisabled
     CheckAuth --> FilterDisabled
     CheckEnv --> FilterDisabled
-    
+
     FilterDisabled --> InstallNPM
     InstallNPM --> CreateInstance
     CreateInstance --> Merge
@@ -147,15 +145,15 @@ graph TD
 
 Provider configuration is merged from multiple sources with later sources overriding earlier ones:
 
-| Priority | Source | Location | Purpose |
-|----------|--------|----------|---------|
-| 1 (Lowest) | Remote Config | `.well-known/opencode` | Organizational defaults |
-| 2 | Global Config | `~/.config/opencode/opencode.json` | User preferences |
-| 3 | Custom Config | `OPENCODE_CONFIG` env var | Override path |
-| 4 | Project Config | `./opencode.json` | Project-specific |
-| 5 | Environment Variables | `OPENAI_API_KEY`, `AWS_REGION`, etc. | Runtime overrides |
-| 6 | Inline Config | `OPENCODE_CONFIG_CONTENT` env var | Inline JSON |
-| 7 (Highest) | Managed Config | `/etc/opencode` | Enterprise policies |
+| Priority    | Source                | Location                             | Purpose                 |
+| ----------- | --------------------- | ------------------------------------ | ----------------------- |
+| 1 (Lowest)  | Remote Config         | `.well-known/opencode`               | Organizational defaults |
+| 2           | Global Config         | `~/.config/opencode/opencode.json`   | User preferences        |
+| 3           | Custom Config         | `OPENCODE_CONFIG` env var            | Override path           |
+| 4           | Project Config        | `./opencode.json`                    | Project-specific        |
+| 5           | Environment Variables | `OPENAI_API_KEY`, `AWS_REGION`, etc. | Runtime overrides       |
+| 6           | Inline Config         | `OPENCODE_CONFIG_CONTENT` env var    | Inline JSON             |
+| 7 (Highest) | Managed Config        | `/etc/opencode`                      | Enterprise policies     |
 
 **Sources:** [packages/web/src/content/docs/config.mdx:42-56]()
 
@@ -228,16 +226,16 @@ graph LR
         Anthropic["Anthropic<br/>ANTHROPIC_API_KEY"]
         DeepSeek["DeepSeek<br/>/connect command"]
     end
-    
+
     subgraph "OAuth Providers"
         GitLab["GitLab Duo<br/>OAuth + PAT"]
         GitHub["GitHub Copilot<br/>Device Flow"]
     end
-    
+
     subgraph "AWS Credential Chain"
         Bedrock["Amazon Bedrock<br/>Bearer Token<br/>Access Keys<br/>Profile<br/>Web Identity<br/>Instance Metadata"]
     end
-    
+
     subgraph "Profile-Based"
         Azure["Azure OpenAI<br/>Resource Name + Key"]
         Vertex["Google Vertex AI<br/>GOOGLE_APPLICATION_CREDENTIALS"]
@@ -253,41 +251,41 @@ Amazon Bedrock has a specific authentication priority:
 ```mermaid
 graph TD
     Start["Bedrock Authentication"]
-    
+
     BearerEnv["AWS_BEARER_TOKEN_BEDROCK<br/>environment variable"]
     BearerAuth["Bearer token from<br/>auth.json (/connect)"]
-    
+
     ConfigProfile["Profile from<br/>opencode.json config"]
     EnvProfile["AWS_PROFILE<br/>environment variable"]
-    
+
     AccessKeys["AWS_ACCESS_KEY_ID +<br/>AWS_SECRET_ACCESS_KEY"]
-    
+
     WebIdentity["AWS_WEB_IDENTITY_TOKEN_FILE +<br/>AWS_ROLE_ARN (EKS IRSA)"]
-    
+
     InstanceMeta["EC2 Instance<br/>Metadata Service"]
-    
+
     Fail["Authentication Failed"]
     Success["Authenticated"]
-    
+
     Start --> BearerEnv
     BearerEnv -->|exists| Success
     BearerEnv -->|not set| BearerAuth
-    
+
     BearerAuth -->|exists| Success
     BearerAuth -->|not set| ConfigProfile
-    
+
     ConfigProfile -->|exists| Success
     ConfigProfile -->|not set| EnvProfile
-    
+
     EnvProfile -->|exists| Success
     EnvProfile -->|not set| AccessKeys
-    
+
     AccessKeys -->|exists| Success
     AccessKeys -->|not set| WebIdentity
-    
+
     WebIdentity -->|exists| Success
     WebIdentity -->|not set| InstanceMeta
-    
+
     InstanceMeta -->|exists| Success
     InstanceMeta -->|not found| Fail
 ```
@@ -298,11 +296,11 @@ graph TD
 
 GitLab supports both OAuth and Personal Access Token (PAT) authentication:
 
-| Method | Environment Variable | Auth Storage Type | Notes |
-|--------|---------------------|-------------------|-------|
-| OAuth | - | `oauth` with `access`, `refresh`, `expires` | Recommended, auto-refresh |
-| PAT | `GITLAB_TOKEN` | `api` with `key` | For self-hosted instances |
-| Config | - | `apiKey` in config options | Takes precedence over env var |
+| Method | Environment Variable | Auth Storage Type                           | Notes                         |
+| ------ | -------------------- | ------------------------------------------- | ----------------------------- |
+| OAuth  | -                    | `oauth` with `access`, `refresh`, `expires` | Recommended, auto-refresh     |
+| PAT    | `GITLAB_TOKEN`       | `api` with `key`                            | For self-hosted instances     |
+| Config | -                    | `apiKey` in config options                  | Takes precedence over env var |
 
 **Sources:** [packages/web/src/content/docs/providers.mdx:679-825](), [packages/opencode/test/provider/gitlab-duo.test.ts:1-263]()
 
@@ -331,26 +329,26 @@ lmstudio/google/gemma-3n-e4b
 ```mermaid
 graph TB
     ProviderList["Provider.list()"]
-    
+
     BuiltInModels["Built-in Models<br/>from Models.dev"]
     ConfigModels["Config Models<br/>provider.models"]
-    
+
     MergeModels["Merge Model Definitions"]
-    
+
     ApplyVariants["Apply Model Variants<br/>high, low, max, etc."]
-    
+
     SetLimits["Set Context Limits<br/>input, output, cached"]
-    
+
     SetCapabilities["Set Capabilities<br/>tool calling, streaming"]
-    
+
     ModelMap["Model Map<br/>modelId -> ModelDefinition"]
-    
+
     ProviderList --> BuiltInModels
     ProviderList --> ConfigModels
-    
+
     BuiltInModels --> MergeModels
     ConfigModels --> MergeModels
-    
+
     MergeModels --> ApplyVariants
     ApplyVariants --> SetLimits
     SetLimits --> SetCapabilities
@@ -395,11 +393,11 @@ Models can be configured globally in `opencode.json`:
 
 Many models support variants with different configurations:
 
-| Provider | Variants | Purpose |
-|----------|----------|---------|
-| Anthropic | `high`, `max` | Thinking budget levels |
-| OpenAI | `none`, `minimal`, `low`, `medium`, `high`, `xhigh` | Reasoning effort levels |
-| Google | `low`, `high` | Effort/token budget levels |
+| Provider  | Variants                                            | Purpose                    |
+| --------- | --------------------------------------------------- | -------------------------- |
+| Anthropic | `high`, `max`                                       | Thinking budget levels     |
+| OpenAI    | `none`, `minimal`, `low`, `medium`, `high`, `xhigh` | Reasoning effort levels    |
+| Google    | `low`, `high`                                       | Effort/token budget levels |
 
 Variants can be cycled using the `variant_cycle` keybind in the TUI.
 
@@ -431,12 +429,12 @@ All providers in the `Provider.BUNDLED_PROVIDERS` map support these base options
 }
 ```
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `timeout` | `number \| false` | `300000` | Request timeout in milliseconds (5 minutes), or `false` to disable |
-| `setCacheKey` | `boolean` | `false` | Ensure cache key is set for provider (affects `ProviderTransform.options()`) |
-| `baseURL` | `string` | Provider default | Custom base URL for proxy or VPC endpoints |
-| `apiKey` | `string` | From auth.json or env | Override API key from configuration |
+| Option        | Type              | Default               | Description                                                                  |
+| ------------- | ----------------- | --------------------- | ---------------------------------------------------------------------------- |
+| `timeout`     | `number \| false` | `300000`              | Request timeout in milliseconds (5 minutes), or `false` to disable           |
+| `setCacheKey` | `boolean`         | `false`               | Ensure cache key is set for provider (affects `ProviderTransform.options()`) |
+| `baseURL`     | `string`          | Provider default      | Custom base URL for proxy or VPC endpoints                                   |
+| `apiKey`      | `string`          | From auth.json or env | Override API key from configuration                                          |
 
 **Sources:** [packages/opencode/src/provider/provider.ts:50-661](), [packages/opencode/src/provider/transform.ts:1-662]()
 
@@ -507,38 +505,38 @@ anthropic/claude-3-5-haiku
 ```mermaid
 graph TD
     Auth["Bedrock Authentication"]
-    
+
     Bearer["AWS_BEARER_TOKEN_BEDROCK<br/>or auth.json bearer"]
-    
+
     Profile["Profile<br/>config.provider.amazon-bedrock.options.profile<br/>or AWS_PROFILE"]
-    
+
     AccessKey["AWS_ACCESS_KEY_ID +<br/>AWS_SECRET_ACCESS_KEY"]
-    
+
     WebIdentity["AWS_WEB_IDENTITY_TOKEN_FILE +<br/>AWS_ROLE_ARN"]
-    
+
     Container["ECS Container Metadata<br/>AWS_CONTAINER_CREDENTIALS_*"]
-    
+
     Instance["EC2 Instance Metadata"]
-    
+
     Success["Authenticated"]
     Fail["No credentials"]
-    
+
     Auth --> Bearer
     Bearer -->|exists| Success
     Bearer -->|not set| Profile
-    
+
     Profile -->|exists| Success
     Profile -->|not set| AccessKey
-    
+
     AccessKey -->|exists| Success
     AccessKey -->|not set| WebIdentity
-    
+
     WebIdentity -->|exists| Success
     WebIdentity -->|not set| Container
-    
+
     Container -->|exists| Success
     Container -->|not set| Instance
-    
+
     Instance -->|exists| Success
     Instance -->|not found| Fail
 ```
@@ -559,24 +557,24 @@ graph TD
 }
 ```
 
-| Option | Type | Precedence | Description |
-|--------|------|------------|-------------|
-| `region` | `string` | Config > `AWS_REGION` > `"us-east-1"` | AWS region for Bedrock API |
-| `profile` | `string` | Config > `AWS_PROFILE` | Named profile from `~/.aws/credentials` |
-| `endpoint` | `string` | Config (alias for `baseURL`) | Custom VPC endpoint URL |
+| Option     | Type     | Precedence                            | Description                             |
+| ---------- | -------- | ------------------------------------- | --------------------------------------- |
+| `region`   | `string` | Config > `AWS_REGION` > `"us-east-1"` | AWS region for Bedrock API              |
+| `profile`  | `string` | Config > `AWS_PROFILE`                | Named profile from `~/.aws/credentials` |
+| `endpoint` | `string` | Config (alias for `baseURL`)          | Custom VPC endpoint URL                 |
 
 #### Cross-Region Inference Profiles
 
 The `getModel()` function in the custom loader handles region prefixing:
 
-| Prefix | Regions | Example Model ID |
-|--------|---------|------------------|
-| `us.` | `us-*` (except `us-gov-*`) | `us.anthropic.claude-opus-4-5-20251101-v1:0` |
-| `eu.` | `eu-*` | `eu.anthropic.claude-sonnet-4-20250514-v1:0` |
-| `jp.` | `ap-northeast-1` | `jp.anthropic.claude-sonnet-4-20250514-v1:0` |
-| `apac.` | Other `ap-*` (except AU) | `apac.anthropic.claude-sonnet-4-20250514-v1:0` |
-| `au.` | `ap-southeast-2`, `ap-southeast-4` | `au.anthropic.claude-sonnet-4-5-20250929-v1:0` |
-| `global.` | Pre-configured cross-region | `global.anthropic.claude-opus-4-5-20251101-v1:0` |
+| Prefix    | Regions                            | Example Model ID                                 |
+| --------- | ---------------------------------- | ------------------------------------------------ |
+| `us.`     | `us-*` (except `us-gov-*`)         | `us.anthropic.claude-opus-4-5-20251101-v1:0`     |
+| `eu.`     | `eu-*`                             | `eu.anthropic.claude-sonnet-4-20250514-v1:0`     |
+| `jp.`     | `ap-northeast-1`                   | `jp.anthropic.claude-sonnet-4-20250514-v1:0`     |
+| `apac.`   | Other `ap-*` (except AU)           | `apac.anthropic.claude-sonnet-4-20250514-v1:0`   |
+| `au.`     | `ap-southeast-2`, `ap-southeast-4` | `au.anthropic.claude-sonnet-4-5-20250929-v1:0`   |
+| `global.` | Pre-configured cross-region        | `global.anthropic.claude-opus-4-5-20251101-v1:0` |
 
 Models with prefixes are passed through without modification. Models without prefixes get region-specific prefixes based on the configured region.
 
@@ -612,10 +610,10 @@ export AZURE_API_KEY=your-api-key
 }
 ```
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `resourceName` | `string` | `AZURE_RESOURCE_NAME` | Azure OpenAI resource name |
-| `useCompletionUrls` | `boolean` | `false` | Use completion URLs instead of responses API |
+| Option              | Type      | Default               | Description                                  |
+| ------------------- | --------- | --------------------- | -------------------------------------------- |
+| `resourceName`      | `string`  | `AZURE_RESOURCE_NAME` | Azure OpenAI resource name                   |
+| `useCompletionUrls` | `boolean` | `false`               | Use completion URLs instead of responses API |
 
 **Important:** The deployment name must match the model ID for OpenCode to work correctly. The custom loader's `getModel()` function calls `sdk.responses(modelID)` or `sdk.chat(modelID)` based on `useCompletionUrls`.
 
@@ -713,9 +711,9 @@ export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
 }
 ```
 
-| Option | Type | Precedence | Description |
-|--------|------|------------|-------------|
-| `project` | `string` | Config > `GOOGLE_CLOUD_PROJECT` > `GCP_PROJECT` > `GCLOUD_PROJECT` | GCP project ID |
+| Option     | Type     | Precedence                                                              | Description      |
+| ---------- | -------- | ----------------------------------------------------------------------- | ---------------- |
+| `project`  | `string` | Config > `GOOGLE_CLOUD_PROJECT` > `GCP_PROJECT` > `GCLOUD_PROJECT`      | GCP project ID   |
 | `location` | `string` | Config > `GOOGLE_VERTEX_LOCATION` > `VERTEX_LOCATION` > `"us-central1"` | Vertex AI region |
 
 The custom loader sets up automatic authentication using `GoogleAuth` and injects bearer tokens via a custom `fetch()` function.
@@ -1045,8 +1043,8 @@ The custom loader determines which API to use based on model ID:
 ```typescript
 async getModel(sdk: any, modelID: string) {
   if (useLanguageModel(sdk)) return sdk.languageModel(modelID)
-  return shouldUseCopilotResponsesApi(modelID) 
-    ? sdk.responses(modelID) 
+  return shouldUseCopilotResponsesApi(modelID)
+    ? sdk.responses(modelID)
     : sdk.chat(modelID)
 }
 ```
@@ -1065,11 +1063,11 @@ Models with `gpt-5` or higher use the responses API.
 
 #### Authentication Options
 
-| Method | Environment Variable | Config Option | Type |
-|--------|---------------------|---------------|------|
-| OAuth | - | - | `oauth` with `access`, `refresh`, `expires` |
-| PAT | `GITLAB_TOKEN` | - | `api` with `key` |
-| Config | - | `apiKey` | Inline API key |
+| Method | Environment Variable | Config Option | Type                                        |
+| ------ | -------------------- | ------------- | ------------------------------------------- |
+| OAuth  | -                    | -             | `oauth` with `access`, `refresh`, `expires` |
+| PAT    | `GITLAB_TOKEN`       | -             | `api` with `key`                            |
+| Config | -                    | `apiKey`      | Inline API key                              |
 
 #### Configuration
 
@@ -1090,11 +1088,11 @@ Models with `gpt-5` or higher use the responses API.
 }
 ```
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `instanceUrl` | `string` | `GITLAB_INSTANCE_URL` or `"https://gitlab.com"` | GitLab instance URL |
-| `aiGatewayHeaders` | `object` | Custom User-Agent + `anthropic-beta` | Headers for AI gateway |
-| `featureFlags` | `object` | `{}` | Feature flags for Duo capabilities |
+| Option             | Type     | Default                                         | Description                        |
+| ------------------ | -------- | ----------------------------------------------- | ---------------------------------- |
+| `instanceUrl`      | `string` | `GITLAB_INSTANCE_URL` or `"https://gitlab.com"` | GitLab instance URL                |
+| `aiGatewayHeaders` | `object` | Custom User-Agent + `anthropic-beta`            | Headers for AI gateway             |
+| `featureFlags`     | `object` | `{}`                                            | Feature flags for Duo capabilities |
 
 The custom loader's `getModel()` function calls `sdk.agenticChat(modelID, { ... })` to enable agentic chat features.
 
@@ -1308,38 +1306,38 @@ OpenCode Zen is a curated AI gateway providing tested and verified models optimi
 graph TB
     CLI["CLI /connect Command"]
     Auth["Auth.set()<br/>~/.local/share/opencode/auth.json"]
-    
+
     Config["Config.provider.opencode<br/>opencode.json"]
-    
+
     CustomLoader["CUSTOM_LOADERS.opencode<br/>packages/opencode/src/provider/provider.ts:159-180"]
-    
+
     HasKey{"Has API Key?"}
-    
+
     FilterFree["Filter Free Models<br/>Remove paid models<br/>from Provider.models"]
-    
+
     SetKey["Set apiKey: 'public'<br/>for free-tier access"]
-    
+
     Gateway["Zen Gateway<br/>opencode.ai/zen/v1/*"]
-    
+
     subgraph "Endpoints by Model Family"
         OpenAIEndpoint["responses API<br/>GPT 5.x models"]
         AnthropicEndpoint["messages API<br/>Claude 4.x models"]
         GoogleEndpoint["models API<br/>Gemini 3.x models"]
         CompatEndpoint["chat/completions<br/>MiniMax, GLM, Kimi, Qwen"]
     end
-    
+
     CLI --> Auth
     Auth --> Config
     Config --> CustomLoader
-    
+
     CustomLoader --> HasKey
-    
+
     HasKey -->|No| FilterFree
     HasKey -->|Yes| Gateway
-    
+
     FilterFree --> SetKey
     SetKey --> Gateway
-    
+
     Gateway --> OpenAIEndpoint
     Gateway --> AnthropicEndpoint
     Gateway --> GoogleEndpoint
@@ -1404,12 +1402,12 @@ async opencode(input) {
 
 Zen uses different endpoint patterns based on model family:
 
-| Model Family | Endpoint Path | AI SDK Package | Example Model ID |
-|--------------|---------------|----------------|------------------|
-| GPT 5.x | `/zen/v1/responses` | `@ai-sdk/openai` | `opencode/gpt-5.3-codex` |
-| Claude 4.x | `/zen/v1/messages` | `@ai-sdk/anthropic` | `opencode/claude-sonnet-4-6` |
-| Gemini 3.x | `/zen/v1/models/gemini-*` | `@ai-sdk/google` | `opencode/gemini-3.1-pro` |
-| Chinese Models | `/zen/v1/chat/completions` | `@ai-sdk/openai-compatible` | `opencode/minimax-m2.5` |
+| Model Family   | Endpoint Path              | AI SDK Package              | Example Model ID             |
+| -------------- | -------------------------- | --------------------------- | ---------------------------- |
+| GPT 5.x        | `/zen/v1/responses`        | `@ai-sdk/openai`            | `opencode/gpt-5.3-codex`     |
+| Claude 4.x     | `/zen/v1/messages`         | `@ai-sdk/anthropic`         | `opencode/claude-sonnet-4-6` |
+| Gemini 3.x     | `/zen/v1/models/gemini-*`  | `@ai-sdk/google`            | `opencode/gemini-3.1-pro`    |
+| Chinese Models | `/zen/v1/chat/completions` | `@ai-sdk/openai-compatible` | `opencode/minimax-m2.5`      |
 
 Base URL: `https://opencode.ai`
 
@@ -1419,24 +1417,24 @@ Base URL: `https://opencode.ai`
 
 Zen uses pay-as-you-go pricing with automatic credit reload:
 
-| Feature | Value |
-|---------|-------|
-| Pricing Model | Per-token (per 1M input/output tokens) |
-| Auto-reload Threshold | $5 balance |
-| Auto-reload Amount | $20 |
-| Credit Card Fee | 4.4% + $0.30 per transaction |
-| Monthly Spending Limits | Optional (per workspace, per member) |
-| Free Models | `big-pickle`, `minimax-m2.5-free`, `gpt-5-nano` |
+| Feature                 | Value                                           |
+| ----------------------- | ----------------------------------------------- |
+| Pricing Model           | Per-token (per 1M input/output tokens)          |
+| Auto-reload Threshold   | $5 balance                                      |
+| Auto-reload Amount      | $20                                             |
+| Credit Card Fee         | 4.4% + $0.30 per transaction                    |
+| Monthly Spending Limits | Optional (per workspace, per member)            |
+| Free Models             | `big-pickle`, `minimax-m2.5-free`, `gpt-5-nano` |
 
 **Pricing Examples:**
 
-| Model | Input (per 1M) | Output (per 1M) | Cache Read (per 1M) | Cache Write (per 1M) |
-|-------|----------------|-----------------|---------------------|----------------------|
-| GPT 5.3 Codex | $3.00 | $15.00 | - | - |
-| Claude Sonnet 4.6 | $3.00 | $15.00 | $0.30 | $3.75 |
-| Gemini 3.1 Pro | $0.00 | $0.00 | - | - |
-| MiniMax M2.5 | $0.60 | $0.60 | - | - |
-| GLM-5 | $10.50 | $10.50 | - | - |
+| Model             | Input (per 1M) | Output (per 1M) | Cache Read (per 1M) | Cache Write (per 1M) |
+| ----------------- | -------------- | --------------- | ------------------- | -------------------- |
+| GPT 5.3 Codex     | $3.00          | $15.00          | -                   | -                    |
+| Claude Sonnet 4.6 | $3.00          | $15.00          | $0.30               | $3.75                |
+| Gemini 3.1 Pro    | $0.00          | $0.00           | -                   | -                    |
+| MiniMax M2.5      | $0.60          | $0.60           | -                   | -                    |
+| GLM-5             | $10.50         | $10.50          | -                   | -                    |
 
 **Sources:** [packages/web/src/content/docs/zen.mdx:119-198]()
 
@@ -1444,15 +1442,15 @@ Zen uses pay-as-you-go pricing with automatic credit reload:
 
 Workspaces enable team collaboration with role-based access control:
 
-| Feature | Description | Role Requirement |
-|---------|-------------|------------------|
-| Workspace Creation | Create shared billing entity | Any user |
-| Member Invitations | Invite team members | Admin |
-| Role Management | Assign Admin or Member roles | Admin |
-| Monthly Spending Limits | Set per-member and workspace-wide limits | Admin |
-| Model Access Control | Enable/disable specific models | Admin |
-| Bring Your Own Key (BYOK) | Use personal OpenAI/Anthropic keys | Member |
-| API Key Management | Create/delete own API keys | Member |
+| Feature                   | Description                              | Role Requirement |
+| ------------------------- | ---------------------------------------- | ---------------- |
+| Workspace Creation        | Create shared billing entity             | Any user         |
+| Member Invitations        | Invite team members                      | Admin            |
+| Role Management           | Assign Admin or Member roles             | Admin            |
+| Monthly Spending Limits   | Set per-member and workspace-wide limits | Admin            |
+| Model Access Control      | Enable/disable specific models           | Admin            |
+| Bring Your Own Key (BYOK) | Use personal OpenAI/Anthropic keys       | Member           |
+| API Key Management        | Create/delete own API keys               | Member           |
 
 **Roles:**
 
@@ -1473,35 +1471,35 @@ OpenCode Go is a $10/month subscription providing unlimited access to curated op
 graph TB
     CLI["CLI /connect Command"]
     Auth["Auth.set()<br/>~/.local/share/opencode/auth.json"]
-    
+
     Config["Config.provider.opencode-go<br/>opencode.json"]
-    
+
     Gateway["Go Gateway<br/>opencode.ai/zen/go/v1/*"]
-    
+
     RateLimiter["Rate Limiter<br/>Dollar-based limits<br/>5h: $12, 7d: $30, 30d: $60"]
-    
+
     subgraph "Regional Infrastructure"
         US["US Region<br/>us-east-1"]
         EU["EU Region<br/>eu-central-1<br/>GDPR compliance"]
         SG["Singapore Region<br/>ap-southeast-1"]
     end
-    
+
     subgraph "Model Pool"
         GLM["GLM-5<br/>$10.50/$10.50 per 1M"]
         Kimi["Kimi K2.5<br/>$6.50/$6.50 per 1M"]
         MiniMax["MiniMax M2.5<br/>$0.60/$0.60 per 1M"]
     end
-    
+
     CLI --> Auth
     Auth --> Config
     Config --> Gateway
-    
+
     Gateway --> RateLimiter
-    
+
     RateLimiter --> US
     RateLimiter --> EU
     RateLimiter --> SG
-    
+
     US --> GLM
     US --> Kimi
     US --> MiniMax
@@ -1522,22 +1520,22 @@ opencode-go/minimax-m2.5
 
 ### Subscription Model
 
-| Feature | Value |
-|---------|-------|
-| Monthly Cost | $10 USD |
-| Billing Cycle | Calendar month |
-| Cancellation | Instant, access until end of billing period |
-| Regional Support | US, EU, Singapore |
+| Feature          | Value                                       |
+| ---------------- | ------------------------------------------- |
+| Monthly Cost     | $10 USD                                     |
+| Billing Cycle    | Calendar month                              |
+| Cancellation     | Instant, access until end of billing period |
+| Regional Support | US, EU, Singapore                           |
 
 ### Usage Limits (Dollar-Based)
 
 Go uses dollar-value limits instead of request counts:
 
 | Time Period | Dollar Limit | GLM-5 Requests | Kimi K2.5 Requests | MiniMax M2.5 Requests |
-|-------------|--------------|----------------|--------------------|-----------------------|
-| 5 hours | $12.00 | ~1,150 | ~1,850 | ~20,000 |
-| 7 days | $30.00 | ~2,880 | ~4,630 | ~50,000 |
-| 30 days | $60.00 | ~5,750 | ~9,250 | ~100,000 |
+| ----------- | ------------ | -------------- | ------------------ | --------------------- |
+| 5 hours     | $12.00       | ~1,150         | ~1,850             | ~20,000               |
+| 7 days      | $30.00       | ~2,880         | ~4,630             | ~50,000               |
+| 30 days     | $60.00       | ~5,750         | ~9,250             | ~100,000              |
 
 **Request estimates** assume 100K input + 1K output tokens per request.
 
@@ -1553,11 +1551,11 @@ Go uses dollar-value limits instead of request counts:
 
 Even though Go is subscription-based, understanding model costs helps explain limits:
 
-| Model | Input (per 1M tokens) | Output (per 1M tokens) |
-|-------|----------------------|------------------------|
-| GLM-5 | $10.50 | $10.50 |
-| Kimi K2.5 | $6.50 | $6.50 |
-| MiniMax M2.5 | $0.60 | $0.60 |
+| Model        | Input (per 1M tokens) | Output (per 1M tokens) |
+| ------------ | --------------------- | ---------------------- |
+| GLM-5        | $10.50                | $10.50                 |
+| Kimi K2.5    | $6.50                 | $6.50                  |
+| MiniMax M2.5 | $0.60                 | $0.60                  |
 
 The dollar-based limits allow flexible usage across models with different costs.
 
@@ -1577,24 +1575,24 @@ graph LR
         OCMessage["MessageV2<br/>parts: Part[]"]
         OCPart["Part<br/>text, tool, reasoning"]
     end
-    
+
     subgraph "Provider Transform"
         Normalize["Message Normalization<br/>Convert to AI SDK format"]
         Cache["Caching Strategy<br/>setCacheKey logic"]
         Params["Parameter Mapping<br/>Provider-specific options"]
     end
-    
+
     subgraph "AI SDK Format"
         SDKMessage["CoreMessage<br/>role, content"]
         SDKContent["Content Parts<br/>text, tool-call, tool-result"]
     end
-    
+
     OCMessage --> Normalize
     OCPart --> Normalize
-    
+
     Normalize --> Cache
     Cache --> Params
-    
+
     Params --> SDKMessage
     Params --> SDKContent
 ```
@@ -1614,12 +1612,12 @@ The transform layer handles:
 
 Different providers have different caching mechanisms:
 
-| Provider | Caching Mechanism | Config Option |
-|----------|-------------------|---------------|
+| Provider  | Caching Mechanism                     | Config Option       |
+| --------- | ------------------------------------- | ------------------- |
 | Anthropic | Prompt caching with cache breakpoints | `setCacheKey: true` |
-| OpenAI | Prompt caching (automatic) | Native support |
-| Google | Context caching | Native support |
-| Others | No caching | N/A |
+| OpenAI    | Prompt caching (automatic)            | Native support      |
+| Google    | Context caching                       | Native support      |
+| Others    | No caching                            | N/A                 |
 
 The `setCacheKey` option ensures cache breakpoints are set for providers that support it:
 
@@ -1702,21 +1700,21 @@ Models with these prefixes are passed through without modification. Models witho
 
 Common environment variables for providers:
 
-| Variable | Provider | Purpose |
-|----------|----------|---------|
-| `OPENAI_API_KEY` | OpenAI | API authentication |
-| `ANTHROPIC_API_KEY` | Anthropic | API authentication |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Google Vertex AI | Service account JSON path |
-| `GOOGLE_CLOUD_PROJECT` | Google Vertex AI | GCP project ID |
-| `AWS_REGION` | Amazon Bedrock | AWS region |
-| `AWS_PROFILE` | Amazon Bedrock | AWS named profile |
-| `AWS_BEARER_TOKEN_BEDROCK` | Amazon Bedrock | Long-term API key |
-| `AWS_WEB_IDENTITY_TOKEN_FILE` | Amazon Bedrock | EKS IRSA token file |
-| `AWS_ROLE_ARN` | Amazon Bedrock | IAM role ARN |
-| `AZURE_RESOURCE_NAME` | Azure OpenAI | Resource name |
-| `GITLAB_TOKEN` | GitLab Duo | Personal access token |
-| `GITLAB_INSTANCE_URL` | GitLab Duo | Self-hosted instance URL |
-| `VERTEX_LOCATION` | Google Vertex AI | Region (default: `global`) |
+| Variable                         | Provider         | Purpose                    |
+| -------------------------------- | ---------------- | -------------------------- |
+| `OPENAI_API_KEY`                 | OpenAI           | API authentication         |
+| `ANTHROPIC_API_KEY`              | Anthropic        | API authentication         |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Google Vertex AI | Service account JSON path  |
+| `GOOGLE_CLOUD_PROJECT`           | Google Vertex AI | GCP project ID             |
+| `AWS_REGION`                     | Amazon Bedrock   | AWS region                 |
+| `AWS_PROFILE`                    | Amazon Bedrock   | AWS named profile          |
+| `AWS_BEARER_TOKEN_BEDROCK`       | Amazon Bedrock   | Long-term API key          |
+| `AWS_WEB_IDENTITY_TOKEN_FILE`    | Amazon Bedrock   | EKS IRSA token file        |
+| `AWS_ROLE_ARN`                   | Amazon Bedrock   | IAM role ARN               |
+| `AZURE_RESOURCE_NAME`            | Azure OpenAI     | Resource name              |
+| `GITLAB_TOKEN`                   | GitLab Duo       | Personal access token      |
+| `GITLAB_INSTANCE_URL`            | GitLab Duo       | Self-hosted instance URL   |
+| `VERTEX_LOCATION`                | Google Vertex AI | Region (default: `global`) |
 
 **Sources:** [packages/web/src/content/docs/providers.mdx:157-904]()
 

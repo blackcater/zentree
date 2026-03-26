@@ -21,8 +21,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 The Core Devtools package (`@tanstack/ai-devtools-core` on npm) provides framework-agnostic developer tools for debugging and inspecting TanStack AI interactions in real-time. The devtools offer three primary capabilities:
@@ -49,36 +47,36 @@ graph TB
         AI_CORE["@tanstack/ai<br/>chat() and generate()"]
         EVENT_CLIENT["@tanstack/devtools-event-client<br/>Event emission"]
     end
-    
+
     subgraph "Core Engine Components"
         EVENT_SUB["Event Subscribers<br/>Listen to AI events"]
         AI_STORE["aiStore<br/>Solid.js reactive store"]
         CONV_STORE["Conversation State<br/>Messages, chunks, tools"]
     end
-    
+
     subgraph "UI Layer"
         CONV_PANEL["Conversation Panel<br/>Message history view"]
         CHUNK_VIEW["ChunksCollapsible<br/>Stream chunk inspector"]
         TOOL_VIEW["Tool Call Display<br/>Input/output viewer"]
         CHUNK_ITEM["ChunkItem<br/>Individual chunk display"]
     end
-    
+
     subgraph "Styling System"
         GOOBER["goober CSS-in-JS<br/>Component styles"]
         USE_STYLES["useStyles()<br/>Style provider"]
     end
-    
+
     AI_CORE --> EVENT_CLIENT
     EVENT_CLIENT --> EVENT_SUB
     EVENT_SUB --> AI_STORE
     AI_STORE --> CONV_STORE
-    
+
     CONV_STORE --> CONV_PANEL
     CONV_STORE --> CHUNK_VIEW
     CONV_STORE --> TOOL_VIEW
-    
+
     CHUNK_VIEW --> CHUNK_ITEM
-    
+
     USE_STYLES --> CONV_PANEL
     USE_STYLES --> CHUNK_VIEW
     USE_STYLES --> CHUNK_ITEM
@@ -91,14 +89,14 @@ graph TB
 
 The core engine integrates with `@tanstack/ai` through the `@tanstack/devtools-event-client` interface. When the `chat()` or `generate()` functions execute, they emit events that the devtools subscribes to:
 
-| Event Type | Payload | Purpose |
-|------------|---------|---------|
-| Stream Start | Conversation ID, Model | Initialize tracking |
-| Chunk Received | Chunk data, Type | Capture individual chunks |
-| Tool Call | Tool name, Arguments | Track tool invocations |
-| Tool Result | Result data, Status | Monitor tool execution |
-| Stream Complete | Final state | Mark conversation end |
-| Error | Error details | Capture failures |
+| Event Type      | Payload                | Purpose                   |
+| --------------- | ---------------------- | ------------------------- |
+| Stream Start    | Conversation ID, Model | Initialize tracking       |
+| Chunk Received  | Chunk data, Type       | Capture individual chunks |
+| Tool Call       | Tool name, Arguments   | Track tool invocations    |
+| Tool Result     | Result data, Status    | Monitor tool execution    |
+| Stream Complete | Final state            | Mark conversation end     |
+| Error           | Error details          | Capture failures          |
 
 **Sources:** [packages/typescript/ai/package.json:57-60](), [packages/typescript/ai-devtools/package.json:48-49]()
 
@@ -154,13 +152,13 @@ const totalRawChunks = () =>
 
 The devtools categorize chunks by type and provide visual indicators:
 
-| Chunk Type | Visual Indicator | Purpose |
-|------------|-----------------|---------|
-| `content` | Text preview | Display generated text content |
-| `tool_call` | Tool badge | Show function calling activity |
-| `thinking` | Thinking badge | Display extended reasoning (Claude, Gemini) |
-| `done` | Completion badge | Mark stream completion |
-| `error` | Error badge | Highlight failures |
+| Chunk Type  | Visual Indicator | Purpose                                     |
+| ----------- | ---------------- | ------------------------------------------- |
+| `content`   | Text preview     | Display generated text content              |
+| `tool_call` | Tool badge       | Show function calling activity              |
+| `thinking`  | Thinking badge   | Display extended reasoning (Claude, Gemini) |
+| `done`      | Completion badge | Mark stream completion                      |
+| `error`     | Error badge      | Highlight failures                          |
 
 **Sources:** [packages/typescript/ai-devtools/src/components/conversation/ChunksCollapsible.tsx:1-56]()
 
@@ -193,6 +191,7 @@ The chunk inspector provides a collapsible details view:
 ```
 
 The summary line shows:
+
 1. Total chunk count (including batched chunks via `chunkCount`)
 2. Type badges indicating chunk categories
 3. Preview of accumulated content (first ~100 characters)
@@ -223,14 +222,14 @@ The devtools provide comprehensive message history visualization, showing the co
 
 Messages are decomposed into parts for detailed inspection:
 
-| Part Type | Display | Information Shown |
-|-----------|---------|-------------------|
-| `text` | Text content | Raw text content, markdown rendering |
-| `tool-call` | Tool invocation | Function name, arguments, call ID |
-| `tool-result` | Tool output | Result data, execution status, timing |
-| `thinking` | Reasoning trace | Extended thinking content (Claude, Gemini) |
-| `image` | Image reference | URL, MIME type, dimensions |
-| `file` | File attachment | Filename, size, MIME type |
+| Part Type     | Display         | Information Shown                          |
+| ------------- | --------------- | ------------------------------------------ |
+| `text`        | Text content    | Raw text content, markdown rendering       |
+| `tool-call`   | Tool invocation | Function name, arguments, call ID          |
+| `tool-result` | Tool output     | Result data, execution status, timing      |
+| `thinking`    | Reasoning trace | Extended thinking content (Claude, Gemini) |
+| `image`       | Image reference | URL, MIME type, dimensions                 |
+| `file`        | File attachment | Filename, size, MIME type                  |
 
 The devtools render each part type with appropriate formatting and collapsible sections for large content.
 
@@ -250,13 +249,13 @@ graph TB
         TOOL_RESULTS["Tool Results<br/>Execution outcomes"]
         ASST_END["Assistant Response End<br/>Completion marker"]
     end
-    
+
     USER_MSG --> ASST_START
     ASST_START --> CHUNKS
     CHUNKS --> TOOL_CALLS
     TOOL_CALLS --> TOOL_RESULTS
     TOOL_RESULTS --> ASST_END
-    
+
     style CHUNKS fill:#f0f0f0
     style TOOL_CALLS fill:#fff0e0
     style TOOL_RESULTS fill:#e0ffe0
@@ -357,10 +356,11 @@ The package provides two distinct exports optimized for different environments:
 ### Development Export
 
 ```typescript
-import { /* devtools components */ } from '@tanstack/ai-devtools-core'
+import {} from /* devtools components */ '@tanstack/ai-devtools-core'
 ```
 
 The default export at `./dist/esm/index.js` includes:
+
 - Complete devtools UI implementation
 - Event listeners and state management
 - Solid.js components and reactivity
@@ -372,10 +372,11 @@ The default export at `./dist/esm/index.js` includes:
 ### Production Export
 
 ```typescript
-import { /* no-op stubs */ } from '@tanstack/ai-devtools-core/production'
+import {} from /* no-op stubs */ '@tanstack/ai-devtools-core/production'
 ```
 
 The production export at `./dist/esm/production.js` provides no-op stub implementations that:
+
 - Have minimal runtime cost (~1KB)
 - Return empty/default values
 - Skip event subscription
@@ -396,13 +397,13 @@ graph TB
         GOOBER["goober<br/>^2.1.18<br/>CSS-in-JS styling"]
         SOLID["solid-js<br/>^1.9.10<br/>UI framework"]
     end
-    
+
     subgraph "Build Dependencies"
         VITE["vite<br/>^7.2.7<br/>Build tool"]
         SOLID_PLUGIN["vite-plugin-solid<br/>^2.11.10<br/>JSX transform"]
         JSDOM["jsdom<br/>^27.2.0<br/>Testing environment"]
     end
-    
+
     DEVTOOLS_CORE["@tanstack/ai-devtools-core"] --> AI
     DEVTOOLS_CORE --> DEVTOOLS_UI
     DEVTOOLS_CORE --> DEVTOOLS_UTILS
@@ -429,17 +430,17 @@ sequenceDiagram
     App->>AI: chat(adapter, messages)
     AI->>EventClient: emit('chat-start', metadata)
     EventClient->>DevtoolsCore: Subscribe to events
-    
+
     loop Stream Chunks
         AI->>EventClient: emit('chunk', chunkData)
         EventClient->>DevtoolsCore: Forward chunk event
         DevtoolsCore->>UI: Update chunk display
     end
-    
+
     AI->>EventClient: emit('tool-call', toolData)
     EventClient->>DevtoolsCore: Forward tool call
     DevtoolsCore->>UI: Show tool invocation
-    
+
     AI->>EventClient: emit('chat-complete')
     EventClient->>DevtoolsCore: Forward completion
     DevtoolsCore->>UI: Mark stream complete
@@ -474,7 +475,7 @@ const styles = css`
     border-radius: 4px;
     margin: 8px 0;
   }
-  
+
   .chunksSummary {
     cursor: pointer;
     padding: 8px;
@@ -493,14 +494,14 @@ The package uses Vite with the Solid.js plugin for building:
 
 ### Build Scripts
 
-| Script | Command | Purpose |
-|--------|---------|---------|
-| `build` | `vite build` | Compile TypeScript and Solid.js JSX to ESM output |
-| `clean` | `premove ./build ./dist` | Remove build artifacts |
-| `test:build` | `publint --strict` | Validate package structure and exports |
-| `test:eslint` | `eslint ./src` | Lint source files |
-| `test:lib` | `vitest --passWithNoTests` | Run unit tests (currently none) |
-| `test:types` | `tsc` | Type check without emitting |
+| Script        | Command                    | Purpose                                           |
+| ------------- | -------------------------- | ------------------------------------------------- |
+| `build`       | `vite build`               | Compile TypeScript and Solid.js JSX to ESM output |
+| `clean`       | `premove ./build ./dist`   | Remove build artifacts                            |
+| `test:build`  | `publint --strict`         | Validate package structure and exports            |
+| `test:eslint` | `eslint ./src`             | Lint source files                                 |
+| `test:lib`    | `vitest --passWithNoTests` | Run unit tests (currently none)                   |
+| `test:types`  | `tsc`                      | Type check without emitting                       |
 
 **Sources:** [packages/typescript/ai-devtools/package.json:31-39]()
 
@@ -531,25 +532,25 @@ graph TB
         SOLID_WRAP["@tanstack/solid-ai-devtools<br/>Solid primitive wrapper"]
         PREACT_WRAP["@tanstack/preact-ai-devtools<br/>Preact component wrapper"]
     end
-    
+
     subgraph "Wrapper Responsibilities"
         LIFECYCLE["Framework Lifecycle<br/>Mount/unmount handling"]
         PORTAL["DOM Portal<br/>Attach to document"]
         CONTEXT["Context Access<br/>Get ChatClient instance"]
         PROPS["Props/Options<br/>Framework-specific API"]
     end
-    
+
     subgraph "Core Responsibilities"
         EVENTS["Event Subscription<br/>Monitor AI activity"]
         STATE_MGT["State Management<br/>Solid stores"]
         UI_RENDER["UI Rendering<br/>Solid components"]
         LOGIC["Devtools Logic<br/>Event processing"]
     end
-    
+
     REACT_WRAP --> LIFECYCLE
     SOLID_WRAP --> LIFECYCLE
     PREACT_WRAP --> LIFECYCLE
-    
+
     LIFECYCLE --> EVENTS
     PORTAL --> UI_RENDER
     CONTEXT --> EVENTS
@@ -560,11 +561,11 @@ graph TB
 
 ### Wrapper Packages
 
-| Package | Peer Dependencies | Wrapper Type |
-|---------|-------------------|--------------|
-| `@tanstack/react-ai-devtools` | React ^17, ^18, or ^19 | Component with lifecycle hooks |
-| `@tanstack/solid-ai-devtools` | solid-js >=1.9.7 | Native Solid primitive |
-| `@tanstack/preact-ai-devtools` | preact >=10.0.0 | Component with lifecycle hooks |
+| Package                        | Peer Dependencies      | Wrapper Type                   |
+| ------------------------------ | ---------------------- | ------------------------------ |
+| `@tanstack/react-ai-devtools`  | React ^17, ^18, or ^19 | Component with lifecycle hooks |
+| `@tanstack/solid-ai-devtools`  | solid-js >=1.9.7       | Native Solid primitive         |
+| `@tanstack/preact-ai-devtools` | preact >=10.0.0        | Component with lifecycle hooks |
 
 All wrappers depend on both `@tanstack/ai-devtools-core` and `@tanstack/devtools-utils`.
 
@@ -579,28 +580,28 @@ graph TB
         DEV_CODE["Full Implementation<br/>• Event listeners<br/>• UI components<br/>• State management<br/>• Styling"]
         DEV_BUNDLE["Development Bundle<br/>~100KB+ with UI"]
     end
-    
+
     subgraph "Production Build"
         PROD_IMPORT["import from<br/>'@tanstack/ai-devtools-core/production'"]
         PROD_CODE["No-op Stubs<br/>• Empty functions<br/>• No UI rendering<br/>• No event subscription<br/>• Minimal overhead"]
         PROD_BUNDLE["Production Bundle<br/>~1KB stubs"]
     end
-    
+
     subgraph "Build Tool Configuration"
         VITE_ALIAS["vite.config.ts<br/>resolve.alias"]
         WEBPACK_ALIAS["webpack.config.js<br/>resolve.alias"]
         CONDITION["if (process.env.NODE_ENV === 'production')"]
     end
-    
+
     DEV_IMPORT --> DEV_CODE
     DEV_CODE --> DEV_BUNDLE
-    
+
     PROD_IMPORT --> PROD_CODE
     PROD_CODE --> PROD_BUNDLE
-    
+
     CONDITION --> VITE_ALIAS
     CONDITION --> WEBPACK_ALIAS
-    
+
     VITE_ALIAS -.configures.-> PROD_IMPORT
     WEBPACK_ALIAS -.configures.-> PROD_IMPORT
 ```
@@ -618,11 +619,11 @@ The dual export strategy allows developers to:
 
 The core devtools package includes minimal test infrastructure due to its UI-focused nature:
 
-| Script | Purpose | Configuration |
-|--------|---------|---------------|
-| `test:lib` | Run unit tests with Vitest | Passes with no tests (`--passWithNoTests`) |
-| `test:types` | Type checking | Uses `tsc` compiler |
-| `test:eslint` | Linting | ESLint on `./src` |
+| Script        | Purpose                    | Configuration                              |
+| ------------- | -------------------------- | ------------------------------------------ |
+| `test:lib`    | Run unit tests with Vitest | Passes with no tests (`--passWithNoTests`) |
+| `test:types`  | Type checking              | Uses `tsc` compiler                        |
+| `test:eslint` | Linting                    | ESLint on `./src`                          |
 
 The `jsdom` dev dependency suggests some UI component testing may be configured, even if no tests currently exist.
 
@@ -639,7 +640,7 @@ graph LR
     V003["v0.0.3<br/>Dependency updates"]
     V010["v0.1.0<br/>Adapter tree shaking"]
     V011["v0.1.1<br/>Current version"]
-    
+
     V001 --> V002
     V002 --> V003
     V003 --> V010

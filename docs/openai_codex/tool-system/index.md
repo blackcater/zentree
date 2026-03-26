@@ -15,8 +15,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 The Tool System manages the registration, configuration, orchestration, and execution of tools that the model can invoke during a conversation turn. It provides a unified framework for:
@@ -44,23 +42,23 @@ graph TB
     Features["Features<br/>(enabled features)"]
     ModelInfo["ModelInfo<br/>(model capabilities)"]
     WebSearchMode["WebSearchMode<br/>(config setting)"]
-    
+
     Features --> ToolsConfig["ToolsConfig::new()"]
     ModelInfo --> ToolsConfig
     WebSearchMode --> ToolsConfig
-    
+
     ToolsConfig --> ShellType["shell_type:<br/>UnifiedExec/ShellCommand/Disabled"]
     ToolsConfig --> ApplyPatchType["apply_patch_tool_type:<br/>Freeform/Function/None"]
     ToolsConfig --> SearchTool["search_tool: bool"]
     ToolsConfig --> CollabTools["collab_tools: bool"]
     ToolsConfig --> JsRepl["js_repl_enabled: bool"]
-    
+
     ShellType --> ToolRegistry["ToolRegistryBuilder"]
     ApplyPatchType --> ToolRegistry
     SearchTool --> ToolRegistry
     CollabTools --> ToolRegistry
     JsRepl --> ToolRegistry
-    
+
     ToolRegistry --> ToolSpecs["Vec<ToolSpec>"]
 ```
 
@@ -68,14 +66,14 @@ Sources: [codex-rs/core/src/tools/spec.rs:36-122]()
 
 The `ToolsConfig::new()` method evaluates features and model capabilities to determine:
 
-| Configuration Field | Determined By | Possible Values |
-|-------------------|---------------|-----------------|
-| `shell_type` | `Feature::UnifiedExec`, `Feature::ShellTool`, `Feature::ShellZshFork`, ConPTY availability | `UnifiedExec`, `ShellCommand`, `Disabled` |
-| `apply_patch_tool_type` | `ModelInfo::apply_patch_tool_type`, `Feature::ApplyPatchFreeform` | `Freeform`, `Function`, `None` |
-| `web_search_mode` | Config `web_search_mode` setting | `Live`, `Cached`, `Disabled` |
-| `search_tool` | `Feature::Apps` | `true` / `false` |
-| `collab_tools` | `Feature::Collab` | `true` / `false` |
-| `js_repl_enabled` | `Feature::JsRepl` | `true` / `false` |
+| Configuration Field     | Determined By                                                                              | Possible Values                           |
+| ----------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| `shell_type`            | `Feature::UnifiedExec`, `Feature::ShellTool`, `Feature::ShellZshFork`, ConPTY availability | `UnifiedExec`, `ShellCommand`, `Disabled` |
+| `apply_patch_tool_type` | `ModelInfo::apply_patch_tool_type`, `Feature::ApplyPatchFreeform`                          | `Freeform`, `Function`, `None`            |
+| `web_search_mode`       | Config `web_search_mode` setting                                                           | `Live`, `Cached`, `Disabled`              |
+| `search_tool`           | `Feature::Apps`                                                                            | `true` / `false`                          |
+| `collab_tools`          | `Feature::Collab`                                                                          | `true` / `false`                          |
+| `js_repl_enabled`       | `Feature::JsRepl`                                                                          | `true` / `false`                          |
 
 Sources: [codex-rs/core/src/tools/spec.rs:57-111]()
 
@@ -113,18 +111,18 @@ classDiagram
         Array
         Object
     }
-    
+
     class Object {
         properties: BTreeMap~String, JsonSchema~
         required: Option~Vec~String~~
         additional_properties: Option~AdditionalProperties~
     }
-    
+
     class Array {
         items: Box~JsonSchema~
         description: Option~String~
     }
-    
+
     JsonSchema --> Object
     JsonSchema --> Array
     Object --> JsonSchema : contains
@@ -137,10 +135,10 @@ Sources: [codex-rs/core/src/tools/spec.rs:124-178]()
 
 Tools are represented as either `Function` or `Freeform` tool specifications:
 
-| Spec Type | Structure | Use Case |
-|-----------|-----------|----------|
+| Spec Type                              | Structure                                                                       | Use Case                                              |
+| -------------------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | `ToolSpec::Function(ResponsesApiTool)` | Structured JSON parameters with `name`, `description`, `parameters: JsonSchema` | Shell commands, apply_patch (JSON variant), MCP tools |
-| `ToolSpec::Freeform(FreeformTool)` | Grammar-based parsing with `type`, `format`, `grammar`, `description` | apply_patch (freeform variant) with Lark grammar |
+| `ToolSpec::Freeform(FreeformTool)`     | Grammar-based parsing with `type`, `format`, `grammar`, `description`           | apply_patch (freeform variant) with Lark grammar      |
 
 Sources: [codex-rs/core/src/tools/spec.rs:1-30](), [codex-rs/core/src/tools/handlers/apply_patch.rs:37-38]()
 
@@ -151,7 +149,7 @@ Sources: [codex-rs/core/src/tools/spec.rs:1-30](), [codex-rs/core/src/tools/hand
 ```mermaid
 graph TB
     ExecCommand["exec_command"]
-    
+
     ExecCommand --> Cmd["cmd: String<br/>(required)"]
     ExecCommand --> Workdir["workdir: String<br/>(optional)"]
     ExecCommand --> Shell["shell: String<br/>(optional)"]
@@ -169,7 +167,7 @@ Sources: [codex-rs/core/src/tools/spec.rs:221-294]()
 ```mermaid
 graph TB
     ApplyPatch["apply_patch"]
-    
+
     ApplyPatch --> Input["input: String<br/>(required)<br/>Patch content"]
 ```
 
@@ -192,13 +190,13 @@ classDiagram
         +is_mutating(invocation) bool
         +handle(invocation) Result~ToolOutput~
     }
-    
+
     class ToolKind {
         <<enum>>
         Function
         Freeform
     }
-    
+
     class ToolInvocation {
         session: Arc~Session~
         turn: Arc~TurnContext~
@@ -207,14 +205,14 @@ classDiagram
         tool_name: String
         payload: ToolPayload
     }
-    
+
     class ToolPayload {
         <<enum>>
         Function { arguments: String }
         Custom { input: String }
         LocalShell { params: ShellToolCallParams }
     }
-    
+
     ToolHandler --> ToolKind
     ToolHandler --> ToolInvocation : handles
     ToolInvocation --> ToolPayload : contains
@@ -224,19 +222,19 @@ Sources: [codex-rs/core/src/tools/registry.rs:50-100]() (inferred from handler i
 
 ### Tool Handler Implementations
 
-| Handler | Tool Names | Kind | Purpose |
-|---------|-----------|------|---------|
-| `ShellHandler` | `shell` | Function / LocalShell | Execute shell commands via `execvp()` |
-| `ShellCommandHandler` | `shell_command` | Function | Execute shell scripts via user's default shell |
-| `UnifiedExecHandler` | `exec_command`, `write_stdin` | Function | Interactive PTY-backed execution sessions |
-| `ApplyPatchHandler` | `apply_patch` | Function / Custom | Parse and apply file patches |
-| `McpHandler` | `mcp__*` (prefixed) | Function | Route calls to external MCP servers |
-| `MultiAgentHandler` | `spawn_agent`, `send_input`, `wait`, `close_agent` | Function | Multi-agent orchestration |
-| `RequestUserInputHandler` | `request_user_input` | Function | Elicit structured input from user |
-| `ViewImageHandler` | `view_image` | Function | Load and display local images |
-| `ReadFileHandler` | `read_file` | Function | Read file contents with indentation awareness |
-| `GrepFilesHandler` | `grep_files` | Function | Search files by regex pattern |
-| `SearchToolBm25Handler` | `search_tool_bm25` | Function | BM25 search over app/MCP tools |
+| Handler                   | Tool Names                                         | Kind                  | Purpose                                        |
+| ------------------------- | -------------------------------------------------- | --------------------- | ---------------------------------------------- |
+| `ShellHandler`            | `shell`                                            | Function / LocalShell | Execute shell commands via `execvp()`          |
+| `ShellCommandHandler`     | `shell_command`                                    | Function              | Execute shell scripts via user's default shell |
+| `UnifiedExecHandler`      | `exec_command`, `write_stdin`                      | Function              | Interactive PTY-backed execution sessions      |
+| `ApplyPatchHandler`       | `apply_patch`                                      | Function / Custom     | Parse and apply file patches                   |
+| `McpHandler`              | `mcp__*` (prefixed)                                | Function              | Route calls to external MCP servers            |
+| `MultiAgentHandler`       | `spawn_agent`, `send_input`, `wait`, `close_agent` | Function              | Multi-agent orchestration                      |
+| `RequestUserInputHandler` | `request_user_input`                               | Function              | Elicit structured input from user              |
+| `ViewImageHandler`        | `view_image`                                       | Function              | Load and display local images                  |
+| `ReadFileHandler`         | `read_file`                                        | Function              | Read file contents with indentation awareness  |
+| `GrepFilesHandler`        | `grep_files`                                       | Function              | Search files by regex pattern                  |
+| `SearchToolBm25Handler`   | `search_tool_bm25`                                 | Function              | BM25 search over app/MCP tools                 |
 
 Sources: [codex-rs/core/src/tools/handlers/mod.rs:1-52]()
 
@@ -258,11 +256,11 @@ sequenceDiagram
     participant Approval as ApprovalSystem
     participant Sandbox as SandboxSelector
     participant Exec as Execution Backend
-    
+
     Handler->>Orchestrator: run(runtime, request, ctx, turn, policy)
-    
+
     Orchestrator->>Orchestrator: Evaluate ExecApprovalRequirement
-    
+
     alt Requires Approval
         Orchestrator->>Approval: Check cached decisions
         alt Not Cached
@@ -270,24 +268,24 @@ sequenceDiagram
             Orchestrator->>Approval: Wait for user decision
             Approval-->>Orchestrator: ReviewDecision
         end
-        
+
         alt Denied
             Orchestrator-->>Handler: Return ToolError::Rejected
         end
     end
-    
+
     Orchestrator->>Sandbox: Select sandbox type<br/>(Bwrap/Seatbelt/AppContainer/None)
     Orchestrator->>Runtime: run_with_sandbox(request, sandbox_type)
     Runtime->>Exec: Execute (sandboxed)
     Exec-->>Runtime: ExecToolCallOutput
-    
+
     alt is_likely_sandbox_denied()
         Runtime->>Orchestrator: Return error
         Orchestrator->>Runtime: Retry with SandboxType::None
         Runtime->>Exec: Execute (unsandboxed)
         Exec-->>Runtime: ExecToolCallOutput
     end
-    
+
     Runtime-->>Orchestrator: ToolResult { output, sandbox_type_used }
     Orchestrator-->>Handler: Result<ToolResult>
 ```
@@ -298,11 +296,11 @@ Sources: [codex-rs/core/src/tools/orchestrator.rs:1-300]() (inferred structure)
 
 The `ExecApprovalRequirement` determines when user approval is needed:
 
-| Policy | Condition | Behavior |
-|--------|-----------|----------|
-| `NoApprovalRequired` | Known safe command or approval policy is `Never` | Execute immediately |
-| `RequireApproval { ... }` | Mutating command with `OnRequest` policy | Prompt user with justification |
-| `BypassApprovalByTrustRule` | Command matches trusted prefix rule | Execute with cached approval |
+| Policy                      | Condition                                        | Behavior                       |
+| --------------------------- | ------------------------------------------------ | ------------------------------ |
+| `NoApprovalRequired`        | Known safe command or approval policy is `Never` | Execute immediately            |
+| `RequireApproval { ... }`   | Mutating command with `OnRequest` policy         | Prompt user with justification |
+| `BypassApprovalByTrustRule` | Command matches trusted prefix rule              | Execute with cached approval   |
 
 Sources: [codex-rs/core/src/exec_policy.rs:1-200]() (inferred from usage patterns)
 
@@ -313,17 +311,17 @@ The orchestrator selects a sandbox backend based on platform and policy:
 ```mermaid
 graph TD
     Policy["SandboxPolicy"]
-    
+
     Policy --> DangerFull["DangerFullAccess"]
     Policy --> WorkspaceWrite["WorkspaceWrite"]
-    
+
     DangerFull --> None["SandboxType::None"]
-    
+
     WorkspaceWrite --> Platform{Platform?}
     Platform -->|Linux| CheckBwrap{Feature::UseLinuxSandboxBwrap?}
     Platform -->|macOS| Seatbelt["SandboxType::Seatbelt"]
     Platform -->|Windows| AppContainer["SandboxType::AppContainer"]
-    
+
     CheckBwrap -->|Enabled| Bwrap["SandboxType::Bwrap"]
     CheckBwrap -->|Disabled| Landlock["SandboxType::Landlock"]
 ```
@@ -343,17 +341,17 @@ Three shell tool variants are available depending on configuration:
 ```mermaid
 graph TB
     ToolsConfig["ToolsConfig.shell_type"]
-    
+
     ToolsConfig --> Disabled["ConfigShellToolType::Disabled"]
     ToolsConfig --> ShellCmd["ConfigShellToolType::ShellCommand"]
     ToolsConfig --> UnifiedExec["ConfigShellToolType::UnifiedExec"]
-    
+
     Disabled --> NoTools["No shell tools registered"]
-    
+
     ShellCmd --> Windows{Windows?}
     Windows -->|Yes| Shell["shell tool<br/>(Powershell via CreateProcessW)"]
     Windows -->|No| ShellBash["shell_command tool<br/>(Bash/Zsh with -lc)"]
-    
+
     UnifiedExec --> ExecTools["exec_command + write_stdin<br/>(PTY-backed sessions)"]
 ```
 
@@ -370,18 +368,18 @@ sequenceDiagram
     participant Shell as Shell::derive_exec_args
     participant Orchestrator as ToolOrchestrator
     participant Runtime as ShellRuntime
-    
+
     Model->>Handler: shell_command { command, workdir, login }
     Handler->>Shell: derive_exec_args(command, use_login_shell)
     Shell-->>Handler: ["bash", "-lc", command]
-    
+
     Handler->>Handler: Check is_known_safe_command()
-    
+
     Handler->>Orchestrator: run(ShellRequest)
     Orchestrator->>Runtime: run_with_sandbox()
     Runtime-->>Orchestrator: ExecToolCallOutput
     Orchestrator-->>Handler: ToolResult
-    
+
     Handler->>Handler: format_exec_output_for_model_freeform()
     Handler-->>Model: Formatted output
 ```
@@ -424,7 +422,7 @@ graph TB
         ProcessStore["ProcessStore<br/>(active processes)"]
         ReservedIds["reserved_process_ids<br/>(HashSet)"]
     end
-    
+
     subgraph "Process Entry"
         Entry["ProcessEntry"]
         Process["Arc<UnifiedExecProcess>"]
@@ -434,7 +432,7 @@ graph TB
         Session["session: Weak<Session>"]
         LastUsed["last_used: Instant"]
     end
-    
+
     subgraph "Process Lifecycle"
         PTY["PTY<br/>(spawned process)"]
         OutputBuffer["OutputBuffer<br/>(broadcast channel)"]
@@ -442,7 +440,7 @@ graph TB
         ExitWatcher["exit_watcher task"]
         StreamingTask["streaming_output task"]
     end
-    
+
     Manager --> ProcessStore
     Manager --> ReservedIds
     ProcessStore --> Entry
@@ -463,11 +461,11 @@ Process IDs are allocated deterministically in tests and randomly in production:
 ```mermaid
 graph LR
     Allocate["allocate_process_id()"]
-    
+
     Allocate --> TestMode{Test Mode?}
     TestMode -->|Yes| Sequential["Sequential: 1000, 1001, 1002..."]
     TestMode -->|No| Random["Random: 1000-99999"]
-    
+
     Sequential --> Reserved["Insert into reserved_process_ids"]
     Random --> Reserved
 ```
@@ -486,33 +484,33 @@ sequenceDiagram
     participant Orchestrator as ToolOrchestrator
     participant Runtime as UnifiedExecRuntime
     participant Process as UnifiedExecProcess
-    
+
     Model->>Handler: exec_command { cmd, workdir, tty, yield_time_ms }
     Handler->>Manager: allocate_process_id()
     Manager-->>Handler: process_id = "1000"
-    
+
     Handler->>Handler: Check intercept_apply_patch()
-    
+
     Handler->>Manager: exec_command(ExecCommandRequest)
     Manager->>Orchestrator: Approval + Sandbox selection
     Orchestrator->>Runtime: run_with_sandbox()
     Runtime->>Process: Spawn PTY
     Process-->>Runtime: UnifiedExecProcess
-    
+
     Manager->>Manager: start_streaming_output(process)
     Manager->>Manager: spawn_exit_watcher(process)
-    
+
     Manager->>Manager: Wait yield_time_ms
     Manager->>Process: Collect output buffer
     Process-->>Manager: Vec<u8>
-    
+
     alt Process Exited
         Manager->>Handler: emit ExecCommandEnd immediately
         Manager->>Manager: release_process_id()
     else Process Running
         Manager->>Manager: store_process(process_id, process)
     end
-    
+
     Manager-->>Handler: UnifiedExecResponse { process_id, output, exit_code }
     Handler-->>Model: Formatted output
 ```
@@ -529,12 +527,12 @@ sequenceDiagram
     participant Handler as UnifiedExecHandler
     participant Manager as UnifiedExecProcessManager
     participant Process as UnifiedExecProcess
-    
+
     Model->>Handler: write_stdin { session_id: 1000, chars: "ls\
 " }
     Handler->>Manager: write_stdin(WriteStdinRequest)
     Manager->>Manager: prepare_process_handles(process_id)
-    
+
     alt Process Not Found
         Manager-->>Handler: UnifiedExecError::UnknownProcessId
     else Process Found
@@ -542,15 +540,15 @@ sequenceDiagram
         Manager->>Manager: Wait yield_time_ms
         Manager->>Process: Collect output buffer
         Process-->>Manager: Vec<u8>
-        
+
         alt Process Exited
             Manager->>Manager: Remove from ProcessStore
             Manager->>Manager: emit ExecCommandEnd in background
         end
-        
+
         Manager-->>Handler: UnifiedExecResponse
     end
-    
+
     Handler-->>Model: Formatted output
 ```
 
@@ -563,19 +561,19 @@ The `start_streaming_output` task continuously reads from the PTY and emits delt
 ```mermaid
 graph TB
     PTY["PTY stdout/stderr"]
-    
+
     PTY --> BroadcastChan["broadcast::channel<br/>(output_receiver)"]
     BroadcastChan --> StreamTask["streaming_output task"]
-    
+
     StreamTask --> PendingBuf["pending: Vec<u8><br/>(incomplete UTF-8)"]
     StreamTask --> Transcript["HeadTailBuffer<br/>(aggregated output)"]
-    
+
     StreamTask --> ValidUTF8{Valid UTF-8 prefix?}
     ValidUTF8 -->|Yes| Emit["Emit ExecCommandOutputDelta"]
     ValidUTF8 -->|No| Accumulate["Accumulate in pending"]
-    
+
     Emit --> Model["Send to model client"]
-    
+
     Transcript --> ExecEnd["ExecCommandEnd event<br/>(on process exit)"]
 ```
 
@@ -598,14 +596,14 @@ The `intercept_apply_patch` function detects when shell commands contain `apply_
 ```mermaid
 graph TD
     Command["Shell command"]
-    
+
     Command --> Parse["maybe_parse_apply_patch_verified()"]
     Parse --> Result{Parse Result}
-    
+
     Result -->|NotApplyPatch| Continue["Continue normal shell execution"]
     Result -->|InvalidSyntax| Err["Return syntax error"]
     Result -->|Body(changes)| Intercept["Intercept and delegate to<br/>ApplyPatchHandler"]
-    
+
     Intercept --> Changes["Convert to<br/>HashMap<PathBuf, FileChange>"]
     Changes --> ApplyPatch["apply_patch::apply_patch()"]
 ```
@@ -616,9 +614,9 @@ Sources: [codex-rs/core/src/tools/handlers/apply_patch.rs:173-230](), [codex-rs/
 
 Apply patch can execute in two modes:
 
-| Mode | Condition | Behavior |
-|------|-----------|----------|
-| **Internal** | Patch targets single directory with simple operations | Directly apply using Rust file operations |
+| Mode          | Condition                                              | Behavior                                     |
+| ------------- | ------------------------------------------------------ | -------------------------------------------- |
+| **Internal**  | Patch targets single directory with simple operations  | Directly apply using Rust file operations    |
 | **Delegated** | Complex patches, approval required, or cross-directory | Execute via `PatchApplyRuntime` with sandbox |
 
 Sources: [codex-rs/core/src/apply_patch.rs:1-300]() (inferred)
@@ -633,26 +631,26 @@ sequenceDiagram
     participant Orchestrator as ToolOrchestrator
     participant Runtime as PatchApplyRuntime
     participant CodexExe as codex apply-patch-tool
-    
+
     Handler->>Orchestrator: run(ApplyPatchRequest)
     Orchestrator->>Orchestrator: Evaluate approval requirement
-    
+
     alt Requires Approval
         Orchestrator->>Handler: Emit PatchApplyBegin event
         Orchestrator->>Orchestrator: Wait for user approval
     end
-    
+
     Orchestrator->>Runtime: run_with_sandbox(request, sandbox_type)
     Runtime->>Runtime: Serialize ApplyPatchAction to JSON
     Runtime->>CodexExe: Execute subprocess:<br/>codex apply-patch-tool <json>
     CodexExe-->>Runtime: Exit code + stdout/stderr
-    
+
     alt Success
         Runtime->>Handler: Emit PatchApplyEnd { success: true }
     else Failure
         Runtime->>Handler: Emit PatchApplyEnd { success: false }
     end
-    
+
     Runtime-->>Orchestrator: ToolResult
     Orchestrator-->>Handler: Result<ToolResult>
 ```
@@ -697,7 +695,7 @@ classDiagram
         ApplyPatch
         UnifiedExec
     }
-    
+
     class Shell {
         command: Vec~String~
         cwd: PathBuf
@@ -705,12 +703,12 @@ classDiagram
         parsed_cmd: Vec~ParsedCommand~
         freeform: bool
     }
-    
+
     class ApplyPatch {
         changes: HashMap~PathBuf, FileChange~
         auto_approved: bool
     }
-    
+
     class UnifiedExec {
         command: Vec~String~
         cwd: PathBuf
@@ -718,7 +716,7 @@ classDiagram
         parsed_cmd: Vec~ParsedCommand~
         process_id: Option~String~
     }
-    
+
     ToolEmitter --> Shell
     ToolEmitter --> ApplyPatch
     ToolEmitter --> UnifiedExec
@@ -765,15 +763,15 @@ Sources: [codex-rs/core/src/tools/format.rs:1-200]() (inferred from usage)
 
 ### Event Types Emitted
 
-| Event Type | Emitted By | Purpose |
-|------------|-----------|---------|
-| `ExecCommandBegin` | Shell tools, unified exec | Signal command start with parsed command structure |
-| `ExecCommandOutputDelta` | Unified exec streaming task | Stream PTY output in real-time |
-| `ExecCommandEnd` | Shell tools, unified exec | Signal command completion with exit code and aggregated output |
-| `PatchApplyBegin` | Apply patch handler | Signal patch application start with file changes preview |
-| `PatchApplyEnd` | Apply patch handler | Signal patch completion with success status |
-| `TerminalInteraction` | write_stdin handler | Record stdin written to PTY session |
-| `TurnDiff` | Turn diff tracker | Summarize file modifications at turn end |
+| Event Type               | Emitted By                  | Purpose                                                        |
+| ------------------------ | --------------------------- | -------------------------------------------------------------- |
+| `ExecCommandBegin`       | Shell tools, unified exec   | Signal command start with parsed command structure             |
+| `ExecCommandOutputDelta` | Unified exec streaming task | Stream PTY output in real-time                                 |
+| `ExecCommandEnd`         | Shell tools, unified exec   | Signal command completion with exit code and aggregated output |
+| `PatchApplyBegin`        | Apply patch handler         | Signal patch application start with file changes preview       |
+| `PatchApplyEnd`          | Apply patch handler         | Signal patch completion with success status                    |
+| `TerminalInteraction`    | write_stdin handler         | Record stdin written to PTY session                            |
+| `TurnDiff`               | Turn diff tracker           | Summarize file modifications at turn end                       |
 
 Sources: [codex-rs/core/src/protocol/event.rs:1-500]() (inferred from event definitions)
 
@@ -795,13 +793,13 @@ classDiagram
         tool_name: String
         payload: ToolPayload
     }
-    
+
     class Session {
         conversation_id: ThreadId
         services: SessionServices
         user_shell: Arc~Shell~
     }
-    
+
     class TurnContext {
         cwd: PathBuf
         approval_policy: Constrained~AskForApproval~
@@ -809,14 +807,14 @@ classDiagram
         tools_config: ToolsConfig
         network: Option~NetworkProxy~
     }
-    
+
     class SessionServices {
         unified_exec_manager: UnifiedExecProcessManager
         exec_policy: Arc~ExecPolicy~
         network_approval: Arc~NetworkApprovalService~
         mcp_connection_manager: Arc~McpConnectionManager~
     }
-    
+
     ToolInvocation --> Session
     ToolInvocation --> TurnContext
     Session --> SessionServices

@@ -26,13 +26,12 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document covers the core APIs for defining workflows and composing steps in Mastra. It explains the `createWorkflow()` and `createStep()` functions, the fluent composition methods (`.then()`, `.parallel()`, `.branch()`, etc.), and how workflow execution graphs are constructed. For information about workflow execution and runtime behavior, see [Execution Engines](#4.2). For details on state management and persistence, see [Workflow State Management and Persistence](#4.3).
 
 ## Overview
 
 Mastra workflows are created using a builder pattern that combines:
+
 1. **Workflow configuration** via `createWorkflow()` with schemas for input, output, and state
 2. **Step creation** via `createStep()` supporting multiple step types (explicit params, agents, tools, processors)
 3. **Fluent composition** via methods like `.then()`, `.parallel()`, `.branch()`, `.loop()`, `.foreach()`
@@ -48,34 +47,34 @@ graph TB
         COMPOSE["Fluent Composition<br/>.then() .parallel() .branch()<br/>.loop() .foreach()"]
         COMMIT[".commit()<br/>Finalize graph"]
     end
-    
+
     subgraph "Step Types"
         PARAMS["StepParams<br/>{id, execute, schemas}"]
         AGENT["Agent<br/>LLM-based steps"]
         TOOL["Tool<br/>Function calls"]
         PROCESSOR["Processor<br/>Data transformation"]
     end
-    
+
     subgraph "Execution Graph"
         GRAPH["ExecutionGraph<br/>{id, steps: StepFlowEntry[]}"]
         SERIAL["SerializedStepFlowEntry[]<br/>Storage format"]
     end
-    
+
     CW --> COMPOSE
     CS --> PARAMS
     CS --> AGENT
     CS --> TOOL
     CS --> PROCESSOR
-    
+
     PARAMS --> COMPOSE
     AGENT --> COMPOSE
     TOOL --> COMPOSE
     PROCESSOR --> COMPOSE
-    
+
     COMPOSE --> COMMIT
     COMMIT --> GRAPH
     GRAPH --> SERIAL
-    
+
     style CW fill:#e1f5ff
     style CS fill:#fff4e1
     style COMMIT fill:#ffe1e1
@@ -98,35 +97,35 @@ const workflow = createWorkflow({
   outputSchema: z.object({ result: z.string() }),
   stateSchema: z.object({ progress: z.number() }),
   requestContextSchema: z.object({ tenantId: z.string() }),
-  options: { validateInputs: true }
+  options: { validateInputs: true },
 })
 ```
 
 ### WorkflowConfig Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `id` | `string` | Yes | Unique workflow identifier |
-| `description` | `string` | No | Human-readable description |
-| `inputSchema` | `SchemaWithValidation<TInput>` | Yes | Zod schema for workflow input validation |
-| `outputSchema` | `SchemaWithValidation<TOutput>` | Yes | Zod schema defining output structure |
-| `stateSchema` | `SchemaWithValidation<TState>` | No | Zod schema for workflow state (accessible via `setState()`) |
-| `requestContextSchema` | `SchemaWithValidation<TRequestContext>` | No | Zod schema for request context validation |
-| `executionEngine` | `ExecutionEngine` | No | Custom execution engine (defaults to DefaultExecutionEngine) |
-| `steps` | `TSteps[]` | No | Array of steps (for type inference, not used at runtime) |
-| `retryConfig` | `{attempts, delay}` | No | Default retry configuration for steps |
-| `options` | `WorkflowOptions` | No | See WorkflowOptions table below |
-| `type` | `'default' \| 'processor'` | No | Workflow type ('processor' for agent processor workflows) |
+| Parameter              | Type                                    | Required | Description                                                  |
+| ---------------------- | --------------------------------------- | -------- | ------------------------------------------------------------ |
+| `id`                   | `string`                                | Yes      | Unique workflow identifier                                   |
+| `description`          | `string`                                | No       | Human-readable description                                   |
+| `inputSchema`          | `SchemaWithValidation<TInput>`          | Yes      | Zod schema for workflow input validation                     |
+| `outputSchema`         | `SchemaWithValidation<TOutput>`         | Yes      | Zod schema defining output structure                         |
+| `stateSchema`          | `SchemaWithValidation<TState>`          | No       | Zod schema for workflow state (accessible via `setState()`)  |
+| `requestContextSchema` | `SchemaWithValidation<TRequestContext>` | No       | Zod schema for request context validation                    |
+| `executionEngine`      | `ExecutionEngine`                       | No       | Custom execution engine (defaults to DefaultExecutionEngine) |
+| `steps`                | `TSteps[]`                              | No       | Array of steps (for type inference, not used at runtime)     |
+| `retryConfig`          | `{attempts, delay}`                     | No       | Default retry configuration for steps                        |
+| `options`              | `WorkflowOptions`                       | No       | See WorkflowOptions table below                              |
+| `type`                 | `'default' \| 'processor'`              | No       | Workflow type ('processor' for agent processor workflows)    |
 
 ### WorkflowOptions
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `tracingPolicy` | `TracingPolicy` | Control span creation (e.g., disable tracing) |
-| `validateInputs` | `boolean` | Enable/disable input validation (default: true) |
-| `shouldPersistSnapshot` | `(params) => boolean` | Custom logic for deciding when to persist workflow snapshots |
-| `onFinish` | `(result) => Promise<void>` | Callback invoked when workflow completes (success, failed, suspended, tripwire) |
-| `onError` | `(errorInfo) => Promise<void>` | Callback invoked only for failed or tripwire status |
+| Option                  | Type                           | Description                                                                     |
+| ----------------------- | ------------------------------ | ------------------------------------------------------------------------------- |
+| `tracingPolicy`         | `TracingPolicy`                | Control span creation (e.g., disable tracing)                                   |
+| `validateInputs`        | `boolean`                      | Enable/disable input validation (default: true)                                 |
+| `shouldPersistSnapshot` | `(params) => boolean`          | Custom logic for deciding when to persist workflow snapshots                    |
+| `onFinish`              | `(result) => Promise<void>`    | Callback invoked when workflow completes (success, failed, suspended, tripwire) |
+| `onError`               | `(errorInfo) => Promise<void>` | Callback invoked only for failed or tripwire status                             |
 
 **Sources:** [packages/core/src/workflows/types.ts:742-771](), [packages/core/src/workflows/types.ts:419-440](), [packages/core/src/workflows/workflow.ts:1266-1321]()
 
@@ -139,40 +138,40 @@ The `createStep()` function has multiple overloads to support different step typ
 ```mermaid
 graph LR
     CS["createStep()"]
-    
+
     subgraph "Type Guards"
         IA["isAgent()"]
         IT["isToolStep()"]
         ISP["isStepParams()"]
         IP["isProcessor()"]
     end
-    
+
     subgraph "Factory Functions"
         AGENT_F["createStepFromAgent()"]
         TOOL_F["createStepFromTool()"]
         PARAMS_F["createStepFromParams()"]
         PROC_F["createStepFromProcessor()"]
     end
-    
+
     subgraph "Step Objects"
         STEP["Step<TId, TState, TInput, TOutput>"]
     end
-    
+
     CS --> IA
     CS --> IT
     CS --> ISP
     CS --> IP
-    
+
     IA -->|true| AGENT_F
     IT -->|true| TOOL_F
     ISP -->|true| PARAMS_F
     IP -->|true| PROC_F
-    
+
     AGENT_F --> STEP
     TOOL_F --> STEP
     PARAMS_F --> STEP
     PROC_F --> STEP
-    
+
     style CS fill:#e1f5ff
     style STEP fill:#e1ffe1
 ```
@@ -197,27 +196,27 @@ const step = createStep({
   metadata: { version: '1.0' },
   execute: async ({ inputData, state, setState, suspend }) => {
     // Step logic here
-    return { result: 'processed' };
-  }
+    return { result: 'processed' }
+  },
 })
 ```
 
 **StepParams Fields:**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | `string` | Yes | Unique step identifier |
-| `description` | `string` | No | Human-readable description |
-| `inputSchema` | `z.ZodTypeAny` | Yes | Input validation schema |
-| `outputSchema` | `z.ZodTypeAny` | Yes | Output structure schema |
-| `stateSchema` | `z.ZodTypeAny` | No | State schema (must be subset of workflow state) |
-| `resumeSchema` | `z.ZodTypeAny` | No | Resume data schema (for suspend/resume) |
-| `suspendSchema` | `z.ZodTypeAny` | No | Suspend payload schema |
-| `requestContextSchema` | `z.ZodTypeAny` | No | Request context validation schema |
-| `retries` | `number` | No | Number of retry attempts on failure |
-| `scorers` | `DynamicArgument<MastraScorers>` | No | Evaluation scorers for this step |
-| `metadata` | `StepMetadata` | No | Arbitrary metadata (Record<string, any>) |
-| `execute` | `ExecuteFunction` | Yes | Async function containing step logic |
+| Field                  | Type                             | Required | Description                                     |
+| ---------------------- | -------------------------------- | -------- | ----------------------------------------------- |
+| `id`                   | `string`                         | Yes      | Unique step identifier                          |
+| `description`          | `string`                         | No       | Human-readable description                      |
+| `inputSchema`          | `z.ZodTypeAny`                   | Yes      | Input validation schema                         |
+| `outputSchema`         | `z.ZodTypeAny`                   | Yes      | Output structure schema                         |
+| `stateSchema`          | `z.ZodTypeAny`                   | No       | State schema (must be subset of workflow state) |
+| `resumeSchema`         | `z.ZodTypeAny`                   | No       | Resume data schema (for suspend/resume)         |
+| `suspendSchema`        | `z.ZodTypeAny`                   | No       | Suspend payload schema                          |
+| `requestContextSchema` | `z.ZodTypeAny`                   | No       | Request context validation schema               |
+| `retries`              | `number`                         | No       | Number of retry attempts on failure             |
+| `scorers`              | `DynamicArgument<MastraScorers>` | No       | Evaluation scorers for this step                |
+| `metadata`             | `StepMetadata`                   | No       | Arbitrary metadata (Record<string, any>)        |
+| `execute`              | `ExecuteFunction`                | Yes      | Async function containing step logic            |
 
 **Sources:** [packages/core/src/workflows/workflow.ts:163-190](), [packages/core/src/workflows/types.ts:555-588](), [packages/core/src/workflows/workflow.ts:321-353]()
 
@@ -227,24 +226,25 @@ Wraps an `Agent` instance to use LLM-based processing as a workflow step. Suppor
 
 ```typescript
 // Text output (default)
-const agentStep1 = createStep(myAgent);
+const agentStep1 = createStep(myAgent)
 // Output schema: { text: string }
 
 // Structured output
 const agentStep2 = createStep(myAgent, {
-  structuredOutput: { 
-    schema: z.object({ 
-      name: z.string(), 
-      age: z.number() 
-    }) 
+  structuredOutput: {
+    schema: z.object({
+      name: z.string(),
+      age: z.number(),
+    }),
   },
   retries: 2,
   scorers: dynamicScorers,
-  metadata: { modelVersion: 'gpt-4' }
-});
+  metadata: { modelVersion: 'gpt-4' },
+})
 ```
 
 **Agent Step Behavior:**
+
 - Input schema is always `{ prompt: string }`
 - Internally calls `agent.stream()` or `agent.streamLegacy()` based on model specification version
 - Handles tripwire detection (processor-triggered workflow aborts)
@@ -262,11 +262,12 @@ Wraps a `Tool` instance to execute specific operations with suspend/resume suppo
 const toolStep = createStep(myTool, {
   retries: 3,
   scorers: evaluationScorers,
-  metadata: { priority: 'high' }
-});
+  metadata: { priority: 'high' },
+})
 ```
 
 **Tool Step Behavior:**
+
 - Preserves tool's `inputSchema`, `outputSchema`, `suspendSchema`, `resumeSchema`
 - Provides workflow context in second argument: `{ mastra, requestContext, workflow: { runId, suspend, state, setState } }`
 - Supports suspend/resume for long-running operations or human-in-the-loop scenarios
@@ -280,11 +281,12 @@ Wraps a `Processor` instance to transform agent inputs or outputs within a workf
 
 ```typescript
 // Processor step for data transformation
-const processorStep = createStep(myProcessor);
+const processorStep = createStep(myProcessor)
 // ID is automatically prefixed: 'processor:myProcessorId'
 ```
 
 **Processor Step Behavior:**
+
 - Input schema: `ProcessorStepInputSchema` (discriminated union by phase)
 - Output schema: `ProcessorStepOutputSchema`
 - Supports phases: `input`, `inputStep`, `outputStream`, `outputResult`, `outputStep`
@@ -317,17 +319,17 @@ graph TB
         COMP["component?: string"]
         META["metadata?: StepMetadata"]
     end
-    
+
     subgraph "ExecuteFunction Parameters"
         PARAMS["ExecuteFunctionParams"]
-        
+
         CTX["Context<br/>runId, workflowId, mastra,<br/>requestContext"]
         DATA["Data<br/>inputData, state, resumeData,<br/>suspendData"]
         OPS["Operations<br/>setState(), suspend(), bail(),<br/>abort()"]
         HELPERS["Helpers<br/>getInitData(), getStepResult(),<br/>retryCount"]
         SYM["Symbols<br/>PUBSUB_SYMBOL,<br/>STREAM_FORMAT_SYMBOL"]
     end
-    
+
     EXEC --> PARAMS
     PARAMS --> CTX
     PARAMS --> DATA
@@ -340,30 +342,30 @@ graph TB
 
 The `execute` function receives a single parameter object with the following fields:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `runId` | `string` | Unique workflow run identifier |
-| `resourceId` | `string` | Optional resource/user identifier |
-| `workflowId` | `string` | Workflow identifier |
-| `mastra` | `Mastra` | Mastra instance for accessing other components |
-| `requestContext` | `RequestContext<TRequestContext>` | Request-scoped key-value store |
-| `inputData` | `TStepInput` | Validated input data from previous step |
-| `state` | `TState` | Current workflow state |
-| `setState(state)` | `(TState) => Promise<void>` | Update workflow state |
-| `resumeData` | `TResume` | Data passed to resume suspended workflow |
-| `suspendData` | `TSuspend` | Suspend payload from previous suspension |
-| `suspend(payload, options?)` | Function | Suspend workflow execution |
-| `bail(result)` | `(TStepOutput) => InnerOutput` | Exit workflow early with result |
-| `abort()` | `() => void` | Cancel workflow execution |
-| `retryCount` | `number` | Current retry attempt (0-indexed) |
-| `getInitData<T>()` | `() => T` | Get workflow input data |
-| `getStepResult(step)` | Function | Get output from previous step by ID or Step object |
-| `abortSignal` | `AbortSignal` | Signal for cancellation monitoring |
-| `writer` | `ToolStream` | Stream writer for real-time output |
-| `outputWriter` | `OutputWriter` | Write chunks to workflow event stream |
-| `engine` | `EngineType` | Engine-specific context (e.g., Inngest step) |
-| `[PUBSUB_SYMBOL]` | `PubSub` | Internal PubSub for workflow events |
-| `[STREAM_FORMAT_SYMBOL]` | `'legacy' \| 'vnext'` | Stream format version |
+| Field                        | Type                              | Description                                        |
+| ---------------------------- | --------------------------------- | -------------------------------------------------- |
+| `runId`                      | `string`                          | Unique workflow run identifier                     |
+| `resourceId`                 | `string`                          | Optional resource/user identifier                  |
+| `workflowId`                 | `string`                          | Workflow identifier                                |
+| `mastra`                     | `Mastra`                          | Mastra instance for accessing other components     |
+| `requestContext`             | `RequestContext<TRequestContext>` | Request-scoped key-value store                     |
+| `inputData`                  | `TStepInput`                      | Validated input data from previous step            |
+| `state`                      | `TState`                          | Current workflow state                             |
+| `setState(state)`            | `(TState) => Promise<void>`       | Update workflow state                              |
+| `resumeData`                 | `TResume`                         | Data passed to resume suspended workflow           |
+| `suspendData`                | `TSuspend`                        | Suspend payload from previous suspension           |
+| `suspend(payload, options?)` | Function                          | Suspend workflow execution                         |
+| `bail(result)`               | `(TStepOutput) => InnerOutput`    | Exit workflow early with result                    |
+| `abort()`                    | `() => void`                      | Cancel workflow execution                          |
+| `retryCount`                 | `number`                          | Current retry attempt (0-indexed)                  |
+| `getInitData<T>()`           | `() => T`                         | Get workflow input data                            |
+| `getStepResult(step)`        | Function                          | Get output from previous step by ID or Step object |
+| `abortSignal`                | `AbortSignal`                     | Signal for cancellation monitoring                 |
+| `writer`                     | `ToolStream`                      | Stream writer for real-time output                 |
+| `outputWriter`               | `OutputWriter`                    | Write chunks to workflow event stream              |
+| `engine`                     | `EngineType`                      | Engine-specific context (e.g., Inngest step)       |
+| `[PUBSUB_SYMBOL]`            | `PubSub`                          | Internal PubSub for workflow events                |
+| `[STREAM_FORMAT_SYMBOL]`     | `'legacy' \| 'vnext'`             | Stream format version                              |
 
 **Sources:** [packages/core/src/workflows/step.ts:23-66](), [packages/core/src/workflows/step.ts:144-171]()
 
@@ -381,7 +383,7 @@ graph LR
     STEP1 --> STEP2["Step 2"]
     STEP2 --> STEP3["Step 3"]
     STEP3 --> OUTPUT["Workflow Output"]
-    
+
     style INPUT fill:#e1f5ff
     style OUTPUT fill:#e1ffe1
 ```
@@ -389,10 +391,10 @@ graph LR
 ```typescript
 // Example from workflow.ts
 workflow
-  .then(step1)  // Receives workflow input
-  .then(step2)  // Receives step1.output
-  .then(step3)  // Receives step2.output
-  .commit();
+  .then(step1) // Receives workflow input
+  .then(step2) // Receives step1.output
+  .then(step3) // Receives step2.output
+  .commit()
 ```
 
 **Type Safety:** The `.then()` method enforces that the next step's input schema matches the previous step's output schema.
@@ -420,8 +422,8 @@ graph TB
 workflow
   .then(fetchData)
   .parallel([processA, processB, processC])
-  .then(combineResults)  // Receives { processA: {...}, processB: {...}, processC: {...} }
-  .commit();
+  .then(combineResults) // Receives { processA: {...}, processB: {...}, processC: {...} }
+  .commit()
 ```
 
 **Output Structure:** `{ [stepId]: stepOutput }`
@@ -442,7 +444,7 @@ graph TB
     COND2 -->|false| COND3{"Condition 3"}
     COND3 -->|true| BRANCH3["Branch Step 3"]
     COND3 -->|false| NONE["No Branch<br/>Pass through input"]
-    
+
     BRANCH1 --> NEXT["Next Step"]
     BRANCH2 --> NEXT
     BRANCH3 --> NEXT
@@ -456,21 +458,22 @@ workflow
   .branch([
     {
       condition: async ({ inputData }) => inputData.priority === 'urgent',
-      step: urgentProcessing
+      step: urgentProcessing,
     },
     {
       condition: async ({ inputData }) => inputData.priority === 'normal',
-      step: normalProcessing
+      step: normalProcessing,
     },
     {
-      condition: async ({ inputData }) => true,  // Default case
-      step: defaultProcessing
-    }
+      condition: async ({ inputData }) => true, // Default case
+      step: defaultProcessing,
+    },
   ])
-  .commit();
+  .commit()
 ```
 
 **Condition Evaluation:**
+
 - Conditions are functions: `async (params: ConditionFunctionParams) => Promise<boolean>`
 - First condition that returns `true` has its step executed
 - If no condition matches, the previous output passes through unchanged
@@ -490,7 +493,7 @@ graph TB
     CHECK -->|doWhile: false| OUTPUT["Last Iteration Output"]
     CHECK2{"doUntil: true"} --> OUTPUT2["Last Iteration Output"]
     CHECK2 -->|doUntil: false| EXEC2["Execute Step"]
-    
+
     style OUTPUT fill:#e1ffe1
     style OUTPUT2 fill:#e1ffe1
 ```
@@ -500,27 +503,29 @@ graph TB
 workflow
   .then(initialize)
   .loop(processItem)
-    .doWhile(async ({ inputData, iterationCount }) => {
-      return iterationCount < inputData.maxIterations;
-    })
+  .doWhile(async ({ inputData, iterationCount }) => {
+    return iterationCount < inputData.maxIterations
+  })
   .then(finalize)
-  .commit();
+  .commit()
 
 // Example: doUntil pattern
 workflow
   .then(initialize)
   .loop(checkStatus)
-    .doUntil(async ({ inputData }) => {
-      return inputData.status === 'complete';
-    })
-  .commit();
+  .doUntil(async ({ inputData }) => {
+    return inputData.status === 'complete'
+  })
+  .commit()
 ```
 
 **Loop Condition Parameters:**
+
 - All standard `ConditionFunctionParams`
 - Additional `iterationCount: number` (starts at 0)
 
 **Loop Behavior:**
+
 - `.doWhile()`: Condition checked **after** each iteration, continues if `true`
 - `.doUntil()`: Condition checked **after** each iteration, continues if `false`
 - Loop output is the output from the final iteration
@@ -542,29 +547,30 @@ graph TB
     ITEM2 --> MERGE
     ITEM3 --> MERGE
     MERGE --> NEXT["Next Step"]
-    
+
     style MERGE fill:#e1ffe1
 ```
 
 ```typescript
 // Example: Process array with concurrency limit
 workflow
-  .then(fetchUserIds)  // Returns { userIds: string[] }
+  .then(fetchUserIds) // Returns { userIds: string[] }
   .foreach(
-    processUser,  // Executed for each userIds[i]
-    { concurrency: 5 }  // Process 5 items in parallel
+    processUser, // Executed for each userIds[i]
+    { concurrency: 5 } // Process 5 items in parallel
   )
-  .then(aggregateResults)  // Receives array of processUser outputs
-  .commit();
+  .then(aggregateResults) // Receives array of processUser outputs
+  .commit()
 ```
 
 **ForEach Options:**
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
+| Option        | Type     | Default    | Description                 |
+| ------------- | -------- | ---------- | --------------------------- |
 | `concurrency` | `number` | `Infinity` | Maximum parallel executions |
 
 **ForEach Behavior:**
+
 - Previous step output must be an array
 - Step is executed once per array element with the element as input
 - Output is an array of step outputs in the same order
@@ -580,40 +586,41 @@ Special operations for time-based workflow control.
 // Fixed duration sleep
 workflow
   .then(step1)
-  .sleep(5000)  // Sleep for 5 seconds
+  .sleep(5000) // Sleep for 5 seconds
   .then(step2)
-  .commit();
+  .commit()
 
 // Dynamic duration based on previous output
 workflow
   .then(calculateDelay)
   .sleep(async ({ inputData }) => inputData.delayMs)
   .then(step2)
-  .commit();
+  .commit()
 
 // Sleep until specific date
 workflow
   .then(step1)
   .sleepUntil(new Date('2024-12-31T23:59:59Z'))
   .then(step2)
-  .commit();
+  .commit()
 
 // Dynamic date
 workflow
   .then(calculateWakeTime)
   .sleepUntil(async ({ inputData }) => new Date(inputData.wakeAt))
   .then(step2)
-  .commit();
+  .commit()
 
 // Wait for external event (evented engine only)
 workflow
   .then(step1)
   .waitForEvent('user.action', { timeout: 60000 })
   .then(step2)
-  .commit();
+  .commit()
 ```
 
 **Sleep Functions:**
+
 - `.sleep(duration)` - Sleep for fixed milliseconds
 - `.sleep(fn)` - Sleep for dynamic duration from function
 - `.sleepUntil(date)` - Sleep until fixed date
@@ -631,22 +638,22 @@ The `.commit()` method finalizes the workflow definition and builds the executio
 ```mermaid
 graph TB
     PRECOMMIT["Workflow Definition<br/>(uncommitted)"]
-    
+
     subgraph "Commit Phase"
         VALIDATE["Validate Step Flow<br/>Check isEmpty, ensure steps"]
         SERIALIZE["Serialize Steps<br/>Build SerializedStepFlowEntry[]"]
         BUILD["Build ExecutionGraph<br/>{id, steps: StepFlowEntry[]}"]
         LOCK["Lock Workflow<br/>Set committed = true"]
     end
-    
+
     POSTCOMMIT["Committed Workflow<br/>(ready for execution)"]
-    
+
     PRECOMMIT --> VALIDATE
     VALIDATE --> SERIALIZE
     SERIALIZE --> BUILD
     BUILD --> LOCK
     LOCK --> POSTCOMMIT
-    
+
     style PRECOMMIT fill:#fff4e1
     style POSTCOMMIT fill:#e1ffe1
 ```
@@ -664,6 +671,7 @@ workflow.then(step4);  // Error: Cannot modify committed workflow
 ```
 
 **Commit Validation:**
+
 1. Checks that `stepGraph` is not empty
 2. Validates all steps have required schemas
 3. Builds `SerializedStepFlowEntry[]` for persistence
@@ -682,7 +690,7 @@ graph TB
         ID["id: string"]
         STEPS["steps: StepFlowEntry[]"]
     end
-    
+
     subgraph "StepFlowEntry Types"
         STEP_ENTRY["{type: 'step', step: Step}"]
         PARALLEL_ENTRY["{type: 'parallel',<br/>steps: {step: Step}[]}"]
@@ -692,7 +700,7 @@ graph TB
         SLEEP_ENTRY["{type: 'sleep',<br/>id: string,<br/>duration?: number,<br/>fn?: ExecuteFunction}"]
         SLEEPUNTIL_ENTRY["{type: 'sleepUntil',<br/>id: string,<br/>date?: Date,<br/>fn?: ExecuteFunction}"]
     end
-    
+
     STEPS --> STEP_ENTRY
     STEPS --> PARALLEL_ENTRY
     STEPS --> CONDITIONAL_ENTRY
@@ -704,15 +712,15 @@ graph TB
 
 **StepFlowEntry Discriminated Union:**
 
-| Type | Fields | Description |
-|------|--------|-------------|
-| `step` | `step: Step` | Single sequential step |
-| `parallel` | `steps: {step: Step}[]` | Parallel execution group |
-| `conditional` | `steps: {step: Step}[]`, `conditions: ConditionFunction[]`, `serializedConditions` | Conditional branching |
-| `loop` | `step: Step`, `condition: LoopConditionFunction`, `loopType: 'dowhile' \| 'dountil'` | Loop iteration |
-| `foreach` | `step: Step`, `opts: {concurrency: number}` | Array iteration |
-| `sleep` | `id: string`, `duration?: number`, `fn?: ExecuteFunction` | Fixed or dynamic duration sleep |
-| `sleepUntil` | `id: string`, `date?: Date`, `fn?: ExecuteFunction` | Fixed or dynamic date sleep |
+| Type          | Fields                                                                               | Description                     |
+| ------------- | ------------------------------------------------------------------------------------ | ------------------------------- |
+| `step`        | `step: Step`                                                                         | Single sequential step          |
+| `parallel`    | `steps: {step: Step}[]`                                                              | Parallel execution group        |
+| `conditional` | `steps: {step: Step}[]`, `conditions: ConditionFunction[]`, `serializedConditions`   | Conditional branching           |
+| `loop`        | `step: Step`, `condition: LoopConditionFunction`, `loopType: 'dowhile' \| 'dountil'` | Loop iteration                  |
+| `foreach`     | `step: Step`, `opts: {concurrency: number}`                                          | Array iteration                 |
+| `sleep`       | `id: string`, `duration?: number`, `fn?: ExecuteFunction`                            | Fixed or dynamic duration sleep |
+| `sleepUntil`  | `id: string`, `date?: Date`, `fn?: ExecuteFunction`                                  | Fixed or dynamic date sleep     |
 
 **Sources:** [packages/core/src/workflows/types.ts:460-487](), [packages/core/src/workflows/execution-engine.ts:18-25]()
 
@@ -722,27 +730,36 @@ For persistence and API transport, workflows are serialized to `SerializedStepFl
 
 ```typescript
 // Functions are serialized as strings
-type SerializedStepFlowEntry = 
-  | { type: 'step', step: SerializedStep }
-  | { type: 'parallel', steps: {step: SerializedStep}[] }
-  | { type: 'conditional', steps: {step: SerializedStep}[], serializedConditions: {id: string, fn: string}[] }
-  | { type: 'loop', step: SerializedStep, serializedCondition: {id: string, fn: string}, loopType: 'dowhile' | 'dountil' }
-  | { type: 'foreach', step: SerializedStep, opts: {concurrency: number} }
-  | { type: 'sleep', id: string, duration?: number, fn?: string }
-  | { type: 'sleepUntil', id: string, date?: Date, fn?: string }
+type SerializedStepFlowEntry =
+  | { type: 'step'; step: SerializedStep }
+  | { type: 'parallel'; steps: { step: SerializedStep }[] }
+  | {
+      type: 'conditional'
+      steps: { step: SerializedStep }[]
+      serializedConditions: { id: string; fn: string }[]
+    }
+  | {
+      type: 'loop'
+      step: SerializedStep
+      serializedCondition: { id: string; fn: string }
+      loopType: 'dowhile' | 'dountil'
+    }
+  | { type: 'foreach'; step: SerializedStep; opts: { concurrency: number } }
+  | { type: 'sleep'; id: string; duration?: number; fn?: string }
+  | { type: 'sleepUntil'; id: string; date?: Date; fn?: string }
 ```
 
 **SerializedStep Structure:**
 
 ```typescript
 type SerializedStep = {
-  id: string;
-  description?: string;
-  metadata?: StepMetadata;
-  component?: string;  // 'AGENT' | 'TOOL' | 'PROCESSOR' | etc.
-  serializedStepFlow?: SerializedStepFlowEntry[];  // For nested workflows
-  mapConfig?: string;  // Serialized variable mapping
-  canSuspend?: boolean;  // Whether step supports suspend/resume
+  id: string
+  description?: string
+  metadata?: StepMetadata
+  component?: string // 'AGENT' | 'TOOL' | 'PROCESSOR' | etc.
+  serializedStepFlow?: SerializedStepFlowEntry[] // For nested workflows
+  mapConfig?: string // Serialized variable mapping
+  canSuspend?: boolean // Whether step supports suspend/resume
 }
 ```
 
@@ -761,21 +778,21 @@ graph TB
         EVENTED["EventedEngineType<br/>{}"]
         INNGEST["InngestEngineType<br/>{step: InngestStep}"]
     end
-    
+
     subgraph "Step Execute Context"
         ENGINE_FIELD["engine: EngineType"]
     end
-    
+
     subgraph "Engine Implementations"
         DEFAULT_ENGINE["DefaultExecutionEngine<br/>In-memory execution"]
         EVENTED_ENGINE["EventedExecutionEngine<br/>PubSub-based"]
         INNGEST_ENGINE["InngestExecutionEngine<br/>Durable execution"]
     end
-    
+
     DEFAULT --> ENGINE_FIELD
     EVENTED --> ENGINE_FIELD
     INNGEST --> ENGINE_FIELD
-    
+
     ENGINE_FIELD --> DEFAULT_ENGINE
     ENGINE_FIELD --> EVENTED_ENGINE
     ENGINE_FIELD --> INNGEST_ENGINE
@@ -785,18 +802,18 @@ graph TB
 
 ```typescript
 // DefaultEngineType is empty object
-type DefaultEngineType = {};
+type DefaultEngineType = {}
 
 // No special engine context
 const step = createStep({
   id: 'my-step',
   execute: async ({ engine }) => {
     // engine is {} for default engine
-    return { result: 'done' };
+    return { result: 'done' }
   },
   inputSchema: z.object({}),
-  outputSchema: z.object({ result: z.string() })
-});
+  outputSchema: z.object({ result: z.string() }),
+})
 ```
 
 ### Inngest Engine (workflows/inngest)
@@ -804,8 +821,8 @@ const step = createStep({
 ```typescript
 // InngestEngineType provides Inngest step primitives
 type InngestEngineType = {
-  step: Inngest['step'];
-};
+  step: Inngest['step']
+}
 
 // Access Inngest step.run, step.invoke, etc.
 const step = createStep({
@@ -813,16 +830,17 @@ const step = createStep({
   execute: async ({ engine }) => {
     // Use Inngest durable primitives
     const result = await engine.step.run('operation-id', async () => {
-      return performWork();
-    });
-    return { result };
+      return performWork()
+    })
+    return { result }
   },
   inputSchema: z.object({}),
-  outputSchema: z.object({ result: z.string() })
-});
+  outputSchema: z.object({ result: z.string() }),
+})
 ```
 
 **Inngest Engine Context:**
+
 - `engine.step.run(id, fn)` - Durable memoized execution
 - `engine.step.invoke(id, fn)` - Invoke nested workflows
 - `engine.step.sleep(id, duration)` - Durable sleep
@@ -842,7 +860,7 @@ graph TB
         WF_STATE["Workflow State<br/>validated against stateSchema"]
         WF_RC["Request Context<br/>validated against requestContextSchema"]
     end
-    
+
     subgraph "Step Level"
         STEP_INPUT["Step Input<br/>validated against step.inputSchema"]
         STEP_STATE["Step State<br/>validated against step.stateSchema"]
@@ -851,14 +869,14 @@ graph TB
         STEP_RESUME["Resume Data<br/>validated against step.resumeSchema"]
         STEP_RC["Request Context<br/>validated against step.requestContextSchema"]
     end
-    
+
     WF_INPUT --> STEP_INPUT
     WF_STATE --> STEP_STATE
     WF_RC --> STEP_RC
-    
+
     STEP_OUTPUT --> STEP_INPUT
     STEP_SUSPEND -.->|on resume| STEP_RESUME
-    
+
     style WF_INPUT fill:#e1f5ff
     style STEP_OUTPUT fill:#e1ffe1
 ```
@@ -874,33 +892,33 @@ const workflow = createWorkflow({
   stateSchema: z.object({
     counter: z.number(),
     total: z.number(),
-    metadata: z.string()
+    metadata: z.string(),
   }),
   // ...
-});
+})
 
 // Valid step state schema (subset)
 const step1 = createStep({
   id: 'step1',
   stateSchema: z.object({
-    counter: z.number()
+    counter: z.number(),
   }),
   execute: async ({ state, setState }) => {
     // state has type { counter: number }
-    await setState({ counter: state.counter + 1 });
+    await setState({ counter: state.counter + 1 })
   },
   // ...
-});
+})
 
 // Invalid step state schema (not a subset)
 const step2 = createStep({
   id: 'step2',
   stateSchema: z.object({
     counter: z.number(),
-    extraField: z.string()  // Error: extraField not in workflow state
+    extraField: z.string(), // Error: extraField not in workflow state
   }),
   // ...
-});
+})
 ```
 
 The `SubsetOf<TStepState, TState>` utility type enforces this at compile time.
@@ -913,19 +931,19 @@ The `mapVariable()` helper creates references to previous step outputs for advan
 
 ```typescript
 // Map entire previous step output
-const ref1 = mapVariable({ step: previousStep, path: '.' });
+const ref1 = mapVariable({ step: previousStep, path: '.' })
 
 // Map specific field from step output
-const ref2 = mapVariable({ step: previousStep, path: 'result.userId' });
+const ref2 = mapVariable({ step: previousStep, path: 'result.userId' })
 
 // Map from workflow input
-const ref3 = mapVariable({ initData: workflow, path: 'config.apiKey' });
+const ref3 = mapVariable({ initData: workflow, path: 'config.apiKey' })
 
 // Use in step composition (implementation-specific)
 workflow
   .then(fetchUser)
-  .then(processUser)  // Can reference fetchUser.output via mapVariable
-  .commit();
+  .then(processUser) // Can reference fetchUser.output via mapVariable
+  .commit()
 ```
 
 **Type Safety:** The `path` parameter is typed as `PathsToStringProps<TSchema>` to ensure only valid paths are referenced.
@@ -935,26 +953,28 @@ workflow
 ## Complete Example
 
 ```typescript
-import { z } from 'zod';
-import { createWorkflow, createStep, Agent, createTool } from '@mastra/core';
+import { z } from 'zod'
+import { createWorkflow, createStep, Agent, createTool } from '@mastra/core'
 
 // Define schemas
 const inputSchema = z.object({
   userId: z.string(),
-  priority: z.enum(['urgent', 'normal', 'low'])
-});
+  priority: z.enum(['urgent', 'normal', 'low']),
+})
 
 const stateSchema = z.object({
-  processedCount: z.number()
-});
+  processedCount: z.number(),
+})
 
 const outputSchema = z.object({
   status: z.string(),
-  results: z.array(z.object({
-    id: z.string(),
-    data: z.unknown()
-  }))
-});
+  results: z.array(
+    z.object({
+      id: z.string(),
+      data: z.unknown(),
+    })
+  ),
+})
 
 // Create steps
 const fetchUserData = createStep({
@@ -963,9 +983,9 @@ const fetchUserData = createStep({
   outputSchema: z.object({ data: z.array(z.string()) }),
   execute: async ({ inputData }) => {
     // Fetch user data
-    return { data: ['item1', 'item2', 'item3'] };
-  }
-});
+    return { data: ['item1', 'item2', 'item3'] }
+  },
+})
 
 const processItem = createStep({
   id: 'process-item',
@@ -973,12 +993,12 @@ const processItem = createStep({
   outputSchema: z.object({ id: z.string(), data: z.unknown() }),
   execute: async ({ inputData, state, setState }) => {
     // Process single item and update state
-    await setState({ 
-      processedCount: state.processedCount + 1 
-    });
-    return { id: inputData, data: { processed: true } };
-  }
-});
+    await setState({
+      processedCount: state.processedCount + 1,
+    })
+    return { id: inputData, data: { processed: true } }
+  },
+})
 
 const urgentNotification = createTool({
   id: 'urgent-notify',
@@ -986,9 +1006,9 @@ const urgentNotification = createTool({
   outputSchema: z.object({ status: z.string() }),
   execute: async (input) => {
     // Send urgent notification
-    return { status: 'notified' };
-  }
-});
+    return { status: 'notified' }
+  },
+})
 
 // Create workflow
 const workflow = createWorkflow({
@@ -997,55 +1017,55 @@ const workflow = createWorkflow({
   inputSchema,
   outputSchema,
   stateSchema,
-  options: { 
+  options: {
     validateInputs: true,
     onFinish: async (result) => {
-      console.log('Workflow completed:', result.status);
-    }
-  }
+      console.log('Workflow completed:', result.status)
+    },
+  },
 })
   // Fetch user data
   .then(fetchUserData)
-  
+
   // Process each item in parallel (max 3 concurrent)
   .foreach(processItem, { concurrency: 3 })
-  
+
   // Branch based on priority
   .branch([
     {
       condition: async ({ getInitData }) => {
-        const input = getInitData();
-        return input.priority === 'urgent';
+        const input = getInitData()
+        return input.priority === 'urgent'
       },
-      step: createStep(urgentNotification)
+      step: createStep(urgentNotification),
     },
     {
       condition: async ({ getInitData }) => {
-        const input = getInitData();
-        return input.priority === 'normal';
+        const input = getInitData()
+        return input.priority === 'normal'
       },
       step: createStep({
         id: 'normal-notify',
         inputSchema: z.object({ results: z.array(z.unknown()) }),
         outputSchema: z.object({ status: z.string() }),
-        execute: async () => ({ status: 'queued' })
-      })
-    }
+        execute: async () => ({ status: 'queued' }),
+      }),
+    },
   ])
-  
+
   // Finalize
-  .commit();
+  .commit()
 
 // Execute workflow
-const run = await workflow.createRun();
+const run = await workflow.createRun()
 const result = await run.start({
   inputData: { userId: 'user-123', priority: 'urgent' },
-  initialState: { processedCount: 0 }
-});
+  initialState: { processedCount: 0 },
+})
 
-console.log(result.status);  // 'success'
-console.log(result.result);  // { status: 'notified', results: [...] }
-console.log(result.steps);   // Detailed step results
+console.log(result.status) // 'success'
+console.log(result.result) // { status: 'notified', results: [...] }
+console.log(result.steps) // Detailed step results
 ```
 
 **Sources:** [packages/core/src/workflows/workflow.test.ts:217-284](), [workflows/inngest/src/index.test.ts:221-284]()

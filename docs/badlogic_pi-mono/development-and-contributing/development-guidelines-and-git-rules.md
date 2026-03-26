@@ -13,8 +13,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document defines critical development standards and Git safety rules for the pi-mono repository. These guidelines ensure code quality, prevent conflicts between parallel development workflows, and maintain project consistency. For general contribution procedures and approval gates, see [Contribution Workflow](#9.2). For package release procedures, see [Release Process](#9.4).
 
 ---
@@ -43,12 +41,12 @@ All code contributions must meet the following quality requirements before commi
 
 ```typescript
 // ❌ FORBIDDEN
-type Foo = import("./types").Foo;
-const module = await import("./dynamic.js");
+type Foo = import('./types').Foo
+const module = await import('./dynamic.js')
 
 // ✅ CORRECT
-import type { Foo } from "./types.js";
-import { module } from "./dynamic.js";
+import type { Foo } from './types.js'
+import { module } from './dynamic.js'
 ```
 
 **Sources:** [AGENTS.md:17]()
@@ -153,14 +151,14 @@ git pull --rebase && git push
 
 These commands can **destroy other agents' uncommitted work:**
 
-| Command | Danger | Why Forbidden |
-|---------|--------|---------------|
-| `git reset --hard` | ⛔ DESTROYS | Destroys uncommitted changes |
-| `git checkout .` | ⛔ DESTROYS | Destroys uncommitted changes |
-| `git clean -fd` | ⛔ DESTROYS | Deletes untracked files |
-| `git stash` | ⛔ DANGEROUS | Stashes ALL changes including other agents' work |
-| `git add -A` / `git add .` | ⛔ DANGEROUS | Stages other agents' uncommitted work |
-| `git commit --no-verify` | ⛔ FORBIDDEN | Bypasses required checks, never allowed |
+| Command                    | Danger       | Why Forbidden                                    |
+| -------------------------- | ------------ | ------------------------------------------------ |
+| `git reset --hard`         | ⛔ DESTROYS  | Destroys uncommitted changes                     |
+| `git checkout .`           | ⛔ DESTROYS  | Destroys uncommitted changes                     |
+| `git clean -fd`            | ⛔ DESTROYS  | Deletes untracked files                          |
+| `git stash`                | ⛔ DANGEROUS | Stashes ALL changes including other agents' work |
+| `git add -A` / `git add .` | ⛔ DANGEROUS | Stages other agents' uncommitted work            |
+| `git commit --no-verify`   | ⛔ FORBIDDEN | Bypasses required checks, never allowed          |
 
 **Sources:** [AGENTS.md:204-212]()
 
@@ -195,9 +193,9 @@ flowchart TD
     AskUser["Ask user for guidance"]
     Push["git push"]
     End["Done"]
-    
+
     Forbidden["❌ FORBIDDEN:<br/>- git add -A<br/>- git add .<br/>- git reset --hard<br/>- git checkout .<br/>- git clean -fd<br/>- git stash<br/>- git commit --no-verify"]
-    
+
     Start --> Track
     Track --> Change
     Change --> Check
@@ -214,9 +212,9 @@ flowchart TD
     YourFile -->|"No"| AskUser
     Resolve --> Pull
     Push --> End
-    
+
     Forbidden -.->|"Never use"| Check
-    
+
     style Forbidden fill:#ffcccc,stroke:#cc0000,stroke-width:3px
     style Decision fill:#ffffcc,stroke:#cccc00,stroke-width:2px
     style YourFile fill:#ffffcc,stroke:#cccc00,stroke-width:2px
@@ -337,9 +335,9 @@ flowchart TD
     ClosePR["gh pr close N"]
     Comment["gh pr comment N --body-file response.md"]
     End["Done"]
-    
+
     Skip["Skip PR"]
-    
+
     Issue --> Analyze
     Analyze --> UserReview
     UserReview -->|"No"| Skip
@@ -354,7 +352,7 @@ flowchart TD
     Push --> ClosePR
     ClosePR --> Comment
     Comment --> End
-    
+
     style UserReview fill:#ffffcc,stroke:#cccc00,stroke-width:2px
     style TestCheck fill:#ccffcc,stroke:#00cc00,stroke-width:2px
     style Commit fill:#ccffcc,stroke:#00cc00,stroke-width:2px
@@ -468,13 +466,13 @@ Location: `packages/*/CHANGELOG.md` (each package has its own)
 
 Use these sections under `## [Unreleased]`:
 
-| Section | Purpose |
-|---------|---------|
-| `### Breaking Changes` | API changes requiring migration |
-| `### Added` | New features |
-| `### Changed` | Changes to existing functionality |
-| `### Fixed` | Bug fixes |
-| `### Removed` | Removed features |
+| Section                | Purpose                           |
+| ---------------------- | --------------------------------- |
+| `### Breaking Changes` | API changes requiring migration   |
+| `### Added`            | New features                      |
+| `### Changed`          | Changes to existing functionality |
+| `### Fixed`            | Bug fixes                         |
+| `### Removed`          | Removed features                  |
 
 ### Critical Rules
 
@@ -487,11 +485,13 @@ Use these sections under `## [Unreleased]`:
 ### Attribution Format
 
 **Internal changes (from issues):**
+
 ```markdown
 Fixed foo bar ([#123](https://github.com/badlogic/pi-mono/issues/123))
 ```
 
 **External contributions:**
+
 ```markdown
 Added feature X ([#456](https://github.com/badlogic/pi-mono/pull/456) by [@username](https://github.com/username))
 ```
@@ -513,7 +513,7 @@ flowchart TD
     Verify["Verify entry is under<br/>## [Unreleased]"]
     NoTouch["❌ DO NOT modify<br/>released version sections"]
     Done["Done"]
-    
+
     Start --> ReadUnreleased
     ReadUnreleased --> CheckSections
     CheckSections -->|"Yes"| AppendToSection
@@ -522,9 +522,9 @@ flowchart TD
     CreateSection --> FormatEntry
     FormatEntry --> Verify
     Verify --> Done
-    
+
     NoTouch -.->|"Never touch"| Verify
-    
+
     style NoTouch fill:#ffcccc,stroke:#cc0000,stroke-width:3px
     style Verify fill:#ccffcc,stroke:#00cc00,stroke-width:2px
 ```
@@ -535,17 +535,17 @@ flowchart TD
 
 ## Command Reference Table
 
-| Command | Purpose | When to Use | Restrictions |
-|---------|---------|-------------|--------------|
-| `npm run check` | Lint, format, type check | After any code change | Get full output, fix all errors/warnings/infos |
-| `npm run build` | Build all packages | First-time setup or when explicitly needed | Not for routine development |
-| `npx tsx ../../node_modules/vitest/dist/cli.js --run test/file.test.ts` | Run specific test | When creating/modifying tests | Must run from package root |
-| `gh issue view N --json title,body,comments,labels,state` | Read issue completely | Before working on an issue | Always read all comments |
-| `gh issue comment N --body-file file.md` | Post issue comment | After preparing comment | Preview before posting |
-| `node scripts/oss-weekend.mjs --mode=close --end-date=YYYY-MM-DD --git` | Enable OSS weekend | When user requests | Updates READMEs and config |
-| `git add <specific-files>` | Stage changes | Before commit | ONLY files you modified |
-| `git add -A` / `git add .` | ⛔ FORBIDDEN | Never | Stages other agents' work |
-| `git commit --no-verify` | ⛔ FORBIDDEN | Never | Bypasses required checks |
+| Command                                                                 | Purpose                  | When to Use                                | Restrictions                                   |
+| ----------------------------------------------------------------------- | ------------------------ | ------------------------------------------ | ---------------------------------------------- |
+| `npm run check`                                                         | Lint, format, type check | After any code change                      | Get full output, fix all errors/warnings/infos |
+| `npm run build`                                                         | Build all packages       | First-time setup or when explicitly needed | Not for routine development                    |
+| `npx tsx ../../node_modules/vitest/dist/cli.js --run test/file.test.ts` | Run specific test        | When creating/modifying tests              | Must run from package root                     |
+| `gh issue view N --json title,body,comments,labels,state`               | Read issue completely    | Before working on an issue                 | Always read all comments                       |
+| `gh issue comment N --body-file file.md`                                | Post issue comment       | After preparing comment                    | Preview before posting                         |
+| `node scripts/oss-weekend.mjs --mode=close --end-date=YYYY-MM-DD --git` | Enable OSS weekend       | When user requests                         | Updates READMEs and config                     |
+| `git add <specific-files>`                                              | Stage changes            | Before commit                              | ONLY files you modified                        |
+| `git add -A` / `git add .`                                              | ⛔ FORBIDDEN             | Never                                      | Stages other agents' work                      |
+| `git commit --no-verify`                                                | ⛔ FORBIDDEN             | Never                                      | Bypasses required checks                       |
 
 **Sources:** [AGENTS.md:23-96](), [AGENTS.md:192-232]()
 
@@ -558,9 +558,9 @@ When working on a task, maintain a mental or explicit list of files touched duri
 ```typescript
 // Pattern: Track modifications during session
 interface SessionFiles {
-  created: string[];    // Files you created
-  modified: string[];   // Files you modified
-  deleted: string[];    // Files you deleted
+  created: string[] // Files you created
+  modified: string[] // Files you modified
+  deleted: string[] // Files you deleted
 }
 
 // Before commit:

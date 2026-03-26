@@ -24,13 +24,12 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 This document describes the **ACP (Agent Communication Protocol) integration layer** in AionUi, which enables unified communication with multiple AI coding agents (Claude Code, Qwen Code, Codex, Goose, etc.) through a standardized JSON-RPC protocol over stdio. The ACP layer abstracts backend-specific differences and provides a consistent API for agent lifecycle management, session control, model selection, and permission handling.
 
 **Related documentation:**
+
 - For Gemini's native agent implementation, see [Gemini Agent System](#4.1)
 - For Codex's MCP protocol implementation, see [Codex Agent System](#4.2)
 - For tool execution and MCP server integration, see [MCP Integration](#4.6)
@@ -52,20 +51,20 @@ graph TB
         AGM -->|IPC emit| STREAM[responseStream]
         AGM -->|DB persist| DB[(SQLite)]
     end
-    
+
     subgraph "Agent Layer"
         AGENT[AcpAgent]
         AGENT -->|protocol| CONN
         AGENT -->|transform| ADAPTER[AcpAdapter]
         AGENT -->|permissions| APPROVAL[AcpApprovalStore]
     end
-    
+
     subgraph "Connection Layer"
         CONN[AcpConnection]
         CONN -->|JSON-RPC| CHILD[Child Process]
         CHILD -->|stdio| CLI[CLI Binary]
     end
-    
+
     subgraph "Backend Executables"
         CLI -->|claude| CLAUDE["npx @zed-industries/claude-agent-acp"]
         CLI -->|qwen| QWEN["qwen --acp"]
@@ -73,7 +72,7 @@ graph TB
         CLI -->|codex| CODEX["npx @zed-industries/codex-acp"]
         CLI -->|custom| CUSTOM["user-defined CLI"]
     end
-    
+
     ADAPTER -->|TMessage| STREAM
     STREAM -->|updates UI| RENDERER[Renderer Process]
 ```
@@ -84,22 +83,22 @@ graph TB
 
 AionUi supports 15+ ACP-compatible backends through a unified registry:
 
-| Backend ID | CLI Command | Launch Args | Description |
-|------------|-------------|-------------|-------------|
-| `claude` | `npx @zed-industries/claude-agent-acp` | *(none)* | Claude Code via Zed's ACP bridge |
-| `qwen` | `qwen` / `npx @qwen-code/qwen-code` | `--acp` | Alibaba Qwen Code CLI |
-| `codex` | `npx @zed-industries/codex-acp` | *(none)* | OpenAI Codex via Zed's bridge |
-| `goose` | `goose` | `acp` | Block's Goose CLI (subcommand) |
-| `auggie` | `auggie` | `--acp` | Augment Code CLI |
-| `codebuddy` | `npx @tencent-ai/codebuddy-code` | `--acp` | Tencent CodeBuddy |
-| `droid` | `droid` | `exec --output-format acp` | Factory Droid CLI |
-| `iflow` | `iflow` | `--experimental-acp` | iFlow CLI |
-| `kimi` | `kimi` | `acp` | Moonshot Kimi CLI |
-| `opencode` | `opencode` | `acp` | OpenCode CLI |
-| `copilot` | `copilot` | `--acp --stdio` | GitHub Copilot CLI |
-| `qoder` | `qodercli` | `--acp` | Qoder CLI |
-| `vibe` | `vibe-acp` | *(none)* | Mistral Vibe CLI |
-| `custom` | *(user-defined)* | *(user-defined)* | Custom agent configuration |
+| Backend ID  | CLI Command                            | Launch Args                | Description                      |
+| ----------- | -------------------------------------- | -------------------------- | -------------------------------- |
+| `claude`    | `npx @zed-industries/claude-agent-acp` | _(none)_                   | Claude Code via Zed's ACP bridge |
+| `qwen`      | `qwen` / `npx @qwen-code/qwen-code`    | `--acp`                    | Alibaba Qwen Code CLI            |
+| `codex`     | `npx @zed-industries/codex-acp`        | _(none)_                   | OpenAI Codex via Zed's bridge    |
+| `goose`     | `goose`                                | `acp`                      | Block's Goose CLI (subcommand)   |
+| `auggie`    | `auggie`                               | `--acp`                    | Augment Code CLI                 |
+| `codebuddy` | `npx @tencent-ai/codebuddy-code`       | `--acp`                    | Tencent CodeBuddy                |
+| `droid`     | `droid`                                | `exec --output-format acp` | Factory Droid CLI                |
+| `iflow`     | `iflow`                                | `--experimental-acp`       | iFlow CLI                        |
+| `kimi`      | `kimi`                                 | `acp`                      | Moonshot Kimi CLI                |
+| `opencode`  | `opencode`                             | `acp`                      | OpenCode CLI                     |
+| `copilot`   | `copilot`                              | `--acp --stdio`            | GitHub Copilot CLI               |
+| `qoder`     | `qodercli`                             | `--acp`                    | Qoder CLI                        |
+| `vibe`      | `vibe-acp`                             | _(none)_                   | Mistral Vibe CLI                 |
+| `custom`    | _(user-defined)_                       | _(user-defined)_           | Custom agent configuration       |
 
 **Sources:** [src/types/acpTypes.ts:292-445]()
 
@@ -115,22 +114,22 @@ AionUi supports 15+ ACP-compatible backends through a unified registry:
 sequenceDiagram
     participant App as AcpConnection
     participant CLI as Child Process
-    
+
     Note over App,CLI: Connection Establishment
     App->>CLI: spawn with stdio pipes
     App->>CLI: {"jsonrpc":"2.0","id":1,"method":"initialize"}
     CLI-->>App: {"jsonrpc":"2.0","id":1,"result":{...}}
-    
+
     Note over App,CLI: Session Creation
     App->>CLI: {"jsonrpc":"2.0","id":2,"method":"session/new"}
     CLI-->>App: {"jsonrpc":"2.0","id":2,"result":{"sessionId":"..."}}
-    
+
     Note over App,CLI: Bidirectional Streaming
     App->>CLI: {"jsonrpc":"2.0","id":3,"method":"session/prompt","params":{...}}
     CLI-->>App: {"jsonrpc":"2.0","method":"session/update","params":{...}}
     CLI-->>App: {"jsonrpc":"2.0","method":"session/update","params":{...}}
     CLI-->>App: {"jsonrpc":"2.0","id":3,"result":{"stopReason":"end_turn"}}
-    
+
     Note over App,CLI: Permission Request (Incoming)
     CLI->>App: {"jsonrpc":"2.0","id":4,"method":"request_permission","params":{...}}
     App-->>CLI: {"jsonrpc":"2.0","id":4,"result":{"optionId":"allow_once"}}
@@ -144,17 +143,18 @@ Outgoing requests are tracked in a `Map<number, PendingRequest>` with timeout ma
 
 ```typescript
 interface PendingRequest<T = unknown> {
-  resolve: (value: T) => void;
-  reject: (error: Error) => void;
-  timeoutId?: NodeJS.Timeout;
-  method: string;
-  isPaused: boolean;
-  startTime: number;
-  timeoutDuration: number;
+  resolve: (value: T) => void
+  reject: (error: Error) => void
+  timeoutId?: NodeJS.Timeout
+  method: string
+  isPaused: boolean
+  startTime: number
+  timeoutDuration: number
 }
 ```
 
 Timeouts are adaptive:
+
 - **session/prompt**: 300 seconds (5 minutes) — LLM processing time
 - **Other methods**: 60 seconds (1 minute) — protocol operations
 
@@ -173,7 +173,7 @@ graph LR
     MSG -->|has 'method' field| INCOMING[handleIncomingRequest]
     MSG -->|has 'id' in pending| RESPONSE[Resolve Promise]
     MSG -->|unknown| IGNORE[Ignore]
-    
+
     INCOMING -->|session/update| SESSION[onSessionUpdate callback]
     INCOMING -->|request_permission| PERM[onPermissionRequest callback]
     INCOMING -->|read_text_file| FILEREAD[handleReadOperation]
@@ -192,19 +192,21 @@ The `createGenericSpawnConfig` function provides a universal spawn strategy for 
 
 ```typescript
 export function createGenericSpawnConfig(
-  cliPath: string,        // e.g., 'goose' or 'npx @pkg/cli'
+  cliPath: string, // e.g., 'goose' or 'npx @pkg/cli'
   workingDir: string,
-  acpArgs?: string[],     // e.g., ['acp'] or ['--acp']
+  acpArgs?: string[], // e.g., ['acp'] or ['--acp']
   customEnv?: Record<string, string>
 )
 ```
 
 **Path resolution logic:**
+
 1. If `cliPath` starts with `npx `, split into command + package name
 2. Otherwise, treat as direct binary path
 3. Use `resolveNpxPath(env)` to locate npx on Windows (handles `.cmd` extension)
 
 **Environment preparation:**
+
 - Merge `process.env` with user's shell environment via `getEnhancedEnv()`
 - Strip Node.js debugging vars (`NODE_OPTIONS`, `NODE_DEBUG`, `NODE_INSPECT`)
 - Remove `CLAUDECODE` env var to prevent nested session detection
@@ -249,6 +251,7 @@ private ensureMinNodeVersion(
 ```
 
 **Correction strategy:**
+
 1. Run `node --version` with current env
 2. If too old, call `findSuitableNodeBin(20, 10)` to search common install locations
 3. Prepend suitable bin directory to `PATH`
@@ -261,12 +264,14 @@ If no suitable Node is found, throws descriptive error with upgrade instructions
 ### Platform-Specific Differences
 
 **Windows:**
+
 - Spawn with `shell: true` to handle `.cmd` wrappers for npx
 - Process tree kill uses `taskkill /PID <pid> /T /F` to forcefully terminate all child processes
 - Line endings normalized to `\r\
 ` for stdin writes
 
 **macOS/Linux:**
+
 - Direct binary spawn without shell
 - Detached mode for backends that write to `/dev/tty` (CodeBuddy) to prevent `SIGTTOU` suspension
 - Process group kill via `process.kill(-pid, 'SIGTERM')` for detached processes
@@ -284,17 +289,17 @@ sequenceDiagram
     participant Agent as AcpAgent
     participant Conn as AcpConnection
     participant CLI as Backend CLI
-    
+
     Agent->>Conn: connect(backend, cliPath, workspace)
     Conn->>CLI: spawn process with stdio pipes
     Conn->>CLI: initialize({authMethods:[]})
     CLI-->>Conn: {result:{authMethods:[...]}}
-    
+
     Note over Agent,CLI: Authentication (if required)
     Agent->>Conn: authenticate(method, credentials)
     Conn->>CLI: authenticate(...)
     CLI-->>Conn: {result:{success:true}}
-    
+
     Note over Agent,CLI: Session Creation or Resume
     alt First Session
         Agent->>Conn: createSession(workspace)
@@ -305,7 +310,7 @@ sequenceDiagram
         Conn->>CLI: session/resume({sessionId:...})
         CLI-->>Conn: {result:{sessionId:...}}
     end
-    
+
     Note over Agent: Session Active
     Agent->>Conn: sessionId stored for later use
 ```
@@ -327,6 +332,7 @@ When user sends a message:
    - Add pending skill load content if user requested skill activation
 
 3. **AcpConnection** sends JSON-RPC request:
+
    ```json
    {
      "jsonrpc": "2.0",
@@ -355,18 +361,19 @@ private handleProcessExit(code: number | null, signal: NodeJS.Signals | null): v
   for (const [_id, request] of this.pendingRequests) {
     request.reject(new Error(`ACP process exited (code: ${code}, signal: ${signal})`));
   }
-  
+
   // 2. Clear connection state
   this.sessionId = null;
   this.isInitialized = false;
   this.child = null;
-  
+
   // 3. Notify AcpAgent via onDisconnect callback
   this.onDisconnect({ code, signal });
 }
 ```
 
 **Auto-reconnect** logic in `AcpAgent.sendMessage`:
+
 - Detects `!this.connection.isConnected || !this.connection.hasActiveSession`
 - Calls `this.start()` to rebuild connection and session
 - Retries message send after successful reconnection
@@ -383,25 +390,25 @@ All supported backends are defined in `ACP_BACKENDS_ALL` with metadata:
 
 ```typescript
 export interface AcpBackendConfig {
-  id: string;                    // Unique identifier ('claude', 'qwen', etc.)
-  name: string;                  // Display name
-  cliCommand?: string;           // Binary name for 'which' detection
-  defaultCliPath?: string;       // Full spawn path (may include args)
-  authRequired?: boolean;        // Authentication needed?
-  enabled?: boolean;             // Show in UI?
-  acpArgs?: string[];            // Args to enable ACP mode
-  env?: Record<string, string>;  // Custom environment variables
+  id: string // Unique identifier ('claude', 'qwen', etc.)
+  name: string // Display name
+  cliCommand?: string // Binary name for 'which' detection
+  defaultCliPath?: string // Full spawn path (may include args)
+  authRequired?: boolean // Authentication needed?
+  enabled?: boolean // Show in UI?
+  acpArgs?: string[] // Args to enable ACP mode
+  env?: Record<string, string> // Custom environment variables
 }
 ```
 
 **Backend categories:**
 
-| Category | Backends | Characteristics |
-|----------|----------|-----------------|
-| **NPX Packages** | claude, codex, codebuddy | Installed on-demand from npm registry |
-| **Global CLIs** | qwen, goose, auggie, kimi, opencode | Installed via package manager or binary |
-| **Specialized** | droid, copilot, qoder, vibe | Specific launch conventions |
-| **User-Defined** | custom | Configured via settings UI |
+| Category         | Backends                            | Characteristics                         |
+| ---------------- | ----------------------------------- | --------------------------------------- |
+| **NPX Packages** | claude, codex, codebuddy            | Installed on-demand from npm registry   |
+| **Global CLIs**  | qwen, goose, auggie, kimi, opencode | Installed via package manager or binary |
+| **Specialized**  | droid, copilot, qoder, vibe         | Specific launch conventions             |
+| **User-Defined** | custom                              | Configured via settings UI              |
 
 **Sources:** [src/types/acpTypes.ts:150-289](), [src/types/acpTypes.ts:292-445]()
 
@@ -413,22 +420,23 @@ The `AcpDetector` class scans for installed backends:
 graph TB
     START[AcpDetector.init] -->|startup| DETECT[detectAgents]
     DETECT -->|iterate| BACKENDS[ACP_BACKENDS_ALL]
-    
+
     BACKENDS -->|for each enabled| CHECK{Backend Type?}
     CHECK -->|cliCommand defined| WHICH[which cliCommand]
     CHECK -->|no cliCommand| SKIP[Skip detection]
-    
+
     WHICH -->|found| FOUND[Add to detected agents]
     WHICH -->|not found| NOTFOUND[Not available]
-    
+
     CUSTOM[Load acp.customAgents config] -->|validate| CHECKCUSTOM{CLI accessible?}
     CHECKCUSTOM -->|yes| FOUND
     CHECKCUSTOM -->|no| NOTFOUND
-    
+
     FOUND -->|store| CACHE[detectedAgents cache]
 ```
 
 **Detection optimizations:**
+
 - Run once at startup, cache results in memory
 - Manual refresh via `refreshCustomAgents()` when config changes
 - Skip backends without `cliCommand` (e.g., custom agents rely on config)
@@ -440,6 +448,7 @@ graph TB
 Each backend family has unique spawn requirements:
 
 **Claude/CodeBuddy/Codex (NPX):**
+
 ```typescript
 await this.spawnAndSetupNpxBackend(
   'claude',
@@ -453,25 +462,27 @@ await this.spawnAndSetupNpxBackend(
 ```
 
 **Goose (Subcommand):**
+
 ```typescript
 await this.connectGenericBackend(
   'goose',
-  'goose',        // cliPath
+  'goose', // cliPath
   workingDir,
-  ['acp'],        // acpArgs: subcommand, not flag
+  ['acp'], // acpArgs: subcommand, not flag
   customEnv
-);
+)
 ```
 
 **Droid (Multi-arg):**
+
 ```typescript
 await this.connectGenericBackend(
   'droid',
   'droid',
   workingDir,
-  ['exec', '--output-format', 'acp'],  // 3 args required
+  ['exec', '--output-format', 'acp'], // 3 args required
   customEnv
-);
+)
 ```
 
 **Sources:** [src/agent/acp/AcpConnection.ts:222-333](), [src/agent/acp/AcpConnection.ts:335-363]()
@@ -485,6 +496,7 @@ await this.connectGenericBackend(
 ACP backends expose model configuration through two incompatible APIs:
 
 **ConfigOptions API (Preferred):**
+
 ```json
 {
   "configOptions": [
@@ -494,8 +506,8 @@ ACP backends expose model configuration through two incompatible APIs:
       "type": "select",
       "currentValue": "claude-sonnet-4-6",
       "options": [
-        {"value": "claude-sonnet-4-6", "name": "Claude Sonnet 4"},
-        {"value": "claude-haiku-4", "name": "Claude Haiku 4"}
+        { "value": "claude-sonnet-4-6", "name": "Claude Sonnet 4" },
+        { "value": "claude-haiku-4", "name": "Claude Haiku 4" }
       ]
     }
   ]
@@ -503,12 +515,13 @@ ACP backends expose model configuration through two incompatible APIs:
 ```
 
 **Models API (Unstable):**
+
 ```json
 {
   "currentModelId": "gpt-4o",
   "availableModels": [
-    {"id": "gpt-4o", "name": "GPT-4o"},
-    {"id": "gpt-4", "name": "GPT-4"}
+    { "id": "gpt-4o", "name": "GPT-4o" },
+    { "id": "gpt-4", "name": "GPT-4" }
   ]
 }
 ```
@@ -531,7 +544,7 @@ export function buildAcpModelInfo(
       canSwitch: true
     };
   }
-  
+
   // Fallback to models API
   if (models) {
     return {
@@ -541,7 +554,7 @@ export function buildAcpModelInfo(
       canSwitch: true
     };
   }
-  
+
   return null;
 }
 ```
@@ -556,10 +569,10 @@ sequenceDiagram
     participant Agent as AcpAgent
     participant Conn as AcpConnection
     participant CLI as Backend CLI
-    
+
     UI->>Agent: setModelByConfigOption(modelId)
     Agent->>Agent: Store userModelOverride = modelId
-    
+
     alt ConfigOptions API
         Agent->>Conn: setModel(modelId)
         Conn->>CLI: session/set_model({model:modelId})
@@ -569,10 +582,10 @@ sequenceDiagram
         Conn->>CLI: session/set_config_option({...})
         CLI-->>Conn: Returns updated configOptions
     end
-    
+
     Note over Agent: Queue model switch notice for next prompt
     Agent->>Agent: pendingModelSwitchNotice = modelId
-    
+
     Note over Agent: On next sendMessage
     Agent->>Agent: Prepend model switch notice to prompt
     Agent->>Conn: sendPrompt(enhanced content)
@@ -615,13 +628,13 @@ sequenceDiagram
     participant Conn as AcpConnection
     participant Agent as AcpAgent
     participant UI as Frontend
-    
+
     CLI->>Conn: request_permission (JSON-RPC request)
     Conn->>Conn: pauseSessionPromptTimeouts()
     Conn->>Agent: onPermissionRequest callback
-    
+
     Agent->>Agent: Check ApprovalStore for cached decision
-    
+
     alt Cached "always allow"
         Agent-->>Conn: {optionId: "allow_always"}
     else No cache or user interaction needed
@@ -629,7 +642,7 @@ sequenceDiagram
         UI-->>Agent: User clicks option
         Agent-->>Conn: {optionId: user_choice}
     end
-    
+
     Conn->>Conn: resumeSessionPromptTimeouts()
     Conn->>CLI: Response with {outcome:{outcome:..., optionId:...}}
 ```
@@ -645,38 +658,40 @@ The `AcpApprovalStore` class provides "always allow" memory within a session:
 
 ```typescript
 export function createAcpApprovalKey(request: {
-  kind?: string;
-  title?: string;
-  rawInput?: Record<string, unknown>;
+  kind?: string
+  title?: string
+  rawInput?: Record<string, unknown>
 }): string {
   const parts = [
     request.kind || '',
     request.title || '',
     // Serialize rawInput for fine-grained matching
-    JSON.stringify(request.rawInput || {})
-  ];
-  return parts.join('|');
+    JSON.stringify(request.rawInput || {}),
+  ]
+  return parts.join('|')
 }
 ```
 
 **Approval decision storage:**
+
 ```typescript
 if (data.confirmKey === 'allow_always') {
   const approvalKey = createAcpApprovalKey({
     kind: meta.kind,
     title: meta.title,
-    rawInput: meta.rawInput
-  });
-  this.approvalStore.put(approvalKey, 'allow_always');
+    rawInput: meta.rawInput,
+  })
+  this.approvalStore.put(approvalKey, 'allow_always')
 }
 ```
 
 **Auto-approval check:**
+
 ```typescript
-const cached = this.approvalStore.get(approvalKey);
+const cached = this.approvalStore.get(approvalKey)
 if (cached === 'allow_always') {
   // Skip UI, auto-respond to CLI
-  return { optionId: 'allow_always' };
+  return { optionId: 'allow_always' }
 }
 ```
 
@@ -691,18 +706,19 @@ For cron jobs and trusted workflows, YOLO mode bypasses all permission prompts:
 ```typescript
 if (this.extra.yoloMode) {
   const yoloModeMap: Partial<Record<AcpBackend, string>> = {
-    claude: CLAUDE_YOLO_SESSION_MODE,        // "bypassPermissions"
-    qwen: QWEN_YOLO_SESSION_MODE,            // "yolo"
-    iflow: IFLOW_YOLO_SESSION_MODE           // "yolo"
-  };
-  const sessionMode = yoloModeMap[this.extra.backend];
+    claude: CLAUDE_YOLO_SESSION_MODE, // "bypassPermissions"
+    qwen: QWEN_YOLO_SESSION_MODE, // "yolo"
+    iflow: IFLOW_YOLO_SESSION_MODE, // "yolo"
+  }
+  const sessionMode = yoloModeMap[this.extra.backend]
   if (sessionMode) {
-    await this.connection.setSessionMode(sessionMode);
+    await this.connection.setSessionMode(sessionMode)
   }
 }
 ```
 
 **Mode values:**
+
 - `"bypassPermissions"` — Claude-specific
 - `"yolo"` — Generic auto-approve mode
 
@@ -721,19 +737,19 @@ The `AcpAdapter` class converts raw ACP protocol messages into AionUi's `TMessag
 ```mermaid
 graph TB
     STREAM[session/update notification] -->|AcpSessionUpdate| ADAPTER[AcpAdapter.convertSessionUpdate]
-    
+
     ADAPTER -->|agent_message_chunk| CHUNK[convertSessionUpdateChunk]
     ADAPTER -->|agent_thought_chunk| THOUGHT[convertThoughtChunk]
     ADAPTER -->|tool_call| TOOLCALL[createOrUpdateAcpToolCall]
     ADAPTER -->|tool_call_update| TOOLUPDATE[updateAcpToolCall]
     ADAPTER -->|plan| PLAN[convertPlanUpdate]
-    
+
     CHUNK -->|TMessage| TEXT[IMessageText]
     THOUGHT -->|TMessage| TIPS[IMessageTips]
     TOOLCALL -->|TMessage| ACPTOOL[IMessageAcpToolCall]
     TOOLUPDATE -->|TMessage| ACPTOOL
     PLAN -->|TMessage| PLANMSG[IMessagePlan]
-    
+
     TEXT -->|transformMessage| DB[(Database)]
     TIPS -->|transformMessage| DB
     ACPTOOL -->|transformMessage| DB
@@ -749,7 +765,7 @@ For `agent_message_chunk` updates, the adapter maintains consistent `msg_id` acr
 ```typescript
 private convertSessionUpdateChunk(update: AgentMessageChunkUpdate['update']): TMessage | null {
   const msgId = this.getCurrentMessageId();  // Stable across chunks
-  
+
   return {
     id: uuid(),              // Unique per chunk (for deduplication)
     msg_id: msgId,           // Shared across chunks (for accumulation)
@@ -772,7 +788,7 @@ Tool calls are tracked in a `Map<string, IMessageAcpToolCall>` to handle increme
 private createOrUpdateAcpToolCall(update: ToolCallUpdate): IMessageAcpToolCall {
   const toolCallId = update.update.toolCallId;
   const existing = this.activeToolCalls.get(toolCallId);
-  
+
   if (existing) {
     // Update existing tool call
     const updatedContent = {
@@ -782,7 +798,7 @@ private createOrUpdateAcpToolCall(update: ToolCallUpdate): IMessageAcpToolCall {
     existing.content = updatedContent;
     return existing;
   }
-  
+
   // Create new tool call message
   const message: IMessageAcpToolCall = {
     id: uuid(),
@@ -791,7 +807,7 @@ private createOrUpdateAcpToolCall(update: ToolCallUpdate): IMessageAcpToolCall {
     type: 'acp_tool_call',
     content: {...}
   };
-  
+
   this.activeToolCalls.set(toolCallId, message);
   return message;
 }
@@ -810,18 +826,26 @@ Stale npm cache manifests as `notarget` or version mismatch errors when upgradin
 ```typescript
 // In connect() method
 try {
-  await this.doConnect(backend, cliPath, workingDir, acpArgs, customEnv);
+  await this.doConnect(backend, cliPath, workingDir, acpArgs, customEnv)
 } catch (error) {
-  const errMsg = error instanceof Error ? error.message : String(error);
-  
-  if (AcpConnection.NPX_BACKENDS.has(backend) && /notarget|no matching version/i.test(errMsg)) {
-    console.warn(`[ACP] Detected stale npm cache for ${backend}, cleaning and retrying...`);
-    
-    const cleanEnv = this.prepareNpxEnv();
-    const npmPath = resolveNpxPath(cleanEnv).replace(/npx$/, 'npm');
-    await execFile(npmPath, ['cache', 'clean', '--force'], {env: cleanEnv, timeout: 30000});
-    
-    await this.doConnect(backend, cliPath, workingDir, acpArgs, customEnv);
+  const errMsg = error instanceof Error ? error.message : String(error)
+
+  if (
+    AcpConnection.NPX_BACKENDS.has(backend) &&
+    /notarget|no matching version/i.test(errMsg)
+  ) {
+    console.warn(
+      `[ACP] Detected stale npm cache for ${backend}, cleaning and retrying...`
+    )
+
+    const cleanEnv = this.prepareNpxEnv()
+    const npmPath = resolveNpxPath(cleanEnv).replace(/npx$/, 'npm')
+    await execFile(npmPath, ['cache', 'clean', '--force'], {
+      env: cleanEnv,
+      timeout: 30000,
+    })
+
+    await this.doConnect(backend, cliPath, workingDir, acpArgs, customEnv)
   }
 }
 ```
@@ -834,29 +858,32 @@ If cache contains incomplete package installations (e.g., missing transitive dep
 ### Retry Logic and Timeouts
 
 **Request timeouts:**
+
 - Default: 60 seconds
 - `session/prompt`: 300 seconds (LLM processing)
 - Dynamic reset: timeout timer resets on every `session/update` chunk to prevent spurious failures during long-running tasks
 
 **Auto-reconnect:**
+
 - Detects disconnected state in `sendMessage()`
 - Calls `this.start()` to rebuild connection + session
 - Retries message send after successful reconnection
 
 **Error classification:**
+
 ```typescript
-let errorType: AcpErrorType = AcpErrorType.UNKNOWN;
-let retryable = false;
+let errorType: AcpErrorType = AcpErrorType.UNKNOWN
+let retryable = false
 
 if (errorMsg.includes('authentication')) {
-  errorType = AcpErrorType.AUTHENTICATION_FAILED;
-  retryable = false;
+  errorType = AcpErrorType.AUTHENTICATION_FAILED
+  retryable = false
 } else if (errorMsg.includes('timeout')) {
-  errorType = AcpErrorType.TIMEOUT;
-  retryable = true;
+  errorType = AcpErrorType.TIMEOUT
+  retryable = true
 } else if (errorMsg.includes('connection')) {
-  errorType = AcpErrorType.NETWORK_ERROR;
-  retryable = true;
+  errorType = AcpErrorType.NETWORK_ERROR
+  retryable = true
 }
 ```
 
@@ -895,7 +922,7 @@ stateDiagram-v2
     Running --> Error: fatal error
     Error --> [*]: stop
     Finished --> [*]: stop
-    
+
     note right of Initializing
         - initAgent()
         - Read acp.config
@@ -903,7 +930,7 @@ stateDiagram-v2
         - agent.start()
         - Re-apply persisted mode/model
     end note
-    
+
     note right of Running
         - cronBusyGuard.setProcessing(true)
         - agent.sendMessage()
@@ -939,22 +966,23 @@ The manager emits events to the renderer via `ipcBridge.acpConversation.response
 ```typescript
 onStreamEvent: (message) => {
   // 1. Transform ACP message to TMessage
-  const tMessage = transformMessage(message as IResponseMessage);
-  
+  const tMessage = transformMessage(message as IResponseMessage)
+
   // 2. Persist to database
   if (tMessage) {
-    addOrUpdateMessage(message.conversation_id, tMessage, data.backend);
+    addOrUpdateMessage(message.conversation_id, tMessage, data.backend)
   }
-  
+
   // 3. Emit to IPC stream for UI update
-  ipcBridge.acpConversation.responseStream.emit(filteredMessage);
-  
+  ipcBridge.acpConversation.responseStream.emit(filteredMessage)
+
   // 4. Also emit to Channel event bus (Telegram/Lark)
-  channelEventBus.emitAgentMessage(this.conversation_id, filteredMessage);
+  channelEventBus.emitAgentMessage(this.conversation_id, filteredMessage)
 }
 ```
 
 **Signal-only events** (via `onSignalEvent`) bypass UI persistence:
+
 - `acp_permission` — Show confirmation dialog
 - `finish` — Clear busy guard
 - Cron command processing results

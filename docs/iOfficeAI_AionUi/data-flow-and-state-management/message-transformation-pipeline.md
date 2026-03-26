@@ -32,8 +32,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 ## Purpose and Scope
 
 The Message Transformation Pipeline converts agent-specific message formats (Gemini, Codex, ACP) into the unified `TMessage` format for consistent UI rendering. The pipeline has four stages:
@@ -65,7 +63,7 @@ graph TB
         ProcessGemini["processGeminiStreamEvents()<br/>src/agent/gemini/utils.ts:67-290"]
         CodexProc["CodexMessageProcessor<br/>src/agent/codex/messaging/CodexMessageProcessor.ts"]
         AcpAdapt["AcpAdapter.convertSessionUpdate()<br/>src/agent/acp/AcpAdapter.ts:47-149"]
-        
+
         ThinkStrip1["stripThinkTags() inline<br/>Gemini only"]
     end
 
@@ -73,7 +71,7 @@ graph TB
         GeminiMgr["GeminiAgentManager.on('gemini.message')<br/>src/process/task/GeminiAgentManager.ts:358-399"]
         CodexMgr["CodexAgentManager.emitAndPersistMessage()<br/>src/process/task/CodexAgentManager.ts"]
         AcpMgr["AcpAgentManager.onStreamEvent<br/>src/process/task/AcpAgentManager.ts:121-149"]
-        
+
         Transform["transformMessage()<br/>src/common/chatLib.ts:310-400"]
     end
 
@@ -96,27 +94,27 @@ graph TB
     GeminiClient --> ProcessGemini
     CodexConn --> CodexProc
     AcpConn --> AcpAdapt
-    
+
     ProcessGemini --> ThinkStrip1
     ThinkStrip1 --> GeminiMgr
     CodexProc --> CodexMgr
     AcpAdapt --> AcpMgr
-    
+
     GeminiMgr --> Transform
     CodexMgr --> Transform
     AcpMgr --> Transform
-    
+
     Transform --> AddOrUpdate
     AddOrUpdate --> ConvDB
     ConvDB --> ComposeMsg
     ConvDB --> StreamBuf
     ComposeMsg --> SQLite
     StreamBuf --> SQLite
-    
+
     GeminiMgr --> IPCBridge
     CodexMgr --> IPCBridge
     AcpMgr --> IPCBridge
-    
+
     IPCBridge --> UseAddUpdate
     UseAddUpdate --> ComposeIdx
     ComposeIdx --> ThinkStrip2
@@ -131,20 +129,21 @@ Sources: [src/agent/gemini/utils.ts:67-290](), [src/agent/codex/messaging/CodexM
 
 The system defines a discriminated union type `TMessage` representing all possible message types:
 
-| Message Type | Purpose | Position | Persistence |
-|-------------|---------|----------|-------------|
-| `IMessageText` | Text content from user or agent | `left` or `right` | Yes |
-| `IMessageTips` | System notifications, errors, warnings | `center` or `pop` | Yes |
-| `IMessageToolCall` | Gemini tool execution status | `left` | Yes |
-| `IMessageToolGroup` | Gemini tool group with confirmations | - | Yes |
-| `IMessageAgentStatus` | Agent connection/session status | `center` | Yes |
-| `IMessageAcpPermission` | ACP permission requests | `left` | Yes |
-| `IMessageAcpToolCall` | ACP tool call updates | `left` | Yes |
-| `IMessageCodexPermission` | Codex permission requests | `left` | Yes |
-| `IMessageCodexToolCall` | Codex tool call updates | `left` | Yes |
-| `IMessagePlan` | ACP plan entries | `left` | Yes |
+| Message Type              | Purpose                                | Position          | Persistence |
+| ------------------------- | -------------------------------------- | ----------------- | ----------- |
+| `IMessageText`            | Text content from user or agent        | `left` or `right` | Yes         |
+| `IMessageTips`            | System notifications, errors, warnings | `center` or `pop` | Yes         |
+| `IMessageToolCall`        | Gemini tool execution status           | `left`            | Yes         |
+| `IMessageToolGroup`       | Gemini tool group with confirmations   | -                 | Yes         |
+| `IMessageAgentStatus`     | Agent connection/session status        | `center`          | Yes         |
+| `IMessageAcpPermission`   | ACP permission requests                | `left`            | Yes         |
+| `IMessageAcpToolCall`     | ACP tool call updates                  | `left`            | Yes         |
+| `IMessageCodexPermission` | Codex permission requests              | `left`            | Yes         |
+| `IMessageCodexToolCall`   | Codex tool call updates                | `left`            | Yes         |
+| `IMessagePlan`            | ACP plan entries                       | `left`            | Yes         |
 
 All message types share these common fields:
+
 - `id`: Unique identifier for deduplication
 - `msg_id`: Shared identifier for message accumulation
 - `conversation_id`: Parent conversation reference
@@ -167,9 +166,9 @@ The `transformMessage()` function is the central transformation point, convertin
 ```mermaid
 graph TD
     Input["IResponseMessage<br/>{type: string, data: unknown, msg_id: string}"]
-    
+
     Switch{"message.type"}
-    
+
     Error["'error'"]
     Content["'content'"]
     UserContent["'user_content'"]
@@ -183,7 +182,7 @@ graph TD
     PlanMsg["'plan'"]
     Skip["'start' | 'finish'<br/>'thought' | 'system'"]
     Default["default case"]
-    
+
     IMessageTips["IMessageTips<br/>type: 'tips'<br/>content.type: 'error'<br/>position: 'center'"]
     IMessageTextL["IMessageText<br/>type: 'text'<br/>position: 'left'"]
     IMessageTextR["IMessageText<br/>type: 'text'<br/>position: 'right'"]
@@ -195,12 +194,12 @@ graph TD
     IMessageCodexPermission["IMessageCodexPermission<br/>type: 'codex_permission'"]
     IMessageCodexToolCall["IMessageCodexToolCall<br/>type: 'codex_tool_call'<br/>content.toolCallId"]
     IMessagePlan["IMessagePlan<br/>type: 'plan'<br/>content.sessionId"]
-    
+
     Undefined["undefined<br/>(transient UI state)"]
     ThrowError["throw Error<br/>'Unsupported message type'"]
-    
+
     Input --> Switch
-    
+
     Switch --> Error
     Switch --> Content
     Switch --> UserContent
@@ -214,7 +213,7 @@ graph TD
     Switch --> PlanMsg
     Switch --> Skip
     Switch --> Default
-    
+
     Error --> IMessageTips
     Content --> IMessageTextL
     UserContent --> IMessageTextR
@@ -231,6 +230,7 @@ graph TD
 ```
 
 **Key transformations:**
+
 - `error` → `IMessageTips` with `type: 'error'`, positioned `center`
 - `content` → `IMessageText` with `position: 'left'` (agent message)
 - `user_content` → `IMessageText` with `position: 'right'` (user message)
@@ -248,16 +248,16 @@ graph TD
 
 `processGeminiStreamEvents()` at [src/agent/gemini/utils.ts:67-290]() processes `AsyncIterable<ServerGeminiStreamEvent>` from `geminiClient.sendMessageStream()`:
 
-| Input Event | Output Event | Processing |
-|---|---|---|
-| `Thought` | `thought` | Reasoning display |
-| `Content` | `content` | **Think-tag filtering inline**: `stripThinkTags()` at [src/agent/gemini/utils.ts:98-149]() |
-| `inline_data` | `content` | Image saved to workspace, markdown path emitted |
-| `ToolCallRequest` | `tool_call_request` | Forwarded to `CoreToolScheduler` |
-| `Error` | `error` | Parsed via `parseAndFormatApiError()` |
-| `Finished` | `finished` | Token usage stats |
-| `InvalidStream` | `invalid_stream` | Triggers retry logic |
-| `UserCancelled`, etc. | _(skipped)_ | Not forwarded |
+| Input Event           | Output Event        | Processing                                                                                 |
+| --------------------- | ------------------- | ------------------------------------------------------------------------------------------ |
+| `Thought`             | `thought`           | Reasoning display                                                                          |
+| `Content`             | `content`           | **Think-tag filtering inline**: `stripThinkTags()` at [src/agent/gemini/utils.ts:98-149]() |
+| `inline_data`         | `content`           | Image saved to workspace, markdown path emitted                                            |
+| `ToolCallRequest`     | `tool_call_request` | Forwarded to `CoreToolScheduler`                                                           |
+| `Error`               | `error`             | Parsed via `parseAndFormatApiError()`                                                      |
+| `Finished`            | `finished`          | Token usage stats                                                                          |
+| `InvalidStream`       | `invalid_stream`    | Triggers retry logic                                                                       |
+| `UserCancelled`, etc. | _(skipped)_         | Not forwarded                                                                              |
 
 `StreamMonitor` at [src/agent/gemini/utils.ts:69-82]() tracks heartbeat timeouts.
 
@@ -272,19 +272,19 @@ sequenceDiagram
     participant IPCBridge["ipcBridge.responseStream"]
 
     ProcessStream->>GeminiMgr: "onStreamEvent({type, data, msg_id})"
-    
+
     alt "type in ['thought','finished','start','finish']"
         GeminiMgr->>GeminiMgr: "skip transformation"
     else "persistent type"
         GeminiMgr->>Transform: "transformMessage(data)"
         Transform-->>GeminiMgr: "TMessage"
         GeminiMgr->>AddOrUpdate: "(conversation_id, tMessage)"
-        
+
         alt "tMessage.type === 'tool_group'"
             GeminiMgr->>GeminiMgr: "handleConformationMessage()"
         end
     end
-    
+
     GeminiMgr->>IPCBridge: "emit(data)"
 ```
 
@@ -305,19 +305,19 @@ sequenceDiagram
 
     CodexConn->>EventHandler: "CodexJsonRpcEvent"
     EventHandler->>MsgProc: "processCodexEvent(msg)"
-    
+
     alt "agent_message_delta"
         MsgProc->>CodexMgr: "emitAndPersistMessage(deltaMsg, false)"
         CodexMgr->>IPCBridge: "emit({type:'content', data:delta})"
         Note right of CodexMgr: NOT persisted<br/>Frontend accumulates
     end
-    
+
     alt "agent_message (final)"
         MsgProc->>MsgProc: "Build TMessage<br/>status='finish'"
         MsgProc->>CodexMgr: "persistMessage(tMessage)"
         CodexMgr->>AddMsg: "(conversation_id, tMessage)"
         Note right of CodexMgr: Persisted<br/>NOT emitted
-        
+
         alt "hasCronCommands(text)"
             MsgProc->>MsgProc: "processCronInMessage()"
             MsgProc->>CodexMgr: "sendMessageToAgent(feedback)"
@@ -326,6 +326,7 @@ sequenceDiagram
 ```
 
 **Key Methods:**
+
 - `processMessageDelta()` at [src/agent/codex/messaging/CodexMessageProcessor.ts:82-93](): emits deltas with fixed `currentLoadingId`
 - `processFinalMessage()` at [src/agent/codex/messaging/CodexMessageProcessor.ts:95-137](): persists complete message, processes cron commands
 
@@ -347,32 +348,32 @@ sequenceDiagram
 
     AcpConn->>AcpAgent: "onSessionUpdate(AcpSessionUpdate)"
     AcpAgent->>AcpAdapter: "convertSessionUpdate(update)"
-    
+
     AcpAdapter->>AcpAdapter: "switch(update.sessionUpdate)"
-    
+
     alt "agent_message_chunk"
         AcpAdapter->>AcpAdapter: "convertSessionUpdateChunk()<br/>use getCurrentMessageId()"
         AcpAdapter-->>AcpAgent: "IMessageText chunk"
     end
-    
+
     alt "agent_thought_chunk"
         AcpAdapter->>AcpAdapter: "convertThoughtChunk()"
         AcpAdapter->>AcpAdapter: "resetMessageTracking()"
         AcpAdapter-->>AcpAgent: "IMessageTips"
     end
-    
+
     alt "tool_call"
         AcpAdapter->>AcpAdapter: "createOrUpdateAcpToolCall()"
         AcpAdapter->>AcpAdapter: "resetMessageTracking()"
         AcpAdapter-->>AcpAgent: "IMessageAcpToolCall"
     end
-    
+
     alt "plan"
         AcpAdapter->>AcpAdapter: "convertPlanUpdate()"
         AcpAdapter->>AcpAdapter: "resetMessageTracking()"
         AcpAdapter-->>AcpAgent: "IMessagePlan"
     end
-    
+
     AcpAgent->>AcpMgr: "onStreamEvent(message)"
     AcpMgr->>Transform: "transformMessage(message)"
     Transform-->>AcpMgr: "TMessage"
@@ -381,6 +382,7 @@ sequenceDiagram
 ```
 
 **Key Methods:**
+
 - `convertSessionUpdate()` at [src/agent/acp/AcpAdapter.ts:47-149](): dispatches on `update.sessionUpdate` type
 - `getCurrentMessageId()` at [src/agent/acp/AcpAdapter.ts:38-42](): maintains consistent `msg_id` for chunk accumulation
 - `resetMessageTracking()` at [src/agent/acp/AcpAdapter.ts:29-31](): creates new `msg_id` after non-text events
@@ -397,9 +399,9 @@ The `composeMessage()` function handles intelligent message merging for streamin
 graph TB
     NewMsg["New TMessage"]
     ExistingList["Existing Message List"]
-    
+
     CheckType{"message.type"}
-    
+
     ToolGroup["type: 'tool_group'"]
     ToolCall["type: 'tool_call'"]
     CodexToolCall["type: 'codex_tool_call'"]
@@ -407,16 +409,16 @@ graph TB
     Plan["type: 'plan'"]
     Text["type: 'text'"]
     Other["Other types"]
-    
+
     MergeByCallId["Find existing by callId<br/>Merge tool content"]
     MergeByToolCallId["Find existing by toolCallId<br/>Merge tool status"]
     MergeBySessionId["Find existing by sessionId<br/>Merge plan entries"]
     AccumulateText["Same msg_id?<br/>Accumulate text content"]
     PushNew["Push as new message"]
-    
+
     NewMsg --> CheckType
     ExistingList --> CheckType
-    
+
     CheckType --> ToolGroup
     CheckType --> ToolCall
     CheckType --> CodexToolCall
@@ -424,7 +426,7 @@ graph TB
     CheckType --> Plan
     CheckType --> Text
     CheckType --> Other
-    
+
     ToolGroup --> MergeByCallId
     ToolCall --> MergeByCallId
     CodexToolCall --> MergeByToolCallId
@@ -432,7 +434,7 @@ graph TB
     Plan --> MergeBySessionId
     Text --> AccumulateText
     Other --> PushNew
-    
+
     MergeByCallId --> UpdateMsg["updateMessage(index, merged)"]
     MergeByToolCallId --> UpdateMsg
     MergeBySessionId --> UpdateMsg
@@ -443,22 +445,26 @@ graph TB
 ### Merging Rules
 
 **Tool Group Merging:**
+
 - Iterates through existing `tool_group` messages
 - Matches tools by `callId`
 - Merges tool content: `{...oldTool, ...newTool}`
 - Creates new tool group if no existing tools matched
 
 **Tool Call Merging:**
+
 - For Gemini `tool_call`: matches by `content.callId`
 - For Codex `codex_tool_call`: matches by `content.toolCallId`
 - For ACP `acp_tool_call`: matches by `content.update.toolCallId`
 - Merges content while preserving structure
 
 **Plan Merging:**
+
 - Matches by `content.sessionId`
 - Merges plan entries: `{...oldContent, ...newContent}`
 
 **Text Accumulation:**
+
 - Checks if `last.msg_id === message.msg_id` and `last.type === message.type`
 - Accumulates: `message.content.content = last.content.content + message.content.content`
 - Updates last message in place
@@ -506,14 +512,14 @@ MessageIndex {
 
 **Message merge dispatch in `composeMessageWithIndex`:**
 
-| `message.type` | Lookup key | Merge behaviour |
-|---|---|---|
-| `tool_group` | _(falls through to `composeMessage`)_ | Rebuilds index after merge |
-| `tool_call` | `callIdIndex` by `content.callId` | Merges `{...old.content, ...new.content}` |
-| `codex_tool_call` | `toolCallIdIndex` by `content.toolCallId` | Merges content |
-| `acp_tool_call` | `toolCallIdIndex` by `content.update.toolCallId` | Merges content |
-| `text` | `msgIdIndex` by `msg_id` | Appends `content.content` (streaming accumulation) |
-| other | `msg_id` + `type` check on last message | Replace or push new |
+| `message.type`    | Lookup key                                       | Merge behaviour                                    |
+| ----------------- | ------------------------------------------------ | -------------------------------------------------- |
+| `tool_group`      | _(falls through to `composeMessage`)_            | Rebuilds index after merge                         |
+| `tool_call`       | `callIdIndex` by `content.callId`                | Merges `{...old.content, ...new.content}`          |
+| `codex_tool_call` | `toolCallIdIndex` by `content.toolCallId`        | Merges content                                     |
+| `acp_tool_call`   | `toolCallIdIndex` by `content.update.toolCallId` | Merges content                                     |
+| `text`            | `msgIdIndex` by `msg_id`                         | Appends `content.content` (streaming accumulation) |
+| other             | `msg_id` + `type` check on last message          | Replace or push new                                |
 
 Sources: [src/renderer/messages/hooks.ts:17-262]()
 
@@ -530,40 +536,40 @@ Sources: [src/renderer/messages/hooks.ts:17-262]()
 ```mermaid
 graph TD
     AddOrUpdate["addOrUpdateMessage(conversation_id, tMessage)<br/>src/process/message.ts:118"]
-    
+
     ConvDB["ConversationManageWithDB.get(conversation_id)<br/>Cache: Map&lt;string, ConversationManageWithDB&gt;"]
-    
+
     Sync["sync(type: 'insert'|'accumulate', message)<br/>src/process/message.ts:32"]
-    
+
     StackPush["stack.push([type, TMessage])<br/>Per-conversation operation queue"]
-    
+
     TypeCheck{"type === 'insert'?"}
-    
+
     ImmediateSave["save2DataBase() immediately<br/>User messages"]
-    
+
     DeferredSave["setTimeout(save2DataBase, 2000)<br/>Streaming deltas"]
-    
+
     ProcessQueue["Process stack[] batch"]
-    
+
     LoadLast50["db.getConversationMessages(id, 0, 50, 'DESC')"]
-    
+
     ComposeLoop["for each [type, msg] in stack:<br/>composeMessage(msg, messageList, callback)"]
-    
+
     DBWrite["callback(type, message)<br/>db.insertMessage() or db.updateMessage()"]
-    
+
     ExecCallbacks["executePendingCallbacks()"]
-    
+
     AddOrUpdate --> ConvDB
     ConvDB --> Sync
     Sync --> StackPush
     StackPush --> TypeCheck
-    
+
     TypeCheck -->|"Yes"| ImmediateSave
     TypeCheck -->|"No"| DeferredSave
-    
+
     ImmediateSave --> ProcessQueue
     DeferredSave --> ProcessQueue
-    
+
     ProcessQueue --> LoadLast50
     LoadLast50 --> ComposeLoop
     ComposeLoop --> DBWrite
@@ -573,15 +579,18 @@ graph TD
 ### Persistence Strategy
 
 **`addMessage()`**: Inserts a new message immediately without merging
+
 - Used for user messages and final agent messages
 - Calls `sync('insert', message)` → triggers immediate database write
 
 **`addOrUpdateMessage()`**: Accumulates messages with intelligent merging
+
 - Used for streaming deltas and tool updates
 - Calls `sync('accumulate', message)` → triggers debounced write (2 seconds)
 - Applies `composeMessage()` logic during database write
 
 **`ConversationManageWithDB` Batching Mechanism:**
+
 - One instance per `conversation_id`, stored in a module-level `Cache` Map
 - Maintains a `stack: Array<['insert' | 'accumulate', TMessage]>` per conversation
 - `insert` operations immediately call `save2DataBase()`; `accumulate` operations debounce with a 2-second timer
@@ -599,9 +608,9 @@ Sources: [src/process/message.ts:18-165]()
 
 **Flush Triggers:**
 
-| Trigger | Value | Effect |
-|---|---|---|
-| `UPDATE_INTERVAL` | 300 ms | Time-based flush |
+| Trigger            | Value     | Effect            |
+| ------------------ | --------- | ----------------- |
+| `UPDATE_INTERVAL`  | 300 ms    | Time-based flush  |
 | `CHUNK_BATCH_SIZE` | 20 chunks | Count-based flush |
 
 **Buffer Lifecycle:**
@@ -615,9 +624,9 @@ sequenceDiagram
 
     Caller->>Buffer: "append(id, msgId, convId, chunk, mode)"
     Note over Buffer: "mode: 'accumulate'|'replace'<br/>fixed per buffer"
-    
+
     Buffer->>Buffer: "Create/update StreamBuffer<br/>{currentContent, chunkCount, lastDbUpdate}"
-    
+
     alt "chunkCount % 20 === 0"
         Buffer->>Flush: "Count threshold reached"
         Flush->>DB: "db.updateMessage()"
@@ -630,6 +639,7 @@ sequenceDiagram
 ```
 
 **StreamBuffer Structure:**
+
 ```typescript
 {
   messageId: string,
@@ -647,16 +657,16 @@ Sources: [src/process/database/StreamingMessageBuffer.ts:1-163]()
 
 ## Message Transformation by Agent Comparison
 
-| Aspect | Gemini | Codex | ACP |
-|--------|--------|-------|-----|
-| **Source Format** | `IResponseMessage` from worker | `CodexEventMsg` from MCP | `AcpSessionUpdate` from JSON-RPC |
-| **Adapter Layer** | None (direct transform) | `CodexMessageProcessor` | `AcpAdapter` |
-| **Streaming Strategy** | Transform + persist each event | Emit deltas, persist final | Transform chunks with consistent `msg_id` |
-| **Delta Handling** | No explicit deltas | `agent_message_delta` (not persisted) | `agent_message_chunk` (persisted) |
-| **Final Message** | Continuous updates | `agent_message` (persisted, not emitted) | N/A (accumulates from chunks) |
-| **Tool Call Format** | `IMessageToolGroup` with confirmations | `IMessageCodexToolCall` with subtypes | `IMessageAcpToolCall` with status |
-| **Permission System** | Inline confirmations via `tool_group` | Separate `codex_permission` messages | Separate `acp_permission` messages |
-| **Message ID Strategy** | New `msg_id` per event | Fixed `msg_id` for delta accumulation | `getCurrentMessageId()` for chunks |
+| Aspect                  | Gemini                                 | Codex                                    | ACP                                       |
+| ----------------------- | -------------------------------------- | ---------------------------------------- | ----------------------------------------- |
+| **Source Format**       | `IResponseMessage` from worker         | `CodexEventMsg` from MCP                 | `AcpSessionUpdate` from JSON-RPC          |
+| **Adapter Layer**       | None (direct transform)                | `CodexMessageProcessor`                  | `AcpAdapter`                              |
+| **Streaming Strategy**  | Transform + persist each event         | Emit deltas, persist final               | Transform chunks with consistent `msg_id` |
+| **Delta Handling**      | No explicit deltas                     | `agent_message_delta` (not persisted)    | `agent_message_chunk` (persisted)         |
+| **Final Message**       | Continuous updates                     | `agent_message` (persisted, not emitted) | N/A (accumulates from chunks)             |
+| **Tool Call Format**    | `IMessageToolGroup` with confirmations | `IMessageCodexToolCall` with subtypes    | `IMessageAcpToolCall` with status         |
+| **Permission System**   | Inline confirmations via `tool_group`  | Separate `codex_permission` messages     | Separate `acp_permission` messages        |
+| **Message ID Strategy** | New `msg_id` per event                 | Fixed `msg_id` for delta accumulation    | `getCurrentMessageId()` for chunks        |
 
 **Sources:** [src/process/task/GeminiAgentManager.ts:358-399](), [src/agent/codex/messaging/CodexMessageProcessor.ts:82-137](), [src/agent/acp/AcpAdapter.ts:27-149]()
 
@@ -671,17 +681,17 @@ All agents check for chrome-devtools navigation tools and intercept them before 
 ```typescript
 // In GeminiAgentManager.ts:372-375
 if (handlePreviewOpenEvent(data)) {
-  return; // Don't continue processing
+  return // Don't continue processing
 }
 
 // In CodexAgentManager.ts:431-434
 if (handlePreviewOpenEvent(message)) {
-  return; // Don't process further
+  return // Don't process further
 }
 
 // In AcpAgentManager.ts:123-126
 if (handlePreviewOpenEvent(message)) {
-  return; // Don't process further
+  return // Don't process further
 }
 ```
 
@@ -700,23 +710,23 @@ sequenceDiagram
     participant Detector as hasCronCommands()
     participant Processor as processCronInMessage()
     participant Feedback as AI Agent
-    
+
     Agent->>Transform: Transform final message
     Transform-->>Agent: TMessage with status='finish'
-    
+
     Agent->>Detector: hasCronCommands(messageText)
     Detector-->>Agent: boolean
-    
+
     alt Has cron commands
         Agent->>Processor: processCronInMessage(conversation_id, backend, message)
-        
+
         loop For each cron command
             Processor->>Processor: Parse cron syntax
             Processor->>Processor: Create scheduled job
             Processor-->>Agent: System response message
             Agent->>Agent: Collect responses[]
         end
-        
+
         Agent->>Feedback: sendMessage(feedbackMessage)
         Note over Feedback: AI continues with system feedback
     end
@@ -728,15 +738,15 @@ This enables conversational scheduling where the AI can set up cron jobs and rec
 
 ### Think-Tag Filtering
 
-Several AI models (DeepSeek, MiniMax, QwQ, and others routed through proxy gateways) embed internal reasoning inside `` or `<thinking>...</thinking>` tags in their text output. AionUi filters these tags at two points in the pipeline.
+Several AI models (DeepSeek, MiniMax, QwQ, and others routed through proxy gateways) embed internal reasoning inside ``or`<thinking>...</thinking>` tags in their text output. AionUi filters these tags at two points in the pipeline.
 
 #### Main-Process Filtering (Gemini agent)
 
 `processGeminiStreamEvents` in [src/agent/gemini/utils.ts:98-149]() performs inline filtering on every `Content` event. If the chunk contains any `` patterns:
 
-1. Complete `` blocks are extracted and re-emitted as `Thought` events (displayed in the "thinking" UI).
+1. Complete ``blocks are extracted and re-emitted as`Thought` events (displayed in the "thinking" UI).
 2. Complete blocks are stripped from the content string.
-3. Unclosed opening tags (e.g. `` closing tags are **preserved** in the emitted content — the frontend accumulates streaming chunks, and when it encounters `</think>` in the accumulated text, it can strip all preceding thinking content via `stripThinkTags`.
+3. Unclosed opening tags (e.g. ``closing tags are **preserved** in the emitted content — the frontend accumulates streaming chunks, and when it encounters`</think>`in the accumulated text, it can strip all preceding thinking content via`stripThinkTags`.
 
 For non-Gemini agents (Codex, ACP), the dedicated `ThinkTagDetector` module at [src/process/task/ThinkTagDetector.ts]() provides the same logic as reusable functions.
 
@@ -744,11 +754,11 @@ For non-Gemini agents (Codex, ACP), the dedicated `ThinkTagDetector` module at [
 
 Exported functions from [src/process/task/ThinkTagDetector.ts]():
 
-| Function | Purpose |
-|---|---|
-| `hasThinkTags(content)` | Returns `true` if any ``, `<thinking>`, or `</thinking>` tag is present (case-insensitive, space-tolerant) |
-| `stripThinkTags(content)` | Removes all think tag content using a 7-step regex pipeline |
-| `extractThinkContent(content)` | Returns array of reasoning strings from completed blocks (for debug/analytics) |
+| Function                       | Purpose                                                                                                    |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `hasThinkTags(content)`        | Returns `true` if any ``, `<thinking>`, or `</thinking>` tag is present (case-insensitive, space-tolerant) |
+| `stripThinkTags(content)`      | Removes all think tag content using a 7-step regex pipeline                                                |
+| `extractThinkContent(content)` | Returns array of reasoning strings from completed blocks (for debug/analytics)                             |
 
 **`stripThinkTags` 7-step pipeline:**
 
@@ -796,9 +806,9 @@ Some message types are intentionally skipped:
 
 ```typescript
 // In GeminiAgentManager.ts:382-383
-const skipTransformTypes = ['thought', 'finished', 'start', 'finish'];
+const skipTransformTypes = ['thought', 'finished', 'start', 'finish']
 if (!skipTransformTypes.includes(data.type)) {
-  const tMessage = transformMessage(data as IResponseMessage);
+  const tMessage = transformMessage(data as IResponseMessage)
   // ... persist
 }
 ```
@@ -814,6 +824,7 @@ These transient UI state messages (`thought`, `start`, `finish`) are emitted to 
 ### Message Deduplication
 
 The `composeMessage()` function assigns unique `id` to each message but uses `msg_id` for merging:
+
 - `id`: Always unique (via `uuid()`)
 - `msg_id`: Shared across related messages for accumulation
 
@@ -822,6 +833,7 @@ This enables efficient deduplication in the frontend's `MessageList` component w
 ### Database Batching
 
 `ConversationManageWithDB` batches operations:
+
 1. **Immediate writes** for `insert` type (user messages)
 2. **Debounced writes** for `accumulate` type (streaming deltas)
 3. **Batch processing**: loads last 50 messages, applies all stacked changes, writes back
@@ -847,17 +859,17 @@ Sources: [src/renderer/messages/hooks.ts:17-262](), [src/process/message.ts:18-7
 The system uses TypeScript discriminated unions for type safety:
 
 ```typescript
-export type TMessage = 
-  | IMessageText 
-  | IMessageTips 
-  | IMessageToolCall 
-  | IMessageToolGroup 
-  | IMessageAgentStatus 
-  | IMessageAcpPermission 
-  | IMessageAcpToolCall 
-  | IMessageCodexPermission 
-  | IMessageCodexToolCall 
-  | IMessagePlan;
+export type TMessage =
+  | IMessageText
+  | IMessageTips
+  | IMessageToolCall
+  | IMessageToolGroup
+  | IMessageAgentStatus
+  | IMessageAcpPermission
+  | IMessageAcpToolCall
+  | IMessageCodexPermission
+  | IMessageCodexToolCall
+  | IMessagePlan
 ```
 
 This ensures compile-time validation that all message types are handled correctly in `transformMessage()` and `composeMessage()`.
@@ -869,12 +881,12 @@ Messages are validated before persistence:
 ```typescript
 // In message.ts:120-129
 if (!message) {
-  console.error('[Message] Cannot add or update undefined message');
-  return;
+  console.error('[Message] Cannot add or update undefined message')
+  return
 }
 if (!message.id) {
-  console.error('[Message] Message missing required id field:', message);
-  return;
+  console.error('[Message] Message missing required id field:', message)
+  return
 }
 ```
 

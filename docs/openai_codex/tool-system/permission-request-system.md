@@ -15,8 +15,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 The Permission Request System enables the AI agent to dynamically request additional sandbox permissions (filesystem, network, macOS-specific) during execution. This system allows controlled escalation beyond the base `SandboxPolicy` through explicit user approval, with grants that can persist for a single turn or an entire session.
 
 For information about the base sandbox policies and enforcement mechanisms, see [Sandbox and Approval Policies](#2.4). For tool execution orchestration and approval workflows, see [Tool Orchestration and Approval](#5.5).
@@ -44,43 +42,43 @@ graph TB
         RequestPermTool["request_permissions<br/>Tool Call"]
         InlinePerms["additional_permissions<br/>in exec tools"]
     end
-    
+
     subgraph "Validation Layer"
         Normalize["normalize_and_validate_<br/>additional_permissions()"]
         Merge["apply_granted_turn_<br/>permissions()"]
         FeatureCheck["Feature Flag Check<br/>ExecPermissionApprovals<br/>RequestPermissionsTool"]
     end
-    
+
     subgraph "Storage"
         TurnGrants["Turn-Scoped Grants<br/>TurnState"]
         SessionGrants["Session-Scoped Grants<br/>Session"]
     end
-    
+
     subgraph "Approval Flow"
         UserPrompt["EventMsg::<br/>RequestPermissions"]
         UserResponse["Op::<br/>RequestPermissionsResponse"]
         ExecApproval["EventMsg::<br/>ExecApprovalRequest"]
     end
-    
+
     subgraph "Tool Execution"
         ShellHandler["ShellHandler<br/>ShellCommandHandler"]
         UnifiedExec["UnifiedExecHandler"]
         EffectivePerms["EffectiveAdditional<br/>Permissions"]
     end
-    
+
     RequestPermTool --> Normalize
     InlinePerms --> Normalize
-    
+
     Normalize --> FeatureCheck
     FeatureCheck --> UserPrompt
     UserPrompt --> UserResponse
     UserResponse --> TurnGrants
     UserResponse --> SessionGrants
-    
+
     TurnGrants --> Merge
     SessionGrants --> Merge
     InlinePerms --> Merge
-    
+
     Merge --> EffectivePerms
     EffectivePerms --> ExecApproval
     ExecApproval --> ShellHandler
@@ -103,11 +101,11 @@ The system consists of three primary layers:
 
 ### Request Permission Profile Structure
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `file_system` | `FileSystemPermissions` | Read/write path arrays |
-| `network` | `NetworkPermissions` | Network enable flag |
-| `macos` | `MacOSPermissions` | macOS-specific permissions |
+| Field         | Type                    | Description                |
+| ------------- | ----------------------- | -------------------------- |
+| `file_system` | `FileSystemPermissions` | Read/write path arrays     |
+| `network`     | `NetworkPermissions`    | Network enable flag        |
+| `macos`       | `MacOSPermissions`      | macOS-specific permissions |
 
 ### Tool Schema Integration
 
@@ -118,16 +116,16 @@ graph LR
         AdditionalPerms["additional_permissions:<br/>PermissionProfile"]
         Justification["justification:<br/>string"]
     end
-    
+
     subgraph "request_permissions Tool"
         Reason["reason: string"]
         Permissions["permissions:<br/>RequestPermissionProfile"]
     end
-    
+
     subgraph "Normalized Output"
         NormalizedProfile["PermissionProfile<br/>(canonicalized paths)"]
     end
-    
+
     SandboxPerms --> AdditionalPerms
     AdditionalPerms --> NormalizedProfile
     Permissions --> NormalizedProfile
@@ -159,6 +157,7 @@ Tool Call: request_permissions({
 ```
 
 This emits an `EventMsg::RequestPermissions` event and awaits `Op::RequestPermissionsResponse` with either:
+
 - **Turn scope**: Permissions valid only for current turn
 - **Session scope**: Permissions persist across turns
 
@@ -192,16 +191,16 @@ This triggers the standard `ExecApprovalRequest` flow with merged permissions.
 ```mermaid
 graph TB
     RawPerms["Raw Permissions<br/>(relative paths allowed)"]
-    
+
     subgraph "normalize_and_validate_additional_permissions()"
         FeatureGate["Feature Flag Check<br/>exec_permission_approvals"]
         PolicyCheck["Approval Policy Check<br/>must be OnRequest"]
         PathNorm["Path Canonicalization<br/>resolve relative to workdir"]
         EmptyCheck["Non-empty Validation"]
     end
-    
+
     NormalizedPerms["Normalized<br/>PermissionProfile<br/>(absolute canonical paths)"]
-    
+
     RawPerms --> FeatureGate
     FeatureGate --> PolicyCheck
     PolicyCheck --> PathNorm
@@ -253,10 +252,10 @@ Session grants enable long-running workflows without repeated approvals.
 
 ### Grant Storage Implementation
 
-| Scope | Storage Location | Access Method | Lifecycle |
-|-------|-----------------|---------------|-----------|
-| Turn | `TurnState.granted_permissions` | `Session::granted_turn_permissions()` | Cleared at `TurnComplete` |
-| Session | `Session.granted_session_permissions` | `Session::granted_session_permissions()` | Cleared at session end |
+| Scope   | Storage Location                      | Access Method                            | Lifecycle                 |
+| ------- | ------------------------------------- | ---------------------------------------- | ------------------------- |
+| Turn    | `TurnState.granted_permissions`       | `Session::granted_turn_permissions()`    | Cleared at `TurnComplete` |
+| Session | `Session.granted_session_permissions` | `Session::granted_session_permissions()` | Cleared at session end    |
 
 **Sources:** [codex-rs/core/src/tools/handlers/mod.rs:184-229]()
 
@@ -273,24 +272,24 @@ graph LR
     InlineReq["Inline Request<br/>additional_permissions"]
     TurnGrants["Turn Grants<br/>(from request_permissions)"]
     SessionGrants["Session Grants<br/>(persistent)"]
-    
+
     Merge1["merge_permission_profiles()"]
     Merge2["merge_permission_profiles()"]
-    
+
     EffectivePerms["Effective Permissions<br/>(union of all sources)"]
     PreapprovalCheck["Preapproval Check<br/>(intersect = effective?)"]
-    
+
     SessionGrants --> Merge1
     TurnGrants --> Merge1
     Merge1 --> Granted["Granted Permissions"]
-    
+
     InlineReq --> Merge2
     Granted --> Merge2
     Merge2 --> EffectivePerms
-    
+
     EffectivePerms --> PreapprovalCheck
     Granted --> PreapprovalCheck
-    
+
     PreapprovalCheck --> Decision["permissions_preapproved<br/>= true/false"]
 ```
 
@@ -317,7 +316,7 @@ sequenceDiagram
     participant Session
     participant UI
     participant User
-    
+
     Agent->>Handler: request_permissions(reason, permissions)
     Handler->>Handler: normalize_additional_permissions()
     Handler->>Session: emit EventMsg::RequestPermissions
@@ -344,7 +343,7 @@ sequenceDiagram
     participant Session
     participant UI
     participant User
-    
+
     Agent->>Handler: shell_command(cmd, additional_permissions)
     Handler->>Validator: normalize_and_validate_additional_permissions()
     Validator->>Validator: check feature flags
@@ -353,7 +352,7 @@ sequenceDiagram
     Handler->>Session: apply_granted_turn_permissions()
     Session->>Session: merge with turn/session grants
     Session->>Handler: EffectiveAdditionalPermissions
-    
+
     alt permissions_preapproved = false
         Handler->>Session: emit ExecApprovalRequest
         Session->>UI: display approval with permissions
@@ -362,7 +361,7 @@ sequenceDiagram
         UI->>Session: Op::ExecApproval
         Session->>Handler: approval decision
     end
-    
+
     Handler->>Handler: execute with sandbox + permissions
     Handler->>Agent: tool output
 ```
@@ -377,9 +376,9 @@ sequenceDiagram
 
 The `AskForApproval::Granular` policy includes a `request_permissions` flag that controls whether the standalone `request_permissions` tool can prompt the user:
 
-| Configuration | Behavior |
-|--------------|----------|
-| `granular.request_permissions = true` | Tool emits `RequestPermissions` event, awaits user response |
+| Configuration                          | Behavior                                                      |
+| -------------------------------------- | ------------------------------------------------------------- |
+| `granular.request_permissions = true`  | Tool emits `RequestPermissions` event, awaits user response   |
 | `granular.request_permissions = false` | Tool auto-denies, returns empty permissions without prompting |
 
 This allows enterprise deployments to disable dynamic permission requests while still supporting preapproved permissions via inline `additional_permissions` fields.
@@ -392,10 +391,10 @@ This allows enterprise deployments to disable dynamic permission requests while 
 
 ### Required Feature Flags
 
-| Feature | Purpose | Default |
-|---------|---------|---------|
-| `Feature::RequestPermissionsTool` | Enables `request_permissions` tool in tool registry | Off |
-| `Feature::ExecPermissionApprovals` | Enables inline `additional_permissions` field in exec tools | Off |
+| Feature                            | Purpose                                                     | Default |
+| ---------------------------------- | ----------------------------------------------------------- | ------- |
+| `Feature::RequestPermissionsTool`  | Enables `request_permissions` tool in tool registry         | Off     |
+| `Feature::ExecPermissionApprovals` | Enables inline `additional_permissions` field in exec tools | Off     |
 
 ### Feature Independence
 
@@ -435,6 +434,7 @@ This resolves `"."` → `/workspace/project` (canonicalized) before approval, en
 ### No Implicit Widening
 
 Granting permission to a specific path does **not** implicitly grant permission to:
+
 - The current working directory
 - Temporary directories (`/tmp`, `$TMPDIR`)
 - Parent directories
@@ -477,13 +477,13 @@ These flags are derived from `Features` and `SessionSource` during `ToolsConfig:
 
 ### Approval Policy Requirements
 
-| Policy | Inline Permissions | request_permissions Tool |
-|--------|-------------------|-------------------------|
-| `Always` | ❌ Rejected | ❌ Rejected |
-| `OnRequest` | ✅ Allowed | ✅ Allowed |
-| `Granular{request_permissions: true}` | ✅ Allowed | ✅ Allowed |
-| `Granular{request_permissions: false}` | ✅ Allowed | ⚠️ Auto-denied (no prompt) |
-| `Never` | ❌ Rejected | ❌ Rejected |
+| Policy                                 | Inline Permissions | request_permissions Tool   |
+| -------------------------------------- | ------------------ | -------------------------- |
+| `Always`                               | ❌ Rejected        | ❌ Rejected                |
+| `OnRequest`                            | ✅ Allowed         | ✅ Allowed                 |
+| `Granular{request_permissions: true}`  | ✅ Allowed         | ✅ Allowed                 |
+| `Granular{request_permissions: false}` | ✅ Allowed         | ⚠️ Auto-denied (no prompt) |
+| `Never`                                | ❌ Rejected        | ❌ Rejected                |
 
 **Sources:** [codex-rs/core/src/tools/handlers/mod.rs:102-159](), [codex-rs/core/tests/suite/request_permissions.rs:401-487]()
 
@@ -532,6 +532,7 @@ The system detects partial grants via set intersection and prompts only for the 
 ---
 
 **Key Sources:**
+
 - [codex-rs/core/src/tools/spec.rs:461-576]()
 - [codex-rs/core/src/tools/handlers/mod.rs:100-344]()
 - [codex-rs/core/tests/suite/request_permissions.rs:1-1865]()

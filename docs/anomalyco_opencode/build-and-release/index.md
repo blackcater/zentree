@@ -28,19 +28,17 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document describes OpenCode's multi-platform build system, CI/CD pipeline, and distribution strategy. The build process produces standalone CLI binaries for 12+ platform variants, desktop applications for 6 platforms (via both Tauri and Electron), and distributes them through 8+ package managers. For information about Nix-specific builds, see [Nix Builds](#8.2). For the complete release pipeline workflow, see [Release Pipeline](#8.1).
 
 ## Overview
 
 OpenCode uses a comprehensive build and release system that targets maximum platform coverage. The system is built around three primary artifacts:
 
-| Artifact Type | Build Tool | Platform Count | Distribution |
-|--------------|------------|----------------|--------------|
-| CLI Binaries | Bun Compile | 12 variants | npm, Homebrew, AUR, Nix, Docker |
-| Tauri Desktop | Tauri CLI + Rust | 6 platforms | GitHub Releases, auto-update |
-| Electron Desktop | Electron Builder | 6 platforms | GitHub Releases, auto-update |
+| Artifact Type    | Build Tool       | Platform Count | Distribution                    |
+| ---------------- | ---------------- | -------------- | ------------------------------- |
+| CLI Binaries     | Bun Compile      | 12 variants    | npm, Homebrew, AUR, Nix, Docker |
+| Tauri Desktop    | Tauri CLI + Rust | 6 platforms    | GitHub Releases, auto-update    |
+| Electron Desktop | Electron Builder | 6 platforms    | GitHub Releases, auto-update    |
 
 The build system is coordinated through GitHub Actions workflows that run on merge to `ci`, `dev`, `beta`, or `snapshot-*` branches, or via manual workflow dispatch.
 
@@ -55,7 +53,7 @@ The CLI build process uses Bun's `compile` feature to create self-contained exec
 ```mermaid
 graph TB
     BuildScript["build.ts"]
-    
+
     subgraph "Build Inputs"
         SourceCode["src/index.ts"]
         Migrations["migration/**/migration.sql"]
@@ -63,13 +61,13 @@ graph TB
         ParserWorker["@opentui/core/parser.worker.js"]
         TUIWorker["src/cli/cmd/tui/worker.ts"]
     end
-    
+
     subgraph "Build Configuration"
         Targets["allTargets[]<br/>12 platform variants"]
         CompileOptions["Bun.build({ compile: {...} })"]
         Defines["OPENCODE_VERSION<br/>OPENCODE_MIGRATIONS<br/>OPENCODE_CHANNEL"]
     end
-    
+
     subgraph "Build Outputs"
         LinuxX64["opencode-linux-x64"]
         LinuxArm64["opencode-linux-arm64"]
@@ -81,22 +79,22 @@ graph TB
         WindowsX64["opencode-windows-x64"]
         WindowsArm64["opencode-windows-arm64"]
     end
-    
+
     subgraph "Archive Formats"
         TarGz["*.tar.gz<br/>Linux archives"]
         Zip["*.zip<br/>macOS/Windows archives"]
     end
-    
+
     BuildScript --> Targets
     BuildScript --> CompileOptions
     BuildScript --> Defines
-    
+
     SourceCode --> BuildScript
     Migrations --> ModelsSnapshot
     ModelsSnapshot --> BuildScript
     ParserWorker --> BuildScript
     TUIWorker --> BuildScript
-    
+
     BuildScript --> LinuxX64
     BuildScript --> LinuxArm64
     BuildScript --> LinuxX64Baseline
@@ -106,7 +104,7 @@ graph TB
     BuildScript --> DarwinArm64
     BuildScript --> WindowsX64
     BuildScript --> WindowsArm64
-    
+
     LinuxX64 --> TarGz
     LinuxArm64 --> TarGz
     LinuxX64Musl --> TarGz
@@ -118,20 +116,20 @@ graph TB
 
 The build targets are defined in the `allTargets` array:
 
-| Platform | Architecture | ABI | AVX2 | Binary Name |
-|----------|-------------|-----|------|-------------|
-| Linux | x64 | glibc | ✓ | `opencode-linux-x64` |
-| Linux | x64 | glibc | ✗ | `opencode-linux-x64-baseline` |
-| Linux | arm64 | glibc | - | `opencode-linux-arm64` |
-| Linux | x64 | musl | ✓ | `opencode-linux-x64-musl` |
-| Linux | x64 | musl | ✗ | `opencode-linux-x64-baseline-musl` |
-| Linux | arm64 | musl | - | `opencode-linux-arm64-musl` |
-| macOS | x64 | - | ✓ | `opencode-darwin-x64` |
-| macOS | x64 | - | ✗ | `opencode-darwin-x64-baseline` |
-| macOS | arm64 | - | - | `opencode-darwin-arm64` |
-| Windows | x64 | - | ✓ | `opencode-windows-x64` |
-| Windows | x64 | - | ✗ | `opencode-windows-x64-baseline` |
-| Windows | arm64 | - | - | `opencode-windows-arm64` |
+| Platform | Architecture | ABI   | AVX2 | Binary Name                        |
+| -------- | ------------ | ----- | ---- | ---------------------------------- |
+| Linux    | x64          | glibc | ✓    | `opencode-linux-x64`               |
+| Linux    | x64          | glibc | ✗    | `opencode-linux-x64-baseline`      |
+| Linux    | arm64        | glibc | -    | `opencode-linux-arm64`             |
+| Linux    | x64          | musl  | ✓    | `opencode-linux-x64-musl`          |
+| Linux    | x64          | musl  | ✗    | `opencode-linux-x64-baseline-musl` |
+| Linux    | arm64        | musl  | -    | `opencode-linux-arm64-musl`        |
+| macOS    | x64          | -     | ✓    | `opencode-darwin-x64`              |
+| macOS    | x64          | -     | ✗    | `opencode-darwin-x64-baseline`     |
+| macOS    | arm64        | -     | -    | `opencode-darwin-arm64`            |
+| Windows  | x64          | -     | ✓    | `opencode-windows-x64`             |
+| Windows  | x64          | -     | ✗    | `opencode-windows-x64-baseline`    |
+| Windows  | arm64        | -     | -    | `opencode-windows-arm64`           |
 
 Each binary is compiled with platform-specific configuration [packages/opencode/script/build.ts:154-228]():
 
@@ -145,10 +143,12 @@ The build process also generates a models snapshot before compilation [packages/
 
 ```typescript
 // Fetches models.dev API data and generates static snapshot
-const modelsData = await fetch(`${modelsUrl}/api.json`).then(x => x.text())
-await Bun.write("src/provider/models-snapshot.ts", 
+const modelsData = await fetch(`${modelsUrl}/api.json`).then((x) => x.text())
+await Bun.write(
+  'src/provider/models-snapshot.ts',
   `export const snapshot = ${modelsData} as const\
-`)
+`
+)
 ```
 
 **Sources:** [packages/opencode/script/build.ts:1-230](), [.github/workflows/publish.yml:70-104]()
@@ -169,20 +169,20 @@ graph TB
         LinuxX64["host: blacksmith-4vcpu-ubuntu-2404<br/>target: x86_64-unknown-linux-gnu"]
         LinuxArm64["host: blacksmith-8vcpu-ubuntu-2404-arm<br/>target: aarch64-unknown-linux-gnu"]
     end
-    
+
     subgraph "Preparation Steps"
         PrepareScript["scripts/prepare.ts"]
         RustToolchain["dtolnay/rust-toolchain@stable"]
         RustCache["Swatinem/rust-cache@v2"]
         UbuntuDeps["libwebkit2gtk-4.1-dev<br/>libappindicator3-dev<br/>patchelf"]
     end
-    
+
     subgraph "Signing & Notarization"
         AppleCert["Apple Certificate<br/>import-codesign-certs"]
         AppleAPIKey["Apple API Key<br/>Notarization"]
         TauriSign["TAURI_SIGNING_PRIVATE_KEY"]
     end
-    
+
     subgraph "Build Outputs"
         DMG[".dmg<br/>macOS installer"]
         AppImage[".AppImage<br/>Linux portable"]
@@ -190,36 +190,36 @@ graph TB
         NSIS[".exe<br/>Windows installer"]
         MSI[".msi<br/>Windows installer"]
     end
-    
+
     subgraph "Auto-Update Metadata"
         LatestJSON["latest.json<br/>Tauri updater manifest"]
     end
-    
+
     MacOSX64 --> PrepareScript
     MacOSArm64 --> PrepareScript
     WindowsX64 --> PrepareScript
     WindowsArm64 --> PrepareScript
     LinuxX64 --> PrepareScript
     LinuxArm64 --> PrepareScript
-    
+
     PrepareScript --> RustToolchain
     RustToolchain --> RustCache
-    
+
     LinuxX64 --> UbuntuDeps
     LinuxArm64 --> UbuntuDeps
-    
+
     MacOSX64 --> AppleCert
     MacOSArm64 --> AppleCert
     AppleCert --> AppleAPIKey
-    
+
     RustCache --> TauriSign
-    
+
     TauriSign --> DMG
     TauriSign --> AppImage
     TauriSign --> Deb
     TauriSign --> NSIS
     TauriSign --> MSI
-    
+
     DMG --> LatestJSON
     AppImage --> LatestJSON
     NSIS --> LatestJSON
@@ -231,9 +231,9 @@ The Tauri build uses a custom action invocation [.github/workflows/publish.yml:2
 uses: tauri-apps/tauri-action@390cbe447412ced1303d35abe75287949e43437a
 with:
   projectPath: packages/desktop
-  args: --target ${{ matrix.settings.target }} 
-        --config ${{ (github.ref_name == 'beta' && './src-tauri/tauri.beta.conf.json') 
-                  || './src-tauri/tauri.prod.conf.json' }}
+  args: --target ${{ matrix.settings.target }}
+    --config ${{ (github.ref_name == 'beta' && './src-tauri/tauri.beta.conf.json')
+    || './src-tauri/tauri.prod.conf.json' }}
   updaterJsonPreferNsis: true
   releaseId: ${{ needs.version.outputs.release }}
   tagName: ${{ needs.version.outputs.tag }}
@@ -248,14 +248,14 @@ For Linux builds, a custom tauri-cli version is installed from a specific branch
 
 Electron builds use `electron-builder` with similar cross-platform coverage [.github/workflows/publish.yml:249-371]():
 
-| Platform | Architecture | Build Flag |
-|----------|-------------|------------|
-| macOS | x64 | `--mac --x64` |
-| macOS | arm64 | `--mac --arm64` |
-| Windows | x64 | `--win` |
-| Windows | arm64 | `--win --arm64` |
-| Linux | x64 | `--linux` |
-| Linux | arm64 | `--linux` |
+| Platform | Architecture | Build Flag      |
+| -------- | ------------ | --------------- |
+| macOS    | x64          | `--mac --x64`   |
+| macOS    | arm64        | `--mac --arm64` |
+| Windows  | x64          | `--win`         |
+| Windows  | arm64        | `--win --arm64` |
+| Linux    | x64          | `--linux`       |
+| Linux    | arm64        | `--linux`       |
 
 The Electron build process [.github/workflows/publish.yml:323-365]():
 
@@ -286,19 +286,19 @@ The `publish` workflow orchestrates the entire build and release process [.githu
 ```mermaid
 graph TB
     Trigger["Workflow Trigger<br/>push: ci, dev, beta, snapshot-*<br/>workflow_dispatch"]
-    
+
     subgraph "Job: version"
         VersionSetup["Setup Bun + Git"]
         VersionScript["script/version.ts"]
         VersionOutputs["outputs:<br/>version, release, tag, repo"]
     end
-    
+
     subgraph "Job: build-cli"
         CLISetup["Setup Bun"]
         CLIBuild["packages/opencode/script/build.ts"]
         CLIArtifact["Upload artifact:<br/>opencode-cli"]
     end
-    
+
     subgraph "Job: build-tauri"
         TauriMatrix["Matrix: 6 platforms"]
         TauriSetup["Setup Rust + Dependencies"]
@@ -306,7 +306,7 @@ graph TB
         TauriBuild["tauri-apps/tauri-action"]
         TauriRelease["Upload to GitHub Release"]
     end
-    
+
     subgraph "Job: build-electron"
         ElectronMatrix["Matrix: 6 platforms"]
         ElectronSetup["Setup Node 24"]
@@ -314,7 +314,7 @@ graph TB
         ElectronBuild["electron-builder"]
         ElectronArtifact["Upload artifacts + latest.yml"]
     end
-    
+
     subgraph "Job: publish"
         PublishDownload["Download CLI artifacts"]
         PublishNPM["Publish to npm"]
@@ -322,32 +322,32 @@ graph TB
         PublishRegistries["Update Homebrew, AUR"]
         PublishUpdater["Finalize updater metadata"]
     end
-    
+
     Trigger --> VersionSetup
     VersionSetup --> VersionScript
     VersionScript --> VersionOutputs
-    
+
     VersionOutputs --> CLISetup
     VersionOutputs --> TauriMatrix
     VersionOutputs --> ElectronMatrix
-    
+
     CLISetup --> CLIBuild
     CLIBuild --> CLIArtifact
-    
+
     TauriMatrix --> TauriSetup
     TauriSetup --> TauriPrepare
     TauriPrepare --> TauriBuild
     TauriBuild --> TauriRelease
-    
+
     ElectronMatrix --> ElectronSetup
     ElectronSetup --> ElectronPrepare
     ElectronPrepare --> ElectronBuild
     ElectronBuild --> ElectronArtifact
-    
+
     CLIArtifact --> PublishDownload
     TauriRelease --> PublishDownload
     ElectronArtifact --> PublishDownload
-    
+
     PublishDownload --> PublishNPM
     PublishDownload --> PublishDocker
     PublishDownload --> PublishRegistries
@@ -365,20 +365,21 @@ The `version` job determines the version number and creates release metadata [.g
 const version = await (async () => {
   // Explicit version override
   if (env.OPENCODE_VERSION) return env.OPENCODE_VERSION
-  
+
   // Preview version for non-latest channels
   if (IS_PREVIEW) return `0.0.0-${CHANNEL}-${timestamp()}`
-  
+
   // Fetch latest from npm and bump
-  const latest = await fetch("https://registry.npmjs.org/opencode-ai/latest")
-  const [major, minor, patch] = latest.version.split(".")
-  if (bump === "major") return `${major + 1}.0.0`
-  if (bump === "minor") return `${major}.${minor + 1}.0`
+  const latest = await fetch('https://registry.npmjs.org/opencode-ai/latest')
+  const [major, minor, patch] = latest.version.split('.')
+  if (bump === 'major') return `${major + 1}.0.0`
+  if (bump === 'minor') return `${major}.${minor + 1}.0`
   return `${major}.${minor}.${patch + 1}`
 })()
 ```
 
 The job outputs four critical values:
+
 - `version`: The semantic version string (e.g., `1.2.3`)
 - `release`: GitHub release ID if creating a release
 - `tag`: Git tag name (e.g., `v1.2.3`)
@@ -413,7 +414,7 @@ The CLI is published to npm as a wrapper package `opencode-ai` with platform-spe
 graph TB
     subgraph "Package Structure"
         WrapperPkg["opencode-ai@{version}<br/>Main wrapper package"]
-        
+
         LinuxX64Pkg["opencode-linux-x64@{version}"]
         LinuxArm64Pkg["opencode-linux-arm64@{version}"]
         DarwinX64Pkg["opencode-darwin-x64@{version}"]
@@ -421,7 +422,7 @@ graph TB
         WindowsX64Pkg["opencode-windows-x64@{version}"]
         WindowsArm64Pkg["opencode-windows-arm64@{version}"]
     end
-    
+
     subgraph "Installation Flow"
         NpmInstall["npm install opencode-ai"]
         PostInstall["postinstall.mjs"]
@@ -429,14 +430,14 @@ graph TB
         DownloadBinary["Download from optionalDependencies"]
         CreateSymlink["bin/opencode → node_modules/{platform}/bin/opencode"]
     end
-    
+
     WrapperPkg -.optionalDependencies.-> LinuxX64Pkg
     WrapperPkg -.optionalDependencies.-> LinuxArm64Pkg
     WrapperPkg -.optionalDependencies.-> DarwinX64Pkg
     WrapperPkg -.optionalDependencies.-> DarwinArm64Pkg
     WrapperPkg -.optionalDependencies.-> WindowsX64Pkg
     WrapperPkg -.optionalDependencies.-> WindowsArm64Pkg
-    
+
     NpmInstall --> PostInstall
     PostInstall --> DetectPlatform
     DetectPlatform --> DownloadBinary
@@ -448,10 +449,10 @@ The wrapper package is constructed [packages/opencode/script/publish.ts:23-40]()
 ```typescript
 await Bun.file(`./dist/${pkg.name}/package.json`).write(
   JSON.stringify({
-    name: pkg.name + "-ai",
+    name: pkg.name + '-ai',
     bin: { [pkg.name]: `./bin/${pkg.name}` },
     scripts: {
-      postinstall: "bun ./postinstall.mjs || node ./postinstall.mjs"
+      postinstall: 'bun ./postinstall.mjs || node ./postinstall.mjs',
     },
     version: version,
     optionalDependencies: binaries, // All platform packages
@@ -492,6 +493,7 @@ docker buildx build \
 ```
 
 This creates two tags per release:
+
 - Version-specific: `ghcr.io/anomalyco/opencode:1.2.3`
 - Channel-specific: `ghcr.io/anomalyco/opencode:latest`
 
@@ -509,7 +511,7 @@ class Opencode < Formula
   homepage "https://github.com/anomalyco/opencode"
   version "1.2.3"
   depends_on "ripgrep"
-  
+
   on_macos do
     if Hardware::CPU.intel?
       url "https://github.com/anomalyco/opencode/releases/download/v1.2.3/opencode-darwin-x64.zip"
@@ -520,7 +522,7 @@ class Opencode < Formula
       sha256 "def456..."
     end
   end
-  
+
   on_linux do
     # Similar structure for Linux x64/arm64
   end
@@ -577,9 +579,15 @@ Tauri uses `latest.json` manifest files [packages/desktop/scripts/finalize-lates
       "signature": "...",
       "url": "https://github.com/anomalyco/opencode/releases/download/v1.2.3/opencode-desktop-darwin-x64.app.tar.gz"
     },
-    "darwin-aarch64": { /* ... */ },
-    "linux-x86_64": { /* ... */ },
-    "windows-x86_64": { /* ... */ }
+    "darwin-aarch64": {
+      /* ... */
+    },
+    "linux-x86_64": {
+      /* ... */
+    },
+    "windows-x86_64": {
+      /* ... */
+    }
   }
 }
 ```
@@ -618,35 +626,35 @@ export const Script = {
   get channel(): string {
     // Returns: "latest", "beta", "dev", "ci", or snapshot branch
     if (OPENCODE_CHANNEL) return OPENCODE_CHANNEL
-    if (OPENCODE_BUMP) return "latest"
+    if (OPENCODE_BUMP) return 'latest'
     return git_branch_name
   },
-  
+
   get version(): string {
     // Returns semantic version or preview version
     if (OPENCODE_VERSION) return OPENCODE_VERSION
     if (IS_PREVIEW) return `0.0.0-${channel}-${timestamp}`
     return npm_bumped_version
   },
-  
+
   get preview(): boolean {
-    return channel !== "latest"
+    return channel !== 'latest'
   },
-  
+
   get release(): boolean {
     return !!OPENCODE_RELEASE
-  }
+  },
 }
 ```
 
 Environment variables control the build:
 
-| Variable | Purpose | Example |
-|----------|---------|---------|
-| `OPENCODE_VERSION` | Override version | `1.2.3` |
-| `OPENCODE_BUMP` | Bump type | `major`, `minor`, `patch` |
-| `OPENCODE_CHANNEL` | Distribution channel | `latest`, `beta` |
-| `OPENCODE_RELEASE` | Create GitHub release | `true` |
+| Variable           | Purpose               | Example                   |
+| ------------------ | --------------------- | ------------------------- |
+| `OPENCODE_VERSION` | Override version      | `1.2.3`                   |
+| `OPENCODE_BUMP`    | Bump type             | `major`, `minor`, `patch` |
+| `OPENCODE_CHANNEL` | Distribution channel  | `latest`, `beta`          |
+| `OPENCODE_RELEASE` | Create GitHub release | `true`                    |
 
 **Sources:** [packages/script/src/index.ts:20-76]()
 
@@ -656,7 +664,7 @@ Preview versions for non-latest channels use timestamp-based identifiers [packag
 
 ```typescript
 if (IS_PREVIEW) {
-  return `0.0.0-${CHANNEL}-${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "")}`
+  return `0.0.0-${CHANNEL}-${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '')}`
 }
 // Example: 0.0.0-beta-202401011200
 ```
@@ -677,14 +685,14 @@ graph TB
     GitTag["git tag v{version}"]
     CherryPick["Cherry-pick from origin/dev"]
     GitPush["git push origin HEAD --tags"]
-    
+
     FinalizeUpdaters["Finalize desktop updaters<br/>latest.json, latest.yml"]
     UnDraftRelease["gh release edit --draft=false"]
-    
+
     PublishCLI["Publish CLI to npm + registries"]
     PublishSDK["Publish SDK to npm"]
     PublishPlugin["Publish plugin to npm"]
-    
+
     UpdateVersions --> BuildSDK
     BuildSDK --> GitCommit
     GitCommit --> GitTag
@@ -713,11 +721,11 @@ await import(`../packages/plugin/script/publish.ts`)
 
 The CI pipeline uses multiple caching layers:
 
-| Cache Type | Key | Scope | Purpose |
-|------------|-----|-------|---------|
-| Bun dependencies | `bun-${{ hashFiles('**/bun.lock') }}` | Global | Node modules cache |
-| Rust dependencies | `rust-${{ matrix.settings.target }}` | Per-platform | Cargo cache for Tauri |
-| APT packages | `apt-${{ matrix.settings.target }}` | Per-platform | Linux system dependencies |
+| Cache Type        | Key                                   | Scope        | Purpose                   |
+| ----------------- | ------------------------------------- | ------------ | ------------------------- |
+| Bun dependencies  | `bun-${{ hashFiles('**/bun.lock') }}` | Global       | Node modules cache        |
+| Rust dependencies | `rust-${{ matrix.settings.target }}`  | Per-platform | Cargo cache for Tauri     |
+| APT packages      | `apt-${{ matrix.settings.target }}`   | Per-platform | Linux system dependencies |
 
 **Sources:** [.github/actions/setup-bun/action.yml:26-37](), [.github/workflows/publish.yml:159-174](), [.github/workflows/publish.yml:299-314]()
 

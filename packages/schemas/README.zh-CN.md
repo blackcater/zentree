@@ -4,6 +4,7 @@
 类型生成，支持验证和 IDE 自动补全。
 
 **Schema 类型：**
+
 - Vault 配置 schema
 - Project 设置 schema
 - Agent 配置 schema

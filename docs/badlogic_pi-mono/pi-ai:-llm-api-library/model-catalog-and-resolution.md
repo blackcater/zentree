@@ -17,8 +17,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This document covers the model catalog system in the `pi-ai` package: how the catalog is generated, how models are stored in the registry, and how model patterns are resolved at runtime. For information about using models with the streaming API, see [Streaming API & Provider Implementations](#2.2). For details on thinking levels and provider-specific configuration, see [Message Transformation & Cross-Provider Handoffs](#2.3).
 
 ## Purpose and Scope
@@ -31,20 +29,20 @@ The model catalog provides a centralized, auto-generated registry of LLM models 
 
 The catalog is defined in [packages/ai/src/models.generated.ts:1-1656]() as an auto-generated TypeScript file exported as the `MODELS` constant. Each model entry contains:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | `string` | Unique model identifier within provider |
-| `name` | `string` | Human-readable display name |
-| `api` | `Api` | API interface type (e.g., `"anthropic-messages"`, `"openai-responses"`) |
-| `provider` | `KnownProvider` | Provider identifier (e.g., `"anthropic"`, `"openai"`) |
-| `baseUrl` | `string` | API endpoint base URL |
-| `reasoning` | `boolean` | Whether model supports extended reasoning |
-| `input` | `("text" \| "image")[]` | Supported input modalities |
-| `cost` | `{input, output, cacheRead, cacheWrite}` | Cost per million tokens (USD) |
-| `contextWindow` | `number` | Maximum context length in tokens |
-| `maxTokens` | `number` | Maximum output tokens |
-| `headers?` | `Record<string, string>` | Static headers for requests |
-| `compat?` | `{...}` | Provider-specific compatibility flags |
+| Field           | Type                                     | Description                                                             |
+| --------------- | ---------------------------------------- | ----------------------------------------------------------------------- |
+| `id`            | `string`                                 | Unique model identifier within provider                                 |
+| `name`          | `string`                                 | Human-readable display name                                             |
+| `api`           | `Api`                                    | API interface type (e.g., `"anthropic-messages"`, `"openai-responses"`) |
+| `provider`      | `KnownProvider`                          | Provider identifier (e.g., `"anthropic"`, `"openai"`)                   |
+| `baseUrl`       | `string`                                 | API endpoint base URL                                                   |
+| `reasoning`     | `boolean`                                | Whether model supports extended reasoning                               |
+| `input`         | `("text" \| "image")[]`                  | Supported input modalities                                              |
+| `cost`          | `{input, output, cacheRead, cacheWrite}` | Cost per million tokens (USD)                                           |
+| `contextWindow` | `number`                                 | Maximum context length in tokens                                        |
+| `maxTokens`     | `number`                                 | Maximum output tokens                                                   |
+| `headers?`      | `Record<string, string>`                 | Static headers for requests                                             |
+| `compat?`       | `{...}`                                  | Provider-specific compatibility flags                                   |
 
 **Example model definition:**
 
@@ -72,20 +70,20 @@ Models are organized by provider in a nested structure defined in `MODELS`:
 ```mermaid
 graph TB
     MODELS["MODELS constant<br/>(models.generated.ts)"]
-    
+
     MODELS --> Anthropic["anthropic"]
     MODELS --> OpenAI["openai"]
     MODELS --> Bedrock["amazon-bedrock"]
     MODELS --> Google["google"]
     MODELS --> Others["15+ other providers"]
-    
+
     Anthropic --> OpusModel["claude-opus-4-6"]
     Anthropic --> SonnetModel["claude-sonnet-4-6"]
     Anthropic --> HaikuModel["claude-haiku-4-5"]
-    
+
     OpenAI --> GPT54["gpt-5.4"]
     OpenAI --> GPT51["gpt-5.1-codex"]
-    
+
     Bedrock --> BedrockOpus["us.anthropic.claude-opus-4-6-v1:0"]
     Bedrock --> BedrockSonnet["anthropic.claude-sonnet-4-6"]
 ```
@@ -107,7 +105,7 @@ graph LR
         OpenRouter["OpenRouter API<br/>fetchOpenRouterModels()"]
         AIGateway["Vercel AI Gateway<br/>fetchAiGatewayModels()"]
     end
-    
+
     subgraph GenerationScript["generate-models.ts"]
         Fetch["Fetch & Parse<br/>JSON responses"]
         Filter["Filter tool-capable<br/>models only"]
@@ -115,11 +113,11 @@ graph LR
         Override["Apply overrides<br/>& add missing models"]
         Write["writeFileSync()<br/>models.generated.ts"]
     end
-    
+
     ModelsDev --> Fetch
     OpenRouter --> Fetch
     AIGateway --> Fetch
-    
+
     Fetch --> Filter
     Filter --> Normalize
     Normalize --> Override
@@ -162,15 +160,15 @@ Sources: [packages/ai/scripts/generate-models.ts:84-87](), [packages/ai/scripts/
 
 Different providers map to different API implementations:
 
-| Provider | API Type | Base URL Handling |
-|----------|----------|------------------|
-| `anthropic` | `anthropic-messages` | Direct: `https://api.anthropic.com` |
-| `openai` | `openai-responses` | Direct: `https://api.openai.com/v1` |
-| `amazon-bedrock` | `bedrock-converse-stream` | Regional: `https://bedrock-runtime.us-east-1.amazonaws.com` |
-| `google` | `google-generative-ai` | Direct: `https://generativelanguage.googleapis.com/v1beta` |
-| `github-copilot` | Multiple (based on model) | `https://api.individual.githubcopilot.com` |
-| `openrouter` | `openai-completions` | `https://openrouter.ai/api/v1` |
-| `opencode`/`opencode-go` | Multiple (based on provider.npm) | `https://opencode.ai/zen` |
+| Provider                 | API Type                         | Base URL Handling                                           |
+| ------------------------ | -------------------------------- | ----------------------------------------------------------- |
+| `anthropic`              | `anthropic-messages`             | Direct: `https://api.anthropic.com`                         |
+| `openai`                 | `openai-responses`               | Direct: `https://api.openai.com/v1`                         |
+| `amazon-bedrock`         | `bedrock-converse-stream`        | Regional: `https://bedrock-runtime.us-east-1.amazonaws.com` |
+| `google`                 | `google-generative-ai`           | Direct: `https://generativelanguage.googleapis.com/v1beta`  |
+| `github-copilot`         | Multiple (based on model)        | `https://api.individual.githubcopilot.com`                  |
+| `openrouter`             | `openai-completions`             | `https://openrouter.ai/api/v1`                              |
+| `opencode`/`opencode-go` | Multiple (based on provider.npm) | `https://opencode.ai/zen`                                   |
 
 Sources: [packages/ai/scripts/generate-models.ts:221-244](), [packages/ai/scripts/generate-models.ts:274-297](), [packages/ai/scripts/generate-models.ts:469-520](), [packages/ai/scripts/generate-models.ts:524-568]()
 
@@ -180,15 +178,17 @@ The script applies temporary overrides for metadata corrections not yet availabl
 
 ```typescript
 // Fix incorrect cache pricing for Claude Opus 4.5
-const opus45 = allModels.find(m => m.provider === "anthropic" && m.id === "claude-opus-4-5");
+const opus45 = allModels.find(
+  (m) => m.provider === 'anthropic' && m.id === 'claude-opus-4-5'
+)
 if (opus45) {
-  opus45.cost.cacheRead = 0.5;
-  opus45.cost.cacheWrite = 6.25;
+  opus45.cost.cacheRead = 0.5
+  opus45.cost.cacheWrite = 6.25
 }
 
 // Correct Opus 4.6 context window
-if (candidate.id.includes("opus-4-6")) {
-  candidate.contextWindow = 200000;
+if (candidate.id.includes('opus-4-6')) {
+  candidate.contextWindow = 200000
 }
 ```
 
@@ -205,15 +205,15 @@ Models are loaded into a two-level map structure on module initialization:
 ```mermaid
 graph TD
     ModuleLoad["models.ts module load"]
-    
+
     Registry["modelRegistry<br/>Map&lt;string, Map&lt;string, Model&lt;Api&gt;&gt;&gt;"]
-    
+
     ModuleLoad --> InitLoop["for...of MODELS"]
     InitLoop --> CreateProviderMap["new Map() per provider"]
     CreateProviderMap --> AddModels["providerModels.set(id, model)"]
     AddModels --> SetProvider["modelRegistry.set(provider, providerModels)"]
     SetProvider --> Registry
-    
+
     Registry --> Level1["Provider key → Map&lt;id, Model&gt;"]
     Level1 --> Level2["Model ID → Model&lt;Api&gt;"]
 ```
@@ -227,7 +227,7 @@ The registry exposes type-safe access functions:
 **`getModel<TProvider, TModelId>(provider, modelId)`** - Type-safe model lookup:
 
 ```typescript
-const model = getModel("anthropic", "claude-opus-4-6");
+const model = getModel('anthropic', 'claude-opus-4-6')
 // Type inferred: Model<"anthropic-messages">
 ```
 
@@ -236,14 +236,14 @@ This function provides compile-time type inference for the model's API type base
 **`getModels<TProvider>(provider)`** - Get all models for a provider:
 
 ```typescript
-const anthropicModels = getModels("anthropic");
+const anthropicModels = getModels('anthropic')
 // Returns: Model<"anthropic-messages">[]
 ```
 
 **`getProviders()`** - Get all available providers:
 
 ```typescript
-const providers = getProviders();
+const providers = getProviders()
 // Returns: KnownProvider[] = ["anthropic", "openai", ...]
 ```
 
@@ -272,6 +272,7 @@ Sources: [packages/ai/src/models.ts:39-46]()
 **`supportsXhigh(model)` - Check for extended high reasoning support:**
 
 Returns `true` for:
+
 - GPT-5.2, GPT-5.3, GPT-5.4 model families
 - Anthropic Opus 4.6 models on `anthropic-messages` API
 
@@ -294,31 +295,31 @@ Sources: [packages/ai/src/models.ts:67-77]()
 ```mermaid
 flowchart TD
     Input["User pattern<br/>'sonnet:high'<br/>'openai/gpt-4o'<br/>'*opus*'"]
-    
+
     CheckGlob{"pattern.includes(*) ||<br/>pattern.includes(?) ||<br/>pattern.includes([)?"}
-    
+
     CheckGlob -->|Yes| GlobMatch["Glob pattern resolution"]
     CheckGlob -->|No| ParsePattern["parseModelPattern()"]
-    
+
     GlobMatch --> ExtractThinking["Extract :thinking suffix<br/>isValidThinkingLevel()"]
     ExtractThinking --> MinimatchFilter["minimatch(provider/id, pattern)<br/>or minimatch(id, pattern)"]
     MinimatchFilter --> GlobResult["Return ScopedModel[]"]
-    
+
     ParsePattern --> TryExact["tryMatchModel()<br/>exact match"]
     TryExact --> ExactFound{"model found?"}
-    
+
     ExactFound -->|Yes| ReturnExact["return {model, thinkingLevel: undefined}"]
     ExactFound -->|No| CheckColon{"pattern.lastIndexOf(:)<br/>!= -1?"}
-    
+
     CheckColon -->|No| TryFuzzy["Partial match on<br/>id.includes() or name.includes()"]
     CheckColon -->|Yes| SplitLast["prefix = pattern.substring(0, lastColon)<br/>suffix = pattern.substring(lastColon + 1)"]
-    
+
     TryFuzzy --> FuzzyResult["return {model, thinkingLevel: undefined}"]
-    
+
     SplitLast --> CheckSuffix{"isValidThinkingLevel(suffix)?"}
     CheckSuffix -->|Yes| RecursePrefix["parseModelPattern(prefix)<br/>return with thinkingLevel"]
     CheckSuffix -->|No| RecurseWarn["parseModelPattern(prefix)<br/>return with warning"]
-    
+
     RecursePrefix --> FinalResult["return ParsedModelResult"]
     RecurseWarn --> FinalResult
 ```
@@ -358,13 +359,13 @@ Sources: [packages/coding-agent/src/core/model-resolver.ts:50-57](), [packages/c
 
 Patterns can include provider prefix to disambiguate:
 
-| Pattern Format | Example | Resolution |
-|----------------|---------|------------|
-| `modelId` | `sonnet` | Fuzzy match across all providers |
-| `provider/modelId` | `anthropic/sonnet` | Fuzzy match within provider |
-| `provider/exact:id` | `openrouter/openai/gpt-4o:extended` | Exact match for OpenRouter models with colons |
-| `pattern:thinking` | `sonnet:high` | Fuzzy match with thinking level |
-| `provider/pattern:thinking` | `anthropic/opus:medium` | Provider-scoped with thinking level |
+| Pattern Format              | Example                             | Resolution                                    |
+| --------------------------- | ----------------------------------- | --------------------------------------------- |
+| `modelId`                   | `sonnet`                            | Fuzzy match across all providers              |
+| `provider/modelId`          | `anthropic/sonnet`                  | Fuzzy match within provider                   |
+| `provider/exact:id`         | `openrouter/openai/gpt-4o:extended` | Exact match for OpenRouter models with colons |
+| `pattern:thinking`          | `sonnet:high`                       | Fuzzy match with thinking level               |
+| `provider/pattern:thinking` | `anthropic/opus:medium`             | Provider-scoped with thinking level           |
 
 Sources: [packages/coding-agent/src/core/model-resolver.ts:64-77](), [packages/coding-agent/src/core/model-resolver.ts:217-249]()
 
@@ -374,13 +375,13 @@ Model scoping supports glob patterns for bulk selection:
 
 ```typescript
 // Match all Sonnet models across providers
-resolveModelScope(["*sonnet*"], modelRegistry)
+resolveModelScope(['*sonnet*'], modelRegistry)
 
 // Match all models from a provider
-resolveModelScope(["anthropic/*"], modelRegistry)
+resolveModelScope(['anthropic/*'], modelRegistry)
 
 // Match with thinking level
-resolveModelScope(["*opus*:high"], modelRegistry)
+resolveModelScope(['*opus*:high'], modelRegistry)
 ```
 
 Patterns are matched against both `provider/modelId` and `modelId` formats using `minimatch` with `nocase: true`.
@@ -415,10 +416,10 @@ Valid thinking levels: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`
 
 **Behavior by context:**
 
-| Context | Invalid suffix | Result |
-|---------|---------------|--------|
+| Context       | Invalid suffix   | Result                                      |
+| ------------- | ---------------- | ------------------------------------------- |
 | Model scoping | `sonnet:invalid` | Warning emitted, use default thinking level |
-| CLI `--model` | `sonnet:invalid` | Error, model not found |
+| CLI `--model` | `sonnet:invalid` | Error, model not found                      |
 
 The distinction prevents CLI users from accidentally resolving to unintended models when they mistype thinking levels.
 
@@ -432,19 +433,20 @@ The `defaultModelPerProvider` map specifies the preferred model for each provide
 
 ```typescript
 export const defaultModelPerProvider: Record<KnownProvider, string> = {
-  "amazon-bedrock": "us.anthropic.claude-opus-4-6-v1",
-  "anthropic": "claude-opus-4-6",
-  "openai": "gpt-5.4",
-  "openai-codex": "gpt-5.4",
-  "google": "gemini-2.5-pro",
-  "github-copilot": "gpt-4o",
-  "openrouter": "openai/gpt-5.1-codex",
-  "vercel-ai-gateway": "anthropic/claude-opus-4-6",
+  'amazon-bedrock': 'us.anthropic.claude-opus-4-6-v1',
+  anthropic: 'claude-opus-4-6',
+  openai: 'gpt-5.4',
+  'openai-codex': 'gpt-5.4',
+  google: 'gemini-2.5-pro',
+  'github-copilot': 'gpt-4o',
+  openrouter: 'openai/gpt-5.1-codex',
+  'vercel-ai-gateway': 'anthropic/claude-opus-4-6',
   // ... other providers
 }
 ```
 
 These defaults are used when:
+
 - No specific model is provided
 - A saved default model is unavailable
 - Restoring from session and model is missing
@@ -460,24 +462,24 @@ The `findInitialModel` function determines which model to use when starting a se
 ```mermaid
 flowchart TD
     Start["findInitialModel(options)"]
-    
+
     CheckCLI{"cliProvider &&<br/>cliModel?"}
     CheckCLI -->|Yes| ResolveCLI["resolveCliModel()"]
     ResolveCLI --> CLIError{"resolved.error?"}
     CLIError -->|Yes| Exit["console.error()<br/>process.exit(1)"]
     CLIError -->|No| ReturnCLI["return {model, thinkingLevel}"]
-    
+
     CheckCLI -->|No| CheckScoped{"scopedModels.length > 0<br/>&& !isContinuing?"}
     CheckScoped -->|Yes| ReturnFirst["return scopedModels[0]<br/>with thinkingLevel"]
-    
+
     CheckScoped -->|No| CheckSaved{"defaultProvider &&<br/>defaultModelId?"}
     CheckSaved -->|Yes| FindSaved["modelRegistry.find()"]
     FindSaved --> SavedFound{"model found?"}
     SavedFound -->|Yes| ReturnSaved["return saved model<br/>with defaultThinkingLevel"]
-    
+
     CheckSaved -->|No| GetAvailable["availableModels =<br/>await modelRegistry.getAvailable()"]
     SavedFound -->|No| GetAvailable
-    
+
     GetAvailable --> TryDefaults["for provider in<br/>defaultModelPerProvider"]
     TryDefaults --> DefaultFound{"match found?"}
     DefaultFound -->|Yes| ReturnDefault["return provider default"]
@@ -504,30 +506,30 @@ When continuing or resuming a session, `restoreModelFromSession` attempts to res
 ```mermaid
 flowchart TD
     Start["restoreModelFromSession(<br/>savedProvider,<br/>savedModelId,<br/>currentModel,<br/>shouldPrintMessages,<br/>modelRegistry)"]
-    
+
     FindModel["restoredModel =<br/>modelRegistry.find()"]
     FindModel --> CheckApiKey["hasApiKey =<br/>await modelRegistry.getApiKey()"]
-    
+
     CheckApiKey --> HasKey{"restoredModel &&<br/>hasApiKey?"}
-    
+
     HasKey -->|Yes| PrintRestore["if (shouldPrintMessages)<br/>console.log('Restored model')"]
     PrintRestore --> ReturnRestored["return {model: restoredModel}"]
-    
+
     HasKey -->|No| DetermineReason["reason = !restoredModel ?<br/>'model no longer exists' :<br/>'no API key available'"]
-    
+
     DetermineReason --> PrintWarning["if (shouldPrintMessages)<br/>console.error('Warning: Could not restore')"]
-    
+
     PrintWarning --> HasCurrent{"currentModel?"}
-    
+
     HasCurrent -->|Yes| UseCurrent["return {model: currentModel,<br/>fallbackMessage}"]
-    
+
     HasCurrent -->|No| FindAvailable["availableModels =<br/>await modelRegistry.getAvailable()"]
-    
+
     FindAvailable --> HasAvailable{"availableModels.length > 0?"}
-    
+
     HasAvailable -->|Yes| TryDefaults["Try defaultModelPerProvider<br/>for each provider"]
     TryDefaults --> ReturnFallback["return {model: fallback,<br/>fallbackMessage}"]
-    
+
     HasAvailable -->|No| ReturnUndefined["return {model: undefined}"]
 ```
 

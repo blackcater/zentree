@@ -15,8 +15,6 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page covers the dispatch mechanism in `@mariozechner/pi-ai` that routes calls from the top-level `stream` / `complete` / `streamSimple` / `completeSimple` functions to individual provider implementations. It documents the `StreamOptions` fields, the `AssistantMessageEventStream` event protocol, and the per-provider streaming functions for OpenAI Completions, OpenAI Responses, Anthropic, Google, and Amazon Bedrock.
 
 For the model catalog and how `Model` objects are structured, see [2.1](). For authentication and OAuth credential resolution, see [2.3]().
@@ -62,12 +60,12 @@ Sources: [packages/ai/src/stream.ts:1-60]()
 
 Each provider is registered at startup by `packages/ai/src/providers/register-builtins.ts`. The registry maps an `Api` string (e.g. `"openai-completions"`) to an object with `stream` and `streamSimple` methods, both typed as `StreamFunction`.
 
-| Export | Function | Description |
-|---|---|---|
-| `stream` | Low-level; passes options directly to the provider | Returns `AssistantMessageEventStream` |
-| `complete` | Wraps `stream`, awaits `s.result()` | Returns `Promise<AssistantMessage>` |
-| `streamSimple` | Translates `SimpleStreamOptions` to provider options | Returns `AssistantMessageEventStream` |
-| `completeSimple` | Wraps `streamSimple`, awaits `s.result()` | Returns `Promise<AssistantMessage>` |
+| Export           | Function                                             | Description                           |
+| ---------------- | ---------------------------------------------------- | ------------------------------------- |
+| `stream`         | Low-level; passes options directly to the provider   | Returns `AssistantMessageEventStream` |
+| `complete`       | Wraps `stream`, awaits `s.result()`                  | Returns `Promise<AssistantMessage>`   |
+| `streamSimple`   | Translates `SimpleStreamOptions` to provider options | Returns `AssistantMessageEventStream` |
+| `completeSimple` | Wraps `streamSimple`, awaits `s.result()`            | Returns `Promise<AssistantMessage>`   |
 
 Sources: [packages/ai/src/stream.ts:26-60]()
 
@@ -77,26 +75,26 @@ Sources: [packages/ai/src/stream.ts:26-60]()
 
 `StreamOptions` is the base option bag shared by all providers. Provider-specific option interfaces extend it.
 
-| Field | Type | Description |
-|---|---|---|
-| `temperature` | `number?` | Sampling temperature |
-| `maxTokens` | `number?` | Maximum output tokens |
-| `signal` | `AbortSignal?` | Cancellation signal |
-| `apiKey` | `string?` | Override API key for this request |
-| `headers` | `Record<string, string>?` | Extra HTTP headers merged with provider defaults |
-| `cacheRetention` | `"none" \| "short" \| "long"` | Prompt cache preference (default `"short"`) |
-| `sessionId` | `string?` | Provider-level session/cache key |
-| `onPayload` | `(payload: unknown) => void` | Debug callback to inspect the raw provider payload |
-| `metadata` | `Record<string, unknown>?` | Provider-specific extras (e.g. Anthropic `user_id`) |
-| `maxRetryDelayMs` | `number?` | Cap on server-requested retry delays (default 60000 ms) |
-| `transport` | `"sse" \| "websocket" \| "auto"` | Preferred transport (provider-dependent) |
+| Field             | Type                             | Description                                             |
+| ----------------- | -------------------------------- | ------------------------------------------------------- |
+| `temperature`     | `number?`                        | Sampling temperature                                    |
+| `maxTokens`       | `number?`                        | Maximum output tokens                                   |
+| `signal`          | `AbortSignal?`                   | Cancellation signal                                     |
+| `apiKey`          | `string?`                        | Override API key for this request                       |
+| `headers`         | `Record<string, string>?`        | Extra HTTP headers merged with provider defaults        |
+| `cacheRetention`  | `"none" \| "short" \| "long"`    | Prompt cache preference (default `"short"`)             |
+| `sessionId`       | `string?`                        | Provider-level session/cache key                        |
+| `onPayload`       | `(payload: unknown) => void`     | Debug callback to inspect the raw provider payload      |
+| `metadata`        | `Record<string, unknown>?`       | Provider-specific extras (e.g. Anthropic `user_id`)     |
+| `maxRetryDelayMs` | `number?`                        | Cap on server-requested retry delays (default 60000 ms) |
+| `transport`       | `"sse" \| "websocket" \| "auto"` | Preferred transport (provider-dependent)                |
 
 `SimpleStreamOptions` extends `StreamOptions` with a unified reasoning field:
 
-| Field | Type | Description |
-|---|---|---|
-| `reasoning` | `ThinkingLevel?` | `"minimal" \| "low" \| "medium" \| "high" \| "xhigh"` |
-| `thinkingBudgets` | `ThinkingBudgets?` | Per-level token budgets for token-based providers |
+| Field             | Type               | Description                                           |
+| ----------------- | ------------------ | ----------------------------------------------------- |
+| `reasoning`       | `ThinkingLevel?`   | `"minimal" \| "low" \| "medium" \| "high" \| "xhigh"` |
+| `thinkingBudgets` | `ThinkingBudgets?` | Per-level token budgets for token-based providers     |
 
 Sources: [packages/ai/src/types.ts:53-112]()
 
@@ -144,31 +142,31 @@ Sources: [packages/ai/src/types.ts:212-224]()
 
 ### Complete event reference
 
-| Event type | Key fields | Notes |
-|---|---|---|
-| `start` | `partial: AssistantMessage` | Emitted once before any content |
-| `text_start` | `contentIndex` | New text block started |
-| `text_delta` | `contentIndex`, `delta: string` | Incremental text chunk |
-| `text_end` | `contentIndex`, `content: string` | Full text for the block |
-| `thinking_start` | `contentIndex` | New thinking block started |
-| `thinking_delta` | `contentIndex`, `delta: string` | Incremental thinking chunk |
-| `thinking_end` | `contentIndex`, `content: string` | Full thinking for the block |
-| `toolcall_start` | `contentIndex` | New tool call started |
-| `toolcall_delta` | `contentIndex`, `delta: string` | Partial JSON chunk; `partial.content[contentIndex].arguments` is best-effort parsed |
-| `toolcall_end` | `contentIndex`, `toolCall: ToolCall` | Fully parsed tool call |
-| `done` | `reason`, `message: AssistantMessage` | Normal termination; `reason` is `"stop" \| "length" \| "toolUse"` |
-| `error` | `reason`, `error: AssistantMessage` | Error or abort; `reason` is `"error" \| "aborted"` |
+| Event type       | Key fields                            | Notes                                                                               |
+| ---------------- | ------------------------------------- | ----------------------------------------------------------------------------------- |
+| `start`          | `partial: AssistantMessage`           | Emitted once before any content                                                     |
+| `text_start`     | `contentIndex`                        | New text block started                                                              |
+| `text_delta`     | `contentIndex`, `delta: string`       | Incremental text chunk                                                              |
+| `text_end`       | `contentIndex`, `content: string`     | Full text for the block                                                             |
+| `thinking_start` | `contentIndex`                        | New thinking block started                                                          |
+| `thinking_delta` | `contentIndex`, `delta: string`       | Incremental thinking chunk                                                          |
+| `thinking_end`   | `contentIndex`, `content: string`     | Full thinking for the block                                                         |
+| `toolcall_start` | `contentIndex`                        | New tool call started                                                               |
+| `toolcall_delta` | `contentIndex`, `delta: string`       | Partial JSON chunk; `partial.content[contentIndex].arguments` is best-effort parsed |
+| `toolcall_end`   | `contentIndex`, `toolCall: ToolCall`  | Fully parsed tool call                                                              |
+| `done`           | `reason`, `message: AssistantMessage` | Normal termination; `reason` is `"stop" \| "length" \| "toolUse"`                   |
+| `error`          | `reason`, `error: AssistantMessage`   | Error or abort; `reason` is `"error" \| "aborted"`                                  |
 
 Sources: [packages/ai/src/types.ts:212-224](), [packages/ai/README.md:362-378]()
 
 ### StopReason values
 
-| Value | Meaning |
-|---|---|
-| `"stop"` | Model finished normally |
-| `"length"` | Hit `maxTokens` limit |
-| `"toolUse"` | Model is requesting tool execution |
-| `"error"` | Provider error |
+| Value       | Meaning                             |
+| ----------- | ----------------------------------- |
+| `"stop"`    | Model finished normally             |
+| `"length"`  | Hit `maxTokens` limit               |
+| `"toolUse"` | Model is requesting tool execution  |
+| `"error"`   | Provider error                      |
 | `"aborted"` | Request cancelled via `AbortSignal` |
 
 Sources: [packages/ai/src/types.ts:166]()
@@ -236,30 +234,31 @@ Used by a large set of OpenAI-compatible providers: Mistral, xAI, Groq, Cerebras
 
 `OpenAICompletionsOptions` extends `StreamOptions`:
 
-| Field | Values | Description |
-|---|---|---|
-| `toolChoice` | `"auto" \| "none" \| "required" \| {type:"function", ...}` | Force or suppress tool use |
-| `reasoningEffort` | `"minimal" \| "low" \| "medium" \| "high" \| "xhigh"` | Reasoning effort for models that support `reasoning_effort` |
+| Field             | Values                                                     | Description                                                 |
+| ----------------- | ---------------------------------------------------------- | ----------------------------------------------------------- |
+| `toolChoice`      | `"auto" \| "none" \| "required" \| {type:"function", ...}` | Force or suppress tool use                                  |
+| `reasoningEffort` | `"minimal" \| "low" \| "medium" \| "high" \| "xhigh"`      | Reasoning effort for models that support `reasoning_effort` |
 
 The `compat` field on the `Model` object controls provider-specific wire-format differences. Compatibility is auto-detected from `provider` and `baseUrl`, or can be overridden explicitly.
 
-| Compat flag | Default | Effect when true/set |
-|---|---|---|
-| `supportsStore` | `true` | Send `store: false` in params |
-| `supportsDeveloperRole` | `true` | Use `developer` role for system on reasoning models |
-| `supportsReasoningEffort` | `true` | Include `reasoning_effort` in params |
-| `supportsUsageInStreaming` | `true` | Include `stream_options: { include_usage: true }` |
-| `supportsStrictMode` | `true` | Include `strict: false` in tool definitions |
-| `maxTokensField` | `"max_completion_tokens"` | Use `max_tokens` for Mistral/Chutes |
-| `requiresToolResultName` | `false` | Send `name` field on tool results (Mistral) |
-| `requiresAssistantAfterToolResult` | `false` | Insert synthetic assistant message between tool result and user message |
-| `requiresThinkingAsText` | `false` | Serialize thinking blocks as plain text |
-| `requiresMistralToolIds` | `false` | Normalize tool IDs to exactly 9 alphanumeric chars |
-| `thinkingFormat` | `"openai"` | `"openai"` → `reasoning_effort`; `"zai"` / `"qwen"` → `enable_thinking: bool` |
+| Compat flag                        | Default                   | Effect when true/set                                                          |
+| ---------------------------------- | ------------------------- | ----------------------------------------------------------------------------- |
+| `supportsStore`                    | `true`                    | Send `store: false` in params                                                 |
+| `supportsDeveloperRole`            | `true`                    | Use `developer` role for system on reasoning models                           |
+| `supportsReasoningEffort`          | `true`                    | Include `reasoning_effort` in params                                          |
+| `supportsUsageInStreaming`         | `true`                    | Include `stream_options: { include_usage: true }`                             |
+| `supportsStrictMode`               | `true`                    | Include `strict: false` in tool definitions                                   |
+| `maxTokensField`                   | `"max_completion_tokens"` | Use `max_tokens` for Mistral/Chutes                                           |
+| `requiresToolResultName`           | `false`                   | Send `name` field on tool results (Mistral)                                   |
+| `requiresAssistantAfterToolResult` | `false`                   | Insert synthetic assistant message between tool result and user message       |
+| `requiresThinkingAsText`           | `false`                   | Serialize thinking blocks as plain text                                       |
+| `requiresMistralToolIds`           | `false`                   | Normalize tool IDs to exactly 9 alphanumeric chars                            |
+| `thinkingFormat`                   | `"openai"`                | `"openai"` → `reasoning_effort`; `"zai"` / `"qwen"` → `enable_thinking: bool` |
 
 Sources: [packages/ai/src/providers/openai-completions.ts:73-76](), [packages/ai/src/providers/openai-completions.ts:758-824](), [packages/ai/src/types.ts:230-256]()
 
 **Message conversion** is handled by `convertMessages` which:
+
 - Prepends `system` / `developer` role for the system prompt
 - Maps `user`, `assistant`, `toolResult` message roles
 - Batches consecutive `toolResult` messages (images are re-attached as a user message)
@@ -285,11 +284,11 @@ Used by OpenAI models (gpt-5, o-series), GitHub Copilot (Responses-mode), openco
 
 `OpenAIResponsesOptions` extends `StreamOptions`:
 
-| Field | Values | Description |
-|---|---|---|
-| `reasoningEffort` | `"minimal" \| "low" \| "medium" \| "high" \| "xhigh"` | Reasoning effort |
-| `reasoningSummary` | `"auto" \| "detailed" \| "concise" \| null` | Reasoning summary visibility |
-| `serviceTier` | `"flex" \| "priority" \| ...` | Service tier (flex = 0.5× cost, priority = 2× cost) |
+| Field              | Values                                                | Description                                         |
+| ------------------ | ----------------------------------------------------- | --------------------------------------------------- |
+| `reasoningEffort`  | `"minimal" \| "low" \| "medium" \| "high" \| "xhigh"` | Reasoning effort                                    |
+| `reasoningSummary` | `"auto" \| "detailed" \| "concise" \| null`           | Reasoning summary visibility                        |
+| `serviceTier`      | `"flex" \| "priority" \| ...`                         | Service tier (flex = 0.5× cost, priority = 2× cost) |
 
 The Responses API uses `prompt_cache_key` + `prompt_cache_retention` for caching. For direct `api.openai.com` calls with `cacheRetention: "long"`, `prompt_cache_retention: "24h"` is sent.
 
@@ -307,20 +306,20 @@ File: [packages/ai/src/providers/anthropic.ts]()
 
 `AnthropicOptions` extends `StreamOptions`:
 
-| Field | Type | Description |
-|---|---|---|
-| `thinkingEnabled` | `boolean?` | Activate extended thinking |
-| `thinkingBudgetTokens` | `number?` | Token budget for thinking (older models only) |
-| `effort` | `"low" \| "medium" \| "high" \| "max"` | Effort level for adaptive thinking (Opus 4.6/Sonnet 4.6) |
-| `interleavedThinking` | `boolean?` | Request interleaved thinking beta header |
-| `toolChoice` | `"auto" \| "any" \| "none" \| {type:"tool", name:string}` | Tool use control |
+| Field                  | Type                                                      | Description                                              |
+| ---------------------- | --------------------------------------------------------- | -------------------------------------------------------- |
+| `thinkingEnabled`      | `boolean?`                                                | Activate extended thinking                               |
+| `thinkingBudgetTokens` | `number?`                                                 | Token budget for thinking (older models only)            |
+| `effort`               | `"low" \| "medium" \| "high" \| "max"`                    | Effort level for adaptive thinking (Opus 4.6/Sonnet 4.6) |
+| `interleavedThinking`  | `boolean?`                                                | Request interleaved thinking beta header                 |
+| `toolChoice`           | `"auto" \| "any" \| "none" \| {type:"tool", name:string}` | Tool use control                                         |
 
 **Thinking modes:**
 
-| Model family | Mode | API field |
-|---|---|---|
-| Opus 4.6, Sonnet 4.6 | Adaptive thinking | `thinking: { type: "adaptive" }`, `output_config: { effort }` |
-| Older Claude models | Budget-based thinking | `thinking: { type: "enabled", budget_tokens: N }` |
+| Model family         | Mode                  | API field                                                     |
+| -------------------- | --------------------- | ------------------------------------------------------------- |
+| Opus 4.6, Sonnet 4.6 | Adaptive thinking     | `thinking: { type: "adaptive" }`, `output_config: { effort }` |
+| Older Claude models  | Budget-based thinking | `thinking: { type: "enabled", budget_tokens: N }`             |
 
 **OAuth stealth mode:** When the API key is an OAuth token (`sk-ant-oat` prefix), the client sets `user-agent: claude-cli/<version>`, `x-app: cli`, and the `claude-code-20250219` beta header. Tool names are canonicalized to Claude Code casing (e.g., `read` → `Read`) via `toClaudeCodeName`.
 
@@ -338,14 +337,15 @@ File: [packages/ai/src/providers/google.ts]()
 
 `GoogleOptions` extends `StreamOptions`:
 
-| Field | Type | Description |
-|---|---|---|
-| `toolChoice` | `"auto" \| "none" \| "any"` | Tool use mode |
-| `thinking.enabled` | `boolean` | Enable thinking |
-| `thinking.budgetTokens` | `number?` | Token budget (`-1` = dynamic, `0` = disable) |
-| `thinking.level` | `GoogleThinkingLevel?` | For Gemini 3 models: `"MINIMAL" \| "LOW" \| "MEDIUM" \| "HIGH"` |
+| Field                   | Type                        | Description                                                     |
+| ----------------------- | --------------------------- | --------------------------------------------------------------- |
+| `toolChoice`            | `"auto" \| "none" \| "any"` | Tool use mode                                                   |
+| `thinking.enabled`      | `boolean`                   | Enable thinking                                                 |
+| `thinking.budgetTokens` | `number?`                   | Token budget (`-1` = dynamic, `0` = disable)                    |
+| `thinking.level`        | `GoogleThinkingLevel?`      | For Gemini 3 models: `"MINIMAL" \| "LOW" \| "MEDIUM" \| "HIGH"` |
 
 `streamSimpleGoogle` maps `ThinkingLevel` to Google-specific parameters:
+
 - Gemini 3 Pro and 3 Flash: use `level`-based thinking
 - Gemini 2.5 Pro/Flash: use `budgetTokens` with level-specific defaults
 - No reasoning → `thinking: { enabled: false }`
@@ -364,24 +364,24 @@ File: [packages/ai/src/providers/amazon-bedrock.ts]()
 
 `BedrockOptions` extends `StreamOptions`:
 
-| Field | Type | Description |
-|---|---|---|
-| `region` | `string?` | AWS region (falls back to `AWS_REGION`, then `us-east-1`) |
-| `profile` | `string?` | AWS named profile |
-| `toolChoice` | `"auto" \| "any" \| "none" \| {type:"tool",name:string}` | Tool use control |
-| `reasoning` | `ThinkingLevel?` | Thinking level for Claude on Bedrock |
-| `thinkingBudgets` | `ThinkingBudgets?` | Custom per-level token budgets |
-| `interleavedThinking` | `boolean?` | Interleaved thinking for Claude 4.x |
+| Field                 | Type                                                     | Description                                               |
+| --------------------- | -------------------------------------------------------- | --------------------------------------------------------- |
+| `region`              | `string?`                                                | AWS region (falls back to `AWS_REGION`, then `us-east-1`) |
+| `profile`             | `string?`                                                | AWS named profile                                         |
+| `toolChoice`          | `"auto" \| "any" \| "none" \| {type:"tool",name:string}` | Tool use control                                          |
+| `reasoning`           | `ThinkingLevel?`                                         | Thinking level for Claude on Bedrock                      |
+| `thinkingBudgets`     | `ThinkingBudgets?`                                       | Custom per-level token budgets                            |
+| `interleavedThinking` | `boolean?`                                               | Interleaved thinking for Claude 4.x                       |
 
 Bedrock uses the AWS SDK `ConverseStreamCommand`. Authentication is handled entirely by the AWS SDK credential chain (IAM keys, profiles, ECS task roles, IRSA). Custom proxy support is provided via `HTTP_PROXY` / `HTTPS_PROXY` environment variables using `proxy-agent` + `NodeHttpHandler`.
 
 Special environment variables for Bedrock:
 
-| Variable | Effect |
-|---|---|
-| `AWS_BEDROCK_SKIP_AUTH=1` | Use dummy credentials (for auth-free proxies) |
-| `AWS_BEDROCK_FORCE_HTTP1=1` | Use HTTP/1.1 instead of HTTP/2 |
-| `AWS_ENDPOINT_URL_BEDROCK_RUNTIME` | Override Bedrock endpoint URL |
+| Variable                           | Effect                                        |
+| ---------------------------------- | --------------------------------------------- |
+| `AWS_BEDROCK_SKIP_AUTH=1`          | Use dummy credentials (for auth-free proxies) |
+| `AWS_BEDROCK_FORCE_HTTP1=1`        | Use HTTP/1.1 instead of HTTP/2                |
+| `AWS_ENDPOINT_URL_BEDROCK_RUNTIME` | Override Bedrock endpoint URL                 |
 
 Sources: [packages/ai/src/providers/amazon-bedrock.ts:48-58](), [packages/ai/src/providers/amazon-bedrock.ts:90-134]()
 

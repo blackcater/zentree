@@ -15,11 +15,9 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
-
-
 This page documents how Codex decides which tools are made available to the model in a given session. It covers `ToolsConfig`, `ToolsConfigParams`, the `Feature`/`Features`/`FeatureSpec` system, the `ToolRegistry`, and the `ToolHandler` trait.
 
-For how the tools themselves *execute* (shell, apply_patch, unified exec, etc.) see pages [5.2](#5.2)–[5.8](#5.8). For MCP-specific tool configuration, see [6.1](#6.1) and [6.2](#6.2). For the overall sandbox and approval system, see [2.4](#2.4) and [5.5](#5.5). For the `Features` system as used outside of the tool context, see [2.3](#2.3).
+For how the tools themselves _execute_ (shell, apply_patch, unified exec, etc.) see pages [5.2](#5.2)–[5.8](#5.8). For MCP-specific tool configuration, see [6.1](#6.1) and [6.2](#6.2). For the overall sandbox and approval system, see [2.4](#2.4) and [5.5](#5.5). For the `Features` system as used outside of the tool context, see [2.3](#2.3).
 
 ---
 
@@ -32,6 +30,7 @@ Every agent session calculates a set of tools once, before the first API request
 3. **`SessionSource`** — whether this is a top-level session or a sub-agent (affects agent-jobs worker tools).
 
 These inputs produce a `ToolsConfig` value. `ToolsConfig` is consumed by `build_specs()` to emit both:
+
 - `ToolSpec` values sent to the model API as tool definitions.
 - A `ToolRegistry` that routes incoming tool-call responses to handler implementations.
 
@@ -74,35 +73,35 @@ Sources: [codex-rs/core/src/tools/spec.rs:48-162](), [codex-rs/core/src/features
 
 [codex-rs/core/src/tools/spec.rs:67-72]()
 
-| Field | Type | Description |
-|---|---|---|
-| `model_info` | `&ModelInfo` | Model catalog entry for the active model |
-| `features` | `&Features` | Resolved feature flag set |
+| Field             | Type                    | Description                               |
+| ----------------- | ----------------------- | ----------------------------------------- |
+| `model_info`      | `&ModelInfo`            | Model catalog entry for the active model  |
+| `features`        | `&Features`             | Resolved feature flag set                 |
 | `web_search_mode` | `Option<WebSearchMode>` | Effective web search mode for the session |
-| `session_source` | `SessionSource` | Top-level vs sub-agent context |
+| `session_source`  | `SessionSource`         | Top-level vs sub-agent context            |
 
 ### `ToolsConfig` fields
 
 [codex-rs/core/src/tools/spec.rs:48-65]()
 
-| Field | Type | Controls |
-|---|---|---|
-| `shell_type` | `ConfigShellToolType` | Which shell tool variant is exposed (`Disabled`, `ShellCommand`, `UnifiedExec`) |
-| `shell_command_backend` | `ShellCommandBackendConfig` | `Classic` or `ZshFork` backend for shell execution |
-| `allow_login_shell` | `bool` | Whether the `login` parameter is included in shell tool schemas |
-| `apply_patch_tool_type` | `Option<ApplyPatchToolType>` | `Freeform`, `Function`, or `None` (no apply_patch tool) |
-| `web_search_mode` | `Option<WebSearchMode>` | Passed through from params |
-| `agent_roles` | `BTreeMap<String, AgentRoleConfig>` | Roles for multi-agent sub-agent spawning |
-| `search_tool` | `bool` | BM25 search tool (enabled when `Feature::Apps` is on) |
-| `request_permission_enabled` | `bool` | Whether models may request additional sandbox permissions |
-| `js_repl_enabled` | `bool` | JavaScript REPL tool |
-| `js_repl_tools_only` | `bool` | Force all tool calls through `js_repl` |
-| `collab_tools` | `bool` | Multi-agent collaboration tools |
-| `presentation_artifact` | `bool` | Presentation artifact tool |
-| `default_mode_request_user_input` | `bool` | Allow `request_user_input` in Default collaboration mode |
-| `experimental_supported_tools` | `Vec<String>` | Extra tool names declared by the model catalog |
-| `agent_jobs_tools` | `bool` | Agent job scheduling tools |
-| `agent_jobs_worker_tools` | `bool` | Worker-side job tools (only for `agent_job:` sub-agents) |
+| Field                             | Type                                | Controls                                                                        |
+| --------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------- |
+| `shell_type`                      | `ConfigShellToolType`               | Which shell tool variant is exposed (`Disabled`, `ShellCommand`, `UnifiedExec`) |
+| `shell_command_backend`           | `ShellCommandBackendConfig`         | `Classic` or `ZshFork` backend for shell execution                              |
+| `allow_login_shell`               | `bool`                              | Whether the `login` parameter is included in shell tool schemas                 |
+| `apply_patch_tool_type`           | `Option<ApplyPatchToolType>`        | `Freeform`, `Function`, or `None` (no apply_patch tool)                         |
+| `web_search_mode`                 | `Option<WebSearchMode>`             | Passed through from params                                                      |
+| `agent_roles`                     | `BTreeMap<String, AgentRoleConfig>` | Roles for multi-agent sub-agent spawning                                        |
+| `search_tool`                     | `bool`                              | BM25 search tool (enabled when `Feature::Apps` is on)                           |
+| `request_permission_enabled`      | `bool`                              | Whether models may request additional sandbox permissions                       |
+| `js_repl_enabled`                 | `bool`                              | JavaScript REPL tool                                                            |
+| `js_repl_tools_only`              | `bool`                              | Force all tool calls through `js_repl`                                          |
+| `collab_tools`                    | `bool`                              | Multi-agent collaboration tools                                                 |
+| `presentation_artifact`           | `bool`                              | Presentation artifact tool                                                      |
+| `default_mode_request_user_input` | `bool`                              | Allow `request_user_input` in Default collaboration mode                        |
+| `experimental_supported_tools`    | `Vec<String>`                       | Extra tool names declared by the model catalog                                  |
+| `agent_jobs_tools`                | `bool`                              | Agent job scheduling tools                                                      |
+| `agent_jobs_worker_tools`         | `bool`                              | Worker-side job tools (only for `agent_job:` sub-agents)                        |
 
 ### Builder methods
 
@@ -123,24 +122,24 @@ Every feature is described by a `FeatureSpec` value in the `FEATURES` constant s
 
 [codex-rs/core/src/features.rs:427-433]()
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | `Feature` | Enum variant identifying the feature |
-| `key` | `&'static str` | TOML key used in `[features]` tables |
-| `stage` | `Stage` | Lifecycle stage |
-| `default_enabled` | `bool` | Whether the feature is on by default |
+| Field             | Type           | Description                          |
+| ----------------- | -------------- | ------------------------------------ |
+| `id`              | `Feature`      | Enum variant identifying the feature |
+| `key`             | `&'static str` | TOML key used in `[features]` tables |
+| `stage`           | `Stage`        | Lifecycle stage                      |
+| `default_enabled` | `bool`         | Whether the feature is on by default |
 
 ### `Stage` variants
 
 [codex-rs/core/src/features.rs:28-44]()
 
-| Variant | Meaning |
-|---|---|
-| `UnderDevelopment` | Incomplete; must be disabled by default |
-| `Experimental` | Opt-in via `/experimental` menu; carries display name and announcement text |
-| `Stable` | Fully supported; flag kept for opt-out |
-| `Deprecated` | Superseded; usage emits a legacy warning |
-| `Removed` | No-op; key accepted for backward compatibility only |
+| Variant            | Meaning                                                                     |
+| ------------------ | --------------------------------------------------------------------------- |
+| `UnderDevelopment` | Incomplete; must be disabled by default                                     |
+| `Experimental`     | Opt-in via `/experimental` menu; carries display name and announcement text |
+| `Stable`           | Fully supported; flag kept for opt-out                                      |
+| `Deprecated`       | Superseded; usage emits a legacy warning                                    |
+| `Removed`          | No-op; key accepted for backward compatibility only                         |
 
 ### Tool-relevant features
 
@@ -148,22 +147,22 @@ The following `Feature` enum variants directly influence which tools are exposed
 
 [codex-rs/core/src/features.rs:72-162](), [codex-rs/core/src/features.rs:435-721]()
 
-| Feature variant | TOML key | Default | Stage | Effect |
-|---|---|---|---|---|
-| `ShellTool` | `shell_tool` | ✓ | Stable | Enables any shell tool; disabling removes all shell access |
-| `UnifiedExec` | `unified_exec` | ✓ (non-Windows) | Stable | Exposes `exec_command` + `write_stdin` instead of `shell`/`shell_command` |
-| `ShellZshFork` | `shell_zsh_fork` | ✗ | UnderDevelopment | Routes shell through Zsh exec bridge |
-| `ApplyPatchFreeform` | `apply_patch_freeform` | ✗ | UnderDevelopment | Adds freeform `apply_patch` custom tool |
-| `JsRepl` | `js_repl` | ✗ | Experimental | Adds `js_repl` and `js_repl_reset` tools |
-| `JsReplToolsOnly` | `js_repl_tools_only` | ✗ | UnderDevelopment | Requires all tool calls go through `js_repl` |
-| `RequestPermissions` | `request_permissions` | ✗ | UnderDevelopment | Enables `with_additional_permissions` in shell tool schemas |
-| `Collab` | `multi_agent` | ✗ | Experimental | Adds multi-agent tools |
-| `Sqlite` | `sqlite` | ✓ | Stable | Required for agent jobs tools alongside `Collab` |
-| `Apps` | `apps` | ✗ | Experimental | Adds BM25 search tool |
-| `Artifact` | `artifact` | ✗ | UnderDevelopment | Adds presentation artifact tool |
-| `DefaultModeRequestUserInput` | `default_mode_request_user_input` | ✗ | UnderDevelopment | Adds `request_user_input` in Default collaboration mode |
-| `WebSearchRequest` | `web_search_request` | ✗ | Deprecated | Legacy web search enable (superseded by `web_search` config field) |
-| `WebSearchCached` | `web_search_cached` | ✗ | Deprecated | Legacy cached web search enable |
+| Feature variant               | TOML key                          | Default         | Stage            | Effect                                                                    |
+| ----------------------------- | --------------------------------- | --------------- | ---------------- | ------------------------------------------------------------------------- |
+| `ShellTool`                   | `shell_tool`                      | ✓               | Stable           | Enables any shell tool; disabling removes all shell access                |
+| `UnifiedExec`                 | `unified_exec`                    | ✓ (non-Windows) | Stable           | Exposes `exec_command` + `write_stdin` instead of `shell`/`shell_command` |
+| `ShellZshFork`                | `shell_zsh_fork`                  | ✗               | UnderDevelopment | Routes shell through Zsh exec bridge                                      |
+| `ApplyPatchFreeform`          | `apply_patch_freeform`            | ✗               | UnderDevelopment | Adds freeform `apply_patch` custom tool                                   |
+| `JsRepl`                      | `js_repl`                         | ✗               | Experimental     | Adds `js_repl` and `js_repl_reset` tools                                  |
+| `JsReplToolsOnly`             | `js_repl_tools_only`              | ✗               | UnderDevelopment | Requires all tool calls go through `js_repl`                              |
+| `RequestPermissions`          | `request_permissions`             | ✗               | UnderDevelopment | Enables `with_additional_permissions` in shell tool schemas               |
+| `Collab`                      | `multi_agent`                     | ✗               | Experimental     | Adds multi-agent tools                                                    |
+| `Sqlite`                      | `sqlite`                          | ✓               | Stable           | Required for agent jobs tools alongside `Collab`                          |
+| `Apps`                        | `apps`                            | ✗               | Experimental     | Adds BM25 search tool                                                     |
+| `Artifact`                    | `artifact`                        | ✗               | UnderDevelopment | Adds presentation artifact tool                                           |
+| `DefaultModeRequestUserInput` | `default_mode_request_user_input` | ✗               | UnderDevelopment | Adds `request_user_input` in Default collaboration mode                   |
+| `WebSearchRequest`            | `web_search_request`              | ✗               | Deprecated       | Legacy web search enable (superseded by `web_search` config field)        |
+| `WebSearchCached`             | `web_search_cached`               | ✗               | Deprecated       | Legacy cached web search enable                                           |
 
 ### `Features` struct
 
@@ -173,13 +172,13 @@ The following `Feature` enum variants directly influence which tools are exposed
 
 Key methods:
 
-| Method | Description |
-|---|---|
-| `Features::with_defaults()` | Seeds from `FEATURES` where `default_enabled = true` |
+| Method                                           | Description                                                                                        |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| `Features::with_defaults()`                      | Seeds from `FEATURES` where `default_enabled = true`                                               |
 | `Features::from_config(cfg, profile, overrides)` | Full build: applies legacy toggles, `[features]` table, profile overrides, then `FeatureOverrides` |
-| `features.enabled(f)` | Query a single feature |
-| `features.enable(f)` / `features.disable(f)` | Mutate (used by tests and `FeatureOverrides`) |
-| `features.apply_map(map)` | Apply a `BTreeMap<String, bool>` from TOML deserialization |
+| `features.enabled(f)`                            | Query a single feature                                                                             |
+| `features.enable(f)` / `features.disable(f)`     | Mutate (used by tests and `FeatureOverrides`)                                                      |
+| `features.apply_map(map)`                        | Apply a `BTreeMap<String, bool>` from TOML deserialization                                         |
 
 ### `FeatureOverrides`
 
@@ -216,6 +215,7 @@ backend = Classic"]
 Sources: [codex-rs/core/src/tools/spec.rs:93-113]()
 
 The `ConfigShellToolType` value then drives `build_specs()` to emit either:
+
 - `ConfigShellToolType::Disabled` → no shell tool spec
 - `ConfigShellToolType::ShellCommand` → `shell_command` function tool spec
 - `ConfigShellToolType::UnifiedExec` → `exec_command` + `write_stdin` function tool specs
@@ -256,26 +256,26 @@ For backward compatibility, several older TOML keys are accepted and mapped to c
 
 [codex-rs/core/src/features/legacy.rs:11-44]()
 
-| Legacy TOML key | Maps to `Feature` |
-|---|---|
-| `connectors` | `Apps` |
-| `enable_experimental_windows_sandbox` | `WindowsSandbox` |
-| `experimental_use_unified_exec_tool` | `UnifiedExec` |
+| Legacy TOML key                         | Maps to `Feature`    |
+| --------------------------------------- | -------------------- |
+| `connectors`                            | `Apps`               |
+| `enable_experimental_windows_sandbox`   | `WindowsSandbox`     |
+| `experimental_use_unified_exec_tool`    | `UnifiedExec`        |
 | `experimental_use_freeform_apply_patch` | `ApplyPatchFreeform` |
-| `include_apply_patch_tool` | `ApplyPatchFreeform` |
-| `web_search` | `WebSearchRequest` |
-| `collab` | `Collab` |
-| `memory_tool` | `MemoryTool` |
+| `include_apply_patch_tool`              | `ApplyPatchFreeform` |
+| `web_search`                            | `WebSearchRequest`   |
+| `collab`                                | `Collab`             |
+| `memory_tool`                           | `MemoryTool`         |
 
 Additionally, some top-level `ConfigToml` fields (not inside `[features]`) are processed as `LegacyFeatureToggles` by `Features::from_config()`:
 
 [codex-rs/core/src/features.rs:326-346]()
 
-| ConfigToml field | Equivalent feature |
-|---|---|
+| ConfigToml field                        | Equivalent feature   |
+| --------------------------------------- | -------------------- |
 | `experimental_use_freeform_apply_patch` | `ApplyPatchFreeform` |
-| `experimental_use_unified_exec_tool` | `UnifiedExec` |
-| `tools.web_search` | `WebSearchRequest` |
+| `experimental_use_unified_exec_tool`    | `UnifiedExec`        |
+| `tools.web_search`                      | `WebSearchRequest`   |
 
 Sources: [codex-rs/core/src/features/legacy.rs:1-110](), [codex-rs/core/src/features.rs:321-365]()
 
@@ -291,9 +291,9 @@ Sources: [codex-rs/core/src/features/legacy.rs:1-110](), [codex-rs/core/src/feat
 
 Key methods:
 
-| Method | Description |
-|---|---|
-| `handler(name)` | Look up a handler by tool name |
+| Method                 | Description                                              |
+| ---------------------- | -------------------------------------------------------- |
+| `handler(name)`        | Look up a handler by tool name                           |
 | `dispatch(invocation)` | Look up + call the handler, emit OTEL metrics, run hooks |
 
 ### `ToolHandler` trait
@@ -374,16 +374,16 @@ Tool specs for the standard tools are built by factory functions in `spec.rs`:
 
 [codex-rs/core/src/tools/spec.rs:304-567]()
 
-| Factory function | Tool name(s) |
-|---|---|
-| `create_exec_command_tool()` | `exec_command` |
-| `create_write_stdin_tool()` | `write_stdin` |
-| `create_shell_tool()` | `shell` |
-| `create_shell_command_tool()` | `shell_command` |
-| `create_view_image_tool()` | `view_image` |
-| `create_presentation_artifact_tool()` | `presentation_artifact` |
-| `create_apply_patch_json_tool()` | `apply_patch` (Function variant) |
-| `create_apply_patch_freeform_tool()` | `apply_patch` (Freeform variant) |
+| Factory function                      | Tool name(s)                     |
+| ------------------------------------- | -------------------------------- |
+| `create_exec_command_tool()`          | `exec_command`                   |
+| `create_write_stdin_tool()`           | `write_stdin`                    |
+| `create_shell_tool()`                 | `shell`                          |
+| `create_shell_command_tool()`         | `shell_command`                  |
+| `create_view_image_tool()`            | `view_image`                     |
+| `create_presentation_artifact_tool()` | `presentation_artifact`          |
+| `create_apply_patch_json_tool()`      | `apply_patch` (Function variant) |
+| `create_apply_patch_freeform_tool()`  | `apply_patch` (Freeform variant) |
 
 The `sandbox_permissions`, `justification`, and `prefix_rule` parameters are added to shell tool schemas via `create_approval_parameters(request_permission_enabled)`. When `Feature::RequestPermissions` is on, an additional `additional_permissions` nested object schema is included.
 
@@ -437,15 +437,15 @@ Sources: [codex-rs/core/src/tools/spec.rs:75-152](), [codex-rs/core/src/features
 
 Beyond `features`, several `Config` fields are passed as part of `ToolsConfig` construction or directly affect tool behavior:
 
-| `Config` field | Type | Role |
-|---|---|---|
-| `features` | `Features` | Primary gate for all tool enablement |
-| `permissions.allow_login_shell` | `bool` | Whether `login` parameter appears in shell schemas |
-| `web_search_mode` | `Constrained<WebSearchMode>` | Controls web search tool availability |
-| `mcp_servers` | `Constrained<HashMap<String, McpServerConfig>>` | MCP tools are included based on connected servers |
-| `js_repl_node_path` | `Option<PathBuf>` | Node binary location for the JS REPL handler |
-| `js_repl_node_module_dirs` | `Vec<PathBuf>` | Node module search paths for the JS REPL |
-| `agent_roles` | `BTreeMap<String, AgentRoleConfig>` | Injected into `ToolsConfig.agent_roles` |
-| `include_apply_patch_tool` | `bool` | Resolved boolean, derived from `Feature::ApplyPatchFreeform` |
+| `Config` field                  | Type                                            | Role                                                         |
+| ------------------------------- | ----------------------------------------------- | ------------------------------------------------------------ |
+| `features`                      | `Features`                                      | Primary gate for all tool enablement                         |
+| `permissions.allow_login_shell` | `bool`                                          | Whether `login` parameter appears in shell schemas           |
+| `web_search_mode`               | `Constrained<WebSearchMode>`                    | Controls web search tool availability                        |
+| `mcp_servers`                   | `Constrained<HashMap<String, McpServerConfig>>` | MCP tools are included based on connected servers            |
+| `js_repl_node_path`             | `Option<PathBuf>`                               | Node binary location for the JS REPL handler                 |
+| `js_repl_node_module_dirs`      | `Vec<PathBuf>`                                  | Node module search paths for the JS REPL                     |
+| `agent_roles`                   | `BTreeMap<String, AgentRoleConfig>`             | Injected into `ToolsConfig.agent_roles`                      |
+| `include_apply_patch_tool`      | `bool`                                          | Resolved boolean, derived from `Feature::ApplyPatchFreeform` |
 
 Sources: [codex-rs/core/src/config/mod.rs:460-480]()
