@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'bun:test'
 
 import { Hono } from 'hono'
+import { z } from 'zod'
 
 import { HttpRpcServer } from './HttpRpcServer'
 
@@ -55,5 +56,49 @@ describe('HttpRpcServer', () => {
 		})
 
 		expect(response.status).toBe(404)
+	})
+
+	it('should validate schema and reject invalid input', async () => {
+		const app = new Hono()
+		const server = new HttpRpcServer(app)
+
+		const schema = z.object({
+			name: z.string(),
+			age: z.number(),
+		})
+
+		server.handle('test/validate', { schema }, async (_ctx, ...args) => {
+			return { valid: true, data: args[0] }
+		})
+
+		// Invalid input - age should be number
+		const response = await app.request('/rpc/test/validate', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify([{ name: 'John', age: 'not-a-number' }]),
+		})
+
+		expect(response.status).toBe(500)
+		const json = await response.json()
+		expect(json.error.code).toBe('INVALID_PARAMS')
+	})
+
+	it('should handle SSE connections', async () => {
+		const app = new Hono()
+		const server = new HttpRpcServer(app)
+
+		server.handle('test/push', async (_ctx) => {
+			server.push('test/event', { type: 'broadcast' }, { msg: 'hello' })
+			return { pushed: true }
+		})
+
+		// Note: Full SSE testing requires client connection
+		// This just verifies the route is set up correctly
+		const response = await app.request('/rpc/events', {
+			method: 'GET',
+			headers: { Accept: 'text/event-stream' },
+		})
+
+		expect(response.status).toBe(200)
 	})
 })
