@@ -1,8 +1,13 @@
 import { ElectronRpcServer } from '../../shared/rpc'
-import type { Rpc } from '../../shared/rpc'
+import type { Rpc, WindowRegistry } from '../../shared/rpc'
+import { WindowManager } from './WindowManager'
 
 export class RpcDebugService {
-	constructor(private readonly server: ElectronRpcServer) {
+	constructor(
+		private readonly server: ElectronRpcServer,
+		private readonly registry: WindowRegistry,
+		private readonly windowManager: WindowManager
+	) {
 		this.registerHandlers()
 	}
 
@@ -48,6 +53,71 @@ export class RpcDebugService {
 			await new Promise((resolve) => setTimeout(resolve, 3000))
 
 			return { text, completed: true }
+		}) as Rpc.HandlerFn)
+
+		// window/create - create a new BrowserWindow
+		router.handle('window/create', ((_ctx, groupId: string | null) => {
+			const { window, clientId } = this.windowManager.createDebugWindow(
+				groupId ?? undefined
+			)
+			this.registry.registerWindow(window, groupId ?? undefined)
+			return { clientId, windowId: window.id }
+		}) as Rpc.HandlerFn)
+
+		// window/info - return current window's clientId and groups
+		router.handle('window/info', ((ctx) => {
+			const groups = this.registry.getGroupsByClientId(ctx.clientId)
+			return { clientId: ctx.clientId, groupId: groups[0] ?? null }
+		}) as Rpc.HandlerFn)
+
+		// push/send-to-all - broadcast to all windows
+		router.handle('push/send-to-all', ((
+			ctx,
+			eventName: string,
+			...args: unknown[]
+		) => {
+			this.server.push(
+				eventName,
+				{ type: 'broadcast' },
+				ctx.clientId,
+				eventName,
+				args
+			)
+			return { ok: true }
+		}) as Rpc.HandlerFn)
+
+		// push/send-to-group - send to specific group
+		router.handle('push/send-to-group', ((
+			ctx,
+			groupId: string,
+			eventName: string,
+			...args: unknown[]
+		) => {
+			this.server.push(
+				eventName,
+				{ type: 'group', groupId },
+				ctx.clientId,
+				eventName,
+				args
+			)
+			return { ok: true }
+		}) as Rpc.HandlerFn)
+
+		// push/send-to-client - send to specific clientId
+		router.handle('push/send-to-client', ((
+			ctx,
+			clientId: string,
+			eventName: string,
+			...args: unknown[]
+		) => {
+			this.server.push(
+				eventName,
+				{ type: 'client', clientId },
+				ctx.clientId,
+				eventName,
+				args
+			)
+			return { ok: true }
 		}) as Rpc.HandlerFn)
 	}
 }

@@ -41,7 +41,7 @@ app.whenReady()
 		mainLog.info('RPC server initialized')
 
 		// Register debug handlers
-		new RpcDebugService(rpcServer)
+		new RpcDebugService(rpcServer, windowRegistry, windowManager)
 		mainLog.info('RPC debug handlers registered')
 
 		// Create the main window
