@@ -51,7 +51,6 @@ export class AppWindowRegistry implements WindowRegistry {
 			// Generic channel (for IpcRendererRpcClient via ipcRenderer)
 			// Extract eventName from channel like "rpc:event:eventName"
 			if (channel.startsWith('rpc:event:')) {
-				const eventName = channel.replace('rpc:event:', '')
 				window.webContents.send('rpc:event', {
 					channel,
 					data: args,

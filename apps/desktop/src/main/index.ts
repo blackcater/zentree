@@ -4,14 +4,18 @@ import { electronApp, is, platform } from '@electron-toolkit/utils'
 
 import icon from '~/resources/icon.png?asset'
 
+import {
+	WindowRegistryImpl,
+	ElectronRpcServer,
+	type WindowRegistry,
+} from '../shared/rpc'
 import { log, mainLog } from './lib/logger'
 import { RpcDebugService, WindowManager } from './services'
-import { AppWindowRegistry, ElectronRpcServer } from '../shared/rpc/electron'
 
 log.initialize()
 
 let windowManager: WindowManager | null = null
-let windowRegistry: AppWindowRegistry | null = null
+let windowRegistry: WindowRegistry | null = null
 let rpcServer: ElectronRpcServer | null = null
 
 app.on('open-url', (event, url) => {
@@ -32,7 +36,7 @@ app.whenReady()
 		mainLog.info('WindowManager initialized')
 
 		// Initialize WindowRegistry and ElectronRpcServer
-		windowRegistry = new AppWindowRegistry()
+		windowRegistry = new WindowRegistryImpl()
 		rpcServer = new ElectronRpcServer(windowRegistry, ipcMain)
 		mainLog.info('RPC server initialized')
 

@@ -16,7 +16,9 @@ export class IpcRendererRpcClient implements RpcClient {
 	constructor(ipcRenderer: IpcRenderer, groupId?: string) {
 		this._ipcRenderer = ipcRenderer
 		this.clientId = 'ipc-renderer-client'
-		this.groupId = groupId
+		if (groupId !== undefined) {
+			this.groupId = groupId
+		}
 
 		// Listen for generic rpc:response channel
 		// Server sends to this channel with full channel info in payload

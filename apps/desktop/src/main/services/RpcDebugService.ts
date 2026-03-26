@@ -1,6 +1,5 @@
-import { RpcError } from '../../shared/rpc/RpcError'
-import { ElectronRpcServer } from '../../shared/rpc/electron'
-import type { Rpc } from '../../shared/rpc/types'
+import { ElectronRpcServer, RpcError } from '../../shared/rpc'
+import type { Rpc } from '../../shared/rpc'
 
 export class RpcDebugService {
 	constructor(private readonly server: ElectronRpcServer) {

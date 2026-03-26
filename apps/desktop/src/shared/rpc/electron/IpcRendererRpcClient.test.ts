@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'bun:test'
 import { IpcRendererRpcClient } from './IpcRendererRpcClient'
-import { RpcError } from '../RpcError'
 
 describe('IpcRendererRpcClient', () => {
 	let mockIpcRenderer: any
@@ -21,7 +20,7 @@ describe('IpcRendererRpcClient', () => {
 	})
 
 	it('should send rpc:invoke on call()', async () => {
-		let responseHandler: Function
+		let responseHandler: Function | undefined | undefined
 		mockIpcRenderer.on = vi.fn((channel: string, cb: Function) => {
 			if (channel === 'rpc:response') {
 				responseHandler = cb
@@ -40,7 +39,7 @@ describe('IpcRendererRpcClient', () => {
 		})
 
 		// Now simulate response to resolve the promise
-		responseHandler(null, {
+		responseHandler!(null, {
 			channel: 'rpc:response:invoke-1',
 			result: { message: 'success' },
 		})
@@ -49,7 +48,7 @@ describe('IpcRendererRpcClient', () => {
 	})
 
 	it('should handle successful call response', async () => {
-		let responseHandler: Function
+		let responseHandler: Function | undefined
 		mockIpcRenderer.on = vi.fn((channel: string, cb: Function) => {
 			if (channel === 'rpc:response') {
 				responseHandler = cb
@@ -61,7 +60,7 @@ describe('IpcRendererRpcClient', () => {
 		const resultPromise = client.call<{ message: string }>('/test', {}, 'arg1')
 
 		// Simulate successful response
-		responseHandler(null, {
+		responseHandler!(null, {
 			channel: 'rpc:response:invoke-1',
 			result: { message: 'success' },
 		})
@@ -71,7 +70,7 @@ describe('IpcRendererRpcClient', () => {
 	})
 
 	it('should handle error response', async () => {
-		let responseHandler: Function
+		let responseHandler: Function | undefined
 		mockIpcRenderer.on = vi.fn((channel: string, cb: Function) => {
 			if (channel === 'rpc:response') {
 				responseHandler = cb
@@ -83,7 +82,7 @@ describe('IpcRendererRpcClient', () => {
 		const resultPromise = client.call('/test', {})
 
 		// Simulate error response
-		responseHandler(null, {
+		responseHandler!(null, {
 			channel: 'rpc:response:invoke-1',
 			error: { code: 'ERR_SERVER', message: 'Server error' },
 		})
@@ -111,7 +110,7 @@ describe('IpcRendererRpcClient', () => {
 	})
 
 	it('should register event listener', () => {
-		let eventHandler: Function
+		let eventHandler: Function | undefined
 		mockIpcRenderer.on = vi.fn((channel: string, cb: Function) => {
 			if (channel === 'rpc:event') {
 				eventHandler = cb
@@ -124,7 +123,7 @@ describe('IpcRendererRpcClient', () => {
 		client.onEvent('my-event', listener)
 
 		// Simulate event
-		eventHandler(null, {
+		eventHandler!(null, {
 			channel: 'rpc:event:my-event',
 			data: ['arg1', 'arg2'],
 		})
@@ -133,7 +132,7 @@ describe('IpcRendererRpcClient', () => {
 	})
 
 	it('should return cancel function for event listener', () => {
-		let eventHandler: Function
+		let eventHandler: Function | undefined
 		mockIpcRenderer.on = vi.fn((channel: string, cb: Function) => {
 			if (channel === 'rpc:event') {
 				eventHandler = cb
@@ -147,7 +146,7 @@ describe('IpcRendererRpcClient', () => {
 		cancel()
 
 		// After cancel, event should not be called
-		eventHandler(null, {
+		eventHandler!(null, {
 			channel: 'rpc:event:my-event',
 			data: ['arg1'],
 		})
@@ -156,7 +155,7 @@ describe('IpcRendererRpcClient', () => {
 	})
 
 	it('should handle stream chunks', async () => {
-		let streamHandler: Function
+		let streamHandler: Function | undefined
 		mockIpcRenderer.on = vi.fn((channel: string, cb: Function) => {
 			if (channel === 'rpc:stream') {
 				streamHandler = cb
@@ -168,17 +167,17 @@ describe('IpcRendererRpcClient', () => {
 		const streamResult = client.stream<number>('/stream-test', {})
 
 		// Simulate stream chunks
-		streamHandler(null, {
+		streamHandler!(null, {
 			channel: 'rpc:stream:stream-test:invoke-1',
 			chunk: 1,
 			done: false,
 		})
-		streamHandler(null, {
+		streamHandler!(null, {
 			channel: 'rpc:stream:stream-test:invoke-1',
 			chunk: 2,
 			done: false,
 		})
-		streamHandler(null, {
+		streamHandler!(null, {
 			channel: 'rpc:stream:stream-test:invoke-1',
 			chunk: null,
 			done: true,
