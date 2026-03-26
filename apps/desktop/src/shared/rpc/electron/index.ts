@@ -1,4 +1,5 @@
 export { ElectronRpcServer } from './ElectronRpcServer'
 export { ElectronRpcClient } from './ElectronRpcClient'
+export { IpcRendererRpcClient } from './IpcRendererRpcClient'
 export { AppWindowRegistry } from './AppWindowRegistry'
 export type { WindowRegistry } from '../types'
