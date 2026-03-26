@@ -61,7 +61,7 @@ Note: `trigger-event` is an internal helper used by the above sendToX actions �
 1. **WindowInfoCard** — Displays clientId and groupId (fetched from `/debug/window/info`)
 2. **WindowManagerCard** — Group selection + spawn button
 3. **BroadcastCard** — sendToAll, sendToGroup (with group selector), sendToClient (with clientId input)
-4. **EventListenerCard** — Enhanced to show received event with metadata: event name, args, sender clientId (passed via event payload `{ eventName, args, senderClientId }`)
+4. **EventListenerCard** — Enhanced to show received event with metadata. Broadcast handlers push three positional args `[senderClientId, eventName, argsArray]`. The card displays: sender, eventName, payload.
 
 ### API Shape
 
@@ -88,8 +88,13 @@ client.call('/debug/push/send-to-client', clientId: string, eventName: string, .
 ## Files to Modify
 
 - `apps/desktop/src/renderer/src/routes/rpc-debug.tsx` — Add new UI components
-- `apps/desktop/src/main/services/RpcDebugService.ts` — Add new handlers (or create if not exists)
+- `apps/desktop/src/main/services/RpcDebugService.ts` — Add new handlers
+- `apps/desktop/src/main/services/WindowManager.ts` — Add createDebugWindow()
+- `apps/desktop/src/main/index.ts` — Add ipcMain.handle for window:create
+- `apps/desktop/src/shared/rpc/electron/AppWindowRegistry.ts` — Add getGroupsByClientId() for window/info to retrieve group membership
 - `apps/desktop/src/preload/index.ts` — Expose `api.createWindow`
+
+Note: `window:create` uses `ipcMain.handle` (not an RPC handler) because BrowserWindow creation must happen in main process. The RPC notation in the handlers table is a simplification.
 
 ## Testing Scenarios
 
