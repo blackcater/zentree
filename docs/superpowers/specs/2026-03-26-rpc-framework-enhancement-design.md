@@ -194,6 +194,8 @@ onEvent(event: string, listener: (...args: unknown[]) => void): CancelFn {
 
 ### 4.2 实现
 
+`StandardSchemaV1` 接口定义的是 `validate()` 方法而非 `parse()`。实现时需要注意：
+
 ```typescript
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 
@@ -211,8 +213,12 @@ private async _handleRPC(path: string, args: unknown[], ctx: Rpc.RequestContext)
 
   // Schema 校验
   if (handler.options?.schema) {
-    const validated = handler.options.schema.parse(args)
-    return handler.handler(ctx, ...validated)
+    // StandardSchemaV1 使用 validate() 方法
+    const result = handler.options.schema['~validate']?.(args)
+    if (result instanceof Error || (result && 'issues' in result)) {
+      throw new RpcError('INVALID_PARAMS', 'Schema validation failed', result)
+    }
+    return handler.handler(ctx, ...(Array.isArray(result) ? result : [result]))
   }
 
   return handler.handler(ctx, ...args)
@@ -221,27 +227,40 @@ private async _handleRPC(path: string, args: unknown[], ctx: Rpc.RequestContext)
 
 ### 4.3 使用示例
 
+`@standard-schema/spec` 是接口定义，实际使用需要配合具体实现如 Zod：
+
 ```typescript
 import { z } from 'zod'
-import { StandardSchemaV1 } from '@standard-schema/spec'
+import type { StandardSchemaV1 } from '@standard-schema/spec'
 
-// Zod schema 转 StandardSchemaV1
-const createConversationSchema: StandardSchemaV1 = {
-  $schema: 'https://json-schema.org/draft/2020-12/schema',
-  type: 'object',
-  properties: {
-    title: { type: 'string' },
-    mode: { type: 'string', enum: ['chat', 'agent'] },
-  },
-  required: ['title'],
-  additionalProperties: false,
+// Zod schema 转 StandardSchemaV1 适配器
+function zodToStandardSchema<T>(schema: z.ZodSchema<T>): StandardSchemaV1 {
+  return {
+    '~validate'(data) {
+      const result = schema.safeParse(data)
+      if (!result.success) {
+        return { issues: result.error.issues }
+      }
+      return result.data
+    }
+  } as StandardSchemaV1
 }
 
-server.handle('conversation/create', { schema: createConversationSchema }, async (ctx, ...args) => {
-  // args 已通过 schema 校验
-  const { title, mode } = args[0]
-  // ...
+// 使用
+const createConversationSchema = z.object({
+  title: z.string(),
+  mode: z.enum(['chat', 'agent']).optional(),
 })
+
+server.handle(
+  'conversation/create',
+  { schema: zodToStandardSchema(createConversationSchema) },
+  async (ctx, args) => {
+    // args 已通过 schema 校验，类型为 { title: string; mode?: 'chat' | 'agent' }
+    const { title, mode } = args[0]
+    // ...
+  }
+)
 ```
 
 ## 5. 超时机制
@@ -251,6 +270,8 @@ server.handle('conversation/create', { schema: createConversationSchema }, async
 原 `ElectronRpcClient.call()` 有 30 秒硬编码超时，无法自定义。`HttpRpcClient` 无超时机制。
 
 ### 5.2 AbortController 模式
+
+**注意**：`AbortSignal` 标准 API 没有 `timeout` 属性。调用者需要自行通过 `AbortSignal.timeout()` 静态方法或自行用 `setTimeout` 管理超时。
 
 ```typescript
 export interface RpcCallOptions {
@@ -282,31 +303,24 @@ async call<T>(
       return
     }
 
-    const rejectWithTimeout = () => {
-      reject(new RpcError('TIMEOUT', `RPC call ${event} timed out`))
-    }
-
-    let timeoutId: NodeJS.Timeout | undefined
-    if (signal?.timeout) {
-      timeoutId = setTimeout(rejectWithTimeout, signal.timeout)
-    }
-
     const abortHandler = () => {
-      clearTimeout(timeoutId)
       this._pendingCalls.delete(invokeId)
-      reject(new RpcError('ABORTED', 'Request was aborted'))
+      // 区分超时和其他取消
+      if (signal?.reason?.name === 'TimeoutError') {
+        reject(new RpcError('TIMEOUT', `RPC call ${event} timed out`))
+      } else {
+        reject(new RpcError('ABORTED', 'Request was aborted'))
+      }
     }
 
     signal?.addEventListener('abort', abortHandler)
 
     this._pendingCalls.set(invokeId, {
       resolve: (...args) => {
-        clearTimeout(timeoutId)
         signal?.removeEventListener('abort', abortHandler)
         resolve(args[0] as T)
       },
       reject: (...args) => {
-        clearTimeout(timeoutId)
         signal?.removeEventListener('abort', abortHandler)
         reject(args[0])
       },
@@ -320,12 +334,13 @@ async call<T>(
 ### 5.4 使用示例
 
 ```typescript
-// 超时控制
-const controller = new AbortController()
-setTimeout(() => controller.abort(), 5000)
-
+// 超时控制（使用 AbortSignal.timeout()）
 try {
-  const result = await client.call('event', { signal: controller.signal }, ...args)
+  const result = await client.call(
+    'event',
+    { signal: AbortSignal.timeout(5000) },
+    ...args
+  )
 } catch (err) {
   if (err instanceof RpcError && err.code === 'TIMEOUT') {
     // 处理超时
@@ -334,8 +349,18 @@ try {
 
 // 手动取消
 const controller = new AbortController()
-const result = await client.call('event', { signal: controller.signal }, ...args)
-controller.abort() // 取消进行中的请求
+setTimeout(() => controller.abort(), 5000)
+
+try {
+  const result = await client.call('event', { signal: controller.signal }, ...args)
+} catch (err) {
+  if (err instanceof RpcError && err.code === 'ABORTED') {
+    // 处理取消
+  }
+}
+
+// 注意：AbortSignal.timeout() 需要 polyfill 或 Node.js 18+ 环境
+// 旧环境可使用：new AbortController() + setTimeout + controller.abort()
 ```
 
 ## 6. 目录结构
@@ -344,7 +369,7 @@ controller.abort() // 取消进行中的请求
 apps/desktop/src/shared/rpc/
 ├── types.ts           # 新增 WindowRegistry、RpcCallOptions
 ├── RpcError.ts
-├── utils.ts
+├── utils.ts           # 新增 createTimeoutSignal() 工具函数
 ├── electron/
 │   ├── ElectronRpcServer.ts   # 改造：使用 WindowRegistry
 │   ├── ElectronRpcClient.ts   # 新增 AbortSignal 支持
@@ -365,6 +390,112 @@ apps/desktop/src/shared/rpc/
 
 ## 8. 向后兼容性
 
-- `RpcClient.call()` 的 `options` 参数是可选的，不传则使用默认行为（30 秒超时，无取消信号）
+### 8.1 RpcClient.call() 签名变更
+
+**原签名**：
+```typescript
+call<T>(event: string, ...args: unknown[]): Promise<T>
+```
+
+**新签名**：
+```typescript
+call<T>(event: string, options?: RpcCallOptions, ...args: unknown[]): Promise<T>
+```
+
+**破坏性变更说明**：
+如果现有代码这样调用：
+```typescript
+client.call('conversation/create', { title: 'Test' })
+```
+新实现会将 `{ title: 'Test' }` 解释为 `options`，导致实际参数丢失。
+
+**迁移方案**：
+1. **首选方案**：应用层使用 Zod 等 schema 定义参数，由 schema 校验层处理参数解析
+2. **次选方案**：创建新方法 `callWithOptions()` 专门处理带选项的调用：
+   ```typescript
+   // 新方法（推荐迁移目标）
+   callWithOptions<T>(event: string, options: RpcCallOptions, ...args: unknown[]): Promise<T>
+   ```
+
+### 8.2 其他兼容性
+
 - `RpcServer.handle()` 的 `schema` 属性是可选的，不提供则跳过校验
 - `WindowRegistry` 是新增接口，原 `WebContentsManager` 接口废弃
+
+## 9. WindowRegistry 实现指南
+
+### 9.1 基本实现
+
+`WindowRegistry` 由应用层实现，通常与窗口管理逻辑一起：
+
+```typescript
+// 应用层实现示例
+class AppWindowRegistry implements WindowRegistry {
+  private windows = new Map<string, BrowserWindow>()
+  private groups = new Map<string, Set<string>>() // groupId -> Set<clientId>
+
+  registerWindow(clientId: string, window: BrowserWindow) {
+    this.windows.set(clientId, window)
+  }
+
+  unregisterWindow(clientId: string) {
+    const window = this.windows.get(clientId)
+    if (window) {
+      window.close()
+      this.windows.delete(clientId)
+    }
+  }
+
+  joinGroup(clientId: string, groupId: string) {
+    if (!this.groups.has(groupId)) {
+      this.groups.set(groupId, new Set())
+    }
+    this.groups.get(groupId)!.add(clientId)
+  }
+
+  leaveGroup(clientId: string, groupId: string) {
+    this.groups.get(groupId)?.delete(clientId)
+  }
+
+  sendToClient(clientId: string, channel: string, ...args: unknown[]) {
+    const window = this.windows.get(clientId)
+    if (window && !window.isDestroyed()) {
+      window.webContents.send(channel, ...args)
+    }
+  }
+
+  sendToGroup(groupId: string, channel: string, ...args: unknown[]) {
+    const clientIds = this.groups.get(groupId)
+    if (clientIds) {
+      for (const clientId of clientIds) {
+        this.sendToClient(clientId, channel, ...args)
+      }
+    }
+  }
+
+  sendToAll(channel: string, ...args: unknown[]) {
+    for (const [clientId] of this.windows) {
+      this.sendToClient(clientId, channel, ...args)
+    }
+  }
+}
+```
+
+### 9.2 与 ElectronRpcServer 集成
+
+```typescript
+const registry = new AppWindowRegistry()
+const server = new ElectronRpcServer(registry, ipcMain)
+
+// 注册窗口
+appWindow.on('ready-to-show', () => {
+  const clientId = `client-${appWindow.id}`
+  registry.registerWindow(clientId, appWindow)
+})
+```
+
+### 9.3 生命周期管理
+
+- `WindowRegistry` 实例通常与应用生命周期相同
+- 当窗口关闭时，从 registry 注销
+- SSE 客户端断开时，自动从 `_sseClients` 移除（通过 `stream.onAbort()`）
