@@ -5,7 +5,7 @@ import { createRoot } from 'react-dom/client'
 
 import { Providers } from './components/providers'
 import { createRouter } from './router'
-import '@acme-ai/ui/styles.css'
+import '@acme-ai/ui/styles/globals.css'
 
 const router = createRouter()
 

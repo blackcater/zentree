@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "radix-mira",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/styles/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true
+  },
+  "iconLibrary": "hugeicons",
+  "aliases": {
+    "components": "@acme-ai/ui/foundation",
+    "utils": "@acme-ai/ui/lib/utils",
+    "hooks": "@acme-ai/ui/hooks",
+    "lib": "@acme-ai/ui/lib",
+    "ui": "@acme-ai/ui/foundation"
+  },
+  "rtl": false,
+  "menuColor": "default",
+  "menuAccent": "subtle"
+}

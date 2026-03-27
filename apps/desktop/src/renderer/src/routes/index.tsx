@@ -1,3 +1,4 @@
+import { Button } from '@acme-ai/ui/foundation'
 import { useNavigate } from '@tanstack/react-router'
 
 export function HomePage() {
@@ -7,12 +8,12 @@ export function HomePage() {
 		<div>
 			<h1>主页面</h1>
 			<p>欢迎来到主页</p>
-			<button
+			<Button
 				type="button"
 				onClick={() => navigate({ to: '/rpc-debug' })}
 			>
 				RPC Debug
-			</button>
+			</Button>
 		</div>
 	)
 }
