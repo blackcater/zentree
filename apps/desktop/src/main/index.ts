@@ -1,7 +1,5 @@
 import { app, ipcMain } from 'electron'
 
-import { electronApp, is, platform } from '@electron-toolkit/utils'
-
 import icon from '~/resources/icon.png?asset'
 
 import {
@@ -10,6 +8,7 @@ import {
 	type WindowRegistry,
 } from '../shared/rpc'
 import { log, mainLog } from './lib/logger'
+import { is, platform, setAppUserModelId } from './lib/utils'
 import { RpcDebugService, WindowManager } from './services'
 
 log.initialize()
@@ -25,7 +24,7 @@ app.on('open-url', (event, url) => {
 
 app.whenReady()
 	.then(() => {
-		electronApp.setAppUserModelId('dev.blackcater.acme')
+		setAppUserModelId('dev.blackcater.acme')
 
 		if (platform.isMacOS && app.dock && is.dev) {
 			app.dock.setIcon(icon)

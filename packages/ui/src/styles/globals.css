@@ -131,7 +131,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
   }
   html {
     @apply font-sans;
@@ -139,5 +139,20 @@
   code,
   pre {
     @apply font-mono;
+  }
+}
+
+@layer utilities {
+  .bg-noise {
+    position: relative;
+  }
+
+  .bg-noise::before {
+    position: absolute;
+    inset: 0;
+    content: "";
+    background-image: url('./noise.avif');
+    background-repeat: repeat;
+    background-size: 50px;
   }
 }

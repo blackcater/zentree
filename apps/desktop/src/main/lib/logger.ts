@@ -1,21 +1,12 @@
-import { is } from '@electron-toolkit/utils'
+import { shell } from 'electron'
+
 import log from 'electron-log/main'
 
-// Configure transports based on debug mode
+import { is } from './utils'
+
+log.transports.file.maxSize = 5 * 1024 * 1024 // 5MB
+
 if (is.dev) {
-	// JSON format for file (agent-parseable)
-	// Note: format expects (params: FormatParams) => any[], where params.message has the LogMessage fields
-	log.transports.file.format = ({ message }) => [
-		JSON.stringify({
-			timestamp: message.date.toISOString(),
-			level: message.level,
-			scope: message.scope,
-			message: message.data,
-		}),
-	]
-
-	log.transports.file.maxSize = 5 * 1024 * 1024 // 5MB
-
 	// Console output in debug mode with readable format
 	// Note: format must return an array - electron-log's transformStyles calls .reduce() on it
 	log.transports.console.format = ({ message }) => {
@@ -23,16 +14,15 @@ if (is.dev) {
 		const level = message.level.toUpperCase().padEnd(5)
 		const data = message.data
 			.map((d: unknown) =>
-				typeof d === 'object' ? JSON.stringify(d) : String(d)
+				typeof d === 'object' ? JSON.stringify(d) : String(d as any)
 			)
 			.join(' ')
 		return [`${message.date.toISOString()} ${level} ${scope} ${data}`]
 	}
 	log.transports.console.level = 'debug'
 } else {
-	// Disable file and console transports in production
-	log.transports.file.level = false
-	log.transports.console.level = false
+	log.transports.file.level = 'info'
+	log.transports.console.level = 'info'
 }
 
 // Export scoped loggers for different modules
@@ -45,6 +35,15 @@ export const mainLog = log.scope('main')
 export function getLogFilePath(): string | undefined {
 	if (!is.dev) return undefined
 	return log.transports.file.getFile()?.path
+}
+
+/**
+ * Open the log file in the default application.
+ */
+export async function openlogFile() {
+	const filePath = getLogFilePath()
+	if (!filePath) return
+	await shell.openPath(filePath)
 }
 
 export { log }

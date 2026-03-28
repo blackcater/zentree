@@ -34,9 +34,6 @@ export default defineConfig({
 					index: resolve('./src/main/index.ts'),
 				},
 			},
-			externalizeDeps: {
-				exclude: ['@acme-ai/runtime'],
-			},
 		},
 	},
 
@@ -50,9 +47,6 @@ export default defineConfig({
 				input: {
 					index: resolve('./src/preload/index.ts'),
 				},
-			},
-			externalizeDeps: {
-				exclude: ['@electron-toolkit/preload'],
 			},
 		},
 	},

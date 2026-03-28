@@ -1,25 +1,45 @@
 import { join } from 'node:path'
 
 import { BrowserWindow, shell } from 'electron'
+import type { BrowserWindowConstructorOptions } from 'electron'
 
 import { is } from '@electron-toolkit/utils'
 
 import icon from '~/resources/icon.png?asset'
 
+import { platform } from '../lib/utils'
+import { buildWebPreferences } from '../lib/web-preferences'
+
 export class WindowManager {
+	createWelcomeWindow() {}
+
+	createVaultWindow() {}
+
+	createChatPopupWindow() {}
+
 	createWindow(): BrowserWindow {
-		const mainWindow = new BrowserWindow({
+		const opts: BrowserWindowConstructorOptions = {
 			width: 900,
 			height: 670,
 			show: false,
-			autoHideMenuBar: true,
-			...(process.platform === 'linux' ? { icon } : {}),
-			webPreferences: {
+			transparent: true,
+			webPreferences: buildWebPreferences({
 				preload: join(__dirname, '../preload/index.js'),
-				sandbox: false,
-			},
-			titleBarStyle: 'hidden',
-		})
+				webgl: true,
+			}),
+		}
+
+		if (platform.isMacOS) {
+			opts.titleBarStyle = 'hiddenInset'
+		} else if (platform.isWindows) {
+			opts.titleBarStyle = 'hidden'
+		} else {
+			opts.titleBarStyle = 'default'
+			opts.autoHideMenuBar = true
+			opts.icon = icon
+		}
+
+		const mainWindow = new BrowserWindow(opts)
 
 		mainWindow.on('ready-to-show', () => {
 			mainWindow.show()

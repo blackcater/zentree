@@ -8,9 +8,7 @@
       "~/*": ["./*"],
       "@/*": ["./src/*"],
       "@main/*": ["./src/main/*"],
-      "@renderer/*": ["./src/renderer/src/*"],
-      "@acme-ai/ui": ["../../packages/ui/src/index.ts"],
-      "@acme-ai/ui/*": ["../../packages/ui/src/*/index.ts"]
+      "@renderer/*": ["./src/renderer/src/*"]
     }
   },
   "include": [
