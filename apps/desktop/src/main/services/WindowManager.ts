@@ -1,11 +1,10 @@
 import { join } from 'node:path'
 
-import { BrowserWindow, shell } from 'electron'
+import { BrowserWindow } from 'electron'
 import type { BrowserWindowConstructorOptions } from 'electron'
 
 import { is } from '@electron-toolkit/utils'
 import electronWindowState from 'electron-window-state'
-import main from 'electron/main'
 
 import icon from '~/resources/icon.png?asset'
 
@@ -35,7 +34,6 @@ export class WindowManager {
 			height: mainWindowState.height,
 			minWidth: 640,
 			minHeight: 480,
-			transparent: true,
 			show: false,
 			webPreferences: buildWebPreferences({
 				preload: join(__dirname, '../preload/index.js'),

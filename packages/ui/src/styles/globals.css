@@ -144,16 +144,20 @@
 
 @layer utilities {
   .bg-noise {
-    @apply bg-sidebar/10;
+    @apply bg-transparent;
     position: relative;
   }
   .bg-noise::before {
     position: absolute;
     inset: 0;
     content: "";
+    opacity: 1;
     background-image: url('./noise.avif');
     background-repeat: repeat;
-    background-size: 50px;
-    pointer-events: none;
+    background-size: 3%;
+  }
+
+  .app-region-drag {
+    -webkit-app-region: drag;
   }
 }
