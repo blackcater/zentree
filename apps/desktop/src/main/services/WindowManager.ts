@@ -35,8 +35,6 @@ export class WindowManager {
 			height: mainWindowState.height,
 			minWidth: 640,
 			minHeight: 480,
-			visualEffectState: 'active',
-			vibrancy: 'under-window',
 			transparent: true,
 			show: false,
 			webPreferences: buildWebPreferences({
@@ -47,6 +45,8 @@ export class WindowManager {
 
 		if (platform.isMacOS) {
 			opts.titleBarStyle = 'hiddenInset'
+			opts.visualEffectState = 'active'
+			opts.vibrancy = 'under-window'
 		} else if (platform.isWindows) {
 			opts.titleBarStyle = 'hidden'
 		} else {

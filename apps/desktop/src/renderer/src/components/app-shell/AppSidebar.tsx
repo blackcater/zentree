@@ -55,7 +55,7 @@ export function AppSidebar(): React.JSX.Element {
 	return (
 		<aside
 			className={cn(
-				'bg-sidebar relative flex shrink-0 flex-col transition-all duration-200',
+				'relative flex shrink-0 flex-col transition-all duration-200',
 				'border-sidebar-border border-r',
 				!isOpen && !isHovering && 'w-12',
 				!isOpen && isHovering && 'absolute top-0 left-0 z-10 shadow-lg',

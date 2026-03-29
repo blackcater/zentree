@@ -144,6 +144,7 @@
 
 @layer utilities {
   .bg-noise {
+    @apply bg-sidebar/10;
     position: relative;
   }
   .bg-noise::before {
