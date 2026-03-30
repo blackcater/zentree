@@ -35,4 +35,14 @@ export async function registerSystemHandlers() {
 	router.handle('store/set', (_, key: string, value: boolean) => {
 		store.set(key as 'firstLaunchDone', value)
 	})
+
+	// Locale handlers
+	router.handle('locale/get', () => {
+		return store.get('locale')
+	})
+
+	router.handle('locale/set', (_, locale: string) => {
+		store.set('locale', locale)
+		return { ok: true }
+	})
 }
