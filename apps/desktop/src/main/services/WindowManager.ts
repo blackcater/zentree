@@ -13,16 +13,28 @@ import { platform } from '../lib/utils'
 import { buildWebPreferences } from '../lib/web-preferences'
 
 export class WindowManager {
+	private windows = new Map<string, BrowserWindow>()
+
+	getWindow(type: string): BrowserWindow | undefined {
+		return this.windows.get(type)
+	}
+
 	createWelcomeWindow(): BrowserWindow {
-		return this.createWindowByType('welcome')
+		const win = this.createWindowByType('welcome')
+		this.windows.set('welcome', win)
+		return win
 	}
 
 	createVaultWindow(vaultId: string): BrowserWindow {
-		return this.createWindowByType('vault', { vaultId })
+		const win = this.createWindowByType('vault', { vaultId })
+		this.windows.set(`vault:${vaultId}`, win)
+		return win
 	}
 
 	createChatPopupWindow(threadId: string): BrowserWindow {
-		return this.createWindowByType('popup', { threadId })
+		const win = this.createWindowByType('popup', { threadId })
+		this.windows.set(`popup:${threadId}`, win)
+		return win
 	}
 
 	private createWindowByType(
@@ -134,5 +146,17 @@ export class WindowManager {
 		}
 
 		return { window, clientId }
+	}
+
+	closeWindow(type: string): void {
+		const win = this.windows.get(type)
+		if (win && !win.isDestroyed()) {
+			win.close()
+		}
+		this.windows.delete(type)
+	}
+
+	createWindow(): BrowserWindow {
+		return this.createWelcomeWindow()
 	}
 }
