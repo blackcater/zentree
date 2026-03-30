@@ -13,13 +13,43 @@ import { platform } from '../lib/utils'
 import { buildWebPreferences } from '../lib/web-preferences'
 
 export class WindowManager {
-	createWelcomeWindow() {}
+	createWelcomeWindow(): BrowserWindow {
+		return this.createWindowByType('welcome')
+	}
 
-	createVaultWindow() {}
+	createVaultWindow(vaultId: string): BrowserWindow {
+		return this.createWindowByType('vault', { vaultId })
+	}
 
-	createChatPopupWindow() {}
+	createChatPopupWindow(threadId: string): BrowserWindow {
+		return this.createWindowByType('popup', { threadId })
+	}
 
 	createWindow(): BrowserWindow {
+		return this.createDefaultWindow()
+	}
+
+	private createWindowByType(
+		type: 'welcome' | 'vault' | 'popup',
+		params?: Record<string, string>,
+	): BrowserWindow {
+		let hashRoute = ''
+		switch (type) {
+			case 'welcome':
+				hashRoute = '/welcome'
+				break
+			case 'vault':
+				hashRoute = `/vault/${params?.['vaultId'] || ''}`
+				break
+			case 'popup':
+				hashRoute = `/popup/${params?.['threadId'] || ''}`
+				break
+		}
+
+		return this.createDefaultWindow(hashRoute)
+	}
+
+	private createDefaultWindow(hashRoute = ''): BrowserWindow {
 		mainLog.info('create window')
 
 		const mainWindowState = electronWindowState({
@@ -63,9 +93,11 @@ export class WindowManager {
 		})
 
 		if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-			mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+			mainWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#${hashRoute}`)
 		} else {
-			mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+			mainWindow.loadFile(join(__dirname, '../renderer/index.html'), {
+				hash: hashRoute,
+			})
 		}
 
 		return mainWindow
