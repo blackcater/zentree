@@ -1,5 +1,6 @@
 import { app } from 'electron'
 
+import { registerHandlers } from './handlers'
 import { launch } from './launch'
 import { mainLog } from './lib/logger'
 import { is } from './lib/utils'
@@ -63,6 +64,7 @@ app.on('window-all-closed', () => {
 })
 
 app.whenReady()
+	.then(registerHandlers)
 	.then(launch)
 	.catch((error) => {
 		mainLog.error('Failed to launch app:', error)

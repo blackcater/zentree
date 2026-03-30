@@ -143,11 +143,7 @@
 }
 
 @layer utilities {
-  .bg-noise {
-    @apply bg-transparent;
-    position: relative;
-  }
-  .bg-noise::before {
+  .noise::before {
     position: absolute;
     inset: 0;
     content: "";

@@ -13,7 +13,11 @@
       "Skill(commit-commands:commit)",
       "mcp__plugin_context7_context7__resolve-library-id",
       "mcp__plugin_context7_context7__query-docs",
-      "mcp__MiniMax__understand_image"
+      "mcp__MiniMax__understand_image",
+      "Read(//Users/blackcater/Workspace/Codes/Labs/Acme/apps/desktop/src/renderer/src/routes/vault/$vaultId/**)",
+      "Read(//Users/components/**)",
+      "Read(//Users/blackcater/Workspace/Codes/Labs/Acme/apps/desktop/src/renderer/src/routes/vault/$vaultId//**)",
+      "Read(//Users/blackcater/Workspace/Codes/Labs/Acme/apps/desktop/src/renderer/src/routes/vault/$vaultId/thread//**)"
     ]
   }
 }

@@ -1,6 +1,6 @@
 import { cn } from '@acme-ai/ui/lib/utils'
 
-import { isElectron } from '@renderer/lib/electron'
+import { is } from '@renderer/lib/electron'
 
 import { AppHeader } from './AppHeader'
 import { AppSidebar } from './AppSidebar'
@@ -18,7 +18,8 @@ export function AppShell({
 		<div
 			className={cn(
 				'relative flex h-screen flex-col',
-				isElectron && enableNoise && 'bg-noise'
+				is.macOS ? 'bg-transparent' : 'bg-sidebar',
+				is.electron && enableNoise && 'noise'
 			)}
 		>
 			<AppHeader />
