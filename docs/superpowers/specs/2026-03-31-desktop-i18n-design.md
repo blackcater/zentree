@@ -30,6 +30,7 @@ src/
 ## Language Detection & Persistence
 
 ### Detection Flow
+
 1. On app start, read `locale` from `electron-store`
 2. If stored value exists, use it
 3. Otherwise, use `os-locale` to detect system language
@@ -37,11 +38,13 @@ src/
 5. If no match, fallback to `en`
 
 ### Supported Locales
+
 - `en` - English (default)
 - `zh-CN` - Simplified Chinese
 - `zh-TW` - Traditional Chinese
 
 ### Persistence
+
 - Store selected locale in `electron-store` with key `locale`
 - Renderer can trigger language change via IPC to main process
 - Main process updates store and notifies renderer to reload i18n
@@ -62,6 +65,7 @@ src/
 ## Namespace Structure
 
 Each namespace corresponds to a module/page:
+
 - `welcome` - Welcome wizard
 - `menu` - Application menu (main process)
 - `settings` - Settings page

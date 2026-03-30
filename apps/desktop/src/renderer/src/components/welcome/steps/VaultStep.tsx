@@ -1,11 +1,10 @@
-import type { FC } from 'react'
 import { useTranslation } from 'react-i18next'
 
 interface Props {
 	onNext: () => void
 }
 
-export const VaultStep: FC<Props> = ({ onNext }) => {
+export function VaultStep({ onNext }: Readonly<Props>) {
 	const { t } = useTranslation('welcome')
 
 	return (

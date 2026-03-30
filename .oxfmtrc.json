@@ -23,20 +23,12 @@
       {
         "elementNamePattern": ["electron"],
         "groupName": "electron"
-      },
-      {
-        "elementNamePattern": ["expo", "expo-*"],
-        "groupName": "expo"
-      },
-      {
-        "elementNamePattern": ["@acme-ai/*"],
-        "groupName": "acme"
       }
     ],
     "groups": [
       "type-import",
       ["type-builtin", "value-builtin"],
-      ["electron", "expo", "react", "acme"],
+      ["electron", "react"],
       ["type-external", "value-external"],
       ["type-internal", "value-internal"],
       [

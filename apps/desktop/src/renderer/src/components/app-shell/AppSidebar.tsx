@@ -1,10 +1,9 @@
-// apps/desktop/src/renderer/src/components/app-shell/AppSidebar.tsx
 import { useCallback, useRef, useEffect } from 'react'
 
-import { ScrollArea } from '@acme-ai/ui/foundation/scroll-area'
-import { cn } from '@acme-ai/ui/lib/utils'
+import { cn } from '@acme-ai/ui'
+import { ScrollArea } from '@acme-ai/ui/foundation'
 
-import { useSidebar } from '../../hooks/use-sidebar'
+import { useSidebar } from '@renderer/hooks/use-sidebar'
 
 export function AppSidebar(): React.JSX.Element {
 	const { isOpen, isHovering, width, setWidth, toggle, setHovering } =

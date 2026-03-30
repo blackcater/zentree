@@ -1,45 +1,45 @@
-import i18next from 'i18next'
+import type { Resource } from 'i18next'
 
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from './shared-config'
+import en from '@/i18n/locales/en.json'
+import zhCN from '@/i18n/locales/zh-CN.json'
+import zhTW from '@/i18n/locales/zh-TW.json'
 
-// Import locale files
-import en from './locales/en.json'
-import zhCN from './locales/zh-CN.json'
-import zhTW from './locales/zh-TW.json'
+export const SUPPORTED_LOCALES = ['en', 'zh-CN', 'zh-TW'] as const
+export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]
 
-export const i18n = i18next.createInstance()
-
-const resources = {
+export const RESOURCES: Resource = {
 	en: { translation: en },
 	'zh-CN': { translation: zhCN },
 	'zh-TW': { translation: zhTW },
 }
 
-export async function initI18n(locale: string): Promise<typeof i18n> {
-	const detectedLocale = SUPPORTED_LOCALES.includes(
-		locale as (typeof SUPPORTED_LOCALES)[number]
+export const LOCALE_MAP: Record<string, SupportedLocale> = {
+	'en-US': 'en',
+	'zh-CN': 'zh-CN',
+	'zh-TW': 'zh-TW',
+}
+
+export const DEFAULT_LOCALE: SupportedLocale = 'en'
+
+export const LOCALE_LABELS: Record<SupportedLocale, string> = {
+	en: 'English',
+	'zh-CN': '简体中文',
+	'zh-TW': '繁體中文',
+}
+
+export function normalizeLocale(locale: string): string {
+	return LOCALE_MAP[locale] ?? locale
+}
+
+export function isSupportedLocale(locale: string): locale is SupportedLocale {
+	return SUPPORTED_LOCALES.includes(
+		normalizeLocale(locale) as SupportedLocale
 	)
-		? locale
+}
+
+export function checkLocale(locale: string): SupportedLocale {
+	const normalizedLocale = normalizeLocale(locale) as SupportedLocale
+	return SUPPORTED_LOCALES.includes(normalizedLocale)
+		? normalizedLocale
 		: DEFAULT_LOCALE
-
-	await i18n.init({
-		resources,
-		lng: detectedLocale,
-		fallbackLng: DEFAULT_LOCALE,
-		interpolation: {
-			escapeValue: false,
-		},
-	})
-
-	return i18n
 }
-
-export function changeLanguage(locale: string) {
-	return i18n.changeLanguage(locale)
-}
-
-export function getCurrentLocale(): string {
-	return i18n.language
-}
-
-export { SUPPORTED_LOCALES, DEFAULT_LOCALE }

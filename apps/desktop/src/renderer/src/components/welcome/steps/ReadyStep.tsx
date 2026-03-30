@@ -1,11 +1,10 @@
-import type { FC } from 'react'
 import { useTranslation } from 'react-i18next'
 
 interface Props {
 	onFinish: () => void
 }
 
-export const ReadyStep: FC<Props> = ({ onFinish }) => {
+export function ReadyStep({ onFinish }: Readonly<Props>) {
 	const { t } = useTranslation('welcome')
 
 	return (

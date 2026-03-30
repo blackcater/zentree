@@ -1,7 +1,7 @@
 import type { FC } from 'react'
 import { I18nextProvider } from 'react-i18next'
 
-import { i18n } from '../../i18n/client'
+import { i18n } from '@renderer/lib/i18n'
 
 export interface I18nProviderProps {
 	children: React.ReactNode

@@ -2,10 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 import { createFileRoute } from '@tanstack/react-router'
 
-import {
-	LOCALE_LABELS,
-	SUPPORTED_LOCALES,
-} from '../../../../../i18n/shared-config'
+import { LOCALE_LABELS, SUPPORTED_LOCALES } from '@/i18n'
 
 export const Route = createFileRoute('/vault/$vaultId/settings')({
 	component: SettingsPage,
