@@ -1,3 +1,5 @@
+import os from 'os'
+import path from 'path'
 import Store from 'electron-store'
 
 interface StoreSchema {
@@ -14,7 +16,7 @@ const schema = {
 export const store = new Store<StoreSchema>({
   name: 'config',
   schema,
-  projectName: 'desktop',
+  cwd: path.join(os.homedir(), '.acme'),
 })
 
 export class AppStore {
