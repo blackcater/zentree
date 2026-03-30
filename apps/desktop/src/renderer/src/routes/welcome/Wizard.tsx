@@ -35,7 +35,6 @@ export function Wizard() {
   }
 
   const { Component } = steps[step]
-  const isLastStep = step === steps.length - 1
 
   return (
     <div className="h-full">

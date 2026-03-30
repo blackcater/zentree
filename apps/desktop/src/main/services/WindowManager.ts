@@ -9,7 +9,6 @@ import electronWindowState, { type State } from 'electron-window-state'
 import { Container } from '@/shared/di'
 import icon from '~/resources/icon.png?asset'
 
-import { AppStore } from '../lib/store'
 import { mainLog } from '../lib/logger'
 import { platform } from '../lib/utils'
 import { buildWebPreferences } from '../lib/web-preferences'
@@ -28,11 +27,9 @@ interface CreateWindowOptions {
 
 export class WindowManager {
 	readonly #registry: WindowRegistry
-	readonly #store: AppStore
 
 	constructor() {
 		this.#registry = Container.inject(WindowRegistry)
-		this.#store = Container.inject(AppStore)
 	}
 
 	#createDefaultWindow(
