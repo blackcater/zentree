@@ -10,10 +10,10 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeIndexRouteImport } from './routes/welcome/index'
+import { Route as VaultVaultIdRouteImport } from './routes/vault/$vaultId'
 import { Route as VaultVaultIdIndexRouteImport } from './routes/vault/$vaultId/index'
 import { Route as ChatPopupThreadIdIndexRouteImport } from './routes/chat-popup/$threadId/index'
 import { Route as VaultVaultIdSettingsRouteImport } from './routes/vault/$vaultId/settings'
-import { Route as VaultVaultIdVaultLayoutRouteImport } from './routes/vault/$vaultId/_vaultLayout'
 import { Route as VaultVaultIdThreadThreadIdRouteImport } from './routes/vault/$vaultId/thread/$threadId'
 
 const WelcomeIndexRoute = WelcomeIndexRouteImport.update({
@@ -21,10 +21,15 @@ const WelcomeIndexRoute = WelcomeIndexRouteImport.update({
   path: '/welcome/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const VaultVaultIdIndexRoute = VaultVaultIdIndexRouteImport.update({
-  id: '/vault/$vaultId/',
-  path: '/vault/$vaultId/',
+const VaultVaultIdRoute = VaultVaultIdRouteImport.update({
+  id: '/vault/$vaultId',
+  path: '/vault/$vaultId',
   getParentRoute: () => rootRouteImport,
+} as any)
+const VaultVaultIdIndexRoute = VaultVaultIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => VaultVaultIdRoute,
 } as any)
 const ChatPopupThreadIdIndexRoute = ChatPopupThreadIdIndexRouteImport.update({
   id: '/chat-popup/$threadId/',
@@ -32,25 +37,20 @@ const ChatPopupThreadIdIndexRoute = ChatPopupThreadIdIndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const VaultVaultIdSettingsRoute = VaultVaultIdSettingsRouteImport.update({
-  id: '/vault/$vaultId/settings',
-  path: '/vault/$vaultId/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const VaultVaultIdVaultLayoutRoute = VaultVaultIdVaultLayoutRouteImport.update({
-  id: '/vault/$vaultId/_vaultLayout',
-  path: '/vault/$vaultId',
-  getParentRoute: () => rootRouteImport,
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => VaultVaultIdRoute,
 } as any)
 const VaultVaultIdThreadThreadIdRoute =
   VaultVaultIdThreadThreadIdRouteImport.update({
-    id: '/vault/$vaultId/thread/$threadId',
-    path: '/vault/$vaultId/thread/$threadId',
-    getParentRoute: () => rootRouteImport,
+    id: '/thread/$threadId',
+    path: '/thread/$threadId',
+    getParentRoute: () => VaultVaultIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/vault/$vaultId': typeof VaultVaultIdRouteWithChildren
   '/welcome/': typeof WelcomeIndexRoute
-  '/vault/$vaultId': typeof VaultVaultIdVaultLayoutRoute
   '/vault/$vaultId/settings': typeof VaultVaultIdSettingsRoute
   '/chat-popup/$threadId/': typeof ChatPopupThreadIdIndexRoute
   '/vault/$vaultId/': typeof VaultVaultIdIndexRoute
@@ -58,15 +58,15 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/welcome': typeof WelcomeIndexRoute
-  '/vault/$vaultId': typeof VaultVaultIdIndexRoute
   '/vault/$vaultId/settings': typeof VaultVaultIdSettingsRoute
   '/chat-popup/$threadId': typeof ChatPopupThreadIdIndexRoute
+  '/vault/$vaultId': typeof VaultVaultIdIndexRoute
   '/vault/$vaultId/thread/$threadId': typeof VaultVaultIdThreadThreadIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/vault/$vaultId': typeof VaultVaultIdRouteWithChildren
   '/welcome/': typeof WelcomeIndexRoute
-  '/vault/$vaultId/_vaultLayout': typeof VaultVaultIdVaultLayoutRoute
   '/vault/$vaultId/settings': typeof VaultVaultIdSettingsRoute
   '/chat-popup/$threadId/': typeof ChatPopupThreadIdIndexRoute
   '/vault/$vaultId/': typeof VaultVaultIdIndexRoute
@@ -75,8 +75,8 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/welcome/'
     | '/vault/$vaultId'
+    | '/welcome/'
     | '/vault/$vaultId/settings'
     | '/chat-popup/$threadId/'
     | '/vault/$vaultId/'
@@ -84,14 +84,14 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/welcome'
-    | '/vault/$vaultId'
     | '/vault/$vaultId/settings'
     | '/chat-popup/$threadId'
+    | '/vault/$vaultId'
     | '/vault/$vaultId/thread/$threadId'
   id:
     | '__root__'
+    | '/vault/$vaultId'
     | '/welcome/'
-    | '/vault/$vaultId/_vaultLayout'
     | '/vault/$vaultId/settings'
     | '/chat-popup/$threadId/'
     | '/vault/$vaultId/'
@@ -99,12 +99,9 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  VaultVaultIdRoute: typeof VaultVaultIdRouteWithChildren
   WelcomeIndexRoute: typeof WelcomeIndexRoute
-  VaultVaultIdVaultLayoutRoute: typeof VaultVaultIdVaultLayoutRoute
-  VaultVaultIdSettingsRoute: typeof VaultVaultIdSettingsRoute
   ChatPopupThreadIdIndexRoute: typeof ChatPopupThreadIdIndexRoute
-  VaultVaultIdIndexRoute: typeof VaultVaultIdIndexRoute
-  VaultVaultIdThreadThreadIdRoute: typeof VaultVaultIdThreadThreadIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,12 +113,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WelcomeIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/vault/$vaultId': {
+      id: '/vault/$vaultId'
+      path: '/vault/$vaultId'
+      fullPath: '/vault/$vaultId'
+      preLoaderRoute: typeof VaultVaultIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/vault/$vaultId/': {
       id: '/vault/$vaultId/'
-      path: '/vault/$vaultId'
+      path: '/'
       fullPath: '/vault/$vaultId/'
       preLoaderRoute: typeof VaultVaultIdIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof VaultVaultIdRoute
     }
     '/chat-popup/$threadId/': {
       id: '/chat-popup/$threadId/'
@@ -132,35 +136,41 @@ declare module '@tanstack/react-router' {
     }
     '/vault/$vaultId/settings': {
       id: '/vault/$vaultId/settings'
-      path: '/vault/$vaultId/settings'
+      path: '/settings'
       fullPath: '/vault/$vaultId/settings'
       preLoaderRoute: typeof VaultVaultIdSettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/vault/$vaultId/_vaultLayout': {
-      id: '/vault/$vaultId/_vaultLayout'
-      path: '/vault/$vaultId'
-      fullPath: '/vault/$vaultId'
-      preLoaderRoute: typeof VaultVaultIdVaultLayoutRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof VaultVaultIdRoute
     }
     '/vault/$vaultId/thread/$threadId': {
       id: '/vault/$vaultId/thread/$threadId'
-      path: '/vault/$vaultId/thread/$threadId'
+      path: '/thread/$threadId'
       fullPath: '/vault/$vaultId/thread/$threadId'
       preLoaderRoute: typeof VaultVaultIdThreadThreadIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof VaultVaultIdRoute
     }
   }
 }
 
-const rootRouteChildren: RootRouteChildren = {
-  WelcomeIndexRoute: WelcomeIndexRoute,
-  VaultVaultIdVaultLayoutRoute: VaultVaultIdVaultLayoutRoute,
+interface VaultVaultIdRouteChildren {
+  VaultVaultIdSettingsRoute: typeof VaultVaultIdSettingsRoute
+  VaultVaultIdIndexRoute: typeof VaultVaultIdIndexRoute
+  VaultVaultIdThreadThreadIdRoute: typeof VaultVaultIdThreadThreadIdRoute
+}
+
+const VaultVaultIdRouteChildren: VaultVaultIdRouteChildren = {
   VaultVaultIdSettingsRoute: VaultVaultIdSettingsRoute,
-  ChatPopupThreadIdIndexRoute: ChatPopupThreadIdIndexRoute,
   VaultVaultIdIndexRoute: VaultVaultIdIndexRoute,
   VaultVaultIdThreadThreadIdRoute: VaultVaultIdThreadThreadIdRoute,
+}
+
+const VaultVaultIdRouteWithChildren = VaultVaultIdRoute._addFileChildren(
+  VaultVaultIdRouteChildren,
+)
+
+const rootRouteChildren: RootRouteChildren = {
+  VaultVaultIdRoute: VaultVaultIdRouteWithChildren,
+  WelcomeIndexRoute: WelcomeIndexRoute,
+  ChatPopupThreadIdIndexRoute: ChatPopupThreadIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
