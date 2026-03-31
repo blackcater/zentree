@@ -1,6 +1,5 @@
 import { useState, useCallback, type DragEvent } from 'react'
 
-import { motion } from 'framer-motion'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 
 import {
@@ -153,22 +152,19 @@ export function FolderView() {
 							onDragStart={(e) => handleDragStart(e, folder.id)}
 							onDragEnd={handleDragEnd}
 						/>
-						<motion.div
-							initial={false}
-							animate={{
-								maxHeight: isOpen ? '1000px' : '0px',
+						<div
+							className="transition-[grid-template-rows] duration-300 ease-in-out"
+							style={{
+								display: 'grid',
+								gridTemplateRows: isOpen ? '1fr' : '0fr',
 							}}
-							transition={{
-								type: 'spring',
-								stiffness: 300,
-								damping: 30,
-							}}
-							style={{ overflow: 'hidden' }}
 						>
-							{folderThreads.map((thread) => (
-								<ThreadCell key={thread.id} thread={thread} />
-							))}
-						</motion.div>
+							<div style={{ overflow: 'hidden' }}>
+								{folderThreads.map((thread) => (
+									<ThreadCell key={thread.id} thread={thread} />
+								))}
+							</div>
+						</div>
 					</div>
 				)
 			})}
