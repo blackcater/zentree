@@ -153,7 +153,7 @@ export function FolderView() {
 							onDragEnd={handleDragEnd}
 						/>
 						<div
-							className="transition-[grid-template-rows] duration-300 ease-in-out"
+							className="transition-[grid-template-rows] duration-200 ease-in-out"
 							style={{
 								display: 'grid',
 								gridTemplateRows: isOpen ? '1fr' : '0fr',
@@ -161,7 +161,10 @@ export function FolderView() {
 						>
 							<div style={{ overflow: 'hidden' }}>
 								{folderThreads.map((thread) => (
-									<ThreadCell key={thread.id} thread={thread} />
+									<ThreadCell
+										key={thread.id}
+										thread={thread}
+									/>
 								))}
 							</div>
 						</div>
