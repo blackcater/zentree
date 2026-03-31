@@ -6,6 +6,7 @@ export interface CellProps {
 	className?: string
 	children: React.ReactNode
 	onClick?: (e: React.MouseEvent) => void
+	onMouseEnter?: (e: React.MouseEvent) => void
 	onMouseLeave?: (e: React.MouseEvent) => void
 }
 
@@ -13,6 +14,7 @@ export function Cell({
 	className,
 	children,
 	onClick,
+	onMouseEnter,
 	onMouseLeave,
 }: Readonly<CellProps>) {
 	return (
@@ -22,6 +24,7 @@ export function Cell({
 				className
 			)}
 			onClick={onClick}
+			onMouseEnter={onMouseEnter}
 			onMouseLeave={onMouseLeave}
 		>
 			{children}
