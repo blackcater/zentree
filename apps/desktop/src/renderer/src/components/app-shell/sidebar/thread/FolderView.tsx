@@ -1,5 +1,6 @@
 import { useState, useCallback, type DragEvent } from 'react'
 
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 
 import {
@@ -152,16 +153,24 @@ export function FolderView() {
 							onDragStart={(e) => handleDragStart(e, folder.id)}
 							onDragEnd={handleDragEnd}
 						/>
-						{isOpen && (
-							<div className="flex flex-col gap-0.5">
-								{folderThreads.map((thread) => (
-									<ThreadCell
-										key={thread.id}
-										thread={thread}
-									/>
-								))}
-							</div>
-						)}
+						<AnimatePresence>
+							{isOpen && (
+								<motion.div
+									initial={{ opacity: 0, height: 0 }}
+									animate={{ opacity: 1, height: 'auto' }}
+									exit={{ opacity: 0, height: 0 }}
+									transition={{ duration: 0.2, ease: 'easeInOut' }}
+									className="flex flex-col gap-0.5"
+								>
+									{folderThreads.map((thread) => (
+										<ThreadCell
+											key={thread.id}
+											thread={thread}
+										/>
+									))}
+								</motion.div>
+							)}
+						</AnimatePresence>
 					</div>
 				)
 			})}
