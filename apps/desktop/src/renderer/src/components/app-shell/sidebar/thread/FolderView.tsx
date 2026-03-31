@@ -156,13 +156,12 @@ export function FolderView() {
 						<motion.div
 							initial={false}
 							animate={{
-								gridTemplateRows: isOpen ? '1fr' : '0fr',
+								maxHeight: isOpen ? '1000px' : '0px',
 							}}
 							transition={{
 								duration: 0.2,
 								ease: 'easeInOut',
 							}}
-							className="grid gap-0.5"
 							style={{ overflow: 'hidden' }}
 						>
 							{folderThreads.map((thread) => (
