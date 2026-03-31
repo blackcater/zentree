@@ -159,7 +159,7 @@ export function FolderView() {
 								maxHeight: isOpen ? '1000px' : '0px',
 							}}
 							transition={{
-								duration: 0.2,
+								duration: 0.3,
 								ease: 'easeInOut',
 							}}
 							style={{ overflow: 'hidden' }}
