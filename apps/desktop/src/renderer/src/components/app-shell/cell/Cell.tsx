@@ -22,9 +22,16 @@ export function Cell({ className, children }: CellProps) {
   )
 }
 
-export function CellIcon({ className, children }: CellProps) {
+export interface CellIconProps extends CellProps {
+  onClick?: (e: React.MouseEvent) => void
+}
+
+export function CellIcon({ className, children, onClick }: CellIconProps) {
   return (
-    <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center', className)}>
+    <div
+      className={cn('flex h-8 w-8 shrink-0 items-center justify-center', className)}
+      onClick={onClick}
+    >
       {children}
     </div>
   )
