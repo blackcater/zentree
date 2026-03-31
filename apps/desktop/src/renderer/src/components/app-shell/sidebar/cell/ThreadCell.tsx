@@ -70,8 +70,9 @@ export function ThreadCell({
 					</span>
 					{isConfirming ? (
 						<Button
+							className="rounded-full"
 							variant="destructive"
-							size="icon-sm"
+							size="xs"
 							onClick={(e) => {
 								e.stopPropagation()
 								onDelete?.(thread.id)

@@ -71,8 +71,12 @@ export function FolderView() {
 			// Live reorder: update folders state immediately for visual preview
 			setFolders((prev) => {
 				const folderList = [...prev]
-				const draggedIndex = folderList.findIndex((f) => f.id === draggedFolderId)
-				const targetIndex = folderList.findIndex((f) => f.id === folderId)
+				const draggedIndex = folderList.findIndex(
+					(f) => f.id === draggedFolderId
+				)
+				const targetIndex = folderList.findIndex(
+					(f) => f.id === folderId
+				)
 
 				if (draggedIndex === -1 || targetIndex === -1) return prev
 				if (draggedIndex === targetIndex) return prev
@@ -81,7 +85,9 @@ export function FolderView() {
 				const [draggedFolder] = folderList.splice(draggedIndex, 1)
 
 				// Find the new target index after removal
-				let newTargetIndex = folderList.findIndex((f) => f.id === folderId)
+				let newTargetIndex = folderList.findIndex(
+					(f) => f.id === folderId
+				)
 
 				// Insert at new position
 				if (position === 'before') {
@@ -102,17 +108,14 @@ export function FolderView() {
 		setDropPosition(null)
 	}, [])
 
-	const handleDrop = useCallback(
-		(e: DragEvent, _targetFolderId: string) => {
-			e.preventDefault()
+	const handleDrop = useCallback((e: DragEvent, _targetFolderId: string) => {
+		e.preventDefault()
 
-			// Drop finalizes the order - nothing extra needed since we already updated on dragover
-			setDropTargetId(null)
-			setDropPosition(null)
-			setDraggedFolderId(null)
-		},
-		[]
-	)
+		// Drop finalizes the order - nothing extra needed since we already updated on dragover
+		setDropTargetId(null)
+		setDropPosition(null)
+		setDraggedFolderId(null)
+	}, [])
 
 	const handleDragEnd = useCallback(() => {
 		setDropTargetId(null)
@@ -149,13 +152,16 @@ export function FolderView() {
 					<div
 						key={folder.id}
 						className="flex flex-col gap-0.5"
-						onDragOver={(e) => handleDragOver(e, folder.id, folderThreads)}
+						onDragOver={(e) =>
+							handleDragOver(e, folder.id, folderThreads)
+						}
 						onDragLeave={handleDragLeave}
 						onDrop={(e) => handleDrop(e, folder.id)}
 					>
 						<div
 							ref={(el) => {
-								if (el) folderHeaderRefs.current.set(folder.id, el)
+								if (el)
+									folderHeaderRefs.current.set(folder.id, el)
 								else folderHeaderRefs.current.delete(folder.id)
 							}}
 						>
@@ -167,10 +173,14 @@ export function FolderView() {
 								onAddThread={(_folderId) => {
 									// TODO: implement add thread to folder
 								}}
-								dropPosition={isDropTarget ? dropPosition : null}
+								dropPosition={
+									isDropTarget ? dropPosition : null
+								}
 								isDragging={isDragging}
 								draggable={true}
-								onDragStart={(e) => handleDragStart(e, folder.id)}
+								onDragStart={(e) =>
+									handleDragStart(e, folder.id)
+								}
 								onDragEnd={handleDragEnd}
 							/>
 						</div>

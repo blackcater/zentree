@@ -5,7 +5,6 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuPortal,
 	DropdownMenuTrigger,
 } from '@acme-ai/ui/foundation'
 import { cn } from '@acme-ai/ui/lib/utils'
@@ -123,20 +122,14 @@ export function FolderCell({
 								/>
 							</Button>
 						</DropdownMenuTrigger>
-						<DropdownMenuPortal>
-							<DropdownMenuContent align="end">
-								<DropdownMenuItem
-									onClick={() => onRename?.(id)}
-								>
-									Rename
-								</DropdownMenuItem>
-								<DropdownMenuItem
-									onClick={() => onDelete?.(id)}
-								>
-									Delete
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenuPortal>
+						<DropdownMenuContent align="end">
+							<DropdownMenuItem onClick={() => onRename?.(id)}>
+								Rename
+							</DropdownMenuItem>
+							<DropdownMenuItem onClick={() => onDelete?.(id)}>
+								Delete
+							</DropdownMenuItem>
+						</DropdownMenuContent>
 					</DropdownMenu>
 					<Button
 						variant="ghost"
