@@ -156,18 +156,9 @@ export function FolderView() {
 						<AnimatePresence>
 							{isOpen && (
 								<motion.div
-									initial={{
-										opacity: 0,
-										gridTemplateRows: '0fr',
-									}}
-									animate={{
-										opacity: 1,
-										gridTemplateRows: '1fr',
-									}}
-									exit={{
-										opacity: 0,
-										gridTemplateRows: '0fr',
-									}}
+									initial={{ gridTemplateRows: '0fr' }}
+									animate={{ gridTemplateRows: '1fr' }}
+									exit={{ gridTemplateRows: '0fr' }}
 									transition={{
 										duration: 0.2,
 										ease: 'easeInOut',

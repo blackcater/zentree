@@ -65,13 +65,13 @@ export function FolderCell({
 				<div className="bg-primary/30 absolute right-2 -bottom-0.5 left-2 z-10 h-0.5" />
 			)}
 			<Cell
-				onClick={() => onToggle(id)}
 				className={cn(
 					'hover:bg-black/10 dark:hover:bg-white/10',
-					isDragging && 'opacity-50 cursor-grabbing',
+					isDragging && 'cursor-grabbing opacity-50',
 					draggable && !isDragging && 'cursor-grab',
 					className
 				)}
+				onClick={() => onToggle(id)}
 			>
 				{/* 左侧图标 */}
 				<CellIcon>
@@ -79,7 +79,7 @@ export function FolderCell({
 					<HugeiconsIcon
 						icon={ArrowRight01Icon}
 						className={cn(
-							'absolute size-3.5 opacity-0 transition-opacity transition-transform duration-200 group-hover:opacity-100',
+							'absolute size-3.5 opacity-0 transition-all duration-200 group-hover:opacity-100',
 							isExpanded ? 'rotate-90' : 'rotate-0'
 						)}
 					/>
