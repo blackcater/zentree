@@ -1,6 +1,6 @@
 import { useState, useCallback, type DragEvent } from 'react'
 
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 
 import {
@@ -153,28 +153,25 @@ export function FolderView() {
 							onDragStart={(e) => handleDragStart(e, folder.id)}
 							onDragEnd={handleDragEnd}
 						/>
-						<AnimatePresence>
-							{isOpen && (
-								<motion.div
-									initial={{ gridTemplateRows: '0fr' }}
-									animate={{ gridTemplateRows: '1fr' }}
-									exit={{ gridTemplateRows: '0fr' }}
-									transition={{
-										duration: 0.2,
-										ease: 'easeInOut',
-									}}
-									className="grid gap-0.5"
-									style={{ overflow: 'hidden' }}
-								>
-									{folderThreads.map((thread) => (
-										<ThreadCell
-											key={thread.id}
-											thread={thread}
-										/>
-									))}
-								</motion.div>
-							)}
-						</AnimatePresence>
+						<motion.div
+							initial={false}
+							animate={{
+								gridTemplateRows: isOpen ? '1fr' : '0fr',
+							}}
+							transition={{
+								duration: 0.2,
+								ease: 'easeInOut',
+							}}
+							className="grid gap-0.5"
+							style={{ overflow: 'hidden' }}
+						>
+							{folderThreads.map((thread) => (
+								<ThreadCell
+									key={thread.id}
+									thread={thread}
+								/>
+							))}
+						</motion.div>
 					</div>
 				)
 			})}
