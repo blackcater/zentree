@@ -1,4 +1,4 @@
-import { useRef, type DragEvent } from 'react'
+import { useState, type DragEvent } from 'react'
 
 import {
 	Button,
@@ -51,11 +51,13 @@ export function FolderCell({
 	onDragStart,
 	onDragEnd,
 }: Readonly<FolderCellProps>) {
-	const containerRef = useRef<HTMLDivElement>(null)
+	const [isHovered, setIsHovered] = useState(false)
+	const [isMenuOpen, setIsMenuOpen] = useState(false)
+
+	const showActions = isHovered || isMenuOpen
 
 	return (
 		<div
-			ref={containerRef}
 			className="relative"
 			draggable={draggable}
 			onDragStart={onDragStart}
@@ -78,6 +80,8 @@ export function FolderCell({
 					className
 				)}
 				onClick={() => onToggle(id)}
+				onMouseEnter={() => setIsHovered(true)}
+				onMouseLeave={() => setIsHovered(false)}
 			>
 				{/* 左侧图标 */}
 				<CellIcon>
@@ -100,8 +104,10 @@ export function FolderCell({
 				<CellName>{title}</CellName>
 
 				{/* 操作区 */}
-				<CellActions className="opacity-0 group-hover:opacity-100">
-					<DropdownMenu modal={false}>
+				<CellActions
+					className={cn(showActions ? 'opacity-100' : 'opacity-0')}
+				>
+					<DropdownMenu modal={false} onOpenChange={setIsMenuOpen}>
 						<DropdownMenuTrigger
 							asChild
 							onClick={(e) => e.stopPropagation()}
@@ -117,7 +123,7 @@ export function FolderCell({
 								/>
 							</Button>
 						</DropdownMenuTrigger>
-						<DropdownMenuPortal container={containerRef.current}>
+						<DropdownMenuPortal>
 							<DropdownMenuContent align="end">
 								<DropdownMenuItem
 									onClick={() => onRename?.(id)}
