@@ -13,9 +13,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Code Conventions
 
-- Private methods/fields use `$` prefix
+- Private methods/fields use `#` prefix
 - Use namespace to organize related types for a class
-- Filenames use kebab-case
+- Directory names use kebab-case
 - One file should not contain multiple domains
 - One method should not have multiple responsibilities
 - Before commit code, you MUST use `bunx tsc --noEmit`, `bunx oxlint` and `bunx oxfmt` to lint and format code
