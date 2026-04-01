@@ -1,32 +1,32 @@
 // apps/desktop/src/renderer/src/components/app-shell/sidebar/PinnedSection.tsx
+import { DragOverlay } from '@dnd-kit/react'
+import { useSortable } from '@dnd-kit/react/sortable'
 import { useAtomValue, useAtom } from 'jotai'
-import { useSortable, DragOverlay } from '@dnd-kit/react'
+
 import { threadsAtom, pinnedThreadIdsAtom } from '../atoms/thread-atoms'
 import { ThreadCell } from './cell/ThreadCell'
 
 interface SortableThreadProps {
-	thread: { id: string; title: string; updatedAt: Date; isPinned: boolean; folderId: string }
+	thread: {
+		id: string
+		title: string
+		updatedAt: Date
+		isPinned: boolean
+		folderId: string
+	}
 	index: number
 }
 
 function SortableThread({ thread, index }: SortableThreadProps) {
-	const { ref, isDragging, transition } = useSortable({
+	const { ref, isDragging } = useSortable({
 		id: thread.id,
 		index,
 		transition: { duration: 200, easing: 'ease-out', idle: true },
 	})
 
 	return (
-		<div
-			ref={ref}
-			style={{ transition }}
-			className={isDragging ? 'opacity-50' : undefined}
-		>
-			<ThreadCell
-				thread={thread}
-				isPinned={true}
-				draggable={true}
-			/>
+		<div ref={ref} className={isDragging ? 'opacity-50' : undefined}>
+			<ThreadCell thread={thread} isPinned={true} draggable={true} />
 		</div>
 	)
 }

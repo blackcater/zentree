@@ -7,8 +7,6 @@ import {
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 
-import { PinnedSection } from './PinnedSection'
-
 export function SidebarHeader() {
 	return (
 		<div className="mb-2 flex w-full flex-col items-start gap-2">
@@ -44,8 +42,6 @@ export function SidebarHeader() {
 					Automation
 				</Button>
 			</section>
-			{/* Pinned Section */}
-			<PinnedSection />
 		</div>
 	)
 }

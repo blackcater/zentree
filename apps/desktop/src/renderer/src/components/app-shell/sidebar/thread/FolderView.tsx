@@ -32,18 +32,14 @@ function SortableFolder({
 	isOpen,
 	onToggle,
 }: SortableFolderProps) {
-	const { ref, isDragging, transition } = useSortable({
+	const { ref, isDragging } = useSortable({
 		id: folder.id,
 		index,
 		transition: { duration: 200, easing: 'ease-out', idle: true },
 	})
 
 	return (
-		<div
-			ref={ref}
-			style={{ transition }}
-			className={isDragging ? 'opacity-50' : undefined}
-		>
+		<div ref={ref} className={isDragging ? 'opacity-50' : undefined}>
 			<FolderCell
 				id={folder.id}
 				title={folder.title}
