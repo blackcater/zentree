@@ -1,10 +1,13 @@
-import React from 'react'
+import React, { type DragEvent } from 'react'
 
 import { cn } from '@acme-ai/ui/lib/utils'
 
 export interface CellProps {
 	className?: string
 	children: React.ReactNode
+	draggable?: boolean
+	onDragStart?: (e: DragEvent) => void
+	onDragEnd?: (e: DragEvent) => void
 	onClick?: (e: React.MouseEvent) => void
 	onMouseEnter?: (e: React.MouseEvent) => void
 	onMouseLeave?: (e: React.MouseEvent) => void
@@ -13,6 +16,9 @@ export interface CellProps {
 export function Cell({
 	className,
 	children,
+	draggable,
+	onDragStart,
+	onDragEnd,
 	onClick,
 	onMouseEnter,
 	onMouseLeave,
@@ -23,6 +29,9 @@ export function Cell({
 				'group text-secondary-foreground flex h-8 items-center gap-1 rounded-md px-2.5 text-sm transition-colors',
 				className
 			)}
+			draggable={draggable}
+			onDragStart={onDragStart}
+			onDragEnd={onDragEnd}
 			onClick={onClick}
 			onMouseEnter={onMouseEnter}
 			onMouseLeave={onMouseLeave}
