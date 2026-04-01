@@ -1,5 +1,5 @@
 // apps/desktop/src/renderer/src/components/app-shell/sidebar/PinnedSection.tsx
-import { DragOverlay } from '@dnd-kit/react'
+import { DragDropProvider, DragOverlay, PointerSensor } from '@dnd-kit/react'
 import { useSortable } from '@dnd-kit/react/sortable'
 import { useAtomValue, useAtom } from 'jotai'
 
@@ -17,7 +17,7 @@ interface SortableThreadProps {
 	index: number
 }
 
-function SortableThread({ thread, index }: SortableThreadProps) {
+function SortableThread({ thread, index }: Readonly<SortableThreadProps>) {
 	const { ref, isDragging } = useSortable({
 		id: thread.id,
 		index,
@@ -45,24 +45,26 @@ export function PinnedSection() {
 	}
 
 	return (
-		<section className="flex flex-col gap-1 px-2 py-2">
-			<DragOverlay>
-				{(source) => {
-					if (!source) return null
-					const thread = threads.find((t) => t.id === source.id)
-					if (!thread) return null
-					return <ThreadCell thread={thread} isPinned />
-				}}
-			</DragOverlay>
-			<div className="flex flex-col gap-0.5">
-				{pinnedThreads.map((thread, index) => (
-					<SortableThread
-						key={thread.id}
-						thread={thread}
-						index={index}
-					/>
-				))}
-			</div>
-		</section>
+		<DragDropProvider sensors={[PointerSensor]}>
+			<section className="flex flex-col gap-1 px-2 py-2">
+				<DragOverlay>
+					{(source) => {
+						if (!source) return null
+						const thread = threads.find((t) => t.id === source.id)
+						if (!thread) return null
+						return <ThreadCell thread={thread} isPinned />
+					}}
+				</DragOverlay>
+				<div className="flex flex-col gap-0.5">
+					{pinnedThreads.map((thread, index) => (
+						<SortableThread
+							key={thread.id}
+							thread={thread}
+							index={index}
+						/>
+					))}
+				</div>
+			</section>
+		</DragDropProvider>
 	)
 }

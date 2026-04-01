@@ -1,3 +1,4 @@
+import { DragDropProvider, PointerSensor } from '@dnd-kit/react'
 import { useAtom } from 'jotai'
 
 import { viewModeAtom } from '../atoms/thread-atoms'
@@ -21,13 +22,15 @@ export function ProjectSection() {
 	}
 
 	return (
-		<section className="flex flex-col gap-1 px-2">
-			<ThreadTitleCell
-				title="Threads"
-				onSort={handleSort}
-				onAdd={handleAddFolder}
-			/>
-			{viewMode === 'folder' ? <FolderView /> : <FlatView />}
-		</section>
+		<DragDropProvider sensors={[PointerSensor]}>
+			<section className="flex flex-col gap-1 px-2">
+				<ThreadTitleCell
+					title="Threads"
+					onSort={handleSort}
+					onAdd={handleAddFolder}
+				/>
+				{viewMode === 'folder' ? <FolderView /> : <FlatView />}
+			</section>
+		</DragDropProvider>
 	)
 }
