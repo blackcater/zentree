@@ -133,7 +133,6 @@ export function FolderView() {
 						className="flex flex-col gap-0.5 transition-transform duration-200 ease-out"
 						onDragOver={(e) => handleDragOver(e, folder.id)}
 						onDrop={(e) => handleDrop(e, folder.id)}
-						onDragLeave={handleDragLeave}
 					>
 						<div
 							ref={(el) => {
