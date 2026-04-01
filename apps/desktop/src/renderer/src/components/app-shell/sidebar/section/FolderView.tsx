@@ -1,10 +1,14 @@
 import { cn } from '@acme-ai/ui'
 import { DragDropProvider, DragOverlay } from '@dnd-kit/react'
 import { useSortable } from '@dnd-kit/react/sortable'
-import { useAtom, useAtomValue } from 'jotai'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 
 import { findElementUntilRoot } from '@/shared/dom'
-import { openedProjectIdsAtom, projectTreeAtom } from '@renderer/atoms'
+import {
+	openedProjectIdsAtom,
+	pinnedThreadIdsAtom,
+	projectTreeAtom,
+} from '@renderer/atoms'
 import type { Project } from '@renderer/types'
 import type { Thread } from '@renderer/types/thread'
 
@@ -17,6 +21,7 @@ interface SortableFolderProps {
 	index: number
 	isOpen: boolean
 	onToggle: (id: string) => void
+	onTogglePin: (threadId: string) => void
 }
 
 function SortableFolder({
@@ -25,12 +30,17 @@ function SortableFolder({
 	index,
 	isOpen,
 	onToggle,
+	onTogglePin,
 }: Readonly<SortableFolderProps>) {
 	const { ref, isDragging } = useSortable({
 		id: folder.id,
 		index,
 		type: 'folder',
 	})
+
+	function handleDelete(_threadId: string) {
+		// TODO: Archive thread
+	}
 
 	return (
 		<div
@@ -56,7 +66,12 @@ function SortableFolder({
 			>
 				<div style={{ overflow: 'hidden' }}>
 					{folderThreads.map((thread) => (
-						<ThreadCell key={thread.id} thread={thread} />
+						<ThreadCell
+							key={thread.id}
+							thread={thread}
+							onTogglePin={onTogglePin}
+							onDelete={handleDelete}
+						/>
 					))}
 				</div>
 			</div>
@@ -67,6 +82,7 @@ function SortableFolder({
 export function FolderView() {
 	const [openedProjectIds, setOpenedProjectIds] =
 		useAtom(openedProjectIdsAtom)
+	const setPinnedThreadIds = useSetAtom(pinnedThreadIdsAtom)
 	const projectTree = useAtomValue(projectTreeAtom)
 
 	const handleToggleFolder = (folderId: string) => {
@@ -78,6 +94,15 @@ export function FolderView() {
 				next.add(folderId)
 			}
 			return next
+		})
+	}
+
+	const handleTogglePin = (threadId: string) => {
+		setPinnedThreadIds((prev) => {
+			if (prev.includes(threadId)) {
+				return prev.filter((id) => id !== threadId)
+			}
+			return [...prev, threadId]
 		})
 	}
 
@@ -125,6 +150,7 @@ export function FolderView() {
 							index={index}
 							isOpen={openedProjectIds.has(project.id)}
 							onToggle={handleToggleFolder}
+							onTogglePin={handleTogglePin}
 						/>
 					)
 				)}

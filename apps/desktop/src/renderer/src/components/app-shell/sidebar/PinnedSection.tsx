@@ -26,7 +26,7 @@ function SortableThread({ thread, index }: Readonly<SortableThreadProps>) {
 	}
 
 	function handleDelete(id: string) {
-		console.log('delete:', id)
+		// TODO: Archive thread
 	}
 
 	return (
