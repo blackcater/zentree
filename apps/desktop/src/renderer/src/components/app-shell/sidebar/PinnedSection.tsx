@@ -22,13 +22,14 @@ function SortableThread({ thread, index }: Readonly<SortableThreadProps>) {
 		id: thread.id,
 		index,
 		type: 'thread',
-		transition: { duration: 200, easing: 'ease-out', idle: true },
+		transition: { duration: 200, easing: 'ease-out' },
 	})
 
 	return (
 		<div
 			ref={ref}
 			className={cn(
+				'select-none',
 				isDragging && 'pointer-events-none opacity-0',
 				!isDragging && 'cursor-grab active:cursor-grabbing'
 			)}

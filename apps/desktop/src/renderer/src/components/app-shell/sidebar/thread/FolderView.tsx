@@ -32,18 +32,19 @@ function SortableFolder({
 	index,
 	isOpen,
 	onToggle,
-}: SortableFolderProps) {
+}: Readonly<SortableFolderProps>) {
 	const { ref, isDragging } = useSortable({
 		id: folder.id,
 		index,
 		type: 'folder',
-		transition: { duration: 200, easing: 'ease-out', idle: true },
+		transition: { duration: 200, easing: 'ease-out' },
 	})
 
 	return (
 		<div
 			ref={ref}
 			className={cn(
+				'select-none',
 				isDragging && 'pointer-events-none opacity-0',
 				!isDragging && 'cursor-grab active:cursor-grabbing'
 			)}
@@ -63,13 +64,7 @@ function SortableFolder({
 			>
 				<div style={{ overflow: 'hidden' }}>
 					{folderThreads.map((thread) => (
-						<div
-							key={thread.id}
-							onMouseDown={(e) => e.stopPropagation()}
-							onPointerDown={(e) => e.stopPropagation()}
-						>
-							<ThreadCell thread={thread} />
-						</div>
+						<ThreadCell key={thread.id} thread={thread} />
 					))}
 				</div>
 			</div>
