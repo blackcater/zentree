@@ -1,9 +1,10 @@
 import { cn } from '@acme-ai/ui'
 import { DragDropProvider, DragOverlay } from '@dnd-kit/react'
 import { useSortable } from '@dnd-kit/react/sortable'
-import { useAtomValue, useAtom } from 'jotai'
+import { useAtomValue } from 'jotai'
 
-import { threadsAtom, pinnedThreadIdsAtom } from '@renderer/atoms/thread'
+import { threadsAtom, pinnedThreadsAtom } from '@renderer/atoms/thread'
+
 import { ThreadCell } from './cell/ThreadCell'
 
 interface SortableThreadProps {
@@ -40,11 +41,7 @@ function SortableThread({ thread, index }: Readonly<SortableThreadProps>) {
 
 export function PinnedSection() {
 	const threads = useAtomValue(threadsAtom)
-	const [pinnedThreadIds] = useAtom(pinnedThreadIdsAtom)
-
-	const pinnedThreads = pinnedThreadIds
-		.map((id) => threads.find((t) => t.id === id))
-		.filter((t): t is NonNullable<typeof t> => t != null)
+	const pinnedThreads = useAtomValue(pinnedThreadsAtom)
 
 	if (pinnedThreads.length === 0) {
 		return null
