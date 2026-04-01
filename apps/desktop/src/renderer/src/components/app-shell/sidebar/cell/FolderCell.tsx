@@ -123,10 +123,20 @@ export function FolderCell({
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
-							<DropdownMenuItem onClick={() => onRename?.(id)}>
+							<DropdownMenuItem
+								onClick={(e) => {
+									e.stopPropagation()
+									onRename?.(id)
+								}}
+							>
 								Rename
 							</DropdownMenuItem>
-							<DropdownMenuItem onClick={() => onDelete?.(id)}>
+							<DropdownMenuItem
+								onClick={(e) => {
+									e.stopPropagation()
+									onDelete?.(id)
+								}}
+							>
 								Delete
 							</DropdownMenuItem>
 						</DropdownMenuContent>
