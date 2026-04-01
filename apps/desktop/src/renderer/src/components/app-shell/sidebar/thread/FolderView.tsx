@@ -45,8 +45,7 @@ function SortableFolder({
 			ref={ref}
 			className={cn(
 				'select-none',
-				isDragging && 'pointer-events-none opacity-0',
-				!isDragging && 'cursor-grab active:cursor-grabbing'
+				isDragging && 'pointer-events-none opacity-0'
 			)}
 		>
 			<FolderCell
@@ -64,7 +63,11 @@ function SortableFolder({
 			>
 				<div style={{ overflow: 'hidden' }}>
 					{folderThreads.map((thread) => (
-						<ThreadCell key={thread.id} thread={thread} />
+						<ThreadCell
+							key={thread.id}
+							thread={thread}
+							draggable={false}
+						/>
 					))}
 				</div>
 			</div>

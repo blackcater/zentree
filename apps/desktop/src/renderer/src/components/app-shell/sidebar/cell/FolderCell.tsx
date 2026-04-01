@@ -57,7 +57,10 @@ export function FolderCell({
 
 	return (
 		<div
-			className="relative"
+			className={cn(
+				'relative',
+				!isDragging && 'cursor-grab active:cursor-grabbing'
+			)}
 			draggable={draggable}
 			onDragStart={onDragStart}
 			onDragEnd={onDragEnd}
