@@ -1,5 +1,4 @@
 // apps/desktop/src/renderer/src/components/app-shell/sidebar/PinnedSection.tsx
-import { useState } from 'react'
 import { useAtomValue, useAtom } from 'jotai'
 import { useSortable, DragOverlay } from '@dnd-kit/react'
 import { threadsAtom, pinnedThreadIdsAtom } from '../atoms/thread-atoms'
@@ -35,13 +34,10 @@ function SortableThread({ thread, index }: SortableThreadProps) {
 export function PinnedSection() {
 	const threads = useAtomValue(threadsAtom)
 	const [pinnedThreadIds] = useAtom(pinnedThreadIdsAtom)
-	const [activeId, setActiveId] = useState<string | null>(null)
 
 	const pinnedThreads = pinnedThreadIds
 		.map((id) => threads.find((t) => t.id === id))
 		.filter((t): t is NonNullable<typeof t> => t != null)
-
-	const activeThread = activeId ? threads.find((t) => t.id === activeId) : null
 
 	if (pinnedThreads.length === 0) {
 		return null
@@ -50,9 +46,12 @@ export function PinnedSection() {
 	return (
 		<section className="flex flex-col gap-1 px-2 py-2">
 			<DragOverlay>
-				{activeThread && (
-					<ThreadCell thread={activeThread} isPinned />
-				)}
+				{(source) => {
+					if (!source) return null
+					const thread = threads.find((t) => t.id === source.id)
+					if (!thread) return null
+					return <ThreadCell thread={thread} isPinned />
+				}}
 			</DragOverlay>
 			<div className="flex flex-col gap-0.5">
 				{pinnedThreads.map((thread, index) => (
