@@ -1,6 +1,7 @@
 import { useAtom } from 'jotai'
 
 import { sidebarAtom } from '@renderer/atoms/sidebar'
+
 import { ThreadTitleCell } from './cell/ThreadTitleCell'
 import { FlatView } from './section/FlatView'
 import { FolderView } from './section/FolderView'
