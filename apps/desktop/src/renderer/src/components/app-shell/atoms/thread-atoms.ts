@@ -8,17 +8,17 @@ export const viewModeAtom = atom<'folder' | 'flat'>('folder')
 // Folder expanded state - persisted to localStorage
 export const openFoldersAtom = atom<Set<string>>(new Set<string>())
 
-// Pinned threads (just IDs)
-export const pinnedThreadsAtom = atom<Set<string>>(new Set<string>())
+// Pinned threads - ordered array (NOT Set)
+export const pinnedThreadIdsAtom = atom<string[]>(['t1', 't5', 't6'])
 
-// Mock data for development - will be replaced with real data later
+// Mock data for development
 export const threadsAtom = atom<Thread[]>([
 	{
 		id: 't1',
 		title: 'Thread 1',
 		updatedAt: new Date('2026-03-30'),
 		isPinned: true,
-		folderId: null,
+		folderId: 'f1',
 	},
 	{
 		id: 't2',
@@ -40,6 +40,20 @@ export const threadsAtom = atom<Thread[]>([
 		updatedAt: new Date('2026-03-27'),
 		isPinned: false,
 		folderId: 'f2',
+	},
+	{
+		id: 't5',
+		title: 'Thread 5 Pinned',
+		updatedAt: new Date('2026-03-26'),
+		isPinned: true,
+		folderId: 'f2',
+	},
+	{
+		id: 't6',
+		title: 'Thread 6 Pinned',
+		updatedAt: new Date('2026-03-25'),
+		isPinned: true,
+		folderId: 'f1',
 	},
 ])
 

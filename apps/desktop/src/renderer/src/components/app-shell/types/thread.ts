@@ -3,7 +3,7 @@ export interface Thread {
 	title: string
 	updatedAt: Date
 	isPinned: boolean
-	folderId: string | null
+	folderId: string
 }
 
 export interface Folder {
