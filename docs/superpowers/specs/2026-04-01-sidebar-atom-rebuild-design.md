@@ -131,20 +131,18 @@ export const projectTreeAtom = atom((get) => {
   const projects = get(projectsAtom)
   const sidebar = get(sidebarAtom)
 
-  return [...projects]
-    .sort((a, b) => a.order - b.order)
-    .map((project) => ({
-      project,
-      threads: threads
-        .filter(t => t.projectId === project.id && !pinnedIds.includes(t.id))
-        .sort((a, b) => {
-          const field = sidebar.sortField
-          const order = sidebar.sortOrder === 'asc' ? 1 : -1
-          const aVal = field === 'updatedAt' ? a.updatedAt.getTime() : a.createdAt.getTime()
-          const bVal = field === 'updatedAt' ? b.updatedAt.getTime() : b.createdAt.getTime()
-          return (aVal - bVal) * order
-        }),
-    }))
+  return projects.map((project) => ({
+    project,
+    threads: threads
+      .filter(t => t.projectId === project.id && !pinnedIds.includes(t.id))
+      .sort((a, b) => {
+        const field = sidebar.sortField
+        const order = sidebar.sortOrder === 'asc' ? 1 : -1
+        const aVal = field === 'updatedAt' ? a.updatedAt.getTime() : a.createdAt.getTime()
+        const bVal = field === 'updatedAt' ? b.updatedAt.getTime() : b.createdAt.getTime()
+        return (aVal - bVal) * order
+      }),
+  }))
 })
 ```
 
@@ -176,7 +174,6 @@ import type { Thread } from './thread'
 export interface Project {
   id: string
   title: string
-  order: number
 }
 
 export interface ProjectTreeNode {
