@@ -11,7 +11,7 @@ export const Route = createFileRoute('/vault/$vaultId/thread/$threadId')({
 	component: ThreadPage,
 })
 
-export function ThreadPage(): React.JSX.Element {
+export function ThreadPage(): React.JSX.Element | null {
 	const { threadId } = Route.useParams()
 	const [panel, setPanel] = useAtom(panelAtom)
 	const { setContent } = useHeader()
