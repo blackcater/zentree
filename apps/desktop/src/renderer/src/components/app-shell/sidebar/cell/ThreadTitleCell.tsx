@@ -1,3 +1,5 @@
+import { useAtomValue, useSetAtom } from 'jotai'
+
 import {
 	Button,
 	DropdownMenu,
@@ -21,6 +23,13 @@ import {
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 
+import {
+	isAllProjectsCollapsedAtom,
+	isAllProjectsExpandedAtom,
+} from '@renderer/atoms/project'
+import { sidebarAtom } from '@renderer/atoms/sidebar'
+import type { OrganizeMode, ShowMode, SortBy } from '@renderer/types/sidebar'
+
 import { TitleCell } from './TitleCell'
 
 interface Props {
@@ -36,8 +45,21 @@ export function ThreadTitleCell({
 	onAdd,
 	...props
 }: Readonly<Props>) {
-	const isAllProjectsExpanded = true // TODO: 从 state 中获取
-	const isAllProjectsCollapsed = false // TODO: 从 state 中获取
+	const isAllProjectsExpanded = useAtomValue(isAllProjectsExpandedAtom)
+	const isAllProjectsCollapsed = useAtomValue(isAllProjectsCollapsedAtom)
+	const [sidebar, setSidebar] = useAtom(sidebarAtom)
+
+	const handleOrganizeChange = (mode: OrganizeMode) => {
+		setSidebar((prev) => ({ ...prev, organizeMode: mode }))
+	}
+
+	const handleSortByChange = (sortBy: SortBy) => {
+		setSidebar((prev) => ({ ...prev, sortBy }))
+	}
+
+	const handleShowModeChange = (mode: ShowMode) => {
+		setSidebar((prev) => ({ ...prev, showMode: mode }))
+	}
 
 	return (
 		<TitleCell title={title} {...props}>
@@ -75,34 +97,52 @@ export function ThreadTitleCell({
 				<DropdownMenuContent className="w-fit" align="end">
 					<DropdownMenuGroup>
 						<DropdownMenuLabel>Organize</DropdownMenuLabel>
-						<DropdownMenuCheckboxItem>
+						<DropdownMenuCheckboxItem
+							checked={sidebar.organizeMode === 'folder'}
+							onCheckedChange={() => handleOrganizeChange('folder')}
+						>
 							<HugeiconsIcon icon={Folder01Icon} />
 							By Project
 						</DropdownMenuCheckboxItem>
-						<DropdownMenuCheckboxItem>
+						<DropdownMenuCheckboxItem
+							checked={sidebar.organizeMode === 'flat'}
+							onCheckedChange={() => handleOrganizeChange('flat')}
+						>
 							<HugeiconsIcon icon={Clock01Icon} />
 							Chronological list
 						</DropdownMenuCheckboxItem>
 					</DropdownMenuGroup>
 					<DropdownMenuGroup>
 						<DropdownMenuLabel>Sort by</DropdownMenuLabel>
-						<DropdownMenuCheckboxItem>
+						<DropdownMenuCheckboxItem
+							checked={sidebar.sortBy === 'createdAt'}
+							onCheckedChange={() => handleSortByChange('createdAt')}
+						>
 							<HugeiconsIcon icon={BubbleChatAddIcon} />
 							Created
 						</DropdownMenuCheckboxItem>
-						<DropdownMenuCheckboxItem>
+						<DropdownMenuCheckboxItem
+							checked={sidebar.sortBy === 'updatedAt'}
+							onCheckedChange={() => handleSortByChange('updatedAt')}
+						>
 							<HugeiconsIcon icon={MessageEdit01Icon} />
 							Updated
 						</DropdownMenuCheckboxItem>
 					</DropdownMenuGroup>
 					<DropdownMenuGroup>
 						<DropdownMenuLabel>Show</DropdownMenuLabel>
-						<DropdownMenuCheckboxItem>
+						<DropdownMenuCheckboxItem
+							checked={sidebar.showMode === 'all'}
+							onCheckedChange={() => handleShowModeChange('all')}
+						>
 							<HugeiconsIcon icon={Chatting01Icon} />
 							All threads
 						</DropdownMenuCheckboxItem>
 						{/* Only show recent threads for the current branch, worktrees, or other threads that need your attention */}
-						<DropdownMenuCheckboxItem>
+						<DropdownMenuCheckboxItem
+							checked={sidebar.showMode === 'relevant'}
+							onCheckedChange={() => handleShowModeChange('relevant')}
+						>
 							<HugeiconsIcon icon={StarIcon} />
 							Relevant
 						</DropdownMenuCheckboxItem>
