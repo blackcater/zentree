@@ -11,6 +11,14 @@ import { SidebarHeader } from './sidebar/SidebarHeader'
 export function AppSidebar(): React.JSX.Element {
 	const sidebar = useAtomValue(sidebarAtom)
 
+	if (sidebar.collapsed) {
+		return (
+			<aside className="text-secondary-foreground relative flex h-full shrink-0 flex-col overflow-hidden pt-10">
+				<SidebarHeader collapsed />
+			</aside>
+		)
+	}
+
 	return (
 		<aside
 			className="text-secondary-foreground relative flex h-full shrink-0 flex-col overflow-hidden pt-10"
