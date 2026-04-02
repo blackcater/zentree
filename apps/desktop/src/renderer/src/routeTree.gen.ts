@@ -9,211 +9,211 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WelcomeIndexRouteImport } from './routes/welcome/index'
-import { Route as VaultVaultIdRouteImport } from './routes/vault/$vaultId'
-import { Route as VaultVaultIdIndexRouteImport } from './routes/vault/$vaultId/index'
 import { Route as ChatPopupThreadIdIndexRouteImport } from './routes/chat-popup/$threadId/index'
-import { Route as VaultVaultIdSettingsRouteImport } from './routes/vault/$vaultId/settings'
-import { Route as VaultVaultIdExtensionsRouteImport } from './routes/vault/$vaultId/extensions'
+import { Route as VaultVaultIdRouteImport } from './routes/vault/$vaultId'
 import { Route as VaultVaultIdAutomationsRouteImport } from './routes/vault/$vaultId/automations'
+import { Route as VaultVaultIdExtensionsRouteImport } from './routes/vault/$vaultId/extensions'
+import { Route as VaultVaultIdIndexRouteImport } from './routes/vault/$vaultId/index'
+import { Route as VaultVaultIdSettingsRouteImport } from './routes/vault/$vaultId/settings'
 import { Route as VaultVaultIdThreadThreadIdRouteImport } from './routes/vault/$vaultId/thread/$threadId'
+import { Route as WelcomeIndexRouteImport } from './routes/welcome/index'
 
 const WelcomeIndexRoute = WelcomeIndexRouteImport.update({
-  id: '/welcome/',
-  path: '/welcome/',
-  getParentRoute: () => rootRouteImport,
+	id: '/welcome/',
+	path: '/welcome/',
+	getParentRoute: () => rootRouteImport,
 } as any)
 const VaultVaultIdRoute = VaultVaultIdRouteImport.update({
-  id: '/vault/$vaultId',
-  path: '/vault/$vaultId',
-  getParentRoute: () => rootRouteImport,
+	id: '/vault/$vaultId',
+	path: '/vault/$vaultId',
+	getParentRoute: () => rootRouteImport,
 } as any)
 const VaultVaultIdIndexRoute = VaultVaultIdIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => VaultVaultIdRoute,
+	id: '/',
+	path: '/',
+	getParentRoute: () => VaultVaultIdRoute,
 } as any)
 const ChatPopupThreadIdIndexRoute = ChatPopupThreadIdIndexRouteImport.update({
-  id: '/chat-popup/$threadId/',
-  path: '/chat-popup/$threadId/',
-  getParentRoute: () => rootRouteImport,
+	id: '/chat-popup/$threadId/',
+	path: '/chat-popup/$threadId/',
+	getParentRoute: () => rootRouteImport,
 } as any)
 const VaultVaultIdSettingsRoute = VaultVaultIdSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => VaultVaultIdRoute,
+	id: '/settings',
+	path: '/settings',
+	getParentRoute: () => VaultVaultIdRoute,
 } as any)
 const VaultVaultIdExtensionsRoute = VaultVaultIdExtensionsRouteImport.update({
-  id: '/extensions',
-  path: '/extensions',
-  getParentRoute: () => VaultVaultIdRoute,
+	id: '/extensions',
+	path: '/extensions',
+	getParentRoute: () => VaultVaultIdRoute,
 } as any)
 const VaultVaultIdAutomationsRoute = VaultVaultIdAutomationsRouteImport.update({
-  id: '/automations',
-  path: '/automations',
-  getParentRoute: () => VaultVaultIdRoute,
+	id: '/automations',
+	path: '/automations',
+	getParentRoute: () => VaultVaultIdRoute,
 } as any)
 const VaultVaultIdThreadThreadIdRoute =
-  VaultVaultIdThreadThreadIdRouteImport.update({
-    id: '/thread/$threadId',
-    path: '/thread/$threadId',
-    getParentRoute: () => VaultVaultIdRoute,
-  } as any)
+	VaultVaultIdThreadThreadIdRouteImport.update({
+		id: '/thread/$threadId',
+		path: '/thread/$threadId',
+		getParentRoute: () => VaultVaultIdRoute,
+	} as any)
 
 export interface FileRoutesByFullPath {
-  '/vault/$vaultId': typeof VaultVaultIdRouteWithChildren
-  '/welcome/': typeof WelcomeIndexRoute
-  '/vault/$vaultId/automations': typeof VaultVaultIdAutomationsRoute
-  '/vault/$vaultId/extensions': typeof VaultVaultIdExtensionsRoute
-  '/vault/$vaultId/settings': typeof VaultVaultIdSettingsRoute
-  '/chat-popup/$threadId/': typeof ChatPopupThreadIdIndexRoute
-  '/vault/$vaultId/': typeof VaultVaultIdIndexRoute
-  '/vault/$vaultId/thread/$threadId': typeof VaultVaultIdThreadThreadIdRoute
+	'/vault/$vaultId': typeof VaultVaultIdRouteWithChildren
+	'/welcome/': typeof WelcomeIndexRoute
+	'/vault/$vaultId/automations': typeof VaultVaultIdAutomationsRoute
+	'/vault/$vaultId/extensions': typeof VaultVaultIdExtensionsRoute
+	'/vault/$vaultId/settings': typeof VaultVaultIdSettingsRoute
+	'/chat-popup/$threadId/': typeof ChatPopupThreadIdIndexRoute
+	'/vault/$vaultId/': typeof VaultVaultIdIndexRoute
+	'/vault/$vaultId/thread/$threadId': typeof VaultVaultIdThreadThreadIdRoute
 }
 export interface FileRoutesByTo {
-  '/welcome': typeof WelcomeIndexRoute
-  '/vault/$vaultId/automations': typeof VaultVaultIdAutomationsRoute
-  '/vault/$vaultId/extensions': typeof VaultVaultIdExtensionsRoute
-  '/vault/$vaultId/settings': typeof VaultVaultIdSettingsRoute
-  '/chat-popup/$threadId': typeof ChatPopupThreadIdIndexRoute
-  '/vault/$vaultId': typeof VaultVaultIdIndexRoute
-  '/vault/$vaultId/thread/$threadId': typeof VaultVaultIdThreadThreadIdRoute
+	'/welcome': typeof WelcomeIndexRoute
+	'/vault/$vaultId/automations': typeof VaultVaultIdAutomationsRoute
+	'/vault/$vaultId/extensions': typeof VaultVaultIdExtensionsRoute
+	'/vault/$vaultId/settings': typeof VaultVaultIdSettingsRoute
+	'/chat-popup/$threadId': typeof ChatPopupThreadIdIndexRoute
+	'/vault/$vaultId': typeof VaultVaultIdIndexRoute
+	'/vault/$vaultId/thread/$threadId': typeof VaultVaultIdThreadThreadIdRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/vault/$vaultId': typeof VaultVaultIdRouteWithChildren
-  '/welcome/': typeof WelcomeIndexRoute
-  '/vault/$vaultId/automations': typeof VaultVaultIdAutomationsRoute
-  '/vault/$vaultId/extensions': typeof VaultVaultIdExtensionsRoute
-  '/vault/$vaultId/settings': typeof VaultVaultIdSettingsRoute
-  '/chat-popup/$threadId/': typeof ChatPopupThreadIdIndexRoute
-  '/vault/$vaultId/': typeof VaultVaultIdIndexRoute
-  '/vault/$vaultId/thread/$threadId': typeof VaultVaultIdThreadThreadIdRoute
+	__root__: typeof rootRouteImport
+	'/vault/$vaultId': typeof VaultVaultIdRouteWithChildren
+	'/welcome/': typeof WelcomeIndexRoute
+	'/vault/$vaultId/automations': typeof VaultVaultIdAutomationsRoute
+	'/vault/$vaultId/extensions': typeof VaultVaultIdExtensionsRoute
+	'/vault/$vaultId/settings': typeof VaultVaultIdSettingsRoute
+	'/chat-popup/$threadId/': typeof ChatPopupThreadIdIndexRoute
+	'/vault/$vaultId/': typeof VaultVaultIdIndexRoute
+	'/vault/$vaultId/thread/$threadId': typeof VaultVaultIdThreadThreadIdRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/vault/$vaultId'
-    | '/welcome/'
-    | '/vault/$vaultId/automations'
-    | '/vault/$vaultId/extensions'
-    | '/vault/$vaultId/settings'
-    | '/chat-popup/$threadId/'
-    | '/vault/$vaultId/'
-    | '/vault/$vaultId/thread/$threadId'
-  fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/welcome'
-    | '/vault/$vaultId/automations'
-    | '/vault/$vaultId/extensions'
-    | '/vault/$vaultId/settings'
-    | '/chat-popup/$threadId'
-    | '/vault/$vaultId'
-    | '/vault/$vaultId/thread/$threadId'
-  id:
-    | '__root__'
-    | '/vault/$vaultId'
-    | '/welcome/'
-    | '/vault/$vaultId/automations'
-    | '/vault/$vaultId/extensions'
-    | '/vault/$vaultId/settings'
-    | '/chat-popup/$threadId/'
-    | '/vault/$vaultId/'
-    | '/vault/$vaultId/thread/$threadId'
-  fileRoutesById: FileRoutesById
+	fileRoutesByFullPath: FileRoutesByFullPath
+	fullPaths:
+		| '/vault/$vaultId'
+		| '/welcome/'
+		| '/vault/$vaultId/automations'
+		| '/vault/$vaultId/extensions'
+		| '/vault/$vaultId/settings'
+		| '/chat-popup/$threadId/'
+		| '/vault/$vaultId/'
+		| '/vault/$vaultId/thread/$threadId'
+	fileRoutesByTo: FileRoutesByTo
+	to:
+		| '/welcome'
+		| '/vault/$vaultId/automations'
+		| '/vault/$vaultId/extensions'
+		| '/vault/$vaultId/settings'
+		| '/chat-popup/$threadId'
+		| '/vault/$vaultId'
+		| '/vault/$vaultId/thread/$threadId'
+	id:
+		| '__root__'
+		| '/vault/$vaultId'
+		| '/welcome/'
+		| '/vault/$vaultId/automations'
+		| '/vault/$vaultId/extensions'
+		| '/vault/$vaultId/settings'
+		| '/chat-popup/$threadId/'
+		| '/vault/$vaultId/'
+		| '/vault/$vaultId/thread/$threadId'
+	fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  VaultVaultIdRoute: typeof VaultVaultIdRouteWithChildren
-  WelcomeIndexRoute: typeof WelcomeIndexRoute
-  ChatPopupThreadIdIndexRoute: typeof ChatPopupThreadIdIndexRoute
+	VaultVaultIdRoute: typeof VaultVaultIdRouteWithChildren
+	WelcomeIndexRoute: typeof WelcomeIndexRoute
+	ChatPopupThreadIdIndexRoute: typeof ChatPopupThreadIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/welcome/': {
-      id: '/welcome/'
-      path: '/welcome'
-      fullPath: '/welcome/'
-      preLoaderRoute: typeof WelcomeIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/vault/$vaultId': {
-      id: '/vault/$vaultId'
-      path: '/vault/$vaultId'
-      fullPath: '/vault/$vaultId'
-      preLoaderRoute: typeof VaultVaultIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/vault/$vaultId/': {
-      id: '/vault/$vaultId/'
-      path: '/'
-      fullPath: '/vault/$vaultId/'
-      preLoaderRoute: typeof VaultVaultIdIndexRouteImport
-      parentRoute: typeof VaultVaultIdRoute
-    }
-    '/chat-popup/$threadId/': {
-      id: '/chat-popup/$threadId/'
-      path: '/chat-popup/$threadId'
-      fullPath: '/chat-popup/$threadId/'
-      preLoaderRoute: typeof ChatPopupThreadIdIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/vault/$vaultId/settings': {
-      id: '/vault/$vaultId/settings'
-      path: '/settings'
-      fullPath: '/vault/$vaultId/settings'
-      preLoaderRoute: typeof VaultVaultIdSettingsRouteImport
-      parentRoute: typeof VaultVaultIdRoute
-    }
-    '/vault/$vaultId/extensions': {
-      id: '/vault/$vaultId/extensions'
-      path: '/extensions'
-      fullPath: '/vault/$vaultId/extensions'
-      preLoaderRoute: typeof VaultVaultIdExtensionsRouteImport
-      parentRoute: typeof VaultVaultIdRoute
-    }
-    '/vault/$vaultId/automations': {
-      id: '/vault/$vaultId/automations'
-      path: '/automations'
-      fullPath: '/vault/$vaultId/automations'
-      preLoaderRoute: typeof VaultVaultIdAutomationsRouteImport
-      parentRoute: typeof VaultVaultIdRoute
-    }
-    '/vault/$vaultId/thread/$threadId': {
-      id: '/vault/$vaultId/thread/$threadId'
-      path: '/thread/$threadId'
-      fullPath: '/vault/$vaultId/thread/$threadId'
-      preLoaderRoute: typeof VaultVaultIdThreadThreadIdRouteImport
-      parentRoute: typeof VaultVaultIdRoute
-    }
-  }
+	interface FileRoutesByPath {
+		'/welcome/': {
+			id: '/welcome/'
+			path: '/welcome'
+			fullPath: '/welcome/'
+			preLoaderRoute: typeof WelcomeIndexRouteImport
+			parentRoute: typeof rootRouteImport
+		}
+		'/vault/$vaultId': {
+			id: '/vault/$vaultId'
+			path: '/vault/$vaultId'
+			fullPath: '/vault/$vaultId'
+			preLoaderRoute: typeof VaultVaultIdRouteImport
+			parentRoute: typeof rootRouteImport
+		}
+		'/vault/$vaultId/': {
+			id: '/vault/$vaultId/'
+			path: '/'
+			fullPath: '/vault/$vaultId/'
+			preLoaderRoute: typeof VaultVaultIdIndexRouteImport
+			parentRoute: typeof VaultVaultIdRoute
+		}
+		'/chat-popup/$threadId/': {
+			id: '/chat-popup/$threadId/'
+			path: '/chat-popup/$threadId'
+			fullPath: '/chat-popup/$threadId/'
+			preLoaderRoute: typeof ChatPopupThreadIdIndexRouteImport
+			parentRoute: typeof rootRouteImport
+		}
+		'/vault/$vaultId/settings': {
+			id: '/vault/$vaultId/settings'
+			path: '/settings'
+			fullPath: '/vault/$vaultId/settings'
+			preLoaderRoute: typeof VaultVaultIdSettingsRouteImport
+			parentRoute: typeof VaultVaultIdRoute
+		}
+		'/vault/$vaultId/extensions': {
+			id: '/vault/$vaultId/extensions'
+			path: '/extensions'
+			fullPath: '/vault/$vaultId/extensions'
+			preLoaderRoute: typeof VaultVaultIdExtensionsRouteImport
+			parentRoute: typeof VaultVaultIdRoute
+		}
+		'/vault/$vaultId/automations': {
+			id: '/vault/$vaultId/automations'
+			path: '/automations'
+			fullPath: '/vault/$vaultId/automations'
+			preLoaderRoute: typeof VaultVaultIdAutomationsRouteImport
+			parentRoute: typeof VaultVaultIdRoute
+		}
+		'/vault/$vaultId/thread/$threadId': {
+			id: '/vault/$vaultId/thread/$threadId'
+			path: '/thread/$threadId'
+			fullPath: '/vault/$vaultId/thread/$threadId'
+			preLoaderRoute: typeof VaultVaultIdThreadThreadIdRouteImport
+			parentRoute: typeof VaultVaultIdRoute
+		}
+	}
 }
 
 interface VaultVaultIdRouteChildren {
-  VaultVaultIdAutomationsRoute: typeof VaultVaultIdAutomationsRoute
-  VaultVaultIdExtensionsRoute: typeof VaultVaultIdExtensionsRoute
-  VaultVaultIdSettingsRoute: typeof VaultVaultIdSettingsRoute
-  VaultVaultIdIndexRoute: typeof VaultVaultIdIndexRoute
-  VaultVaultIdThreadThreadIdRoute: typeof VaultVaultIdThreadThreadIdRoute
+	VaultVaultIdAutomationsRoute: typeof VaultVaultIdAutomationsRoute
+	VaultVaultIdExtensionsRoute: typeof VaultVaultIdExtensionsRoute
+	VaultVaultIdSettingsRoute: typeof VaultVaultIdSettingsRoute
+	VaultVaultIdIndexRoute: typeof VaultVaultIdIndexRoute
+	VaultVaultIdThreadThreadIdRoute: typeof VaultVaultIdThreadThreadIdRoute
 }
 
 const VaultVaultIdRouteChildren: VaultVaultIdRouteChildren = {
-  VaultVaultIdAutomationsRoute: VaultVaultIdAutomationsRoute,
-  VaultVaultIdExtensionsRoute: VaultVaultIdExtensionsRoute,
-  VaultVaultIdSettingsRoute: VaultVaultIdSettingsRoute,
-  VaultVaultIdIndexRoute: VaultVaultIdIndexRoute,
-  VaultVaultIdThreadThreadIdRoute: VaultVaultIdThreadThreadIdRoute,
+	VaultVaultIdAutomationsRoute: VaultVaultIdAutomationsRoute,
+	VaultVaultIdExtensionsRoute: VaultVaultIdExtensionsRoute,
+	VaultVaultIdSettingsRoute: VaultVaultIdSettingsRoute,
+	VaultVaultIdIndexRoute: VaultVaultIdIndexRoute,
+	VaultVaultIdThreadThreadIdRoute: VaultVaultIdThreadThreadIdRoute,
 }
 
 const VaultVaultIdRouteWithChildren = VaultVaultIdRoute._addFileChildren(
-  VaultVaultIdRouteChildren,
+	VaultVaultIdRouteChildren
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  VaultVaultIdRoute: VaultVaultIdRouteWithChildren,
-  WelcomeIndexRoute: WelcomeIndexRoute,
-  ChatPopupThreadIdIndexRoute: ChatPopupThreadIdIndexRoute,
+	VaultVaultIdRoute: VaultVaultIdRouteWithChildren,
+	WelcomeIndexRoute: WelcomeIndexRoute,
+	ChatPopupThreadIdIndexRoute: ChatPopupThreadIdIndexRoute,
 }
 export const routeTree = rootRouteImport
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+	._addFileChildren(rootRouteChildren)
+	._addFileTypes<FileRouteTypes>()

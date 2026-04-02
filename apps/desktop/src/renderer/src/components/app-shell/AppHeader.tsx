@@ -8,15 +8,18 @@ import {
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 
-import { is } from '@renderer/lib/electron'
 import { useHeader } from '@renderer/contexts/HeaderContext'
+import { is } from '@renderer/lib/electron'
 
 interface AppHeaderProps {
 	title?: React.ReactNode
 	actions?: React.ReactNode[]
 }
 
-export function AppHeader({ title, actions = [] }: AppHeaderProps): React.JSX.Element {
+export function AppHeader({
+	title,
+	actions = [],
+}: AppHeaderProps): React.JSX.Element {
 	const { content } = useHeader()
 
 	// Merge prop actions with context actions
@@ -34,10 +37,20 @@ export function AppHeader({ title, actions = [] }: AppHeaderProps): React.JSX.El
 				<Button variant="ghost" size="icon" aria-label="Sidebar">
 					<HugeiconsIcon icon={SidebarLeftIcon} />
 				</Button>
-				<Button variant="ghost" size="icon" aria-label="Go Back" disabled>
+				<Button
+					variant="ghost"
+					size="icon"
+					aria-label="Go Back"
+					disabled
+				>
 					<HugeiconsIcon icon={ArrowLeft01Icon} />
 				</Button>
-				<Button variant="ghost" size="icon" aria-label="Go Next" disabled>
+				<Button
+					variant="ghost"
+					size="icon"
+					aria-label="Go Next"
+					disabled
+				>
 					<HugeiconsIcon icon={ArrowRight01Icon} />
 				</Button>
 			</div>
