@@ -1,7 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { ThreadPage } from './thread/$threadId'
+import { Chat } from '@renderer/components/chat/Chat'
 
 export const Route = createFileRoute('/vault/$vaultId/')({
-	component: ThreadPage,
+	component: NewThreadPage,
 })
+
+export function NewThreadPage() {
+	return <Chat />
+}

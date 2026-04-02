@@ -26,12 +26,17 @@ export function SidebarHeader() {
 					</Link>
 				</Button>
 				<Button
-					className={cn('w-full justify-start', 'bg-hover')}
+					className={cn('w-full justify-start')}
 					variant="pure"
 					size="lg"
 					asChild
 				>
-					<Link to="/vault/$vaultId/extensions" params={{ vaultId }}>
+					<Link
+						to="/vault/$vaultId/extensions"
+						params={{ vaultId }}
+						activeOptions={{ exact: true }}
+						activeProps={{ className: 'bg-hover' }}
+					>
 						<HugeiconsIcon
 							icon={DashboardSquare01Icon}
 							className="mr-1"
@@ -45,7 +50,12 @@ export function SidebarHeader() {
 					size="lg"
 					asChild
 				>
-					<Link to="/vault/$vaultId/automations" params={{ vaultId }}>
+					<Link
+						to="/vault/$vaultId/automations"
+						params={{ vaultId }}
+						activeOptions={{ exact: true }}
+						activeProps={{ className: 'bg-hover' }}
+					>
 						<HugeiconsIcon icon={Clock01Icon} className="mr-1" />
 						Automations
 					</Link>
