@@ -12,8 +12,8 @@ function VaultLayout() {
 			<AppHeader />
 			<div className="flex h-full w-full flex-1 flex-row overflow-hidden">
 				<AppSidebar />
-				<div className="h-full flex-1 overflow-auto py-1.5 pr-1.5">
-					<main className="bg-background h-full w-full rounded-md">
+				<div className="h-full flex-1 overflow-auto py-1 pr-1">
+					<main className="bg-background h-full w-full rounded-lg">
 						<Outlet />
 					</main>
 				</div>

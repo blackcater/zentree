@@ -53,7 +53,7 @@ function SortableThread({ thread, index }: Readonly<SortableThreadProps>) {
 }
 
 export function PinnedSection() {
-	const { width } = useAtomValue(sidebarAtom)
+	const sidebar = useAtomValue(sidebarAtom)
 	const pinnedThreads = useAtomValue(pinnedThreadsAtom)
 
 	if (pinnedThreads.length === 0) {
@@ -63,7 +63,7 @@ export function PinnedSection() {
 	return (
 		<section
 			className="flex flex-col overflow-hidden px-2 pb-4"
-			style={{ width: `${width}px` }}
+			style={{ width: `${sidebar.width}px` }}
 		>
 			<DragDropProvider>
 				<DragOverlay>

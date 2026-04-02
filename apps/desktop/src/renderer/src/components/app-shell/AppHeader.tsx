@@ -12,27 +12,27 @@ import { is } from '@renderer/lib/electron'
 
 export function AppHeader(): React.JSX.Element {
 	return (
-		<div className={'z-1 flex h-10 w-full flex-row overflow-hidden'}>
+		<div className="absolute inset-x-0 top-0 z-1 flex h-10 w-full flex-row overflow-hidden py-1 pr-2">
 			<div
 				className={cn(
 					'flex h-full flex-row items-center',
 					is.macOS && 'pl-20'
 				)}
 			>
-				<Button variant="pure" size="icon-xl" aria-label="Sidebar">
+				<Button variant="ghost" size="icon" aria-label="Sidebar">
 					<HugeiconsIcon icon={SidebarLeftIcon} />
 				</Button>
 				<Button
-					variant="pure"
-					size="icon-xl"
+					variant="ghost"
+					size="icon"
 					aria-label="Go Back"
 					disabled
 				>
 					<HugeiconsIcon icon={ArrowLeft01Icon} />
 				</Button>
 				<Button
-					variant="pure"
-					size="icon-xl"
+					variant="ghost"
+					size="icon"
 					aria-label="Go Next"
 					disabled
 				>
@@ -41,7 +41,7 @@ export function AppHeader(): React.JSX.Element {
 			</div>
 			<div className="app-region-drag flex h-full flex-1 flex-row"></div>
 			<div className="flex h-full flex-row items-center">
-				<Button variant="pure" size="icon-xl" aria-label="Right Panel">
+				<Button variant="ghost" size="icon" aria-label="Right Panel">
 					<HugeiconsIcon icon={LayoutRightIcon} />
 				</Button>
 			</div>
