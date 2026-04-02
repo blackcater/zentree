@@ -25,7 +25,7 @@ function SortableThread({ thread, index }: Readonly<SortableThreadProps>) {
 		setPinnedThreadIds((prev) => prev.filter((threadId) => threadId !== id))
 	}
 
-	function handleDelete(id: string) {
+	function handleArchive(id: string) {
 		// TODO: Archive thread
 	}
 
@@ -42,7 +42,7 @@ function SortableThread({ thread, index }: Readonly<SortableThreadProps>) {
 				thread={thread}
 				isPinned
 				onTogglePin={handleTogglePin}
-				onDelete={handleDelete}
+				onArchive={handleArchive}
 			/>
 		</div>
 	)

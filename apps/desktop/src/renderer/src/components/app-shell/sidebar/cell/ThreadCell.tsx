@@ -15,7 +15,7 @@ export interface ThreadCellProps {
 	thread: Thread
 	isPinned?: boolean
 	onTogglePin?: (id: string) => void
-	onDelete?: (id: string) => void
+	onArchive?: (id: string) => void
 }
 
 export function ThreadCell({
@@ -23,7 +23,7 @@ export function ThreadCell({
 	thread,
 	isPinned = false,
 	onTogglePin,
-	onDelete,
+	onArchive,
 }: Readonly<ThreadCellProps>) {
 	const [isConfirming, setIsConfirming] = useState(false)
 
@@ -81,7 +81,7 @@ export function ThreadCell({
 							size="xs"
 							onClick={(e) => {
 								e.stopPropagation()
-								onDelete?.(thread.id)
+								onArchive?.(thread.id)
 								setIsConfirming(false)
 							}}
 						>

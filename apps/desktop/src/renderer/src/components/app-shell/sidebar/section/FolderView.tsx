@@ -38,7 +38,7 @@ function SortableFolder({
 		type: 'folder',
 	})
 
-	function handleDelete(_threadId: string) {
+	function handleArchive(_threadId: string) {
 		// TODO: Archive thread
 	}
 
@@ -70,7 +70,7 @@ function SortableFolder({
 							key={thread.id}
 							thread={thread}
 							onTogglePin={onTogglePin}
-							onDelete={handleDelete}
+							onArchive={handleArchive}
 						/>
 					))}
 				</div>
