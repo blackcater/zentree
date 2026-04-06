@@ -2,7 +2,11 @@ import React from 'react'
 
 import { Switch } from '@acme-ai/ui/foundation'
 import { Label } from '@acme-ai/ui/foundation'
-import { SettingsContent, SettingsSection } from '@renderer/components/settings/SettingsContent'
+
+import {
+	SettingsContent,
+	SettingsSection,
+} from '@renderer/components/settings/SettingsContent'
 
 export function GeneralPage(): React.JSX.Element {
 	// TODO: These will be connected to actual settings store via IPC
@@ -18,10 +22,13 @@ export function GeneralPage(): React.JSX.Element {
 			>
 				<div className="flex items-center justify-between">
 					<div className="space-y-0.5">
-						<Label htmlFor="prevent-sleep" className="text-sm font-medium">
+						<Label
+							htmlFor="prevent-sleep"
+							className="text-sm font-medium"
+						>
 							Prevent Sleep During Chat
 						</Label>
-						<p className="text-xs text-muted-foreground">
+						<p className="text-muted-foreground text-xs">
 							Prevents system sleep while in chat
 						</p>
 					</div>
@@ -34,10 +41,13 @@ export function GeneralPage(): React.JSX.Element {
 
 				<div className="flex items-center justify-between">
 					<div className="space-y-0.5">
-						<Label htmlFor="confirm-quit" className="text-sm font-medium">
+						<Label
+							htmlFor="confirm-quit"
+							className="text-sm font-medium"
+						>
 							Confirm Before Quit
 						</Label>
-						<p className="text-xs text-muted-foreground">
+						<p className="text-muted-foreground text-xs">
 							Shows confirmation dialog when quitting
 						</p>
 					</div>
@@ -50,11 +60,15 @@ export function GeneralPage(): React.JSX.Element {
 
 				<div className="flex items-center justify-between">
 					<div className="space-y-0.5">
-						<Label htmlFor="open-links" className="text-sm font-medium">
+						<Label
+							htmlFor="open-links"
+							className="text-sm font-medium"
+						>
 							Open Links In-App
 						</Label>
-						<p className="text-xs text-muted-foreground">
-							Opens links in built-in browser instead of default browser
+						<p className="text-muted-foreground text-xs">
+							Opens links in built-in browser instead of default
+							browser
 						</p>
 					</div>
 					<Switch

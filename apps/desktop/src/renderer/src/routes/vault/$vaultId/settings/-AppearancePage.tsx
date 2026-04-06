@@ -8,7 +8,11 @@ import {
 	SelectValue,
 } from '@acme-ai/ui/foundation'
 import { Label } from '@acme-ai/ui/foundation'
-import { SettingsContent, SettingsSection } from '@renderer/components/settings/SettingsContent'
+
+import {
+	SettingsContent,
+	SettingsSection,
+} from '@renderer/components/settings/SettingsContent'
 
 export function AppearancePage(): React.JSX.Element {
 	const [theme, setTheme] = React.useState('system')
@@ -39,7 +43,10 @@ export function AppearancePage(): React.JSX.Element {
 				</div>
 
 				<div className="flex items-center justify-between">
-					<Label htmlFor="font-family" className="text-sm font-medium">
+					<Label
+						htmlFor="font-family"
+						className="text-sm font-medium"
+					>
 						Font Family
 					</Label>
 					<Select value={fontFamily} onValueChange={setFontFamily}>

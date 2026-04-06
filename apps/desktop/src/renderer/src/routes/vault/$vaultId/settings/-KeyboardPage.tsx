@@ -1,4 +1,7 @@
-import { SettingsContent, SettingsSection } from '@renderer/components/settings/SettingsContent'
+import {
+	SettingsContent,
+	SettingsSection,
+} from '@renderer/components/settings/SettingsContent'
 
 export function KeyboardPage(): React.JSX.Element {
 	return (
@@ -7,7 +10,7 @@ export function KeyboardPage(): React.JSX.Element {
 				title="Keyboard Shortcuts"
 				description="View and customize keyboard shortcuts"
 			>
-				<div className="text-sm text-muted-foreground">
+				<div className="text-muted-foreground text-sm">
 					Keyboard shortcuts configuration coming soon.
 				</div>
 			</SettingsSection>

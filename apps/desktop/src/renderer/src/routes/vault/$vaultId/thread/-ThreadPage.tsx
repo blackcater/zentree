@@ -1,8 +1,3 @@
-import { useEffect } from 'react'
-
-import { useAtom } from 'jotai'
-
-import { panelAtom } from '@renderer/atoms/panel'
 import { Chat } from '@renderer/components/chat/Chat'
 
 import { Route } from './$threadId'

@@ -9,7 +9,11 @@ import {
 	SelectValue,
 } from '@acme-ai/ui/foundation'
 import { Label } from '@acme-ai/ui/foundation'
-import { SettingsContent, SettingsSection } from '@renderer/components/settings/SettingsContent'
+
+import {
+	SettingsContent,
+	SettingsSection,
+} from '@renderer/components/settings/SettingsContent'
 
 export function NotificationsPage(): React.JSX.Element {
 	const [sound, setSound] = React.useState('ping')
@@ -43,7 +47,9 @@ export function NotificationsPage(): React.JSX.Element {
 						<Label htmlFor="volume" className="text-sm font-medium">
 							Volume
 						</Label>
-						<span className="text-xs text-muted-foreground">{volume[0]}%</span>
+						<span className="text-muted-foreground text-xs">
+							{volume[0]}%
+						</span>
 					</div>
 					<Slider
 						id="volume"
