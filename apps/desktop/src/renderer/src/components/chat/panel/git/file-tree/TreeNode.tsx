@@ -1,0 +1,109 @@
+// apps/desktop/src/renderer/src/components/chat/panel/git/file-tree/TreeNode.tsx
+import { memo, useCallback } from 'react'
+import type { FileNode } from '../types'
+import { FileIcon } from './FileIcon'
+import { TreeNodeIndent } from './TreeNodeIndent'
+
+interface TreeNodeProps {
+	node: FileNode
+	isExpanded?: boolean
+	isLoading?: boolean
+	onToggle?: (path: string) => void
+	onClick?: (node: FileNode, rect: DOMRect) => void
+}
+
+export const TreeNode = memo(function TreeNode({
+	node,
+	isExpanded = false,
+	isLoading = false,
+	onToggle,
+	onClick,
+}: TreeNodeProps) {
+	const handleClick = useCallback(
+		(e: React.MouseEvent) => {
+			if (node.type === 'directory') {
+				onToggle?.(node.path)
+			} else {
+				const rect = e.currentTarget.getBoundingClientRect()
+				onClick?.(node, rect)
+			}
+		},
+		[node, onToggle, onClick]
+	)
+
+	const handleKeyDown = useCallback(
+		(e: React.KeyboardEvent) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault()
+				handleClick(e as unknown as React.MouseEvent)
+			}
+		},
+		[handleClick]
+	)
+
+	return (
+		<div
+			className="flex items-center gap-1 py-1 px-2 cursor-pointer hover:bg-accent rounded-sm"
+			onClick={handleClick}
+			onKeyDown={handleKeyDown}
+			role="treeitem"
+			aria-expanded={node.type === 'directory' ? isExpanded : undefined}
+			tabIndex={0}
+		>
+			<TreeNodeIndent depth={node.depth} />
+
+			{/* Expand/Collapse Icon */}
+			{node.type === 'directory' && (
+				<span className="w-4 h-4 flex items-center justify-center text-muted-foreground">
+					{isLoading ? (
+						<SpinnerIcon />
+					) : (
+						<ChevronIcon isExpanded={isExpanded} />
+					)}
+				</span>
+			)}
+
+			{/* File/Folder Icon */}
+			<FileIcon node={node} className="text-foreground" />
+
+			{/* Node Name */}
+			<span className="truncate text-sm text-foreground">{node.name}</span>
+		</div>
+	)
+})
+
+function ChevronIcon({ isExpanded }: { isExpanded: boolean }) {
+	return (
+		<svg
+			width="16"
+			height="16"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			style={{
+				transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+				transition: 'transform 150ms',
+			}}
+		>
+			<polyline points="9 18 15 12 9 6" />
+		</svg>
+	)
+}
+
+function SpinnerIcon() {
+	return (
+		<svg
+			width="16"
+			height="16"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			className="animate-spin"
+		>
+			<circle cx="12" cy="12" r="10" opacity="0.25" />
+			<path d="M12 2a10 10 0 0 1 10 10" />
+		</svg>
+	)
+}
