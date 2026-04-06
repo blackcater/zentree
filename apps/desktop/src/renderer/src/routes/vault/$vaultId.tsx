@@ -24,7 +24,6 @@ function VaultLayout() {
 		onLayoutChanged: onSidebarLayoutChanged,
 	} = useDefaultLayout({
 		id: 'layout-sidebar',
-		panelIds: ['sidebar'],
 		storage: localStorage,
 	})
 

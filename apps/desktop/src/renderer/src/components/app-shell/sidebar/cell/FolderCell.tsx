@@ -56,8 +56,6 @@ export function FolderCell({
 }: Readonly<FolderCellProps>) {
 	const [isMenuOpen, setIsMenuOpen] = useState(false)
 
-	const showActions = isMenuOpen
-
 	return (
 		<Cell
 			className={cn(
@@ -94,14 +92,7 @@ export function FolderCell({
 			<CellName>{title}</CellName>
 
 			{/* 操作区 */}
-			<CellActions
-				className={cn(
-					'transition-opacity duration-150',
-					showActions
-						? 'opacity-100'
-						: 'opacity-0 group-hover:opacity-100'
-				)}
-			>
+			<CellActions>
 				<DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
 					<DropdownMenuTrigger
 						asChild
