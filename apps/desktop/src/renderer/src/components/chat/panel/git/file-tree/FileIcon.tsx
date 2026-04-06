@@ -25,7 +25,18 @@ export function FileIcon({ node, theme = 'dark', className }: FileIconProps) {
 		setIconUrl(url)
 	}, [node, theme, themesReady])
 
+	// Use JetBrains icon for directories if available
 	if (node.type === 'directory') {
+		if (iconUrl) {
+			return (
+				<img
+					src={iconUrl}
+					alt={node.name}
+					className={className}
+					style={{ width: '16px', height: '16px' }}
+				/>
+			)
+		}
 		return <FolderIcon className={className} />
 	}
 
