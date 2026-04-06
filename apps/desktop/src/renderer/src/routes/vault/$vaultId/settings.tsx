@@ -1,7 +1,14 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { Outlet } from '@tanstack/react-router'
 
-import { SettingsPage } from './-SettingsPage'
+import { SettingsNav } from '@renderer/components/settings/SettingsNav'
 
-export const Route = createFileRoute('/vault/$vaultId/settings')({
-	component: SettingsPage,
-})
+export function SettingsLayout(): React.JSX.Element {
+	return (
+		<div className="flex h-full w-full">
+			<SettingsNav />
+			<div className="flex-1 overflow-hidden">
+				<Outlet />
+			</div>
+		</div>
+	)
+}
