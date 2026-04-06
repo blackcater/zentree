@@ -1,10 +1,9 @@
-import { useRef } from 'react'
 import {
 	Panel,
 	Group,
 	Separator,
+	useDefaultLayout,
 	type PanelSize,
-	type PanelImperativeHandle,
 } from 'react-resizable-panels'
 
 import { createFileRoute, Outlet } from '@tanstack/react-router'
@@ -19,46 +18,43 @@ export const Route = createFileRoute('/vault/$vaultId')({
 })
 
 function VaultLayout() {
-	const panelRef = useRef<PanelImperativeHandle | null>(null)
 	const [sidebar, setSidebar] = useAtom(sidebarAtom)
+	const {
+		defaultLayout: sidebarLayout,
+		onLayoutChanged: onSidebarLayoutChanged,
+	} = useDefaultLayout({
+		id: 'layout-sidebar',
+		panelIds: ['sidebar'],
+		storage: localStorage,
+	})
 
 	function handleSidebarToggle() {
-		if (!panelRef.current) return
-
-		if (panelRef.current.isCollapsed()) {
-			panelRef.current.expand()
-			setSidebar((prev) => ({ ...prev, collapsed: false }))
-		} else {
-			panelRef.current.collapse()
-			setSidebar((prev) => ({ ...prev, collapsed: true }))
-		}
+		setSidebar((prev) => ({ ...prev, collapsed: !prev.collapsed }))
 	}
 
-	function handleResize(
-		panelSize: PanelSize,
-		id: string | number | undefined
-	) {
-		if (id !== 'sidebar') return
-
-		setSidebar((prev) => ({ ...prev, width: panelSize.inPixels }))
+	function handleSidebarResize(size: PanelSize) {
+		setSidebar((prev) => ({ ...prev, width: size.inPixels }))
 	}
 
 	return (
 		<HeaderProvider>
 			<div className="relative z-1 flex h-full w-full flex-1 flex-col">
 				<AppHeader onSidebarToggle={handleSidebarToggle} />
-				<Group orientation="horizontal">
-					<Panel
-						panelRef={panelRef}
-						id="sidebar"
-						minSize={250}
-						maxSize={350}
-						defaultSize={sidebar.width}
-						collapsible
-						onResize={handleResize}
-					>
-						<AppSidebar />
-					</Panel>
+				<Group
+					orientation="horizontal"
+					defaultLayout={sidebarLayout}
+					onLayoutChanged={onSidebarLayoutChanged}
+				>
+					{!sidebar.collapsed && (
+						<Panel
+							id="sidebar"
+							minSize={250}
+							maxSize={350}
+							onResize={handleSidebarResize}
+						>
+							<AppSidebar />
+						</Panel>
+					)}
 
 					<Separator className="hover:bg-primary/20 my-4 w-0.5 bg-transparent transition-colors" />
 
