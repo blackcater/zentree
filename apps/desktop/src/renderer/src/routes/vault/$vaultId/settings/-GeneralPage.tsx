@@ -1,3 +1,5 @@
+import React from 'react'
+
 import { Switch } from '@acme-ai/ui/foundation'
 import { Label } from '@acme-ai/ui/foundation'
 import { SettingsContent, SettingsSection } from '@renderer/components/settings/SettingsContent'
