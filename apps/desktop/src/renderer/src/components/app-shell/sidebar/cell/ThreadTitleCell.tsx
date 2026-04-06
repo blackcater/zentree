@@ -25,8 +25,8 @@ import { useAtom, useAtomValue } from 'jotai'
 import {
 	isAllProjectsCollapsedAtom,
 	isAllProjectsExpandedAtom,
-} from '@renderer/atoms/project'
-import { sidebarAtom } from '@renderer/atoms/sidebar'
+} from '@renderer/stores'
+import { sidebarAtom } from '@renderer/stores'
 import type {
 	OrganizeMode,
 	ShowMode,

@@ -8,7 +8,7 @@ import {
 
 import { useAtom } from 'jotai'
 
-import { panelAtom } from '@renderer/atoms'
+import { panelAtom } from '@renderer/stores'
 
 import { PanelRouter } from './panel'
 

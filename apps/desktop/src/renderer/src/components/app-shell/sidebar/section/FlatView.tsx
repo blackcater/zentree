@@ -1,6 +1,6 @@
 import { useAtomValue } from 'jotai'
 
-import { threadsAtom } from '@renderer/atoms'
+import { threadsAtom } from '@renderer/stores'
 
 import { ThreadCell } from '../cell/ThreadCell'
 

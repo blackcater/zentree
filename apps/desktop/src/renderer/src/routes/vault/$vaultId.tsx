@@ -9,7 +9,7 @@ import {
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { useAtom } from 'jotai'
 
-import { sidebarAtom } from '@renderer/atoms/sidebar'
+import { sidebarAtom } from '@renderer/stores'
 import { AppHeader, AppSidebar } from '@renderer/components/app-shell'
 
 export const Route = createFileRoute('/vault/$vaultId')({
