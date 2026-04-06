@@ -1,4 +1,5 @@
 import { cn } from '@acme-ai/ui'
+import { Button } from '@acme-ai/ui/foundation'
 import {
 	Settings01Icon,
 	PaintBrush01Icon,
@@ -9,9 +10,10 @@ import {
 	FolderGitIcon,
 	ArchiveIcon,
 	InformationCircleIcon,
+	ArrowLeft01Icon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Link, useMatchRoute } from '@tanstack/react-router'
+import { Link, useLocation, useRouter } from '@tanstack/react-router'
 
 import { is } from '@renderer/lib/electron'
 
@@ -100,18 +102,29 @@ const STATIC_GROUPS: NavGroup[] = [
 ]
 
 export function SettingsNav() {
-	const matchRoute = useMatchRoute()
+	const location = useLocation()
+	const router = useRouter()
+	const currentPath = location.pathname
 
 	return (
-		<nav className="flex w-56 shrink-0 flex-col p-3">
-			<h1
-				className={cn(
-					'mb-4 px-3 text-lg font-semibold',
-					is.macOS && 'mt-10'
-				)}
-			>
-				Settings
-			</h1>
+		<nav
+			className={cn(
+				'flex w-56 shrink-0 flex-col p-3',
+				is.macOS && 'pt-10'
+			)}
+		>
+			<div>
+				<Button
+					className="mb-2"
+					variant="pure"
+					onClick={() => router.history.back()}
+				>
+					<HugeiconsIcon icon={ArrowLeft01Icon} className="size-4" />
+					<span>Back</span>
+				</Button>
+			</div>
+
+			<h1 className="mb-4 px-3 text-lg font-semibold">Settings</h1>
 
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				{STATIC_GROUPS.map((group, groupIndex) => (
@@ -124,15 +137,15 @@ export function SettingsNav() {
 						</h2>
 						<div className="flex flex-col">
 							{group.items.map((item) => {
-								const isActive = !!matchRoute({ to: item.id })
+								const isActive = currentPath === item.id
 								return (
 									<Link
 										key={item.id}
 										to={item.id}
 										className={`flex h-8 items-center gap-3 rounded-md px-3 text-xs transition-colors ${
 											isActive
-												? 'bg-accent text-accent-foreground'
-												: 'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground'
+												? 'bg-hover text-accent-foreground'
+												: 'text-muted-foreground hover:text-accent-foreground'
 										} `}
 									>
 										{item.icon}

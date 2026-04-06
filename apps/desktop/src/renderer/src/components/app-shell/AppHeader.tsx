@@ -7,20 +7,17 @@ import {
 	SidebarLeftIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import { useRouter } from '@tanstack/react-router'
 
 import { is } from '@renderer/lib/electron'
 
 interface AppHeaderProps {
 	onSidebarToggle?: () => void
-	onGoPrevious?: () => void
-	onGoNext?: () => void
 }
 
-export function AppHeader({
-	onSidebarToggle,
-	onGoPrevious,
-	onGoNext,
-}: Readonly<AppHeaderProps>) {
+export function AppHeader({ onSidebarToggle }: Readonly<AppHeaderProps>) {
+	const router = useRouter()
+
 	return (
 		<div className="absolute inset-x-0 top-0 z-1 flex h-10 w-full flex-row overflow-hidden py-1 pr-2">
 			{/* Left section - navigation buttons */}
@@ -42,8 +39,8 @@ export function AppHeader({
 					variant="ghost"
 					size="icon"
 					aria-label="Go Back"
-					disabled
-					onClick={onGoPrevious}
+					disabled={router.history.canGoBack()}
+					onClick={() => router.history.back()}
 				>
 					<HugeiconsIcon icon={ArrowLeft01Icon} />
 				</Button>
@@ -51,8 +48,10 @@ export function AppHeader({
 					variant="ghost"
 					size="icon"
 					aria-label="Go Next"
-					disabled
-					onClick={onGoNext}
+					disabled={
+						window.history.state?.index >= window.history.length - 1
+					}
+					onClick={() => router.history.forward()}
 				>
 					<HugeiconsIcon icon={ArrowRight01Icon} />
 				</Button>
