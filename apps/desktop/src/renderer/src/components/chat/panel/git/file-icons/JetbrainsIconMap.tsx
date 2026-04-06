@@ -15,28 +15,42 @@ interface IconTheme {
 
 // Pre-load icon URLs using Vite's glob import
 // This gives us actual URLs like /assets/icons/file/typeScript_dark.svg?v=xxx
-const darkFileIcons = import.meta.glob('@renderer/assets/icons/file/*_dark.svg', {
-	as: 'url',
-	eager: true,
-}) as Record<string, string>
+const darkFileIcons = import.meta.glob(
+	'@renderer/assets/icons/file/*_dark.svg',
+	{
+		as: 'url',
+		eager: true,
+	}
+) as Record<string, string>
 
-const lightFileIcons = import.meta.glob('@renderer/assets/icons/file/*_light.svg', {
-	as: 'url',
-	eager: true,
-}) as Record<string, string>
+const lightFileIcons = import.meta.glob(
+	'@renderer/assets/icons/file/*_light.svg',
+	{
+		as: 'url',
+		eager: true,
+	}
+) as Record<string, string>
 
-const darkFolderIcons = import.meta.glob('@renderer/assets/icons/folder/*_dark.svg', {
-	as: 'url',
-	eager: true,
-}) as Record<string, string>
+const darkFolderIcons = import.meta.glob(
+	'@renderer/assets/icons/folder/*_dark.svg',
+	{
+		as: 'url',
+		eager: true,
+	}
+) as Record<string, string>
 
-const lightFolderIcons = import.meta.glob('@renderer/assets/icons/folder/*_light.svg', {
-	as: 'url',
-	eager: true,
-}) as Record<string, string>
+const lightFolderIcons = import.meta.glob(
+	'@renderer/assets/icons/folder/*_light.svg',
+	{
+		as: 'url',
+		eager: true,
+	}
+) as Record<string, string>
 
 // Build reverse lookup: iconKey (e.g., "fileTypeScript_dark") -> URL
-function buildReverseMap(icons: Record<string, string>): Record<string, string> {
+function buildReverseMap(
+	icons: Record<string, string>
+): Record<string, string> {
 	const result: Record<string, string> = {}
 	for (const [fullPath, url] of Object.entries(icons)) {
 		// fullPath looks like: /src/renderer/src/assets/icons/file/typeScript_dark.svg
@@ -96,7 +110,8 @@ export function getIconUrl(
 
 	// Look up the URL using the icon key
 	const fileIconUrls = theme === 'dark' ? darkFileIconUrls : lightFileIconUrls
-	const folderIconUrls = theme === 'dark' ? darkFolderIconUrls : lightFolderIconUrls
+	const folderIconUrls =
+		theme === 'dark' ? darkFolderIconUrls : lightFolderIconUrls
 
 	const iconUrls = node.type === 'directory' ? folderIconUrls : fileIconUrls
 	return iconUrls[iconKey] ?? null
