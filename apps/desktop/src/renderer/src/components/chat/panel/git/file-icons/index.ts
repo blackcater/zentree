@@ -1,1 +1,1 @@
-export { loadIconThemes, getIconPath, getFullIconUrl } from './JetbrainsIconMap'
+export { loadIconThemes, getIconUrl } from './JetbrainsIconMap'

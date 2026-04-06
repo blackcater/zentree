@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 
-import { getFullIconUrl, getIconPath, loadIconThemes } from '../file-icons'
+import { getIconUrl, loadIconThemes } from '../file-icons'
 import type { FileNodeData } from '../types'
 
 interface FileIconProps {
@@ -9,36 +9,33 @@ interface FileIconProps {
 	className?: string
 }
 
-// Load themes once at module level
-loadIconThemes()
-
 export function FileIcon({ node, theme = 'dark', className }: FileIconProps) {
-	const iconPath = useMemo(() => {
-		// Use hugeicons for directory expand/collapse icons
-		if (node.type === 'directory') {
-			return null // We'll use lucide for folder icons
-		}
+	const [iconUrl, setIconUrl] = useState<string | null>(null)
+	const [themesReady, setThemesReady] = useState(false)
 
-		// Import dynamically to get the correct path
-		const relativePath = getIconPath(node, theme)
-		if (!relativePath) return null
+	useEffect(() => {
+		loadIconThemes().then(() => {
+			setThemesReady(true)
+		})
+	}, [])
 
-		return getFullIconUrl(relativePath, theme)
-	}, [node, theme])
+	useEffect(() => {
+		if (!themesReady) return
+		const url = getIconUrl(node, theme)
+		setIconUrl(url)
+	}, [node, theme, themesReady])
 
 	if (node.type === 'directory') {
-		// Use hugeicons folder icon
 		return <FolderIcon className={className} />
 	}
 
-	if (!iconPath) {
-		// Fallback to generic file icon
+	if (!iconUrl) {
 		return <GenericFileIcon className={className} />
 	}
 
 	return (
 		<img
-			src={iconPath}
+			src={iconUrl}
 			alt={node.name}
 			className={className}
 			style={{ width: '16px', height: '16px' }}
@@ -47,7 +44,6 @@ export function FileIcon({ node, theme = 'dark', className }: FileIconProps) {
 }
 
 function FolderIcon({ className }: { className?: string | undefined }) {
-	// Use hugeicons/FolderIcon
 	return (
 		<svg
 			className={className}
@@ -64,7 +60,6 @@ function FolderIcon({ className }: { className?: string | undefined }) {
 }
 
 function GenericFileIcon({ className }: { className?: string | undefined }) {
-	// Fallback file icon using hugeicons
 	return (
 		<svg
 			className={className}
