@@ -1,4 +1,3 @@
-// apps/desktop/src/renderer/src/components/chat/panel/git/file-tree/TreeNodeIndent.tsx
 import { memo } from 'react'
 
 interface TreeNodeIndentProps {

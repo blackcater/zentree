@@ -1,4 +1,3 @@
-// apps/desktop/src/renderer/src/components/chat/panel/git/file-icons/JetbrainsIconMap.tsx
 import type { FileNodeData } from '../types'
 
 interface IconDefinition {

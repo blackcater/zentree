@@ -1,5 +1,5 @@
-// apps/desktop/src/renderer/src/components/chat/panel/git/file-tree/TreeNode.tsx
 import { memo, useCallback } from 'react'
+
 import type { FileNode } from '../types'
 import { FileIcon } from './FileIcon'
 import { TreeNodeIndent } from './TreeNodeIndent'
@@ -43,7 +43,7 @@ export const TreeNode = memo(function TreeNode({
 
 	return (
 		<div
-			className="flex items-center gap-1 py-1 px-2 cursor-pointer hover:bg-accent rounded-sm"
+			className="hover:bg-accent flex cursor-pointer items-center gap-1 rounded-sm px-2 py-1"
 			onClick={handleClick}
 			onKeyDown={handleKeyDown}
 			role="treeitem"
@@ -54,7 +54,7 @@ export const TreeNode = memo(function TreeNode({
 
 			{/* Expand/Collapse Icon */}
 			{node.type === 'directory' && (
-				<span className="w-4 h-4 flex items-center justify-center text-muted-foreground">
+				<span className="text-muted-foreground flex h-4 w-4 items-center justify-center">
 					{isLoading ? (
 						<SpinnerIcon />
 					) : (
@@ -67,7 +67,9 @@ export const TreeNode = memo(function TreeNode({
 			<FileIcon node={node} className="text-foreground" />
 
 			{/* Node Name */}
-			<span className="truncate text-sm text-foreground">{node.name}</span>
+			<span className="text-foreground truncate text-sm">
+				{node.name}
+			</span>
 		</div>
 	)
 })

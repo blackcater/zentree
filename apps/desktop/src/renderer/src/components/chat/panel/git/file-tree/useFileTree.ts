@@ -1,5 +1,5 @@
-// apps/desktop/src/renderer/src/components/chat/panel/git/file-tree/useFileTree.ts
 import { useCallback, useEffect, useMemo, useState } from 'react'
+
 import { useFileOperations } from '../hooks'
 import type { FileNode, FileNodeData, UseFileTreeOptions } from '../types'
 
@@ -22,46 +22,61 @@ export function useFileTree(options: UseFileTreeOptions) {
 		loadChildren(rootPath)
 	}, [rootPath])
 
-	const loadChildren = useCallback(async (dirPath: string) => {
-		if (loadedChildren[dirPath] || loadingPaths.has(dirPath)) return
+	const loadChildren = useCallback(
+		async (dirPath: string) => {
+			if (loadedChildren[dirPath] || loadingPaths.has(dirPath)) return
 
-		setLoadingPaths((prev) => new Set(prev).add(dirPath))
-		setError(null)
+			setLoadingPaths((prev) => new Set(prev).add(dirPath))
+			setError(null)
 
-		try {
-			const children = await listFiles(dirPath)
-			setLoadedChildren((prev) => ({ ...prev, [dirPath]: children }))
-		} catch (err) {
-			setError(String(err))
-		} finally {
-			setLoadingPaths((prev) => {
+			try {
+				const children = await listFiles(dirPath)
+				setLoadedChildren((prev) => ({ ...prev, [dirPath]: children }))
+			} catch (err) {
+				setError(String(err))
+			} finally {
+				setLoadingPaths((prev) => {
+					const next = new Set(prev)
+					next.delete(dirPath)
+					return next
+				})
+			}
+		},
+		[listFiles, loadedChildren, loadingPaths]
+	)
+
+	const toggleExpand = useCallback(
+		(path: string) => {
+			setExpandedPaths((prev) => {
 				const next = new Set(prev)
-				next.delete(dirPath)
+				if (next.has(path)) {
+					next.delete(path)
+				} else {
+					next.add(path)
+					// Trigger lazy load when expanding
+					loadChildren(path)
+				}
 				return next
 			})
-		}
-	}, [listFiles, loadedChildren, loadingPaths])
+		},
+		[loadChildren]
+	)
 
-	const toggleExpand = useCallback((path: string) => {
-		setExpandedPaths((prev) => {
-			const next = new Set(prev)
-			if (next.has(path)) {
-				next.delete(path)
-			} else {
-				next.add(path)
-				// Trigger lazy load when expanding
-				loadChildren(path)
-			}
-			return next
-		})
-	}, [loadChildren])
+	const isExpanded = useCallback(
+		(path: string) => expandedPaths.has(path),
+		[expandedPaths]
+	)
+	const isLoading = useCallback(
+		(path: string) => loadingPaths.has(path),
+		[loadingPaths]
+	)
 
-	const isExpanded = useCallback((path: string) => expandedPaths.has(path), [expandedPaths])
-	const isLoading = useCallback((path: string) => loadingPaths.has(path), [loadingPaths])
-
-	const getChildren = useCallback((path: string): FileNodeData[] => {
-		return loadedChildren[path] ?? []
-	}, [loadedChildren])
+	const getChildren = useCallback(
+		(path: string): FileNodeData[] => {
+			return loadedChildren[path] ?? []
+		},
+		[loadedChildren]
+	)
 
 	// Build tree nodes for rendering
 	const rootNodes = useMemo((): FileNode[] => {

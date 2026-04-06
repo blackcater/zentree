@@ -1,8 +1,8 @@
-// apps/desktop/src/renderer/src/components/chat/panel/git/file-tree/FileTreeView.tsx
 import { useCallback, useMemo } from 'react'
+
 import type { FileNode } from '../types'
-import { useFileTree } from './useFileTree'
 import { TreeNode } from './TreeNode'
+import { useFileTree } from './useFileTree'
 
 interface FileTreeViewProps {
 	rootPath: string
@@ -23,7 +23,9 @@ export function FileTreeView({ rootPath, onFileClick }: FileTreeViewProps) {
 
 	// Flatten the tree for rendering (depth-first traversal)
 	const flattenedNodes = useMemo(() => {
-		const result: Array<FileNode & { isExpanded: boolean; isLoading: boolean }> = []
+		const result: Array<
+			FileNode & { isExpanded: boolean; isLoading: boolean }
+		> = []
 
 		function traverse(nodes: FileNode[], depth: number) {
 			for (const node of nodes) {
@@ -38,7 +40,11 @@ export function FileTreeView({ rootPath, onFileClick }: FileTreeViewProps) {
 				if (expanded && node.type === 'directory') {
 					const children = getChildren(node.path)
 					traverse(
-						children.map((child) => ({ ...child, id: child.path, depth: depth + 1 })),
+						children.map((child) => ({
+							...child,
+							id: child.path,
+							depth: depth + 1,
+						})),
 						depth + 1
 					)
 				}
@@ -47,7 +53,14 @@ export function FileTreeView({ rootPath, onFileClick }: FileTreeViewProps) {
 
 		traverse(rootNodes, 0)
 		return result
-	}, [rootNodes, expandedPaths, loadingPaths, isExpanded, isLoading, getChildren])
+	}, [
+		rootNodes,
+		expandedPaths,
+		loadingPaths,
+		isExpanded,
+		isLoading,
+		getChildren,
+	])
 
 	const handleToggle = useCallback(
 		(path: string) => {
@@ -58,7 +71,7 @@ export function FileTreeView({ rootPath, onFileClick }: FileTreeViewProps) {
 
 	if (error) {
 		return (
-			<div className="p-4 text-destructive text-sm">
+			<div className="text-destructive p-4 text-sm">
 				Error loading files: {error}
 			</div>
 		)
@@ -66,7 +79,7 @@ export function FileTreeView({ rootPath, onFileClick }: FileTreeViewProps) {
 
 	if (!rootNodes.length) {
 		return (
-			<div className="p-4 text-muted-foreground text-sm">
+			<div className="text-muted-foreground p-4 text-sm">
 				Loading files...
 			</div>
 		)
