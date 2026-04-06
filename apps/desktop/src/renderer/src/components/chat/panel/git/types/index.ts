@@ -26,4 +26,5 @@ export interface SearchFilesResponse {
 		path: string
 		type: 'file' | 'directory'
 	}>
+	error?: string
 }
