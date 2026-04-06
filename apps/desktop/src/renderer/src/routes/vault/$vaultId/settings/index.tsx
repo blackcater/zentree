@@ -4,8 +4,9 @@ export const Route = createFileRoute('/vault/$vaultId/settings/')({
 	component: SettingsIndex,
 })
 
-function SettingsIndex(): React.JSX.Element {
+function SettingsIndex() {
 	const { vaultId } = useParams({ from: '/vault/$vaultId' })
+
 	return (
 		<Navigate
 			to="/vault/$vaultId/settings/general"

@@ -9,9 +9,7 @@ interface PanelRouterProps {
 	type?: PanelType
 }
 
-export function PanelRouter({
-	type,
-}: Readonly<PanelRouterProps>): React.JSX.Element | null {
+export function PanelRouter({ type }: Readonly<PanelRouterProps>) {
 	switch (type) {
 		case 'git':
 			return <GitPanel />

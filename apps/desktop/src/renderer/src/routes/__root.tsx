@@ -6,7 +6,7 @@ export const Route = createRootRoute({
 	component: RootComponent,
 })
 
-function RootComponent(): React.JSX.Element {
+function RootComponent() {
 	return (
 		<AppShell>
 			<Outlet />

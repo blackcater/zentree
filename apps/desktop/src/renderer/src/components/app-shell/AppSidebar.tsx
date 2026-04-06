@@ -8,7 +8,7 @@ import { ProjectSection } from './sidebar/ProjectSection'
 import { SidebarFooter } from './sidebar/SidebarFooter'
 import { SidebarHeader } from './sidebar/SidebarHeader'
 
-export function AppSidebar(): React.JSX.Element {
+export function AppSidebar() {
 	const sidebar = useAtomValue(sidebarAtom)
 
 	if (sidebar.collapsed) {

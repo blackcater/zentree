@@ -96,7 +96,7 @@ const STATIC_GROUPS: NavGroup[] = [
 	},
 ]
 
-export function SettingsNav(): React.JSX.Element {
+export function SettingsNav() {
 	const matchRoute = useMatchRoute()
 
 	return (

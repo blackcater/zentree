@@ -20,7 +20,7 @@ export function AppHeader({
 	onSidebarToggle,
 	onGoPrevious,
 	onGoNext,
-}: Readonly<AppHeaderProps>): React.JSX.Element {
+}: Readonly<AppHeaderProps>) {
 	return (
 		<div className="absolute inset-x-0 top-0 z-1 flex h-10 w-full flex-row overflow-hidden py-1 pr-2">
 			{/* Left section - navigation buttons */}
