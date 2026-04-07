@@ -8,8 +8,9 @@ import {
 
 import { useAtom } from 'jotai'
 
-import { PanelRouter } from '@renderer/components/chat/panel'
 import { panelAtom } from '@renderer/stores'
+
+import { PanelRouter } from '../panel'
 
 export interface ChatProps {
 	threadId?: string
