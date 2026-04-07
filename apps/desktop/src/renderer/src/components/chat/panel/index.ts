@@ -1,5 +1,0 @@
-export { BrowserPanel } from './BrowserPanel'
-export { GitPanel } from './GitPanel'
-export { FilesPanel } from './git'
-export { PanelRouter } from './PanelRouter'
-export { PreviewPanel } from './PreviewPanel'
