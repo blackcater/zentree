@@ -4,9 +4,16 @@ import { RpcError } from '../RpcError'
 import type { RpcServer, RpcRouter, Rpc, IWindowRegistry } from '../types'
 import { ElectronRpcRouter } from './ElectronRpcRouter'
 
+interface RegisteredHandler {
+	handler: Rpc.HandlerFn
+	options?: Rpc.HandleOptions | undefined
+}
+
 export class ElectronRpcServer implements RpcServer {
 	readonly #registry: IWindowRegistry
 	readonly #ipcMain: IpcMain
+	readonly #handlers = new Map<string, RegisteredHandler>()
+	readonly #ipcListenerRegistered = new Set<string>()
 
 	constructor(registry: IWindowRegistry, ipcMain: IpcMain) {
 		this.#registry = registry
@@ -30,16 +37,58 @@ export class ElectronRpcServer implements RpcServer {
 		maybeHandler?: Rpc.HandlerFn
 	): void {
 		const eventPath = this.#normalizeEvent(event)
-		const handlerFn =
-			typeof optionsOrHandler === 'function'
-				? optionsOrHandler
-				: maybeHandler!
+		const isOptions = typeof optionsOrHandler !== 'function'
+		const handlerFn = isOptions ? maybeHandler! : optionsOrHandler
+		const options = isOptions
+			? (optionsOrHandler as Rpc.HandleOptions)
+			: undefined
 
-		// Listen on invoke:xxx channel for client calls
+		this.#handlers.set(eventPath, { handler: handlerFn, options })
+
+		// Register IPC listener only once per event path
+		if (!this.#ipcListenerRegistered.has(eventPath)) {
+			this.#ipcListenerRegistered.add(eventPath)
+			this.#setupIpcListener(eventPath)
+		}
+	}
+
+	async #invokeHandler(eventPath: string, args: unknown[]): Promise<unknown> {
+		const registered = this.#handlers.get(eventPath)
+		if (!registered) {
+			throw new RpcError(
+				RpcError.NOT_FOUND,
+				`Handler not found: ${eventPath}`
+			)
+		}
+
+		const { handler, options } = registered
+
+		// Schema validation
+		if (options?.schema) {
+			const schema = options.schema
+			const result = await schema['~standard'].validate(args)
+
+			if ('issues' in result) {
+				throw new RpcError(
+					RpcError.INVALID_PARAMS,
+					'Schema validation failed',
+					result.issues
+				)
+			}
+
+			// Use validated args
+			args = Array.isArray(result.value) ? result.value : [result.value]
+		}
+
+		return handler(...args)
+	}
+
+	#setupIpcListener(eventPath: string): void {
 		this.#ipcMain.on(
 			`rpc:invoke:${eventPath}`,
 			async (e, payload: { invokeId: string; args: unknown[] }) => {
 				const { invokeId, args } = payload
+
 				// Get clientId by WebContents
 				const clientId = this.#registry.getClientIdByWebContents(
 					e.sender
@@ -64,11 +113,13 @@ export class ElectronRpcServer implements RpcServer {
 				}
 
 				try {
-					const result = await handlerFn(...args)
+					const result = await this.#invokeHandler(eventPath, args)
 
 					// Handle async iterator (streaming)
 					if (result && typeof result === 'object') {
-						const asyncIterator = result[Symbol.asyncIterator]
+						const asyncIterator = (
+							result as Record<symbol, unknown>
+						)[Symbol.asyncIterator]
 						if (typeof asyncIterator === 'function') {
 							const iterator = asyncIterator.call(result)
 							const streamChannel = `rpc:stream:${eventPath}:${invokeId}`
