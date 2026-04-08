@@ -1,3 +1,4 @@
 export { PanelHeader } from './PanelHeader'
 export { SearchBar } from './SearchBar'
-// TabBar will be added in next task
+export { TabBar } from './TabBar'
+export type { Tab } from './TabBar'
