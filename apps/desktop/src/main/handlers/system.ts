@@ -1,5 +1,5 @@
 import { Container } from '@/shared/di'
-import { ElectronRpcServer } from '@/shared/rpc'
+import { ElectronRpcServer } from '@/shared/rpc/electron'
 
 import { store } from '../lib/store'
 import { WindowManager } from '../services'

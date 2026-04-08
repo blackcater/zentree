@@ -1,7 +1,9 @@
 import { memo, useCallback } from 'react'
 
+import { File } from '@acme-ai/ui/icons/file'
+import { Folder } from '@acme-ai/ui/icons/folder'
+
 import type { FileNode } from '../types'
-import { FileIcon } from './FileIcon'
 import { TreeNodeIndent } from './TreeNodeIndent'
 
 interface TreeNodeProps {
@@ -64,7 +66,11 @@ export const TreeNode = memo(function TreeNode({
 			)}
 
 			{/* File/Folder Icon */}
-			<FileIcon node={node} className="text-foreground" />
+			{node.type === 'directory' ? (
+				<Folder name={node.name} dark className="text-foreground" />
+			) : (
+				<File name={node.name} dark className="text-foreground" />
+			)}
 
 			{/* Node Name */}
 			<span className="text-foreground truncate text-sm">

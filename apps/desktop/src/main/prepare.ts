@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
 
 import { Container } from '@/shared/di'
-import { ElectronRpcServer } from '@/shared/rpc'
+import { ElectronRpcServer } from '@/shared/rpc/electron'
 
 import { detectSystemLocale, i18n, initI18n } from './lib/i18n'
 import { AppStore } from './lib/store'

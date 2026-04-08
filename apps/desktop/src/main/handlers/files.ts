@@ -2,7 +2,7 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 
 import { Container } from '@/shared/di'
-import { ElectronRpcServer, type RpcSchema } from '@/shared/rpc'
+import { ElectronRpcServer } from '@/shared/rpc/electron'
 
 import type { FileNode, SearchResult } from './files.schema'
 
@@ -111,9 +111,3 @@ export class FilesHandler {
 		)
 	}
 }
-
-// ---------------------------------------------------------------------------
-// RPC schema type - derived from class, used by preload to build typed facade
-// ---------------------------------------------------------------------------
-
-export type FilesRpcSchema = RpcSchema<FilesHandler>
