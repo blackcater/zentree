@@ -107,7 +107,6 @@ src/features/
 | Constants files        | camelCase   | `constants.ts`       |
 | Configuration files    | kebab-case  | `tsconfig.json`      |
 | Test files             | Same as src | `ThreadCell.test.tsx`|
-| Style files            | Co-located  | `ThreadCell.module.css` |
 
 ### Why
 
@@ -249,7 +248,7 @@ Configure in `tsconfig.json`:
 {
   "compilerOptions": {
     "paths": {
-      "@/*": ["./apps/desktop/src/renderer/src/*"],
+      "@renderer/*": ["./apps/desktop/src/renderer/src/*"],
       "@main/*": ["./apps/desktop/src/main/*"],
       "@shared/*": ["./apps/desktop/src/shared/*"]
     }
@@ -265,14 +264,15 @@ Configure in `tsconfig.json`:
 
 - **One component per file**
 - **Props type**: `<ComponentName>Props`
-- **Colocate styles**: `ComponentName.module.css`
+- **Styling**: Use **TailwindCSS** utility classes; avoid raw CSS or CSS modules
+- **Icons**: Use **hugeicon** (`@hugeicons/react`); do not use other icon libraries
 - **Export components** at the bottom of the file or via `index.ts`
 - **Prefer composition** over prop drilling
 - **Keep components small** — extract logic into hooks
 
 ### Why
 
-Small, focused components are easier to test, understand, and reuse. Colocating styles makes maintenance easier. Props types provide IDE support and catch errors early.
+TailwindCSS provides consistent styling and reduces context-switching between files. hugeicon is the designated icon library for this project, ensuring visual consistency. Small, focused components are easier to test, understand, and reuse.
 
 ### Component File Structure
 
@@ -282,12 +282,7 @@ Small, focused components are easier to test, understand, and reuse. Colocating 
 import { useCallback } from 'react';
 import type { ThreadCellProps } from './ThreadCell.types';
 import { useThreadStore } from '@/stores/atoms';
-import styles from './ThreadCell.module.css';
-
-// Internal helper component (if needed)
-function ThreadCellTitle({ title }: { title: string }) {
-  return <span className={styles.title}>{title}</span>;
-}
+import { ThreadIcon } from '@hugeicons/react';
 
 export function ThreadCell({ threadId, onClick }: ThreadCellProps) {
   const thread = useThreadStore((s) => s.threads[threadId]);
@@ -297,8 +292,12 @@ export function ThreadCell({ threadId, onClick }: ThreadCellProps) {
   }, [threadId, onClick]);
 
   return (
-    <div className={styles.container} onClick={handleClick}>
-      <ThreadCellTitle title={thread.title} />
+    <div
+      className="flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer hover:bg-neutral-100"
+      onClick={handleClick}
+    >
+      <ThreadIcon className="w-4 h-4 text-neutral-500" />
+      <span className="font-medium">{thread.title}</span>
     </div>
   );
 }
@@ -318,25 +317,24 @@ export interface ThreadCellProps {
 }
 ```
 
-### Colocated Styles
+### TailwindCSS Usage
 
-```css
-/* ThreadCell.module.css */
-.container {
-  display: flex;
-  align-items: center;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-}
+```tsx
+// ✅ Correct: Using TailwindCSS utility classes
+<div className="flex items-center justify-between px-4 py-2 bg-white rounded-lg shadow-sm">
 
-.container:hover {
-  background-color: var(--color-hover);
-}
+// ❌ Incorrect: Using CSS modules or raw CSS
+<div className={styles.container}>
+```
 
-.title {
-  font-weight: 500;
-}
+### hugeicon Usage
+
+```tsx
+// ✅ Correct: Using hugeicon
+import { ThreadIcon, FolderIcon, SettingsIcon } from '@hugeicons/react';
+
+// ❌ Incorrect: Using other icon libraries
+import { FiSettings } from 'react-icons/fi';
 ```
 
 ### Anti-Patterns
@@ -687,7 +685,7 @@ Format: `<type>(<scope>): <subject>` in English
 | `chore`   | Maintenance task                   |
 | `docs`    | Documentation change               |
 | `test`    | Adding or updating tests           |
-| `style`   | Formatting, no code change         |
+| `style`   | Formatting, no code change          |
 | `perf`    | Performance improvement             |
 
 ### Scope
@@ -733,7 +731,7 @@ chore(deps): upgrade jotai to 2.6.0
 | File Names | PascalCase for components, camelCase for utilities |
 | Naming | camelCase variables, PascalCase types/components |
 | TypeScript | Strict mode, prefer type over interface for public APIs |
-| React | One component per file, colocate styles |
+| React | One component per file, TailwindCSS for styling, hugeicon for icons |
 | Electron | Strict process isolation, typed IPC channels |
 | State | Atoms for global state, selectors for derived state |
 | Error Handling | Use Result type, never swallow errors |
