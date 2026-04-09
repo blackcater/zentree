@@ -77,16 +77,15 @@ export const OutlineTree = memo(function OutlineTree({
 						</div>
 
 						{/* Render children if expanded */}
-						{hasChildren &&
-							expandedNodes.has(node.id) && (
-								<OutlineTree
-									nodes={node.children ?? []}
-									expandedNodes={expandedNodes}
-									onToggle={onToggle}
-									onNodeClick={onNodeClick}
-									depth={depth + 1}
-								/>
-							)}
+						{hasChildren && expandedNodes.has(node.id) && (
+							<OutlineTree
+								nodes={node.children ?? []}
+								expandedNodes={expandedNodes}
+								onToggle={onToggle}
+								onNodeClick={onNodeClick}
+								depth={depth + 1}
+							/>
+						)}
 					</Fragment>
 				)
 			})}

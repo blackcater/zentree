@@ -35,7 +35,7 @@ export function ProjectFilesPanelHeader({
 					type="button"
 					onClick={onRefresh}
 					disabled={loading}
-					className="text-muted-foreground hover:text-foreground/75 disabled:opacity-50 disabled:cursor-not-allowed p-0.5 rounded"
+					className="text-muted-foreground hover:text-foreground/75 rounded p-0.5 disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					<HugeiconsIcon
 						icon={RefreshIcon}
@@ -43,7 +43,11 @@ export function ProjectFilesPanelHeader({
 					/>
 				</button>
 			</PanelHeader>
-			<SearchBar value="" onChange={onSearch} placeholder="Search files..." />
+			<SearchBar
+				value=""
+				onChange={onSearch}
+				placeholder="Search files..."
+			/>
 		</div>
 	)
 }

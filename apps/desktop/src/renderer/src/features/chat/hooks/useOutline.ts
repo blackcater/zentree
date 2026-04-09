@@ -64,15 +64,16 @@ function buildOutlineTree(messages: UIMessage[]): OutlineNode[] {
 					? content
 					: Array.isArray(content)
 						? content
-							.map((c) => {
-								const item = c as { text?: string }
-								return 'text' in item ? item.text || '' : ''
-							})
-							.join('')
+								.map((c) => {
+									const item = c as { text?: string }
+									return 'text' in item ? item.text || '' : ''
+								})
+								.join('')
 						: ''
 
 			// Extract first meaningful response
-			const label = text.split('\n')[0].slice(0, 50) || 'Assistant response'
+			const label =
+				text.split('\n')[0].slice(0, 50) || 'Assistant response'
 
 			const node: OutlineNode = {
 				id: message.id,

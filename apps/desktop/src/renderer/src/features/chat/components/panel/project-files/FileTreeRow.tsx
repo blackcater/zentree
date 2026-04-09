@@ -214,12 +214,12 @@ export function FileTreeRow({
 	if (isCreating) {
 		return (
 			<div
-				className="flex items-center gap-1 h-7 px-2 hover:bg-black/5 dark:hover:bg-white/5"
+				className="flex h-7 items-center gap-1 px-2 hover:bg-black/5 dark:hover:bg-white/5"
 				style={{ paddingLeft }}
 			>
 				<HugeiconsIcon
 					icon={creatingType === 'file' ? File01Icon : Folder01Icon}
-					className="size-3.5 text-muted-foreground shrink-0"
+					className="text-muted-foreground size-3.5 shrink-0"
 				/>
 				<form onSubmit={handleCreateSubmit} className="flex-1">
 					<input
@@ -228,12 +228,14 @@ export function FileTreeRow({
 						onChange={(e) => setCreatingName(e.target.value)}
 						onKeyDown={(e) => {
 							if (e.key === 'Escape') {
-								handleCreateCancel(e as unknown as React.MouseEvent)
+								handleCreateCancel(
+									e as unknown as React.MouseEvent
+								)
 							}
 						}}
 						onClick={(e) => e.stopPropagation()}
 						placeholder={`New ${creatingType} name...`}
-						className="w-full bg-transparent border-none outline-none text-xs"
+						className="w-full border-none bg-transparent text-xs outline-none"
 						autoFocus
 					/>
 				</form>
@@ -251,7 +253,7 @@ export function FileTreeRow({
 	return (
 		<div
 			className={cn(
-				'group flex items-center gap-1 h-7 px-2 cursor-pointer',
+				'group flex h-7 cursor-pointer items-center gap-1 px-2',
 				'hover:bg-black/5 dark:hover:bg-white/5',
 				hovered && 'bg-black/5 dark:bg-white/5'
 			)}
@@ -262,12 +264,12 @@ export function FileTreeRow({
 			onMouseLeave={() => setHovered(false)}
 		>
 			{/* Expand/Collapse Chevron */}
-			<div className="shrink-0 w-3.5">
+			<div className="w-3.5 shrink-0">
 				{isDirectory && (
 					<HugeiconsIcon
 						icon={ArrowRight01Icon}
 						className={cn(
-							'size-3.5 text-muted-foreground transition-transform duration-150',
+							'text-muted-foreground size-3.5 transition-transform duration-150',
 							isExpanded && 'rotate-90'
 						)}
 					/>
@@ -300,19 +302,23 @@ export function FileTreeRow({
 						onChange={(e) => setRenameValue(e.target.value)}
 						onKeyDown={(e) => {
 							if (e.key === 'Escape') {
-								handleRenameCancel(e as unknown as React.MouseEvent)
+								handleRenameCancel(
+									e as unknown as React.MouseEvent
+								)
 							}
 						}}
 						onClick={(e) => e.stopPropagation()}
-						className="w-full bg-transparent border border-input rounded px-1 text-xs outline-none"
+						className="border-input w-full rounded border bg-transparent px-1 text-xs outline-none"
 						autoFocus
 					/>
 				</form>
 			) : (
 				<span
 					className={cn(
-						'text-xs truncate flex-1',
-						isDirectory ? 'text-foreground font-medium' : 'text-muted-foreground'
+						'flex-1 truncate text-xs',
+						isDirectory
+							? 'text-foreground font-medium'
+							: 'text-muted-foreground'
 					)}
 				>
 					{node.name}
@@ -327,8 +333,15 @@ export function FileTreeRow({
 				)}
 			>
 				<DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-					<DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-						<Button variant="ghost" size="icon-sm" className="size-5">
+					<DropdownMenuTrigger
+						asChild
+						onClick={(e) => e.stopPropagation()}
+					>
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							className="size-5"
+						>
 							<MoreHorizontalIcon className="size-3.5" />
 						</Button>
 					</DropdownMenuTrigger>

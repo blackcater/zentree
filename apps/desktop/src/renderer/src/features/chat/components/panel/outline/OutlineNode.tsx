@@ -46,7 +46,7 @@ function ChevronIcon({ isExpanded }: { isExpanded: boolean }) {
 	return (
 		<HugeiconsIcon
 			icon={ArrowRight01Icon}
-			className="h-4 w-4 text-muted-foreground"
+			className="text-muted-foreground h-4 w-4"
 			style={{
 				transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
 				transition: 'transform 150ms',

@@ -170,7 +170,11 @@ export class BrowserHandler {
 		`)
 	}
 
-	async fillElement(id: string, selector: string, value: string): Promise<void> {
+	async fillElement(
+		id: string,
+		selector: string,
+		value: string
+	): Promise<void> {
 		const instance = this.#instances.get(id)
 		if (!instance) return
 
@@ -214,9 +218,7 @@ export class BrowserHandler {
 		const router = server.router('browser')
 		const handler = new BrowserHandler()
 
-		router.handle('create', (url, options) =>
-			handler.create(url, options)
-		)
+		router.handle('create', (url, options) => handler.create(url, options))
 		router.handle('destroy', (id) => handler.destroy(id))
 		router.handle('list', () => handler.list())
 		router.handle('navigate', (id, url) => handler.navigate(id, url))

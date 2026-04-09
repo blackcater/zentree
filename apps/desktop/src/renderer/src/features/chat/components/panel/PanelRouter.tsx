@@ -1,20 +1,29 @@
-import type { UIMessage } from '../../hooks/useOutline'
 import type { PanelType } from '@renderer/types/panel'
 
-import { BrowserWindowManagerPanel } from './browser/BrowserWindowManagerPanel'
-import { GitPanel } from './git/GitPanel'
+import type { UIMessage } from '../../hooks/useOutline'
 import { PreviewPanel } from './PreviewPanel'
+import { BrowserWindowManagerPanel } from './browser/BrowserWindowManagerPanel'
 import { FilesPanel } from './files'
+import { GitPanel } from './git/GitPanel'
 import { OutlinePanel } from './outline/OutlinePanel'
 import { ProjectFilesPanel } from './project-files/ProjectFilesPanel'
 
 interface PanelRouterProps {
 	type?: PanelType
-	messages?: Array<{ id: string; role: string; content: unknown; tool_calls?: unknown[] }>
+	messages?: Array<{
+		id: string
+		role: string
+		content: unknown
+		tool_calls?: unknown[]
+	}>
 	onNavigateToMessage?: (messageId: string) => void
 }
 
-export function PanelRouter({ type, messages, onNavigateToMessage }: Readonly<PanelRouterProps>) {
+export function PanelRouter({
+	type,
+	messages,
+	onNavigateToMessage,
+}: Readonly<PanelRouterProps>) {
 	switch (type) {
 		case 'git':
 			return <GitPanel />
@@ -29,7 +38,9 @@ export function PanelRouter({ type, messages, onNavigateToMessage }: Readonly<Pa
 				return (
 					<OutlinePanel
 						messages={messages as UIMessage[]}
-						onNavigate={(node) => onNavigateToMessage?.(node.messageId)}
+						onNavigate={(node) =>
+							onNavigateToMessage?.(node.messageId)
+						}
 					/>
 				)
 			}

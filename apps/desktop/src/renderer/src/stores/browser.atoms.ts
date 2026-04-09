@@ -72,15 +72,18 @@ export const updateBrowserInstanceAtom = atom(
 /**
  * Remove browser instance - write-only atom
  */
-export const removeBrowserInstanceAtom = atom(null, (get, set, instanceId: string) => {
-	const map = get(browserInstancesMapAtom)
-	const newMap = new Map(map)
-	newMap.delete(instanceId)
-	set(browserInstancesMapAtom, newMap)
+export const removeBrowserInstanceAtom = atom(
+	null,
+	(get, set, instanceId: string) => {
+		const map = get(browserInstancesMapAtom)
+		const newMap = new Map(map)
+		newMap.delete(instanceId)
+		set(browserInstancesMapAtom, newMap)
 
-	// Clear active id if removed instance was active
-	const activeId = get(activeBrowserInstanceIdAtom)
-	if (activeId === instanceId) {
-		set(activeBrowserInstanceIdAtom, null)
+		// Clear active id if removed instance was active
+		const activeId = get(activeBrowserInstanceIdAtom)
+		if (activeId === instanceId) {
+			set(activeBrowserInstanceIdAtom, null)
+		}
 	}
-})
+)

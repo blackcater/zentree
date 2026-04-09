@@ -3,10 +3,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom } from 'jotai'
 
 import { currentProjectPathAtom } from '@renderer/stores/git.atoms'
-import type { FileNode, FileOperationCallbacks } from './types'
+
 import { FileTreeRow } from './FileTreeRow'
 import { InlineCreateInput } from './InlineCreateInput'
 import { ProjectFilesPanelHeader } from './ProjectFilesPanelHeader'
+import type { FileNode, FileOperationCallbacks } from './types'
 
 // ============================================================================
 // Utility: Build tree from flat file list
@@ -79,7 +80,9 @@ export function ProjectFilesPanel() {
 	const [creating, setCreating] = useState<CreatingState | null>(null)
 	const [totalFileCount, setTotalFileCount] = useState(0)
 
-	const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+	const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+		undefined
+	)
 
 	// --------------------------------------------------------------------------
 	// Load files from project path
@@ -139,7 +142,10 @@ export function ProjectFilesPanel() {
 
 		searchDebounceRef.current = setTimeout(async () => {
 			try {
-				const result = await window.api.files.search(searchQuery, projectPath)
+				const result = await window.api.files.search(
+					searchQuery,
+					projectPath
+				)
 				// Auto-expand all directories containing matching results
 				const pathsToExpand = new Set<string>()
 				for (const r of result.results) {
@@ -279,7 +285,7 @@ export function ProjectFilesPanel() {
 
 			<div className="flex-1 overflow-auto">
 				{error && (
-					<div className="p-3 text-xs text-destructive">{error}</div>
+					<div className="text-destructive p-3 text-xs">{error}</div>
 				)}
 
 				{!projectPath && (
