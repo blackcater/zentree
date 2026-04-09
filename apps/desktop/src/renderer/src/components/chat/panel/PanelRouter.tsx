@@ -1,6 +1,6 @@
 import type { PanelType } from '@renderer/types/panel'
 
-import type { UIMessage } from '../../../hooks/chat/useOutline'
+import type { UIMessage } from '@renderer/types/session'
 import { BrowserWindowManagerPanel } from './browser/BrowserWindowManagerPanel'
 import { GitPanel } from './git/GitPanel'
 import { OutlinePanel } from './outline/OutlinePanel'
