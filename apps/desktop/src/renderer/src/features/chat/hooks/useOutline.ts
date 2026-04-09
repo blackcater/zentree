@@ -84,6 +84,7 @@ function buildOutlineTree(messages: UIMessage[]): OutlineNode[] {
 
 			// Check for tool calls in the message
 			if (message.tool_calls && Array.isArray(message.tool_calls)) {
+				let toolCallIndex = 0
 				for (const toolCall of message.tool_calls) {
 					const toolName =
 						typeof toolCall === 'string'
@@ -93,7 +94,7 @@ function buildOutlineTree(messages: UIMessage[]): OutlineNode[] {
 								: 'unknown'
 
 					node.children!.push({
-						id: `tool-${message.id}-${toolName}`,
+						id: `tool-${message.id}-${toolCallIndex++}`,
 						type: 'tool_call',
 						label: getToolName(toolName),
 						messageId: message.id,
