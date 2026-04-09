@@ -20,8 +20,12 @@ export function ProjectFilesPanelHeader({
 	return (
 		<div className="flex flex-col">
 			<PanelHeader
-				icon={FolderOpenIcon}
-				iconClass="text-teal-600/70"
+				iconNode={
+					<HugeiconsIcon
+						icon={FolderOpenIcon}
+						className="h-3 w-3 shrink-0 text-teal-600/70"
+					/>
+				}
 				label="Project Files"
 			>
 				<span className="text-muted-foreground text-[10px] font-medium">

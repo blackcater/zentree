@@ -79,7 +79,7 @@ export function ProjectFilesPanel() {
 	const [creating, setCreating] = useState<CreatingState | null>(null)
 	const [totalFileCount, setTotalFileCount] = useState(0)
 
-	const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>()
+	const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
 	// --------------------------------------------------------------------------
 	// Load files from project path
