@@ -6,7 +6,7 @@ export type { Tab } from './shared/TabBar'
 
 // Panel exports
 export { BrowserPanel } from './BrowserPanel'
-export { GitPanel } from './GitPanel'
+export { GitPanel } from './git'
 export { PanelRouter } from './PanelRouter'
 export { PreviewPanel } from './PreviewPanel'
 
