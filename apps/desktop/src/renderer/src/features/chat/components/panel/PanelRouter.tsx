@@ -6,6 +6,7 @@ import { GitPanel } from './git/GitPanel'
 import { PreviewPanel } from './PreviewPanel'
 import { FilesPanel } from './files'
 import { OutlinePanel } from './outline/OutlinePanel'
+import { ProjectFilesPanel } from './project-files/ProjectFilesPanel'
 
 interface PanelRouterProps {
 	type?: PanelType
@@ -38,12 +39,7 @@ export function PanelRouter({ type, messages, onNavigateToMessage }: Readonly<Pa
 				</div>
 			)
 		case 'projectFiles':
-			// TODO: Replace with ProjectFilesPanel
-			return (
-				<div className="text-muted-foreground p-4 text-xs">
-					Project Files Panel (TBD)
-				</div>
-			)
+			return <ProjectFilesPanel />
 		default:
 			return null
 	}
