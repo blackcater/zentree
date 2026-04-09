@@ -1,30 +1,5 @@
 import { useMemo } from 'react'
 
-/**
- * Message type for UI rendering - includes tool_calls support
- * This extends the basic Message type with additional fields needed for outline
- */
-export interface UIMessage {
-	id: string
-	role: 'user' | 'assistant' | 'system' | 'tool'
-	content: string | unknown[]
-	timestamp?: number
-	isStreaming?: boolean
-	attachments?: unknown[]
-	tool_calls?: Array<{ id?: string; name?: string; [key: string]: unknown }>
-}
-
-export type OutlineNodeType = 'user' | 'assistant' | 'tool_call' | 'tool_result'
-
-export interface OutlineNode {
-	id: string
-	type: OutlineNodeType
-	label: string
-	icon?: string
-	messageId: string
-	children?: OutlineNode[]
-}
-
 function getToolName(toolName: string): string {
 	// Extract readable tool name from tool call
 	const parts = toolName.split('_')
