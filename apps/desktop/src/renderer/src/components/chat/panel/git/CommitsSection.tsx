@@ -1,7 +1,7 @@
 import { Time01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 
-import { useGitStatus } from '../../../../hooks/chat/useGitStatus'
+import { useGitStatus } from '@renderer/hooks/chat/useGitStatus'
 
 export function CommitsSection() {
 	const { log } = useGitStatus()
