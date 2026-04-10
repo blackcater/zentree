@@ -6,9 +6,9 @@ import {
 	type PanelSize,
 } from 'react-resizable-panels'
 
-import { useChatPanel } from '@renderer/hooks'
-
+import { ChatPanel } from '@renderer/components/chat'
 import { PanelRouter } from '@renderer/components/chat/panel'
+import { useChatPanel } from '@renderer/hooks'
 
 export interface ChatPageProps {
 	threadId?: string
@@ -32,7 +32,7 @@ export function ChatPage({ threadId }: Readonly<ChatPageProps>) {
 			onLayoutChanged={onLayoutChanged}
 		>
 			<Panel id="thread" className="bg-background rounded-lg">
-				New Thread ({threadId || 'no threadId'})
+				<ChatPanel />
 			</Panel>
 
 			<Separator className="hover:bg-primary/20 mx-px my-3 w-0.5 transition-colors" />
