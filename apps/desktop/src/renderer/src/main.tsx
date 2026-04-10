@@ -14,7 +14,7 @@ const router = createRouter()
 async function bootstrap() {
 	// Get stored locale from main process via RPC
 	try {
-		const storedLocale = await window.api.store.getLocale()
+		const storedLocale = await window.api.app.getLocale()
 		await initRendererI18n(storedLocale || 'en')
 	} catch (err) {
 		console.error('Error getting locale:', err)

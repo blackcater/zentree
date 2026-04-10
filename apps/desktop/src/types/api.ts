@@ -4,11 +4,25 @@
  * Handlers must implement their corresponding API interface.
  */
 
+import type { RpcClient } from '@/shared/rpc'
+
 export interface AppInfo {
   releaseVersion: string
   releaseChannel: string
   electron: boolean
   platform: string
+}
+
+/**
+ * Combined API interface representing the full api object exposed to renderer.
+ */
+export interface API {
+  files: API.FilesAPI
+  git: API.GitAPI
+  browser: API.BrowserAPI
+  window: API.WindowAPI
+  app: API.AppAPI
+  rpc: RpcClient
 }
 
 export namespace API {

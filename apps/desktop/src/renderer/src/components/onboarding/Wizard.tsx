@@ -23,7 +23,7 @@ export function Wizard() {
 		console.log('Finish wizard', window.api)
 
 		try {
-			await window.api.store.set('firstLaunchDone', true)
+			await window.api.app.setBoolValue('firstLaunchDone', true)
 			await window.api.rpc.call(
 				'/system/window/create-vault',
 				'default-vault'
