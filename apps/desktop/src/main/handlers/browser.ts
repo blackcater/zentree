@@ -2,7 +2,7 @@ import { BrowserView, BrowserWindow } from 'electron'
 
 import { Container } from '@/shared/di'
 import { ElectronRpcServer } from '@/shared/rpc/electron'
-import type { API } from '@/types/api'
+import type { API } from '@/types'
 
 interface BrowserInstance {
 	id: string

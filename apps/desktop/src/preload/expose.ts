@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 import { IpcRendererRpcClient } from '@/shared/rpc/electron'
-import type { API } from '@/types/api'
+import type { API } from '@/types'
 
 import type { AppInfo } from '../types'
 import { buildCallApi, createRpc } from './utils'
@@ -16,7 +16,7 @@ const appInfo: AppInfo = {
 const client = new IpcRendererRpcClient(ipcRenderer)
 const rpc = createRpc(client)
 
-const api = {
+const api: API = {
 	files: buildCallApi<API.FilesAPI>('files', ['list', 'search'], rpc),
 	git: buildCallApi<API.GitAPI>(
 		'git',

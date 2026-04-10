@@ -1,5 +1,5 @@
 import type { AppInfo } from '@/types'
-import type { API } from '@/types/api'
+import type { API } from '@/types'
 
 export type { API }
 

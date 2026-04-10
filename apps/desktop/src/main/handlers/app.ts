@@ -1,6 +1,6 @@
 import { Container } from '@/shared/di'
 import { ElectronRpcServer } from '@/shared/rpc/electron'
-import type { API } from '@/types/api'
+import type { API } from '@/types'
 
 import { store } from '../lib/store'
 
