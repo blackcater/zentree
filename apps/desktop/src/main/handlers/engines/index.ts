@@ -8,9 +8,10 @@ export type {
 } from './engine-types'
 
 import { MockEngine } from './engine-bridge'
+import { ClaudeEngine } from './claude-engine'
 import type { EngineBridgeClass } from './engine-types'
 
-export { MockEngine }
+export { MockEngine, ClaudeEngine }
 
 export const engineRegistry = new Map<string, EngineBridgeClass>()
 
@@ -20,4 +21,5 @@ export function registerEngine(type: string, cls: EngineBridgeClass): void {
 
 export function registerBuiltinEngines(): void {
   registerEngine('mock', MockEngine)
+  registerEngine('claude', ClaudeEngine)
 }
