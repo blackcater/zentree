@@ -19,6 +19,10 @@ export function PermissionDialog() {
 		respondPermission(pendingPermission.id, false)
 	}
 
+	const handleAlwaysAllow = () => {
+		respondPermission(pendingPermission.id, true, pendingPermission.resource)
+	}
+
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
 			<div className="bg-background w-full max-w-md rounded-lg p-6 shadow-lg">
@@ -63,6 +67,12 @@ export function PermissionDialog() {
 						className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
 					>
 						Allow
+					</button>
+					<button
+						onClick={handleAlwaysAllow}
+						className="bg-emerald-600 text-white hover:bg-emerald-600/90 flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+					>
+						Always Allow
 					</button>
 				</div>
 			</div>
