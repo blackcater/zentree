@@ -1,5 +1,4 @@
 import { BrowserHandler } from './browser'
-import { registerChatHandlers } from './chat'
 import { FilesHandler } from './files'
 import { GitHandler } from './git'
 import { registerSystemHandlers } from './system'
@@ -9,5 +8,4 @@ export function registerHandlers() {
 	FilesHandler.registerHandlers()
 	GitHandler.registerHandlers()
 	BrowserHandler.registerHandlers()
-	registerChatHandlers()
 }

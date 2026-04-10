@@ -5,9 +5,11 @@
 
 The following files were used as context for generating this wiki page:
 
-- [README.md](README.md)
+- [packages/shared/package.json](packages/shared/package.json)
 
 </details>
+
+
 
 This page introduces the fundamental building blocks of Craft Agents that every user needs to understand before working effectively with the application. These concepts apply at the user-facing level — what things are called, how they relate, and how to configure them.
 
@@ -62,7 +64,7 @@ safe | ask | allow-all"]
     Automation -->|"references"| Source
 ```
 
-Sources: [README.md:152-171]()
+Sources: [packages/shared/package.json:30-62]()
 
 ---
 
@@ -122,7 +124,7 @@ graph LR
 (CraftAgent, permissions)"] --> wsconfig
 ```
 
-Sources: [README.md:294-311]()
+Sources: [packages/shared/package.json:23-47]()
 
 ---
 
@@ -132,7 +134,9 @@ A **workspace** is the top-level organizational unit. Everything — sessions, s
 
 - Each workspace is stored in `~/.craft-agent/workspaces/{id}/`
 - Multiple workspaces can exist; you switch between them via the left sidebar
-- Workspace-level configuration (LLM connection, sources, skills, etc.) is in `workspaces/{id}/config.json`
+- Workspace-level configuration (LLM connection, sources, skills, etc.) is managed via the `workspaces` module.
+
+Sources: [packages/shared/package.json:34-34](), [packages/shared/package.json:43-44]()
 
 > For full details on workspace management, see [Workspaces](#4.1).
 
@@ -142,16 +146,18 @@ A **workspace** is the top-level organizational unit. Everything — sessions, s
 
 A **session** is a single conversation thread with the agent.
 
-| Property        | Description                                                                |
-| --------------- | -------------------------------------------------------------------------- |
-| **Persistence** | Stored as a JSONL file in `workspaces/{id}/sessions/`                      |
-| **Status**      | One of the workspace-defined status states (e.g., Todo, In Progress, Done) |
-| **Labels**      | Zero or more free-form tags applied to the session                         |
-| **Flagged**     | Boolean marker for quick access                                            |
-| **Archived**    | Moves session out of the active inbox                                      |
-| **Branching**   | New session forked from a specific turn in the conversation                |
+| Property | Description |
+|---|---|
+| **Persistence** | Stored as a JSONL file in `workspaces/{id}/sessions/` |
+| **Status** | One of the workspace-defined status states (e.g., Todo, In Progress, Done) |
+| **Labels** | Zero or more free-form tags applied to the session |
+| **Flagged** | Boolean marker for quick access |
+| **Archived** | Moves session out of the active inbox |
+| **Branching** | New session forked from a specific turn in the conversation |
 
-Sessions are managed by `SessionManager` in `packages/shared/src/sessions/`. The inbox displays sessions filtered by status — active states appear in the inbox, completed or archived sessions are separated.
+Sessions are managed by `SessionManager` and defined in `packages/shared/src/sessions/`. The inbox displays sessions filtered by status — active states appear in the inbox, completed or archived sessions are separated.
+
+Sources: [packages/shared/package.json:30-30]()
 
 > For the full session lifecycle, see [Sessions](#4.2).
 
@@ -163,11 +169,11 @@ A **source** is a connection to an external system that the agent can use as a t
 
 **Source Types**
 
-| Type    | Examples                                      | Transport                 |
-| ------- | --------------------------------------------- | ------------------------- |
-| `MCP`   | Linear, GitHub, Craft, Notion, custom servers | `stdio`, HTTP, SSE        |
-| `API`   | Gmail, Calendar, Drive, Slack, Microsoft      | REST with OAuth / API key |
-| `Local` | Filesystem, Obsidian vaults, Git repos        | Direct file access        |
+| Type | Examples | Transport |
+|---|---|---|
+| `MCP` | Linear, GitHub, Craft, Notion, custom servers | `stdio`, HTTP, SSE |
+| `API` | Gmail, Calendar, Drive, Slack, Microsoft | REST with OAuth / API key |
+| `Local` | Filesystem, Obsidian vaults, Git repos | Direct file access |
 
 Source configurations live in `workspaces/{id}/sources/`. Credentials are stored separately in `credentials.enc` via `CredentialManager` in `packages/shared/src/credentials/`.
 
@@ -189,6 +195,8 @@ sequenceDiagram
     SM-->>Session: "tools available to agent"
 ```
 
+Sources: [packages/shared/package.json:31-32](), [packages/shared/package.json:27-28]()
+
 > For configuration details, transport variants, and authentication, see [Sources](#4.3).
 
 ---
@@ -204,6 +212,8 @@ A **skill** is a Markdown file stored in `workspaces/{id}/skills/`. Skills conta
 
 Skills are a lightweight way to encode reusable workflows, conventions, or domain knowledge without modifying the agent itself.
 
+Sources: [packages/shared/package.json:33-33](), [packages/shared/package.json:59-59]()
+
 > For storage format, injection mechanics, and `@mention` behavior, see [Skills](#4.4).
 
 ---
@@ -212,15 +222,17 @@ Skills are a lightweight way to encode reusable workflows, conventions, or domai
 
 The **permission mode** governs what the agent is allowed to do without asking the user first. Permissions apply at the session level and can be changed at any time via `SHIFT+TAB`.
 
-| Mode Key    | UI Label    | Behavior                                                |
-| ----------- | ----------- | ------------------------------------------------------- |
-| `safe`      | Explore     | Read-only. All write operations are blocked.            |
-| `ask`       | Ask to Edit | Prompts for approval before write operations (default). |
-| `allow-all` | Auto        | Auto-approves all tool calls including writes.          |
+| Mode Key | UI Label | Behavior |
+|---|---|---|
+| `safe` | Explore | Read-only. All write operations are blocked. |
+| `ask` | Ask to Edit | Prompts for approval before write operations (default). |
+| `allow-all` | Auto | Auto-approves all tool calls including writes. |
 
-The `ModeManager` component in the renderer renders the current mode indicator and handles the `SHIFT+TAB` cycle. Permission logic is enforced in the pre-tool-use check pipeline in `packages/shared/src/agent/`.
+Permission logic is defined in `packages/shared/src/agent/mode-types.ts`. The renderer handles the `SHIFT+TAB` cycle. Permission logic is enforced in the pre-tool-use check pipeline.
 
 An `alwaysAllow` list can whitelist specific shell commands or network domains so they are never prompted in `ask` mode.
+
+Sources: [packages/shared/package.json:17-18]()
 
 > For the full permission pipeline, `alwaysAllow` configuration, and `ModeManager`, see [Permission System](#4.5).
 
@@ -233,10 +245,12 @@ The **status system** allows each workspace to define a custom set of session st
 - Statuses are defined in `workspaces/{id}/statuses/`
 - A default workflow follows the pattern: **Todo → In Progress → Needs Review → Done**
 - Each session has exactly one status at any time
-- Status changes can trigger automations (see [Automations](#4.9))
+- Status changes can trigger automations (see [Hooks & Automation](#4.9))
 - Sessions are grouped by status in the session list / inbox view
 
-Statuses are managed by the `statuses` module in `packages/shared/src/statuses/`.
+Statuses are managed by the `views` and `labels` logic in `packages/shared/`.
+
+Sources: [packages/shared/package.json:49-50]()
 
 > For configuration format, status transitions, and automation triggers, see [Status Workflow](#4.6).
 
@@ -250,6 +264,8 @@ Statuses are managed by the `statuses` module in `packages/shared/src/statuses/`
 - Adding or removing a label fires a `LabelAdd` or `LabelRemove` event that automations can listen to
 - Labels are useful for categorizing sessions by topic, priority, or project
 
+Sources: [packages/shared/package.json:45-48]()
+
 > For label configuration and automation triggers, see [Labels](#4.7).
 
 ---
@@ -258,12 +274,14 @@ Statuses are managed by the `statuses` module in `packages/shared/src/statuses/`
 
 Craft Agents has a **cascading theme system** with two levels:
 
-| Level           | File                                        | Scope                                  |
-| --------------- | ------------------------------------------- | -------------------------------------- |
-| App-level       | `~/.craft-agent/theme.json`                 | Applies to all workspaces              |
+| Level | File | Scope |
+|---|---|---|
+| App-level | `~/.craft-agent/theme.json` | Applies to all workspaces |
 | Workspace-level | `~/.craft-agent/workspaces/{id}/theme.json` | Overrides app theme for that workspace |
 
 Both files use the `ThemeOverrides` format. Workspace themes take precedence over the app theme, allowing per-workspace visual customization. Preset themes are available through the settings UI.
+
+Sources: [packages/shared/package.json:41-41]()
 
 > For the `ThemeOverrides` schema and preset list, see [Theme System](#4.8).
 
@@ -275,52 +293,18 @@ Both files use the `ThemeOverrides` format. Workspace themes take precedence ove
 
 **Supported Event Types**
 
-| Event                  | Description                        |
-| ---------------------- | ---------------------------------- |
-| `LabelAdd`             | A label was added to a session     |
-| `LabelRemove`          | A label was removed from a session |
-| `SessionStatusChange`  | A session's status changed         |
-| `FlagChange`           | A session was flagged or unflagged |
-| `PermissionModeChange` | The permission mode changed        |
-| `SchedulerTick`        | A cron schedule fired              |
-| `PreToolUse`           | Before a tool call executes        |
-| `PostToolUse`          | After a tool call completes        |
-| `SessionStart`         | A session began                    |
-| `SessionEnd`           | A session ended                    |
-
-**Automations Schema (version 2)**
-
-```json
-{
-  "version": 2,
-  "automations": {
-    "LabelAdd": [
-      {
-        "matcher": "^urgent$",
-        "actions": [
-          {
-            "type": "prompt",
-            "prompt": "An urgent label was added. Triage the session."
-          }
-        ]
-      }
-    ],
-    "SchedulerTick": [
-      {
-        "cron": "0 9 * * 1-5",
-        "timezone": "America/New_York",
-        "labels": ["Scheduled"],
-        "actions": [
-          {
-            "type": "prompt",
-            "prompt": "Check @github for new issues assigned to me"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+| Event | Description |
+|---|---|
+| `LabelAdd` | A label was added to a session |
+| `LabelRemove` | A label was removed from a session |
+| `SessionStatusChange` | A session's status changed |
+| `FlagChange` | A session was flagged or unflagged |
+| `PermissionModeChange` | The permission mode changed |
+| `SchedulerTick` | A cron schedule fired |
+| `PreToolUse` | Before a tool call executes |
+| `PostToolUse` | After a tool call completes |
+| `SessionStart` | A session began |
+| `SessionEnd` | A session ended |
 
 **Automation Execution Flow**
 
@@ -344,12 +328,9 @@ resolve @mention sources and skills"
     SM->>CA: "run agent with prompt"
 ```
 
-Prompt actions support `@mention` syntax for sources and skills, and the following environment variables are automatically expanded:
+Prompt actions support `@mention` syntax for sources and skills, and environment variables like `$CRAFT_LABEL` and `$CRAFT_SESSION_ID` are automatically expanded using `croner` for scheduling.
 
-| Variable            | Value                                   |
-| ------------------- | --------------------------------------- |
-| `$CRAFT_LABEL`      | The label that triggered the event      |
-| `$CRAFT_SESSION_ID` | The session ID that triggered the event |
+Sources: [packages/shared/package.json:60-61](), [packages/shared/package.json:70-71]()
 
 > For the full automations schema, event matchers, cron syntax, and `$CRAFT_*` variable reference, see [Hooks & Automation](#4.9).
 
@@ -388,4 +369,4 @@ flowchart TD
     SRC -->|"tools available"| S
 ```
 
-Sources: [README.md:313-355]()
+Sources: [packages/shared/package.json:30-62]()

@@ -18,16 +18,18 @@ The following files were used as context for generating this wiki page:
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions/PromptGroupAdvancedOptions.tsx](apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions/PromptGroupAdvancedOptions.tsx)
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions/index.ts](apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions/index.ts)
 - [apps/desktop/src/renderer/react-query/workspaces/useOpenTrackedWorktree.ts](apps/desktop/src/renderer/react-query/workspaces/useOpenTrackedWorktree.ts)
-- [apps/desktop/src/renderer/routes/\_authenticated/settings/behavior/components/BehaviorSettings/BehaviorSettings.tsx](apps/desktop/src/renderer/routes/_authenticated/settings/behavior/components/BehaviorSettings/BehaviorSettings.tsx)
-- [apps/desktop/src/renderer/routes/\_authenticated/settings/project/$projectId/components/ProjectSettings/ProjectSettings.tsx](apps/desktop/src/renderer/routes/_authenticated/settings/project/$projectId/components/ProjectSettings/ProjectSettings.tsx)
-- [apps/desktop/src/renderer/routes/\_authenticated/settings/project/$projectId/general/page.tsx](apps/desktop/src/renderer/routes/_authenticated/settings/project/$projectId/general/page.tsx)
-- [apps/desktop/src/renderer/routes/\_authenticated/settings/utils/settings-search/settings-search.ts](apps/desktop/src/renderer/routes/_authenticated/settings/utils/settings-search/settings-search.ts)
+- [apps/desktop/src/renderer/routes/_authenticated/settings/behavior/components/BehaviorSettings/BehaviorSettings.tsx](apps/desktop/src/renderer/routes/_authenticated/settings/behavior/components/BehaviorSettings/BehaviorSettings.tsx)
+- [apps/desktop/src/renderer/routes/_authenticated/settings/project/$projectId/components/ProjectSettings/ProjectSettings.tsx](apps/desktop/src/renderer/routes/_authenticated/settings/project/$projectId/components/ProjectSettings/ProjectSettings.tsx)
+- [apps/desktop/src/renderer/routes/_authenticated/settings/project/$projectId/general/page.tsx](apps/desktop/src/renderer/routes/_authenticated/settings/project/$projectId/general/page.tsx)
+- [apps/desktop/src/renderer/routes/_authenticated/settings/utils/settings-search/settings-search.ts](apps/desktop/src/renderer/routes/_authenticated/settings/utils/settings-search/settings-search.ts)
 - [apps/desktop/src/renderer/stores/new-workspace-modal.ts](apps/desktop/src/renderer/stores/new-workspace-modal.ts)
 - [apps/desktop/src/shared/constants.ts](apps/desktop/src/shared/constants.ts)
-- [packages/local-db/drizzle/meta/\_journal.json](packages/local-db/drizzle/meta/_journal.json)
+- [packages/local-db/drizzle/meta/_journal.json](packages/local-db/drizzle/meta/_journal.json)
 - [packages/local-db/src/schema/schema.ts](packages/local-db/src/schema/schema.ts)
 
 </details>
+
+
 
 This document covers the project model, which represents Git repositories that users have opened in Superset. It explains how projects are stored, created, opened, and configured, including metadata like icons, colors, and project-specific settings.
 
@@ -41,24 +43,24 @@ Projects are the top-level organizational unit in Superset. Each project represe
 
 The `projects` table stores project records in the local SQLite database:
 
-| Column                | Type    | Description                                       |
-| --------------------- | ------- | ------------------------------------------------- |
-| `id`                  | text    | UUID primary key                                  |
-| `mainRepoPath`        | text    | Absolute path to the Git repository root          |
-| `name`                | text    | Display name (defaults to directory basename)     |
-| `color`               | text    | Color identifier for UI theming                   |
-| `tabOrder`            | integer | Position in the project bar (null if not pinned)  |
-| `lastOpenedAt`        | integer | Unix timestamp of last access                     |
-| `defaultBranch`       | text    | Repository's default branch (e.g., "main")        |
-| `githubOwner`         | text    | GitHub organization/user name                     |
-| `branchPrefixMode`    | text    | Per-project branch prefix override                |
-| `branchPrefixCustom`  | text    | Custom prefix string when mode is "custom"        |
-| `workspaceBaseBranch` | text    | Default base branch for new workspaces            |
-| `worktreeBaseDir`     | text    | Per-project worktree storage location override    |
-| `hideImage`           | boolean | Whether to hide the project icon                  |
-| `iconUrl`             | text    | Protocol URL for custom project icon              |
-| `neonProjectId`       | text    | Associated Neon database project ID               |
-| `defaultApp`          | text    | Default external editor/terminal for this project |
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | text | UUID primary key |
+| `mainRepoPath` | text | Absolute path to the Git repository root |
+| `name` | text | Display name (defaults to directory basename) |
+| `color` | text | Color identifier for UI theming |
+| `tabOrder` | integer | Position in the project bar (null if not pinned) |
+| `lastOpenedAt` | integer | Unix timestamp of last access |
+| `defaultBranch` | text | Repository's default branch (e.g., "main") |
+| `githubOwner` | text | GitHub organization/user name |
+| `branchPrefixMode` | text | Per-project branch prefix override |
+| `branchPrefixCustom` | text | Custom prefix string when mode is "custom" |
+| `workspaceBaseBranch` | text | Default base branch for new workspaces |
+| `worktreeBaseDir` | text | Per-project worktree storage location override |
+| `hideImage` | boolean | Whether to hide the project icon |
+| `iconUrl` | text | Protocol URL for custom project icon |
+| `neonProjectId` | text | Associated Neon database project ID |
+| `defaultApp` | text | Default external editor/terminal for this project |
 
 **Sources:** [packages/local-db/src/schema/schema.ts:20-54]()
 
@@ -88,18 +90,18 @@ graph TD
     User["User Action"] -->|showOpenDialog| Dialog["Electron File Dialog"]
     Dialog --> Validate["Validation"]
     Validate --> GitRoot["getGitRoot()"]
-
+    
     GitRoot -->|Success| Exists["Check Existing Record"]
     GitRoot -->|NotGitRepoError| NeedsInit["Offer Git Init"]
     GitRoot -->|Other Error| Error["Return Error"]
-
+    
     Exists -->|Found| Update["Update lastOpenedAt"]
     Exists -->|Not Found| Create["upsertProject()"]
-
+    
     Update --> Workspace["ensureMainWorkspace()"]
     Create --> Workspace
     NeedsInit --> Return["Return needsGitInit"]
-
+    
     Workspace --> Done["Project Opened"]
 ```
 
@@ -114,13 +116,13 @@ Opens one or more project directories via file dialog:
 ```typescript
 openNew: publicProcedure.mutation(async (): Promise<OpenNewMultiResult> => {
   const result = await dialog.showOpenDialog(window, {
-    properties: ['openDirectory', 'multiSelections'],
-  })
-
+    properties: ["openDirectory", "multiSelections"],
+  });
+  
   for (const selectedPath of result.filePaths) {
-    const mainRepoPath = await getGitRoot(selectedPath)
-    const project = upsertProject(mainRepoPath, defaultBranch)
-    await ensureMainWorkspace(project)
+    const mainRepoPath = await getGitRoot(selectedPath);
+    const project = upsertProject(mainRepoPath, defaultBranch);
+    await ensureMainWorkspace(project);
   }
 })
 ```
@@ -153,15 +155,15 @@ function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
     .select()
     .from(projects)
     .where(eq(projects.mainRepoPath, mainRepoPath))
-    .get()
-
+    .get();
+    
   if (existing) {
     // Update lastOpenedAt and defaultBranch
-    return updated
+    return updated;
   }
-
+  
   // Insert new project with auto-generated UUID
-  return project
+  return project;
 }
 ```
 
@@ -173,13 +175,13 @@ Automatically creates the main workspace (type `"branch"`) for the project's cur
 
 ```typescript
 async function ensureMainWorkspace(project: Project): Promise<void> {
-  const existingBranchWorkspace = getBranchWorkspace(project.id)
+  const existingBranchWorkspace = getBranchWorkspace(project.id);
   if (existingBranchWorkspace) {
-    touchWorkspace(existingBranchWorkspace.id)
-    return
+    touchWorkspace(existingBranchWorkspace.id);
+    return;
   }
-
-  const branch = await getCurrentBranch(project.mainRepoPath)
+  
+  const branch = await getCurrentBranch(project.mainRepoPath);
   // Creates workspace with type="branch"
   // Unique partial index prevents duplicates: projectId WHERE type='branch'
 }
@@ -199,11 +201,11 @@ graph LR
     Extract --> ValidateURL["Validate URL Protocol"]
     ValidateURL --> SelectDir["Select Target Directory"]
     SelectDir --> CheckExisting["Check Existing Project"]
-
+    
     CheckExisting -->|Found & Path Exists| Reopen["Update lastOpenedAt"]
     CheckExisting -->|Found & Missing| DeleteStale["Delete Stale Record"]
     CheckExisting -->|Not Found| Clone["git.clone()"]
-
+    
     DeleteStale --> Clone
     Clone --> Insert["Insert New Project"]
     Insert --> EnsureWS["ensureMainWorkspace()"]
@@ -216,35 +218,29 @@ graph LR
 
 ```typescript
 cloneRepo: publicProcedure
-  .input(
-    z.object({
-      url: z.string().refine(/* validates HTTPS or SSH */),
-      targetDirectory: z.string().optional(),
-    })
-  )
+  .input(z.object({
+    url: z.string().refine(/* validates HTTPS or SSH */),
+    targetDirectory: z.string().optional()
+  }))
   .mutation(async ({ input }) => {
-    const repoName = extractRepoName(input.url)
-    const clonePath = join(targetDir, repoName)
-
+    const repoName = extractRepoName(input.url);
+    const clonePath = join(targetDir, repoName);
+    
     // Check for existing project at this path
     if (existingProject && existsSync(clonePath)) {
       // Reuse existing project record
-      return { project: existingProject }
+      return { project: existingProject };
     }
-
+    
     // Perform clone
-    await git.clone(input.url, clonePath)
-
-    const project = localDb
-      .insert(projects)
-      .values({
-        mainRepoPath: clonePath,
-        name: basename(clonePath),
-        color: getDefaultProjectColor(),
-        defaultBranch: await getDefaultBranch(clonePath),
-      })
-      .returning()
-      .get()
+    await git.clone(input.url, clonePath);
+    
+    const project = localDb.insert(projects).values({
+      mainRepoPath: clonePath,
+      name: basename(clonePath),
+      color: getDefaultProjectColor(),
+      defaultBranch: await getDefaultBranch(clonePath),
+    }).returning().get();
   })
 ```
 
@@ -260,6 +256,7 @@ function extractRepoName(urlInput: string): string | null {
   // - HTTPS: https://github.com/org/repo.git
   // - SSH: git@github.com:org/repo.git
   // - git:// protocol
+  
   // Strips .git suffix, query params, fragments
   // Validates against SAFE_REPO_NAME_REGEX
 }
@@ -273,20 +270,18 @@ Creates a new directory with `git init`:
 
 ```typescript
 createEmptyRepo: publicProcedure
-  .input(
-    z.object({
-      name: z.string().refine(/* validates SAFE_REPO_NAME_REGEX */),
-      parentDir: z.string(),
-    })
-  )
+  .input(z.object({
+    name: z.string().refine(/* validates SAFE_REPO_NAME_REGEX */),
+    parentDir: z.string()
+  }))
   .mutation(async ({ input }) => {
-    const repoPath = join(input.parentDir, input.name)
-    await mkdir(repoPath, { recursive: true })
-
-    const { defaultBranch } = await initGitRepo(repoPath)
-
-    const project = upsertProject(repoPath, defaultBranch)
-    await ensureMainWorkspace(project)
+    const repoPath = join(input.parentDir, input.name);
+    await mkdir(repoPath, { recursive: true });
+    
+    const { defaultBranch } = await initGitRepo(repoPath);
+    
+    const project = upsertProject(repoPath, defaultBranch);
+    await ensureMainWorkspace(project);
   })
 ```
 
@@ -297,7 +292,6 @@ createEmptyRepo: publicProcedure
 ```typescript
 async function initGitRepo(path: string): Promise<{ defaultBranch: string }> {
   const git = await getSimpleGitWithShellPath(path);
-
+  
   try {
     await git.init(["--initial-branch=main\
-```

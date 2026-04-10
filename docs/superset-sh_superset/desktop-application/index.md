@@ -33,12 +33,13 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
+
+
 ## Purpose and Scope
 
 The Desktop Application is an Electron-based native application that serves as the primary interface for Superset. It provides a full-featured development environment with integrated terminal emulation, Git worktree management, file editing, AI-assisted coding, and browser-based debugging capabilities. The desktop app runs locally on macOS, Windows, and Linux, with local SQLite storage synchronized to the cloud via ElectricSQL.
 
 This document covers the desktop application's architecture, build system, release process, and core infrastructure. For details on specific subsystems, see:
-
 - Application initialization and lifecycle: [#2.1](#2.1)
 - Build configuration and packaging: [#2.2](#2.2)
 - Auto-update system: [#2.3](#2.3)
@@ -65,41 +66,41 @@ graph TB
         GitOps["Git Operations<br/>simple-git"]
         AutoUpdater["Auto-Updater<br/>electron-updater"]
     end
-
+    
     subgraph "Renderer Process (Chromium)"
         ReactApp["React Application<br/>Tanstack Router"]
         TRPCClient["tRPC Client<br/>trpc-electron"]
         ElectricClient["ElectricSQL Client<br/>Real-time sync"]
         UI["UI Components<br/>@superset/ui"]
     end
-
+    
     subgraph "Auxiliary Processes"
         TerminalDaemon["terminal-host<br/>Persistent sessions"]
         PTYSubprocess["pty-subprocess<br/>Shell instances"]
         GitWorker["git-task-worker<br/>Heavy Git ops"]
         HostService["host-service<br/>Per-org HTTP server"]
     end
-
+    
     subgraph "External Services"
         CloudAPI["API Server<br/>api.superset.sh"]
         ElectricSync["ElectricSQL<br/>Sync service"]
         NeonDB["Neon PostgreSQL<br/>Cloud database"]
     end
-
+    
     ReactApp -->|IPC via tRPC| TRPCRouter
     TRPCRouter --> LocalDB
     TRPCRouter --> TerminalManager
     TRPCRouter --> GitOps
-
+    
     MainEntry --> TRPCRouter
     MainEntry --> AutoUpdater
     MainEntry --> TerminalManager
-
+    
     TerminalManager -->|fork| TerminalDaemon
     TerminalDaemon -->|spawn| PTYSubprocess
     GitOps -->|offload| GitWorker
     MainEntry -->|spawn| HostService
-
+    
     ElectricClient -->|HTTP| ElectricSync
     TRPCClient -->|HTTP| CloudAPI
     ElectricSync -->|replicate| NeonDB
@@ -113,22 +114,22 @@ graph TB
 
 The desktop application uses the following core technologies:
 
-| Technology           | Purpose                          | Package/Version                              |
-| -------------------- | -------------------------------- | -------------------------------------------- |
-| **Electron**         | Cross-platform desktop framework | `electron@40.2.1`                            |
-| **React**            | UI rendering                     | `react@19.2.0`                               |
-| **Vite**             | Build tool (via electron-vite)   | `vite@7.1.3`, `electron-vite@4.0.0`          |
-| **tRPC**             | Type-safe IPC communication      | `@trpc/server@11.7.1`, `trpc-electron@0.1.2` |
-| **TanStack Router**  | Client-side routing              | `@tanstack/react-router@1.147.3`             |
-| **ElectricSQL**      | Real-time database sync          | `@electric-sql/client@1.5.12`                |
-| **Drizzle ORM**      | SQLite database access           | `drizzle-orm@0.45.1`                         |
-| **xterm.js**         | Terminal emulation               | `@xterm/xterm@6.1.0-beta.195`                |
-| **node-pty**         | PTY subprocess management        | `node-pty@1.1.0`                             |
-| **simple-git**       | Git operations                   | `simple-git@3.30.0`                          |
-| **electron-updater** | Auto-update functionality        | `electron-updater@6.7.3`                     |
-| **Tailwind CSS**     | Styling                          | `tailwindcss@4.1.18`                         |
-| **Zustand**          | State management                 | `zustand@5.0.8`                              |
-| **CodeMirror**       | Code editor                      | `@codemirror/view@6.39.16`                   |
+| Technology | Purpose | Package/Version |
+|------------|---------|-----------------|
+| **Electron** | Cross-platform desktop framework | `electron@40.2.1` |
+| **React** | UI rendering | `react@19.2.0` |
+| **Vite** | Build tool (via electron-vite) | `vite@7.1.3`, `electron-vite@4.0.0` |
+| **tRPC** | Type-safe IPC communication | `@trpc/server@11.7.1`, `trpc-electron@0.1.2` |
+| **TanStack Router** | Client-side routing | `@tanstack/react-router@1.147.3` |
+| **ElectricSQL** | Real-time database sync | `@electric-sql/client@1.5.12` |
+| **Drizzle ORM** | SQLite database access | `drizzle-orm@0.45.1` |
+| **xterm.js** | Terminal emulation | `@xterm/xterm@6.1.0-beta.195` |
+| **node-pty** | PTY subprocess management | `node-pty@1.1.0` |
+| **simple-git** | Git operations | `simple-git@3.30.0` |
+| **electron-updater** | Auto-update functionality | `electron-updater@6.7.3` |
+| **Tailwind CSS** | Styling | `tailwindcss@4.1.18` |
+| **Zustand** | State management | `zustand@5.0.8` |
+| **CodeMirror** | Code editor | `@codemirror/view@6.39.16` |
 
 **Sources:** [apps/desktop/package.json:37-217]()
 
@@ -143,18 +144,18 @@ The desktop app uses `electron-vite` to compile three separate bundles:
 ```mermaid
 graph LR
     Source["Source Code"] --> ViteConfig["electron.vite.config.ts"]
-
+    
     ViteConfig --> MainBundle["Main Process<br/>dist/main/index.js"]
     ViteConfig --> PreloadBundle["Preload Script<br/>dist/preload/index.js"]
     ViteConfig --> RendererBundle["Renderer Process<br/>dist/renderer/"]
-
+    
     MainBundle --> ElectronBuilder["electron-builder"]
     PreloadBundle --> ElectronBuilder
     RendererBundle --> ElectronBuilder
-
+    
     ViteConfig --> AuxBundles["Auxiliary Processes<br/>terminal-host<br/>pty-subprocess<br/>git-task-worker<br/>host-service"]
     AuxBundles --> ElectronBuilder
-
+    
     ElectronBuilder --> Artifacts["Platform Artifacts<br/>DMG (macOS)<br/>AppImage (Linux)<br/>NSIS (Windows)"]
 ```
 
@@ -177,7 +178,7 @@ graph TB
         PreloadIndex["preload/index.js<br/>Context bridge"]
         RendererIndex["renderer/index.html<br/>React app"]
     end
-
+    
     MainIndex -->|spawns| TerminalHost
     TerminalHost -->|spawns| PTYSubprocess
     MainIndex -->|creates Worker| GitWorker
@@ -200,14 +201,14 @@ Native modules like `node-pty`, `better-sqlite3`, and platform-specific packages
 
 ### Build Scripts
 
-| Script                    | Purpose                            | Command                                         |
-| ------------------------- | ---------------------------------- | ----------------------------------------------- |
-| `generate:icons`          | Generate file type icons           | `bun run scripts/generate-file-icons.ts`        |
-| `clean:dev`               | Clean development artifacts        | `rimraf ./node_modules/.dev`                    |
-| `compile:app`             | Compile with electron-vite         | `electron-vite build`                           |
-| `copy:native-modules`     | Prepare native modules             | `bun run scripts/copy-native-modules.ts`        |
-| `validate:native-runtime` | Verify native module compatibility | `bun run scripts/validate-native-runtime.ts`    |
-| `package`                 | Package with electron-builder      | `electron-builder --config electron-builder.ts` |
+| Script | Purpose | Command |
+|--------|---------|---------|
+| `generate:icons` | Generate file type icons | `bun run scripts/generate-file-icons.ts` |
+| `clean:dev` | Clean development artifacts | `rimraf ./node_modules/.dev` |
+| `compile:app` | Compile with electron-vite | `electron-vite build` |
+| `copy:native-modules` | Prepare native modules | `bun run scripts/copy-native-modules.ts` |
+| `validate:native-runtime` | Verify native module compatibility | `bun run scripts/validate-native-runtime.ts` |
+| `package` | Package with electron-builder | `electron-builder --config electron-builder.ts` |
 
 **Sources:** [apps/desktop/package.json:16-35]()
 
@@ -224,12 +225,12 @@ graph TB
     Config["electron-builder.ts"] --> macOS["macOS<br/>DMG + ZIP<br/>arm64 & x64"]
     Config --> Linux["Linux<br/>AppImage<br/>x64"]
     Config --> Windows["Windows<br/>NSIS Installer<br/>x64"]
-
+    
     macOS --> Signing["Code Signing<br/>Apple Developer ID<br/>Notarization"]
     macOS --> AutoUpdate["Auto-update Manifest<br/>latest-mac.yml"]
-
+    
     Linux --> AutoUpdate2["Auto-update Manifest<br/>latest-linux.yml"]
-
+    
     Windows --> AutoUpdate3["Auto-update Manifest<br/>latest.yml"]
 ```
 
@@ -250,10 +251,10 @@ graph TB
 
 The desktop app supports two release channels:
 
-| Channel    | Description         | Tag Format       | Build Frequency          |
-| ---------- | ------------------- | ---------------- | ------------------------ |
-| **Stable** | Production releases | `desktop-v1.0.0` | Manual via git tag       |
-| **Canary** | Pre-release builds  | `desktop-canary` | Automated every 12 hours |
+| Channel | Description | Tag Format | Build Frequency |
+|---------|-------------|------------|-----------------|
+| **Stable** | Production releases | `desktop-v1.0.0` | Manual via git tag |
+| **Canary** | Pre-release builds | `desktop-canary` | Automated every 12 hours |
 
 ### Stable Release Workflow
 
@@ -265,23 +266,23 @@ sequenceDiagram
     participant GHA as GitHub Actions
     participant Release as GitHub Release
     participant Users as End Users
-
+    
     Dev->>Script: Run ./create-release.sh
     Script->>Dev: Prompt for version (patch/minor/major)
     Dev->>Script: Select version (e.g., 1.2.3)
     Script->>Git: Update package.json version
     Script->>Git: Create tag desktop-v1.2.3
     Script->>Git: Push tag to remote
-
+    
     Git->>GHA: Trigger release-desktop.yml
     GHA->>GHA: Build macOS arm64 + x64
     GHA->>GHA: Build Linux x64
     GHA->>GHA: Merge update manifests
     GHA->>Release: Create draft release
-
+    
     Script->>Script: Monitor workflow progress
     Script->>Dev: Release created (draft)
-
+    
     Dev->>Release: Review and publish
     Release->>Users: Auto-update notification
 ```
@@ -299,10 +300,10 @@ sequenceDiagram
     participant Build as Build Job
     participant Release as Release Job
     participant Canary as Canary Release
-
+    
     Cron->>Check: Trigger every 12 hours
     Check->>Check: Compare HEAD with desktop-canary tag
-
+    
     alt Changes detected
         Check->>Build: Trigger build with version suffix
         Note over Build: Appends -canary.YYYYMMDDHHMMSS
@@ -321,11 +322,11 @@ sequenceDiagram
 
 The build workflow uses a matrix strategy to build for multiple architectures in parallel:
 
-| Platform | Architecture | Runner          | Output Format             |
-| -------- | ------------ | --------------- | ------------------------- |
-| macOS    | arm64        | `macos-latest`  | DMG, ZIP, update manifest |
-| macOS    | x64          | `macos-latest`  | DMG, ZIP, update manifest |
-| Linux    | x64          | `ubuntu-latest` | AppImage, update manifest |
+| Platform | Architecture | Runner | Output Format |
+|----------|--------------|--------|---------------|
+| macOS | arm64 | `macos-latest` | DMG, ZIP, update manifest |
+| macOS | x64 | `macos-latest` | DMG, ZIP, update manifest |
+| Linux | x64 | `ubuntu-latest` | AppImage, update manifest |
 
 **Sources:** [.github/workflows/build-desktop.yml:32-256]()
 
@@ -337,9 +338,9 @@ macOS builds produce separate manifests for arm64 and x64. A custom GitHub Actio
 graph LR
     Arm64["latest-mac-arm64.yml<br/>arm64 build"] --> Merge["merge-mac-manifests.mjs"]
     X64["latest-mac-x64.yml<br/>x64 build"] --> Merge
-
+    
     Merge --> Output["latest-mac.yml<br/>Combined manifest"]
-
+    
     Output --> Stable["Stable Release<br/>/releases/latest/download/"]
     Output --> Canary["Canary Release<br/>/releases/download/desktop-canary/"]
 ```
@@ -360,10 +361,10 @@ sequenceDiagram
     participant Updater as electron-updater
     participant GitHub as GitHub Releases
     participant User as User
-
+    
     App->>Updater: Check for updates (on launch + every 4h)
     Updater->>GitHub: GET /releases/latest/download/latest-mac.yml
-
+    
     alt Update available
         GitHub->>Updater: Return manifest with new version
         Updater->>GitHub: Download new version ZIP
@@ -388,12 +389,10 @@ The auto-updater uses different feed URLs based on the build channel:
 
 ```typescript
 // Stable channel (no prerelease identifier in version)
-const UPDATE_FEED_URL =
-  'https://github.com/superset-sh/superset/releases/latest/download'
+const UPDATE_FEED_URL = "https://github.com/superset-sh/superset/releases/latest/download";
 
 // Canary channel (version contains prerelease identifier like "1.2.0-canary")
-const UPDATE_FEED_URL =
-  'https://github.com/superset-sh/superset/releases/download/desktop-canary'
+const UPDATE_FEED_URL = "https://github.com/superset-sh/superset/releases/download/desktop-canary";
 ```
 
 **Sources:** [apps/desktop/src/main/lib/auto-updater.ts:28-32]()
@@ -444,10 +443,10 @@ sequenceDiagram
     participant Main as Main Process
     participant Web as Web Browser
     participant Renderer as Renderer Process
-
+    
     OS->>Main: open-url event (superset://auth/callback?token=...)
     Main->>Main: parseAuthDeepLink()
-
+    
     alt Authentication callback
         Main->>Main: handleAuthCallback()
         Main->>Main: Store session token
@@ -470,7 +469,6 @@ The renderer process starts from [apps/desktop/src/renderer/index.html]():
 3. React application mounts to `<app>` element ([index.html:24-25]())
 
 **CSP Configuration:**
-
 - `script-src 'self' 'wasm-unsafe-eval'` - Allows WebAssembly for xterm.js ImageAddon
 - `connect-src` includes localhost, API URL, Electric URL, PostHog, Sentry, Outlit
 - `frame-src https: http: data: blob:` - Allows browser pane webview
@@ -487,14 +485,14 @@ The desktop app uses separate environment configurations for main and renderer p
 
 Defined in [apps/desktop/src/main/env.main.ts]() using `@t3-oss/env-core`:
 
-| Variable                   | Type                                      | Default                                        |
-| -------------------------- | ----------------------------------------- | ---------------------------------------------- |
-| `NODE_ENV`                 | `"development" \| "production" \| "test"` | `"development"`                                |
-| `NEXT_PUBLIC_API_URL`      | `URL`                                     | `"https://api.superset.sh"`                    |
-| `NEXT_PUBLIC_ELECTRIC_URL` | `URL`                                     | `"https://electric-proxy.avi-6ac.workers.dev"` |
-| `NEXT_PUBLIC_WEB_URL`      | `URL`                                     | `"https://app.superset.sh"`                    |
-| `SENTRY_DSN_DESKTOP`       | `string` (optional)                       | -                                              |
-| `NEXT_PUBLIC_POSTHOG_KEY`  | `string` (optional)                       | -                                              |
+| Variable | Type | Default |
+|----------|------|---------|
+| `NODE_ENV` | `"development" \| "production" \| "test"` | `"development"` |
+| `NEXT_PUBLIC_API_URL` | `URL` | `"https://api.superset.sh"` |
+| `NEXT_PUBLIC_ELECTRIC_URL` | `URL` | `"https://electric-proxy.avi-6ac.workers.dev"` |
+| `NEXT_PUBLIC_WEB_URL` | `URL` | `"https://app.superset.sh"` |
+| `SENTRY_DSN_DESKTOP` | `string` (optional) | - |
+| `NEXT_PUBLIC_POSTHOG_KEY` | `string` (optional) | - |
 
 **Sources:** [apps/desktop/src/main/env.main.ts:12-52]()
 
@@ -522,37 +520,37 @@ graph TB
         Collections["Collections Provider<br/>Synced data"]
         TRPCClient["tRPC Client<br/>Mutations"]
     end
-
+    
     subgraph "Main Process"
         LocalDB["LocalDB<br/>@superset/local-db<br/>better-sqlite3"]
         TRPCRouter["tRPC Router"]
     end
-
+    
     subgraph "Cloud Services"
         APIProxy["API Proxy<br/>/api/electric"]
         ElectricServer["ElectricSQL Server<br/>Fly.io"]
         NeonDB["Neon PostgreSQL<br/>Source of truth"]
     end
-
+    
     UI -->|Read synced data| Collections
     UI -->|Write mutations| TRPCClient
-
+    
     Collections -->|HTTP Shape stream| APIProxy
     TRPCClient -->|HTTP| TRPCRouter
-
+    
     TRPCRouter -->|Read/Write| LocalDB
     TRPCRouter -->|HTTP| APIProxy
-
+    
     APIProxy -->|Auth + RLS| ElectricServer
     ElectricServer -->|CDC replication| NeonDB
 ```
 
 ### Local-Only vs Synced Data
 
-| Data Type        | Storage            | Sync               | Example Tables                            |
-| ---------------- | ------------------ | ------------------ | ----------------------------------------- |
-| **Local-only**   | SQLite (`localDb`) | No                 | `settings`, `tabs`, `panes`               |
-| **Cloud-synced** | Neon PostgreSQL    | Yes (via Electric) | `projects`, `workspaces`, `organizations` |
+| Data Type | Storage | Sync | Example Tables |
+|-----------|---------|------|----------------|
+| **Local-only** | SQLite (`localDb`) | No | `settings`, `tabs`, `panes` |
+| **Cloud-synced** | Neon PostgreSQL | Yes (via Electric) | `projects`, `workspaces`, `organizations` |
 
 **Sources:** [High-level diagrams](), [apps/desktop/src/main/lib/local-db.ts]()
 
@@ -568,11 +566,11 @@ Serves project icons from the local filesystem:
 
 ```typescript
 // Example: superset-icon://project-abc123
-protocol.handle('superset-icon', (request) => {
-  const projectId = new URL(request.url).pathname.replace(/^\//, '')
-  const iconPath = getProjectIconPath(projectId)
-  return net.fetch(pathToFileURL(iconPath).toString())
-})
+protocol.handle("superset-icon", (request) => {
+  const projectId = new URL(request.url).pathname.replace(/^\//, "");
+  const iconPath = getProjectIconPath(projectId);
+  return net.fetch(pathToFileURL(iconPath).toString());
+});
 ```
 
 **Sources:** [apps/desktop/src/main/index.ts:289-301]()
@@ -583,14 +581,14 @@ Serves system fonts (macOS only) so the renderer can use `@font-face` with CSP `
 
 ```typescript
 // Example: superset-font://SFMono-Regular.otf
-protocol.handle('superset-font', async (request) => {
-  const filename = path.basename(new URL(request.url).pathname)
+protocol.handle("superset-font", async (request) => {
+  const filename = path.basename(new URL(request.url).pathname);
   // Search system font directories
   for (const dir of SYSTEM_FONT_DIRS) {
-    const fontPath = path.join(dir, filename)
-    return await net.fetch(pathToFileURL(fontPath).toString())
+    const fontPath = path.join(dir, filename);
+    return await net.fetch(pathToFileURL(fontPath).toString());
   }
-})
+});
 ```
 
 **Sources:** [apps/desktop/src/main/index.ts:305-331]()
@@ -610,7 +608,6 @@ The desktop app follows Electron security best practices:
 ### Content Security Policy
 
 Defined in [apps/desktop/src/renderer/index.html:20]():
-
 - `default-src 'self'` - Only allow same-origin by default
 - `script-src 'self' 'wasm-unsafe-eval'` - WebAssembly for xterm.js
 - `connect-src` whitelist - API, Electric, PostHog, Sentry, localhost
@@ -619,7 +616,6 @@ Defined in [apps/desktop/src/renderer/index.html:20]():
 ### IPC Communication
 
 All renderer-to-main communication goes through type-safe tRPC procedures:
-
 - No direct `ipcMain`/`ipcRenderer` usage
 - Input validation via Zod schemas
 - Type safety enforced at compile time
@@ -641,7 +637,7 @@ graph TB
         ParcelWatcher["@parcel/watcher<br/>File watching"]
         AstGrep["@ast-grep/napi<br/>Code search"]
     end
-
+    
     subgraph "Platform-Specific Packages"
         LibSQLDarwin["@libsql/darwin-arm64<br/>@libsql/darwin-x64"]
         LibSQLLinux["@libsql/linux-x64"]
@@ -650,10 +646,10 @@ graph TB
         ParcelDarwin["@parcel/watcher-darwin-arm64"]
         ParcelLinux["@parcel/watcher-linux-x64-glibc"]
     end
-
+    
     NodePTY -->|Requires| ASAR["ASAR Unpack"]
     BetterSQLite -->|Requires| ASAR
-
+    
     LibSQL -->|Loads| LibSQLDarwin
     LibSQL -->|Loads| LibSQLLinux
     AstGrep -->|Loads| AstGrepDarwin
@@ -663,7 +659,6 @@ graph TB
 ```
 
 The [apps/desktop/scripts/copy-native-modules.ts]() script handles:
-
 1. Replacing Bun symlinks with real files
 2. Fetching platform-specific packages for cross-compilation
 3. Ensuring all required native binaries are present

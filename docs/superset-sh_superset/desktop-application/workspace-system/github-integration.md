@@ -25,6 +25,8 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
+
+
 ## Purpose and Scope
 
 This document describes the GitHub-specific integration features in the Superset desktop application, including pull request status fetching, PR creation workflows, deployment preview URLs, and the GitHub CLI integration layer. This builds on the Git operations foundation to provide rich GitHub-specific functionality.
@@ -59,9 +61,9 @@ Before querying for PRs or creating new ones, the application determines whether
 
 ```typescript
 interface RepoContext {
-  repoUrl: string // Local repo's GitHub URL (fork if forked)
-  upstreamUrl: string // Upstream repo URL (parent if forked, else same as repoUrl)
-  isFork: boolean // Whether the local repo is a fork
+  repoUrl: string;        // Local repo's GitHub URL (fork if forked)
+  upstreamUrl: string;    // Upstream repo URL (parent if forked, else same as repoUrl)
+  isFork: boolean;        // Whether the local repo is a fork
 }
 ```
 
@@ -79,7 +81,7 @@ flowchart TD
     CompareUrls{"originUrl != ghUrl?"}
     ForkContext["Return<br/>repoUrl: origin<br/>upstreamUrl: parent<br/>isFork: true"]
     NonForkContext["Return<br/>repoUrl: ghUrl<br/>upstreamUrl: ghUrl<br/>isFork: false"]
-
+    
     Start --> Cache
     Cache -->|miss| GH
     GH --> ParseFork
@@ -96,12 +98,12 @@ flowchart TD
 
 The `normalizeGitHubUrl` function converts SSH, HTTPS, and SSH-over-HTTPS Git remote URLs to a canonical HTTPS format (`https://github.com/owner/repo`):
 
-| Input Format                          | Normalized Output                |
-| ------------------------------------- | -------------------------------- |
-| `git@github.com:owner/repo.git`       | `https://github.com/owner/owner` |
-| `ssh://git@github.com/owner/repo.git` | `https://github.com/owner/repo`  |
-| `https://github.com/owner/repo.git`   | `https://github.com/owner/repo`  |
-| `https://github.com/owner/repo/`      | `https://github.com/owner/repo`  |
+| Input Format | Normalized Output |
+|--------------|------------------|
+| `git@github.com:owner/repo.git` | `https://github.com/owner/owner` |
+| `ssh://git@github.com/owner/repo.git` | `https://github.com/owner/repo` |
+| `https://github.com/owner/repo.git` | `https://github.com/owner/repo` |
+| `https://github.com/owner/repo/` | `https://github.com/owner/repo` |
 
 Sources: [apps/desktop/src/lib/trpc/routers/workspaces/utils/github/github.ts:93-180](), [apps/desktop/src/lib/trpc/routers/changes/utils/pull-request-url.ts:13-28]()
 
@@ -116,24 +118,24 @@ The `fetchGitHubPRStatus` function is the primary entry point for retrieving PR 
 ```typescript
 interface GitHubStatus {
   pr: {
-    number: number
-    title: string
-    url: string
-    state: 'open' | 'draft' | 'merged' | 'closed'
-    mergedAt?: number
-    additions: number
-    deletions: number
-    reviewDecision: 'approved' | 'changes_requested' | 'pending'
-    checksStatus: 'success' | 'failure' | 'pending' | 'none'
-    checks: CheckItem[]
-    requestedReviewers: string[]
-  } | null
-  repoUrl: string
-  upstreamUrl: string
-  isFork: boolean
-  branchExistsOnRemote: boolean
-  previewUrl?: string
-  lastRefreshed: number
+    number: number;
+    title: string;
+    url: string;
+    state: "open" | "draft" | "merged" | "closed";
+    mergedAt?: number;
+    additions: number;
+    deletions: number;
+    reviewDecision: "approved" | "changes_requested" | "pending";
+    checksStatus: "success" | "failure" | "pending" | "none";
+    checks: CheckItem[];
+    requestedReviewers: string[];
+  } | null;
+  repoUrl: string;
+  upstreamUrl: string;
+  isFork: boolean;
+  branchExistsOnRemote: boolean;
+  previewUrl?: string;
+  lastRefreshed: number;
 }
 ```
 
@@ -152,14 +154,14 @@ sequenceDiagram
     participant getPRByBranchTracking
     participant findPRByHeadCommit
     participant gh as gh CLI
-
+    
     Caller->>fetchGitHubPRStatus: worktreePath
     fetchGitHubPRStatus->>fetchGitHubPRStatus: getRepoContext()
     fetchGitHubPRStatus->>fetchGitHubPRStatus: git rev-parse HEAD
-
+    
     fetchGitHubPRStatus->>getPRByBranchTracking: localBranch
     getPRByBranchTracking->>gh: gh pr view --json ...
-
+    
     alt Tracking ref matches a PR
         gh-->>getPRByBranchTracking: PR data
         getPRByBranchTracking->>getPRByBranchTracking: branchMatchesPR(localBranch, headRefName)
@@ -172,7 +174,7 @@ sequenceDiagram
         findPRByHeadCommit->>findPRByHeadCommit: Filter by headRefOid === headSha
         findPRByHeadCommit-->>fetchGitHubPRStatus: PR data or null
     end
-
+    
     fetchGitHubPRStatus->>fetchGitHubPRStatus: fetchPreviewDeploymentUrl()
     fetchGitHubPRStatus-->>Caller: GitHubStatus
 ```
@@ -182,7 +184,6 @@ sequenceDiagram
 ### Branch Name Matching for Forks
 
 The `branchMatchesPR` function handles fork scenarios where the local branch name differs from the PR's head branch name. For example, a fork PR might have:
-
 - PR `headRefName`: `feature/my-thing`
 - Local branch: `forkowner/feature/my-thing`
 
@@ -206,12 +207,12 @@ The `createPR` tRPC procedure orchestrates the PR creation workflow, including b
 
 Before creating a PR, the procedure checks the branch's tracking status:
 
-| Condition                     | Action                                                                |
-| ----------------------------- | --------------------------------------------------------------------- |
-| No upstream configured        | Push with `--set-upstream`                                            |
-| Behind upstream by N commits  | Throw `PRECONDITION_FAILED` error unless `allowOutOfDate` flag is set |
-| Has unpushed commits          | Push to remote                                                        |
-| Push fails (non-fast-forward) | Throw error advising rebase                                           |
+| Condition | Action |
+|-----------|--------|
+| No upstream configured | Push with `--set-upstream` |
+| Behind upstream by N commits | Throw `PRECONDITION_FAILED` error unless `allowOutOfDate` flag is set |
+| Has unpushed commits | Push to remote |
+| Push fails (non-fast-forward) | Throw error advising rebase |
 
 [apps/desktop/src/lib/trpc/routers/changes/git-operations.ts:481-569]()
 
@@ -234,29 +235,29 @@ flowchart TD
     CheckUpstream["getTrackingBranchStatus()"]
     BehindCheck{"pullCount > 0<br/>and !allowOutOfDate?"}
     ThrowBehind["Throw PRECONDITION_FAILED<br/>'Pull/rebase first'"]
-
+    
     HasUpstream{"hasUpstream?"}
     PushSetUpstream["pushWithSetUpstream(branch)"]
     TryPush["git push"]
     PushFails{"Push fails?"}
     RetrySetUpstream["Retry with<br/>--set-upstream"]
-
+    
     FindExisting["findExistingOpenPRUrl()"]
     ExistingFound{"PR exists?"}
     ReturnExisting["Return existing PR URL"]
-
+    
     BuildNew["buildNewPullRequestUrl()"]
     GHRepoView["gh repo view<br/>--json url,isFork,parent,<br/>defaultBranchRef"]
     GetBaseBranch["Get configured base branch<br/>or use defaultBranchRef"]
     ParseUpstream["Parse @{upstream}<br/>for head owner/branch"]
     BuildCompare["Build compare URL:<br/>base/repo/compare/<br/>base...head:branch?expand=1"]
     ReturnNew["Return compare URL"]
-
+    
     Start --> CheckUpstream
     CheckUpstream --> BehindCheck
     BehindCheck -->|yes| ThrowBehind
     BehindCheck -->|no| HasUpstream
-
+    
     HasUpstream -->|no| PushSetUpstream
     HasUpstream -->|yes| TryPush
     TryPush --> PushFails
@@ -264,11 +265,11 @@ flowchart TD
     PushFails -->|no| FindExisting
     PushSetUpstream --> FindExisting
     RetrySetUpstream --> FindExisting
-
+    
     FindExisting --> ExistingFound
     ExistingFound -->|yes| ReturnExisting
     ExistingFound -->|no| BuildNew
-
+    
     BuildNew --> GHRepoView
     GHRepoView --> GetBaseBranch
     GetBaseBranch --> ParseUpstream
@@ -338,4 +339,3 @@ const GHPRResponseSchema = z.object({
   title: z.string(),
   url: z.string(),
   state: z.enum(["OPEN", "CLOSED", "MERGED\
-```

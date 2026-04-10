@@ -36,8 +36,8 @@ The following files were used as context for generating this wiki page:
 - [apps/desktop/src/main/lib/auto-updater.ts](apps/desktop/src/main/lib/auto-updater.ts)
 - [apps/desktop/src/renderer/env.renderer.ts](apps/desktop/src/renderer/env.renderer.ts)
 - [apps/desktop/src/renderer/index.html](apps/desktop/src/renderer/index.html)
-- [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx)
-- [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts)
+- [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx)
+- [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts)
 - [apps/desktop/vite/helpers.ts](apps/desktop/vite/helpers.ts)
 - [apps/web/src/app/auth/desktop/success/page.tsx](apps/web/src/app/auth/desktop/success/page.tsx)
 - [apps/web/src/trpc/react.tsx](apps/web/src/trpc/react.tsx)
@@ -49,6 +49,8 @@ The following files were used as context for generating this wiki page:
 - [scripts/lint.sh](scripts/lint.sh)
 
 </details>
+
+
 
 This document covers the build systems, test execution, and quality assurance processes for the Superset monorepo. It explains how to compile applications, run tests, execute CI checks, and validate code changes before deployment.
 
@@ -66,20 +68,20 @@ The repository requires **Bun 1.3.6** as specified in [package.json:16](). All d
 
 Key monorepo scripts from [package.json:18-40]():
 
-| Script      | Command                                                                                  | Purpose                   |
-| ----------- | ---------------------------------------------------------------------------------------- | ------------------------- |
-| `build`     | `turbo build --filter=@superset/desktop`                                                 | Build desktop app only    |
-| `dev`       | `turbo run dev --filter=@superset/api --filter=@superset/web --filter=@superset/desktop` | Start development servers |
-| `test`      | `turbo test`                                                                             | Run all tests             |
-| `typecheck` | `turbo typecheck`                                                                        | Type check all packages   |
-| `lint`      | `./scripts/lint.sh`                                                                      | Run Biome linter          |
+| Script | Command | Purpose |
+|--------|---------|---------|
+| `build` | `turbo build --filter=@superset/desktop` | Build desktop app only |
+| `dev` | `turbo run dev --filter=@superset/api --filter=@superset/web --filter=@superset/desktop` | Start development servers |
+| `test` | `turbo test` | Run all tests |
+| `typecheck` | `turbo typecheck` | Type check all packages |
+| `lint` | `./scripts/lint.sh` | Run Biome linter |
 
 **Turbo Build Orchestration Diagram**
 
 ```mermaid
 graph TB
     Root["Root package.json<br/>Turborepo orchestration"]
-
+    
     subgraph "Apps"
         Desktop["@superset/desktop<br/>Electron + React"]
         API["@superset/api<br/>Next.js"]
@@ -88,7 +90,7 @@ graph TB
         Marketing["@superset/marketing<br/>Next.js"]
         Docs["@superset/docs<br/>Next.js"]
     end
-
+    
     subgraph "Shared Packages"
         LocalDB["@superset/local-db<br/>Drizzle ORM"]
         DB["@superset/db<br/>Drizzle ORM"]
@@ -97,19 +99,19 @@ graph TB
         Auth["@superset/auth<br/>better-auth"]
         Chat["@superset/chat<br/>AI SDK"]
     end
-
+    
     Root -->|"turbo build"| Desktop
     Root -->|"turbo build"| API
     Root -->|"turbo build"| Web
-
+    
     Desktop -->|imports| LocalDB
     Desktop -->|imports| Chat
     Desktop -->|imports| UI
-
+    
     API -->|imports| DB
     API -->|imports| TRPC
     API -->|imports| Auth
-
+    
     Web -->|imports| DB
     Web -->|imports| TRPC
     Web -->|imports| UI
@@ -146,7 +148,6 @@ input: {
 ```
 
 The renderer build uses Vite plugins [apps/desktop/electron.vite.config.ts:216-237]():
-
 - `@tanstack/router-plugin` - Generate type-safe routes
 - `@tailwindcss/vite` - Tailwind CSS compilation
 - `@vitejs/plugin-react` - React transformation
@@ -156,55 +157,55 @@ The renderer build uses Vite plugins [apps/desktop/electron.vite.config.ts:216-2
 
 From [apps/desktop/package.json:16-35]():
 
-| Script                    | Purpose                                                   |
-| ------------------------- | --------------------------------------------------------- |
-| `clean:dev`               | Remove `.cache`, `.turbo`, `dist`, `node_modules/.dev`    |
-| `generate:icons`          | Generate file type icons from Material Icon Theme         |
-| `compile:app`             | Run electron-vite build with environment variables        |
-| `copy:native-modules`     | Materialize symlinked native modules for packaging        |
-| `validate:native-runtime` | Verify native modules match Electron ABI                  |
-| `prebuild`                | Run clean, generate icons, compile, copy/validate natives |
-| `build`                   | Run electron-builder with `--publish never`               |
-| `package`                 | Run electron-builder with custom config                   |
+| Script | Purpose |
+|--------|---------|
+| `clean:dev` | Remove `.cache`, `.turbo`, `dist`, `node_modules/.dev` |
+| `generate:icons` | Generate file type icons from Material Icon Theme |
+| `compile:app` | Run electron-vite build with environment variables |
+| `copy:native-modules` | Materialize symlinked native modules for packaging |
+| `validate:native-runtime` | Verify native modules match Electron ABI |
+| `prebuild` | Run clean, generate icons, compile, copy/validate natives |
+| `build` | Run electron-builder with `--publish never` |
+| `package` | Run electron-builder with custom config |
 
 **Build Process Flow Diagram**
 
 ```mermaid
 graph TD
     Start["bun run build"]
-
+    
     CleanDev["clean:dev<br/>rimraf ./node_modules/.dev"]
     GenerateIcons["generate:icons<br/>scripts/generate-file-icons.ts"]
     CompileApp["compile:app<br/>electron-vite build<br/>NODE_OPTIONS=--max-old-space-size=8192"]
-
+    
     subgraph "electron-vite outputs"
         MainBundle["dist/main/<br/>index.js, terminal-host.js,<br/>pty-subprocess.js, etc."]
         PreloadBundle["dist/preload/<br/>index.js"]
         RendererBundle["dist/renderer/<br/>index.html, assets/"]
     end
-
+    
     CopyNatives["copy:native-modules<br/>Materialize symlinked modules<br/>better-sqlite3, node-pty, etc."]
     ValidateNatives["validate:native-runtime<br/>Verify ABI compatibility"]
-
+    
     ElectronBuilder["electron-builder<br/>--config electron-builder.ts"]
-
+    
     subgraph "electron-builder outputs"
         DMG["macOS .dmg"]
         ZIP["macOS .zip + latest-mac.yml"]
         AppImage["Linux .AppImage + latest-linux.yml"]
     end
-
+    
     Start --> CleanDev
     CleanDev --> GenerateIcons
     GenerateIcons --> CompileApp
     CompileApp --> MainBundle
     CompileApp --> PreloadBundle
     CompileApp --> RendererBundle
-
+    
     MainBundle --> CopyNatives
     CopyNatives --> ValidateNatives
     ValidateNatives --> ElectronBuilder
-
+    
     ElectronBuilder --> DMG
     ElectronBuilder --> ZIP
     ElectronBuilder --> AppImage
@@ -221,17 +222,15 @@ Desktop apps include native Node.js addons that must be copied and rebuilt for E
 3. **Platform-specific binaries** - Fetch correct arch/platform variants from npm if cross-compiling
 
 Required native modules from [apps/desktop/runtime-dependencies.ts]():
-
 - `better-sqlite3` - SQLite database
 - `node-pty` - Pseudoterminal for terminal sessions
 - `@parcel/watcher` - File system watching
 - `@superset/macos-process-metrics` - macOS-specific native addon
 
 The `TARGET_ARCH` environment variable enables cross-compilation [apps/desktop/scripts/copy-native-modules.ts:33-34]():
-
 ```typescript
-const TARGET_ARCH = process.env.TARGET_ARCH || process.arch
-const TARGET_PLATFORM = process.env.TARGET_PLATFORM || process.platform
+const TARGET_ARCH = process.env.TARGET_ARCH || process.arch;
+const TARGET_PLATFORM = process.env.TARGET_PLATFORM || process.platform;
 ```
 
 **Sources:** [apps/desktop/scripts/copy-native-modules.ts:1-298](), [apps/desktop/package.json:23-27]()
@@ -242,31 +241,28 @@ Configuration in [apps/desktop/electron-builder.ts:1-153]() defines:
 
 **Packaging Strategy:**
 
-| Configuration    | Value                              | Purpose                                          |
-| ---------------- | ---------------------------------- | ------------------------------------------------ |
-| `asar`           | `true`                             | Bundle app into archive for faster loading       |
-| `asarUnpack`     | Native modules, sounds, tray icons | Extract files that need direct filesystem access |
-| `extraResources` | Database migrations                | Place outside asar for drizzle-orm to read       |
-| `npmRebuild`     | `true`                             | Rebuild native modules for Electron's Node.js    |
+| Configuration | Value | Purpose |
+|---------------|-------|---------|
+| `asar` | `true` | Bundle app into archive for faster loading |
+| `asarUnpack` | Native modules, sounds, tray icons | Extract files that need direct filesystem access |
+| `extraResources` | Database migrations | Place outside asar for drizzle-orm to read |
+| `npmRebuild` | `true` | Rebuild native modules for Electron's Node.js |
 
 **Platform Configurations:**
 
 **macOS** [apps/desktop/electron-builder.ts:90-117]():
-
 - Signing: `hardenedRuntime: true`, requires `CSC_LINK` certificate
 - Notarization: `notarize: true`, requires `APPLE_ID` credentials
 - Entitlements: Microphone, local network, Apple Events permissions
 - Output: `.dmg` installer + `.zip` for auto-update
 
 **Linux** [apps/desktop/electron-builder.ts:126-132]():
-
 - Target: AppImage (portable executable)
 - Artifact naming: `superset-${version}-${arch}.AppImage`
 
 **Update Manifests:**
 
 electron-builder generates auto-update manifests [apps/desktop/electron-builder.ts:28-37]():
-
 - `latest-mac.yml` - macOS Squirrel.Mac format
 - `latest-linux.yml` - Generic provider format
 - `generateUpdatesFilesForAllChannels: true` - Enables channel-based updates (stable, canary)
@@ -294,7 +290,6 @@ From [apps/api/package.json:6-11]():
 ```
 
 The build process:
-
 1. Reads environment variables from root `.env` file via `dotenv -e ../../.env`
 2. Validates environment schema in `src/env.ts` using `@t3-oss/env-nextjs`
 3. Compiles Next.js pages, API routes, and server components
@@ -319,7 +314,7 @@ export const env = createEnv({
     // ...
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
-})
+});
 ```
 
 Build fails early if any required variable is missing or invalid.
@@ -365,13 +360,11 @@ The repository uses **Bun's built-in test runner** for unit and integration test
 ### Test Execution
 
 Root command from [package.json:25]():
-
 ```bash
 bun run test  # Runs `turbo test` across all packages
 ```
 
 Desktop test script from [apps/desktop/package.json:35]():
-
 ```bash
 bun test  # Executes Bun test runner on *.test.ts files
 ```
@@ -390,10 +383,10 @@ test:
       with:
         path: ~/.bun/install/cache
         key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
-
+    
     - name: Install dependencies
       run: bun install --frozen
-
+    
     - name: Test
       env:
         NEXT_PUBLIC_OUTLIT_KEY: ${{ secrets.NEXT_PUBLIC_OUTLIT_KEY || 'ci-outlit-placeholder-key' }}
@@ -519,10 +512,10 @@ typecheck:
       with:
         path: ~/.bun/install/cache
         key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
-
+    
     - name: Install dependencies
       run: bun install --frozen
-
+    
     - name: Typecheck
       run: bun run typecheck
 ```
@@ -542,13 +535,12 @@ sherif:
   steps:
     - name: Install dependencies
       run: bun install --frozen
-
+    
     - name: Sherif
       run: bunx sherif
 ```
 
 Sherif detects:
-
 - Missing dependencies in package.json that are imported in code
 - Version mismatches between workspace packages
 - Unused dependencies declared but not imported
@@ -568,25 +560,25 @@ Sherif detects:
 ```mermaid
 graph TD
     PR["Pull Request<br/>or Push to main"]
-
+    
     Sherif["sherif job<br/>bunx sherif"]
     Lint["lint job<br/>bun run lint"]
     Test["test job<br/>bun run test"]
     Typecheck["typecheck job<br/>bun run typecheck"]
     Build["build job<br/>bun turbo run build --filter=@superset/desktop"]
-
+    
     CheckDeps["Check dependency consistency<br/>workspace versions aligned"]
     CheckStyle["Check code style<br/>Biome linter rules"]
     RunTests["Run unit tests<br/>Bun test runner"]
     TypeValidate["Validate TypeScript<br/>tsc --noEmit across packages"]
     CompileDesktop["Compile desktop app<br/>electron-vite build"]
-
+    
     PR --> Sherif
     PR --> Lint
     PR --> Test
     PR --> Typecheck
     PR --> Build
-
+    
     Sherif --> CheckDeps
     Lint --> CheckStyle
     Test --> RunTests
@@ -617,55 +609,53 @@ Cache key based on `bun.lock` ensures cache invalidation when dependencies chang
 ```mermaid
 graph TB
     PR["Pull Request Opened/Updated"]
-
+    
     subgraph "Database Layer"
         CreateBranch["Create Neon Branch<br/>neondatabase/create-branch-action"]
         NeonBranch["Neon Database Branch<br/>Isolated DB copy"]
         MigrateBranch["Run Migrations<br/>bun drizzle-kit migrate"]
     end
-
+    
     subgraph "Sync Layer"
         DeployElectric["Deploy Electric to Fly.io<br/>superfly/fly-pr-review-apps"]
         ElectricApp["Electric App<br/>superset-electric-pr-{number}"]
     end
-
+    
     subgraph "Application Layer"
         DeployAPI["Deploy API<br/>vercel deploy --prebuilt"]
         DeployWeb["Deploy Web<br/>vercel deploy --prebuilt"]
         DeployMarketing["Deploy Marketing<br/>vercel deploy --prebuilt"]
         DeployAdmin["Deploy Admin<br/>vercel deploy --prebuilt"]
         DeployDocs["Deploy Docs<br/>vercel deploy --prebuilt"]
-
+        
         APIAlias["api-pr-{number}-superset.vercel.app"]
         WebAlias["web-pr-{number}-superset.vercel.app"]
     end
-
+    
     PR --> CreateBranch
     CreateBranch --> NeonBranch
     NeonBranch --> MigrateBranch
-
+    
     MigrateBranch --> DeployElectric
     DeployElectric --> ElectricApp
-
+    
     ElectricApp --> DeployAPI
     DeployAPI --> APIAlias
-
+    
     APIAlias --> DeployWeb
     DeployWeb --> WebAlias
-
+    
     DeployAPI --> DeployMarketing
     DeployAPI --> DeployAdmin
     DeployAPI --> DeployDocs
 ```
 
 Each PR gets:
-
 1. **Isolated Neon database branch** - Copy of production schema with test data
 2. **Dedicated Electric sync server** - Deployed to Fly.io with unique app name
 3. **Five Vercel preview deployments** - API, Web, Marketing, Admin, Docs with PR-specific URLs
 
 Environment variables are passed at deploy time [.github/workflows/deploy-preview.yml:163-269]():
-
 ```bash
 vercel deploy --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
   --env DATABASE_URL=$DATABASE_URL \
@@ -688,7 +678,7 @@ jobs:
     steps:
       - name: Delete Neon branch
         uses: neondatabase/delete-branch-action@v3
-
+      
       - name: Delete Electric Fly.io app
         run: flyctl apps destroy "superset-electric-pr-${{ PR_NUMBER }}" --yes
 ```
@@ -719,7 +709,6 @@ Desktop releases are triggered by pushing tags matching `desktop-v*.*.*` pattern
 8. **Publish or leave draft** - With `--publish` flag, auto-publish when build completes
 
 Example usage:
-
 ```bash
 ./apps/desktop/create-release.sh              # Interactive version prompt
 ./apps/desktop/create-release.sh 1.2.3        # Explicit version
@@ -734,55 +723,55 @@ Example usage:
 ```mermaid
 graph TD
     Tag["Git Tag Pushed<br/>desktop-v1.2.3"]
-
+    
     BuildJob["build job<br/>Uses build-desktop.yml workflow"]
-
+    
     subgraph "Matrix Build"
         BuildMacArm["macOS arm64<br/>macos-latest runner"]
         BuildMacX64["macOS x64<br/>macos-latest runner"]
         BuildLinux["Linux x64<br/>ubuntu-latest runner"]
     end
-
+    
     subgraph "Artifacts"
         ArmDMG["Superset-1.2.3-arm64.dmg"]
         ArmZIP["Superset-1.2.3-arm64-mac.zip"]
         ArmManifest["latest-mac.yml (arm64)"]
-
+        
         X64DMG["Superset-1.2.3.dmg"]
         X64ZIP["Superset-1.2.3-mac.zip"]
         X64Manifest["latest-mac.yml (x64)"]
-
+        
         AppImage["superset-1.2.3-x64.AppImage"]
         LinuxManifest["latest-linux.yml"]
     end
-
+    
     ReleaseJob["release job<br/>Create GitHub Release"]
-
+    
     MergeManifests["Merge macOS Manifests<br/>merge-mac-manifests action"]
     StableCopies["Create Stable Copies<br/>Superset-arm64.dmg<br/>Superset-x64.dmg"]
     DraftRelease["Create Draft Release<br/>gh release create --draft"]
-
+    
     Tag --> BuildJob
-
+    
     BuildJob --> BuildMacArm
     BuildJob --> BuildMacX64
     BuildJob --> BuildLinux
-
+    
     BuildMacArm --> ArmDMG
     BuildMacArm --> ArmZIP
     BuildMacArm --> ArmManifest
-
+    
     BuildMacX64 --> X64DMG
     BuildMacX64 --> X64ZIP
     BuildMacX64 --> X64Manifest
-
+    
     BuildLinux --> AppImage
     BuildLinux --> LinuxManifest
-
+    
     ArmManifest --> ReleaseJob
     X64Manifest --> ReleaseJob
     LinuxManifest --> ReleaseJob
-
+    
     ReleaseJob --> MergeManifests
     MergeManifests --> StableCopies
     StableCopies --> DraftRelease
@@ -800,7 +789,6 @@ strategy:
 ```
 
 Each macOS build:
-
 1. Installs dependencies with `bun install --frozen`
 2. Sets version suffix if canary build [.github/workflows/build-desktop.yml:63-78]()
 3. Compiles app with electron-vite [.github/workflows/build-desktop.yml:88-104]()
@@ -925,11 +913,8 @@ define: {
 The `defineEnv` helper [apps/desktop/vite/helpers.ts:19-24]() stringifies values:
 
 ```typescript
-export function defineEnv(
-  value: string | undefined,
-  fallback?: string
-): string {
-  return JSON.stringify(value ?? fallback)
+export function defineEnv(value: string | undefined, fallback?: string): string {
+  return JSON.stringify(value ?? fallback);
 }
 ```
 
@@ -956,22 +941,22 @@ The desktop app includes non-code resources that must be accessible at runtime:
 ```typescript
 const RESOURCES_TO_COPY = [
   {
-    src: resolve(__dirname, '..', resources, 'sounds'),
-    dest: resolve(__dirname, '..', devPath, 'resources/sounds'),
+    src: resolve(__dirname, "..", resources, "sounds"),
+    dest: resolve(__dirname, "..", devPath, "resources/sounds"),
   },
   {
-    src: resolve(__dirname, '..', resources, 'tray'),
-    dest: resolve(__dirname, '..', devPath, 'resources/tray'),
+    src: resolve(__dirname, "..", resources, "tray"),
+    dest: resolve(__dirname, "..", devPath, "resources/tray"),
   },
   {
-    src: resolve(__dirname, '../../../packages/local-db/drizzle'),
-    dest: resolve(__dirname, '..', devPath, 'resources/migrations'),
+    src: resolve(__dirname, "../../../packages/local-db/drizzle"),
+    dest: resolve(__dirname, "..", devPath, "resources/migrations"),
   },
   {
-    src: resolve(__dirname, '../../../packages/host-service/drizzle'),
-    dest: resolve(__dirname, '..', devPath, 'resources/host-migrations'),
+    src: resolve(__dirname, "../../../packages/host-service/drizzle"),
+    dest: resolve(__dirname, "..", devPath, "resources/host-migrations"),
   },
-]
+];
 ```
 
 These are copied during build and placed in `extraResources` [apps/desktop/electron-builder.ts:56-68]():
@@ -979,14 +964,14 @@ These are copied during build and placed in `extraResources` [apps/desktop/elect
 ```typescript
 extraResources: [
   {
-    from: 'dist/resources/migrations',
-    to: 'resources/migrations',
-    filter: ['**/*'],
+    from: "dist/resources/migrations",
+    to: "resources/migrations",
+    filter: ["**/*"],
   },
   {
-    from: 'dist/resources/host-migrations',
-    to: 'resources/host-migrations',
-    filter: ['**/*'],
+    from: "dist/resources/host-migrations",
+    to: "resources/host-migrations",
+    filter: ["**/*"],
   },
 ]
 ```
@@ -1000,8 +985,8 @@ Certain resources must be unpacked from the asar archive [apps/desktop/electron-
 ```typescript
 asarUnpack: [
   ...packagedAsarUnpackGlobs,
-  '**/resources/sounds/**/*', // For afplay/paplay external players
-  '**/resources/tray/**/*', // For Electron Tray API
+  "**/resources/sounds/**/*",    // For afplay/paplay external players
+  "**/resources/tray/**/*",      // For Electron Tray API
 ]
 ```
 

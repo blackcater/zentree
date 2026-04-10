@@ -18,12 +18,14 @@ The following files were used as context for generating this wiki page:
 - [apps/api/src/env.ts](apps/api/src/env.ts)
 - [apps/api/src/proxy.ts](apps/api/src/proxy.ts)
 - [apps/api/src/trpc/context.ts](apps/api/src/trpc/context.ts)
-- [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx)
-- [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts)
+- [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx)
+- [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts)
 - [apps/web/src/trpc/react.tsx](apps/web/src/trpc/react.tsx)
 - [fly.toml](fly.toml)
 
 </details>
+
+
 
 The API application is a Next.js backend server that provides type-safe tRPC endpoints and an ElectricSQL proxy with row-level security. It serves as the primary backend for the Web, Admin, and Desktop applications, handling authentication, database mutations, external service integrations, and secure access to real-time data synchronization.
 
@@ -35,15 +37,15 @@ For information about the Desktop app's tRPC communication with the API, see [IP
 
 The API application is built on the following core technologies:
 
-| Technology             | Purpose                                               |
-| ---------------------- | ----------------------------------------------------- |
-| **Next.js 16**         | Web framework and deployment target                   |
-| **tRPC 11**            | Type-safe API layer for mutations and queries         |
-| **Better Auth**        | Authentication and session management                 |
-| **Drizzle ORM**        | Database access to Neon PostgreSQL                    |
-| **ElectricSQL Client** | Real-time sync proxy configuration                    |
-| **Zod**                | Runtime schema validation                             |
-| **SuperJSON**          | Data serialization with support for dates, maps, sets |
+| Technology | Purpose |
+|------------|---------|
+| **Next.js 16** | Web framework and deployment target |
+| **tRPC 11** | Type-safe API layer for mutations and queries |
+| **Better Auth** | Authentication and session management |
+| **Drizzle ORM** | Database access to Neon PostgreSQL |
+| **ElectricSQL Client** | Real-time sync proxy configuration |
+| **Zod** | Runtime schema validation |
+| **SuperJSON** | Data serialization with support for dates, maps, sets |
 
 **Sources:** [apps/api/package.json:1-62]()
 
@@ -58,14 +60,14 @@ graph TB
         Web["Web App<br/>(Next.js)"]
         Admin["Admin App<br/>(Next.js)"]
     end
-
+    
     subgraph "API Application (Vercel)"
         TRPC["/api/trpc<br/>tRPC Endpoint"]
         Electric["/api/electric<br/>ElectricSQL Proxy"]
         Context["createContext()<br/>Auth Session"]
         Proxy["proxy.ts<br/>CORS Middleware"]
     end
-
+    
     subgraph "Backend Services"
         NeonDB["Neon PostgreSQL<br/>Source of Truth"]
         ElectricServer["ElectricSQL Server<br/>(Fly.io)"]
@@ -73,29 +75,29 @@ graph TB
         Anthropic["Anthropic API"]
         Stripe["Stripe API"]
     end
-
+    
     Desktop -->|"tRPC calls<br/>httpBatchLink"| TRPC
     Desktop -->|"Shape streams<br/>electricCollectionOptions"| Electric
     Web -->|"tRPC calls<br/>httpBatchStreamLink"| TRPC
     Admin -->|"tRPC calls<br/>httpBatchStreamLink"| TRPC
-
+    
     Proxy -->|"applies CORS headers"| TRPC
     Proxy -->|"applies CORS headers"| Electric
-
+    
     TRPC --> Context
     Electric --> Context
-
+    
     Context -->|"auth.api.getSession()"| NeonDB
-
+    
     TRPC -->|"Drizzle queries/mutations"| NeonDB
     Electric -->|"authenticated proxy<br/>buildWhereClause()"| ElectricServer
-
+    
     ElectricServer -->|"replicates"| NeonDB
-
+    
     TRPC -->|"GitHub operations"| GitHub
     TRPC -->|"AI chat/agents"| Anthropic
     TRPC -->|"billing"| Stripe
-
+    
     style TRPC fill:#ffe1e1
     style Electric fill:#fff4e1
     style NeonDB fill:#e1ffe1
@@ -121,14 +123,14 @@ graph LR
     Context["createContext()"]
     Session["auth.api.getSession()"]
     Router["AppRouter<br/>(@superset/trpc)"]
-
+    
     Client -->|"HTTP POST/GET<br/>/api/trpc"| Context
     Context -->|"req.headers"| Session
     Session -->|"returns session data"| Context
     Context -->|"provides context"| Router
-
+    
     Router -->|"executes procedures"| Handlers["Procedure Handlers<br/>(task.create, etc.)"]
-
+    
     style Context fill:#ffe1e1
     style Router fill:#fff4e1
 ```
@@ -161,16 +163,16 @@ sequenceDiagram
     participant Auth as authenticate()
     participant Build as buildWhereClause()
     participant Electric as ElectricSQL Server
-
+    
     Client->>Route: GET /api/electric?table=projects&organizationId=org_123
     Route->>Auth: Verify JWT or session
     Auth-->>Route: userId, organizationIds[]
-
+    
     Route->>Route: Check organizationId in organizationIds[]
-
+    
     Route->>Build: buildWhereClause(table, organizationId, userId)
     Build-->>Route: { fragment: "organization_id = $1", params: ["org_123"] }
-
+    
     Route->>Electric: Forward with WHERE clause and secret
     Electric-->>Route: Shape stream
     Route-->>Client: Filtered data stream
@@ -185,6 +187,7 @@ The proxy supports two authentication methods ([apps/api/src/app/api/electric/[.
 1. **JWT Bearer Token**: Extracted from `Authorization: Bearer <token>` header
    - Verified using `auth.api.verifyJWT()`
    - Payload contains `sub` (userId) and `organizationIds` array
+   
 2. **Session Cookie**: Fallback method
    - Retrieved via `auth.api.getSession({ headers })`
    - Returns userId and organizationIds from session
@@ -193,13 +196,13 @@ The proxy supports two authentication methods ([apps/api/src/app/api/electric/[.
 
 The `buildWhereClause()` function generates SQL WHERE clauses based on table name ([apps/api/src/app/api/electric/[...path]/utils.ts:69-195]()):
 
-| Table                             | WHERE Clause Logic                                |
-| --------------------------------- | ------------------------------------------------- |
-| `tasks`, `projects`, `workspaces` | `organization_id = $1`                            |
-| `auth.organizations`              | Query user's memberships, then `id IN (...)`      |
-| `auth.users`                      | `$1 = ANY(organization_ids)`                      |
-| `auth.apikeys`                    | `metadata LIKE '%"organizationId":"$1"%'`         |
-| `integration_connections`         | Excludes `accessToken` and `refreshToken` columns |
+| Table | WHERE Clause Logic |
+|-------|-------------------|
+| `tasks`, `projects`, `workspaces` | `organization_id = $1` |
+| `auth.organizations` | Query user's memberships, then `id IN (...)` |
+| `auth.users` | `$1 = ANY(organization_ids)` |
+| `auth.apikeys` | `metadata LIKE '%"organizationId":"$1"%'` |
+| `integration_connections` | Excludes `accessToken` and `refreshToken` columns |
 
 **Sensitive Column Filtering:**
 
@@ -207,16 +210,14 @@ For tables containing secrets, the proxy explicitly sets the `columns` parameter
 
 ```typescript
 // API keys: only expose non-secret fields
-if (tableName === 'auth.apikeys') {
-  originUrl.searchParams.set('columns', 'id,name,start,created_at,last_request')
+if (tableName === "auth.apikeys") {
+  originUrl.searchParams.set("columns", "id,name,start,created_at,last_request");
 }
 
 // Integration connections: exclude OAuth tokens
-if (tableName === 'integration_connections') {
-  originUrl.searchParams.set(
-    'columns',
-    'id,organization_id,...,created_at,updated_at'
-  )
+if (tableName === "integration_connections") {
+  originUrl.searchParams.set("columns", 
+    "id,organization_id,...,created_at,updated_at");
 }
 ```
 
@@ -234,11 +235,11 @@ The `proxy.ts` middleware configures CORS headers for cross-origin requests from
 
 ```typescript
 const allowedOrigins = [
-  env.NEXT_PUBLIC_WEB_URL, // https://app.superset.com
-  env.NEXT_PUBLIC_ADMIN_URL, // https://admin.superset.com
-  env.NEXT_PUBLIC_DESKTOP_URL, // superset://
-  ...desktopDevOrigins, // http://localhost:5173 (dev only)
-]
+  env.NEXT_PUBLIC_WEB_URL,        // https://app.superset.com
+  env.NEXT_PUBLIC_ADMIN_URL,       // https://admin.superset.com
+  env.NEXT_PUBLIC_DESKTOP_URL,     // superset://
+  ...desktopDevOrigins,            // http://localhost:5173 (dev only)
+];
 ```
 
 **Exposed Headers:**
@@ -258,46 +259,46 @@ The API requires extensive environment variables for database access, authentica
 
 ### Database and Sync
 
-| Variable                | Purpose                                      |
-| ----------------------- | -------------------------------------------- |
-| `DATABASE_URL`          | Pooled connection string for Neon PostgreSQL |
-| `DATABASE_URL_UNPOOLED` | Direct connection for migrations             |
-| `ELECTRIC_URL`          | ElectricSQL server endpoint (Fly.io)         |
-| `ELECTRIC_SECRET`       | Shared secret for Electric authentication    |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob storage token                    |
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | Pooled connection string for Neon PostgreSQL |
+| `DATABASE_URL_UNPOOLED` | Direct connection for migrations |
+| `ELECTRIC_URL` | ElectricSQL server endpoint (Fly.io) |
+| `ELECTRIC_SECRET` | Shared secret for Electric authentication |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob storage token |
 
 ### Authentication
 
-| Variable                                    | Purpose                                 |
-| ------------------------------------------- | --------------------------------------- |
-| `BETTER_AUTH_SECRET`                        | Encryption key for Better Auth sessions |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth                            |
-| `GH_CLIENT_ID` / `GH_CLIENT_SECRET`         | GitHub OAuth                            |
-| `NEXT_PUBLIC_COOKIE_DOMAIN`                 | Session cookie domain                   |
+| Variable | Purpose |
+|----------|---------|
+| `BETTER_AUTH_SECRET` | Encryption key for Better Auth sessions |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth |
+| `GH_CLIENT_ID` / `GH_CLIENT_SECRET` | GitHub OAuth |
+| `NEXT_PUBLIC_COOKIE_DOMAIN` | Session cookie domain |
 
 ### External Services
 
-| Variable                                    | Purpose                          |
-| ------------------------------------------- | -------------------------------- |
-| `GH_APP_ID` / `GH_APP_PRIVATE_KEY`          | GitHub App for repository access |
-| `ANTHROPIC_API_KEY`                         | Claude API for AI features       |
-| `LINEAR_CLIENT_ID` / `LINEAR_CLIENT_SECRET` | Linear integration               |
-| `SLACK_CLIENT_ID` / `SLACK_CLIENT_SECRET`   | Slack integration                |
-| `STRIPE_SECRET_KEY`                         | Billing and subscriptions        |
-| `RESEND_API_KEY`                            | Transactional email              |
-| `KV_REST_API_URL` / `KV_REST_API_TOKEN`     | Upstash Redis for rate limiting  |
-| `QSTASH_TOKEN`                              | QStash for async job processing  |
-| `TAVILY_API_KEY`                            | Web search API for agents        |
+| Variable | Purpose |
+|----------|---------|
+| `GH_APP_ID` / `GH_APP_PRIVATE_KEY` | GitHub App for repository access |
+| `ANTHROPIC_API_KEY` | Claude API for AI features |
+| `LINEAR_CLIENT_ID` / `LINEAR_CLIENT_SECRET` | Linear integration |
+| `SLACK_CLIENT_ID` / `SLACK_CLIENT_SECRET` | Slack integration |
+| `STRIPE_SECRET_KEY` | Billing and subscriptions |
+| `RESEND_API_KEY` | Transactional email |
+| `KV_REST_API_URL` / `KV_REST_API_TOKEN` | Upstash Redis for rate limiting |
+| `QSTASH_TOKEN` | QStash for async job processing |
+| `TAVILY_API_KEY` | Web search API for agents |
 
 ### Public Configuration
 
-| Variable                                               | Purpose                                    |
-| ------------------------------------------------------ | ------------------------------------------ |
-| `NEXT_PUBLIC_API_URL`                                  | API base URL (https://api.superset.com)    |
-| `NEXT_PUBLIC_WEB_URL`                                  | Web app URL (https://app.superset.com)     |
-| `NEXT_PUBLIC_ADMIN_URL`                                | Admin app URL (https://admin.superset.com) |
-| `NEXT_PUBLIC_POSTHOG_KEY` / `NEXT_PUBLIC_POSTHOG_HOST` | Analytics                                  |
-| `NEXT_PUBLIC_SENTRY_DSN_API`                           | Error tracking                             |
+| Variable | Purpose |
+|----------|---------|
+| `NEXT_PUBLIC_API_URL` | API base URL (https://api.superset.com) |
+| `NEXT_PUBLIC_WEB_URL` | Web app URL (https://app.superset.com) |
+| `NEXT_PUBLIC_ADMIN_URL` | Admin app URL (https://admin.superset.com) |
+| `NEXT_PUBLIC_POSTHOG_KEY` / `NEXT_PUBLIC_POSTHOG_HOST` | Analytics |
+| `NEXT_PUBLIC_SENTRY_DSN_API` | Error tracking |
 
 **Sources:** [apps/api/src/env.ts:1-77](), [.github/workflows/deploy-production.yml:69-123]()
 
@@ -316,12 +317,12 @@ graph TD
     Build["Build Next.js app<br/>vercel build --prod"]
     Deploy["Deploy to Vercel<br/>vercel deploy --prod"]
     Success["Production live at<br/>api.superset.com"]
-
+    
     Push --> Migrate
     Migrate --> Build
     Build --> Deploy
     Deploy --> Success
-
+    
     style Migrate fill:#e1ffe1
     style Deploy fill:#ffe1e1
 ```
@@ -341,9 +342,11 @@ Each pull request creates an isolated preview environment with:
 - **Neon Branch Database**: [.github/workflows/deploy-preview.yml:24-78]()
   - Created via `neondatabase/create-branch-action@v6`
   - Automatically deleted when PR closes
+  
 - **Electric Fly.io App**: [.github/workflows/deploy-preview.yml:80-123]()
   - Deployed to `superset-electric-pr-<number>.fly.dev`
   - Uses preview database URL
+  
 - **Vercel API Preview**: [.github/workflows/deploy-preview.yml:125-286]()
   - Aliased to `api-pr-<number>-superset.vercel.app`
   - Environment variables reference preview database and Electric URLs
@@ -366,7 +369,7 @@ ELECTRIC_URL: https://superset-electric-pr-${{ github.event.pull_request.number 
 
 ### Desktop Application
 
-The Desktop app creates a tRPC proxy client to call API procedures ([apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:138-149]()):
+The Desktop app creates a tRPC proxy client to call API procedures ([apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:138-149]()):
 
 ```typescript
 const apiClient = createTRPCProxyClient<AppRouter>({
@@ -374,18 +377,18 @@ const apiClient = createTRPCProxyClient<AppRouter>({
     httpBatchLink({
       url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
       headers: () => {
-        const token = getAuthToken()
-        return token ? { Authorization: `Bearer ${token}` } : {}
+        const token = getAuthToken();
+        return token ? { Authorization: `Bearer ${token}` } : {};
       },
       transformer: superjson,
     }),
   ],
-})
+});
 ```
 
 **Electric Collection Mutations:**
 
-Desktop collections use the API client for optimistic updates ([apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:188-205]()):
+Desktop collections use the API client for optimistic updates ([apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:188-205]()):
 
 ```typescript
 onInsert: async ({ transaction }) => {
@@ -397,7 +400,7 @@ onInsert: async ({ transaction }) => {
 
 The returned `txid` allows ElectricSQL to skip ahead in the sync stream, ensuring the local mutation immediately reflects the server state.
 
-**Sources:** [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:1-675]()
+**Sources:** [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:1-675]()
 
 ### Web and Admin Applications
 
@@ -412,14 +415,14 @@ const trpcClient = createTRPCClient<AppRouter>({
       transformer: SuperJSON,
       url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
       headers() {
-        return { 'x-trpc-source': 'nextjs-react' }
+        return { "x-trpc-source": "nextjs-react" };
       },
       fetch(url, options) {
-        return fetch(url, { ...options, credentials: 'include' })
+        return fetch(url, { ...options, credentials: "include" });
       },
     }),
   ],
-})
+});
 ```
 
 **Admin App Setup:** [apps/admin/src/trpc/react.tsx:36-61]()
@@ -448,7 +451,7 @@ The dev script uses `dotenv -e ../../.env` to load configuration ([apps/api/pack
 All client applications import the `AppRouter` type from `@superset/trpc`, ensuring procedure calls are type-checked at compile time:
 
 ```typescript
-import type { AppRouter } from '@superset/trpc'
+import type { AppRouter } from "@superset/trpc";
 
 // Desktop uses createTRPCProxyClient<AppRouter>
 // Web/Admin use createTRPCClient<AppRouter>

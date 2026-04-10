@@ -25,6 +25,8 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
+
+
 Terminal persistence provides the ability to restore terminal sessions after app or system restarts. Unlike warm attach (reconnecting to live daemon sessions, see [2.8.4](#2.8.4)), cold restore recovers sessions from disk when the daemon is not running, enabling seamless terminal recovery across crashes and reboots.
 
 ## Overview
@@ -46,32 +48,32 @@ graph TB
         W1["workspaceId-abc123/"]
         W2["workspaceId-xyz789/"]
     end
-
+    
     subgraph "workspaceId-abc123/"
         P1["paneId-term1/"]
         P2["paneId-term2/"]
     end
-
+    
     subgraph "paneId-term1/"
         SB1["scrollback.bin"]
         M1["meta.json"]
     end
-
+    
     subgraph "paneId-term2/"
         SB2["scrollback.bin"]
         M2["meta.json"]
     end
-
+    
     W1 --> P1
     W1 --> P2
     P1 --> SB1
     P1 --> M1
     P2 --> SB2
     P2 --> M2
-
+    
     SB1 -.contains.-> RawOutput["Raw PTY output (UTF-8)"]
     M1 -.contains.-> Metadata["SessionMetadata JSON"]
-
+    
     Metadata --> CWD["cwd: string"]
     Metadata --> Dims["cols, rows: number"]
     Metadata --> Times["startedAt, endedAt?: string"]
@@ -83,7 +85,6 @@ graph TB
 ### File Permissions
 
 History files use restrictive permissions for security:
-
 - Directories: `0o700` (owner-only access)
 - Files: `0o600` (owner read/write only)
 
@@ -95,24 +96,24 @@ History files use restrictive permissions for security:
 graph TB
     PTY["PTY Subprocess"] -->|pty.onData| Session["Session instance"]
     Session -->|write| HW["HistoryWriter"]
-
+    
     subgraph "HistoryWriter"
         IQ["In-memory Queue"]
         Stream["WriteStream (append mode)"]
         BP["Backpressure Handler"]
     end
-
+    
     HW --> IQ
     IQ -->|flush| Stream
     Stream -->|drain event| BP
     BP -->|resume| IQ
-
+    
     Stream -->|append| SB["scrollback.bin"]
-
+    
     Clear["clearScrollback()"] -->|reinitialize| HW
     Exit["session exit"] -->|close| HW
     HW -->|write endedAt| Meta["meta.json"]
-
+    
     style Clear fill:#fff4e1
     style Exit fill:#fff4e1
 ```
@@ -121,15 +122,15 @@ graph TB
 
 ### HistoryWriter Lifecycle
 
-| Method                     | Purpose                                                 | Timing                |
-| -------------------------- | ------------------------------------------------------- | --------------------- |
-| `constructor()`            | Initialize paths and metadata                           | Session creation      |
-| `init(initialScrollback?)` | Create directory, write initial scrollback, open stream | After spawn           |
-| `write(data)`              | Append PTY output to scrollback.bin                     | Every PTY data event  |
-| `flush()`                  | Force pending writes to disk                            | Before snapshot/close |
-| `close(exitCode?)`         | Write endedAt to meta.json, close stream                | Session termination   |
-| `reinitialize()`           | Reset files after clear scrollback                      | User clears terminal  |
-| `deleteHistory()`          | Remove all history files                                | Session cleanup       |
+| Method | Purpose | Timing |
+|--------|---------|--------|
+| `constructor()` | Initialize paths and metadata | Session creation |
+| `init(initialScrollback?)` | Create directory, write initial scrollback, open stream | After spawn |
+| `write(data)` | Append PTY output to scrollback.bin | Every PTY data event |
+| `flush()` | Force pending writes to disk | Before snapshot/close |
+| `close(exitCode?)` | Write endedAt to meta.json, close stream | Session termination |
+| `reinitialize()` | Reset files after clear scrollback | User clears terminal |
+| `deleteHistory()` | Remove all history files | Session cleanup |
 
 **Sources:** [apps/desktop/src/main/lib/terminal-history.ts:124-464]()
 
@@ -149,7 +150,6 @@ graph LR
 ```
 
 **Constants:**
-
 - `MAX_HISTORY_BYTES = 5 * 1024 * 1024` - Maximum scrollback per session
 - `MAX_PENDING_WRITE_BYTES = 256 * 1024` - Maximum in-memory queue before dropping
 - `DRAIN_TIMEOUT_MS = 1000` - Timeout for stream drain on close
@@ -167,20 +167,20 @@ Terminal output is stored as UTF-8. When scrollback exceeds the 5MB limit, `trun
 ```mermaid
 graph TB
     CR["Cold Restore Detection"]
-
+    
     CR -->|create| HR["HistoryReader(workspaceId, paneId)"]
-
+    
     HR -->|1| Exists{exists?}
     Exists -->|No| NoRestore["Skip restore"]
     Exists -->|Yes| ReadMeta["readMetadata()"]
-
+    
     ReadMeta --> CheckEnd{has endedAt?}
     CheckEnd -->|Yes| CleanExit["Clean shutdown - no restore"]
     CheckEnd -->|No| ReadScroll["readScrollback()"]
-
+    
     ReadScroll --> Return["Return scrollback + metadata"]
     Return --> CreateSession["Create session with recovered scrollback"]
-
+    
     CreateSession -->|after restore| Cleanup["cleanup() - delete history"]
 ```
 
@@ -188,12 +188,12 @@ graph TB
 
 ### HistoryReader API
 
-| Method             | Returns                                        | Purpose                            |
-| ------------------ | ---------------------------------------------- | ---------------------------------- |
-| `exists()`         | `Promise<boolean>`                             | Check if history files exist       |
-| `readMetadata()`   | `Promise<{cols, rows, cwd, endedAt?} \| null>` | Load session metadata              |
-| `readScrollback()` | `Promise<string \| null>`                      | Load scrollback content            |
-| `cleanup()`        | `Promise<void>`                                | Delete history files after restore |
+| Method | Returns | Purpose |
+|--------|---------|---------|
+| `exists()` | `Promise<boolean>` | Check if history files exist |
+| `readMetadata()` | `Promise<{cols, rows, cwd, endedAt?} \| null>` | Load session metadata |
+| `readScrollback()` | `Promise<string \| null>` | Load scrollback content |
+| `cleanup()` | `Promise<void>` | Delete history files after restore |
 
 **Sources:** [apps/desktop/src/main/lib/terminal-history.ts:479-554]()
 
@@ -205,28 +205,28 @@ sequenceDiagram
     participant tRPC as terminal.createOrAttach
     participant Reader as HistoryReader
     participant Files as Disk Storage
-
+    
     UI->>tRPC: createOrAttach(paneId, workspaceId)
-
+    
     tRPC->>Reader: new HistoryReader(workspaceId, paneId)
     tRPC->>Reader: exists()
     Reader->>Files: access(meta.json)
     Files-->>Reader: exists
-
+    
     alt History exists
         tRPC->>Reader: readMetadata()
         Reader->>Files: readFile(meta.json)
         Files-->>Reader: {cwd, cols, rows, startedAt, endedAt?}
-
+        
         alt endedAt is missing
             Note over tRPC: Unclean shutdown detected
             tRPC->>Reader: readScrollback()
             Reader->>Files: readFile(scrollback.bin)
             Files-->>Reader: scrollback content
-
+            
             tRPC->>UI: Return {isColdRestore: true, scrollback, previousCwd}
             Note over UI: Show "Session Restored" banner
-
+            
             UI->>tRPC: ackColdRestore(paneId)
             tRPC->>Reader: cleanup()
             Reader->>Files: rm -rf history directory
@@ -243,11 +243,11 @@ sequenceDiagram
 
 ### Cold Restore vs Daemon Recovery
 
-| Scenario            | Detection                       | Mechanism                          | Result                                                |
-| ------------------- | ------------------------------- | ---------------------------------- | ----------------------------------------------------- |
-| **Cold Restore**    | meta.json without `endedAt`     | HistoryReader loads scrollback.bin | UI shows restored content + "Session Restored" banner |
-| **Daemon Recovery** | Daemon session exists (isAlive) | HeadlessEmulator snapshot          | UI shows live terminal snapshot                       |
-| **Clean Shutdown**  | meta.json with `endedAt`        | N/A                                | New empty session created                             |
+| Scenario | Detection | Mechanism | Result |
+|----------|-----------|-----------|--------|
+| **Cold Restore** | meta.json without `endedAt` | HistoryReader loads scrollback.bin | UI shows restored content + "Session Restored" banner |
+| **Daemon Recovery** | Daemon session exists (isAlive) | HeadlessEmulator snapshot | UI shows live terminal snapshot |
+| **Clean Shutdown** | meta.json with `endedAt` | N/A | New empty session created |
 
 **Sources:** [apps/desktop/src/lib/trpc/routers/terminal/terminal.ts:145-161]()
 
@@ -257,17 +257,16 @@ The `meta.json` file stores session metadata for cold restore:
 
 ```typescript
 interface SessionMetadata {
-  cwd: string // Working directory at session start
-  cols: number // Terminal columns
-  rows: number // Terminal rows
-  startedAt: string // ISO 8601 timestamp
-  endedAt?: string // ISO 8601 timestamp (missing = unclean shutdown)
-  exitCode?: number // Shell exit code (if cleanly exited)
+  cwd: string;           // Working directory at session start
+  cols: number;          // Terminal columns
+  rows: number;          // Terminal rows
+  startedAt: string;     // ISO 8601 timestamp
+  endedAt?: string;      // ISO 8601 timestamp (missing = unclean shutdown)
+  exitCode?: number;     // Shell exit code (if cleanly exited)
 }
 ```
 
 **Example (Unclean Shutdown):**
-
 ```json
 {
   "cwd": "/Users/developer/project",
@@ -278,7 +277,6 @@ interface SessionMetadata {
 ```
 
 **Example (Clean Shutdown):**
-
 ```json
 {
   "cwd": "/Users/developer/project",
@@ -299,34 +297,32 @@ The `createOrAttach` tRPC procedure orchestrates cold restore:
 ```mermaid
 graph TB
     Start["createOrAttach(paneId, workspaceId, skipColdRestore?)"]
-
+    
     Start --> Skip{skipColdRestore?}
     Skip -->|Yes| NoCheck["Skip cold restore check"]
     Skip -->|No| CheckHistory["Check history with HistoryReader"]
-
+    
     CheckHistory --> Exists{History exists?}
     Exists -->|No| CreateNew["Create new session"]
     Exists -->|Yes| CheckEnd{Has endedAt?}
-
+    
     CheckEnd -->|Yes| CleanExit["Clean shutdown - create new"]
     CheckEnd -->|No| ColdRestore["Cold restore path"]
-
+    
     ColdRestore --> LoadScroll["Load scrollback from disk"]
     LoadScroll --> CreateSession["Create session with scrollback"]
     CreateSession --> Return["Return {isColdRestore: true, scrollback, previousCwd}"]
-
+    
     NoCheck --> CreateNew
     CleanExit --> CreateNew
     CreateNew --> ReturnNew["Return {isNew: true}"]
 ```
 
 **Parameters:**
-
 - `skipColdRestore?: boolean` - Skip history check (used when auto-resuming after cold restore)
 - `allowKilled?: boolean` - Allow restarting a session that was explicitly killed
 
 **Return fields for cold restore:**
-
 - `isColdRestore: true` - Indicates unclean shutdown recovery
 - `scrollback: string` - Recovered terminal content
 - `previousCwd: string` - Working directory from previous session
@@ -343,10 +339,10 @@ graph TB
     Spawn["Session.spawn()"] --> Init["Create HistoryWriter"]
     Init --> Snapshot["Get emulator snapshot"]
     Snapshot --> InitWriter["historyWriter.init(snapshotAnsi)"]
-
+    
     Data["PTY data events"] --> Emulator["HeadlessEmulator.write()"]
     Data --> Writer["historyWriter.write()"]
-
+    
     Exit["PTY exit"] --> Close["historyWriter.close(exitCode)"]
     Close --> WriteEnd["Write endedAt to meta.json"]
 ```
@@ -379,18 +375,17 @@ The `HeadlessEmulator` provides rich snapshot capabilities for cold restore:
 
 ```typescript
 interface TerminalSnapshot {
-  snapshotAnsi: string // Serialized terminal content (ANSI)
-  rehydrateSequences: string // Mode restore sequences (DECSET/DECRST)
-  cwd: string | null // Current working directory (from OSC-7)
-  modes: TerminalModes // Terminal mode flags
-  cols: number
-  rows: number
-  scrollbackLines: number
+  snapshotAnsi: string;          // Serialized terminal content (ANSI)
+  rehydrateSequences: string;    // Mode restore sequences (DECSET/DECRST)
+  cwd: string | null;            // Current working directory (from OSC-7)
+  modes: TerminalModes;          // Terminal mode flags
+  cols: number;
+  rows: number;
+  scrollbackLines: number;
 }
 ```
 
 **Modes tracked:**
-
 - `applicationCursorKeys` - DECSET 1
 - `bracketedPaste` - DECSET 2004
 - `alternateScreen` - DECSET 1049
@@ -406,15 +401,15 @@ interface TerminalSnapshot {
 
 The persistence system is designed to be non-blocking and fault-tolerant:
 
-| Error Condition            | Behavior                      | Rationale                                               |
-| -------------------------- | ----------------------------- | ------------------------------------------------------- |
-| Disk write failure         | Log warning, continue session | Terminal operation shouldn't fail due to logging issues |
-| Directory creation failure | Throw error                   | Cannot persist without directory                        |
-| Scrollback > 5MB           | Truncate to last 5MB          | Prevent unbounded disk usage                            |
-| Pending writes > 256KB     | Drop new writes               | Prevent memory exhaustion under backpressure            |
-| Stream drain timeout (1s)  | Abandon pending writes        | Don't block session termination indefinitely            |
-| Corrupted meta.json        | Return null, skip restore     | Fall back to new session                                |
-| Missing scrollback.bin     | Return null, skip restore     | Fall back to new session                                |
+| Error Condition | Behavior | Rationale |
+|-----------------|----------|-----------|
+| Disk write failure | Log warning, continue session | Terminal operation shouldn't fail due to logging issues |
+| Directory creation failure | Throw error | Cannot persist without directory |
+| Scrollback > 5MB | Truncate to last 5MB | Prevent unbounded disk usage |
+| Pending writes > 256KB | Drop new writes | Prevent memory exhaustion under backpressure |
+| Stream drain timeout (1s) | Abandon pending writes | Don't block session termination indefinitely |
+| Corrupted meta.json | Return null, skip restore | Fall back to new session |
+| Missing scrollback.bin | Return null, skip restore | Fall back to new session |
 
 **Sources:** [apps/desktop/src/main/lib/terminal-history.ts:22-24](), [apps/desktop/src/main/lib/terminal-history.ts:202-224](), [apps/desktop/src/main/lib/terminal-history.ts:229-280](), [apps/desktop/src/main/lib/terminal-history.ts:334-387](), [apps/desktop/src/main/lib/terminal-history.ts:509-528](), [apps/desktop/src/main/lib/terminal-history.ts:534-541]()
 
@@ -424,14 +419,14 @@ History paths are validated to prevent directory traversal attacks:
 
 ```typescript
 // Reject unsafe IDs
-if (value.includes('/') || value.includes('\\') || value.includes('..')) {
-  throw new Error('Invalid id')
+if (value.includes("/") || value.includes("\\") || value.includes("..")) {
+  throw new Error("Invalid id");
 }
 
 // Verify resolved path doesn't escape root
-const rel = relative(root, dir)
-if (rel.split(sep).includes('..')) {
-  throw new Error('Resolved history dir escapes root')
+const rel = relative(root, dir);
+if (rel.split(sep).includes("..")) {
+  throw new Error("Resolved history dir escapes root");
 }
 ```
 

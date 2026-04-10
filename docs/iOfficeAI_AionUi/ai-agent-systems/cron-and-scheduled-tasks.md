@@ -5,724 +5,197 @@
 
 The following files were used as context for generating this wiki page:
 
-- [readme.md](readme.md)
-- [readme_ch.md](readme_ch.md)
-- [readme_es.md](readme_es.md)
-- [readme_jp.md](readme_jp.md)
-- [readme_ko.md](readme_ko.md)
-- [readme_pt.md](readme_pt.md)
-- [readme_tr.md](readme_tr.md)
-- [readme_tw.md](readme_tw.md)
-- [resources/wechat_group4.png](resources/wechat_group4.png)
+- [src/process/bridge/cronBridge.ts](src/process/bridge/cronBridge.ts)
+- [src/process/services/cron/CronService.ts](src/process/services/cron/CronService.ts)
+- [src/process/services/cron/CronStore.ts](src/process/services/cron/CronStore.ts)
+- [src/process/services/cron/ICronEventEmitter.ts](src/process/services/cron/ICronEventEmitter.ts)
+- [src/process/services/cron/ICronJobExecutor.ts](src/process/services/cron/ICronJobExecutor.ts)
+- [src/process/services/cron/IpcCronEventEmitter.ts](src/process/services/cron/IpcCronEventEmitter.ts)
+- [src/process/services/cron/WorkerTaskManagerJobExecutor.ts](src/process/services/cron/WorkerTaskManagerJobExecutor.ts)
+- [src/process/services/cron/cronServiceSingleton.ts](src/process/services/cron/cronServiceSingleton.ts)
+- [src/process/task/MessageMiddleware.ts](src/process/task/MessageMiddleware.ts)
+- [src/process/webserver/auth/middleware/AuthMiddleware.ts](src/process/webserver/auth/middleware/AuthMiddleware.ts)
+- [src/renderer/components/chat/sendbox.tsx](src/renderer/components/chat/sendbox.tsx)
+- [src/renderer/components/layout/Sider/CronJobSiderItem.tsx](src/renderer/components/layout/Sider/CronJobSiderItem.tsx)
+- [src/renderer/components/layout/Sider/CronJobSiderSection.tsx](src/renderer/components/layout/Sider/CronJobSiderSection.tsx)
+- [src/renderer/pages/conversation/Messages/components/MessageCronTrigger.tsx](src/renderer/pages/conversation/Messages/components/MessageCronTrigger.tsx)
+- [src/renderer/pages/conversation/Messages/components/MessagetText.tsx](src/renderer/pages/conversation/Messages/components/MessagetText.tsx)
+- [src/renderer/pages/conversation/Messages/components/SelectionReplyButton.tsx](src/renderer/pages/conversation/Messages/components/SelectionReplyButton.tsx)
+- [src/renderer/pages/conversation/Messages/components/SkillSuggestCard.tsx](src/renderer/pages/conversation/Messages/components/SkillSuggestCard.tsx)
+- [src/renderer/pages/cron/ScheduledTasksPage/CreateTaskDialog.tsx](src/renderer/pages/cron/ScheduledTasksPage/CreateTaskDialog.tsx)
+- [src/renderer/pages/cron/ScheduledTasksPage/CronStatusTag.tsx](src/renderer/pages/cron/ScheduledTasksPage/CronStatusTag.tsx)
+- [src/renderer/pages/cron/ScheduledTasksPage/TaskDetailPage.tsx](src/renderer/pages/cron/ScheduledTasksPage/TaskDetailPage.tsx)
+- [src/renderer/pages/cron/ScheduledTasksPage/index.tsx](src/renderer/pages/cron/ScheduledTasksPage/index.tsx)
+- [src/renderer/pages/cron/cronUtils.ts](src/renderer/pages/cron/cronUtils.ts)
+- [src/renderer/pages/cron/useCronJobs.ts](src/renderer/pages/cron/useCronJobs.ts)
+- [src/renderer/services/i18n/locales/en-US/cron.json](src/renderer/services/i18n/locales/en-US/cron.json)
+- [src/renderer/services/i18n/locales/ja-JP/cron.json](src/renderer/services/i18n/locales/ja-JP/cron.json)
+- [src/renderer/services/i18n/locales/ko-KR/cron.json](src/renderer/services/i18n/locales/ko-KR/cron.json)
+- [src/renderer/services/i18n/locales/tr-TR/cron.json](src/renderer/services/i18n/locales/tr-TR/cron.json)
+- [src/renderer/services/i18n/locales/zh-CN/cron.json](src/renderer/services/i18n/locales/zh-CN/cron.json)
+- [src/renderer/services/i18n/locales/zh-TW/cron.json](src/renderer/services/i18n/locales/zh-TW/cron.json)
+- [tests/unit/cronService.test.ts](tests/unit/cronService.test.ts)
+- [tests/unit/renderer/conversation/CreateTaskDialog.dom.test.tsx](tests/unit/renderer/conversation/CreateTaskDialog.dom.test.tsx)
+- [tests/unit/renderer/conversation/CronJobSiderItem.dom.test.tsx](tests/unit/renderer/conversation/CronJobSiderItem.dom.test.tsx)
+- [tests/unit/renderer/conversation/CronJobSiderSection.dom.test.tsx](tests/unit/renderer/conversation/CronJobSiderSection.dom.test.tsx)
+- [tests/unit/renderer/conversation/ScheduledTasksPage.dom.test.tsx](tests/unit/renderer/conversation/ScheduledTasksPage.dom.test.tsx)
+- [tests/unit/renderer/conversation/TaskDetailPage.dom.test.tsx](tests/unit/renderer/conversation/TaskDetailPage.dom.test.tsx)
 
 </details>
 
+
+
 ## Purpose and Scope
 
-This document describes AionUi's scheduled tasks system, which enables automated, unattended execution of AI agent interactions at specified times. The system allows users to configure recurring tasks that automatically send messages to specific conversations, enabling 24/7 autonomous operation without manual intervention.
+This document describes AionUi's scheduled tasks system, which enables automated, unattended execution of AI agent interactions at specified times. The system allows users to configure recurring tasks that automatically send messages to specific conversations or create new ones, enabling 24/7 autonomous operation.
 
-This page covers task scheduling mechanisms, the cron expression syntax used, task lifecycle management, and the integration with the conversation and agent systems. For information about agent configuration and capabilities, see [4.7](#4.7). For details on conversation management and message persistence, see [3.6](#3.6).
+Key features include cron-based scheduling, persistent execution history, and a "YOLO" mode that allows agents to execute tools (like file operations or web searches) without manual user confirmation during scheduled runs.
+
+Sources: [src/process/services/cron/CronService.ts:42-46](), [src/process/services/cron/WorkerTaskManagerJobExecutor.ts:36-40]()
 
 ---
 
 ## System Overview
 
-The scheduled tasks feature transforms AionUi from a manual interaction tool into an autonomous automation platform. Tasks are conversation-bound entities that trigger agent interactions on a schedule, maintaining full context and conversation history across executions.
+The scheduled tasks feature transforms AionUi from a manual interaction tool into an autonomous automation platform. Tasks are persisted entities that trigger agent interactions on a schedule.
 
-**Key Characteristics:**
+### Execution Modes
+The system supports two primary execution modes defined in the `CronJob` metadata:
+1.  **Existing Conversation**: The task runs within a specific, pre-existing conversation. This maintains long-term context and history. [src/process/services/cron/CronService.ts:58-59]()
+2.  **New Conversation**: Each execution creates a fresh conversation. This is ideal for independent tasks like daily news summaries where previous context is not required. [src/process/services/cron/CronService.ts:98-99]()
 
-| Property              | Description                                                                               |
-| --------------------- | ----------------------------------------------------------------------------------------- |
-| **Scheduling**        | Cron expression-based with support for standard patterns (daily, weekly, monthly, custom) |
-| **Execution Context** | Fully bound to conversation - inherits all conversation settings, workspace, and history  |
-| **Lifecycle**         | Created, modified, enabled/disabled, deleted through UI or API                            |
-| **Persistence**       | Task definitions stored in configuration; execution history in conversation messages      |
-| **Timing**            | Runs in main process; survives application restarts if enabled                            |
+### Technical Characteristics
+| Property | Description |
+|----------|-------------|
+| **Scheduling Engine** | Powered by the `croner` library, supporting standard cron expressions. [src/process/services/cron/CronService.ts:13-13]() |
+| **Persistence** | Jobs are stored via `ICronRepository` (SQLite). [src/process/services/cron/CronService.ts:18-18]() |
+| **Power Management** | Prevents system sleep when tasks are active via `powerSaveBlocker`. [src/process/services/cron/CronService.ts:81-81]() |
+| **Context Retention** | Automatically backfills `agentConfig` and `workspace` settings from the original conversation. [src/process/services/cron/CronService.ts:134-173]() |
 
-Sources: [readme.md:206-235](), architecture diagrams
+Sources: [src/process/services/cron/CronService.ts:13-18](), [src/process/services/cron/CronStore.ts:21-46]()
 
 ---
 
 ## Architecture Components
 
-```mermaid
-graph TB
-    subgraph "Renderer Process - UI Layer"
-        SETTINGS["Settings UI<br/>Scheduled Tasks Panel"]
-        CONVUI["Conversation View<br/>Shows task execution messages"]
-    end
+### Natural Language to Code Entity Mapping
 
-    subgraph "IPC Bridge Layer"
-        IPC["ipcBridge"]
-        IPC_CREATE["scheduledTask.create"]
-        IPC_UPDATE["scheduledTask.update"]
-        IPC_DELETE["scheduledTask.delete"]
-        IPC_LIST["scheduledTask.list"]
-        IPC_TOGGLE["scheduledTask.toggle"]
-
-        EMIT_EXEC["Event: task.executed"]
-        EMIT_ERROR["Event: task.error"]
-    end
-
-    subgraph "Main Process - Scheduler Core"
-        SCHEDULER["CronScheduler<br/>Main scheduler instance"]
-        TASKSTORE["TaskStore<br/>In-memory task registry"]
-        CRONENGINE["Cron Engine<br/>node-cron or similar"]
-
-        SCHEDULER --> TASKSTORE
-        SCHEDULER --> CRONENGINE
-    end
-
-    subgraph "Configuration Layer"
-        CONFIG["ConfigStorage<br/>scheduledTasks[]"]
-        TASKDEF["IScheduledTask<br/>id, conversationId, cronExpression<br/>message, enabled, metadata"]
-    end
-
-    subgraph "Execution Layer"
-        EXECUTOR["TaskExecutor<br/>Executes scheduled tasks"]
-        MSGINJECTOR["Message Injector<br/>Sends message to conversation"]
-
-        EXECUTOR --> MSGINJECTOR
-    end
-
-    subgraph "Conversation & Agent System"
-        CONVMGR["ConversationManager<br/>Manages active conversations"]
-        AGENT["Agent Instances<br/>GeminiAgent, AcpAgent, etc"]
-        DB[("SQLite Database<br/>conversations, messages")]
-
-        CONVMGR --> AGENT
-        AGENT --> DB
-    end
-
-    SETTINGS -->|invoke| IPC_CREATE
-    SETTINGS -->|invoke| IPC_UPDATE
-    SETTINGS -->|invoke| IPC_LIST
-
-    IPC_CREATE --> SCHEDULER
-    IPC_UPDATE --> SCHEDULER
-    IPC_DELETE --> SCHEDULER
-    IPC_LIST --> TASKSTORE
-    IPC_TOGGLE --> SCHEDULER
-
-    SCHEDULER -->|loads from| CONFIG
-    SCHEDULER -->|persists to| CONFIG
-    TASKSTORE -->|stores| TASKDEF
-
-    CRONENGINE -->|triggers| EXECUTOR
-    EXECUTOR -->|reads| TASKSTORE
-
-    MSGINJECTOR -->|sends message via| CONVMGR
-    MSGINJECTOR -->|streams response to| CONVUI
-
-    EXECUTOR -->|emits| EMIT_EXEC
-    EXECUTOR -->|emits| EMIT_ERROR
-
-    style SCHEDULER fill:#e8f5e9
-    style CONFIG fill:#f3e5f5
-    style EXECUTOR fill:#fff4e6
-    style DB fill:#e1f5ff
-```
-
-**Scheduler Architecture**
-
-The scheduled tasks system operates entirely in the main process, ensuring tasks continue to execute even when the renderer UI is closed. The architecture consists of four primary layers:
-
-1. **UI Layer**: Settings interface for task management
-2. **IPC Layer**: Command and event channels for task operations
-3. **Scheduler Core**: Cron engine and task registry
-4. **Execution Layer**: Message injection into conversations
-
-Sources: Architecture diagrams, [readme.md:206-235]()
-
----
-
-## Task Data Model
-
-### Task Definition Schema
-
-```mermaid
-graph LR
-    subgraph "IScheduledTask Interface"
-        ID["id: string<br/>Unique identifier"]
-        CONVID["conversationId: string<br/>Target conversation"]
-        CRON["cronExpression: string<br/>Schedule pattern"]
-        MSG["message: string<br/>Message to send"]
-        ENABLED["enabled: boolean<br/>Active state"]
-        META["metadata<br/>created, modified, lastRun"]
-    end
-
-    subgraph "Cron Expression Examples"
-        DAILY["'0 9 * * *'<br/>Daily at 9 AM"]
-        WEEKLY["'0 9 * * 1'<br/>Every Monday at 9 AM"]
-        MONTHLY["'0 9 1 * *'<br/>1st of month at 9 AM"]
-        CUSTOM["'*/15 * * * *'<br/>Every 15 minutes"]
-    end
-
-    subgraph "Configuration Storage"
-        CFGOBJ["agent.config<br/>scheduledTasks: IScheduledTask[]"]
-    end
-
-    ID --> CFGOBJ
-    CONVID --> CFGOBJ
-    CRON --> CFGOBJ
-    MSG --> CFGOBJ
-    ENABLED --> CFGOBJ
-    META --> CFGOBJ
-
-    CRON -.example.-> DAILY
-    CRON -.example.-> WEEKLY
-    CRON -.example.-> MONTHLY
-    CRON -.example.-> CUSTOM
-```
-
-**Task Properties:**
-
-| Field            | Type                | Description                                                         |
-| ---------------- | ------------------- | ------------------------------------------------------------------- |
-| `id`             | `string`            | UUID or generated unique identifier                                 |
-| `conversationId` | `string`            | Reference to target conversation; must exist                        |
-| `cronExpression` | `string`            | Standard cron syntax (minute hour day month weekday)                |
-| `message`        | `string`            | The prompt/message to send to the agent                             |
-| `enabled`        | `boolean`           | Whether task is active; disabled tasks are skipped                  |
-| `metadata`       | `object`            | Contains `createdAt`, `modifiedAt`, `lastRun`, `nextRun` timestamps |
-| `name`           | `string` (optional) | User-friendly task name                                             |
-| `description`    | `string` (optional) | Task purpose description                                            |
-
-Sources: [readme.md:220-235](), architecture context
-
----
-
-## Cron Expression Syntax
-
-AionUi uses standard cron expression syntax with five time fields:
-
-```
-┌─────────────── minute (0 - 59)
-│ ┌───────────── hour (0 - 23)
-│ │ ┌─────────── day of month (1 - 31)
-│ │ │ ┌───────── month (1 - 12)
-│ │ │ │ ┌─────── day of week (0 - 6) (Sunday to Saturday)
-│ │ │ │ │
-* * * * *
-```
-
-### Common Patterns
-
-| Pattern               | Expression     | Description                             |
-| --------------------- | -------------- | --------------------------------------- |
-| Every minute          | `* * * * *`    | Runs every minute (use sparingly)       |
-| Every 15 minutes      | `*/15 * * * *` | Runs at :00, :15, :30, :45              |
-| Hourly                | `0 * * * *`    | Runs at the start of every hour         |
-| Daily at 9 AM         | `0 9 * * *`    | Runs once per day at 9:00 AM            |
-| Weekdays at 9 AM      | `0 9 * * 1-5`  | Monday through Friday at 9 AM           |
-| Weekly (Monday 9 AM)  | `0 9 * * 1`    | Every Monday at 9 AM                    |
-| Monthly (1st at 9 AM) | `0 9 1 * *`    | First day of each month at 9 AM         |
-| Quarterly             | `0 9 1 */3 *`  | First day of Jan, Apr, Jul, Oct at 9 AM |
-
-### Special Characters
-
-- **`*`** (asterisk): Any value / every value
-- **`,`** (comma): List separator (e.g., `0 9,17 * * *` = 9 AM and 5 PM)
-- **`-`** (dash): Range (e.g., `0 9 * * 1-5` = Monday through Friday)
-- **`/`** (slash): Step values (e.g., `*/10 * * * *` = every 10 minutes)
-
-Sources: Standard cron specification, [readme.md:211-213]()
-
----
-
-## Task Lifecycle
-
-```mermaid
-stateDiagram-v2
-    [*] --> Created: User creates task
-    Created --> Validated: Validate cron expression<br/>and conversation exists
-
-    Validated --> Disabled: enabled=false
-    Validated --> Scheduled: enabled=true
-
-    Disabled --> Scheduled: User enables task
-    Scheduled --> Disabled: User disables task
-
-    Scheduled --> PendingExecution: Cron trigger fires
-    PendingExecution --> Executing: Lock acquired
-    PendingExecution --> Scheduled: Lock failed (skip)
-
-    Executing --> MessageSent: Send message to conversation
-    MessageSent --> AgentProcessing: Agent receives message
-    AgentProcessing --> Completed: Response streamed
-    AgentProcessing --> Failed: Execution error
-
-    Completed --> Scheduled: Record lastRun, wait for next
-    Failed --> Scheduled: Record error, wait for next
-
-    Scheduled --> Modified: User updates task
-    Modified --> Validated: Re-validate
-
-    Disabled --> Deleted: User deletes task
-    Scheduled --> Deleted: User deletes task
-    Deleted --> [*]
-
-    note right of Scheduled
-        Task stays in memory
-        CronJob registered with engine
-        Waits for next trigger
-    end note
-
-    note right of Executing
-        Prevents concurrent executions
-        Uses conversation lock
-        Maintains full context
-    end note
-```
-
-**State Transitions:**
-
-1. **Created → Validated**: Task definition checked for valid cron expression, existing conversation
-2. **Validated → Scheduled/Disabled**: Based on `enabled` flag
-3. **Scheduled → PendingExecution**: Cron trigger fires at scheduled time
-4. **PendingExecution → Executing**: Execution lock acquired (prevents overlapping runs)
-5. **Executing → MessageSent**: Message injected into conversation via agent system
-6. **AgentProcessing**: Agent processes message as normal conversation interaction
-7. **Completed**: Response received, `lastRun` updated, task remains scheduled
-
-Sources: [readme.md:220-227](), architecture context
-
----
-
-## Conversation Binding and Context
-
-### Context Preservation
-
-Scheduled tasks are tightly bound to conversations, inheriting all conversation properties:
+The following diagram maps high-level system concepts to specific classes and interfaces in the codebase.
 
 ```mermaid
 graph TB
-    subgraph "Task Definition"
-        TASK["ScheduledTask<br/>conversationId: 'conv-123'<br/>message: 'Generate daily report'"]
+    subgraph "Natural Language Space"
+        NL_SCHED["Schedule Manager"]
+        NL_DB["Job Storage"]
+        NL_UI["Task Dashboard"]
+        NL_EXEC["Task Runner"]
     end
 
-    subgraph "Conversation Context"
-        CONV["TChatConversation<br/>id: 'conv-123'"]
-        TYPE["type: 'gemini' | 'acp' | 'codex'"]
-        WORKSPACE["workspaceDir: '/path/to/workspace'"]
-        HISTORY["Message History<br/>Previous interactions"]
-        SETTINGS["Conversation Settings<br/>model, temperature, etc"]
-        SKILLS["Enabled Skills<br/>pptx, xlsx, etc"]
+    subgraph "Code Entity Space"
+        direction TB
+        CRON_SVC["CronService<br/>(CronService.ts)"]
+        CRON_REPO["ICronRepository<br/>(CronStore.ts)"]
+        CRON_PAGE["ScheduledTasksPage<br/>(index.tsx)"]
+        CRON_EXEC["WorkerTaskManagerJobExecutor<br/>(WorkerTaskManagerJobExecutor.ts)"]
+        CRON_GUARD["CronBusyGuard<br/>(CronBusyGuard.ts)"]
     end
 
-    subgraph "Task Execution"
-        EXEC["TaskExecutor"]
-        INJECT["Message Injector"]
-        AGENT["Agent Instance<br/>GeminiAgent / AcpAgent / etc"]
-    end
-
-    TASK -->|references| CONV
-
-    CONV --> TYPE
-    CONV --> WORKSPACE
-    CONV --> HISTORY
-    CONV --> SETTINGS
-    CONV --> SKILLS
-
-    TASK --> EXEC
-    EXEC --> INJECT
-    INJECT -->|loads context| CONV
-    INJECT -->|sends to| AGENT
-
-    AGENT -->|uses| WORKSPACE
-    AGENT -->|reads| HISTORY
-    AGENT -->|applies| SETTINGS
-    AGENT -->|invokes| SKILLS
+    NL_SCHED --- CRON_SVC
+    NL_DB --- CRON_REPO
+    NL_UI --- CRON_PAGE
+    NL_EXEC --- CRON_EXEC
+    CRON_SVC --- CRON_GUARD
 ```
 
-**Inherited Context Elements:**
+Sources: [src/process/services/cron/CronService.ts:47-59](), [src/process/services/cron/WorkerTaskManagerJobExecutor.ts:36-40](), [src/renderer/pages/cron/ScheduledTasksPage/index.tsx:37-42]()
 
-| Element                 | Description                    | Impact on Task Execution                             |
-| ----------------------- | ------------------------------ | ---------------------------------------------------- |
-| **Agent Type**          | `gemini`, `acp`, `codex`, etc. | Determines which agent processes the task message    |
-| **Workspace**           | File system directory          | Task can access/modify files in workspace            |
-| **Message History**     | All previous messages          | Agent has full context of prior interactions         |
-| **Model Configuration** | API keys, model selection      | Uses same model as manual interactions               |
-| **Skills**              | Enabled skill set              | Task can use PPTX generation, Excel processing, etc. |
-| **System Prompt**       | Assistant personality          | Maintains consistent agent behavior                  |
-
-Sources: [readme.md:223-225](), architecture diagrams
-
----
-
-## Task Execution Flow
-
-```mermaid
-sequenceDiagram
-    participant Cron as CronEngine
-    participant Sched as CronScheduler
-    participant Store as TaskStore
-    participant Exec as TaskExecutor
-    participant Conv as ConversationManager
-    participant Agent as Agent Instance
-    participant DB as SQLite Database
-    participant UI as Renderer UI
-
-    Cron->>Sched: Trigger event (time match)
-    Sched->>Store: Get task by ID
-    Store-->>Sched: Return IScheduledTask
-
-    alt Task disabled
-        Sched->>Sched: Skip execution
-    else Task enabled
-        Sched->>Exec: Execute task
-
-        Exec->>Conv: Check conversation exists
-        Conv-->>Exec: Conversation found
-
-        Exec->>Conv: Acquire conversation lock
-
-        alt Lock acquired
-            Conv-->>Exec: Lock granted
-
-            Exec->>Conv: Send message (task.message)
-            Conv->>Agent: Forward to agent
-
-            Agent->>Agent: Process message with context
-            Agent->>Agent: Execute tools if needed
-            Agent->>DB: Persist user message
-
-            loop Stream response
-                Agent->>Conv: Stream response chunk
-                Conv->>UI: Emit responseStream event
-                UI->>UI: Update conversation view
-            end
-
-            Agent->>DB: Persist agent response
-            Agent->>Conv: Mark complete
-
-            Conv->>Exec: Release lock
-            Exec->>Store: Update lastRun timestamp
-            Exec->>Sched: Emit task.executed event
-            Sched->>UI: Notify task completed
-
-        else Lock failed (conversation busy)
-            Conv-->>Exec: Lock denied
-            Exec->>Sched: Skip this run
-            Note over Exec,Sched: Will retry at next scheduled time
-        end
-    end
-```
-
-**Execution Phases:**
-
-1. **Trigger Phase**: Cron engine detects time match, fires event
-2. **Validation Phase**: Check task enabled, conversation exists, not currently locked
-3. **Lock Acquisition**: Prevent concurrent task/manual interactions on same conversation
-4. **Message Injection**: Send task message as if user typed it
-5. **Agent Processing**: Full agent response cycle with tool execution, streaming
-6. **Persistence**: Messages saved to database, visible in conversation history
-7. **Cleanup**: Release lock, update execution metadata
-
-Sources: Architecture diagrams, [readme.md:224-225]()
-
----
-
-## Task Management Operations
-
-### IPC API Surface
-
-The scheduled tasks system exposes the following operations through the IPC bridge:
-
-| Operation           | IPC Method               | Parameters                                             | Return Value                  |
-| ------------------- | ------------------------ | ------------------------------------------------------ | ----------------------------- |
-| **Create Task**     | `scheduledTask.create`   | `{ conversationId, cronExpression, message, enabled }` | `IScheduledTask`              |
-| **Update Task**     | `scheduledTask.update`   | `{ id, ...updates }`                                   | `IScheduledTask`              |
-| **Delete Task**     | `scheduledTask.delete`   | `{ id }`                                               | `boolean`                     |
-| **List Tasks**      | `scheduledTask.list`     | `{ conversationId? }`                                  | `IScheduledTask[]`            |
-| **Toggle Task**     | `scheduledTask.toggle`   | `{ id, enabled }`                                      | `IScheduledTask`              |
-| **Get Task**        | `scheduledTask.get`      | `{ id }`                                               | `IScheduledTask`              |
-| **Test Expression** | `scheduledTask.testCron` | `{ cronExpression }`                                   | `{ valid, nextRuns: Date[] }` |
-
-### Configuration Persistence
-
-Tasks are persisted in the `ConfigStorage` system under the `scheduledTasks` key:
-
-```typescript
-// Configuration schema
-interface IConfigStorageRefer {
-  // ... other config fields
-  scheduledTasks?: IScheduledTask[]
-}
-
-interface IScheduledTask {
-  id: string
-  conversationId: string
-  cronExpression: string
-  message: string
-  enabled: boolean
-  name?: string
-  description?: string
-  metadata: {
-    createdAt: string
-    modifiedAt: string
-    lastRun?: string
-    nextRun?: string
-    executionCount: number
-    errorCount: number
-  }
-}
-```
-
-**Persistence Flow:**
-
-1. Tasks loaded from `ConfigStorage` on application startup
-2. CronScheduler registers enabled tasks with cron engine
-3. Any task modification triggers immediate save to config file
-4. Config file survives application restarts
-5. Disabled tasks remain in config but not registered with cron engine
-
-Sources: [readme.md:220-227](), [3.4](#3.4) reference
-
----
-
-## Error Handling and Resilience
-
-### Failure Scenarios
+### Data Flow and Execution Logic
 
 ```mermaid
 graph TD
-    subgraph "Error Types"
-        E1["Conversation Not Found"]
-        E2["Conversation Locked<br/>Another task/user active"]
-        E3["Agent Execution Error<br/>API failure, timeout"]
-        E4["Invalid Cron Expression<br/>Syntax error"]
-        E5["Message Send Failure<br/>IPC error"]
+    subgraph "Renderer (UI)"
+        UI_PAGE["ScheduledTasksPage"]
+        UI_DLG["CreateTaskDialog"]
+        BRIDGE_FRONT["ipcBridge.cron"]
     end
 
-    subgraph "Recovery Strategies"
-        R1["Skip & Log<br/>Wait for next scheduled time"]
-        R2["Retry with Backoff<br/>Max 3 attempts"]
-        R3["Disable Task<br/>Alert user"]
-        R4["Immediate Validation<br/>Reject on create/update"]
-        R5["Queue for Retry<br/>When conversation free"]
+    subgraph "Main Process (Core)"
+        BRIDGE_BACK["cronBridge.ts"]
+        SVC["CronService"]
+        EXEC["WorkerTaskManagerJobExecutor"]
+        GUARD["CronBusyGuard"]
+        STORE["CronStore / SQLite"]
     end
 
-    E1 -->|strategy| R3
-    E2 -->|strategy| R1
-    E3 -->|strategy| R2
-    E4 -->|strategy| R4
-    E5 -->|strategy| R2
-
-    subgraph "Monitoring"
-        M1["Error Counter<br/>Per task"]
-        M2["Last Error Message<br/>Stored in metadata"]
-        M3["Execution History<br/>Success/failure log"]
+    subgraph "Execution"
+        TM["WorkerTaskManager"]
+        AGENT["Agent (ACP/Gemini)"]
     end
 
-    R1 --> M1
-    R2 --> M2
-    R3 --> M3
+    UI_DLG -->|Save| BRIDGE_FRONT
+    BRIDGE_FRONT -->|IPC| BRIDGE_BACK
+    BRIDGE_BACK --> SVC
+    SVC --> STORE
+    
+    SVC -->|Trigger| EXEC
+    EXEC -->|Check Busy| GUARD
+    EXEC -->|Acquire Task| TM
+    TM -->|Run| AGENT
+    AGENT -->|Update| STORE
 ```
 
-**Error Handling Rules:**
-
-| Error Type               | Behavior                                  | User Notification             |
-| ------------------------ | ----------------------------------------- | ----------------------------- |
-| **Conversation deleted** | Auto-disable task, log warning            | Show error badge in task list |
-| **Conversation busy**    | Skip execution, retry next scheduled time | No notification (normal)      |
-| **Agent API failure**    | Retry up to 3 times, then mark failed     | Show error in conversation    |
-| **Invalid cron**         | Reject on create/update                   | Inline validation error       |
-| **Repeated failures**    | Auto-disable after 5 consecutive errors   | Email/notification alert      |
-
-### Execution Constraints
-
-- **Concurrency**: One task execution per conversation at a time
-- **Timeout**: Task execution timeout matches agent timeout (typically 5-10 minutes)
-- **Overlap Prevention**: If task runs longer than cron interval, skip next run
-- **Resource Limits**: Maximum 50 active scheduled tasks per application instance
-
-Sources: Architecture patterns, [12.3](#12.3) reference
+Sources: [src/process/bridge/cronBridge.ts:1-50](), [src/process/services/cron/CronService.ts:65-86](), [src/process/services/cron/WorkerTaskManagerJobExecutor.ts:46-104]()
 
 ---
 
-## Use Cases and Examples
+## Task Execution & Lifecycle
 
-### Example 1: Daily Report Generation
+### Initialization and Recovery
+Upon application startup, the `CronService.init()` method performs several critical recovery steps:
+1.  **Cleanup**: Removes "orphan" jobs whose associated conversations have been deleted. [src/process/services/cron/CronService.ts:92-128]()
+2.  **Backfill**: Ensures legacy jobs are updated with modern metadata like `cronJobId` and `agentConfig`. [src/process/services/cron/CronService.ts:134-173]()
+3.  **Timer Restart**: Re-initializes `croner` timers for all enabled jobs. [src/process/services/cron/CronService.ts:76-78]()
 
-```typescript
-{
-  id: "task-daily-report",
-  conversationId: "conv-sales-analysis",
-  cronExpression: "0 9 * * 1-5", // Weekdays at 9 AM
-  message: "Generate a sales report for yesterday. Include total revenue, top products, and compare to last week.",
-  enabled: true,
-  name: "Daily Sales Report",
-  metadata: {
-    createdAt: "2024-01-15T08:00:00Z",
-    modifiedAt: "2024-01-15T08:00:00Z",
-    executionCount: 45,
-    errorCount: 0
-  }
-}
-```
+### The Execution Pipeline
+When a timer fires, the `WorkerTaskManagerJobExecutor` handles the actual AI interaction:
+1.  **Task Acquisition**: Calls `taskManager.getOrBuildTask`. [src/process/services/cron/WorkerTaskManagerJobExecutor.ts:95-96]()
+2.  **YOLO Mode**: Automatically enables `yoloMode: true`. This allows the agent to execute tools without waiting for user permission, which is essential for unattended operation. [src/process/services/cron/WorkerTaskManagerJobExecutor.ts:81-82]()
+3.  **Busy Management**: Uses `CronBusyGuard` to ensure that a scheduled task does not conflict with an active manual user session in the same conversation. [src/process/services/cron/WorkerTaskManagerJobExecutor.ts:109-112]()
+4.  **Context Injection**: Copies workspace files and injects instructions into the agent's prompt. [src/process/services/cron/WorkerTaskManagerJobExecutor.ts:131-140]()
 
-**Workflow:**
-
-1. Task triggers at 9 AM on weekdays
-2. Message sent to conversation with sales analysis context
-3. Agent reads workspace files (e.g., `sales.xlsx`)
-4. Agent generates report using enabled skills (XLSX processing)
-5. Report saved to workspace, visible in conversation history
-
-### Example 2: File Organization
-
-```typescript
-{
-  id: "task-cleanup",
-  conversationId: "conv-file-manager",
-  cronExpression: "0 2 * * 0", // Sundays at 2 AM
-  message: "Organize the Downloads folder. Sort files by type into subdirectories, and archive files older than 30 days.",
-  enabled: true,
-  name: "Weekly File Cleanup"
-}
-```
-
-### Example 3: Backup Reminder
-
-```typescript
-{
-  id: "task-backup-reminder",
-  conversationId: "conv-admin",
-  cronExpression: "0 18 1 * *", // 1st of month at 6 PM
-  message: "Check backup status in /backups directory and list any gaps in the backup schedule.",
-  enabled: true,
-  name: "Monthly Backup Check"
-}
-```
-
-### Example 4: Data Aggregation
-
-```typescript
-{
-  id: "task-aggregate-logs",
-  conversationId: "conv-analytics",
-  cronExpression: "0 */4 * * *", // Every 4 hours
-  message: "Parse application logs from the last 4 hours, extract errors, and summarize the top 5 issues.",
-  enabled: true,
-  name: "Log Aggregation"
-}
-```
-
-Sources: [readme.md:227-233]()
+Sources: [src/process/services/cron/CronService.ts:65-86](), [src/process/services/cron/WorkerTaskManagerJobExecutor.ts:46-155]()
 
 ---
 
-## Integration with Agent System
+## User Interface and Interaction
 
-### Agent-Specific Considerations
+### Task Management UI
+The system provides a comprehensive management interface in the `ScheduledTasksPage`:
+*   **Task List**: Overview of all active and paused tasks, showing next run times and last execution status. [src/renderer/pages/cron/ScheduledTasksPage/index.tsx:163-200]()
+*   **Detail View**: Shows execution history and allows manual "Run Now" triggers. [src/renderer/pages/cron/ScheduledTasksPage/TaskDetailPage.tsx:92-106]()
+*   **Creation Dialog**: Supports complex scheduling (Daily, Weekly, Custom Cron) and advanced agent settings (Model selection, Workspace selection). [src/renderer/pages/cron/ScheduledTasksPage/CreateTaskDialog.tsx:118-162]()
 
-Different agent types handle scheduled tasks with slight variations:
+### In-Chat Integration
+Scheduled executions are visible within the conversation history:
+*   **MessageCronBadge**: Messages triggered by a schedule are marked with a "Scheduled" badge. [src/renderer/pages/conversation/Messages/components/MessagetText.tsx:144-144]()
+*   **MessageCronTrigger**: A specialized UI card that appears when a task is triggered, providing a link back to the task settings. [src/process/services/cron/WorkerTaskManagerJobExecutor.ts:155-155]()
+*   **CronJobSiderItem**: In the sidebar, conversations belonging to a scheduled task are grouped under the task name. [src/renderer/components/layout/Sider/CronJobSiderItem.tsx:33-53]()
 
-| Agent Type        | Task Execution Behavior                                                         |
-| ----------------- | ------------------------------------------------------------------------------- |
-| **GeminiAgent**   | Full tool support (web search, file ops, image gen); streams responses normally |
-| **AcpAgent**      | Delegates to CLI tool; may prompt for approvals if `yolo` mode not enabled      |
-| **CodexAgent**    | MCP tools available; long-running operations supported                          |
-| **OpenClawAgent** | Gateway-based execution; network latency considerations                         |
-| **NanobotAgent**  | Simplified execution; limited tool support                                      |
-
-### Permission Model
-
-Scheduled tasks inherit the conversation's permission mode:
-
-- **`yolo` mode**: Tasks execute with auto-approval of all tool calls
-- **`confirmEach` mode**: Task execution pauses at tool calls, waits for manual approval (not recommended for unattended tasks)
-- **`autoEdit` mode**: File operations auto-approved, other tools require approval
-
-**Recommendation**: Configure conversations used for scheduled tasks with `yolo` mode to ensure fully autonomous execution.
-
-Sources: [4.1](#4.1), [4.3](#4.3), [12.4](#12.4) references
+Sources: [src/renderer/pages/cron/ScheduledTasksPage/index.tsx:109-118](), [src/renderer/pages/conversation/Messages/components/MessagetText.tsx:136-144](), [src/renderer/components/layout/Sider/CronJobSiderItem.tsx:55-60]()
 
 ---
 
-## Performance and Scalability
+## Implementation Details
 
-### Resource Considerations
+### SQLite Schema
+Scheduled tasks are persisted in the `cron_jobs` table. The data structure includes:
+*   **Schedule**: JSON-serialized frequency and cron expressions. [src/process/services/cron/CronStore.ts:17-17]()
+*   **Target**: The specific message payload to send to the agent. [src/process/services/cron/CronStore.ts:23-23]()
+*   **Metadata**: Information about the executing agent (backend, model, workspace). [src/process/services/cron/CronStore.ts:23-23]()
 
-| Metric                      | Limit/Guideline          | Rationale                             |
-| --------------------------- | ------------------------ | ------------------------------------- |
-| **Maximum Active Tasks**    | 50 per instance          | Memory overhead of cron job registry  |
-| **Minimum Interval**        | 1 minute                 | Prevent scheduler overload            |
-| **Concurrent Executions**   | 1 per conversation       | Maintain conversation state integrity |
-| **Task Execution Timeout**  | Agent timeout (5-10 min) | Prevent runaway tasks                 |
-| **Config File Size Impact** | ~1 KB per task           | Minimal impact on startup time        |
+### Error Handling and Retries
+If a task fails (e.g., due to a "Conversation Busy" state), the `CronService` implements a retry mechanism:
+*   **Retry Logic**: The service attempts to re-run the job after a delay if the conversation was busy. [src/process/services/cron/CronService.ts:49-50]()
+*   **Missed Jobs**: Detects jobs that were missed while the computer was asleep and notifies the user upon wake-up. [src/renderer/services/i18n/locales/en-US/cron.json:138-138]() (Ref: `error.missedJob`)
 
-### Optimization Strategies
-
-1. **Task Consolidation**: Combine related operations into a single task rather than multiple frequent tasks
-2. **Off-Peak Scheduling**: Schedule resource-intensive tasks during low-activity periods (e.g., nights)
-3. **Workspace Cleanup**: Tasks generating large files should include cleanup logic
-4. **Error Monitoring**: Regularly review task execution logs to identify and fix failing tasks
-5. **Conversation Reuse**: Use dedicated "automation" conversations for scheduled tasks to avoid cluttering interactive conversations
-
-Sources: Architecture context, performance patterns
-
----
-
-## Configuration Example
-
-Complete example showing task configuration in `ConfigStorage`:
-
-```json
-{
-  "scheduledTasks": [
-    {
-      "id": "uuid-1234-5678",
-      "conversationId": "conv-reports",
-      "cronExpression": "0 9 * * 1",
-      "message": "Generate weekly performance report",
-      "enabled": true,
-      "name": "Weekly Report",
-      "description": "Automated weekly report generation for management review",
-      "metadata": {
-        "createdAt": "2024-01-10T10:00:00Z",
-        "modifiedAt": "2024-01-15T14:30:00Z",
-        "lastRun": "2024-01-22T09:00:00Z",
-        "nextRun": "2024-01-29T09:00:00Z",
-        "executionCount": 3,
-        "errorCount": 0
-      }
-    },
-    {
-      "id": "uuid-9012-3456",
-      "conversationId": "conv-maintenance",
-      "cronExpression": "0 2 * * *",
-      "message": "Clean up temporary files older than 7 days",
-      "enabled": true,
-      "name": "Daily Cleanup",
-      "metadata": {
-        "createdAt": "2024-01-05T12:00:00Z",
-        "modifiedAt": "2024-01-05T12:00:00Z",
-        "lastRun": "2024-01-23T02:00:00Z",
-        "nextRun": "2024-01-24T02:00:00Z",
-        "executionCount": 18,
-        "errorCount": 1
-      }
-    }
-  ]
-}
-```
-
-Sources: [8.1](#8.1) reference, [readme.md:220-235]()
-
----
-
-## Summary
-
-The scheduled tasks system transforms AionUi into a 24/7 autonomous platform by enabling time-based execution of agent interactions. Key architectural decisions include:
-
-- **Conversation-bound execution**: Tasks inherit full conversation context and history
-- **Main process implementation**: Ensures tasks run independent of UI state
-- **Cron expression scheduling**: Industry-standard, flexible time specification
-- **Lock-based concurrency**: Prevents state corruption from overlapping executions
-- **IPC-based management**: Clean separation between UI and execution logic
-
-This design enables use cases ranging from simple daily reminders to complex multi-step automation workflows, all while maintaining the full context and capabilities of manual agent interactions.
-
-Sources: [readme.md:64,206-235](), architecture diagrams, [3.6](#3.6), [4](#4)
+Sources: [src/process/services/cron/CronStore.ts:21-46](), [src/process/services/cron/CronService.ts:47-50]()

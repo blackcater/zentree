@@ -5,434 +5,179 @@
 
 The following files were used as context for generating this wiki page:
 
-- [README.md](README.md)
-- [packages/shared/src/agent/diagnostics.ts](packages/shared/src/agent/diagnostics.ts)
-- [packages/shared/src/config/llm-connections.ts](packages/shared/src/config/llm-connections.ts)
+- [apps/electron/resources/config-defaults.json](apps/electron/resources/config-defaults.json)
+- [apps/electron/src/main/onboarding.ts](apps/electron/src/main/onboarding.ts)
+- [apps/electron/src/renderer/pages/settings/AppSettingsPage.tsx](apps/electron/src/renderer/pages/settings/AppSettingsPage.tsx)
+- [apps/electron/src/shared/types.ts](apps/electron/src/shared/types.ts)
+- [bun.lock](bun.lock)
+- [packages/shared/src/config/config-defaults-schema.ts](packages/shared/src/config/config-defaults-schema.ts)
 - [packages/shared/src/config/storage.ts](packages/shared/src/config/storage.ts)
-- [packages/shared/src/utils/summarize.ts](packages/shared/src/utils/summarize.ts)
+- [packages/shared/src/config/watcher.ts](packages/shared/src/config/watcher.ts)
 
 </details>
 
+
+
 ## Purpose and Scope
 
-This page documents the environment variables and build-time configuration required for developing and building Craft Agents. It covers OAuth client credentials for MCP source integrations, build-time variable injection, and the `.env` file structure.
-
-For runtime authentication setup and user-facing credential management, see [Authentication Setup](#3.3). For workspace-specific configuration files, see [Storage & Configuration](#2.8).
+This page documents the environment configuration of Craft Agents, focusing on the on-disk data layout under `~/.craft-agent/`, the structure of core configuration files (`config.json`, `preferences.json`, `config-defaults.json`), and the management of LLM connections and workspaces. It explains how the system initializes its environment and how configuration state flows between the filesystem and the application.
 
 ---
 
-## Overview
+## The `~/.craft-agent/` Directory Structure
 
-Craft Agents uses environment variables for two primary purposes:
+Craft Agents stores all persistent state in a standardized directory located at `~/.craft-agent/` (expanded via `expandPath('~/.craft-agent')` [packages/shared/src/config/storage.ts:15-18]()). This directory acts as the root for application configuration, workspace data, and bundled assets.
 
-1. **Build-time injection**: OAuth client IDs and secrets are compiled into the application binary during the build process
-2. **Development configuration**: Optional settings for development workflows
+| Path | Purpose | Key File/Subdirectory |
+|:---|:---|:---|
+| `/` | Root config directory | `config.json`, `preferences.json`, `credentials.enc` |
+| `/docs/` | In-app documentation | Markdown files synced from bundled assets |
+| `/themes/` | UI Theme definitions | JSON files defining CSS variables and colors |
+| `/workspaces/` | Workspace-scoped data | Subdirectories per workspace slug |
+| `/workspaces/{slug}/` | Individual workspace | `config.json`, `/sessions/`, `/sources/`, `/skills/` |
 
-All environment variables are sourced from a `.env` file at the repository root and injected into the Electron main process bundle using esbuild's `--define` flag.
-
-**Sources:** [apps/electron/package.json:18]()
-
----
-
-## Environment Variable Categories
-
-### OAuth Client Credentials
-
-The following environment variables configure OAuth client credentials for MCP source integrations. These are optional but required for users to authenticate with the respective services.
-
-| Variable                     | Service         | Required | Purpose                                        |
-| ---------------------------- | --------------- | -------- | ---------------------------------------------- |
-| `GOOGLE_OAUTH_CLIENT_ID`     | Google APIs     | No       | OAuth 2.0 client ID for Google MCP sources     |
-| `GOOGLE_OAUTH_CLIENT_SECRET` | Google APIs     | No       | OAuth 2.0 client secret for Google MCP sources |
-| `SLACK_OAUTH_CLIENT_ID`      | Slack API       | No       | OAuth 2.0 client ID for Slack MCP sources      |
-| `SLACK_OAUTH_CLIENT_SECRET`  | Slack API       | No       | OAuth 2.0 client secret for Slack MCP sources  |
-| `MICROSOFT_OAUTH_CLIENT_ID`  | Microsoft Graph | No       | OAuth 2.0 client ID for Microsoft MCP sources  |
-
-**Note:** Microsoft OAuth does not require a client secret as it uses PKCE (Proof Key for Code Exchange) for public clients.
-
-**Sources:** [apps/electron/package.json:18]()
+**Sources:** [packages/shared/src/config/storage.ts:1-29](), [packages/shared/src/config/paths.ts:18-18]()
 
 ---
 
-## The `.env` File
+## Core Configuration Files
 
-### Location and Format
+### `config.json` (`StoredConfig`)
 
-The `.env` file must be placed at the repository root (`craft-agents-oss/.env`). It uses standard environment variable syntax:
+The `config.json` file in the root directory is the authoritative source for application-level settings and the workspace registry. It is managed by the `StoredConfig` interface [packages/shared/src/config/storage.ts:51-87]().
 
-```bash
-# MCP OAuth Credentials
-GOOGLE_OAUTH_CLIENT_ID=your-client-id.apps.googleusercontent.com
-GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
+| Field | Type | Description |
+|:---|:---|:---|
+| `llmConnections` | `LlmConnection[]` | Array of configured LLM providers (Anthropic, Bedrock, etc.) |
+| `defaultLlmConnection` | `string` | The slug of the connection used for new sessions |
+| `workspaces` | `Workspace[]` | Registry of known workspaces and their metadata |
+| `activeWorkspaceId` | `string` | ID of the workspace currently selected in the UI |
+| `colorTheme` | `string` | ID of the selected preset theme (e.g., 'dracula', 'nord') |
+| `notificationsEnabled` | `boolean` | Desktop notifications for task completion |
+| `networkProxy` | `NetworkProxySettings` | Global proxy configuration for outbound requests |
 
-SLACK_OAUTH_CLIENT_ID=your-slack-client-id
-SLACK_OAUTH_CLIENT_SECRET=your-slack-client-secret
+**Sources:** [packages/shared/src/config/storage.ts:51-87]()
 
-MICROSOFT_OAUTH_CLIENT_ID=your-microsoft-client-id
+### `config-defaults.json`
+
+On every launch, the application syncs `config-defaults.json` from its bundled assets to the config directory via `syncConfigDefaults()` [packages/shared/src/config/storage.ts:125-152](). This ensures that new settings introduced in application updates have sensible defaults.
+
+```mermaid
+graph TD
+    subgraph "Application Bundle"
+        Resources["apps/electron/resources/config-defaults.json"]
+    end
+    
+    subgraph "Local Storage (~/.craft-agent/)"
+        Target["config-defaults.json"]
+        ConfigJSON["config.json"]
+    end
+    
+    Resources -->|"syncConfigDefaults()"| Target
+    Target -->|"loadConfigDefaults()"| AppState["Runtime Configuration"]
+    ConfigJSON -->|"loadStoredConfig()"| AppState
+    
+    style AppState stroke-width:2px
 ```
+**Diagram: Configuration Defaults Sync Flow**
 
-### Security Considerations
-
-- The `.env` file should **never** be committed to version control
-- Add `.env` to `.gitignore` to prevent accidental commits
-- Store credentials securely using a password manager or secret management service
-- For production builds, use secure environment variable injection in CI/CD pipelines
-
-**Sources:** [apps/electron/package.json:18]()
+**Sources:** [packages/shared/src/config/storage.ts:125-152](), [packages/shared/src/config/storage.ts:158-166](), [apps/electron/resources/config-defaults.json:1-23]()
 
 ---
 
-## Build-Time Variable Injection
+## LLM Connection Configuration
 
-### Injection Mechanism
+LLM Connections are named provider configurations. Each connection specifies a `providerType` (e.g., `anthropic`, `bedrock`, `pi`) and an `authType` (e.g., `api_key`, `oauth`, `iam_credentials`) [apps/electron/src/shared/types.ts:67-68]().
 
-Environment variables are injected at build time using esbuild's `--define` flag in the `build:main` script. The build process:
+### Connection Structure (`LlmConnection`)
 
-1. Sources the `.env` file using `source ../../.env`
-2. Passes each variable to esbuild with `--define:process.env.VAR_NAME=\"${VAR_NAME:-}\"`
-3. The `:-` syntax provides an empty string default if the variable is unset
-4. Variables are compiled as string literals into the main process bundle
+| Property | Description |
+|:---|:---|
+| `slug` | URL-safe identifier (e.g., `anthropic-pro`) |
+| `providerType` | Implementation backend: `anthropic`, `bedrock`, `vertex`, `pi`, etc. |
+| `authType` | Mechanism: `api_key`, `oauth`, `iam_credentials`, `none` |
+| `models` | Optional override for available models (e.g., for Ollama/Local) |
+
+**Sources:** [packages/shared/src/config/storage.ts:45-45](), [apps/electron/src/shared/types.ts:67-68]()
+
+### Data Flow: Connection to Agent
+
+When a session starts, the `LlmConnection` slug is used to retrieve credentials from the encrypted `credentials.enc` store and initialize the appropriate `BaseAgent` implementation.
 
 ```mermaid
 graph LR
-    subgraph "Build Process"
-        EnvFile[".env file"]
-        BuildScript["build:main script"]
-        ESBuild["esbuild bundler"]
-        MainBundle["dist/main.cjs"]
+    subgraph "Renderer Process"
+        UI["AiSettingsPage"] -->|"setLlmOAuth"| API["window.electronAPI"]
     end
-
-    subgraph "Variable Access"
-        ProcessEnv["process.env.GOOGLE_OAUTH_CLIENT_ID"]
-        RuntimeCode["Main process code"]
+    
+    subgraph "Main Process (Code Entity Space)"
+        API -->|"RPC_CHANNELS.onboarding.EXCHANGE_CLAUDE_CODE"| OH["onboarding.ts"]
+        OH -->|"getCredentialManager()"| CM["CredentialManager"]
+        CM -->|"setLlmOAuth()"| ENC["credentials.enc"]
+        
+        SM["SessionManager"] -->|"loadStoredConfig()"| SC["StoredConfig"]
+        SC -->|"defaultLlmConnection"| CM
+        CM -->|"decrypt credentials"| AG["AgentFactory"]
     end
-
-    EnvFile -->|"source .env"| BuildScript
-    BuildScript -->|"--define flags"| ESBuild
-    ESBuild -->|"compile literals"| MainBundle
-    MainBundle -->|"provides access"| ProcessEnv
-    ProcessEnv -->|"used by"| RuntimeCode
+    
+    subgraph "LLM Providers"
+        AG -->|"Anthropic SDK"| Ant["Anthropic API"]
+        AG -->|"Pi SDK"| Pi["@mariozechner/pi-ai"]
+    end
 ```
+**Diagram: LLM Connection and Credential Flow**
 
-**Diagram: Build-Time Environment Variable Injection Flow**
-
-**Sources:** [apps/electron/package.json:18]()
+**Sources:** [apps/electron/src/main/onboarding.ts:112-151](), [packages/shared/src/config/storage.ts:51-54](), [apps/electron/src/shared/types.ts:212-220]()
 
 ---
 
-## Platform-Specific Build Scripts
+## User Preferences and Watcher
 
-### macOS and Linux
+### `preferences.json` (`UserPreferences`)
 
-The standard `build:main` script sources the `.env` file using bash:
+The `preferences.json` file stores user-specific metadata that isn't critical to application logic but enhances the AI's context, such as the user's name, timezone, and location [packages/shared/src/config/watcher.ts:79-90]().
 
-```bash
-source ../../.env 2>/dev/null || true
-```
+### Config Watcher (`ConfigWatcher`)
 
-The `2>/dev/null || true` pattern ensures the build continues even if the `.env` file doesn't exist.
+The `ConfigWatcher` class monitors configuration files for external changes and triggers callbacks in the application to ensure the UI stays in sync without a restart [packages/shared/src/config/watcher.ts:182-186]().
 
-**Sources:** [apps/electron/package.json:18]()
+| Watched File | Callback Triggered |
+|:---|:---|
+| `config.json` | `onConfigChange` |
+| `preferences.json` | `onPreferencesChange` |
+| `workspaces/*/config.json` | `onWorkspacePermissionsChange` / `onSourceChange` |
+| `automations.json` | `onAutomationsConfigChange` |
 
-### Windows
-
-Windows builds use a separate `build:main:win` script that does not source the `.env` file. Environment variables must be set in the Windows environment or passed via PowerShell:
-
-```powershell
-$env:GOOGLE_OAUTH_CLIENT_ID = "your-client-id"
-bun run build:win
-```
-
-**Sources:** [apps/electron/package.json:19]()
+**Sources:** [packages/shared/src/config/watcher.ts:62-63](), [packages/shared/src/config/watcher.ts:95-156]()
 
 ---
 
-## Environment Variable to Code Entity Mapping
+## Implementation Details
 
-The following diagram shows how environment variables map to code entities in the application:
+### Configuration Initialization
 
-```mermaid
-graph TB
-    subgraph "Environment Variables"
-        GoogleID["GOOGLE_OAUTH_CLIENT_ID"]
-        GoogleSecret["GOOGLE_OAUTH_CLIENT_SECRET"]
-        SlackID["SLACK_OAUTH_CLIENT_ID"]
-        SlackSecret["SLACK_OAUTH_CLIENT_SECRET"]
-        MicrosoftID["MICROSOFT_OAUTH_CLIENT_ID"]
-    end
+At startup, the application executes the following sequence to prepare the environment:
+1.  **Directory Verification**: Creates `~/.craft-agent/` if it does not exist [packages/shared/src/config/storage.ts:1-17]().
+2.  **Asset Syncing**: Calls `syncConfigDefaults()` to update the defaults file from the app bundle [packages/shared/src/config/storage.ts:125-152]().
+3.  **Documentation Syncing**: Calls `initializeDocs()` to ensure in-app help is up-to-date [packages/shared/src/config/storage.ts:14-14]().
+4.  **Config Loading**: Executes `loadStoredConfig()` which reads `config.json` and populates the runtime state [packages/shared/src/config/storage.ts:28-28]().
+5.  **Workspace Discovery**: Runs `discoverWorkspacesInDefaultLocation()` to find and register all workspace directories [packages/shared/src/config/storage.ts:6-6]().
 
-    subgraph "Build-Time Injection"
-        ESBuildDefine["esbuild --define flags"]
-    end
+**Sources:** [packages/shared/src/config/storage.ts:1-152](), [packages/shared/src/config/watcher.ts:1-17]()
 
-    subgraph "Runtime Access"
-        ProcessEnvGoogle["process.env.GOOGLE_OAUTH_CLIENT_ID"]
-        ProcessEnvSlack["process.env.SLACK_OAUTH_CLIENT_ID"]
-        ProcessEnvMS["process.env.MICROSOFT_OAUTH_CLIENT_ID"]
-    end
+### Settings UI (`AppSettingsPage`)
 
-    subgraph "OAuth Flow Implementation"
-        OAuthManager["packages/shared OAuth handlers"]
-        GoogleFlow["Google OAuth 2.0 flow"]
-        SlackFlow["Slack OAuth 2.0 flow"]
-        MSFlow["Microsoft OAuth 2.0 PKCE flow"]
-    end
+The `AppSettingsPage` component in the renderer provides a user interface for modifying these files. It communicates with the main process via `window.electronAPI` to persist changes to disk [apps/electron/src/renderer/pages/settings/AppSettingsPage.tsx:94-200]().
 
-    subgraph "User Interaction"
-        SourceAdd["User adds MCP source"]
-        CredPrompt["source_credential_prompt tool"]
-        OAuthTrigger["source_oauth_trigger tool"]
-    end
+*   **Notifications**: Toggles `notificationsEnabled` in `config.json` [apps/electron/src/renderer/pages/settings/AppSettingsPage.tsx:148-151]().
+*   **Network Proxy**: Configures `networkProxy` settings [apps/electron/src/renderer/pages/settings/AppSettingsPage.tsx:168-191]().
+*   **Browser Tool**: Enables or disables the built-in browser automation tool [apps/electron/src/renderer/pages/settings/AppSettingsPage.tsx:158-161]().
 
-    GoogleID --> ESBuildDefine
-    GoogleSecret --> ESBuildDefine
-    SlackID --> ESBuildDefine
-    SlackSecret --> ESBuildDefine
-    MicrosoftID --> ESBuildDefine
-
-    ESBuildDefine --> ProcessEnvGoogle
-    ESBuildDefine --> ProcessEnvSlack
-    ESBuildDefine --> ProcessEnvMS
-
-    ProcessEnvGoogle --> GoogleFlow
-    ProcessEnvSlack --> SlackFlow
-    ProcessEnvMS --> MSFlow
-
-    GoogleFlow --> OAuthManager
-    SlackFlow --> OAuthManager
-    MSFlow --> OAuthManager
-
-    SourceAdd --> CredPrompt
-    CredPrompt --> OAuthTrigger
-    OAuthTrigger --> OAuthManager
-```
-
-**Diagram: Environment Variable to OAuth Flow Mapping**
-
-**Sources:** [apps/electron/package.json:18]()
-
----
-
-## Development Workflow
-
-### Initial Setup
-
-1. Create a `.env` file at the repository root:
-
-   ```bash
-   touch .env
-   ```
-
-2. Add OAuth credentials (optional for basic development):
-
-   ```bash
-   echo "GOOGLE_OAUTH_CLIENT_ID=your-client-id" >> .env
-   echo "GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret" >> .env
-   ```
-
-3. Verify the file is ignored by git:
-   ```bash
-   git status  # .env should not appear
-   ```
-
-### Building with Environment Variables
-
-Run the standard build command, which automatically sources the `.env` file:
-
-```bash
-bun run electron:build
-```
-
-Or build just the main process:
-
-```bash
-bun run electron:build:main
-```
-
-**Sources:** [package.json:21-22](), [apps/electron/package.json:18]()
-
-### Development Mode
-
-The development script automatically rebuilds when changes are detected:
-
-```bash
-bun run electron:dev
-```
-
-Environment variables are re-sourced on each rebuild of the main process.
-
-**Sources:** [package.json:28]()
-
----
-
-## Obtaining OAuth Credentials
-
-### Google OAuth Credentials
-
-1. Create a project in [Google Cloud Console](https://console.cloud.google.com)
-2. Enable required APIs (Gmail, Calendar, Drive, etc.)
-3. Create OAuth 2.0 credentials with redirect URI: `http://localhost:3000/oauth/callback`
-4. Copy the client ID and secret to your `.env` file
-
-### Slack OAuth Credentials
-
-1. Create an app in [Slack API Portal](https://api.slack.com/apps)
-2. Add OAuth redirect URL: `http://localhost:3000/oauth/callback`
-3. Copy the client ID and secret to your `.env` file
-4. Configure required OAuth scopes for your use case
-
-### Microsoft OAuth Credentials
-
-1. Register an app in [Azure Portal](https://portal.azure.com)
-2. Set redirect URI to `ms-craftagents://auth` (custom protocol)
-3. Enable public client flows (PKCE)
-4. Copy the application (client) ID to your `.env` file
-5. **No client secret is required** for PKCE flows
-
----
-
-## Missing Credentials Behavior
-
-### Build Time
-
-If OAuth credentials are not provided:
-
-- The build completes successfully with empty string defaults
-- Variables are defined as `""` in the compiled bundle
-- No warnings or errors are generated
-
-### Runtime
-
-When a user attempts to add an MCP source requiring OAuth:
-
-- The application checks if the respective client ID is defined
-- If missing, the OAuth flow is disabled for that source
-- Users see an error indicating OAuth is not configured
-- API key authentication may still be available for some sources
-
-**Sources:** [apps/electron/package.json:18]()
-
----
-
-## Production Builds
-
-### CI/CD Configuration
-
-For automated builds in CI/CD environments:
-
-1. Store OAuth credentials as encrypted secrets in your CI/CD platform
-2. Inject them as environment variables before the build step
-3. Never log or expose credentials in build output
-
-Example GitHub Actions configuration:
-
-```yaml
-- name: Build Electron App
-  env:
-    GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
-    GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
-    SLACK_OAUTH_CLIENT_ID: ${{ secrets.SLACK_OAUTH_CLIENT_ID }}
-    SLACK_OAUTH_CLIENT_SECRET: ${{ secrets.SLACK_OAUTH_CLIENT_SECRET }}
-    MICROSOFT_OAUTH_CLIENT_ID: ${{ secrets.MICROSOFT_OAUTH_CLIENT_ID }}
-  run: bun run electron:build
-```
-
-### Distribution Considerations
-
-OAuth credentials compiled into distributed binaries:
-
-- Are **not** user-specific; they identify your application to the OAuth provider
-- Should be rotated regularly and monitored for abuse
-- May have rate limits or quotas imposed by the provider
-- Should be registered with appropriate redirect URIs for production
-
----
-
-## Configuration File Structure
-
-The following diagram shows how environment variables relate to the broader configuration architecture:
-
-```mermaid
-graph TB
-    subgraph "Build-Time Configuration"
-        EnvFile[".env file<br/>(repository root)"]
-        ESBuildProcess["esbuild build process"]
-        MainCJS["dist/main.cjs<br/>(compiled bundle)"]
-    end
-
-    subgraph "Runtime Configuration"
-        ConfigJSON["~/.craft-agent/config.json<br/>(LLM connections, workspaces)"]
-        CredentialsEnc["~/.craft-agent/credentials.enc<br/>(encrypted OAuth tokens)"]
-        SourcesJSON["workspaces/{id}/sources/*.json<br/>(source configurations)"]
-    end
-
-    subgraph "OAuth Flow"
-        UserAuth["User authenticates"]
-        OAuthCode["OAuth authorization code"]
-        TokenExchange["Token exchange"]
-        CredManager["CredentialManager"]
-    end
-
-    EnvFile -->|"provides client credentials"| ESBuildProcess
-    ESBuildProcess -->|"compiles into"| MainCJS
-    MainCJS -->|"reads client ID/secret"| TokenExchange
-
-    UserAuth -->|"generates"| OAuthCode
-    OAuthCode -->|"exchanged using client credentials"| TokenExchange
-    TokenExchange -->|"stores access token"| CredManager
-    CredManager -->|"encrypts and saves"| CredentialsEnc
-
-    CredentialsEnc -->|"references"| SourcesJSON
-    SourcesJSON -->|"configured in"| ConfigJSON
-```
-
-**Diagram: Environment Variables in Configuration Architecture**
-
-**Sources:** [apps/electron/package.json:18]()
-
----
-
-## Troubleshooting
-
-### Build Fails to Source `.env`
-
-**Symptom:** Build script cannot find `.env` file
-
-**Solution:**
-
-- Verify `.env` exists at repository root
-- Check file permissions: `chmod 600 .env`
-- On Windows, use `build:main:win` or set variables in PowerShell
-
-### OAuth Flows Don't Work
-
-**Symptom:** OAuth authentication fails or shows "not configured" error
-
-**Solution:**
-
-- Verify credentials are in `.env` before building
-- Rebuild the application after updating `.env`
-- Check that redirect URIs match in OAuth provider console
-- Ensure client ID/secret are valid and not expired
-
-### Environment Variables Not Defined
-
-**Symptom:** `process.env.GOOGLE_OAUTH_CLIENT_ID` is `undefined` at runtime
-
-**Solution:**
-
-- Verify the `build:main` script was used (not `build:main:win` on Unix)
-- Check esbuild `--define` flags in build script
-- Rebuild the main process: `bun run electron:build:main`
-- Confirm the variable exists in the compiled `dist/main.cjs` bundle
-
-**Sources:** [apps/electron/package.json:18-19]()
+**Sources:** [apps/electron/src/renderer/pages/settings/AppSettingsPage.tsx:1-200](), [apps/electron/src/shared/types.ts:212-230]()
 
 ---
 
 ## Related Pages
-
-- [Installation](#3.1) - Platform-specific installation instructions
-- [Authentication Setup](#3.3) - User-facing authentication configuration
-- [Storage & Configuration](#2.8) - Runtime configuration file formats
-- [External Service Integration](#2.4) - How sources use OAuth credentials
+*   **2.8 Storage & Configuration** — Deep dive into the persistence logic and `SessionManager`.
+*   **3.3 Authentication Setup** — Walkthrough of the onboarding wizard and credential management.
+*   **4.1 Workspaces** — Detailed guide on workspace-level configuration and directory structure.

@@ -36,6 +36,8 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
+
+
 ## Purpose and Scope
 
 The Workspace System manages projects and workspaces within the Superset desktop application. A **project** represents a Git repository, while a **workspace** is an isolated work context within that project—either the main branch or a separate Git worktree. This system enables users to work on multiple branches simultaneously without switching contexts, leveraging Git worktrees to maintain separate working directories.
@@ -49,7 +51,6 @@ For information about workspace initialization progress tracking, see [2.6.3](#2
 ### Projects
 
 A **project** is a Git repository tracked in the local SQLite database. Projects store metadata including:
-
 - Repository path (`mainRepoPath`)
 - Display name and color
 - Default branch
@@ -62,7 +63,6 @@ Projects are managed through the `createProjectsRouter` in [apps/desktop/src/lib
 ### Workspaces
 
 A **workspace** represents an active work context within a project. Each workspace has:
-
 - A unique ID
 - A reference to its parent project
 - A workspace type: `"branch"` or `"worktree"`
@@ -74,7 +74,6 @@ A **workspace** represents an active work context within a project. Each workspa
 ### Worktrees
 
 A **worktree** is a Git worktree—a separate working directory that checks out a different branch. Worktrees are tracked with:
-
 - Path on disk
 - Branch name
 - Base branch (for rebase/merge operations)
@@ -89,18 +88,18 @@ A **worktree** is a Git worktree—a separate working directory that checks out 
 
 The workspace system uses three primary tables in the local SQLite database:
 
-| Table        | Purpose          | Key Fields                                                                 |
-| ------------ | ---------------- | -------------------------------------------------------------------------- |
-| `projects`   | Git repositories | `id`, `mainRepoPath`, `name`, `color`, `defaultBranch`, `branchPrefixMode` |
-| `workspaces` | Work contexts    | `id`, `projectId`, `worktreeId`, `type`, `branch`, `name`, `tabOrder`      |
-| `worktrees`  | Git worktrees    | `id`, `projectId`, `path`, `branch`, `baseBranch`, `gitStatus`             |
+| Table | Purpose | Key Fields |
+|-------|---------|------------|
+| `projects` | Git repositories | `id`, `mainRepoPath`, `name`, `color`, `defaultBranch`, `branchPrefixMode` |
+| `workspaces` | Work contexts | `id`, `projectId`, `worktreeId`, `type`, `branch`, `name`, `tabOrder` |
+| `worktrees` | Git worktrees | `id`, `projectId`, `path`, `branch`, `baseBranch`, `gitStatus` |
 
 ```mermaid
 erDiagram
     projects ||--o{ workspaces : contains
     projects ||--o{ worktrees : manages
     workspaces }o--|| worktrees : uses
-
+    
     projects {
         string id PK
         string mainRepoPath
@@ -111,7 +110,7 @@ erDiagram
         string workspaceBaseBranch
         number lastOpenedAt
     }
-
+    
     workspaces {
         string id PK
         string projectId FK
@@ -123,7 +122,7 @@ erDiagram
         number tabOrder
         number deletingAt "nullable"
     }
-
+    
     worktrees {
         string id PK
         string projectId FK
@@ -135,7 +134,6 @@ erDiagram
 ```
 
 **Relationship Rules:**
-
 - A **branch workspace** has `type="branch"` and `worktreeId=null`, working directly in `mainRepoPath`
 - A **worktree workspace** has `type="worktree"` and references a `worktrees` entry
 - Each project can have at most one branch workspace (enforced by unique partial index)
@@ -154,7 +152,7 @@ graph TB
         UI["Workspace UI<br/>(WorkspacePage)"]
         Modal["NewWorkspaceModal"]
     end
-
+    
     subgraph "Main Process - TRPC Routers"
         ProjectsRouter["createProjectsRouter<br/>projects.ts"]
         WorkspacesRouter["createWorkspacesRouter<br/>workspaces.ts"]
@@ -162,40 +160,40 @@ graph TB
         DeleteProcs["createDeleteProcedures<br/>delete.ts"]
         QueryProcs["createQueryProcedures<br/>query.ts"]
     end
-
+    
     subgraph "Core Logic"
         GitUtils["Git Utilities<br/>git.ts"]
         WorkspaceInit["initializeWorkspaceWorktree<br/>workspace-init.ts"]
         ShellEnv["getShellEnvironment<br/>shell-env.ts"]
         DBHelpers["DB Helpers<br/>db-helpers.ts"]
     end
-
+    
     subgraph "Storage"
         LocalDB["SQLite Database<br/>projects, workspaces, worktrees"]
         FileSystem["File System<br/>Git worktrees"]
     end
-
+    
     UI -->|create workspace| Modal
     Modal -->|tRPC call| WorkspacesRouter
     UI -->|open project| ProjectsRouter
-
+    
     WorkspacesRouter --> CreateProcs
     WorkspacesRouter --> DeleteProcs
     WorkspacesRouter --> QueryProcs
-
+    
     CreateProcs --> WorkspaceInit
     CreateProcs --> GitUtils
     CreateProcs --> DBHelpers
-
+    
     ProjectsRouter --> GitUtils
     ProjectsRouter --> DBHelpers
-
+    
     GitUtils --> ShellEnv
     WorkspaceInit --> GitUtils
-
+    
     DBHelpers --> LocalDB
     GitUtils --> FileSystem
-
+    
     style WorkspacesRouter fill:#e1f5ff
     style ProjectsRouter fill:#fff4e1
     style GitUtils fill:#ffe1f5
@@ -214,7 +212,6 @@ A branch workspace works directly in the project's main repository directory (`m
 **Creation:** Automatically created when opening a project for the first time via `ensureMainWorkspace` [apps/desktop/src/lib/trpc/routers/projects/projects.ts:131-209]().
 
 **Properties:**
-
 - `type: "branch"`
 - `worktreeId: null`
 - `branch`: Current branch in main repo
@@ -229,7 +226,6 @@ A worktree workspace uses a Git worktree—a separate directory that checks out 
 **Creation:** Created via `create` mutation with optional branch name, prompt, or base branch [apps/desktop/src/lib/trpc/routers/workspaces/procedures/create.ts:288-529]().
 
 **Properties:**
-
 - `type: "worktree"`
 - `worktreeId`: References `worktrees` table entry
 - `branch`: Branch checked out in worktree
@@ -237,7 +233,6 @@ A worktree workspace uses a Git worktree—a separate directory that checks out 
 
 **Worktree Path Resolution:**
 The system resolves worktree paths using `resolveWorktreePath`, which:
-
 1. Uses `project.worktreeBaseDir` if configured
 2. Falls back to `.superset/worktrees/` in project directory
 3. Creates subdirectories based on sanitized branch names
@@ -258,12 +253,12 @@ graph TD
     NotRepo{"Is Git repo?"}
     InitPrompt["Offer to initialize"]
     InitRepo["initGitRepo<br/>Create main branch"]
-
+    
     UpsertProj["upsertProject<br/>Insert or update DB record"]
     EnsureWS["ensureMainWorkspace<br/>Create branch workspace"]
     Activate["activateProject<br/>Update tabOrder"]
     Done["Project opened"]
-
+    
     Start --> SelectDir
     SelectDir --> GetRoot
     GetRoot --> NotRepo
@@ -278,13 +273,13 @@ graph TD
 
 **Key Functions:**
 
-| Function              | Location                | Purpose                                           |
-| --------------------- | ----------------------- | ------------------------------------------------- |
-| `getGitRoot`          | [git.ts:706-718]()      | Resolves folder to Git repository root            |
-| `initGitRepo`         | [projects.ts:67-97]()   | Initializes empty Git repository with main branch |
-| `upsertProject`       | [projects.ts:99-129]()  | Creates or updates project record                 |
-| `ensureMainWorkspace` | [projects.ts:131-209]() | Creates branch workspace if missing               |
-| `activateProject`     | [db-helpers.ts]()       | Assigns `tabOrder` for project strip              |
+| Function | Location | Purpose |
+|----------|----------|---------|
+| `getGitRoot` | [git.ts:706-718]() | Resolves folder to Git repository root |
+| `initGitRepo` | [projects.ts:67-97]() | Initializes empty Git repository with main branch |
+| `upsertProject` | [projects.ts:99-129]() | Creates or updates project record |
+| `ensureMainWorkspace` | [projects.ts:131-209]() | Creates branch workspace if missing |
+| `activateProject` | [db-helpers.ts]() | Assigns `tabOrder` for project strip |
 
 **Sources:** [apps/desktop/src/lib/trpc/routers/projects/projects.ts:654-705](), [apps/desktop/src/lib/trpc/routers/workspaces/utils/git.ts:706-718]()
 
@@ -299,7 +294,6 @@ The `cloneRepo` procedure handles Git clone operations:
 5. **Project Creation:** Calls `upsertProject` and `ensureMainWorkspace`
 
 **Supported URL Formats:**
-
 - HTTPS: `https://github.com/owner/repo.git`
 - SSH: `git@github.com:owner/repo.git`
 - Protocol-less: `github.com/owner/repo`
@@ -323,7 +317,7 @@ graph LR
     CheckReg["isWorktreeRegistered<br/>Verify registration"]
     Config["Set push.autoSetupRemote"]
     Done["Worktree created"]
-
+    
     Start --> MkDir
     MkDir --> ExecAdd
     ExecAdd --> HookTol
@@ -371,7 +365,6 @@ This approach prevents blocking the main thread on large directories and avoids 
 3. UI displays external worktrees with "Import" option
 
 `openExternalWorktree` procedure [apps/desktop/src/lib/trpc/routers/workspaces/procedures/create.ts:724-912]() imports them:
-
 - Verifies worktree still exists on disk
 - Creates `worktrees` and `workspaces` records
 - Copies `.superset/` configuration
@@ -390,7 +383,6 @@ The `create` procedure [apps/desktop/src/lib/trpc/routers/workspaces/procedures/
 **Input:** `{ projectId, prompt, applyPrefix }`
 
 **Flow:**
-
 1. Generate branch name using `generateBranchName` [apps/desktop/src/lib/trpc/routers/workspaces/utils/git.ts:412-456]()
 2. Apply author prefix if enabled (e.g., `username/clever-giraffe`)
 3. Resolve base branch using `resolveWorkspaceBaseBranch`
@@ -403,7 +395,6 @@ The `create` procedure [apps/desktop/src/lib/trpc/routers/workspaces/procedures/
 **Input:** `{ projectId, branchName, useExistingBranch: true }`
 
 **Flow:**
-
 1. Validate branch exists using `listBranches` [apps/desktop/src/lib/trpc/routers/workspaces/utils/git.ts:1244-1268]()
 2. Check if branch is already checked out elsewhere
 3. Create worktree using `createWorktreeFromExistingBranch`
@@ -414,7 +405,6 @@ The `create` procedure [apps/desktop/src/lib/trpc/routers/workspaces/procedures/
 **Input:** `{ projectId, branchName, baseBranch? }`
 
 **Flow:**
-
 1. Sanitize branch name using `sanitizeBranchNameWithMaxLength`
 2. Check for existing workspace with same branch
 3. Reuse orphaned worktree if found
@@ -453,23 +443,23 @@ stateDiagram-v2
     copying_config --> finalizing: Config copied
     finalizing --> ready: AI auto-naming
     ready --> [*]: Complete
-
+    
     verifying --> failed: Base branch not found
     fetching --> failed: Fetch failed
     creating_worktree --> failed: Worktree error
     failed --> [*]
 ```
 
-| Step                | Description                                                        | Progress Label               |
-| ------------------- | ------------------------------------------------------------------ | ---------------------------- |
-| `acquiring_lock`    | Waits for project-level lock (prevents parallel operations)        | "Initializing..."            |
-| `syncing`           | Calls `refreshDefaultBranch` to detect remote branch changes       | "Syncing with remote..."     |
-| `verifying`         | Validates base branch exists or resolves fallback                  | "Verifying base branch..."   |
-| `fetching`          | Runs `fetchDefaultBranch` to get latest commits                    | "Fetching latest changes..." |
-| `creating_worktree` | Executes `createWorktree` or `createWorktreeFromExistingBranch`    | "Creating git worktree..."   |
-| `copying_config`    | Copies `.superset/` directory using `copySupersetConfigToWorktree` | "Copying configuration..."   |
-| `finalizing`        | Updates `worktrees.gitStatus` field                                | "Finalizing setup..."        |
-| `ready`             | Attempts AI auto-naming from prompt                                | "Ready"                      |
+| Step | Description | Progress Label |
+|------|-------------|----------------|
+| `acquiring_lock` | Waits for project-level lock (prevents parallel operations) | "Initializing..." |
+| `syncing` | Calls `refreshDefaultBranch` to detect remote branch changes | "Syncing with remote..." |
+| `verifying` | Validates base branch exists or resolves fallback | "Verifying base branch..." |
+| `fetching` | Runs `fetchDefaultBranch` to get latest commits | "Fetching latest changes..." |
+| `creating_worktree` | Executes `createWorktree` or `createWorktreeFromExistingBranch` | "Creating git worktree..." |
+| `copying_config` | Copies `.superset/` directory using `copySupersetConfigToWorktree` | "Copying configuration..." |
+| `finalizing` | Updates `worktrees.gitStatus` field | "Finalizing setup..." |
+| `ready` | Attempts AI auto-naming from prompt | "Ready" |
 
 ### Base Branch Resolution
 
@@ -486,7 +476,6 @@ If the chosen base branch doesn't exist, the system attempts fallback to `["main
 ### Cancellation Handling
 
 Workspace deletion during initialization triggers cancellation:
-
 - Checks `manager.isCancellationRequested(workspaceId)` at each step
 - Cleans up partial worktrees if creation succeeded
 - Does NOT emit "failed" event to avoid UI race condition
@@ -507,7 +496,6 @@ git --no-optional-locks -C <repo> status --porcelain=v1 -b -z -uall
 ```
 
 Flags:
-
 - `--no-optional-locks`: Prevents blocking other Git operations
 - `--porcelain=v1`: Machine-readable format
 - `-b`: Include branch info
@@ -543,7 +531,6 @@ Git commands require proper PATH resolution to find tools like `git`, `gh`, and 
 ### Problem: macOS GUI App PATH
 
 When launched from Finder/Dock, macOS apps receive a minimal PATH (`/usr/bin:/bin:/usr/sbin:/sbin`) that excludes:
-
 - Homebrew binaries (`/opt/homebrew/bin`)
 - User-installed tools (`/usr/local/bin`)
 - Version managers (nvm, volta, fnm configured in `.zshrc`)
@@ -552,22 +539,22 @@ When launched from Finder/Dock, macOS apps receive a minimal PATH (`/usr/bin:/bi
 
 `getShellEnvironment` [apps/desktop/src/lib/trpc/routers/workspaces/utils/shell-env.ts:60-95]() spawns an **interactive login shell** (`-ilc`) to capture the full environment:
 
-| Flag | Purpose                                       |
-| ---- | --------------------------------------------- |
+| Flag | Purpose |
+|------|---------|
 | `-i` | Interactive mode → sources `.zshrc`/`.bashrc` |
-| `-l` | Login mode → sources `.zprofile`/`.profile`   |
-| `-c` | Command mode → runs `printenv` and exits      |
+| `-l` | Login mode → sources `.zprofile`/`.profile` |
+| `-c` | Command mode → runs `printenv` and exits |
 
 **Caching:** Results are cached for 1 minute to avoid repeated shell spawns. Fallback cache (10 seconds) used if shell fails.
 
 ### Usage Patterns
 
-| Function                     | Use Case                                       |
-| ---------------------------- | ---------------------------------------------- |
-| `getProcessEnvWithShellPath` | Merge shell PATH with process env              |
-| `getProcessEnvWithShellEnv`  | Merge all shell variables (preserves existing) |
-| `execWithShellEnv`           | Execute command with auto-retry on ENOENT      |
-| `applyShellEnvToProcess`     | Enrich `process.env` for child processes       |
+| Function | Use Case |
+|----------|----------|
+| `getProcessEnvWithShellPath` | Merge shell PATH with process env |
+| `getProcessEnvWithShellEnv` | Merge all shell variables (preserves existing) |
+| `execWithShellEnv` | Execute command with auto-retry on ENOENT |
+| `applyShellEnvToProcess` | Enrich `process.env` for child processes |
 
 **Lazy PATH Fix:** `execWithShellEnv` [apps/desktop/src/lib/trpc/routers/workspaces/utils/shell-env.ts:179-245]() attempts commands with current env first, only deriving shell env on ENOENT (command not found). On success, persists PATH to `process.env.PATH`.
 
@@ -590,15 +577,14 @@ When launched from Finder/Dock, macOS apps receive a minimal PATH (`/usr/bin:/bi
 
 Branch prefixes are configured per-project with inheritance:
 
-| Mode       | Description                    | Source                       |
-| ---------- | ------------------------------ | ---------------------------- |
-| `"auto"`   | GitHub username → Git username | `getAuthorPrefix`            |
-| `"author"` | Git `user.name` sanitized      | `getGitAuthorName`           |
-| `"custom"` | User-specified string          | `project.branchPrefixCustom` |
-| `"none"`   | No prefix                      | —                            |
+| Mode | Description | Source |
+|------|-------------|--------|
+| `"auto"` | GitHub username → Git username | `getAuthorPrefix` |
+| `"author"` | Git `user.name` sanitized | `getGitAuthorName` |
+| `"custom"` | User-specified string | `project.branchPrefixCustom` |
+| `"none"` | No prefix | — |
 
 **Resolution Order:**
-
 1. Project-level setting (`project.branchPrefixMode`)
 2. Global setting (`settings.branchPrefixMode`)
 3. Default: `"none"`
@@ -613,16 +599,16 @@ Branch prefixes are configured per-project with inheritance:
 
 The `db-helpers` module provides common query patterns:
 
-| Function                        | Purpose                           | Returns                           |
-| ------------------------------- | --------------------------------- | --------------------------------- |
-| `getProject(id)`                | Fetch project by ID               | `SelectProject \| undefined`      |
-| `getWorktree(id)`               | Fetch worktree by ID              | `SelectWorktree \| undefined`     |
-| `getBranchWorkspace(projectId)` | Get project's branch workspace    | `SelectWorkspace \| undefined`    |
+| Function | Purpose | Returns |
+|----------|---------|---------|
+| `getProject(id)` | Fetch project by ID | `SelectProject \| undefined` |
+| `getWorktree(id)` | Fetch worktree by ID | `SelectWorktree \| undefined` |
+| `getBranchWorkspace(projectId)` | Get project's branch workspace | `SelectWorkspace \| undefined` |
 | `findWorktreeWorkspaceByBranch` | Find workspace+worktree by branch | `{ workspace, worktree } \| null` |
-| `findOrphanedWorktreeByBranch`  | Find worktree without workspace   | `SelectWorktree \| undefined`     |
-| `activateProject(project)`      | Add to project strip              | Updates `tabOrder`                |
-| `setLastActiveWorkspace(id)`    | Persist last active workspace     | Updates settings                  |
-| `touchWorkspace(id)`            | Update `lastOpenedAt`             | Updates timestamp                 |
+| `findOrphanedWorktreeByBranch` | Find worktree without workspace | `SelectWorktree \| undefined` |
+| `activateProject(project)` | Add to project strip | Updates `tabOrder` |
+| `setLastActiveWorkspace(id)` | Persist last active workspace | Updates settings |
+| `touchWorkspace(id)` | Update `lastOpenedAt` | Updates timestamp |
 
 **Orphaned Worktrees:** A worktree without an active workspace (e.g., workspace was deleted). These can be reopened via `openWorktree` procedure or reused when creating a workspace for the same branch.
 
@@ -635,7 +621,6 @@ The `db-helpers` module provides common query patterns:
 ### Superset Config Directory
 
 Each project has a `.superset/` directory containing:
-
 - `config.json`: Workspace-specific settings
 - `setup.sh` / `teardown.sh`: Lifecycle scripts
 

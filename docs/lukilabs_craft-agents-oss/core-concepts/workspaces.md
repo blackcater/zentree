@@ -5,259 +5,173 @@
 
 The following files were used as context for generating this wiki page:
 
-- [README.md](README.md)
-- [packages/shared/package.json](packages/shared/package.json)
-- [packages/shared/src/agent/diagnostics.ts](packages/shared/src/agent/diagnostics.ts)
+- [apps/electron/src/main/onboarding.ts](apps/electron/src/main/onboarding.ts)
+- [apps/electron/src/renderer/pages/settings/AppSettingsPage.tsx](apps/electron/src/renderer/pages/settings/AppSettingsPage.tsx)
+- [apps/electron/src/renderer/pages/settings/WorkspaceSettingsPage.tsx](apps/electron/src/renderer/pages/settings/WorkspaceSettingsPage.tsx)
+- [apps/electron/src/shared/types.ts](apps/electron/src/shared/types.ts)
+- [bun.lock](bun.lock)
+- [packages/shared/src/auth/state.ts](packages/shared/src/auth/state.ts)
 - [packages/shared/src/config/storage.ts](packages/shared/src/config/storage.ts)
-- [packages/shared/src/utils/summarize.ts](packages/shared/src/utils/summarize.ts)
+- [packages/shared/tests/models.test.ts](packages/shared/tests/models.test.ts)
 
 </details>
 
-This page explains the workspace concept: what a workspace is, its on-disk layout, how workspaces are created, configured, and switched, and which features are scoped to a workspace.
 
-For the global config file format that tracks workspace registrations, see [Storage & Configuration](#2.8). For features that live inside a workspace (sessions, sources, skills, statuses, automations, themes), see the individual pages linked in the feature table below.
+
+This page explains the workspace concept: what a workspace is, its on-disk layout, how workspaces are created, managed via the UI and IPC layer, and how features like sources, skills, and automations are scoped to them.
 
 ---
 
 ## What is a Workspace
 
-A workspace is the primary organizational unit in Craft Agents. Every session, source, skill, automation, status definition, and theme override belongs to exactly one workspace. Users can create multiple workspaces and switch between them.
+A workspace is the primary organizational unit in Craft Agents. Every session, source, skill, automation, status definition, and theme override belongs to exactly one workspace. Users can create multiple workspaces and switch between them to isolate different projects or contexts.
 
-A workspace has two representations:
+A workspace has two representations in the system:
 
-| Representation         | Location                                      | Purpose                                                            |
-| ---------------------- | --------------------------------------------- | ------------------------------------------------------------------ |
-| `Workspace` record     | `~/.craft-agent/config.json` → `workspaces[]` | Global registry: id, rootPath, icon, last-accessed time            |
-| `WorkspaceConfig` file | `{rootPath}/config.json`                      | Authoritative name, defaults (working dir, permission mode, model) |
+| Representation | Location | Purpose |
+|---|---|---|
+| `Workspace` record | `~/.craft-agent/config.json` → `workspaces[]` | Global registry: `id`, `rootPath`, `icon`, and `lastAccessedAt` metadata. [packages/shared/src/config/storage.ts:57-58]() |
+| `WorkspaceConfig` file | `{rootPath}/config.json` | Authoritative settings: `name`, `defaults` (working dir, permission mode, model). [packages/shared/src/config/storage.ts:7-11]() |
 
-The workspace's `name` is always read from `{rootPath}/config.json`, never from the global registry. `getWorkspaces()` resolves it on every call.
+The workspace's `name` is always read from the local `{rootPath}/config.json`, ensuring that moving or renaming the folder on disk remains the source of truth for the workspace identity. [packages/shared/src/config/storage.ts:7-11]()
 
-Sources: [packages/shared/src/config/storage.ts:434-463]()
+Sources: [packages/shared/src/config/storage.ts:51-87](), [apps/electron/src/shared/types.ts:40-41]()
 
 ---
 
 ## On-Disk Directory Structure
 
-Each workspace is stored in a single directory (by default `~/.craft-agent/workspaces/{uuid}/`). The workspace's `rootPath` in the global config points to this directory.
+Each workspace is stored in a dedicated directory. By default, these are created under `~/.craft-agent/workspaces/{uuid}/`. [packages/shared/src/config/storage.ts:6-11]()
 
 **Workspace root directory layout**
 
 ```
 {rootPath}/
-├── config.json        # WorkspaceConfig: name, id, defaults
+├── config.json        # WorkspaceConfig: name, id, defaults, localMcpServers
 ├── theme.json         # ThemeOverrides for this workspace
 ├── automations.json   # Automation rules (version 2 schema)
 ├── sessions/          # JSONL session files
 ├── sources/           # Source configurations (MCP, API, Local)
 ├── skills/            # Markdown skill instruction files
 ├── statuses/          # Custom status definitions
-└── icon.*             # Optional workspace icon (any image extension)
+└── icon.{ext}         # Optional workspace icon (png, jpg, svg, etc.)
 ```
 
-The global config at `~/.craft-agent/config.json` stores `rootPath` with a `~` prefix for portability. `loadStoredConfig()` expands it via `expandPath()`, and `saveConfig()` normalizes it back via `toPortablePath()`.
-
-Sources: [packages/shared/src/config/storage.ts:141-195]()
+Sources: [packages/shared/src/config/storage.ts:6-11](), [apps/electron/src/renderer/pages/settings/WorkspaceSettingsPage.tsx:113-134]()
 
 ---
 
-## Data Model
+## Workspace Creation Flow
 
-**Workspace data model and storage locations**
+When a user triggers workspace creation, the renderer calls `window.electronAPI.createSession` (which initializes the workspace context if needed) or specialized setup handlers. The main process handles the directory creation and configuration persistence. [apps/electron/src/main/onboarding.ts:1-12]()
 
-```mermaid
-erDiagram
-    StoredConfig {
-        string activeWorkspaceId
-        string activeSessionId
-        string defaultLlmConnection
-    }
-    Workspace {
-        string id
-        string name
-        string rootPath
-        number createdAt
-        number lastAccessedAt
-        string iconUrl
-    }
-    WorkspaceConfig {
-        string id
-        string name
-        number createdAt
-    }
-    WorkspaceDefaults {
-        string workingDirectory
-        string permissionMode
-        string[] cyclablePermissionModes
-        string model
-    }
-    StoredConfig ||--o{ Workspace : "workspaces[]"
-    Workspace ||--|| WorkspaceConfig : "rootPath/config.json"
-    WorkspaceConfig ||--|| WorkspaceDefaults : "defaults"
-```
-
-- `StoredConfig` is the type for `~/.craft-agent/config.json`, defined in `packages/shared/src/config/storage.ts`.
-- `Workspace` is defined in `@craft-agent/core/types` and re-exported by `packages/shared`.
-- `WorkspaceConfig` and `WorkspaceDefaults` live in `packages/shared/src/workspaces/storage.ts`.
-
-Sources: [packages/shared/src/config/storage.ts:46-70](), [packages/shared/src/config/storage.ts:27-36]()
-
----
-
-## Workspace-Level Configuration
-
-The per-workspace `config.json` (loaded via `loadWorkspaceConfig(rootPath)`) holds:
-
-| Field                              | Type       | Description                                             |
-| ---------------------------------- | ---------- | ------------------------------------------------------- |
-| `id`                               | `string`   | UUID, must match the global registry                    |
-| `name`                             | `string`   | Display name (authoritative source)                     |
-| `createdAt`                        | `number`   | Unix timestamp                                          |
-| `defaults.workingDirectory`        | `string`   | Default working directory for agent sessions            |
-| `defaults.permissionMode`          | `string`   | Default permission mode (`safe`, `ask`, `allow-all`)    |
-| `defaults.cyclablePermissionModes` | `string[]` | Modes available via SHIFT+TAB cycling                   |
-| `defaults.model`                   | `string`   | Per-workspace model override (e.g. `claude-sonnet-4-6`) |
-
-See [Permission System](#4.5) for permission mode details. See [Authentication Setup](#3.3) for LLM connections.
-
-Sources: [packages/shared/src/config/storage.ts:378-381](), [packages/shared/src/config/storage.ts:1467-1482]()
-
----
-
-## Per-Workspace Features
-
-| Feature            | Storage Path                  | Wiki Page                  |
-| ------------------ | ----------------------------- | -------------------------- |
-| Sessions           | `{rootPath}/sessions/*.jsonl` | [Sessions](#4.2)           |
-| Sources            | `{rootPath}/sources/`         | [Sources](#4.3)            |
-| Skills             | `{rootPath}/skills/*.md`      | [Skills](#4.4)             |
-| Status Definitions | `{rootPath}/statuses/`        | [Status Workflow](#4.6)    |
-| Labels             | Applied to sessions           | [Labels](#4.7)             |
-| Theme Override     | `{rootPath}/theme.json`       | [Theme System](#4.8)       |
-| Automations        | `{rootPath}/automations.json` | [Hooks & Automation](#4.9) |
-
----
-
-## Workspace Lifecycle
-
-### Creation
-
-`addWorkspace(workspace)` in `packages/shared/src/config/storage.ts` handles workspace creation:
-
-1. Checks if a workspace with the same `rootPath` already exists (updates if so).
-2. Generates a UUID via `generateWorkspaceId()`.
-3. Calls `createWorkspaceAtPath(rootPath, name)` from `packages/shared/src/workspaces/storage.ts` if the folder does not yet exist.
-4. Appends the new `Workspace` record to `StoredConfig.workspaces` and writes `config.json`.
-5. If this is the first workspace, sets it as `activeWorkspaceId`.
-
-Sources: [packages/shared/src/config/storage.ts:525-567](), [packages/shared/src/config/storage.ts:418-424]()
-
-### Discovery
-
-`syncWorkspaces()` runs at app startup to auto-register any workspace directories found under `~/.craft-agent/workspaces/` that are not already in the global config. It uses `discoverWorkspacesInDefaultLocation()` from `packages/shared/src/workspaces/storage.ts` to enumerate candidates, then `isValidWorkspace(rootPath)` to confirm they are valid before adding them.
-
-Sources: [packages/shared/src/config/storage.ts:574-607]()
-
-### Switching
-
-`switchWorkspaceAtomic(workspaceId)` performs a combined workspace switch and session load as a single operation to avoid race conditions:
-
-**Workspace switch sequence (`switchWorkspaceAtomic`)**
+### Implementation Detail: Creation Logic
+The `onboarding.ts` file manages the initial setup of workspaces and authentication.
 
 ```mermaid
 sequenceDiagram
-    participant "Caller" as caller
-    participant "switchWorkspaceAtomic()" as SWA
-    participant "loadStoredConfig()" as LSC
-    participant "getOrCreateLatestSession()" as GOCLS
-    participant "saveConfig()" as SC
+    participant UI as OnboardingWizard
+    participant IPC as Electron IPC (DEFER_SETUP / EXCHANGE_CLAUDE_CODE)
+    participant SM as storage.ts (setSetupDeferred / getCredentialManager)
+    participant FS as File System (~/.craft-agent/)
 
-    caller->>SWA: "workspaceId"
-    SWA->>LSC: "read config.json"
-    LSC-->>SWA: "StoredConfig"
-    SWA->>GOCLS: "workspace.rootPath"
-    GOCLS-->>SWA: "SessionConfig"
-    SWA->>SC: "update activeWorkspaceId + lastAccessedAt"
-    SWA-->>caller: "{ workspace, session }"
+    UI->>IPC: deferSetup()
+    IPC->>SM: setSetupDeferred(true)
+    SM->>FS: update config.json
+    
+    UI->>IPC: exchangeClaudeCode(code)
+    IPC->>SM: getCredentialManager().setLlmOAuth(...)
+    SM->>FS: write credentials.enc
+    IPC-->>UI: { success: true }
 ```
 
-Sources: [packages/shared/src/config/storage.ts:503-519]()
-
-`setActiveWorkspace(workspaceId)` is a simpler alternative that only updates `activeWorkspaceId` without loading a session.
-
-Sources: [packages/shared/src/config/storage.ts:485-494]()
-
-### Deletion
-
-`removeWorkspace(workspaceId)` performs a full cleanup:
-
-1. Removes the `Workspace` record from `StoredConfig.workspaces`.
-2. If the deleted workspace was active, promotes the next available workspace.
-3. Calls `credentialManager.deleteWorkspaceCredentials(workspaceId)` to purge stored credentials.
-4. Deletes the workspace data directory at `~/.craft-agent/workspaces/{id}/`.
-
-> **Note:** Deleting a workspace removes its session history and credentials. The `rootPath` folder itself is not deleted by `removeWorkspace`; only the internal data directory keyed by `workspaceId` is removed.
-
-Sources: [packages/shared/src/config/storage.ts:609-640]()
+Sources: [apps/electron/src/main/onboarding.ts:112-151](), [apps/electron/src/main/onboarding.ts:166-171]()
 
 ---
 
-## Key Code Entities
+## Workspace Settings & Configuration
 
-**Workspace management functions and their module locations**
+Workspace-level settings are managed via the `WorkspaceSettingsPage`. This page allows users to modify identity, default behaviors, and available tools. [apps/electron/src/renderer/pages/settings/WorkspaceSettingsPage.tsx:1-12]()
+
+### Configuration Fields (`WorkspaceSettings`)
+
+| Field | Description |
+|---|---|
+| `name` | Display name shown in the sidebar and header. [apps/electron/src/renderer/pages/settings/WorkspaceSettingsPage.tsx:57-57]() |
+| `workingDirectory` | The base path where the agent performs file operations. [apps/electron/src/renderer/pages/settings/WorkspaceSettingsPage.tsx:63-63]() |
+| `permissionMode` | Default security posture (`safe`, `ask`, `allow-all`). [apps/electron/src/renderer/pages/settings/WorkspaceSettingsPage.tsx:62-62]() |
+| `cyclablePermissionModes` | Subset of modes allowed when toggling via `SHIFT+TAB`. [apps/electron/src/renderer/pages/settings/WorkspaceSettingsPage.tsx:72-72]() |
+| `localMcpEnabled` | Whether `stdio`-based MCP servers can be spawned. [apps/electron/src/renderer/pages/settings/WorkspaceSettingsPage.tsx:64-64]() |
+| `enabledSourceSlugs` | List of active sources for the workspace. [apps/electron/src/renderer/pages/settings/WorkspaceSettingsPage.tsx:69-69]() |
+
+### Icon Management
+The system attempts to load a workspace icon by checking for `icon.{ext}` (png, jpg, jpeg, svg, webp, gif) within the workspace root. Icons are read via `window.electronAPI.readWorkspaceImage` and converted to data URLs for the renderer. [apps/electron/src/renderer/pages/settings/WorkspaceSettingsPage.tsx:113-134]()
+
+Sources: [apps/electron/src/renderer/pages/settings/WorkspaceSettingsPage.tsx:85-111](), [apps/electron/src/renderer/pages/settings/WorkspaceSettingsPage.tsx:113-134]()
+
+---
+
+## Switching and State Management
+
+The `AppShellContext` tracks the `activeWorkspaceId`. When a user switches workspaces, the application performs an atomic update to ensure the UI, session history, and available tools stay in sync. [apps/electron/src/renderer/pages/settings/WorkspaceSettingsPage.tsx:52-54]()
 
 ```mermaid
 graph TD
-    subgraph "config/storage.ts"
-        GW["getWorkspaces()"]
-        GAW["getActiveWorkspace()"]
-        GWNI["getWorkspaceByNameOrId()"]
-        SAW["setActiveWorkspace()"]
-        SWA["switchWorkspaceAtomic()"]
-        AW["addWorkspace()"]
-        RW["removeWorkspace()"]
-        SW["syncWorkspaces()"]
-        GWI["findWorkspaceIcon()"]
-        GWI2["generateWorkspaceId()"]
+    subgraph "Renderer Process"
+        ASC["AppShellContext"]
+        WSP["WorkspaceSettingsPage"]
     end
-    subgraph "workspaces/storage.ts"
-        LWC["loadWorkspaceConfig()"]
-        SVC["saveWorkspaceConfig()"]
-        CWP["createWorkspaceAtPath()"]
-        IVW["isValidWorkspace()"]
-        DWD["discoverWorkspacesInDefaultLocation()"]
+
+    subgraph "Main Process (IPC Handlers)"
+        GWS["getWorkspaceSettings(activeWorkspaceId)"]
+        UWS["updateWorkspaceSetting(activeWorkspaceId, key, val)"]
+        GS["getSources(activeWorkspaceId)"]
     end
-    subgraph "sessions/index.ts"
-        GOCLS["getOrCreateLatestSession()"]
-    end
-    GW --> LWC
-    GW --> GWI
-    AW --> CWP
-    AW --> IVW
-    AW --> GWI2
-    SW --> DWD
-    SW --> LWC
-    SWA --> GOCLS
-    SWA --> SAW
-    RW --> DWD
+
+    ASC -- "provides activeWorkspaceId" --> WSP
+    WSP -- "window.electronAPI.getWorkspaceSettings" --> GWS
+    WSP -- "window.electronAPI.updateWorkspaceSetting" --> UWS
+    WSP -- "window.electronAPI.getSources" --> GS
 ```
 
-Sources: [packages/shared/src/config/storage.ts:430-640](), [packages/shared/package.json:32-33]()
+### Auto-Healing Sources
+When loading workspace settings, the system performs "auto-healing" on `enabledSourceSlugs`. If a source configuration file was deleted from the `sources/` directory manually, the workspace settings will automatically remove that slug to prevent runtime errors. [apps/electron/src/renderer/pages/settings/WorkspaceSettingsPage.tsx:98-110]()
+
+Sources: [apps/electron/src/renderer/pages/settings/WorkspaceSettingsPage.tsx:52-54](), [apps/electron/src/renderer/pages/settings/WorkspaceSettingsPage.tsx:149-165]()
 
 ---
 
-## Workspace Icons
+## Technical Summary of Types
 
-A workspace can display an icon in two ways:
+The `StoredConfig` interface in the shared package defines the global structure of the application's configuration, including the list of registered workspaces.
 
-1. **Remote URL**: `workspace.iconUrl` in the global config starts with `http://` or `https://`.
-2. **Local file**: Any file named `icon.*` at `{rootPath}/icon.*` (any image extension). `findWorkspaceIcon(rootPath)` detects it via `findIconFile()` from `packages/shared/src/utils/icon.ts`. It is served to the renderer as a `file://` URL with the file's `mtime` appended as a cache-buster (`?t={mtime}`).
+```typescript
+// From packages/shared/src/config/storage.ts
 
-Sources: [packages/shared/src/config/storage.ts:430-462]()
+export interface StoredConfig {
+  llmConnections?: LlmConnection[];
+  defaultLlmConnection?: string;
+  workspaces: Workspace[];
+  activeWorkspaceId: string | null;
+  activeSessionId: string | null;
+  // ... appearance and behavior settings
+}
+```
 
----
+The `WorkspaceSettings` type (exposed via IPC) defines the mutable properties of a workspace.
 
-## Workspace Lookup by Name
+```typescript
+// From apps/electron/src/shared/types.ts
 
-`getWorkspaceByNameOrId(nameOrId)` allows lookup by either UUID or display name (case-insensitive). This is used by CLI tooling (`-w` flag) to resolve a workspace without knowing its UUID.
+export interface WorkspaceSettings {
+  name?: string;
+  permissionMode?: PermissionMode;
+  workingDirectory?: string;
+  localMcpEnabled?: boolean;
+  cyclablePermissionModes?: PermissionMode[];
+  enabledSourceSlugs?: string[];
+  // ... other workspace-scoped defaults
+}
+```
 
-Sources: [packages/shared/src/config/storage.ts:477-483]()
+Sources: [packages/shared/src/config/storage.ts:51-87](), [apps/electron/src/shared/types.ts:200-201]()

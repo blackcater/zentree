@@ -5,23 +5,32 @@
 
 The following files were used as context for generating this wiki page:
 
-- [.github/workflows/build-and-release.yml](.github/workflows/build-and-release.yml)
-- [electron-builder.yml](electron-builder.yml)
-- [package.json](package.json)
-- [readme.md](readme.md)
-- [readme_ch.md](readme_ch.md)
-- [readme_es.md](readme_es.md)
-- [readme_jp.md](readme_jp.md)
-- [readme_ko.md](readme_ko.md)
-- [readme_pt.md](readme_pt.md)
-- [readme_tr.md](readme_tr.md)
-- [readme_tw.md](readme_tw.md)
-- [resources/wechat_group4.png](resources/wechat_group4.png)
-- [resources/windows-installer-arm64.nsh](resources/windows-installer-arm64.nsh)
-- [resources/windows-installer-x64.nsh](resources/windows-installer-x64.nsh)
-- [scripts/build-with-builder.js](scripts/build-with-builder.js)
+- [.prettierignore](.prettierignore)
+- [justfile](justfile)
+- [src/renderer/pages/conversation/Workspace/hooks/useWorkspaceMigration.ts](src/renderer/pages/conversation/Workspace/hooks/useWorkspaceMigration.ts)
+- [tests/e2e/helpers/assertions.ts](tests/e2e/helpers/assertions.ts)
+- [tests/e2e/helpers/index.ts](tests/e2e/helpers/index.ts)
+- [tests/e2e/helpers/navigation.ts](tests/e2e/helpers/navigation.ts)
+- [tests/e2e/helpers/screenshots.ts](tests/e2e/helpers/screenshots.ts)
+- [tests/e2e/helpers/selectors.ts](tests/e2e/helpers/selectors.ts)
+- [tests/e2e/specs/acp-agent.e2e.ts](tests/e2e/specs/acp-agent.e2e.ts)
+- [tests/e2e/specs/channels.e2e.ts](tests/e2e/specs/channels.e2e.ts)
+- [tests/e2e/specs/ext-acp.e2e.ts](tests/e2e/specs/ext-acp.e2e.ts)
+- [tests/e2e/specs/ext-channels.e2e.ts](tests/e2e/specs/ext-channels.e2e.ts)
+- [tests/e2e/specs/ext-mcp.e2e.ts](tests/e2e/specs/ext-mcp.e2e.ts)
+- [tests/e2e/specs/ext-settings-tabs.e2e.ts](tests/e2e/specs/ext-settings-tabs.e2e.ts)
+- [tests/e2e/specs/ext-skills.e2e.ts](tests/e2e/specs/ext-skills.e2e.ts)
+- [tests/e2e/specs/ext-themes-stability.e2e.ts](tests/e2e/specs/ext-themes-stability.e2e.ts)
+- [tests/e2e/specs/navigation.e2e.ts](tests/e2e/specs/navigation.e2e.ts)
+- [tests/e2e/specs/webui.e2e.ts](tests/e2e/specs/webui.e2e.ts)
+- [tests/regression/layout_theme_route_revert.test.ts](tests/regression/layout_theme_route_revert.test.ts)
+- [tests/unit/getNpxCacheDir.test.ts](tests/unit/getNpxCacheDir.test.ts)
+- [tests/unit/test_acp_connection_disconnect.ts](tests/unit/test_acp_connection_disconnect.ts)
+- [vitest.config.ts](vitest.config.ts)
 
 </details>
+
+
 
 This page covers how to set up a local development environment for AionUi, run the application in development mode, use the available debug scripts, and configure code quality tooling. For information about the full build and packaging pipeline that produces release artifacts, see [11.1](). For native module compilation and cross-platform considerations, see [11.3]().
 
@@ -31,249 +40,136 @@ This page covers how to set up a local development environment for AionUi, run t
 
 The following tools must be installed before beginning development:
 
-| Tool    | Required Version | Purpose                                                            |
-| ------- | ---------------- | ------------------------------------------------------------------ |
-| Node.js | `>=22 <25`       | JavaScript runtime (enforced by `engines` field in `package.json`) |
-| bun     | latest           | Package manager and runtime used for all `bun run` scripts         |
-| just    | any              | Command runner — wraps common tasks via `justfile`                 |
-| Python  | `3.11+`          | Required for native module compilation (`better-sqlite3`)          |
-| prek    | any              | Pre-commit code checker (`npm install -g @j178/prek`)              |
+| Tool | Required Version | Purpose |
+|---|---|---|
+| Node.js | `22+` | JavaScript runtime [justfile:52-54]() |
+| bun | latest | Primary package manager and script runner [justfile:58-60]() |
+| just | latest | Command runner — wraps common tasks via `justfile` [justfile:1-2]() |
+| Python | `3.11+` | Required for native module compilation (`better-sqlite3`) [justfile:61-65]() |
+| prek | latest | Pre-commit code checker (`npm install -g @j178/prek`) |
 
-The Node.js version constraint is declared at [package.json:7-9]().
-
-Sources: [package.json:1-10](), [readme.md:556-563]()
+Sources: [justfile:40-88]()
 
 ---
 
 ## Initial Setup
+
+AionUi uses `just` to orchestrate the environment setup, ensuring native modules like `better-sqlite3` are correctly compiled for the Electron ABI.
 
 ```bash
 # Clone the repository
 git clone https://github.com/iOfficeAI/AionUi.git
 cd AionUi
 
+# Check prerequisites (Node, Bun, Python, Native modules)
+just preflight
+
 # Install dependencies and compile native modules
-just install
+just setup
 ```
 
-`just install` triggers `bun install`, which in turn runs the `postinstall` hook defined at [scripts/postinstall.js:1-47](). In a local (non-CI) environment, `postinstall.js` calls `bunx electron-builder install-app-deps` to compile native modules (primarily `better-sqlite3`) against the current Electron ABI. In CI, this step is skipped and prebuilt binaries are used instead.
+The `just setup` command executes `bun install` followed by `rebuild-native` [justfile:116](). The `rebuild-native` recipe uses `electron-rebuild` to force a compilation of `better-sqlite3` specifically for the version of Electron defined in `package.json` [justfile:123-152]().
 
-**Setup diagram — from prerequisites to a working dev environment:**
-
-```mermaid
-flowchart TD
-    A["Prerequisites\
-(Node.js, bun, Python, just)"] --> B["bun install"]
-    B --> C["scripts/postinstall.js"]
-    C --> D{"CI environment?"}
-    D -->|"No (local)"| E["electron-builder install-app-deps\
-(compile better-sqlite3 for Electron ABI)"]
-    D -->|"Yes (CI)"| F["Skip rebuild\
-(use prebuilt binaries)"]
-    E --> G["node_modules ready"]
-    F --> G
-    G --> H["just dev"]
-    H --> I["electron-vite dev\
-(hot-reload dev server)"]
-```
-
-Sources: [scripts/postinstall.js:1-47](), [readme.md:566-576]()
-
----
-
-## Running the Application in Development Mode
-
-The primary dev command launches the Electron app with Vite's hot module replacement (HMR) active across the main process, renderer process, and preload scripts.
-
+### Native Module Verification
+After setup, you can verify that the native modules are loadable by the Node.js runtime:
 ```bash
-just dev       # equivalent to: bun run start
+just verify-native
 ```
+This executes a Node script that attempts to `require('better-sqlite3')` and reports success or failure [justfile:156-166]().
 
-This maps to the `start` script in `package.json`: `electron-vite dev` [package.json:11]().
-
-### Alternative Run Modes
-
-| Command                | `package.json` Script | What It Does                                            |
-| ---------------------- | --------------------- | ------------------------------------------------------- |
-| `just dev`             | `start`               | Standard desktop GUI with HMR                           |
-| `just webui`           | `webui`               | Starts with `--webui` flag (Express + WebSocket server) |
-| `bun run webui:remote` | `webui:remote`        | WebUI in remote mode (`--webui --remote`)               |
-| `bun run webui:prod`   | `webui:prod`          | WebUI with `NODE_ENV=production`                        |
-| `bun run resetpass`    | `resetpass`           | Launches password reset CLI (`--resetpass`)             |
-
-The `--webui` and `--remote` flags are parsed by the application's main process entry point. For details on how these flags change application startup behavior, see [3.1]().
-
-Sources: [package.json:10-18](), [readme.md:580-600]()
-
----
-
-## Build Output Structure
-
-During development and after a build, `electron-vite` places bundled output into the `out/` directory. The `main` field in `package.json` points to `./out/main/index.js` [package.json:6](), which is what Electron loads.
-
-**Toolchain to output directory mapping:**
+**Setup Flow: From Source to Executable Environment**
 
 ```mermaid
-flowchart LR
-    src_main["src/main/\
-(Main process source)"] --> vite["electron-vite build"]
-    src_renderer["src/renderer/\
-(React + TypeScript)"] --> vite
-    src_preload["src/preload/\
-(Preload scripts)"] --> vite
-    vite --> out_main["out/main/index.js\
-(Electron entry point)"]
-    vite --> out_renderer["out/renderer/index.html\
-(Renderer bundle)"]
-    vite --> out_preload["out/preload/\
-(Preload bundle)"]
-    out_main --> electron["Electron process"]
-    out_renderer --> electron
-    out_preload --> electron
+graph TD
+    "Repo[Git Clone]" --> "Preflight[just preflight]"
+    "Preflight" --> "Install[just install / bun install]"
+    "Install" --> "Rebuild[just rebuild-native]"
+    "Rebuild" --> "ElectronRebuild[electron-rebuild -f -w better-sqlite3]"
+    "ElectronRebuild" --> "Verify[just verify-native]"
+    "Verify" --> "DevReady[Environment Ready]"
+
+    subgraph "Native Module Compilation"
+    "ElectronRebuild"
+    "Verify"
+    end
 ```
-
-| Directory       | Contents                                  |
-| --------------- | ----------------------------------------- |
-| `out/main/`     | Bundled main process code                 |
-| `out/renderer/` | Bundled React UI (index.html + JS chunks) |
-| `out/preload/`  | Bundled preload scripts (ipcBridge)       |
-
-Sources: [readme.md:603-613](), [scripts/build-with-builder.js:83-90]()
+Sources: [justfile:42-88](), [justfile:108-166]()
 
 ---
 
-## Debug Scripts
+## Running the Application
 
-Several specialized debug scripts are available via `package.json`:
+The project supports multiple operational modes, accessible via `just` recipes or `bun` scripts.
 
-| Script               | Command                                          | Purpose                                                               |
-| -------------------- | ------------------------------------------------ | --------------------------------------------------------------------- |
-| `debug:perf`         | `cross-env ACP_PERF=1 PERF_MONITOR=1 bun start`  | Starts dev server with ACP and general performance monitoring enabled |
-| `debug:perf:report`  | `bunx tsx scripts/debug-performance.ts --report` | Generates a performance report from collected data                    |
-| `debug:mcp`          | `bunx tsx scripts/debug-mcp.ts`                  | Runs the MCP debug script                                             |
-| `debug:mcp:list`     | `bunx tsx scripts/debug-mcp.ts list`             | Lists available MCP servers                                           |
-| `debug:mcp:validate` | `bunx tsx scripts/debug-mcp.ts validate`         | Validates MCP server configurations                                   |
-| `debug:custom-agent` | `bunx tsx scripts/debug-custom-agent.ts`         | Debugs custom ACP agent behavior                                      |
+| Command | Action | Implementation |
+|---|---|---|
+| `just dev` | Start Desktop GUI | `bun run start` (electron-vite dev) [justfile:17-18]() |
+| `just webui` | Start WebUI Development | `bun run webui` [justfile:20-22]() |
+| `just webui-remote` | WebUI (Remote Access) | `bun run webui:remote` [justfile:24-26]() |
+| `just webui-prod` | WebUI Production Build | `bun run webui:prod` [justfile:29-30]() |
+| `just cli` | Password Reset Utility | `bun run cli` [justfile:33-35]() |
 
-The `debug:perf` script passes `ACP_PERF=1` and `PERF_MONITOR=1` as environment variables, which are read by the main process to activate performance measurement paths [package.json:39]().
-
-Sources: [package.json:39-44]()
+Sources: [justfile:17-35]()
 
 ---
 
-## Testing
+## Testing Environment
 
-AionUi uses **vitest** as its test framework.
+AionUi uses **Vitest** for unit and integration testing, with a configuration that supports both Node.js and Browser (jsdom) environments.
 
-| Script             | Command                        | Purpose                                        |
-| ------------------ | ------------------------------ | ---------------------------------------------- |
-| `test`             | `vitest run`                   | Single-run all tests                           |
-| `test:watch`       | `vitest`                       | Watch mode — re-runs on file changes           |
-| `test:coverage`    | `vitest run --coverage`        | Run with v8 coverage via `@vitest/coverage-v8` |
-| `test:contract`    | `vitest run tests/contract`    | Run only contract tests                        |
-| `test:integration` | `vitest run tests/integration` | Run only integration tests                     |
+### Test Configuration
+The configuration in `vitest.config.ts` defines two main projects:
+1.  **Node Project**: For testing agent logic, IPC services, and utilities [vitest.config.ts:24-38]().
+2.  **DOM Project**: For testing React components and hooks using `jsdom` [vitest.config.ts:40-49]().
 
-Sources: [package.json:34-38]()
+### Coverage
+Code coverage is provided by the `v8` provider [vitest.config.ts:51](). Entry points (like `src/index.ts`) and type-only files are excluded from coverage metrics [vitest.config.ts:58-79]().
 
----
+### Test Execution
+*   **Run all tests**: `bun run test`
+*   **Run unit tests**: `tests/unit/` [vitest.config.ts:30]()
+*   **Run integration tests**: `tests/integration/` [vitest.config.ts:32]()
+*   **Run E2E tests**: Uses Playwright (located in `tests/e2e/`) [tests/e2e/specs/webui.e2e.ts:11]()
 
-## Code Quality Tooling
-
-### ESLint and Prettier
-
-| Script         | Command                                                   | Notes                            |
-| -------------- | --------------------------------------------------------- | -------------------------------- |
-| `lint`         | `eslint --quiet --ext .ts,.tsx .`                         | Reports errors only (`--quiet`)  |
-| `lint:fix`     | `eslint --ext .ts,.tsx . --fix`                           | Applies auto-fixes               |
-| `format`       | `prettier --write "src/**/*.{ts,tsx,js,jsx,json,css,md}"` | Reformats source files           |
-| `format:check` | `prettier --check "..."`                                  | Fails if files are not formatted |
-
-ESLint is configured with `@typescript-eslint/eslint-plugin`, `eslint-plugin-import`, and `eslint-plugin-prettier`. The Prettier integration is via `eslint-config-prettier` [package.json:68-80]().
-
-### Husky and lint-staged
-
-Husky is installed via the `prepare` script (`husky`) [package.json:45](). On commit, `lint-staged` runs automatically against staged files:
-
-| File pattern        | Actions applied                         |
-| ------------------- | --------------------------------------- |
-| `*.{ts,tsx,js,jsx}` | `eslint --fix`, then `prettier --write` |
-| `*.{json,css,md}`   | `prettier --write`                      |
-
-This configuration is declared at [package.json:201-209]().
-
-### prek (Pre-commit Checks)
-
-`prek` is a Rust-based pre-commit tool configured via `.pre-commit-config.yaml`. It can be run independently of git commits:
-
-```bash
-# Install git hooks (optional)
-prek install
-
-# Check staged files
-prek run
-
-# Check changes since main branch (mirrors CI behavior)
-prek run --from-ref origin/main --to-ref HEAD
-```
-
-Sources: [package.json:45-46](), [package.json:201-209](), [readme.md:578-594]()
-
----
-
-## Code Quality Pipeline Diagram
-
-**How quality checks flow from code change to commit:**
+**Natural Language to Code: Test Entities**
 
 ```mermaid
-flowchart LR
-    dev["Developer\
-edits code"] --> staged["git add\
-(staged files)"]
-    staged --> husky["husky pre-commit\
-hook"]
-    husky --> lint_staged["lint-staged"]
-    lint_staged --> eslint["eslint --fix\
-(.ts, .tsx, .js, .jsx)"]
-    lint_staged --> prettier["prettier --write\
-(all supported types)"]
-    eslint --> commit["git commit"]
-    prettier --> commit
-    dev --> prek["prek run\
-(manual or pre-push)"]
-    prek --> precommit_config[".pre-commit-config.yaml\
-checks"]
-    precommit_config --> commit
+graph TD
+    subgraph "Test Execution"
+        "VitestConfig[vitest.config.ts]" --> "NodeProj[Project: node]"
+        "VitestConfig" --> "DomProj[Project: dom]"
+    end
+
+    subgraph "Code Entities"
+        "NodeProj" --> "AcpTests[tests/unit/test_acp_connection_disconnect.ts]"
+        "NodeProj" --> "ShellTests[tests/unit/getNpxCacheDir.test.ts]"
+        "DomProj" --> "ThemeTests[tests/regression/layout_theme_route_revert.test.ts]"
+    end
+
+    subgraph "E2E Helpers"
+        "NavHelper[tests/e2e/helpers/navigation.ts]" --> "Routes[ROUTES]"
+        "NavHelper" --> "NavFn[navigateTo]"
+    end
 ```
-
-Sources: [package.json:201-209](), [readme.md:578-594]()
-
----
-
-## Tech Stack Reference
-
-| Technology     | Package                  | Role                                               |
-| -------------- | ------------------------ | -------------------------------------------------- |
-| Electron       | `electron` ^37.3.1       | Desktop application host                           |
-| React          | `react` ^19.1.0          | Renderer UI framework                              |
-| TypeScript     | `typescript` ^5.8.3      | Type safety across main and renderer               |
-| electron-vite  | `electron-vite` ^5.0.0   | Vite-based bundler for all three entry points      |
-| UnoCSS         | `unocss` ^66.3.3         | Atomic CSS engine for renderer styles              |
-| better-sqlite3 | `better-sqlite3` ^12.4.1 | Local SQLite database (native module)              |
-| vitest         | `vitest` ^4.0.18         | Test runner                                        |
-| Prettier       | `prettier` ^3.6.2        | Code formatter                                     |
-| ESLint         | `eslint` ^8.57.1         | Linter                                             |
-| husky          | `husky` ^9.1.7           | Git hooks                                          |
-| lint-staged    | `lint-staged` ^16.2.7    | Pre-commit staged file processing                  |
-| patch-package  | `patch-package` ^8.0.0   | Applies patches to dependencies (e.g., `7zip-bin`) |
-
-Sources: [package.json:54-93](), [readme.md:611-619]()
+Sources: [vitest.config.ts:22-49](), [tests/unit/test_acp_connection_disconnect.ts:14](), [tests/unit/getNpxCacheDir.test.ts:64](), [tests/e2e/helpers/navigation.ts:12-49]()
 
 ---
 
-## Incremental Builds
+## Development Utilities & Helpers
 
-The `scripts/build-with-builder.js` script (used for production builds) includes an incremental build feature that skips the Vite compilation phase when no relevant source files have changed. It computes an MD5 hash of key config files (`package.json`, `tsconfig.json`, `electron.vite.config.ts`, `electron-builder.yml`) and the modification time of `src/` and `public/` directories, storing the result in `out/.build-hash` [scripts/build-with-builder.js:30-106]().
+### Navigation Constants
+For E2E and integration testing, routes are centralized in a `ROUTES` constant to ensure consistency across the test suite.
+*   **Settings Routes**: Includes `gemini`, `model`, `agent`, `tools`, etc. [tests/e2e/helpers/navigation.ts:14-23]().
+*   **Dynamic Routes**: Helper for extension-contributed settings tabs `extensionSettings(tabId)` [tests/e2e/helpers/navigation.ts:25]().
 
-The `--skip-vite`, `--skip-native`, `--pack-only`, and `--force` flags can override this behavior. These are relevant when iterating on packaging configuration without needing a full TypeScript recompile.
+### Path Resolution
+The project uses TypeScript aliases defined in `vitest.config.ts` to simplify imports across the monorepo-style structure:
+*   `@/`: `src/` [vitest.config.ts:5]()
+*   `@process/`: `src/process/` [vitest.config.ts:6]()
+*   `@renderer/`: `src/renderer/` [vitest.config.ts:7]()
+*   `@worker/`: `src/process/worker/` [vitest.config.ts:8]()
 
-Sources: [scripts/build-with-builder.js:1-106]()
+### Environment Detection
+The `getNpxCacheDir` utility in `src/process/utils/shellEnv.ts` handles cross-platform path resolution for the `npx` cache, which is critical for ACP agents that spawn CLI tools [tests/unit/getNpxCacheDir.test.ts:10-14]().
+
+Sources: [tests/e2e/helpers/navigation.ts:12-26](), [vitest.config.ts:4-12](), [tests/unit/getNpxCacheDir.test.ts:10-14]()

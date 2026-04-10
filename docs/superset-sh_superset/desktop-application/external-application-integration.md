@@ -16,13 +16,15 @@ The following files were used as context for generating this wiki page:
 - [apps/desktop/src/renderer/components/OpenInExternalDropdown/OpenInExternalDropdownItems.tsx](apps/desktop/src/renderer/components/OpenInExternalDropdown/OpenInExternalDropdownItems.tsx)
 - [apps/desktop/src/renderer/components/OpenInExternalDropdown/constants.ts](apps/desktop/src/renderer/components/OpenInExternalDropdown/constants.ts)
 - [apps/desktop/src/renderer/components/OpenInExternalDropdown/index.ts](apps/desktop/src/renderer/components/OpenInExternalDropdown/index.ts)
-- [apps/desktop/src/renderer/routes/\_authenticated/\_dashboard/components/TopBar/TopBar.tsx](apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/TopBar/TopBar.tsx)
-- [apps/desktop/src/renderer/routes/\_authenticated/\_dashboard/components/TopBar/components/OpenInMenuButton/OpenInMenuButton.tsx](apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/TopBar/components/OpenInMenuButton/OpenInMenuButton.tsx)
-- [apps/desktop/src/renderer/routes/\_authenticated/settings/components/ClickablePath/ClickablePath.tsx](apps/desktop/src/renderer/routes/_authenticated/settings/components/ClickablePath/ClickablePath.tsx)
+- [apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/TopBar/TopBar.tsx](apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/TopBar/TopBar.tsx)
+- [apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/TopBar/components/OpenInMenuButton/OpenInMenuButton.tsx](apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/TopBar/components/OpenInMenuButton/OpenInMenuButton.tsx)
+- [apps/desktop/src/renderer/routes/_authenticated/settings/components/ClickablePath/ClickablePath.tsx](apps/desktop/src/renderer/routes/_authenticated/settings/components/ClickablePath/ClickablePath.tsx)
 - [docs/issues/linux-open-editor-fix.md](docs/issues/linux-open-editor-fix.md)
 - [packages/local-db/src/schema/zod.ts](packages/local-db/src/schema/zod.ts)
 
 </details>
+
+
 
 ## Purpose and Scope
 
@@ -39,12 +41,12 @@ graph TB
     subgraph "Type Definitions"
         Schema["packages/local-db/src/schema/zod.ts<br/>EXTERNAL_APPS constant<br/>ExternalApp type<br/>NON_EDITOR_APPS"]
     end
-
+    
     subgraph "Main Process - tRPC Router"
         ExternalRouter["apps/desktop/src/lib/trpc/routers/external/index.ts<br/>createExternalRouter()"]
         Helpers["apps/desktop/src/lib/trpc/routers/external/helpers.ts<br/>getAppCommand()<br/>resolvePath()<br/>stripPathWrappers()"]
     end
-
+    
     subgraph "Renderer Process - UI Components"
         OpenInButton["OpenInButton.tsx<br/>Generic open-in button"]
         OpenInMenuButton["OpenInMenuButton.tsx<br/>TopBar integration"]
@@ -52,34 +54,34 @@ graph TB
         DropdownItems["OpenInExternalDropdownItems.tsx<br/>Reusable menu structure"]
         Constants["constants.ts<br/>App options with icons"]
     end
-
+    
     subgraph "Storage"
         LocalDB["settings table<br/>defaultEditor (global)<br/>projects table<br/>defaultApp (per-project)"]
     end
-
+    
     subgraph "External Applications"
         Editors["VS Code<br/>Cursor<br/>Zed<br/>Sublime"]
         JetBrains["IntelliJ<br/>WebStorm<br/>PyCharm<br/>etc."]
         Terminals["iTerm<br/>Warp<br/>Ghostty"]
         FileMgr["Finder<br/>shell.showItemInFolder"]
     end
-
+    
     Schema -->|defines types| ExternalRouter
     Schema -->|defines types| Constants
-
+    
     OpenInButton -->|calls| ExternalRouter
     OpenInMenuButton -->|calls| ExternalRouter
     ClickablePath -->|calls| ExternalRouter
-
+    
     OpenInButton -->|renders| DropdownItems
     OpenInMenuButton -->|renders| DropdownItems
     ClickablePath -->|renders| DropdownItems
-
+    
     DropdownItems -->|uses| Constants
-
+    
     ExternalRouter -->|uses| Helpers
     ExternalRouter -->|reads/writes| LocalDB
-
+    
     Helpers -->|executes| Editors
     Helpers -->|executes| JetBrains
     Helpers -->|executes| Terminals
@@ -96,14 +98,14 @@ The system defines a comprehensive list of external applications in the `EXTERNA
 
 ### Application Categories
 
-| Category               | Apps                                                                                                                                                 | Notes                                          |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| **File Managers**      | `finder`                                                                                                                                             | macOS-only, uses `shell.showItemInFolder`      |
-| **Modern Editors**     | `cursor`, `antigravity`, `windsurf`, `zed`, `sublime`                                                                                                | Single-edition apps                            |
-| **VS Code**            | `vscode`, `vscode-insiders`                                                                                                                          | Standard and Insiders builds                   |
-| **JetBrains IDEs**     | `intellij`, `webstorm`, `pycharm`, `phpstorm`, `rubymine`, `goland`, `clion`, `rider`, `datagrip`, `appcode`, `fleet`, `rustrover`, `android-studio` | Multi-edition support for IntelliJ and PyCharm |
-| **macOS-Only Editors** | `xcode`                                                                                                                                              | Not available on Linux                         |
-| **Terminal Emulators** | `iterm`, `warp`, `terminal`, `ghostty`                                                                                                               | iTerm and Terminal are macOS-only              |
+| Category | Apps | Notes |
+|----------|------|-------|
+| **File Managers** | `finder` | macOS-only, uses `shell.showItemInFolder` |
+| **Modern Editors** | `cursor`, `antigravity`, `windsurf`, `zed`, `sublime` | Single-edition apps |
+| **VS Code** | `vscode`, `vscode-insiders` | Standard and Insiders builds |
+| **JetBrains IDEs** | `intellij`, `webstorm`, `pycharm`, `phpstorm`, `rubymine`, `goland`, `clion`, `rider`, `datagrip`, `appcode`, `fleet`, `rustrover`, `android-studio` | Multi-edition support for IntelliJ and PyCharm |
+| **macOS-Only Editors** | `xcode` | Not available on Linux |
+| **Terminal Emulators** | `iterm`, `warp`, `terminal`, `ghostty` | iTerm and Terminal are macOS-only |
 
 ### Non-Editor Applications
 
@@ -130,9 +132,9 @@ The `getAppCommand()` function generates shell commands to open paths in externa
 ```mermaid
 graph TB
     Input["getAppCommand(app, targetPath, platform)"]
-
+    
     CheckPlatform{{"Platform?"}}
-
+    
     subgraph macOS["macOS Commands"]
         CheckBundleID{{"Has bundle ID<br/>candidates?"}}
         MultiBundleID["Return array of<br/>'open -b bundleId path'<br/>for each candidate"]
@@ -140,7 +142,7 @@ graph TB
         SingleAppName["Return array with<br/>'open -a AppName path'"]
         MacNull["Return null<br/>(special handling)"]
     end
-
+    
     subgraph Linux["Linux Commands"]
         CheckLinuxCandidate{{"Has CLI<br/>candidates?"}}
         MultiCLI["Return array of<br/>'command path'<br/>for each candidate"]
@@ -148,21 +150,21 @@ graph TB
         SingleCLI["Return array with<br/>'command path'"]
         LinuxNull["Return null"]
     end
-
+    
     Input --> CheckPlatform
     CheckPlatform -->|"darwin"| CheckBundleID
     CheckPlatform -->|"linux"| CheckLinuxCandidate
-
+    
     CheckBundleID -->|"yes (IntelliJ, PyCharm)"| MultiBundleID
     CheckBundleID -->|"no"| CheckAppName
     CheckAppName -->|"yes"| SingleAppName
     CheckAppName -->|"no (finder)"| MacNull
-
+    
     CheckLinuxCandidate -->|"yes (IntelliJ, PyCharm)"| MultiCLI
     CheckLinuxCandidate -->|"no"| CheckCLI
     CheckCLI -->|"yes"| SingleCLI
     CheckCLI -->|"no (macOS-only apps)"| LinuxNull
-
+    
     MultiBundleID --> Return["Return command[]"]
     SingleAppName --> Return
     MacNull --> Return
@@ -255,7 +257,7 @@ graph TB
     DecodeFileURL["Decode file:// URLs<br/>to regular paths"]
     ResolveRelative["Resolve relative paths<br/>against cwd"]
     Output["Absolute path"]
-
+    
     Input --> StripWrappers
     StripWrappers --> ExpandTilde
     ExpandTilde --> DecodeFileURL
@@ -268,25 +270,23 @@ graph TB
 The `stripPathWrappers()` function removes common wrapper characters while preserving valid path components:
 
 **Wrapper Characters Removed:**
-
 - Quotes: `"`, `'`, `` ` ``
 - Brackets: `()`, `[]`, `<>`
 
 **Preserved Patterns:**
-
 - File extensions: `.ts`, `.json`
 - Line/column suffixes: `:42`, `:42:10`
 - Embedded paths: `text(path/to/file)more` → `path/to/file`
 
 **Examples:**
 
-| Input                    | Output              |
-| ------------------------ | ------------------- |
-| `"./path/file.ts"`       | `./path/file.ts`    |
-| `./path/file.ts.`        | `./path/file.ts`    |
-| `./path/file.ts:42`      | `./path/file.ts:42` |
-| `see (src/file.ts) here` | `src/file.ts`       |
-| `"./path/file.ts",`      | `./path/file.ts`    |
+| Input | Output |
+|-------|--------|
+| `"./path/file.ts"` | `./path/file.ts` |
+| `./path/file.ts.` | `./path/file.ts` |
+| `./path/file.ts:42` | `./path/file.ts:42` |
+| `see (src/file.ts) here` | `src/file.ts` |
+| `"./path/file.ts",` | `./path/file.ts` |
 
 **Sources:** [apps/desktop/src/lib/trpc/routers/external/helpers.ts:126-268](), [apps/desktop/src/lib/trpc/routers/external/helpers.test.ts:301-583]()
 
@@ -301,11 +301,11 @@ The `resolvePath()` function performs the full resolution pipeline:
 
 **Examples:**
 
-| Input                                       | CWD        | Output                              |
-| ------------------------------------------- | ---------- | ----------------------------------- |
-| `~/Documents/file.ts`                       | -          | `/Users/username/Documents/file.ts` |
-| `"src/file.ts"`                             | `/project` | `/project/src/file.ts`              |
-| `file:///Users/test/My%20Documents/file.ts` | -          | `/Users/test/My Documents/file.ts`  |
+| Input | CWD | Output |
+|-------|-----|--------|
+| `~/Documents/file.ts` | - | `/Users/username/Documents/file.ts` |
+| `"src/file.ts"` | `/project` | `/project/src/file.ts` |
+| `file:///Users/test/My%20Documents/file.ts` | - | `/Users/test/My Documents/file.ts` |
 
 **Sources:** [apps/desktop/src/lib/trpc/routers/external/helpers.ts:270-302](), [apps/desktop/src/lib/trpc/routers/external/helpers.test.ts:151-299]()
 
@@ -325,7 +325,7 @@ graph LR
         resolvePath["resolvePath<br/>query<br/>input: {path, cwd?}"]
         openFileInEditor["openFileInEditor<br/>mutation<br/>input: {path, line?, column?, cwd?, projectId?}"]
     end
-
+    
     openUrl -->|"shell.openExternal"| ExternalBrowser["External Browser"]
     openInFinder -->|"shell.showItemInFolder"| Finder["Finder/File Manager"]
     openInApp -->|"spawnAsync"| App["External App"]
@@ -340,9 +340,11 @@ graph LR
 Opens URLs in the system default browser.
 
 ```typescript
-openUrl: publicProcedure.input(z.string()).mutation(async ({ input }) => {
-  await shell.openExternal(input)
-})
+openUrl: publicProcedure
+  .input(z.string())
+  .mutation(async ({ input }) => {
+    await shell.openExternal(input);
+  })
 ```
 
 #### `openInFinder`
@@ -350,9 +352,11 @@ openUrl: publicProcedure.input(z.string()).mutation(async ({ input }) => {
 Opens a path in the system file manager.
 
 ```typescript
-openInFinder: publicProcedure.input(z.string()).mutation(async ({ input }) => {
-  shell.showItemInFolder(input)
-})
+openInFinder: publicProcedure
+  .input(z.string())
+  .mutation(async ({ input }) => {
+    shell.showItemInFolder(input);
+  })
 ```
 
 #### `openInApp`
@@ -361,27 +365,24 @@ Opens a path in a specific external application. Automatically persists the choi
 
 ```typescript
 openInApp: publicProcedure
-  .input(
-    z.object({
-      path: z.string(),
-      app: ExternalAppSchema,
-      projectId: z.string().optional(),
-    })
-  )
+  .input(z.object({
+    path: z.string(),
+    app: ExternalAppSchema,
+    projectId: z.string().optional(),
+  }))
   .mutation(async ({ input }) => {
-    await openPathInApp(input.path, input.app)
-
+    await openPathInApp(input.path, input.app);
+    
     // Persist per-project default
     if (input.projectId) {
-      localDb
-        .update(projects)
+      localDb.update(projects)
         .set({ defaultApp: input.app })
         .where(eq(projects.id, input.projectId))
-        .run()
+        .run();
     }
-
+    
     // Best-effort: Set global default editor
-    ensureGlobalDefaultEditor(input.app)
+    ensureGlobalDefaultEditor(input.app);
   })
 ```
 
@@ -390,9 +391,11 @@ openInApp: publicProcedure
 Copies a path string to the system clipboard.
 
 ```typescript
-copyPath: publicProcedure.input(z.string()).mutation(async ({ input }) => {
-  clipboard.writeText(input)
-})
+copyPath: publicProcedure
+  .input(z.string())
+  .mutation(async ({ input }) => {
+    clipboard.writeText(input);
+  })
 ```
 
 #### `resolvePath`
@@ -401,12 +404,10 @@ Resolves a path string (cleaning wrappers, expanding tilde, etc.) and returns th
 
 ```typescript
 resolvePath: publicProcedure
-  .input(
-    z.object({
-      path: z.string(),
-      cwd: z.string().optional(),
-    })
-  )
+  .input(z.object({
+    path: z.string(),
+    cwd: z.string().optional(),
+  }))
   .query(({ input }) => resolvePath(input.path, input.cwd))
 ```
 
@@ -416,26 +417,24 @@ Opens a file in the default editor for the project (if set) or the global defaul
 
 ```typescript
 openFileInEditor: publicProcedure
-  .input(
-    z.object({
-      path: z.string(),
-      line: z.number().optional(),
-      column: z.number().optional(),
-      cwd: z.string().optional(),
-      projectId: z.string().optional(),
-    })
-  )
+  .input(z.object({
+    path: z.string(),
+    line: z.number().optional(),
+    column: z.number().optional(),
+    cwd: z.string().optional(),
+    projectId: z.string().optional(),
+  }))
   .mutation(async ({ input }) => {
-    const filePath = resolvePath(input.path, input.cwd)
-    const app = resolveDefaultEditor(input.projectId)
-
+    const filePath = resolvePath(input.path, input.cwd);
+    const app = resolveDefaultEditor(input.projectId);
+    
     if (!app) {
       // Fallback to OS default handler
-      await shell.openPath(filePath)
-      return
+      await shell.openPath(filePath);
+      return;
     }
-
-    await openPathInApp(filePath, app)
+    
+    await openPathInApp(filePath, app);
   })
 ```
 
@@ -453,28 +452,28 @@ The system maintains two levels of default editor preferences:
 ```mermaid
 graph TB
     UserAction["User opens path in app X"]
-
+    
     OpenInApp["openInApp mutation"]
-
+    
     PersistProject{{"projectId<br/>provided?"}}
     UpdateProject["Update projects.defaultApp<br/>for this project"]
-
+    
     CheckGlobal{{"Global default<br/>editor set?"}}
     CheckNonEditor{{"App in<br/>NON_EDITOR_APPS?"}}
     SetGlobal["Set settings.defaultEditor<br/>to this app"]
     Skip["Skip (already set or<br/>not an editor)"]
-
+    
     UserAction --> OpenInApp
     OpenInApp --> PersistProject
-
+    
     PersistProject -->|"yes"| UpdateProject
     PersistProject -->|"no"| CheckGlobal
-
+    
     UpdateProject --> CheckGlobal
-
+    
     CheckGlobal -->|"no"| CheckNonEditor
     CheckGlobal -->|"yes"| Skip
-
+    
     CheckNonEditor -->|"no"| SetGlobal
     CheckNonEditor -->|"yes"| Skip
 ```
@@ -540,18 +539,18 @@ graph TB
         OpenInButton["OpenInButton.tsx<br/>Generic button + dropdown"]
         OpenInMenuButton["OpenInMenuButton.tsx<br/>TopBar workspace button"]
         ClickablePath["ClickablePath.tsx<br/>Settings page paths"]
-
+        
         DropdownItems["OpenInExternalDropdownItems.tsx<br/>Reusable menu structure<br/>(Finder, IDE, Terminal, Copy)"]
-
+        
         Constants["constants.ts<br/>APP_OPTIONS<br/>VSCODE_OPTIONS<br/>JETBRAINS_OPTIONS<br/>Icon mappings"]
     end
-
+    
     OpenInButton --> DropdownItems
     OpenInMenuButton --> DropdownItems
     ClickablePath --> DropdownItems
-
+    
     DropdownItems --> Constants
-
+    
     OpenInButton -.uses.-> DefaultApp["projects.getDefaultApp query"]
     OpenInMenuButton -.uses.-> DefaultApp
     ClickablePath -.uses.-> DefaultEditor["settings.getDefaultEditor query"]
@@ -562,14 +561,12 @@ graph TB
 Generic button component with dropdown menu. Used in various contexts throughout the app.
 
 **Props:**
-
 - `path`: Target path to open
 - `label?`: Optional label to display
 - `showShortcuts?`: Whether to show keyboard shortcut hints
 - `projectId?`: For per-project default editor
 
 **Features:**
-
 - Displays last-used app icon if available
 - Split button design: main button opens in last-used app, dropdown shows all options
 - Keyboard shortcut hints (`OPEN_IN_APP`, `COPY_PATH`)
@@ -581,31 +578,28 @@ Generic button component with dropdown menu. Used in various contexts throughout
 Specialized button for the TopBar showing the current workspace path.
 
 **Additional Features:**
-
 - Shows workspace branch name
 - Compact layout for TopBar
 - Displays online/offline status context
 
-**Sources:** [apps/desktop/src/renderer/routes/\_authenticated/\_dashboard/components/TopBar/components/OpenInMenuButton/OpenInMenuButton.tsx]()
+**Sources:** [apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/TopBar/components/OpenInMenuButton/OpenInMenuButton.tsx]()
 
 ### ClickablePath
 
 Lightweight component for making file paths clickable in the settings UI.
 
 **Features:**
-
 - Uses global default editor (no project context)
 - Simple text + external link icon design
 - Opens dropdown on click
 
-**Sources:** [apps/desktop/src/renderer/routes/\_authenticated/settings/components/ClickablePath/ClickablePath.tsx]()
+**Sources:** [apps/desktop/src/renderer/routes/_authenticated/settings/components/ClickablePath/ClickablePath.tsx]()
 
 ### OpenInExternalDropdownItems
 
 Reusable dropdown menu structure with categorized app options:
 
 **Menu Structure:**
-
 1. **Finder** (top-level)
 2. **IDE** (submenu)
    - Cursor, Antigravity, Windsurf, Zed, Sublime, Xcode
@@ -615,7 +609,6 @@ Reusable dropdown menu structure with categorized app options:
 4. **Copy Path** (bottom, with separator)
 
 **Customization Props:**
-
 - `renderAppTrailing`: Custom trailing content per app (e.g., shortcuts, "Default" badge)
 - `copyPathTrailing`: Custom trailing content for Copy Path item
 - Various className props for styling individual sections
@@ -637,7 +630,6 @@ export interface OpenInExternalAppOption {
 ```
 
 Example: Windsurf uses different icons for light/dark themes:
-
 - Light: `windsurf.svg`
 - Dark: `windsurf-white.svg`
 
@@ -649,14 +641,14 @@ Example: Windsurf uses different icons for light/dark themes:
 
 The external app system integrates with the hotkey system (see [2.14](#2.14)) via two actions:
 
-| Action        | Default Shortcut  | Behavior                                                  |
-| ------------- | ----------------- | --------------------------------------------------------- |
+| Action | Default Shortcut | Behavior |
+|--------|------------------|----------|
 | `OPEN_IN_APP` | Platform-specific | Opens current context (workspace, file) in default editor |
-| `COPY_PATH`   | Platform-specific | Copies current context path to clipboard                  |
+| `COPY_PATH` | Platform-specific | Copies current context path to clipboard |
 
 UI components use `useHotkeyText()` to display the current bindings in tooltips and menu items.
 
-**Sources:** [apps/desktop/src/renderer/components/OpenInButton/OpenInButton.tsx:39-44](), [apps/desktop/src/renderer/routes/\_authenticated/\_dashboard/components/TopBar/components/OpenInMenuButton/OpenInMenuButton.tsx:56-59]()
+**Sources:** [apps/desktop/src/renderer/components/OpenInButton/OpenInButton.tsx:39-44](), [apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/TopBar/components/OpenInMenuButton/OpenInMenuButton.tsx:56-59]()
 
 ---
 
@@ -667,7 +659,6 @@ The system includes comprehensive unit tests for path resolution and command gen
 ### Test Coverage
 
 **Path Resolution Tests** (`helpers.test.ts`):
-
 - Home directory expansion (`~`)
 - Absolute path handling
 - Relative path resolution against `cwd`
@@ -679,7 +670,6 @@ The system includes comprehensive unit tests for path resolution and command gen
 - File extension preservation
 
 **Command Generation Tests** (`helpers.test.ts`):
-
 - macOS command generation (`open -a`, `open -b`)
 - Multi-edition JetBrains IDE candidates
 - Linux CLI command generation
@@ -689,23 +679,17 @@ The system includes comprehensive unit tests for path resolution and command gen
 **Example Test Pattern:**
 
 ```typescript
-test('extracts path from text(path)more pattern', () => {
-  expect(stripPathWrappers('text(src/file.ts)more')).toBe('src/file.ts')
-})
+test("extracts path from text(path)more pattern", () => {
+  expect(stripPathWrappers("text(src/file.ts)more")).toBe("src/file.ts");
+});
 
-test('returns bundle ID candidates for intellij (multi-edition)', () => {
-  const result = getAppCommand('intellij', '/path/to/file')
+test("returns bundle ID candidates for intellij (multi-edition)", () => {
+  const result = getAppCommand("intellij", "/path/to/file");
   expect(result).toEqual([
-    {
-      command: 'open',
-      args: ['-b', 'com.jetbrains.intellij', '/path/to/file'],
-    },
-    {
-      command: 'open',
-      args: ['-b', 'com.jetbrains.intellij.ce', '/path/to/file'],
-    },
-  ])
-})
+    { command: "open", args: ["-b", "com.jetbrains.intellij", "/path/to/file"] },
+    { command: "open", args: ["-b", "com.jetbrains.intellij.ce", "/path/to/file"] },
+  ]);
+});
 ```
 
 **Sources:** [apps/desktop/src/lib/trpc/routers/external/helpers.test.ts]()

@@ -10,6 +10,8 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
+
+
 The AI Chat Integration system enables conversational AI interactions within Superset workspaces, providing access to multiple AI models from Anthropic and OpenAI. This system is implemented through the `@superset/chat` package, which integrates the Mastra framework for agent management and the Vercel AI SDK for streaming responses.
 
 For information about the chat UI pane component itself, see [Tab and Pane System](#2.7). For terminal-based command execution, see [Terminal System](#2.8).
@@ -27,7 +29,7 @@ graph TB
         ChatClient["@superset/chat/client<br/>React hooks"]
         TRPCClient["tRPC Client"]
     end
-
+    
     subgraph "@superset/chat Package"
         ClientExport["client/index.ts<br/>React components & hooks"]
         SharedExport["shared/index.ts<br/>Types & schemas"]
@@ -35,63 +37,63 @@ graph TB
         TRPCServer["server/trpc/index.ts<br/>tRPC procedures"]
         HonoServer["server/hono/index.ts<br/>HTTP streaming routes"]
     end
-
+    
     subgraph "Mastra Framework"
         MastraCore["@mastra/core<br/>Agent management"]
         MastraMCP["@mastra/mcp<br/>Model Context Protocol"]
         Mastracode["mastracode<br/>Code analysis"]
     end
-
+    
     subgraph "AI SDK Integration"
         VercelAI["ai package<br/>Vercel AI SDK"]
         AnthropicSDK["@ai-sdk/anthropic<br/>Claude models"]
         OpenAISDK["@ai-sdk/openai<br/>GPT models"]
     end
-
+    
     subgraph "tRPC Chat Router"
         GetModels["getModels<br/>procedure"]
         UploadAttachment["uploadAttachment<br/>procedure"]
         UpdateTitle["updateTitle<br/>procedure"]
     end
-
+    
     subgraph "Database"
         ChatSessions["chatSessions table"]
         ChatMessages["chatMessages table"]
     end
-
+    
     subgraph "External Services"
         AnthropicAPI["Anthropic API<br/>Claude models"]
         OpenAIAPI["OpenAI API<br/>GPT models"]
     end
-
+    
     ChatPane --> ChatClient
     ChatClient --> TRPCClient
     TRPCClient --> GetModels
     TRPCClient --> UploadAttachment
     TRPCClient --> UpdateTitle
-
+    
     ChatClient --> ClientExport
     ClientExport --> SharedExport
-
+    
     GetModels --> TRPCServer
     UploadAttachment --> TRPCServer
     UpdateTitle --> TRPCServer
-
+    
     TRPCServer --> ChatSessions
     TRPCServer --> ChatMessages
-
+    
     DesktopServer --> MastraCore
     DesktopServer --> VercelAI
-
+    
     MastraCore --> MastraMCP
     MastraCore --> Mastracode
-
+    
     VercelAI --> AnthropicSDK
     VercelAI --> OpenAISDK
-
+    
     AnthropicSDK --> AnthropicAPI
     OpenAISDK --> OpenAIAPI
-
+    
     HonoServer --> VercelAI
 ```
 
@@ -103,13 +105,13 @@ graph TB
 
 The `@superset/chat` package provides multiple entry points for different runtime contexts:
 
-| Export Path                     | Purpose                                | Target Runtime   |
-| ------------------------------- | -------------------------------------- | ---------------- |
-| `@superset/chat/client`         | React components and hooks for chat UI | Renderer process |
-| `@superset/chat/shared`         | Shared types, schemas, and constants   | All contexts     |
-| `@superset/chat/server/desktop` | Desktop-specific chat server logic     | Main process     |
-| `@superset/chat/server/trpc`    | tRPC procedure definitions             | API server       |
-| `@superset/chat/server/hono`    | Hono HTTP streaming routes             | API server       |
+| Export Path | Purpose | Target Runtime |
+|-------------|---------|----------------|
+| `@superset/chat/client` | React components and hooks for chat UI | Renderer process |
+| `@superset/chat/shared` | Shared types, schemas, and constants | All contexts |
+| `@superset/chat/server/desktop` | Desktop-specific chat server logic | Main process |
+| `@superset/chat/server/trpc` | tRPC procedure definitions | API server |
+| `@superset/chat/server/hono` | Hono HTTP streaming routes | API server |
 
 This modular structure allows the desktop app to use client-side components while the API server implements the backend procedures.
 
@@ -124,18 +126,18 @@ The system provides access to multiple AI models from Anthropic and OpenAI:
 ```mermaid
 graph LR
     GetModels["getModels procedure"]
-
+    
     subgraph "Anthropic Models"
         Opus["claude-opus-4-6<br/>Most capable"]
         Sonnet["claude-sonnet-4-6<br/>Balanced"]
         Haiku["claude-haiku-4-5<br/>Fast & efficient"]
     end
-
+    
     subgraph "OpenAI Models"
         GPT54["gpt-5.4<br/>General purpose"]
         Codex["gpt-5.3-codex<br/>Code-optimized"]
     end
-
+    
     GetModels --> Opus
     GetModels --> Sonnet
     GetModels --> Haiku
@@ -145,13 +147,13 @@ graph LR
 
 The available models are defined in [packages/trpc/src/router/chat/chat.ts:10-36]() as:
 
-| Model ID                      | Display Name  | Provider  | Use Case                                   |
-| ----------------------------- | ------------- | --------- | ------------------------------------------ |
-| `anthropic/claude-opus-4-6`   | Opus 4.6      | Anthropic | Most capable model for complex reasoning   |
-| `anthropic/claude-sonnet-4-6` | Sonnet 4.6    | Anthropic | Balanced performance and speed             |
-| `anthropic/claude-haiku-4-5`  | Haiku 4.5     | Anthropic | Fast responses for simpler tasks           |
-| `openai/gpt-5.4`              | GPT-5.4       | OpenAI    | General-purpose language model             |
-| `openai/gpt-5.3-codex`        | GPT-5.3 Codex | OpenAI    | Optimized for code generation and analysis |
+| Model ID | Display Name | Provider | Use Case |
+|----------|--------------|----------|----------|
+| `anthropic/claude-opus-4-6` | Opus 4.6 | Anthropic | Most capable model for complex reasoning |
+| `anthropic/claude-sonnet-4-6` | Sonnet 4.6 | Anthropic | Balanced performance and speed |
+| `anthropic/claude-haiku-4-5` | Haiku 4.5 | Anthropic | Fast responses for simpler tasks |
+| `openai/gpt-5.4` | GPT-5.4 | OpenAI | General-purpose language model |
+| `openai/gpt-5.3-codex` | GPT-5.3 Codex | OpenAI | Optimized for code generation and analysis |
 
 The `getModels` procedure [packages/trpc/src/router/chat/chat.ts:39-41]() returns this list to clients, allowing the UI to present model selection options.
 
@@ -169,13 +171,13 @@ sequenceDiagram
     participant Router as "chatRouter"
     participant DB as "Database"
     participant Upload as "uploadChatAttachment"
-
+    
     Client->>Router: getModels()
     Router-->>Client: { models: [...] }
-
+    
     Client->>Router: uploadAttachment({sessionId, filename, mediaType, fileData})
     Router->>DB: SELECT from chatSessions WHERE id = sessionId AND createdBy = userId
-
+    
     alt Session not found
         Router-->>Client: TRPCError: NOT_FOUND
     else Session exists
@@ -183,7 +185,7 @@ sequenceDiagram
         Upload-->>Router: { url, ... }
         Router-->>Client: Upload result
     end
-
+    
     Client->>Router: updateTitle({sessionId, title})
     Router->>DB: UPDATE chatSessions SET title WHERE id = sessionId AND createdBy = userId
     Router-->>Client: { updated: true }
@@ -195,7 +197,7 @@ Returns the list of available AI models [packages/trpc/src/router/chat/chat.ts:3
 
 ```typescript
 getModels: protectedProcedure.query(() => {
-  return { models: AVAILABLE_MODELS }
+  return { models: AVAILABLE_MODELS };
 })
 ```
 
@@ -206,14 +208,12 @@ This is a simple query that requires authentication (`protectedProcedure`) and r
 Handles file uploads for chat sessions [packages/trpc/src/router/chat/chat.ts:43-73]():
 
 **Input Schema:**
-
 - `sessionId`: UUID of the chat session
 - `filename`: Original filename (1-255 characters)
 - `mediaType`: MIME type of the file
 - `fileData`: Base64-encoded file contents
 
 **Flow:**
-
 1. Validates that the session exists and belongs to the authenticated user [packages/trpc/src/router/chat/chat.ts:53-62]()
 2. Throws `NOT_FOUND` error if session is invalid [packages/trpc/src/router/chat/chat.ts:64-69]()
 3. Calls `uploadChatAttachment` utility to handle the actual upload [packages/trpc/src/router/chat/chat.ts:71]()
@@ -224,12 +224,10 @@ Handles file uploads for chat sessions [packages/trpc/src/router/chat/chat.ts:43
 Updates the title of a chat session [packages/trpc/src/router/chat/chat.ts:75-89]():
 
 **Input Schema:**
-
 - `sessionId`: UUID of the chat session
 - `title`: New title string
 
 **Implementation:**
-
 - Uses Drizzle ORM to update the `chatSessions` table [packages/trpc/src/router/chat/chat.ts:78-87]()
 - Filters by both `sessionId` and `createdBy` to enforce ownership [packages/trpc/src/router/chat/chat.ts:82-85]()
 - Returns `{ updated: boolean }` indicating success
@@ -251,7 +249,7 @@ erDiagram
         timestamp createdAt
         timestamp updatedAt
     }
-
+    
     chatMessages {
         uuid id PK
         uuid sessionId FK
@@ -259,12 +257,12 @@ erDiagram
         text content
         timestamp createdAt
     }
-
+    
     users {
         uuid id PK
         string email
     }
-
+    
     chatSessions ||--o{ chatMessages : "contains"
     users ||--o{ chatSessions : "creates"
 ```
@@ -282,7 +280,6 @@ The chat package integrates several AI and framework dependencies:
 ### Mastra Framework
 
 The package uses `@mastra/core` (v1.3.0) and `@mastra/mcp` (v1.0.2) for agent orchestration and Model Context Protocol support [packages/chat/package.json:35-36](). Mastra provides:
-
 - Agent lifecycle management
 - Tool execution framework
 - Context management for conversations
@@ -290,7 +287,6 @@ The package uses `@mastra/core` (v1.3.0) and `@mastra/mcp` (v1.0.2) for agent or
 ### Vercel AI SDK
 
 The `ai` package (v6.0.0) [packages/chat/package.json:41]() provides:
-
 - Streaming response handling
 - Model-agnostic interface
 - React hooks for UI integration
@@ -298,7 +294,6 @@ The `ai` package (v6.0.0) [packages/chat/package.json:41]() provides:
 ### AI Model Providers
 
 Two provider-specific SDKs enable model access:
-
 - `@ai-sdk/anthropic` (v3.0.43) [packages/chat/package.json:33]() - Claude models
 - `@ai-sdk/openai` (v3.0.36) [packages/chat/package.json:34]() - GPT models
 
@@ -313,7 +308,6 @@ The `mastracode` package (v0.4.0) [packages/chat/package.json:43]() provides cod
 ## Integration with Workspace System
 
 The chat system integrates with the workspace filesystem through `@superset/workspace-fs` [packages/chat/package.json:38](), enabling AI agents to:
-
 - Read file contents from the current workspace
 - Analyze code structure
 - Provide context-aware suggestions
@@ -337,33 +331,32 @@ graph TB
         InputArea["Input Area with Attachments"]
         ModelSelector["Model Selector Dropdown"]
     end
-
+    
     subgraph "React Hooks"
         UseChatHook["useChat hook<br/>(from Vercel AI SDK)"]
         UseTRPCHook["tRPC React Query hooks"]
     end
-
+    
     subgraph "State Management"
         MessageState["Message history state"]
         SessionState["Active session state"]
         ModelState["Selected model state"]
     end
-
+    
     ChatPaneUI --> MessageList
     ChatPaneUI --> InputArea
     ChatPaneUI --> ModelSelector
-
+    
     MessageList --> UseChatHook
     InputArea --> UseChatHook
     ModelSelector --> UseTRPCHook
-
+    
     UseChatHook --> MessageState
     UseTRPCHook --> SessionState
     ModelSelector --> ModelState
 ```
 
 The client exports (`@superset/chat/client`) provide peer dependencies on:
-
 - `react` (v18 or v19) [packages/chat/package.json:51]()
 - `@tanstack/react-query` (v5) [packages/chat/package.json:48]()
 - `@trpc/client` and `@trpc/react-query` (v11.7.1) [packages/chat/package.json:49-50]()
@@ -385,14 +378,14 @@ sequenceDiagram
     participant DB as "Database"
     participant Util as "uploadChatAttachment"
     participant Storage as "File Storage"
-
+    
     User->>UI: Select file
     UI->>UI: Read file as base64
     UI->>Client: uploadAttachment({sessionId, filename, mediaType, fileData})
-
+    
     Client->>Router: tRPC mutation
     Router->>DB: Verify session ownership
-
+    
     alt Session invalid
         Router-->>Client: TRPCError(NOT_FOUND)
         Client-->>UI: Display error
@@ -431,17 +424,17 @@ graph LR
         SharedTypes["@superset/chat/shared<br/>Type definitions"]
         ZodSchemas["Zod schemas<br/>Runtime validation"]
     end
-
+    
     subgraph "Serialization"
         SuperJSON["superjson<br/>Date/Set/Map support"]
         TRPCTransformer["tRPC transformer"]
     end
-
+    
     subgraph "Code Generation"
         TRPCTypes["Generated tRPC types"]
         ClientTypes["Client type inference"]
     end
-
+    
     SharedTypes --> ZodSchemas
     ZodSchemas --> TRPCTransformer
     SuperJSON --> TRPCTransformer

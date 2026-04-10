@@ -33,6 +33,8 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
+
+
 ## Purpose and Scope
 
 This document covers the auto-update system for the Superset desktop application, which uses `electron-updater` to deliver application updates to end users. The system handles update checking, downloading, installation, and channel management (stable vs canary releases).
@@ -45,12 +47,12 @@ The auto-update system provides seamless application updates using GitHub Releas
 
 **Key Components:**
 
-| Component            | Location                                              | Purpose                                                     |
-| -------------------- | ----------------------------------------------------- | ----------------------------------------------------------- |
+| Component | Location | Purpose |
+|-----------|----------|---------|
 | `setupAutoUpdater()` | [apps/desktop/src/main/lib/auto-updater.ts:200-271]() | Initializes update system with feed URLs and event handlers |
-| `autoUpdateEmitter`  | [apps/desktop/src/main/lib/auto-updater.ts:38]()      | EventEmitter for status change notifications                |
-| `electron-updater`   | [apps/desktop/package.json:85]()                      | Third-party library for auto-update functionality           |
-| Update manifest      | `latest-mac.yml`                                      | Metadata file with version and download URLs                |
+| `autoUpdateEmitter` | [apps/desktop/src/main/lib/auto-updater.ts:38]() | EventEmitter for status change notifications |
+| `electron-updater` | [apps/desktop/package.json:85]() | Third-party library for auto-update functionality |
+| Update manifest | `latest-mac.yml` | Metadata file with version and download URLs |
 
 Sources: [apps/desktop/src/main/lib/auto-updater.ts:1-272](), [apps/desktop/package.json:85]()
 
@@ -69,7 +71,7 @@ flowchart TD
     SetStable["IS_PRERELEASE = false<br/>Channel: stable"]
     SetCanary["IS_PRERELEASE = true<br/>Channel: canary"]
     ConfigureFeed["Configure UPDATE_FEED_URL"]
-
+    
     Start --> GetVersion
     GetVersion --> ParseSemver
     ParseSemver --> CheckPrerelease
@@ -83,10 +85,10 @@ Sources: [apps/desktop/src/main/lib/auto-updater.ts:17-23]()
 
 ### Feed URLs
 
-| Channel | Version Pattern | Feed URL                                                                   |
-| ------- | --------------- | -------------------------------------------------------------------------- |
-| Stable  | `0.0.53`        | `https://github.com/superset-sh/superset/releases/latest/download`         |
-| Canary  | `0.0.53-canary` | `https://github.com/superset-sh/superset/releases/download/desktop-canary` |
+| Channel | Version Pattern | Feed URL |
+|---------|----------------|----------|
+| Stable | `0.0.53` | `https://github.com/superset-sh/superset/releases/latest/download` |
+| Canary | `0.0.53-canary` | `https://github.com/superset-sh/superset/releases/download/desktop-canary` |
 
 The `allowDowngrade` configuration is enabled for canary builds, allowing users to switch from canary back to stable releases.
 
@@ -101,24 +103,24 @@ The auto-updater tracks state using the `AUTO_UPDATE_STATUS` enum, with transiti
 ```mermaid
 stateDiagram-v2
     [*] --> IDLE
-
+    
     IDLE --> CHECKING: checkForUpdates()
     CHECKING --> IDLE: update-not-available
     CHECKING --> DOWNLOADING: update-available
     CHECKING --> ERROR: Network/API error
     CHECKING --> IDLE: Network error (silent)
-
+    
     DOWNLOADING --> READY: update-downloaded
     DOWNLOADING --> ERROR: Download failed
-
+    
     READY --> IDLE: dismissUpdate()
     READY --> Installing: installUpdate()
-
+    
     ERROR --> IDLE: User dismisses
     ERROR --> CHECKING: Retry
-
+    
     Installing --> [*]: quitAndInstall()
-
+    
     note right of IDLE
         isDismissed flag prevents
         re-showing READY state
@@ -127,13 +129,13 @@ stateDiagram-v2
 
 ### Status Definitions
 
-| Status        | Description                            | User Action              |
-| ------------- | -------------------------------------- | ------------------------ |
-| `IDLE`        | No update activity or update dismissed | None                     |
-| `CHECKING`    | Querying GitHub releases for updates   | None (automatic)         |
-| `DOWNLOADING` | Update file download in progress       | None (automatic)         |
-| `READY`       | Update downloaded and ready to install | User prompted to install |
-| `ERROR`       | Update check or download failed        | User can retry           |
+| Status | Description | User Action |
+|--------|-------------|-------------|
+| `IDLE` | No update activity or update dismissed | None |
+| `CHECKING` | Querying GitHub releases for updates | None (automatic) |
+| `DOWNLOADING` | Update file download in progress | None (automatic) |
+| `READY` | Update downloaded and ready to install | User prompted to install |
+| `ERROR` | Update check or download failed | User can retry |
 
 Sources: [apps/desktop/src/main/lib/auto-updater.ts:60-77](), [shared/auto-update.ts]()
 
@@ -167,20 +169,20 @@ sequenceDiagram
     participant GitHub
     participant autoUpdateEmitter
     participant Renderer
-
+    
     App->>setupAutoUpdater: Initialize (app ready)
     setupAutoUpdater->>autoUpdater: setFeedURL(UPDATE_FEED_URL)
     setupAutoUpdater->>autoUpdater: autoDownload = true
     setupAutoUpdater->>setupAutoUpdater: checkForUpdates()
     setupAutoUpdater->>setupAutoUpdater: setInterval(4 hours)
-
+    
     loop Every 4 hours
         setupAutoUpdater->>autoUpdater: checkForUpdates()
         autoUpdater->>autoUpdateEmitter: emit "checking-for-update"
         autoUpdateEmitter->>Renderer: status = CHECKING
-
+        
         autoUpdater->>GitHub: GET latest-mac.yml
-
+        
         alt Update Available
             GitHub-->>autoUpdater: version, sha512, path
             autoUpdater->>autoUpdateEmitter: emit "update-available"
@@ -230,7 +232,7 @@ sequenceDiagram
     participant setSkipQuitConfirmation
     participant autoUpdater
     participant App
-
+    
     User->>Renderer: Click "Install Update"
     Renderer->>tRPC: autoUpdate.install()
     tRPC->>installUpdate: Execute
@@ -243,7 +245,6 @@ sequenceDiagram
 ```
 
 The `quitAndInstall()` parameters:
-
 - First argument (`false`): Do not force immediate close
 - Second argument (`true`): Relaunch after installation
 
@@ -269,7 +270,7 @@ graph LR
     MakeAppSetup["makeAppSetup()"]
     SetupAutoUpdater["setupAutoUpdater()"]
     InitTray["initTray()"]
-
+    
     AppReady --> InitAppState
     InitAppState --> ReconcileSessions
     ReconcileSessions --> MakeAppSetup
@@ -283,14 +284,14 @@ Sources: [apps/desktop/src/main/index.ts:218-248]()
 
 The auto-updater exposes several tRPC endpoints for renderer communication:
 
-| Endpoint                      | Function                       | Description                        |
-| ----------------------------- | ------------------------------ | ---------------------------------- |
-| `autoUpdate.status`           | `getUpdateStatus()`            | Returns current status and version |
-| `autoUpdate.check`            | `checkForUpdates()`            | Initiates update check             |
-| `autoUpdate.checkInteractive` | `checkForUpdatesInteractive()` | Check with user feedback dialog    |
-| `autoUpdate.install`          | `installUpdate()`              | Installs downloaded update         |
-| `autoUpdate.dismiss`          | `dismissUpdate()`              | Dismisses update notification      |
-| `autoUpdate.onStatusChange`   | subscription                   | Streams status changes             |
+| Endpoint | Function | Description |
+|----------|----------|-------------|
+| `autoUpdate.status` | `getUpdateStatus()` | Returns current status and version |
+| `autoUpdate.check` | `checkForUpdates()` | Initiates update check |
+| `autoUpdate.checkInteractive` | `checkForUpdatesInteractive()` | Check with user feedback dialog |
+| `autoUpdate.install` | `installUpdate()` | Installs downloaded update |
+| `autoUpdate.dismiss` | `dismissUpdate()` | Dismisses update notification |
+| `autoUpdate.onStatusChange` | subscription | Streams status changes |
 
 Sources: [apps/desktop/src/main/lib/auto-updater.ts:79-100](), [apps/desktop/src/main/lib/trpc/routers/auto-update.ts]()
 
@@ -304,10 +305,10 @@ sequenceDiagram
     participant tRPC
     participant autoUpdateEmitter
     participant StatusHandler
-
+    
     Renderer->>tRPC: Subscribe to onStatusChange
     tRPC->>autoUpdateEmitter: Listen for "status-changed"
-
+    
     loop Status Changes
         autoUpdateEmitter->>tRPC: emit({ status, version, error })
         tRPC->>Renderer: Stream update
@@ -331,18 +332,18 @@ flowchart LR
         Build["electron-builder"]
         Sign["Code sign + notarize"]
     end
-
+    
     subgraph "Artifacts"
         Versioned["Superset-0.0.53-arm64.dmg"]
         Stable["Superset-arm64.dmg"]
         Manifest["latest-mac.yml"]
     end
-
+    
     subgraph "GitHub Release"
         Draft["Draft release"]
         LatestURL["/releases/latest/download/"]
     end
-
+    
     Tag --> Workflow
     Workflow --> Build
     Build --> Sign
@@ -383,12 +384,12 @@ Sources: [.github/workflows/release-desktop.yml:44-66](), [apps/desktop/electron
 
 The update system is configured in `electron-builder.ts`:
 
-| Setting                              | Value           | Purpose                                 |
-| ------------------------------------ | --------------- | --------------------------------------- |
-| `generateUpdatesFilesForAllChannels` | `true`          | Creates manifests for stable and canary |
-| `publish.provider`                   | `"github"`      | Use GitHub Releases                     |
-| `publish.owner`                      | `"superset-sh"` | Repository owner                        |
-| `publish.repo`                       | `"superset"`    | Repository name                         |
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| `generateUpdatesFilesForAllChannels` | `true` | Creates manifests for stable and canary |
+| `publish.provider` | `"github"` | Use GitHub Releases |
+| `publish.owner` | `"superset-sh"` | Repository owner |
+| `publish.repo` | `"superset"` | Repository name |
 
 Sources: [apps/desktop/electron-builder.ts:20-29]()
 
@@ -396,12 +397,12 @@ Sources: [apps/desktop/electron-builder.ts:20-29]()
 
 Settings applied in `setupAutoUpdater()`:
 
-| Setting                | Value                | Purpose                               |
-| ---------------------- | -------------------- | ------------------------------------- |
-| `autoDownload`         | `true`               | Automatically download updates        |
-| `autoInstallOnAppQuit` | `true`               | Install on normal app quit            |
-| `allowDowngrade`       | `IS_PRERELEASE`      | Allow switching from canary to stable |
-| `setFeedURL()`         | Channel-specific URL | Explicit feed URL for stable/canary   |
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| `autoDownload` | `true` | Automatically download updates |
+| `autoInstallOnAppQuit` | `true` | Install on normal app quit |
+| `allowDowngrade` | `IS_PRERELEASE` | Allow switching from canary to stable |
+| `setFeedURL()` | Channel-specific URL | Explicit feed URL for stable/canary |
 
 Sources: [apps/desktop/src/main/lib/auto-updater.ts:200-216]()
 
@@ -410,8 +411,8 @@ Sources: [apps/desktop/src/main/lib/auto-updater.ts:200-216]()
 The auto-update system is currently **macOS-only**. The system checks `PLATFORM.IS_MAC` before initializing and exits early on other platforms.
 
 ```typescript
-if (env.NODE_ENV === 'development' || !PLATFORM.IS_MAC) {
-  return
+if (env.NODE_ENV === "development" || !PLATFORM.IS_MAC) {
+  return;
 }
 ```
 
@@ -429,11 +430,11 @@ In development mode (`NODE_ENV === "development"`), the auto-updater is disabled
 
 The system provides simulation functions for testing UI integration:
 
-| Function                | Effect                                          |
-| ----------------------- | ----------------------------------------------- |
+| Function | Effect |
+|----------|--------|
 | `simulateUpdateReady()` | Sets status to READY with version "99.0.0-test" |
-| `simulateDownloading()` | Sets status to DOWNLOADING                      |
-| `simulateError()`       | Sets status to ERROR with test message          |
+| `simulateDownloading()` | Sets status to DOWNLOADING |
+| `simulateError()` | Sets status to ERROR with test message |
 
 These functions are only available in development mode.
 

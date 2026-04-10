@@ -5,375 +5,184 @@
 
 The following files were used as context for generating this wiki page:
 
-- [README.md](README.md)
-- [apps/electron/src/main/sessions.ts](apps/electron/src/main/sessions.ts)
-- [packages/shared/src/agent/mode-manager.ts](packages/shared/src/agent/mode-manager.ts)
+- [apps/electron/src/main/onboarding.ts](apps/electron/src/main/onboarding.ts)
+- [apps/electron/src/renderer/components/app-shell/ChatDisplay.tsx](apps/electron/src/renderer/components/app-shell/ChatDisplay.tsx)
+- [apps/electron/src/renderer/pages/settings/AppSettingsPage.tsx](apps/electron/src/renderer/pages/settings/AppSettingsPage.tsx)
+- [apps/electron/src/shared/types.ts](apps/electron/src/shared/types.ts)
+- [bun.lock](bun.lock)
+- [packages/shared/src/agent/session-scoped-tools.ts](packages/shared/src/agent/session-scoped-tools.ts)
+- [packages/shared/src/config/storage.ts](packages/shared/src/config/storage.ts)
+- [packages/shared/src/prompts/system.ts](packages/shared/src/prompts/system.ts)
+- [packages/ui/src/components/chat/TurnCard.tsx](packages/ui/src/components/chat/TurnCard.tsx)
 
 </details>
 
-The Permission System controls agent autonomy by defining what operations the agent can execute without user approval. It provides three permission modes (`safe`, `ask`, `allow-all`) that govern whether write operations, shell commands, and API mutations require explicit user consent. This system balances agent capability with user control, allowing users to tune the level of supervision from read-only exploration to fully autonomous execution.
 
-For information about file access validation and security controls, see [File Access Validation](#7.3). For hook-driven automation based on permission changes, see [Hooks & Automation](#4.9).
+
+The Permission System controls agent autonomy by defining what operations the agent can execute without user approval. It provides three permission modes (`safe`, `ask`, `allow-all`) that govern whether write operations, shell commands, and API mutations require explicit user consent. This system balances agent capability with user control, allowing users to tune the level of supervision from read-only exploration to fully autonomous execution.
 
 ---
 
 ## Permission Modes
 
-The system provides three distinct permission modes that determine how the agent handles potentially destructive or side-effect-producing operations:
+The system provides three distinct permission modes that determine how the agent handles potentially destructive or side-effect-producing operations. These are defined in the `PermissionMode` type and managed via the `StoredConfig` and `WorkspaceDefaults`.
 
-| Mode        | Display Name | Behavior                                                              | Use Case                                                   |
-| ----------- | ------------ | --------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `safe`      | Explore      | Blocks all write operations; agent can only read files and fetch data | Safe exploration of codebases without risk of modification |
-| `ask`       | Ask to Edit  | Prompts user for approval before executing write operations (default) | Balanced workflow with human-in-the-loop oversight         |
-| `allow-all` | Auto         | Automatically approves all operations without prompting               | High-trust scenarios requiring minimal interruption        |
+| Mode | Display Name | Behavior | Use Case |
+|------|--------------|----------|----------|
+| `safe` | Explore | Blocks all write operations; agent can only read files and fetch data | Safe exploration of codebases without risk of modification |
+| `ask` | Ask to Edit | Prompts user for approval before executing write operations (default) | Balanced workflow with human-in-the-loop oversight |
+| `allow-all` | Auto | Automatically approves all operations without prompting | High-trust scenarios requiring minimal interruption |
 
-**Sources:** [README.md:129-137](), [README.md:92]()
+**Sources:** [apps/electron/src/shared/types.ts:26-28](), [packages/shared/src/config/storage.ts:103-123](), [packages/shared/src/config/storage.ts:165-168]()
 
 ---
 
-## Permission Mode State Machine
+## Permission Mode State Machine & Cycling
+
+The `SHIFT+TAB` shortcut allows users to cycle through available permission modes. The available modes for cycling are defined in `config-defaults.json` under `cyclablePermissionModes`. The `ChatDisplay` component handles the UI state for these modes, while the `ElectronAPI` provides the interface to persist changes.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> ask: Default Mode
-
-    safe --> ask: User presses SHIFT+TAB
-    ask --> allow_all: User presses SHIFT+TAB
-    allow_all --> safe: User presses SHIFT+TAB
-
-    ask --> safe: User changes mode in UI
-    ask --> allow_all: User changes mode in UI
-    safe --> allow_all: User changes mode in UI
-
-    allow_all --> ask: User changes mode in UI
-    allow_all --> safe: User changes mode in UI
-    safe --> ask: User changes mode in UI
-
+    [*] --> ask: Default Mode (from config-defaults.json)
+    
+    safe --> ask: SHIFT+TAB (Cycle via ChatDisplay)
+    ask --> allow_all: SHIFT+TAB (Cycle via ChatDisplay)
+    allow_all --> safe: SHIFT+TAB (Cycle via ChatDisplay)
+    
     note right of safe
-        Blocks: Write, Edit, Bash
-        Allows: Read, Grep, Glob
+        "Explore"
+        Read-only: Blocks Write, Edit, Bash
     end note
-
+    
     note right of ask
-        Prompts before:
-        - File writes
-        - Shell commands
-        - API mutations
+        "Ask to Edit"
+        Human-in-the-loop for side effects
     end note
-
+    
     note right of allow_all
-        Auto-approves all operations
-        No user prompts
+        "Auto"
+        Full autonomy
     end note
 ```
 
-**Diagram: Permission Mode Transitions**
+**Diagram: Permission Mode Transitions and SHIFT+TAB Cycle**
 
-The permission mode is session-scoped and persists across restarts. Users can cycle through modes using `SHIFT+TAB` or select a specific mode via the UI. The default mode for new sessions is `ask`, but this can be overridden by workspace or global configuration.
-
-**Sources:** [README.md:137](), [README.md:142-148]()
+**Sources:** [packages/shared/src/config/storage.ts:119-120](), [apps/electron/src/renderer/components/app-shell/ChatDisplay.tsx:163-167](), [apps/electron/src/shared/types.ts:222-225]()
 
 ---
 
 ## Permission Request Flow
 
-When the agent attempts an operation requiring permission, the request flows through multiple layers before reaching the user:
+When the agent attempts an operation requiring permission (e.g., `bash`, `file_write`), the request is intercepted. In `ask` mode, a `PermissionRequest` is generated and sent to the renderer.
 
 ```mermaid
 sequenceDiagram
-    participant Agent as CraftAgent
-    participant SM as SessionManager
-    participant IPC as IPC Bridge
-    participant UI as Renderer UI
-    participant User
-
-    Agent->>Agent: canExecute(operation)?
-    alt Permission required
-        Agent->>SM: onPermissionRequest(request)
-        Note over SM: request = { requestId, toolName,<br/>command, description, type }
-        SM->>IPC: SESSION_EVENT<br/>type: permission_request
-        IPC->>UI: Forward to renderer
-        UI->>User: Show permission dialog
-
-        User->>UI: Approve / Deny
-        UI->>IPC: SESSION_COMMAND<br/>type: approvePermission
-        IPC->>SM: Handle approval
-        SM->>Agent: resolvePermissionRequest(approved)
-
-        Agent->>Agent: Execute operation
-        Agent-->>SM: Operation result
-    else Auto-approved (allow-all mode)
-        Agent->>Agent: Execute immediately
-    end
+    participant Agent as "BaseAgent/CraftAgent"
+    participant SM as "SessionManager (Main)"
+    participant IPC as "IPC_CHANNELS.SESSION_EVENT"
+    participant UI as "ChatDisplay / ToolPrompt"
+    
+    Agent->>Agent: "Detects sensitive tool use"
+    Agent->>SM: "onPermissionRequest(payload)"
+    SM->>IPC: "Dispatch 'permission_request'"
+    IPC->>UI: "Render Tool Permission Prompt"
+    
+    Note over UI: "User sees 'Approve' or 'Deny'"
+    
+    UI->>SM: "approvePermission(requestId) / denyPermission"
+    SM->>Agent: "Resolve pending request"
+    Agent->>Agent: "Execute tool OR return error"
 ```
 
-**Diagram: Permission Request Flow Through System Layers**
+**Diagram: Tool Permission Request Pipeline**
 
-The flow is asynchronous: when the agent encounters a permission-required operation, it pauses execution, sends a request, and waits for user response. The `requestId` uniquely identifies each request to match responses with pending operations.
+The `ChatDisplay` component in the renderer receives these requests via the `pendingPermission` prop and provides callbacks like `onRespondToPermission` to resolve them.
 
-**Sources:** [apps/electron/src/main/sessions.ts:2676-2688]()
-
----
-
-## Permission Request Types
-
-Different operation types require different permission checks:
-
-| Type           | Description                  | Example Operations                    | Mode Gating                          |
-| -------------- | ---------------------------- | ------------------------------------- | ------------------------------------ |
-| `bash`         | Shell command execution      | `npm install`, `git commit`, `rm -rf` | Blocked in `safe`, prompted in `ask` |
-| `file_write`   | File modification operations | `Write`, `Edit` tools                 | Blocked in `safe`, prompted in `ask` |
-| `mcp_mutation` | MCP server mutations         | Create issue, update task, send email | Blocked in `safe`, prompted in `ask` |
-| `api_mutation` | REST API mutations           | POST, PUT, DELETE requests            | Blocked in `safe`, prompted in `ask` |
-
-Read-only operations (`Read`, `Grep`, `Glob`, `WebFetch`) are never gated by permissions—they execute immediately in all modes.
-
-**Sources:** [apps/electron/src/main/sessions.ts:2676-2688]()
+**Sources:** [apps/electron/src/renderer/components/app-shell/ChatDisplay.tsx:143-152](), [apps/electron/src/shared/types.ts:212-220](), [packages/shared/src/agent/session-scoped-tools.ts:67-78]()
 
 ---
 
-## Code Architecture
+## Configuration & Whitelisting
+
+The system supports whitelisting and default behaviors through a multi-layered configuration system.
+
+### Configuration Hierarchy
+1.  **Global Defaults**: Defined in `config-defaults.json` (synced to `~/.craft-agent/config-defaults.json` at startup).
+2.  **Workspace Overrides**: Stored in the workspace's `config.json` under `workspaceDefaults`.
+3.  **Session State**: Persisted in the session's metadata.
+
+### Key Configuration Entities
+| Entity | File Path | Role |
+|--------|-----------|------|
+| `StoredConfig` | [packages/shared/src/config/storage.ts:51-87]() | Defines the schema for the main `config.json`. |
+| `ConfigDefaults` | [packages/shared/src/config/storage.ts:103-123]() | Schema for default values like `permissionMode` and `cyclablePermissionModes`. |
+| `FALLBACK_CONFIG_DEFAULTS` | [packages/shared/src/config/storage.ts:103-123]() | Hardcoded defaults if bundled assets are missing. |
+
+**Sources:** [packages/shared/src/config/storage.ts:89-91](), [packages/shared/src/config/storage.ts:125-152](), [packages/shared/src/config/storage.ts:158-168]()
+
+---
+
+## Code Entity Mapping
+
+The following diagram bridges the high-level permission concepts to the specific TypeScript classes and interfaces used in the codebase.
 
 ```mermaid
-graph TB
-    subgraph "Permission Configuration"
-        GlobalDefaults["~/.craft-agent/config.json<br/>globalDefaults.workspaceDefaults.permissionMode"]
-        WSConfig["workspaces/{id}/config.json<br/>defaults.permissionMode"]
-        SessionMeta["sessions/{id}/session.jsonl<br/>header.permissionMode"]
+graph TD
+    subgraph "Main Process (Logic)"
+        SM["SessionManager"]
+        OH["onboarding.ts"]
     end
 
-    subgraph "Runtime State"
-        ManagedSession["ManagedSession<br/>permissionMode: PermissionMode"]
-        Agent["CraftAgent | CodexBackend<br/>permission checks"]
+    subgraph "Shared Core (Definitions)"
+        PM["PermissionMode (Type)"]
+        PMC["PERMISSION_MODE_CONFIG"]
+        SD["ConfigDefaults"]
+        SST["SessionScopedToolCallbacks"]
     end
 
-    subgraph "Permission Logic"
-        SetMode["setPermissionMode(sessionId, mode)<br/>packages/shared/src/agent"]
-        OnRequest["onPermissionRequest<br/>callback"]
-        OnChange["onPermissionModeChange<br/>callback"]
+    subgraph "Renderer (UI)"
+        CD["ChatDisplay.tsx"]
+        ASP["AppSettingsPage.tsx"]
+        EAPI["ElectronAPI (Interface)"]
     end
 
-    subgraph "UI Layer"
-        PermDialog["Permission Dialog<br/>renderer UI"]
-        ModeToggle["Mode Toggle Button<br/>SHIFT+TAB shortcut"]
-    end
-
-    GlobalDefaults -->|"Fallback"| WSConfig
-    WSConfig -->|"Default for new sessions"| SessionMeta
-    SessionMeta -->|"Loaded at startup"| ManagedSession
-
-    ManagedSession -->|"Apply on agent creation"| SetMode
-    SetMode --> Agent
-    Agent -->|"Request approval"| OnRequest
-    OnRequest --> PermDialog
-
-    ModeToggle -->|"User cycles mode"| SetMode
-    Agent -->|"Mode changed"| OnChange
-    OnChange -->|"Notify UI"| ModeToggle
-
-    style GlobalDefaults fill:#f9f9f9
-    style WSConfig fill:#f9f9f9
-    style SessionMeta fill:#f9f9f9
+    SD -->|"defines defaults"| PM
+    PM -->|"used by"| SM
+    SM -->|"emits events"| CD
+    CD -->|"calls"| EAPI
+    EAPI -->|"updates"| SM
+    SST -->|"defines callbacks"| SM
+    ASP -->|"configures global"| SD
 ```
 
-**Diagram: Permission System Code Entities**
+**Diagram: Permission System Entity Mapping**
 
-Permission configuration cascades through three levels: global defaults, workspace defaults, and session-specific overrides. The session manager applies the permission mode to the agent at creation time and handles mode changes during the session lifecycle.
-
-**Sources:** [apps/electron/src/main/sessions.ts:1997-2003](), [apps/electron/src/main/sessions.ts:2929-2934](), [apps/electron/src/main/sessions.ts:2695-2704]()
+**Sources:** [apps/electron/src/shared/types.ts:26-28](), [packages/shared/src/config/storage.ts:51-87](), [apps/electron/src/renderer/components/app-shell/ChatDisplay.tsx:163-167](), [packages/shared/src/agent/session-scoped-tools.ts:67-111]()
 
 ---
 
-## Session-Level Permissions
+## Implementation Details: Tool Gating
 
-Each session maintains its own permission mode, which is:
+The system uses the `SessionScopedToolCallbacks` to bridge agent tool calls to the user interface for permission handling.
 
-1. **Initialized from defaults** when the session is created (workspace default → global default → `ask`)
-2. **Persisted** to `sessions/{id}/session.jsonl` header for durability across restarts
-3. **Applied immediately** to the agent when the mode changes
-4. **Visible in the UI** via a mode indicator in the chat interface
+### Tool Gating Logic
+- **Safe Mode**: Only tools with `readOnly: true` or equivalent metadata are allowed. Tools like `bash` or `writeFile` are typically blocked or trigger a failure.
+- **Ask Mode**: All non-read-only tools trigger an `onAuthRequest` or `onPermissionRequest`. The agent execution pauses until the `ElectronAPI.approvePermission` IPC call is received.
+- **Allow-All Mode**: The `PermissionRequest` is bypassed, and the agent proceeds with execution immediately.
 
-The mode can be overridden at session creation time (used by EditPopover for auto-execute mode):
+### Persistence
+The permission mode is part of the `StoredConfig` and `Workspace` structures, ensuring that user preferences are maintained across application restarts.
 
-```typescript
-// Example: Create session with specific permission mode
-await createSession(workspaceId, {
-  permissionMode: 'allow-all', // Override default
-  hidden: true, // Mini agent session
-})
-```
-
-**Sources:** [apps/electron/src/main/sessions.ts:1997-2003](), [apps/electron/src/main/sessions.ts:2928-2934]()
+**Sources:** [apps/electron/src/shared/types.ts:42-47](), [packages/shared/src/config/storage.ts:57-59](), [packages/shared/src/agent/session-scoped-tools.ts:67-111](), [packages/shared/src/config/storage.ts:117-122]()
 
 ---
 
-## Default Permission Configuration
+## Summary of IPC Surface
 
-Workspace and global defaults are configured in JSON files:
+The renderer interacts with the permission system through the `ElectronAPI` exposed via `contextBridge`.
 
-**Global Config** (`~/.craft-agent/config.json`):
+- `getBrowserToolEnabled()`: Checks if the browser tool is permitted globally.
+- `setBrowserToolEnabled(enabled)`: Toggles global permission for the browser tool.
+- `onRespondToPermission(sessionId, requestId, allowed, alwaysAllow, options)`: Approves or denies a specific tool execution request.
 
-```json
-{
-  "globalDefaults": {
-    "workspaceDefaults": {
-      "permissionMode": "ask"
-    }
-  }
-}
-```
-
-**Workspace Config** (`workspaces/{id}/config.json`):
-
-```json
-{
-  "defaults": {
-    "permissionMode": "safe" // Override global default
-  }
-}
-```
-
-The resolution order is: session override → workspace default → global default → hardcoded `ask`.
-
-**Sources:** [apps/electron/src/main/sessions.ts:1997-2003]()
-
----
-
-## Permission Mode Changes and Persistence
-
-When the user changes the permission mode for a session:
-
-1. **SessionManager** updates in-memory state (`managed.permissionMode`)
-2. **Agent** applies the new mode immediately via `setPermissionMode(sessionId, mode)`
-3. **Storage layer** persists the change to `session.jsonl` header
-4. **All windows** receive a `permission_mode_changed` event to update UI
-5. **HookSystem** emits a `PermissionModeChange` hook event for automation
-
-```mermaid
-sequenceDiagram
-    participant UI as Renderer UI
-    participant IPC as IPC Bridge
-    participant SM as SessionManager
-    participant Agent as CraftAgent
-    participant Storage as session.jsonl
-    participant Hooks as HookSystem
-
-    UI->>IPC: SESSION_COMMAND<br/>type: setPermissionMode
-    IPC->>SM: setPermissionMode(sessionId, mode)
-    SM->>SM: managed.permissionMode = mode
-    SM->>Agent: setPermissionMode(sessionId, mode)
-    SM->>Storage: persistSession(managed)
-    SM->>Hooks: updateSessionMetadata(permissionMode)
-    Hooks->>Hooks: emitPermissionModeChange event
-    SM->>IPC: Broadcast permission_mode_changed
-    IPC->>UI: Update mode indicator
-```
-
-**Diagram: Permission Mode Change Propagation**
-
-The change is immediately effective—the next operation the agent attempts will use the new mode. The HookSystem's diffing logic ensures hooks only fire when the mode actually changes (prevents redundant triggers).
-
-**Sources:** [apps/electron/src/main/sessions.ts:2695-2704](), [apps/electron/src/main/sessions.ts:1055-1068]()
-
----
-
-## Permission Request UI Interaction
-
-The permission dialog displays:
-
-- **Tool name** (e.g., "Terminal", "Write", "Edit")
-- **Operation description** (e.g., "Run shell command: `npm install`")
-- **Command preview** (for bash operations, shows the full command)
-- **Approve/Deny buttons** with keyboard shortcuts
-
-Users can:
-
-- **Approve** the operation (allows it to proceed)
-- **Deny** the operation (cancels it, agent receives error)
-- **Change mode** before approving (e.g., switch to `allow-all` to avoid future prompts)
-
-**Sources:** [apps/electron/src/main/sessions.ts:2676-2688]()
-
----
-
-## Keyboard Shortcuts
-
-| Shortcut    | Action                                                         |
-| ----------- | -------------------------------------------------------------- |
-| `SHIFT+TAB` | Cycle through permission modes (safe → ask → allow-all → safe) |
-| `Cmd+/`     | Open keyboard shortcuts dialog (shows all shortcuts)           |
-
-The cycle order ensures users can quickly toggle between the most common modes without requiring a dropdown menu.
-
-**Sources:** [README.md:137](), [README.md:142-148]()
-
----
-
-## Hooks Integration
-
-The permission system integrates with the event-driven hook system via `PermissionModeChange` events. This allows automation based on permission changes:
-
-**Example Hook Configuration** (`hooks.json`):
-
-```json
-{
-  "PermissionModeChange": [
-    {
-      "matcher": "^allow-all$",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "echo '[AUDIT] Session $CRAFT_SESSION_ID switched to auto mode' >> ~/audit.log"
-        }
-      ]
-    }
-  ]
-}
-```
-
-This enables audit trails for high-risk mode changes without requiring code modifications.
-
-**Sources:** [apps/electron/src/main/sessions.ts:1055-1068](), [README.md:329-346]()
-
----
-
-## Default Permissions File Watching
-
-The system watches `~/.craft-agent/permissions/default.json` for changes and broadcasts updates to all windows. This enables real-time permission rule updates without restarting the app:
-
-```mermaid
-graph LR
-    PermFile["~/.craft-agent/permissions/default.json"]
-    CW["ConfigWatcher<br/>file watcher"]
-    SM["SessionManager<br/>broadcastDefaultPermissionsChanged()"]
-    IPC["IPC_CHANNELS.DEFAULT_PERMISSIONS_CHANGED"]
-    UI["All Renderer Windows"]
-
-    PermFile -->|"File change detected"| CW
-    CW -->|"onDefaultPermissionsChange"| SM
-    SM -->|"Broadcast event"| IPC
-    IPC --> UI
-```
-
-**Diagram: Default Permissions Change Propagation**
-
-The file watcher detects changes immediately (via `chokidar`), ensuring permission rules are always up-to-date across all open windows.
-
-**Sources:** [apps/electron/src/main/sessions.ts:991-994](), [apps/electron/src/main/sessions.ts:1162-1166]()
-
----
-
-## Summary
-
-The Permission System provides fine-grained control over agent autonomy through:
-
-- **Three permission modes** (`safe`, `ask`, `allow-all`) with clear behavioral boundaries
-- **Session-scoped configuration** that persists across restarts
-- **Asynchronous permission requests** with UI approval flow
-- **Cascading defaults** from global → workspace → session levels
-- **Hooks integration** for audit trails and automation
-- **Live reload** of default permission rules without app restart
-
-This architecture balances security (preventing accidental modifications) with usability (minimal friction for trusted workflows), allowing users to tune the system to their specific needs.
-
-**Sources:** [README.md:92](), [README.md:129-137](), [apps/electron/src/main/sessions.ts:2676-2704](), [apps/electron/src/main/sessions.ts:1997-2003](), [apps/electron/src/main/sessions.ts:2929-2934]()
+**Sources:** [apps/electron/src/renderer/components/app-shell/ChatDisplay.tsx:146-152](), [apps/electron/src/renderer/pages/settings/AppSettingsPage.tsx:127-135](), [apps/electron/src/shared/types.ts:212-220]()

@@ -5,13 +5,13 @@
 
 The following files were used as context for generating this wiki page:
 
-- [README.md](README.md)
-- [packages/shared/src/auth/oauth.ts](packages/shared/src/auth/oauth.ts)
-- [packages/shared/src/sources/api-tools.ts](packages/shared/src/sources/api-tools.ts)
+- [packages/shared/src/mcp/mcp-pool.ts](packages/shared/src/mcp/mcp-pool.ts)
+- [packages/shared/src/sources/credential-manager.ts](packages/shared/src/sources/credential-manager.ts)
 - [packages/shared/src/sources/token-refresh-manager.ts](packages/shared/src/sources/token-refresh-manager.ts)
-- [packages/shared/src/sources/types.ts](packages/shared/src/sources/types.ts)
 
 </details>
+
+
 
 This page covers the Sources system: what source types exist, how they are configured on disk, how MCP and REST API connections are established, how authentication is managed, and how sources are activated per session.
 
@@ -25,11 +25,11 @@ A **source** is a named, configured connection to an external service or local r
 
 There are three source types:
 
-| Type  | Value   | Description                                                |
-| ----- | ------- | ---------------------------------------------------------- |
-| MCP   | `mcp`   | Model Context Protocol server — remote or local subprocess |
-| API   | `api`   | REST API endpoint with configurable auth                   |
-| Local | `local` | Local filesystem or application path                       |
+| Type | Value | Description |
+|---|---|---|
+| MCP | `mcp` | Model Context Protocol server — remote or local subprocess |
+| API | `api` | REST API endpoint with configurable auth |
+| Local | `local` | Local filesystem or application path |
 
 Sources are defined by the `SourceType` union type in [packages/shared/src/sources/types.ts:16]().
 
@@ -49,18 +49,18 @@ The `config.json` is parsed into a `FolderSourceConfig` object. The `guide.md` i
 
 **`FolderSourceConfig` fields (abbreviated):**
 
-| Field              | Type                      | Purpose                                                |
-| ------------------ | ------------------------- | ------------------------------------------------------ |
-| `id`               | `string`                  | Unique source ID                                       |
-| `slug`             | `string`                  | URL-safe name, used in `@mentions` and credential keys |
-| `type`             | `SourceType`              | `mcp`, `api`, or `local`                               |
-| `enabled`          | `boolean`                 | Whether the source is active                           |
-| `provider`         | `string`                  | Freeform label (e.g., `"linear"`, `"google"`)          |
-| `mcp`              | `McpSourceConfig?`        | Present when `type === 'mcp'`                          |
-| `api`              | `ApiSourceConfig?`        | Present when `type === 'api'`                          |
-| `local`            | `LocalSourceConfig?`      | Present when `type === 'local'`                        |
-| `isAuthenticated`  | `boolean?`                | Runtime auth status                                    |
-| `connectionStatus` | `SourceConnectionStatus?` | `connected`, `needs_auth`, `failed`, etc.              |
+| Field | Type | Purpose |
+|---|---|---|
+| `id` | `string` | Unique source ID |
+| `slug` | `string` | URL-safe name, used in `@mentions` and credential keys |
+| `type` | `SourceType` | `mcp`, `api`, or `local` |
+| `enabled` | `boolean` | Whether the source is active |
+| `provider` | `string` | Freeform label (e.g., `"linear"`, `"google"`) |
+| `mcp` | `McpSourceConfig?` | Present when `type === 'mcp'` |
+| `api` | `ApiSourceConfig?` | Present when `type === 'api'` |
+| `local` | `LocalSourceConfig?` | Present when `type === 'local'` |
+| `isAuthenticated` | `boolean?` | Runtime auth status |
+| `connectionStatus` | `SourceConnectionStatus?` | `connected`, `needs_auth`, `failed`, etc. |
 
 Full interface at [packages/shared/src/sources/types.ts:334-372]().
 
@@ -100,24 +100,24 @@ MCP sources connect to Model Context Protocol servers. The `mcp` block of `Folde
 
 The `McpTransport` type [packages/shared/src/sources/types.ts:207]() has three values:
 
-| Transport | Value   | Description                                               |
-| --------- | ------- | --------------------------------------------------------- |
-| HTTP      | `http`  | HTTP streaming transport to a remote URL                  |
-| SSE       | `sse`   | Server-Sent Events transport to a remote URL              |
-| Stdio     | `stdio` | Spawns a local subprocess; communicates over stdin/stdout |
+| Transport | Value | Description |
+|---|---|---|
+| HTTP | `http` | HTTP streaming transport to a remote URL |
+| SSE | `sse` | Server-Sent Events transport to a remote URL |
+| Stdio | `stdio` | Spawns a local subprocess; communicates over stdin/stdout |
 
 `transport` defaults to `http` if omitted.
 
 ### MCP Configuration Fields
 
-| Field      | Applies To    | Purpose                                            |
-| ---------- | ------------- | -------------------------------------------------- |
-| `url`      | `http`, `sse` | Remote endpoint URL                                |
-| `authType` | `http`, `sse` | `oauth`, `bearer`, or `none`                       |
-| `clientId` | `http`, `sse` | OAuth client ID (non-secret)                       |
-| `command`  | `stdio`       | Command to spawn (e.g., `npx`, `python`)           |
-| `args`     | `stdio`       | Arguments passed to the command                    |
-| `env`      | `stdio`       | Environment variables injected into the subprocess |
+| Field | Applies To | Purpose |
+|---|---|---|
+| `url` | `http`, `sse` | Remote endpoint URL |
+| `authType` | `http`, `sse` | `oauth`, `bearer`, or `none` |
+| `clientId` | `http`, `sse` | OAuth client ID (non-secret) |
+| `command` | `stdio` | Command to spawn (e.g., `npx`, `python`) |
+| `args` | `stdio` | Arguments passed to the command |
+| `env` | `stdio` | Environment variables injected into the subprocess |
 
 Full interface at [packages/shared/src/sources/types.ts:213-252]().
 
@@ -163,9 +163,13 @@ no credential"]
 
 Sources: [packages/shared/src/sources/types.ts:207-252]()
 
-### Stdio Security
+### MCP Client Pool
 
-When spawning stdio MCP subprocesses, sensitive environment variables are filtered from the parent process environment before passing to the child. Variables like `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GITHUB_TOKEN`, AWS credentials, and others are blocked. If a subprocess needs a specific variable, it must be declared explicitly in the source's `env` field.
+The `McpClientPool` [packages/shared/src/mcp/mcp-pool.ts:101]() manages all active MCP connections in the main process. It provides a unified interface for both remote MCP servers and in-process API sources.
+
+- **Tool Proxying**: It maps tool names to a `mcp__{slug}__{toolName}` convention [packages/shared/src/mcp/mcp-pool.ts:162]().
+- **Connection Lifecycle**: Handles `connect()`, `disconnect()`, and `sync()` logic [packages/shared/src/mcp/mcp-pool.ts:173-238]().
+- **Change Detection**: The `mcpConfigChanged()` helper determines if a connection needs to be restarted based on URL or auth header changes [packages/shared/src/mcp/mcp-pool.ts:85-99]().
 
 ---
 
@@ -177,75 +181,39 @@ API sources connect to REST APIs. The `api` block holds an `ApiSourceConfig` obj
 
 The `ApiAuthType` type [packages/shared/src/sources/types.ts:27]():
 
-| Auth Type       | Value    | Behavior                                                                                                     |
-| --------------- | -------- | ------------------------------------------------------------------------------------------------------------ |
-| Bearer token    | `bearer` | `Authorization: Bearer {token}` header. `authScheme` field overrides `Bearer` prefix; empty string omits it. |
-| Custom header   | `header` | Single or multi-header credential (e.g., `x-api-key`, or `DD-API-KEY` + `DD-APPLICATION-KEY`)                |
-| Query parameter | `query`  | Token appended to URL as query param named by `queryParam`                                                   |
-| Basic auth      | `basic`  | `Authorization: Basic {base64(username:password)}`                                                           |
-| OAuth           | `oauth`  | Managed OAuth flow (Google, Slack, Microsoft)                                                                |
-| None            | `none`   | No authentication (public API)                                                                               |
-
-Header construction is handled by `buildHeaders()` in [packages/shared/src/sources/api-tools.ts:69-119](), which reads `ApiConfig.auth` and the resolved credential to produce a `Record<string, string>`.
-
-The `buildAuthorizationHeader()` function [packages/shared/src/sources/api-tools.ts:35-40]() handles the `authScheme` nuance: `undefined` defaults to `"Bearer"`, an empty string `""` emits the raw token with no prefix.
+| Auth Type | Value | Behavior |
+|---|---|---|
+| Bearer token | `bearer` | `Authorization: Bearer {token}` header. `authScheme` field overrides `Bearer` prefix [packages/shared/src/sources/api-tools.ts:35-40](). |
+| Custom header | `header` | Single or multi-header credential [packages/shared/src/sources/api-tools.ts:95-105](). |
+| Query parameter | `query` | Token appended to URL as query param named by `queryParam` [packages/shared/src/sources/api-tools.ts:139-142](). |
+| Basic auth | `basic` | `Authorization: Basic {base64(username:password)}` [packages/shared/src/sources/api-tools.ts:86-92](). |
+| OAuth | `oauth` | Managed OAuth flow (Google, Slack, Microsoft) |
+| None | `none` | No authentication (public API) |
 
 ### Dynamic API Tool Factory
 
-Each API source produces a single flexible MCP tool at session start via `createApiTool()` [packages/shared/src/sources/api-tools.ts:203-305](). The tool is named `api_{config.name}` and accepts:
+Each API source produces a single flexible MCP tool via `createApiTool()` [packages/shared/src/sources/api-tools.ts:203](). These are integrated into the `McpClientPool` using the `ApiSourcePoolClient` adapter [packages/shared/src/mcp/api-source-pool-client.ts:14]().
 
-- `path` — the API endpoint path
-- `method` — `GET | POST | PUT | DELETE | PATCH`
-- `params` — request body or query parameters
-- `_intent` — description of intent (used for large-response summarization)
-
-`createApiServer()` [packages/shared/src/sources/api-tools.ts:316-331]() wraps the tool in an in-process SDK MCP server for use by the agent.
-
-**Diagram: API Source → Agent Tool**
+**Diagram: API Source → Agent Tool Integration**
 
 ```mermaid
 flowchart TD
     ApiSourceConfig["ApiSourceConfig\
-(baseUrl, authType,\
-headerName, queryParam...)"]
-    ApiConfig["ApiConfig\
-(name, baseUrl, auth,\
-documentation, docsUrl)"]
-    credential["ApiCredentialSource\
-(string | BasicAuthCredential\
-| () => Promise&lt;string&gt;)"]
-    createApiTool["createApiTool(config, credential,\
-sessionPath, summarize)"]
-    tool["api_{name} tool\
-(path, method, params, _intent)"]
-    createApiServer["createApiServer()"]
-    sdkMcpServer["SDK in-process\
-MCP server"]
-    agent["Agent session\
-tool registry"]
-
-    ApiSourceConfig --> ApiConfig
-    ApiConfig --> createApiTool
-    credential --> createApiTool
-    createApiTool --> tool
-    tool --> createApiServer
-    createApiServer --> sdkMcpServer
-    sdkMcpServer --> agent
+(baseUrl, authType)"]
+    createApiServer["createApiServer(config, credential)"]
+    ApiSourcePoolClient["ApiSourcePoolClient\
+(McpServer instance)"]
+    McpClientPool["McpClientPool::registerClient(slug, client)"]
+    ProxyToolDef["ProxyToolDef\
+mcp__{slug}__api_{name}"]
+    
+    ApiSourceConfig --> createApiServer
+    createApiServer --> ApiSourcePoolClient
+    ApiSourcePoolClient --> McpClientPool
+    McpClientPool --> ProxyToolDef
 ```
 
-Sources: [packages/shared/src/sources/api-tools.ts:203-331]()
-
-### Google, Slack, and Microsoft OAuth APIs
-
-These three providers use OAuth for API authentication. They are listed in `API_OAUTH_PROVIDERS` [packages/shared/src/sources/types.ts:170]() and identified by `isApiOAuthProvider()`.
-
-**Google**: Requires user-supplied `googleOAuthClientId` and `googleOAuthClientSecret` in `ApiSourceConfig`. Scopes are derived from `googleService` (e.g., `gmail`, `calendar`, `drive`) or explicitly via `googleScopes`.
-
-**Slack**: Uses user-scoped OAuth (`user_scope`). Scope derived from `slackService` or `slackUserScopes`.
-
-**Microsoft**: Uses Microsoft Graph API. Scope derived from `microsoftService` (e.g., `outlook`, `onedrive`, `teams`) or `microsoftScopes`. Client ID and secret are baked into the build via environment variables.
-
-The helper functions `inferGoogleServiceFromUrl()`, `inferSlackServiceFromUrl()`, and `inferMicrosoftServiceFromUrl()` [packages/shared/src/sources/types.ts:50-151]() attempt to auto-detect the service from the `baseUrl`.
+Sources: [packages/shared/src/sources/api-tools.ts:203-331](), [packages/shared/src/mcp/mcp-pool.ts:155-168](), [packages/shared/src/mcp/api-source-pool-client.ts:14]()
 
 ---
 
@@ -260,156 +228,50 @@ format?: string      — hint: 'filesystem' | 'obsidian' | 'git' | 'sqlite' | et
 
 [packages/shared/src/sources/types.ts:297-300]()
 
-Local sources are surfaced to the agent as filesystem context rather than as MCP tools.
-
----
-
-## Known Providers
-
-Certain `provider` string values trigger special handling:
-
-| Provider    | Type | Auth                                      |
-| ----------- | ---- | ----------------------------------------- |
-| `google`    | API  | Google OAuth (user-supplied credentials)  |
-| `microsoft` | API  | Microsoft OAuth (build-baked credentials) |
-| `slack`     | API  | Slack OAuth (build-baked credentials)     |
-| `linear`    | MCP  | Standard MCP OAuth via `CraftOAuth`       |
-| `github`    | MCP  | Standard MCP OAuth via `CraftOAuth`       |
-| `notion`    | MCP  | Standard MCP OAuth via `CraftOAuth`       |
-| `exa`       | API  | API key                                   |
-
-Defined as `KnownProvider` type at [packages/shared/src/sources/types.ts:157-164]().
-
----
-
-## OAuth Flow for MCP Sources
-
-MCP sources with `authType: 'oauth'` use the `CraftOAuth` class [packages/shared/src/auth/oauth.ts:42-444]().
-
-**Flow:**
-
-1. `discoverOAuthMetadata()` discovers the authorization and token endpoints using RFC 9728 (protected resource metadata via `WWW-Authenticate` header) and falls back to RFC 8414 well-known locations [packages/shared/src/auth/oauth.ts:751-788]().
-2. If the server supports dynamic client registration (`registration_endpoint`), the client is registered automatically [packages/shared/src/auth/oauth.ts:69-96]().
-3. PKCE (`code_challenge`, `code_verifier`) and CSRF `state` are generated.
-4. A local HTTP callback server binds to a port in the range `8914–8924` [packages/shared/src/auth/oauth.ts:332]().
-5. The system browser opens to the authorization URL.
-6. On callback, the code is exchanged for tokens at the token endpoint [packages/shared/src/auth/oauth.ts:99-145]().
-
-SSRF protection is enforced in `isUrlSafeToFetch()` [packages/shared/src/auth/oauth.ts:508-548](), which rejects non-HTTPS URLs, localhost, and private IP ranges during discovery.
-
-**Diagram: MCP OAuth Flow**
-
-```mermaid
-sequenceDiagram
-    participant App as "CraftOAuth"
-    participant Server as "MCP OAuth Server"
-    participant Browser as "Browser"
-    participant Callback as "Local HTTP\
-Callback Server\
-(port 8914-8924)"
-
-    App->>Server: "discoverOAuthMetadata()\
-(RFC 9728 / RFC 8414)"
-    Server-->>App: "authorization_endpoint\
-token_endpoint"
-    App->>Server: "registerClient() (if registration_endpoint)"
-    Server-->>App: "client_id"
-    App->>Callback: "startCallbackServer(state)"
-    App->>Browser: "open authURL (PKCE + state)"
-    Browser->>Server: "user authorizes"
-    Server->>Callback: "GET /oauth/callback?code=...&state=..."
-    Callback-->>App: "authorization code"
-    App->>Server: "exchangeCodeForTokens(code, verifier)"
-    Server-->>App: "access_token, refresh_token, expires_in"
-```
-
-Sources: [packages/shared/src/auth/oauth.ts:211-301](), [packages/shared/src/auth/oauth.ts:751-788]()
-
 ---
 
 ## Credential Management
 
-Credentials for all source types are stored encrypted in `~/.craft-agent/credentials.enc` (AES-256-GCM). The `SourceCredentialManager` class is responsible for loading and storing per-source credentials. Credential keys are scoped as `source_oauth::{workspaceId}::{sourceSlug}`.
+The `SourceCredentialManager` [packages/shared/src/sources/credential-manager.ts:116]() provides unified CRUD operations for source credentials.
 
-The `isOAuthSource()` function [packages/shared/src/sources/types.ts:187-199]() identifies sources that require proactive token refresh:
+### Credential Types
+- **Simple**: String tokens for bearer/query auth.
+- **Basic**: `username` and `password` [packages/shared/src/sources/credential-manager.ts:71-74]().
+- **Multi-Header**: `Record<string, string>` for APIs like Datadog [packages/shared/src/sources/credential-manager.ts:80]().
 
-- MCP sources with `mcp.authType === 'oauth'`
-- API sources whose `provider` is in `API_OAUTH_PROVIDERS` (`google`, `slack`, `microsoft`)
+### Secure Storage
+The `CredentialManager` [packages/shared/src/credentials/manager.ts:14]() uses `SecureStorageBackend` to persist data. The `SourceCredentialManager` resolves the correct `CredentialId` (e.g., `source_oauth`, `source_bearer`, `api_key`) based on the source's configuration [packages/shared/src/sources/credential-manager.ts:129-131]().
+
+**Diagram: Credential Resolution Flow**
+
+```mermaid
+flowchart TD
+    SourceCredentialManager["SourceCredentialManager::load(source)"]
+    isMcp["source.config.type == 'mcp'?"]
+    loadMcpCredential["loadMcpCredential()\
+(Fallback: OAuth -> Bearer)"]
+    getCredentialId["getCredentialId(source)"]
+    CredentialManager["CredentialManager::get(id)"]
+    SecureStorageBackend["SecureStorageBackend"]
+
+    SourceCredentialManager --> isMcp
+    isMcp -->|"yes"| loadMcpCredential
+    isMcp -->|"no"| getCredentialId
+    loadMcpCredential --> CredentialManager
+    getCredentialId --> CredentialManager
+    CredentialManager --> SecureStorageBackend
+```
+
+Sources: [packages/shared/src/sources/credential-manager.ts:116-187](), [packages/shared/src/credentials/manager.ts:14]()
 
 ---
 
 ## Token Refresh
 
-`TokenRefreshManager` [packages/shared/src/sources/token-refresh-manager.ts:39-238]() handles proactive token refresh with rate limiting. Key behaviors:
+The `TokenRefreshManager` [packages/shared/src/sources/token-refresh-manager.ts:39]() handles the lifecycle of OAuth tokens to ensure they are valid before a session starts.
 
-| Method                              | Purpose                                                             |
-| ----------------------------------- | ------------------------------------------------------------------- |
-| `needsRefresh(source)`              | Returns `true` if the token is expired or expiring within 5 minutes |
-| `ensureFreshToken(source)`          | Refreshes if needed; skips if in cooldown after a recent failure    |
-| `getSourcesNeedingRefresh(sources)` | Filters an array of `LoadedSource` to those needing refresh         |
-| `refreshSources(sources)`           | Refreshes multiple sources in parallel                              |
-| `isInCooldown(slug)`                | Checks 5-minute post-failure cooldown                               |
+- **Proactive Refresh**: `needsRefresh()` checks if a token is expired or expiring within 5 minutes [packages/shared/src/sources/token-refresh-manager.ts:95-104]().
+- **Rate Limiting**: Failed refreshes trigger a cooldown period (default 5 minutes) to prevent hammering auth providers [packages/shared/src/sources/token-refresh-manager.ts:19-20](), [packages/shared/src/sources/token-refresh-manager.ts:57-61]().
+- **Race Condition Prevention**: `SourceCredentialManager` tracks `pendingRefreshes` in a Map to ensure only one refresh happens at a time for a given source [packages/shared/src/sources/credential-manager.ts:119]().
 
-The `createTokenGetter()` factory [packages/shared/src/sources/token-refresh-manager.ts:244-255]() wraps a `TokenRefreshManager` into an `() => Promise<string>` function that can be passed as an `ApiCredentialSource` to `createApiTool()`.
-
-**Diagram: Credential & Token Refresh Wiring**
-
-```mermaid
-flowchart TD
-    LoadedSource["LoadedSource\
-(config.type, config.provider)"]
-    isOAuthSource["isOAuthSource()\
-→ true/false"]
-    TokenRefreshManager["TokenRefreshManager\
-(cooldown, failedAttempts)"]
-    SourceCredentialManager["SourceCredentialManager\
-(load, refresh, markNeedsReauth)"]
-    credentialsEnc["credentials.enc\
-(AES-256-GCM)"]
-    ensureFreshToken["ensureFreshToken(source)\
-→ TokenRefreshResult"]
-    createTokenGetter["createTokenGetter()\
-→ () =&gt; Promise&lt;string&gt;"]
-    createApiTool["createApiTool(config,\
-ApiCredentialSource)"]
-
-    LoadedSource --> isOAuthSource
-    isOAuthSource -->|"yes"| TokenRefreshManager
-    TokenRefreshManager --> SourceCredentialManager
-    SourceCredentialManager --> credentialsEnc
-    TokenRefreshManager --> ensureFreshToken
-    ensureFreshToken --> createTokenGetter
-    createTokenGetter --> createApiTool
-```
-
-Sources: [packages/shared/src/sources/token-refresh-manager.ts:39-255](), [packages/shared/src/sources/types.ts:187-199]()
-
----
-
-## Session Activation
-
-Sources are opt-in per session. A user can activate a source by `@mentioning` its slug in the chat input. When a session starts with active sources:
-
-1. Each active `LoadedSource` is loaded from disk.
-2. OAuth sources are checked via `getSourcesNeedingRefresh()` and refreshed via `refreshSources()` before the agent runs.
-3. For API sources, `createApiServer()` produces an in-process MCP server that is passed to the agent SDK.
-4. For MCP sources, a connection is established to the remote server (or subprocess) using the configured transport.
-5. The `guide.md` of each active source is injected into the agent's system prompt to provide context about the source's capabilities and usage patterns.
-
-For the session lifecycle in detail, see [Session Lifecycle](#2.7). For how the agent resolves and invokes source tools, see [Agent System](#2.3).
-
----
-
-## Connection Status
-
-The `SourceConnectionStatus` type [packages/shared/src/sources/types.ts:310]() tracks the state of each source:
-
-| Status           | Meaning                                                 |
-| ---------------- | ------------------------------------------------------- |
-| `connected`      | Last test succeeded                                     |
-| `needs_auth`     | Authentication is required or expired                   |
-| `failed`         | Connection attempt failed with an error                 |
-| `untested`       | Source has never been tested                            |
-| `local_disabled` | Stdio source is disabled (local MCP servers turned off) |
-
-`connectionError` on `FolderSourceConfig` stores the error message when `connectionStatus` is `failed`.
+Sources: [packages/shared/src/sources/token-refresh-manager.ts:39-176](), [packages/shared/src/sources/credential-manager.ts:119]()

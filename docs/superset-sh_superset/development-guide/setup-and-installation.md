@@ -33,6 +33,8 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
+
+
 This page covers the initial setup required to develop and run the Superset desktop application locally. It includes installing prerequisites, cloning the repository, installing dependencies, and configuring environment variables. For information about running the application in development mode after setup, see [Running in Development](#4.3). For details about the build system configuration, see [Build System](#4.4).
 
 ---
@@ -79,18 +81,18 @@ graph TB
     ROOT --> APPS["apps/"]
     ROOT --> PACKAGES["packages/"]
     ROOT --> TOOLING["tooling/"]
-
+    
     APPS --> DESKTOP["desktop/<br/>Main Electron app"]
     APPS --> API["api/<br/>Backend services"]
     APPS --> WEB["web/<br/>Browser client"]
     APPS --> ADMIN["admin/<br/>Admin dashboard"]
-
+    
     PACKAGES --> DB["db/<br/>@superset/db<br/>Neon PostgreSQL schemas"]
     PACKAGES --> LOCAL_DB["local-db/<br/>@superset/local-db<br/>SQLite schemas"]
     PACKAGES --> TRPC["trpc/<br/>@superset/trpc<br/>Shared tRPC types"]
     PACKAGES --> UI["ui/<br/>@superset/ui<br/>Radix UI components"]
     PACKAGES --> AUTH["auth/<br/>@superset/auth<br/>better-auth setup"]
-
+    
     TOOLING --> TS["typescript/<br/>@superset/typescript<br/>Shared TS config"]
 ```
 
@@ -141,25 +143,25 @@ graph TB
         BUN_LOCK["bun.lock<br/>Lock file"]
         PKG_JSON["package.json<br/>Workspace definitions"]
     end
-
+    
     subgraph "Bun Install Process"
         READ_LOCK["Read bun.lock"]
         RESOLVE["Resolve workspace:<br/>dependencies"]
         FETCH["Fetch packages<br/>to .bun store"]
         SYMLINK["Create symlinks<br/>in node_modules"]
     end
-
+    
     subgraph "Desktop App Dependencies"
         DESKTOP_NM["apps/desktop/<br/>node_modules/"]
         WORKSPACE_DEPS["@superset/*<br/>workspace packages"]
         NPM_DEPS["External npm<br/>packages"]
         NATIVE["Native modules:<br/>better-sqlite3<br/>node-pty<br/>@ast-grep/napi<br/>@parcel/watcher<br/>libsql"]
     end
-
+    
     subgraph "Bun Store"
         STORE[".bun/<br/>Centralized cache"]
     end
-
+    
     BUN_LOCK --> READ_LOCK
     PKG_JSON --> RESOLVE
     READ_LOCK --> FETCH
@@ -186,13 +188,13 @@ graph TB
 
 Superset uses several native Node.js addons that require special build-time treatment:
 
-| Module            | Purpose                      | Unpacked in ASAR |
-| ----------------- | ---------------------------- | ---------------- |
-| `better-sqlite3`  | Local SQLite database        | Yes              |
-| `node-pty`        | Terminal PTY processes       | Yes              |
-| `@ast-grep/napi`  | Code search/analysis         | Yes              |
-| `@parcel/watcher` | File system watching         | Yes              |
-| `libsql`          | Turso/libSQL database client | Yes              |
+| Module | Purpose | Unpacked in ASAR |
+|--------|---------|------------------|
+| `better-sqlite3` | Local SQLite database | Yes |
+| `node-pty` | Terminal PTY processes | Yes |
+| `@ast-grep/napi` | Code search/analysis | Yes |
+| `@parcel/watcher` | File system watching | Yes |
+| `libsql` | Turso/libSQL database client | Yes |
 
 These modules are **externalized** from the main bundle and must be:
 
@@ -220,17 +222,17 @@ Superset uses environment variables for configuration. A root `.env` file at the
 ```mermaid
 graph LR
     ROOT_ENV[".env<br/>Repository root"]
-
+    
     subgraph "Main Process"
         MAIN_ENV["src/main/env.main.ts<br/>Node.js context"]
         VITE_MAIN["electron.vite.config.ts<br/>define: process.env.*"]
     end
-
+    
     subgraph "Renderer Process"
         RENDERER_ENV["src/renderer/env.renderer.ts<br/>Browser context"]
         VITE_RENDERER["electron.vite.config.ts<br/>define: import.meta.env.*"]
     end
-
+    
     ROOT_ENV --> VITE_MAIN
     ROOT_ENV --> VITE_RENDERER
     VITE_MAIN --> MAIN_ENV
@@ -278,7 +280,6 @@ SUPERSET_WORKSPACE_NAME=superset
 **Environment Variable Loading:**
 
 The root `.env` file is loaded by:
-
 - [apps/desktop/electron.vite.config.ts:21]() during build configuration
 - Individual apps load it via `dotenv` at runtime
 
@@ -295,17 +296,17 @@ graph TB
         VITE_CONFIG["electron.vite.config.ts<br/>config() loads .env"]
         DEFINE["Vite define{} plugin<br/>Replaces process.env.*"]
     end
-
+    
     subgraph "Main Process"
         MAIN_BUNDLE["dist/main/index.js<br/>Bundled with literals"]
         MAIN_ENV_TS["env.main.ts<br/>Validates at import"]
     end
-
+    
     subgraph "Renderer Process"
         RENDERER_BUNDLE["dist/renderer/index.js<br/>Bundled with literals"]
         RENDERER_ENV_TS["env.renderer.ts<br/>Validates at import"]
     end
-
+    
     ENV_FILE --> VITE_CONFIG
     VITE_CONFIG --> DEFINE
     DEFINE --> MAIN_BUNDLE
@@ -359,7 +360,6 @@ bun run --cwd apps/desktop validate:native-runtime
 ```
 
 The first command materializes native modules from Bun symlinks. The second validates that:
-
 - Native modules are not bundled into `dist/main/`
 - Platform-specific packages exist in `node_modules/`
 - Workspace packages are bundled (not externalized)
@@ -372,12 +372,12 @@ The first command materializes native modules from Bun symlinks. The second vali
 
 Before running development or building the desktop app, ensure:
 
-| Requirement            | Check Command                                        | Purpose               |
-| ---------------------- | ---------------------------------------------------- | --------------------- |
-| Bun 1.3.2+             | `bun --version`                                      | Package manager       |
-| Dependencies installed | `ls node_modules`                                    | All packages fetched  |
-| `.env` configured      | `cat .env`                                           | Environment variables |
-| Native modules ready   | `bun run --cwd apps/desktop validate:native-runtime` | Desktop-specific      |
+| Requirement | Check Command | Purpose |
+|-------------|---------------|---------|
+| Bun 1.3.2+ | `bun --version` | Package manager |
+| Dependencies installed | `ls node_modules` | All packages fetched |
+| `.env` configured | `cat .env` | Environment variables |
+| Native modules ready | `bun run --cwd apps/desktop validate:native-runtime` | Desktop-specific |
 
 **Next Steps:**
 

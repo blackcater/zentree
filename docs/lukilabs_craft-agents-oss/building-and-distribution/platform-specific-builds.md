@@ -5,222 +5,161 @@
 
 The following files were used as context for generating this wiki page:
 
-- [apps/electron/package.json](apps/electron/package.json)
-- [package.json](package.json)
+- [apps/electron/electron-builder.yml](apps/electron/electron-builder.yml)
+- [apps/electron/scripts/build-dmg.sh](apps/electron/scripts/build-dmg.sh)
+- [apps/electron/scripts/build-linux.sh](apps/electron/scripts/build-linux.sh)
 
 </details>
 
-This page documents how to produce distributable builds of the Craft Agents Electron application for each supported target platform: macOS (arm64 and x64 DMGs), Windows (NSIS installer), and Linux. It covers the platform-specific scripts, the OAuth environment variable injection differences between platforms, and the invocation order for each target.
 
-For the general build pipeline (esbuild, Vite, preload, renderer) that runs before packaging, see [Build System](#5.2). For the `electron-builder.yml` configuration, asset bundling, and `extraResources`, see [Electron Packaging](#6.2).
+
+This page documents the procedures and scripts required to produce distributable builds of the Craft Agents Electron application for macOS, Windows, and Linux. It covers architecture-specific packaging (arm64 vs x64), the injection of OAuth credentials during the build process, and the role of platform-specific helper scripts.
+
+For the general build pipeline (esbuild, Vite, asset validation) that precedes packaging, see [Build System](). For the `electron-builder.yml` configuration and asset bundling, see [Electron Packaging]().
 
 ---
 
 ## Build Targets at a Glance
 
-The monorepo exposes two levels of distribution scripts: root-level convenience scripts in `package.json` and platform-level scripts inside `apps/electron/package.json`.
+The monorepo utilizes a two-tier script system: root-level convenience scripts in the main `package.json` and platform-specific distribution scripts within `apps/electron/package.json`.
 
-| Platform    | Root Script           | Electron Package Script  | Underlying Tool            |
-| ----------- | --------------------- | ------------------------ | -------------------------- |
-| macOS arm64 | `electron:dist:mac`   | `dist:mac`               | `build-dmg.sh arm64`       |
-| macOS x64   | _(invoke directly)_   | `dist:mac:x64`           | `build-dmg.sh x64`         |
-| Windows     | `electron:dist:win`   | `dist:win`               | `build-win.ps1`            |
-| Linux       | `electron:dist:linux` | _(via electron-builder)_ | `electron-builder --linux` |
+| Platform | Architecture | Electron Package Script | Underlying Tool |
+|---|---|---|---|
+| macOS | arm64 | `dist:mac` | `build-dmg.sh arm64` |
+| macOS | x64 | `dist:mac:x64` | `build-dmg.sh x64` |
+| Windows | x64 | `dist:win` | `build-win.ps1` |
+| Linux | x64 / arm64 | (via electron-builder) | `build-linux.sh` |
 
-Sources: [package.json:38-41](), [apps/electron/package.json:32-35]()
+Sources: [apps/electron/scripts/build-dmg.sh:40-43](), [apps/electron/scripts/build-linux.sh:29-32]()
 
 ---
 
-## Build Flow Overview
+## Build Flow Architecture
 
-**Platform Build Pipeline**
+The distribution process involves cleaning artifacts, installing dependencies, downloading pinned binaries (like Bun), and finally invoking `electron-builder`.
+
+### Platform Build Pipeline
 
 ```mermaid
 flowchart TD
-    A["bun run electron:dist:mac / :win / :linux"]
-    B["bun run electron:build"]
-    B1["electron:build:main\
-(esbuild, .env sourced)"]
-    B1w["build:main:win\
-(esbuild, no .env source)"]
-    B2["electron:build:preload\
-(esbuild)"]
-    B3["electron:build:renderer\
-(vite build)"]
-    B4["electron:build:resources\
-(copy native binaries)"]
-    B5["electron:build:assets\
-(copy-assets.ts)"]
-    C_mac["electron-builder --mac\
-→ build-dmg.sh arm64 / x64"]
-    C_win["electron-builder --win\
-→ build-win.ps1"]
-    C_linux["electron-builder --linux"]
+    subgraph "Entry_Points"
+        R_MAC["dist:mac"]
+        R_WIN["dist:win"]
+        R_LINUX["build-linux.sh"]
+    end
 
-    A --> B
-    B --> B1
-    B --> B2
-    B --> B3
-    B --> B4
-    B --> B5
-    B1 -- "macOS / Linux" --> C_mac
-    B1w -- "Windows" --> C_win
-    B --> C_linux
+    subgraph "Preparation_build-dmg.sh_build-linux.sh"
+        CLEAN["Clean release/ & vendor/"]
+        BUN_DL["Download Pinned Bun Binary"]
+        SDK_COPY["Copy @anthropic-ai/claude-agent-sdk"]
+        INT_COPY["Copy unified-network-interceptor.ts"]
+    end
+
+    subgraph "Compilation"
+        B_MAIN["build:main (with .env)"]
+        B_MAIN_WIN["build:main:win (no .env)"]
+        B_RENDER["build:renderer (Vite)"]
+    end
+
+    subgraph "Packaging"
+        EB_MAC["electron-builder --mac"]
+        EB_WIN["electron-builder --win"]
+        EB_LINUX["electron-builder --linux"]
+    end
+
+    R_MAC --> CLEAN
+    R_LINUX --> CLEAN
+    CLEAN --> BUN_DL
+    BUN_DL --> SDK_COPY
+    SDK_COPY --> INT_COPY
+    INT_COPY --> B_MAIN
+    B_MAIN --> B_RENDER
+    B_RENDER --> EB_MAC
+    B_RENDER --> EB_LINUX
+
+    R_WIN --> B_MAIN_WIN
+    B_MAIN_WIN --> EB_WIN
 ```
 
-> **Note:** On Windows the main process is compiled with `build:main:win` rather than `build:main`. The difference is described in the [OAuth Credential Injection](#oauth-credential-injection) section below.
-
-Sources: [package.json:27-41](), [apps/electron/package.json:18-35]()
+Sources: [apps/electron/scripts/build-dmg.sh:88-150](), [apps/electron/scripts/build-linux.sh:73-142]()
 
 ---
 
-## macOS Builds
+## macOS Builds (`build-dmg.sh`)
 
-### Scripts
+macOS distribution is managed by `apps/electron/scripts/build-dmg.sh`. This script handles environment synchronization and code signing.
 
-macOS distribution is triggered through `apps/electron/scripts/build-dmg.sh`, which accepts a single architecture argument.
+### Key Implementation Details
+1.  **Secret Syncing**: If the 1Password CLI (`op`) is present, it runs `sync-secrets` to populate the `.env` file before building [apps/electron/scripts/build-dmg.sh:21-30]().
+2.  **Binary Pinning**: It downloads a specific version of Bun (`bun-v1.3.9`) for the target architecture (`darwin-aarch64` or `darwin-x64`) to ensure reproducible builds [apps/electron/scripts/build-dmg.sh:81-122]().
+3.  **Code Signing & Notarization**: The script exports `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, and `APPLE_TEAM_ID` to the environment, enabling `electron-builder` to perform Apple notarization [apps/electron/scripts/build-dmg.sh:161-180]().
+4.  **DMG Customization**: The build produces a DMG with a custom background (`dmg-background.tiff`) and specific icon layouts defined in the `dmg` section of the configuration [apps/electron/electron-builder.yml:124-143]().
 
-| Invocation                          | Architecture  | Output         |
-| ----------------------------------- | ------------- | -------------- |
-| `dist:mac` → `build-dmg.sh arm64`   | Apple Silicon | `.dmg` (arm64) |
-| `dist:mac:x64` → `build-dmg.sh x64` | Intel         | `.dmg` (x64)   |
+### OAuth Credential Injection
+The macOS build uses the `build:main` script, which sources `.env` and uses esbuild's `--define` feature to hardcode OAuth secrets into the `main.cjs` bundle.
 
-From the root workspace, the shortcut `electron:dist:mac` runs `electron:build` followed by `electron-builder --config electron-builder.yml --project apps/electron --mac`.
-
-Sources: [apps/electron/package.json:32-34](), [package.json:39]()
-
-### OAuth Credential Injection on macOS
-
-The `build:main` script (used for macOS and Linux) sources the `.env` file before invoking `esbuild`:
-
-```
-source ../../.env 2>/dev/null || true
-```
-
-This injects OAuth client IDs and secrets as compile-time `--define` flags directly into the bundled `dist/main.cjs`:
-
-| `--define` key                           | Environment variable         |
-| ---------------------------------------- | ---------------------------- |
-| `process.env.GOOGLE_OAUTH_CLIENT_ID`     | `GOOGLE_OAUTH_CLIENT_ID`     |
-| `process.env.GOOGLE_OAUTH_CLIENT_SECRET` | `GOOGLE_OAUTH_CLIENT_SECRET` |
-| `process.env.SLACK_OAUTH_CLIENT_ID`      | `SLACK_OAUTH_CLIENT_ID`      |
-| `process.env.SLACK_OAUTH_CLIENT_SECRET`  | `SLACK_OAUTH_CLIENT_SECRET`  |
-| `process.env.MICROSOFT_OAUTH_CLIENT_ID`  | `MICROSOFT_OAUTH_CLIENT_ID`  |
-
-Sources: [apps/electron/package.json:18]()
-
-For setting up the `.env` file locally, see [Development Setup](#5.1).
+Sources: [apps/electron/scripts/build-dmg.sh:32-37](), [apps/electron/electron-builder.yml:81-123]()
 
 ---
 
-## Windows Builds
+## Windows Builds (`build-win.ps1`)
 
-### Scripts
+Windows builds use a PowerShell script at `apps/electron/scripts/build-win.ps1`. 
 
-Windows distribution uses a PowerShell script at `apps/electron/scripts/build-win.ps1`.
+### File Locking Workarounds
+Windows builds face specific challenges with file locking during the `electron-builder` collection phase. To avoid `EBUSY` errors, several executable binaries are excluded from the standard files list and moved to `extraResources` [apps/electron/electron-builder.yml:160-169]().
 
-The `dist:win` script in `apps/electron/package.json` invokes it as:
+| Binary Type | Exclusion Rule | extraResources Destination |
+|---|---|---|
+| Bun Runtime | `!vendor/bun/**/*` | `vendor/bun/bun.exe` |
+| Codex Binary | `!vendor/codex/**/*` | `app/vendor/codex/win32-x64` |
+| Copilot CLI | `!vendor/copilot/**/*` | `app/vendor/copilot/win32-x64` |
 
-```
-powershell -ExecutionPolicy Bypass -File scripts/build-win.ps1
-```
+Sources: [apps/electron/electron-builder.yml:160-186]()
 
-From the root workspace, `electron:dist:win` runs `electron:build` (which calls `build:main:win` for the main process) then `electron-builder --win`.
+### Differences in Credential Injection
+Unlike macOS/Linux, the Windows build process requires OAuth variables to be set in the PowerShell session environment before running the distribution script. The `nsis` installer is configured for per-user installation to `%LOCALAPPDATA%\Programs\` because the Bun subprocess cannot reliably read/write files in `Program Files` due to permission restrictions [apps/electron/electron-builder.yml:188-192]().
 
-Sources: [apps/electron/package.json:35](), [package.json:40]()
+---
 
-### OAuth Credential Injection on Windows {#oauth-credential-injection}
+## Linux Builds (`build-linux.sh`)
 
-Windows does not support the `source` shell command. The `build:main:win` script therefore **omits the `.env` sourcing step** entirely:
+The Linux build process at `apps/electron/scripts/build-linux.sh` mirrors the macOS logic but targets `AppImage` formats.
 
-```
-esbuild src/main/index.ts --bundle --platform=node --format=cjs --outfile=dist/main.cjs --external:electron
-```
+### Architecture Mapping
+The script maps Electron architecture names to Bun and Linux naming conventions:
+*   **arm64**: Downloads `bun-linux-aarch64` and produces `Craft-Agents-aarch64.AppImage` [apps/electron/scripts/build-linux.sh:90-91,155-160]().
+*   **x64**: Downloads `bun-linux-x64-baseline` and produces `Craft-Agents-x86_64.AppImage` [apps/electron/scripts/build-linux.sh:93,153-160]().
 
-No `--define` flags for OAuth credentials appear in `build:main:win`. For a Windows distribution build that includes OAuth credentials, those environment variables must be present in the shell environment before invoking the build — for example, set via the system environment or a CI pipeline secret injection mechanism.
+### Artifact Renaming
+To maintain consistency across platforms, the script renames the `electron-builder` output (e.g., `Craft-Agents-x86_64.AppImage`) to the standard `Craft-Agents-x64.AppImage` format [apps/electron/scripts/build-linux.sh:170-174]().
 
-**Comparison of main process build commands**
+Sources: [apps/electron/scripts/build-linux.sh:86-114](), [apps/electron/scripts/build-linux.sh:149-174]()
+
+---
+
+## Deployment & Manifests
+
+Both `build-dmg.sh` and `build-linux.sh` include logic to generate a `manifest.json` containing the current version from `package.json` [apps/electron/scripts/build-dmg.sh:202-207](), [apps/electron/scripts/build-linux.sh:181-186]().
+
+### Upload Logic
+If the `--upload` flag is provided, the scripts use `S3_VERSIONS_BUCKET_*` credentials to upload the resulting `.dmg` or `.AppImage` to a distribution bucket. The application uses a generic provider for updates, fetching manifests from `https://agents.craft.do/electron/latest` [apps/electron/electron-builder.yml:74-76]().
 
 ```mermaid
-flowchart LR
-    subgraph "macOS / Linux"
-        A1["build:main"] --> A2["source ../../.env"]
-        A2 --> A3["esbuild\
---define:GOOGLE_OAUTH_CLIENT_ID\
---define:GOOGLE_OAUTH_CLIENT_SECRET\
---define:SLACK_OAUTH_CLIENT_ID\
---define:SLACK_OAUTH_CLIENT_SECRET\
---define:MICROSOFT_OAUTH_CLIENT_ID"]
+flowchart TD
+    subgraph "Manifest_Generation"
+        V_EXT["Read version from package.json"]
+        M_GEN["Create .build/upload/manifest.json"]
     end
-    subgraph "Windows"
-        B1["build:main:win"] --> B2["esbuild\
-(no --define flags)"]
+
+    subgraph "S3_Distribution"
+        S3_AUTH["Check S3_VERSIONS_BUCKET_* Env"]
+        S3_UP["Upload Artifact + manifest.json"]
     end
+
+    V_EXT --> M_GEN
+    M_GEN --> S3_AUTH
+    S3_AUTH --> S3_UP
 ```
 
-Sources: [apps/electron/package.json:18-19](), [apps/electron/package.json:27]()
-
-### Full Windows Build Sequence
-
-The `build:win` script in `apps/electron/package.json` replaces `build:main` with `build:main:win` and otherwise runs the same steps:
-
-```
-build:main:win → build:preload → build:preload-toolbar → build:interceptor → build:renderer → build:copy → build:validate
-```
-
-Note that `build:win` (unlike `build`) skips `lint` at the start, since ESLint may not be available in a headless Windows CI environment.
-
-Sources: [apps/electron/package.json:26-27]()
-
----
-
-## Linux Builds
-
-Linux packaging is handled entirely through `electron-builder` with no separate shell script wrapper. The root script `electron:dist:linux` runs:
-
-```
-bun run electron:build && electron-builder --config electron-builder.yml --project apps/electron --linux
-```
-
-Like macOS, the Linux main process build uses `build:main` (the `.env`-sourcing variant), so OAuth credentials are injected at compile time when the `.env` file is present.
-
-The specific Linux packaging targets (e.g., `AppImage`, `deb`, `rpm`) are defined in `electron-builder.yml`. See [Electron Packaging](#6.2) for the full `electron-builder.yml` reference.
-
-Sources: [package.json:41](), [apps/electron/package.json:18]()
-
----
-
-## Script Reference Summary
-
-**Root `package.json` dist scripts**
-
-```mermaid
-flowchart LR
-    subgraph "Root package.json scripts"
-        R1["electron:dist"]
-        R2["electron:dist:mac"]
-        R3["electron:dist:win"]
-        R4["electron:dist:linux"]
-    end
-    subgraph "electron-builder targets"
-        T1["--mac (DMG)"]
-        T2["--win (NSIS)"]
-        T3["--linux (AppImage / deb)"]
-    end
-    R1 --> T1
-    R1 --> T2
-    R1 --> T3
-    R2 --> T1
-    R3 --> T2
-    R4 --> T3
-```
-
-**`apps/electron/package.json` platform scripts**
-
-| Script         | Shell      | Invokes                      |
-| -------------- | ---------- | ---------------------------- |
-| `dist:mac`     | bash       | `scripts/build-dmg.sh arm64` |
-| `dist:mac:x64` | bash       | `scripts/build-dmg.sh x64`   |
-| `dist:win`     | PowerShell | `scripts/build-win.ps1`      |
-
-Sources: [package.json:38-41](), [apps/electron/package.json:32-35]()
+Sources: [apps/electron/scripts/build-dmg.sh:45-61](), [apps/electron/scripts/build-linux.sh:44-46](), [apps/electron/electron-builder.yml:74-76]()

@@ -5,248 +5,169 @@
 
 The following files were used as context for generating this wiki page:
 
-- [readme.md](readme.md)
-- [readme_ch.md](readme_ch.md)
-- [readme_es.md](readme_es.md)
-- [readme_jp.md](readme_jp.md)
-- [readme_ko.md](readme_ko.md)
-- [readme_pt.md](readme_pt.md)
-- [readme_tr.md](readme_tr.md)
-- [readme_tw.md](readme_tw.md)
-- [resources/wechat_group4.png](resources/wechat_group4.png)
-- [src/common/ipcBridge.ts](src/common/ipcBridge.ts)
-- [src/common/storage.ts](src/common/storage.ts)
-- [src/renderer/pages/guid/index.tsx](src/renderer/pages/guid/index.tsx)
+- [src/process/agent/acp/utils.ts](src/process/agent/acp/utils.ts)
+- [src/process/task/AcpAgentManager.ts](src/process/task/AcpAgentManager.ts)
+- [src/process/task/AgentFactory.ts](src/process/task/AgentFactory.ts)
+- [src/process/task/BaseAgentManager.ts](src/process/task/BaseAgentManager.ts)
+- [src/process/task/GeminiAgentManager.ts](src/process/task/GeminiAgentManager.ts)
+- [src/process/task/IAgentEventEmitter.ts](src/process/task/IAgentEventEmitter.ts)
+- [src/process/task/IAgentFactory.ts](src/process/task/IAgentFactory.ts)
+- [src/process/task/IAgentManager.ts](src/process/task/IAgentManager.ts)
+- [src/process/task/IWorkerTaskManager.ts](src/process/task/IWorkerTaskManager.ts)
+- [src/process/task/IpcAgentEventEmitter.ts](src/process/task/IpcAgentEventEmitter.ts)
+- [src/process/task/WorkerTaskManager.ts](src/process/task/WorkerTaskManager.ts)
+- [tests/unit/AgentFactory.test.ts](tests/unit/AgentFactory.test.ts)
+- [tests/unit/BaseAgentManagerDecouple.test.ts](tests/unit/BaseAgentManagerDecouple.test.ts)
+- [tests/unit/IpcAgentEventEmitter.test.ts](tests/unit/IpcAgentEventEmitter.test.ts)
+- [tests/unit/WorkerTaskManager.test.ts](tests/unit/WorkerTaskManager.test.ts)
 
 </details>
 
-This page provides an overview of the AI agent types supported in AionUi, how agent instances are created per conversation, and how `WorkerManage` orchestrates their lifecycles. For implementation details of individual agent types, see the linked subsections. For information on how AI model providers and API keys are configured, see [Model Configuration & API Management](#4.6). For how the UI dispatches messages to agents, see [Message Input System](#5.5).
+
+
+This page provides an overview of the multi-agent architecture in AionUi, explaining how different agent types (Gemini, ACP, Codex, OpenClaw, Nanobot, Aionrs, Remote) are integrated and orchestrated. AionUi uses a provider-agnostic framework where the `WorkerTaskManager` manages the lifecycle of agent instances tied to specific conversations.
+
+For implementation details of individual agent systems, see the linked child pages. For information on how AI model providers and API keys are configured, see [Model Configuration & API Management](#4.7).
 
 ---
 
-## Agent Types
+## Agent Architecture Overview
 
-AionUi supports five runtime agent categories. Each agent type maps to a specific conversation type value stored in `TChatConversation.type`.
+AionUi supports several runtime agent categories. Each agent type maps to a specific conversation type value defined in the `TChatConversation` schema [src/common/config/storage.ts:12](). The system uses a factory pattern to instantiate the appropriate manager based on the conversation metadata.
 
-| Conversation Type | Agent Manager Class    | Description                                                                                                                                                        |
-| ----------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `gemini`          | `GeminiAgentManager`   | Built-in agent powered by the Gemini CLI core. Zero external setup required. Supports file I/O, web search, image generation, and MCP tools.                       |
-| `acp`             | `AcpAgentManager`      | Agent Communication Protocol integration. Wraps external CLI agents (Claude Code, Qwen Code, Goose AI, OpenClaw, Augment Code, etc.) that expose the ACP protocol. |
-| `codex`           | `CodexAgentManager`    | OpenAI Codex agent. Uses an event-driven architecture with dedicated event handlers and message processors.                                                        |
-| `openclaw`        | `OpenClawAgentManager` | OpenClaw gateway agent. A specialized ACP-adjacent integration for the OpenClaw platform.                                                                          |
-| `nanobot`         | `NanoBotAgentManager`  | Nanobot agent integration.                                                                                                                                         |
+| Conversation Type | Agent Manager Class | Description |
+|---|---|---|
+| `gemini` | `GeminiAgentManager` | Built-in agent powered by `@office-ai/aioncli-core`. Supports native tool scheduling, MCP, and vision. [src/process/task/GeminiAgentManager.ts:47-66]() |
+| `acp` | `AcpAgentManager` | Integration for the Agent Communication Protocol. Wraps external CLI agents like Claude Code and Goose AI. [src/process/task/AcpAgentManager.ts:79-113]() |
+| `codex` | `CodexAgentManager` | OpenAI Codex agent integration, handling file-system operations with specialized event handlers. |
+| `aionrs` | `AionrsAgentManager` | Bundled Rust-based agent providing high-performance local capabilities. |
+| `openclaw-gateway`| `OpenClawAgentManager` | Specialized integration for the OpenClaw platform gateway. |
+| `nanobot` | `NanoBotAgentManager` | Simplified agent implementation for Nanobot integration. |
+| `remote` | `RemoteAgentManager` | Connects to external OpenClaw-compatible gateways without a local process. |
 
-The set of supported CLI agents that map to the `acp` type includes Claude Code, Codex CLI, Qwen Code, Goose AI, Augment Code, iFlow CLI, CodeBuddy, Kimi CLI, OpenCode, Factory Droid, GitHub Copilot, Qoder CLI, Mistral Vibe, and Nanobot.
-
-Sources: [src/process/WorkerManage.ts:1-20](), [readme.md:93-93]()
+Sources: [src/process/task/AcpAgentManager.ts:79-113](), [src/process/task/GeminiAgentManager.ts:47-66](), [src/process/task/agentTypes.ts:10-15]()
 
 ---
 
-## WorkerManage
+## Task Orchestration
 
-`WorkerManage` is the central module in `src/process/WorkerManage.ts` responsible for mapping `TChatConversation` objects to live agent task instances. It maintains a module-level `taskList` cache to avoid creating duplicate instances for the same conversation.
+The `WorkerTaskManager` is the central orchestrator responsible for mapping conversation IDs to live agent instances. It maintains a `taskList` to ensure that returning to a conversation resumes the existing session state rather than spawning a new process.
 
-### Key Constructs
+### Key Components
 
-- **`taskList`** — A module-level array of `{ id: string; task: AgentBaseTask<unknown> }` objects. One entry per active conversation.
-- **`buildConversation(conversation, options?)`** — The primary factory function. Checks `taskList` for a cached instance before creating a new one. Switches on `conversation.type` to instantiate the correct manager class.
-- **`BuildConversationOptions`** — Runtime options passed at instantiation:
-  - `yoloMode?: boolean` — Auto-approves all tool call confirmations.
-  - `skipCache?: boolean` — Bypasses `taskList` and creates a fresh isolated instance (used by cron jobs).
-- **`getTaskById(id)`** — Looks up a cached task by conversation ID.
+- **`WorkerTaskManager`**: Manages the `taskList` cache. It provides `getOrBuildTask(id)` which fetches conversation metadata from the `IConversationRepository` and uses the `AgentFactory` to build the agent [src/process/task/WorkerTaskManager.ts:21-62]().
+- **`AgentFactory`**: A registry-based factory where agent creators are mapped to `AgentType` strings (`gemini`, `acp`, etc.) [src/process/task/AgentFactory.ts:13-25]().
+- **`BaseAgentManager`**: The abstract base class providing common functionality like message queuing, confirmation (tool approval) handling, and `yoloMode` (auto-approval) logic [src/process/task/BaseAgentManager.ts:17-57]().
+- **`IpcAgentEventEmitter`**: Bridges agent events (messages, confirmations) to the renderer process via `ipcBridge` [src/process/task/IpcAgentEventEmitter.ts:27-53]().
 
-Sources: [src/process/WorkerManage.ts:18-130]()
+### Agent Initialization Flow
 
-### Agent Instantiation Flow
-
-**Diagram: `buildConversation` dispatch in WorkerManage**
+**Diagram: Conversation to Agent Task Resolution**
 
 ```mermaid
 flowchart TD
-    A["buildConversation(conversation, options)"]
-    B{"options.skipCache?"}
-    C{"getTaskById(id) exists?"}
-    D["return cached task"]
-    E{"conversation.type"}
-    F["new GeminiAgentManager(extra, model)"]
-    G["new AcpAgentManager(extra)"]
-    H["new CodexAgentManager(extra)"]
-    I["new OpenClawAgentManager(extra)"]
-    J["new NanoBotAgentManager(extra)"]
-    K["push to taskList"]
-    L["return task"]
+    subgraph "Renderer Process"
+        UI["ChatConversation (UI)"]
+    end
 
-    A --> B
-    B -- "false" --> C
-    C -- "yes" --> D
-    C -- "no" --> E
-    B -- "true" --> E
-    E -- "gemini" --> F
-    E -- "acp" --> G
-    E -- "codex" --> H
-    E -- "openclaw" --> I
-    E -- "nanobot" --> J
-    F --> K
-    G --> K
-    H --> K
-    I --> K
-    J --> K
-    K --> L
+    subgraph "Main Process (WorkerTaskManager)"
+        REPO["IConversationRepository (SQLite)"]
+        FACTORY["AgentFactory"]
+        CACHE["taskList (Array<{id, task}>)"]
+    end
+
+    UI -- "ipcBridge.conversation.getOrBuildTask(id)" --> CACHE
+    CACHE -- "Cache Miss" --> REPO
+    REPO -- "TChatConversation" --> FACTORY
+    FACTORY -- "AgentCreator(conversation)" --> CACHE
+    CACHE -- "Return IAgentManager" --> UI
+    
+    subgraph "Agent Instances"
+        GEM["GeminiAgentManager"]
+        ACP["AcpAgentManager"]
+    end
+    
+    CACHE -.-> GEM
+    CACHE -.-> ACP
 ```
 
-Sources: [src/process/WorkerManage.ts:34-130]()
+Sources: [src/process/task/WorkerTaskManager.ts:62-78](), [src/process/task/AgentFactory.ts:20-24](), [src/process/task/IpcAgentEventEmitter.ts:46-52]()
 
 ---
 
-## BaseAgentManager
+## Core Capabilities
 
-All agent manager classes extend `BaseAgentManager`, defined in `src/process/task/BaseAgentManager.ts`. `BaseAgentManager` itself extends `ForkTask`, which means each agent runs in a separate forked Node.js process. The fork script is resolved by agent type at construction time.
+### Tool and Permission System
+Agents in AionUi are capable of executing tools (file operations, web search, etc.). The `BaseAgentManager` implements a confirmation system where tool calls are queued as `IConfirmation` objects [src/process/task/BaseAgentManager.ts:61-83]().
+- **Interactive Mode**: Users must approve tool calls via the UI. The manager emits `emitConfirmationAdd` to the renderer [src/process/task/IpcAgentEventEmitter.ts:28-31]().
+- **Yolo Mode**: When `yoloMode` is enabled (e.g., for cron tasks), the manager automatically selects the first approval option after a 50ms delay [src/process/task/BaseAgentManager.ts:63-73]().
 
-### Class Hierarchy
+### Skill Injection
+Before an agent starts, AionUi can inject "Skills" (pre-defined system prompts or toolsets). The `GeminiAgentManager` uses `buildSystemInstructionsWithSkillsIndex` to load these capabilities from the `skills/` directory [src/process/task/GeminiAgentManager.ts:15-16]().
 
-**Diagram: Agent manager class hierarchy**
-
-```mermaid
-classDiagram
-    class ForkTask {
-        +start()
-        +stop()
-        +send(data)
-    }
-    class BaseAgentManager {
-        +type: AgentType
-        +status: string
-        #conversation_id: string
-        #confirmations: IConfirmation[]
-        #yoloMode: boolean
-        #addConfirmation(data)
-        #init()
-    }
-    class GeminiAgentManager {
-        +type: "gemini"
-    }
-    class AcpAgentManager {
-        +type: "acp"
-    }
-    class CodexAgentManager {
-        +type: "codex"
-    }
-    class OpenClawAgentManager {
-        +type: "openclaw-gateway"
-    }
-    class NanoBotAgentManager {
-        +type: "nanobot"
-    }
-
-    ForkTask <|-- BaseAgentManager
-    BaseAgentManager <|-- GeminiAgentManager
-    BaseAgentManager <|-- AcpAgentManager
-    BaseAgentManager <|-- CodexAgentManager
-    BaseAgentManager <|-- OpenClawAgentManager
-    BaseAgentManager <|-- NanoBotAgentManager
-```
-
-Sources: [src/process/task/BaseAgentManager.ts:1-60](), [src/process/WorkerManage.ts:8-16]()
-
-### Key Properties
-
-| Property          | Type                                                | Description                                                                                             |
-| ----------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `type`            | `AgentType`                                         | Identifies which fork script to load (`gemini.js`, `acp.js`, etc.)                                      |
-| `status`          | `'pending' \| 'running' \| 'finished' \| undefined` | Lifecycle state of the agent task                                                                       |
-| `yoloMode`        | `boolean`                                           | When `true`, `addConfirmation` auto-selects the first available option instead of queuing a user prompt |
-| `confirmations`   | `IConfirmation[]`                                   | Pending confirmation requests waiting for user approval                                                 |
-| `conversation_id` | `string`                                            | Binds the task to a specific conversation in the database                                               |
-
-The `AgentType` union is `'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot'`. Each value maps to a compiled fork script at `__dirname/<type>.js`.
-
-Sources: [src/process/task/BaseAgentManager.ts:12-50]()
+### Idle Management
+To conserve system resources, the `WorkerTaskManager` runs a periodic check (every 1 minute) to kill `acp` agents that have been idle longer than the configured `acp.agentIdleTimeout` [src/process/task/WorkerTaskManager.ts:29-56]().
 
 ---
 
 ## System Topology
 
-**Diagram: Full agent system topology and code entities**
+**Diagram: Multi-Agent Process Architecture**
 
 ```mermaid
 flowchart LR
-    subgraph "Renderer Process"
-        UI["SendBox / ChatInput"]
-        CM["ConversationManageWithDB"]
-    end
-
     subgraph "Main Process"
-        IPC["ipcBridge"]
-        WM["WorkerManage\
-(buildConversation)"]
-        TL["taskList\
-(module cache)"]
-        CRON["cronService\
-(CronService)"]
+        WTM["WorkerTaskManager"]
+        DB["IConversationRepository (SQLite)"]
+        IPC["IpcAgentEventEmitter"]
     end
 
-    subgraph "Forked Processes"
-        GA["GeminiAgentManager\
-gemini.js fork"]
-        AA["AcpAgentManager\
-acp.js fork"]
-        CA["CodexAgentManager\
-codex.js fork"]
-        OA["OpenClawAgentManager\
-openclaw-gateway.js fork"]
-        NA["NanoBotAgentManager\
-nanobot.js fork"]
+    subgraph "Agent Managers (Forks)"
+        GAM["GeminiAgentManager"]
+        AAM["AcpAgentManager"]
+        AION["AionrsAgentManager"]
     end
 
-    subgraph "External Tools"
-        GCLI["Gemini CLI Core"]
-        ACP["ACP CLI agents\
-(Claude Code, Codex, etc.)"]
-        MCP["McpService"]
+    subgraph "External Runtimes"
+        GCLI["@office-ai/aioncli-core"]
+        ACLI["External CLI (npx/bin)\
+e.g. @anthropic-ai/claude-code"]
+        MCP["MCP Servers (stdio/SSE/HTTP)"]
+        RUST["aionrs binary"]
     end
 
-    UI --> IPC
-    IPC --> WM
-    WM --> TL
-    WM --> GA
-    WM --> AA
-    WM --> CA
-    WM --> OA
-    WM --> NA
-    GA --> GCLI
-    AA --> ACP
-    GA --> MCP
-    AA --> MCP
-    CRON --> WM
+    WTM --> DB
+    WTM --> GAM
+    WTM --> AAM
+    WTM --> AION
+    
+    GAM -- "postMessage" --> GCLI
+    AAM -- "child_process.spawn" --> ACLI
+    AION -- "spawn" --> RUST
+    
+    GAM --> MCP
+    AAM --> MCP
+    
+    GAM -- "emitMessage" --> IPC
+    AAM -- "emitMessage" --> IPC
 ```
 
-Sources: [src/process/WorkerManage.ts:1-130](), [src/process/initBridge.ts:1-20]()
+Sources: [src/process/task/WorkerTaskManager.ts:21-30](), [src/process/task/AcpAgentManager.ts:150-180](), [src/process/task/GeminiAgentManager.ts:126-132](), [src/process/task/IpcAgentEventEmitter.ts:46-52]()
 
 ---
 
-## Lifecycle and Initialization
+## Child Pages
 
-Agent tasks are created lazily on first message send. The `taskList` in `WorkerManage` persists for the lifetime of the main process, so returning to a conversation resumes the same in-memory task instance.
-
-Cron-triggered sessions use `skipCache: true` and `yoloMode: true` to create isolated, auto-approving instances that do not interfere with interactive sessions. See [Cron & Scheduled Tasks](#4.8) for details.
-
-`cronService` is initialized in `src/process/initBridge.ts` immediately after all IPC bridges are established. Agent tasks themselves are only created when a conversation is first activated by `buildConversation`.
-
-Sources: [src/process/initBridge.ts:9-19](), [src/process/WorkerManage.ts:27-45]()
-
----
-
-## Subsystem References
-
-Each agent type and supporting system is documented in a dedicated subsection:
-
-| Page                                             | Topic                                                                                 |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| [4.1 Gemini Agent System](#4.1)                  | `GeminiAgent`, `loadCliConfig`, stream processing, API key management                 |
-| [4.2 Codex Agent System](#4.2)                   | `CodexEventHandler`, `CodexMessageProcessor`, `CodexToolHandlers`, session management |
-| [4.3 ACP Agent Integration](#4.3)                | `AcpConnection`, `AcpAgent`, `AcpAgentManager`, `AcpDetector`                         |
-| [4.4 Tool System Architecture](#4.4)             | `ConversationToolConfig`, `CoreToolScheduler`, `ImageGenerationTool`                  |
-| [4.5 MCP Integration](#4.5)                      | `McpService`, `AbstractMcpAgent`, per-agent MCP backends                              |
-| [4.6 Model Configuration & API Management](#4.6) | `IProvider`, `RotatingApiClient`, API key rotation                                    |
-| [4.7 Assistant Presets & Skills](#4.7)           | `ASSISTANT_PRESETS`, skills files, `AssistantManagement` UI                           |
-| [4.8 Cron & Scheduled Tasks](#4.8)               | `CronService`, autonomous scheduled agent sessions                                    |
+| Section | Topic |
+|---|---|
+| [Gemini Agent](#4.1) | Implementation of the Gemini-specific manager, worker process architecture, and MCP integration. |
+| [4.2 Codex Agent](#4.2) | Event processing and session management for the legacy Codex protocol. |
+| [ACP Agent Integration](#4.3) | JSON-RPC protocol handling, CLI process spawning, and unified conversation API. |
+| [OpenClaw, Nanobot, and Remote Agents](#4.4) | Gateway-based architecture and simplified agent wrappers for remote backends. |
+| [Tool System Architecture](#4.5) | `CoreToolScheduler` and the lifecycle of tool execution (scheduled → terminal). |
+| [MCP Integration](#4.6) | Model Context Protocol support including OAuth and various transport types (stdio, SSE, HTTP). |
+| [Model Configuration & API Management](#4.7) | `IProvider` interface, model capability detection, and support for 20+ AI platforms. |
+| [Assistant Presets & Skills](#4.8) | System prompt injection and the `skills/` directory management. |
+| [Cron & Scheduled Tasks](#4.9) | 24/7 autonomous operation using `yoloMode` and background cron execution. |
+| [Team Mode (Multi-Agent Collaboration)](#4.10) | Lead/Teammate coordination via `TeamSessionService` and shared state. |
+| [Aionrs Agent](#4.11) | Bundled Rust-based agent integration, binary resolution, and JSON-line event protocol. |

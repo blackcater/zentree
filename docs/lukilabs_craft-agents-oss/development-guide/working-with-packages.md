@@ -5,147 +5,125 @@
 
 The following files were used as context for generating this wiki page:
 
-- [package.json](package.json)
 - [packages/core/package.json](packages/core/package.json)
 - [packages/shared/package.json](packages/shared/package.json)
+- [packages/ui/package.json](packages/ui/package.json)
 
 </details>
 
-This page explains how to develop within the Craft Agents monorepo, covering package structure, dependency management, the workspace protocol, and cross-package development workflows. For information about setting up your development environment, see [Development Setup](#5.1). For details on the build pipeline, see [Build System](#5.2).
+
+
+This page explains how to develop within the Craft Agents monorepo, covering package structure, dependency management, the workspace protocol, and guidelines for the shared, core, and UI packages including peer dependency contracts.
 
 ---
 
 ## Package Structure
 
-Craft Agents uses a monorepo managed by Bun with workspaces defined in [package.json:7-10](). The codebase is organized into four shared packages and three application packages:
+Craft Agents uses a monorepo managed by Bun with workspaces defined in the root configuration. The codebase is organized into shared packages and application packages:
 
-| Package                           | Path                           | Purpose                                                                                      | Internal Dependencies        |
-| --------------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------- | ---------------------------- |
-| `@craft-agent/core`               | `packages/core/`               | Foundational types, storage abstractions                                                     | Peer deps only               |
-| `@craft-agent/session-tools-core` | `packages/session-tools-core/` | Shared type definitions and utilities for session-scoped tools and Codex integration         | None                         |
-| `@craft-agent/shared`             | `packages/shared/`             | Business logic: agent, auth, config, credentials, sessions, sources, workspaces, automations | `core`, `session-tools-core` |
-| `@craft-agent/ui`                 | `packages/ui/`                 | React components for session rendering, markdown, diagrams                                   | `core`, `mermaid`            |
-| `@craft-agent/mermaid`            | `packages/mermaid/`            | Mermaid diagram rendering via `beautiful-mermaid`                                            | External libs only           |
-| `@craft-agent/electron`           | `apps/electron/`               | Electron desktop application                                                                 | `core`, `shared`, `ui`       |
-| `@craft-agent/viewer`             | `apps/viewer/`                 | Web viewer for shared sessions                                                               | `core`, `ui`                 |
-| `@craft-agent/marketing`          | `apps/marketing/`              | Marketing website                                                                            | `ui`                         |
+| Package | Path | Purpose | Internal Dependencies |
+|---------|------|---------|----------------------|
+| `@craft-agent/core` | `packages/core/` | Foundational types, storage abstractions, and agent logic | Peer deps only |
+| `@craft-agent/session-tools-core` | `packages/session-tools-core/` | Shared type definitions and utilities for session-scoped tools and Codex integration | None |
+| `@craft-agent/shared` | `packages/shared/` | Business logic: agent, auth, config, credentials, sessions, sources, workspaces, automations | `core`, `session-tools-core` |
+| `@craft-agent/ui` | `packages/ui/` | React components for session rendering, markdown, and chat display | `core` |
+| `@craft-agent/mermaid` | `packages/mermaid/` | Mermaid diagram rendering utilities | External libs only |
+| `@craft-agent/electron` | `apps/electron/` | Main Electron desktop application | `core`, `shared`, `ui` |
+| `@craft-agent/viewer` | `apps/viewer/` | Web viewer for shared session transcripts | `core`, `ui` |
+| `@craft-agent/webui` | `apps/webui/` | Browser-based thin client | `core`, `shared`, `ui` |
 
-**Sources:** [package.json:7-10](), [packages/core/package.json:1-21](), [packages/shared/package.json:1-80]()
+**Sources:** [packages/core/package.json:2-5](), [packages/shared/package.json:2-5](), [packages/ui/package.json:2-5](), [packages/shared/package.json:65-66](), [packages/ui/package.json:20-20]()
 
 ---
 
 ## Dependency Architecture
 
-**Workspace dependency graph** — solid arrows are `workspace:*` references; dashed arrows are `peerDependencies`:
+The following diagram maps the relationship between high-level architectural layers and the specific code packages that implement them.
+
+**Package Dependency Graph**
 
 ```mermaid
 graph TB
-    subgraph "apps/"
-        Electron["apps/electron\
-@craft-agent/electron"]
-        Viewer["apps/viewer\
-@craft-agent/viewer"]
-        Marketing["apps/marketing\
-@craft-agent/marketing"]
+    subgraph "Application Layer (apps/)"
+        Electron["@craft-agent/electron"]
+        Viewer["@craft-agent/viewer"]
+        WebUI["@craft-agent/webui"]
     end
 
-    subgraph "packages/"
-        Core["packages/core\
-@craft-agent/core"]
-        SessionToolsCore["packages/session-tools-core\
-@craft-agent/session-tools-core"]
-        Shared["packages/shared\
-@craft-agent/shared"]
-        UI["packages/ui\
-@craft-agent/ui"]
-        Mermaid["packages/mermaid\
-@craft-agent/mermaid"]
+    subgraph "Logic & UI Layer (packages/)"
+        Shared["@craft-agent/shared"]
+        UI["@craft-agent/ui"]
     end
 
-    subgraph "External"
+    subgraph "Foundation Layer (packages/)"
+        Core["@craft-agent/core"]
+        SessionTools["@craft-agent/session-tools-core"]
+        Mermaid["@craft-agent/mermaid"]
+    end
+
+    subgraph "External SDKs (Peer Dependencies)"
         ClaudeSDK["@anthropic-ai/claude-agent-sdk"]
         MCPSDK["@modelcontextprotocol/sdk"]
         Zod["zod"]
     end
 
-    Electron -->|"workspace:*"| Core
-    Electron -->|"workspace:*"| Shared
+    Electron -->|"workspace:*""| Shared
     Electron -->|"workspace:*"| UI
-
-    Viewer -->|"workspace:*"| Core
+    WebUI -->|"workspace:*"| Shared
+    WebUI -->|"workspace:*"| UI
     Viewer -->|"workspace:*"| UI
-
-    Marketing -->|"workspace:*"| UI
-
-    UI -->|"workspace:*"| Core
-    UI -->|"workspace:*"| Mermaid
-
+    
     Shared -->|"workspace:*"| Core
-    Shared -->|"workspace:*"| SessionToolsCore
-
-    Core -.->|"peerDependencies"| ClaudeSDK
-    Core -.->|"peerDependencies"| MCPSDK
-
-    Shared -.->|"peerDependencies"| ClaudeSDK
-    Shared -.->|"peerDependencies"| MCPSDK
-    Shared -.->|"peerDependencies"| Zod
+    Shared -->|"workspace:*"| SessionTools
+    UI -->|"workspace:*"| Core
+    
+    Core -.->|"peerDependency"| ClaudeSDK
+    Core -.->|"peerDependency"| MCPSDK
+    Shared -.->|"peerDependency"| ClaudeSDK
+    Shared -.->|"peerDependency"| MCPSDK
+    Shared -.->|"peerDependency"| Zod
+    UI -.->|"peerDependency"| Zod
 ```
 
-**Sources:** [packages/core/package.json:14-18](), [packages/shared/package.json:61-75]()
+**Sources:** [packages/core/package.json:14-17](), [packages/shared/package.json:64-66](), [packages/shared/package.json:77-81](), [packages/ui/package.json:19-20](), [packages/ui/package.json:30-53]()
 
 ---
 
-## Workspace Protocol
+## Workspace Protocol & Bun
 
-The monorepo uses Bun's workspace protocol to link packages. In `package.json` files, internal dependencies are declared with `workspace:*`:
-
-```json
-"dependencies": {
-  "@craft-agent/core": "workspace:*",
-  "@craft-agent/shared": "workspace:*"
-}
-```
+The monorepo uses Bun's workspace protocol to link packages. In `package.json` files, internal dependencies are declared with `workspace:*`.
 
 **How it works:**
+- `workspace:*` ensures the package manager resolves the dependency to the local folder within the monorepo rather than attempting to fetch it from a remote registry like npm. [packages/shared/package.json:65-66]()
+- Changes to source files in `packages/core` are immediately available to `packages/shared` without a manual rebuild step during development.
+- Bun creates symlinks in `node_modules/` pointing to the package source directories.
 
-- `workspace:*` resolves to the current version of the local package
-- Changes to source files are immediately visible to consumers
-- No need to rebuild packages during development
-- `bun install` creates symlinks in `node_modules/` pointing to package source directories
-
-**Example resolution:** When `apps/electron` imports from `@craft-agent/shared`, Bun resolves it to `packages/shared/src/index.ts` directly, enabling hot module replacement during development.
-
-**Sources:** [bun.lock:84-116](), [packages/shared/package.json:54]()
+**Example resolution:**
+When `packages/shared` imports from `@craft-agent/core`, it resolves via the `exports` map defined in `packages/core/package.json`. [packages/core/package.json:9-13]()
 
 ---
 
-## Package Exports
+## Package Exports & Contracts
 
-Each package defines explicit exports in its `package.json` to control which files are importable. This creates clear public APIs and prevents internal implementation details from being imported.
+Each package defines explicit exports to control the public API surface. This prevents deep-linking into internal utility files and ensures a clean contract between layers.
 
-### Core Package Exports
+### The `@craft-agent/core` Contract
+This package contains the base types and agent logic. It is designed to be lean, with minimal runtime dependencies.
 
-```typescript
-// packages/core/package.json exports:
-{
+```json
+"exports": {
   ".": "./src/index.ts",
   "./types": "./src/types/index.ts",
   "./utils": "./src/utils/index.ts"
 }
-
-// Import examples:
-import { Session } from '@craft-agent/core'
-import { AgentConfig } from '@craft-agent/core/types'
-import { validateFilePath } from '@craft-agent/core/utils'
 ```
+**Sources:** [packages/core/package.json:9-13]()
 
-### Shared Package Exports
+### The `@craft-agent/shared` Contract
+This package serves as the primary business logic engine. It exports domain-specific modules for use in the Electron main process and the web server. [packages/shared/package.json:5-6]()
 
-The `shared` package has extensive exports for different domains:
-
-```typescript
-// packages/shared/package.json exports (partial):
-{
+```json
+"exports": {
   ".": "./src/index.ts",
   "./agent": "./src/agent/index.ts",
   "./auth": "./src/auth/index.ts",
@@ -154,332 +132,91 @@ The `shared` package has extensive exports for different domains:
   "./mcp": "./src/mcp/index.ts",
   "./sessions": "./src/sessions/index.ts",
   "./sources": "./src/sources/index.ts",
-  "./workspaces": "./src/workspaces/index.ts"
+  "./workspaces": "./src/workspaces/index.ts",
+  "./automations": "./src/automations/index.ts"
 }
-
-// Import examples:
-import { CraftAgent } from '@craft-agent/shared/agent'
-import { loadWorkspace } from '@craft-agent/shared/workspaces'
-import { SourceManager } from '@craft-agent/shared/sources'
 ```
+**Sources:** [packages/shared/package.json:14-63]()
 
-**Sources:** [packages/core/package.json:9-13](), [packages/shared/package.json:13-52]()
+### The `@craft-agent/ui` Contract
+The UI package provides the shared React components. It includes exports for chat components, markdown rendering, and global styles. [packages/ui/package.json:5-6]()
+
+```json
+"exports": {
+  ".": "./src/index.ts",
+  "./chat": "./src/components/chat/index.ts",
+  "./chat/SessionViewer": "./src/components/chat/SessionViewer.tsx",
+  "./chat/TurnCard": "./src/components/chat/TurnCard.tsx",
+  "./markdown": "./src/components/markdown/index.ts",
+  "./styles": "./src/styles/index.css"
+}
+```
+**Sources:** [packages/ui/package.json:9-18]()
 
 ---
 
-## Peer Dependencies Pattern
+## Peer Dependency Guidelines
 
-The `core` and `shared` packages use peer dependencies for the Claude Agent SDK, Anthropic SDK, and MCP SDK instead of regular dependencies. This pattern ensures:
+The shared packages (`core`, `shared`, `ui`) use `peerDependencies` for large or singleton-sensitive libraries. This ensures that the final application (Electron or Web) provides a single instance of the library, preventing version conflicts and reducing bundle size.
 
-1. **Single Instance:** Only one copy of these SDKs exists across the entire application
-2. **Version Control:** The consuming application (e.g., `apps/electron`) controls the exact version
-3. **Type Safety:** TypeScript types are consistent across all packages
+### Core & Shared Peer Dependencies
+Both `core` and `shared` require the Anthropic and MCP SDKs. By listing them as peer dependencies, we ensure that if both packages are used in an app, they share the same SDK instance.
 
-### Configuration
+**`packages/core/package.json`**:
+- `@anthropic-ai/claude-agent-sdk`: `>=0.2.19` [packages/core/package.json:15-15]()
+- `@modelcontextprotocol/sdk`: `>=1.0.0` [packages/core/package.json:16-16]()
 
-**`packages/core/package.json`** [packages/core/package.json:14-18]():
+**`packages/shared/package.json`**:
+- `@anthropic-ai/claude-agent-sdk`: `^0.2.19` [packages/shared/package.json:78-78]()
+- `zod`: `>=3.0.0` [packages/shared/package.json:80-80]()
 
-```json
-{
-  "peerDependencies": {
-    "@anthropic-ai/claude-agent-sdk": ">=0.2.19",
-    "@modelcontextprotocol/sdk": ">=1.0.0"
-  }
-}
-```
+### UI Peer Dependencies
+The UI package has an extensive list of peer dependencies including React, Radix UI, and Tailwind CSS. This allows the consuming application to manage the React lifecycle and styling configuration. [packages/ui/package.json:30-53]()
 
-**`packages/shared/package.json`** [packages/shared/package.json:71-75]():
+- `react`: `>=18.0.0` [packages/ui/package.json:41-41]()
+- `lucide-react`: `>=0.400.0` [packages/ui/package.json:39-39]()
+- `tailwindcss`: `>=4.0.0` [packages/ui/package.json:51-51]()
 
-```json
-{
-  "peerDependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.19",
-    "@modelcontextprotocol/sdk": ">=1.0.0",
-    "zod": ">=3.0.0"
-  }
-}
-```
-
-**Root `package.json`** (actual installed versions) [package.json:93-143]():
-
-```json
-{
-  "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.37",
-    "@modelcontextprotocol/sdk": "^1.24.3",
-    "zod": "^4.0.0"
-  }
-}
-```
-
-**Why this matters:** If `core` and `shared` declared these SDKs as regular `dependencies`, Bun could install multiple versions in the tree. Using `peerDependencies` means the root `package.json` controls the single installed version and all packages share that same instance—critical for maintaining consistent types and avoiding duplicate SDK initialization.
-
-**Sources:** [packages/core/package.json:14-18](), [packages/shared/package.json:71-75](), [package.json:92-143]()
+**Sources:** [packages/core/package.json:14-17](), [packages/shared/package.json:77-81](), [packages/ui/package.json:30-53]()
 
 ---
 
-## Cross-Package Development Workflow
+## Cross-Package Data Flow
+
+The following diagram illustrates how a change in a core type propagates through the package layers to the final UI.
+
+**Data Flow: Type Definition to UI Rendering**
 
 ```mermaid
-graph LR
-    subgraph "Developer Actions"
-        EditCore["Edit<br/>packages/core/src/types/session.ts"]
-        EditShared["Edit<br/>packages/shared/src/sessions/manager.ts"]
-        EditElectron["Edit<br/>apps/electron/src/main/handlers.ts"]
-    end
+sequenceDiagram
+    participant C as "packages/core/src/types"
+    participant S as "packages/shared/src/sessions"
+    participant U as "packages/ui/src/components"
+    participant A as "apps/electron/src/renderer"
 
-    subgraph "Type Checking"
-        TSCCore["tsc --noEmit<br/>packages/core"]
-        TSCShared["tsc --noEmit<br/>packages/shared"]
-    end
-
-    subgraph "Build Pipeline"
-        ESBuildMain["esbuild<br/>main process"]
-        ViteRenderer["vite build<br/>renderer process"]
-    end
-
-    subgraph "Runtime"
-        ElectronApp["Electron App<br/>Running"]
-    end
-
-    EditCore --> TSCCore
-    EditCore --> EditShared
-    EditShared --> TSCShared
-    EditShared --> EditElectron
-
-    TSCCore -.->|check types| EditShared
-    TSCShared -.->|check types| EditElectron
-
-    EditElectron --> ESBuildMain
-    EditElectron --> ViteRenderer
-
-    ESBuildMain --> ElectronApp
-    ViteRenderer --> ElectronApp
+    Note over C: Define "Session" interface
+    C->>S: Import Session type for SessionManager
+    Note over S: "SessionManager" handles persistence
+    S->>A: IPC sends Session object to Renderer
+    A->>U: Pass Session object to "SessionViewer"
+    Note over U: "TurnCard" renders message content
 ```
 
-### Making Changes Across Packages
-
-When modifying code that spans multiple packages:
-
-1. **Start from the foundation:** Make changes in `core` first if touching types
-2. **Propagate upward:** Update `shared` to use new core types/utilities
-3. **Update consumers:** Modify application code to use updated shared logic
-4. **Type check incrementally:** Run `bun run typecheck` to catch issues early
-
-### Example: Adding a New Session Field
-
-```typescript
-// Step 1: Add type to core
-// packages/core/src/types/session.ts
-export interface Session {
-  id: string
-  workspaceId: string
-  // ... existing fields
-  priority?: 'low' | 'medium' | 'high' // NEW
-}
-
-// Step 2: Update shared logic
-// packages/shared/src/sessions/manager.ts
-export class SessionManager {
-  async updatePriority(sessionId: string, priority: Session['priority']) {
-    // Implementation using new field
-  }
-}
-
-// Step 3: Update Electron app
-// apps/electron/src/main/ipc-handlers.ts
-ipcMain.handle('session:set-priority', async (event, sessionId, priority) => {
-  await sessionManager.updatePriority(sessionId, priority)
-})
-```
-
-### Development Scripts
-
-```bash
-# Type check a specific package
-cd packages/core && bun run tsc --noEmit
-cd packages/shared && bun run tsc --noEmit
-
-# Type check all packages
-bun run typecheck:all
-
-# Lint specific packages
-bun run lint:electron
-bun run lint:shared
-
-# Run dev server (auto-reloads on changes)
-bun run electron:dev
-```
-
-**Sources:** [package.json:14-18](), [package.json:28-29]()
+**Sources:** [packages/core/package.json:11-11](), [packages/shared/package.json:30-30](), [packages/ui/package.json:12-13]()
 
 ---
 
-## Adding Dependencies
+## Adding New Packages
 
-### To a Shared Package
+When adding a new package to the monorepo:
 
-```bash
-# Add regular dependency
-cd packages/shared
-bun add some-library
+1. **Create Directory:** Create a new folder in `packages/`.
+2. **Initialize `package.json`:**
+   - Set the `name` to `@craft-agent/<name>`.
+   - Set `"type": "module"`. [packages/core/package.json:6-6]()
+   - Define `exports` for public entry points. [packages/core/package.json:9-13]()
+3. **Reference Workspaces:** If the new package needs `core`, add `"@craft-agent/core": "workspace:*"` to its dependencies. [packages/shared/package.json:65-65]()
+4. **Register in Root:** Ensure the directory is covered by the `workspaces` glob in the root `package.json`.
+5. **Peer Dependencies:** If using `zod` or AI SDKs, add them as `peerDependencies` rather than `dependencies` to maintain the singleton contract. [packages/shared/package.json:77-81]()
 
-# Add dev dependency
-bun add -d @types/some-library
-
-# Add peer dependency (edit package.json manually)
-# Then update root package.json to install it
-```
-
-### To an Application
-
-```bash
-# Add dependency to electron app
-cd apps/electron
-bun add some-library
-
-# This creates entry in apps/electron/package.json
-# and updates bun.lock
-```
-
-### To Root (Shared by All)
-
-```bash
-# From repository root
-bun add react react-dom
-
-# This makes the package available to all workspaces
-# Useful for common dependencies like React, TypeScript types
-```
-
-**Best practices:**
-
-- Add type definitions to `devDependencies`
-- Use peer dependencies for SDKs that must be singletons
-- Add common UI dependencies to root for consistency
-- Keep package-specific utilities in their respective packages
-
-**Sources:** [packages/shared/package.json:53-61](), [bun.lock:80-250]()
-
----
-
-## Import Resolution in Development
-
-```mermaid
-graph TB
-    subgraph "Source File"
-        ImportStmt["import { CraftAgent }<br/>from '@craft-agent/shared/agent'"]
-    end
-
-    subgraph "Bun Resolution"
-        WorkspaceCheck{{"workspace:* in<br/>package.json?"}}
-        ExportsLookup["Look up exports in<br/>packages/shared/package.json"]
-        PathResolve["Resolve './agent' to<br/>packages/shared/src/agent/index.ts"]
-    end
-
-    subgraph "Module Loading"
-        SourceFile["packages/shared/src/agent/index.ts"]
-        TypeScript["TypeScript transpilation"]
-        ESModule["ESM module loaded"]
-    end
-
-    ImportStmt --> WorkspaceCheck
-    WorkspaceCheck -->|Yes| ExportsLookup
-    ExportsLookup --> PathResolve
-    PathResolve --> SourceFile
-    SourceFile --> TypeScript
-    TypeScript --> ESModule
-    ESModule --> ImportStmt
-```
-
-**Key points:**
-
-- No build step required during development
-- Changes to `.ts` files are immediately reflected
-- Hot Module Replacement works across package boundaries
-- Bun's fast transpiler handles TypeScript on-the-fly
-
-**Sources:** [packages/shared/package.json:13-52](), [bun.lock:190-212]()
-
----
-
-## Circular Dependency Prevention
-
-The package structure prevents circular dependencies through layering:
-
-```
-Layer 3: apps/*  (electron, viewer, marketing)
-           ↓
-Layer 2: packages/shared, packages/ui  (business logic, React components)
-           ↓
-Layer 1: packages/core, packages/session-tools-core, packages/mermaid  (types, contracts, diagrams)
-           ↓
-Layer 0: External dependencies (SDK, libraries)
-```
-
-**Rules:**
-
-- Lower layers cannot import from higher layers
-- `core` has zero internal package dependencies
-- `session-tools-core` has zero internal package dependencies
-- `shared` depends only on `core` and `session-tools-core`
-- `ui` depends on `core` and `mermaid` but **not** `shared`
-- Apps can depend on any package
-
-This ensures the dependency graph remains acyclic and changes propagate predictably upward through the layers.
-
-**Sources:** [packages/core/package.json:1-21](), [packages/shared/package.json:60-70]()
-
----
-
-## Type Checking Workflow
-
-The monorepo uses TypeScript's project references implicitly through the workspace structure:
-
-```bash
-# Check core types (no dependencies to check)
-cd packages/core && tsc --noEmit
-
-# Check shared (sees core types via workspace:*)
-cd packages/shared && tsc --noEmit
-
-# Check all packages sequentially
-bun run typecheck:all
-```
-
-**How it works:**
-
-- Each package has its own `tsconfig.json`
-- TypeScript resolves `@craft-agent/core` imports to source `.ts` files
-- Type errors in `core` will cascade to `shared` and apps
-- Fix errors bottom-up: core → shared → apps
-
-**Common type errors:**
-
-- Missing exports: Add to `package.json` exports field
-- Version mismatches: Ensure peer dependency ranges align
-- Circular type references: Refactor to break the cycle (extract to core)
-
-**Sources:** [package.json:14-15]()
-
----
-
-## Package Publishing (Internal)
-
-Packages are not published to npm; they exist only within the monorepo. The `workspace:*` protocol ensures all packages always use the local development versions. The version in each `package.json` is synchronized:
-
-```json
-// All packages have matching version
-{
-  "version": "0.3.1"
-}
-```
-
-When releasing a new version:
-
-1. Update version in root `package.json`
-2. Update version in all package `package.json` files
-3. Update `bun.lock` by running `bun install`
-4. Create git tag and build distributable
-
-**Sources:** [package.json:3](), [packages/core/package.json:3](), [packages/shared/package.json:3]()
+**Sources:** [packages/core/package.json:1-13](), [packages/shared/package.json:64-81]()

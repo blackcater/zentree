@@ -5,18 +5,38 @@
 
 The following files were used as context for generating this wiki page:
 
+- [.gemini/config.json](.gemini/config.json)
+- [.gemini/styleguide.md](.gemini/styleguide.md)
+- [.github/workflows/_build-reusable.yml](.github/workflows/_build-reusable.yml)
 - [.github/workflows/build-and-release.yml](.github/workflows/build-and-release.yml)
+- [.github/workflows/build-manual.yml](.github/workflows/build-manual.yml)
+- [.github/workflows/bump-homebrew.yml](.github/workflows/bump-homebrew.yml)
+- [.github/workflows/project-automation.yml](.github/workflows/project-automation.yml)
+- [bun.lock](bun.lock)
 - [electron-builder.yml](electron-builder.yml)
+- [homebrew/aionui.rb.example](homebrew/aionui.rb.example)
 - [package.json](package.json)
-- [resources/windows-installer-arm64.nsh](resources/windows-installer-arm64.nsh)
-- [resources/windows-installer-x64.nsh](resources/windows-installer-x64.nsh)
+- [scripts/README.md](scripts/README.md)
+- [scripts/afterPack.js](scripts/afterPack.js)
+- [scripts/afterSign.js](scripts/afterSign.js)
 - [scripts/build-with-builder.js](scripts/build-with-builder.js)
+- [scripts/create-mock-release-artifacts.sh](scripts/create-mock-release-artifacts.sh)
+- [scripts/prepare-release-assets.sh](scripts/prepare-release-assets.sh)
+- [scripts/rebuildNativeModules.js](scripts/rebuildNativeModules.js)
+- [scripts/verify-release-assets.sh](scripts/verify-release-assets.sh)
+- [src/index.ts](src/index.ts)
+- [src/process/bridge/updateBridge.ts](src/process/bridge/updateBridge.ts)
+- [src/process/services/autoUpdaterService.ts](src/process/services/autoUpdaterService.ts)
+- [tests/integration/autoUpdate.integration.test.ts](tests/integration/autoUpdate.integration.test.ts)
+- [tests/unit/autoUpdaterService.test.ts](tests/unit/autoUpdaterService.test.ts)
 
 </details>
 
+
+
 This page documents how AionUi produces and publishes versioned releases: the GitHub Actions workflow jobs, auto-tagging logic on the `dev` branch, the auto-retry mechanism for transient CI failures, and the artifact naming conventions used across all platforms.
 
-For the underlying two-phase build process (electron-vite + electron-builder), see [11.2](#11.2). For native module compilation that happens during builds, see [11.3](#11.3). For code signing and notarization, see [11.4](#11.4). For the in-app update check and download system, see [14](#14).
+For the underlying two-phase build process (electron-vite + electron-builder), see [11.2](). For native module compilation that happens during builds, see [11.3](). For code signing and notarization, see [11.4](). For the in-app update check and download system, see [16]().
 
 ---
 
@@ -24,12 +44,12 @@ For the underlying two-phase build process (electron-vite + electron-builder), s
 
 Release automation is driven by `.github/workflows/build-and-release.yml`. It consists of four jobs with explicit dependency chains:
 
-| Job                   | File                               | Condition                                                                  |
-| --------------------- | ---------------------------------- | -------------------------------------------------------------------------- |
-| `build-pipeline`      | delegates to `_build-reusable.yml` | `dev` branch push OR stable tag push (excludes `-dev-` tags)               |
-| `auto-retry-workflow` | inline steps                       | `build-pipeline` failed AND `github.run_attempt == 1`                      |
-| `create-tag`          | inline steps                       | `build-pipeline` succeeded AND ref is `dev` branch                         |
-| `release`             | `softprops/action-gh-release@v2`   | `build-pipeline` succeeded AND (`create-tag` succeeded OR stable tag push) |
+| Job | File | Condition |
+|---|---|---|
+| `build-pipeline` | delegates to `_build-reusable.yml` | `dev` branch push OR stable tag push (excludes `-dev-` tags) |
+| `auto-retry-workflow` | inline steps | `build-pipeline` failed AND `github.run_attempt == 1` |
+| `create-tag` | inline steps | `build-pipeline` succeeded AND ref is `dev` branch |
+| `release` | `softprops/action-gh-release@v2` | `build-pipeline` succeeded AND (`create-tag` succeeded OR stable tag push) |
 
 **Release Pipeline Job Dependencies**
 
@@ -37,7 +57,7 @@ Release automation is driven by `.github/workflows/build-and-release.yml`. It co
 flowchart TD
     push["Push to dev branch / Push tag"] --> refCheck{"Ref filter in build-pipeline"}
     refCheck -->|"dev branch OR stable tag\
-(no -dev- tags)"| buildPipeline["build-pipeline\
+(no -dev- tag)"| buildPipeline["build-pipeline\
 (_build-reusable.yml)"]
     buildPipeline -->|"failure AND run_attempt == 1"| autoRetry["auto-retry-workflow\
 (5 min cooldown, then rerun)"]
@@ -48,7 +68,7 @@ flowchart TD
     createTag --> release
 ```
 
-Sources: [.github/workflows/build-and-release.yml:18-55]()
+Sources: [.github/workflows/build-and-release.yml:18-44](), [.github/workflows/build-and-release.yml:92-96]()
 
 ---
 
@@ -56,51 +76,34 @@ Sources: [.github/workflows/build-and-release.yml:18-55]()
 
 The `build-pipeline` job passes a JSON matrix to `_build-reusable.yml`. Each matrix entry specifies the runner OS, the build command, the artifact directory name, and the target architecture.
 
-| `platform`      | `os`            | `arch`      | `command`                                                | `artifact-name`       |
-| --------------- | --------------- | ----------- | -------------------------------------------------------- | --------------------- |
-| `macos-arm64`   | `macos-14`      | `arm64`     | `node scripts/build-with-builder.js arm64 --mac --arm64` | `macos-build-arm64`   |
-| `macos-x64`     | `macos-14`      | `x64`       | `node scripts/build-with-builder.js x64 --mac --x64`     | `macos-build-x64`     |
-| `windows-x64`   | `windows-2022`  | `x64`       | `node scripts/build-with-builder.js x64 --win --x64`     | `windows-build-x64`   |
-| `windows-arm64` | `windows-2022`  | `arm64`     | `node scripts/build-with-builder.js arm64 --win --arm64` | `windows-build-arm64` |
-| `linux`         | `ubuntu-latest` | `x64,arm64` | `bun run dist:linux`                                     | `linux-build`         |
+| `platform` | `os` | `arch` | `command` | `artifact-name` |
+|---|---|---|---|---|
+| `macos-arm64` | `macos-14` | `arm64` | `node scripts/build-with-builder.js arm64 --mac --arm64` | `macos-build-arm64` |
+| `macos-x64` | `macos-14` | `x64` | `node scripts/build-with-builder.js x64 --mac --x64` | `macos-build-x64` |
+| `windows-x64` | `windows-2022` | `x64` | `node scripts/build-with-builder.js x64 --win --x64` | `windows-build-x64` |
+| `windows-arm64` | `windows-2022` | `arm64` | `node scripts/build-with-builder.js arm64 --win --arm64` | `windows-build-arm64` |
+| `linux` | `ubuntu-latest` | `x64-arm64` | `bun run dist:linux` | `linux-build` |
 
-The reusable workflow runs a `code-quality` job first (ESLint, Prettier, TypeScript type check, Vitest) and gates the build matrix on its result unless `skip_code_quality` is true.
-
-Sources: [.github/workflows/build-and-release.yml:25-33](), [.github/workflows/\_build-reusable.yml:26-70]()
+Sources: [.github/workflows/build-and-release.yml:25-32]()
 
 ---
 
-## Auto-Tagging on `dev` Branch
+## Auto-Tagging Logic
 
 When a push to the `dev` branch triggers a successful build, the `create-tag` job computes and pushes a tag automatically.
 
 **Tag format for `dev` branch:**
+`v{version}-dev-{commit_short}` (e.g., `v1.9.11-dev-abc1234`)
 
-```
-v{version}-dev-{commit_short}
-```
+**Tag format for stable branches:**
+`v{version}` (e.g., `v1.9.11`)
 
-Example: `v1.8.18-dev-abc1234`
+The version string is read directly from `package.json` [package.json:3]().
 
-**Tag format for stable (non-`dev`) branches:**
-
-```
-v{version}
-```
-
-Example: `v1.8.18`
-
-The version string is read directly from `package.json`:
-
-```
-VERSION=$(node -p "require('./package.json').version")
-COMMIT_SHORT=$(git rev-parse --short HEAD)
-```
-
-**Collision handling**: If the computed tag already exists on the remote:
-
-- **Dev branch**: The job exits with an error (this should not happen since commit hashes are unique).
-- **Other branches**: The patch segment of `package.json#version` is auto-incremented, the change is committed and pushed, and a new tag is created with the incremented version.
+### Collision Handling and Version Bumping
+If the computed tag already exists on the remote:
+- **Dev branch**: The job exits with an error [/.github/workflows/build-and-release.yml:178-181]().
+- **Other branches**: The patch segment of `package.json#version` is auto-incremented via `bun pm version` [/.github/workflows/build-and-release.yml:154](). The workflow then configures a git bot user, commits the change, and pushes back to the branch [/.github/workflows/build-and-release.yml:157-164](). Finally, a new tag is created using the incremented version and the latest commit ID [/.github/workflows/build-and-release.yml:167-171]().
 
 **Auto-Tagging Decision Flow**
 
@@ -126,210 +129,111 @@ New TAG_NAME = v\${NEW_VERSION}-\${COMMIT_SHORT}"]
     pushTag --> done["Tag pushed to remote"]
 ```
 
-Sources: [.github/workflows/build-and-release.yml:93-197]()
+Sources: [.github/workflows/build-and-release.yml:117-197]()
 
 ---
 
-## Auto-Retry on Build Failure
+## Auto-Retry Mechanism
 
-The `auto-retry-workflow` job guards against transient CI failures (network issues, flaky runners, `hdiutil` errors on macOS, etc.).
+The `auto-retry-workflow` job guards against transient CI failures, such as network timeouts or the specific macOS `hdiutil` "Device not configured" error [scripts/build-with-builder.js:24-25]().
 
 **Conditions for triggering:**
+- `needs.build-pipeline` result is `failure()` [/.github/workflows/build-and-release.yml:42]().
+- `github.run_attempt == 1` — ensures the retry only happens once to avoid infinite loops [/.github/workflows/build-and-release.yml:43]().
 
-- `needs.build-pipeline` result is `failure`
-- `github.run_attempt == 1` — prevents infinite retry loops
-- Trigger event is `push` or `schedule`
+**Retry Procedure:**
+1. Log current attempt number [/.github/workflows/build-and-release.yml:53]().
+2. Execute a 5-minute (300s) cooldown period [/.github/workflows/build-and-release.yml:61]().
+3. Call the GitHub API `/rerun` endpoint to trigger a full workflow restart [/.github/workflows/build-and-release.yml:70-74]().
 
-**Retry steps:**
-
-1. Log current attempt number and strategy.
-2. Sleep 300 seconds (5-minute cooldown).
-3. Call `POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun` via the GitHub API (full rerun, not just failed jobs).
-
-The full-rerun API call (`/rerun` rather than `/rerun-failed-jobs`) is intentional: it re-executes all jobs so that the second attempt starts from a clean state.
-
-Sources: [.github/workflows/build-and-release.yml:37-92](), [12.2](#12.2)
+Sources: [.github/workflows/build-and-release.yml:36-90]()
 
 ---
 
-## GitHub Release Creation
+## Release Creation and Metadata
 
-The `release` job runs after `build-pipeline` and (`create-tag` or a stable tag push). It is blocked from running for `-dev-` tags pushed directly (to avoid double-publishing).
+The `release` job runs after `build-pipeline` succeeds. It generates the final GitHub Release object and attaches the build artifacts.
 
-**Environment gating:**
+**Release Properties:**
 
-- Dev builds use the `dev-release` GitHub Environment.
-- Stable releases use the `release` GitHub Environment.
+| Property | Value |
+|---|---|
+| `tag_name` | Computed tag (e.g., `v1.9.11-dev-abc1234`) |
+| `name` | `"Development Build {tag}"` for dev; `"{tag}"` for stable |
+| `draft` | `true` (Always created as draft for manual review) |
+| `prerelease` | `true` when `is_dev == true` or tag contains `beta/alpha/rc` |
 
-This allows environment-level approval gates or deployment protection rules to be configured in the repository settings for stable releases.
-
-**Steps in the `release` job:**
-
-1. Determine `tag_name` and `is_dev` from either `create-tag` outputs or the triggering tag ref.
-2. Download all artifacts from the `build-pipeline` matrix using `actions/download-artifact@v7` into `build-artifacts/`.
-3. Call `softprops/action-gh-release@v2` to create the GitHub Release.
-
-**Release properties set:**
-
-| Property                 | Value                                                                 |
-| ------------------------ | --------------------------------------------------------------------- |
-| `tag_name`               | Computed tag (e.g., `v1.8.18-dev-abc1234`)                            |
-| `name`                   | `"Development Build {tag}"` for dev; `"{tag}"` for stable             |
-| `generate_release_notes` | `true` (GitHub auto-generates from PRs/commits)                       |
-| `draft`                  | `true` (always created as draft)                                      |
-| `prerelease`             | `true` when `is_dev == true` OR tag contains `beta`, `alpha`, or `rc` |
-
-> Releases are always created as drafts. A maintainer must manually publish them.
-
-**Artifact glob patterns uploaded:**
-
-```
-build-artifacts/**/*.exe
-build-artifacts/**/*.msi
-build-artifacts/**/*.dmg
-build-artifacts/**/*.deb
-build-artifacts/**/*.AppImage
-build-artifacts/**/*.zip
-build-artifacts/**/*.yml
-build-artifacts/**/*.blockmap
-```
-
-The `.yml` and `.blockmap` files are metadata consumed by `electron-updater` for delta update calculations.
-
-Sources: [.github/workflows/build-and-release.yml:199-256]()
-
----
-
-## Artifact Naming Conventions
-
-The artifact file names are set in `electron-builder.yml` using the `artifactName` template variable `${productName}-${version}-${os}-${arch}.${ext}`.
+### Auto-Update Metadata
+Release management also involves generating the `.yml` metadata files used by `electron-updater`.
+- **Channel Resolution**: `getUpdateChannel()` determines the channel based on platform and arch (e.g., `latest-win-arm64` or `latest-arm64` for macOS) [src/process/services/autoUpdaterService.ts:17-41]().
+- **Prerelease Support**: The `AutoUpdaterService` can be configured via `setAllowPrerelease(true)` to track dev updates, although actual filtering is performed manually via GitHub API to avoid conflicts with custom channel names [src/process/services/autoUpdaterService.ts:170-179]().
 
 **Artifact Naming and Format**
 
+Artifact names are standardized in `electron-builder.yml` using the template `${productName}-${version}-${os}-${arch}.${ext}` [electron-builder.yml:124]().
+
 ```mermaid
 flowchart LR
-    subgraph "macOS (macos-14)"
+    subgraph "macOS"
         macDmg["AionUi-{ver}-mac-arm64.dmg\
 AionUi-{ver}-mac-x64.dmg"]
         macZip["AionUi-{ver}-mac-arm64.zip\
 AionUi-{ver}-mac-x64.zip"]
     end
-    subgraph "Windows (windows-2022)"
+    subgraph "Windows"
         winExe["AionUi-{ver}-win-x64.exe\
 (NSIS installer)"]
         winZip["AionUi-{ver}-win-x64.zip"]
         winArm["AionUi-{ver}-win-arm64.exe"]
     end
-    subgraph "Linux (ubuntu-latest)"
+    subgraph "Linux"
         linDeb["AionUi-{ver}-linux-x64.deb\
 AionUi-{ver}-linux-arm64.deb"]
-        linAppImage["AionUi-{ver}-linux-x64.AppImage\
-AionUi-{ver}-linux-arm64.AppImage"]
-    end
-    subgraph "Updater metadata"
-        ymlFile["latest.yml / latest-mac.yml\
-*.blockmap"]
     end
 ```
 
-**Per-platform format details:**
-
-| Platform | Formats               | Notes                                                          |
-| -------- | --------------------- | -------------------------------------------------------------- |
-| macOS    | `.dmg`, `.zip`        | `UDZO` format DMG; signed + notarized when credentials present |
-| Windows  | `.exe` (NSIS), `.zip` | NSIS: one-click off, supports custom install dir               |
-| Linux    | `.deb`, `.AppImage`   | Both x64 and arm64 produced on single runner                   |
-
-The `publish` section of `electron-builder.yml` is set to `provider: github` with `owner: iOfficeAI` and `repo: AionUi`, but `build-with-builder.js` always passes `--publish=never` to `electron-builder` to prevent implicit publishing. All publishing is done explicitly by the `release` job.
-
-Sources: [electron-builder.yml:99-170](), [electron-builder.yml:206-211](), [scripts/build-with-builder.js:344-344]()
-
----
-
-## Manual Build Workflow
-
-`.github/workflows/build-manual.yml` provides a `workflow_dispatch` trigger for ad-hoc builds from any branch. It accepts:
-
-| Input               | Description                                                                       | Default       |
-| ------------------- | --------------------------------------------------------------------------------- | ------------- |
-| `branch`            | Branch to build from                                                              | `main`        |
-| `platform`          | One of `macos-arm64`, `macos-x64`, `windows-x64`, `windows-arm64`, `linux`, `all` | `macos-arm64` |
-| `skip_code_quality` | Skip ESLint/Prettier/TSC/Vitest                                                   | `false`       |
-
-A `prepare-matrix` job converts the platform choice to a JSON matrix, then delegates to the same `_build-reusable.yml` reusable workflow. When `append_commit_hash: true` is passed, artifact names are suffixed with the short commit hash.
-
-Manual builds do not trigger the `create-tag` or `release` jobs; they only produce workflow artifacts retained for 7 days.
-
-Sources: [.github/workflows/build-manual.yml:1-83]()
-
----
-
-## Key Secrets Required
-
-The following repository secrets must be configured for the full release pipeline to function:
-
-| Secret                     | Purpose                                                        |
-| -------------------------- | -------------------------------------------------------------- |
-| `GH_TOKEN`                 | Push tags, create GitHub Releases (requires `contents: write`) |
-| `BUILD_CERTIFICATE_BASE64` | macOS `.p12` signing certificate (base64-encoded)              |
-| `P12_PASSWORD`             | Password for the `.p12` certificate                            |
-| `KEYCHAIN_PASSWORD`        | Temporary keychain password for macOS CI runner                |
-| `APPLE_ID`                 | Apple ID for notarization                                      |
-| `APPLE_ID_PASSWORD`        | App-specific password for notarization                         |
-| `TEAM_ID`                  | Apple Developer Team ID                                        |
-| `IDENTITY`                 | macOS signing identity string (`CSC_NAME`)                     |
-| `APP_ID`                   | Application bundle ID                                          |
-
-Sources: [.github/workflows/\_build-reusable.yml:175-205](), [.github/workflows/\_build-reusable.yml:309-339]()
+Sources: [electron-builder.yml:118-175](), [.github/workflows/build-and-release.yml:218-256](), [src/process/services/autoUpdaterService.ts:13-55]()
 
 ---
 
 ## Workflow-to-Code Entity Map
 
-**Release workflow components and their code locations**
+This diagram maps the release infrastructure components to their implementation files and key functions.
 
 ```mermaid
 flowchart TD
-    subgraph "GitHub Actions Workflows"
+    subgraph "CI/CD Workflows"
         buildRelease[".github/workflows/build-and-release.yml\
 jobs: build-pipeline, auto-retry-workflow,\
 create-tag, release"]
-        buildReusable[".github/workflows/_build-reusable.yml\
-jobs: code-quality, build, build-summary"]
-        buildManual[".github/workflows/build-manual.yml\
-jobs: prepare-matrix, build-pipeline"]
+        reusablePipeline[".github/workflows/_build-reusable.yml\
+Code Quality & Matrix Build"]
     end
-    subgraph "Build Scripts"
+    subgraph "Build Orchestration"
         buildScript["scripts/build-with-builder.js\
-buildWithDmgRetry()\
-createAutoUpdateStatusBroadcast()"]
-        postInstall["scripts/postinstall.js\
-runPostInstall()"]
+computeSourceHash()\
+createDmgWithPrepackaged()"]
+        afterPack["scripts/afterPack.js\
+rebuildNativeModules hook"]
     end
-    subgraph "Packaging Config"
+    subgraph "Update Logic"
+        updateService["src/process/services/autoUpdaterService.ts\
+getUpdateChannel()\
+setAllowPrerelease()"]
+    end
+    subgraph "Configuration"
         builderYml["electron-builder.yml\
-publish.provider = github\
-artifactName template\
-asarUnpack list"]
+artifactName template"]
         packageJson["package.json\
-version field\
-build-mac / build-win / build-deb scripts"]
+version & build scripts"]
     end
-    subgraph "Auto-Updater (Runtime)"
-        autoUpdaterService["src/process/services/autoUpdaterService.ts\
-AutoUpdaterService class\
-checkForUpdatesAndNotify()"]
-        updateBridge["src/process/bridge/updateBridge.ts\
-initUpdateBridge()\
-fetchGitHubReleases()\
-createAutoUpdateStatusBroadcast()"]
-    end
-    buildRelease -->|"uses"| buildReusable
-    buildManual -->|"uses"| buildReusable
-    buildReusable -->|"matrix.command calls"| buildScript
-    buildScript -->|"reads"| builderYml
-    builderYml -->|"publish config consumed by"| autoUpdaterService
-    updateBridge -->|"calls"| autoUpdaterService
+
+    buildRelease -->|"calls"| reusablePipeline
+    reusablePipeline -->|"executes"| buildScript
+    buildScript -->|"configures"| builderYml
+    builderYml -->|"triggers"| afterPack
+    updateService -->|"consumes"| buildRelease
+    packageJson -->|"defines"| buildScript
 ```
 
-Sources: [.github/workflows/build-and-release.yml:1-256](), [.github/workflows/\_build-reusable.yml:1-549](), [scripts/build-with-builder.js:1-377](), [electron-builder.yml:206-211](), [src/process/services/autoUpdaterService.ts:34-275](), [src/process/bridge/updateBridge.ts:378-508]()
+Sources: [.github/workflows/build-and-release.yml:1-256](), [.github/workflows/_build-reusable.yml:1-110](), [scripts/build-with-builder.js:1-100](), [src/process/services/autoUpdaterService.ts:1-90](), [electron-builder.yml:1-124]()

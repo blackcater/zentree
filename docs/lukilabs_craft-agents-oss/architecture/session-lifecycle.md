@@ -5,19 +5,21 @@
 
 The following files were used as context for generating this wiki page:
 
-- [apps/electron/src/main/ipc.ts](apps/electron/src/main/ipc.ts)
-- [apps/electron/src/main/sessions.ts](apps/electron/src/main/sessions.ts)
-- [apps/electron/src/shared/types.ts](apps/electron/src/shared/types.ts)
-- [packages/shared/src/sessions/jsonl.ts](packages/shared/src/sessions/jsonl.ts)
-- [packages/shared/src/sessions/storage.ts](packages/shared/src/sessions/storage.ts)
+- [apps/electron/src/renderer/event-processor/handlers/session.ts](apps/electron/src/renderer/event-processor/handlers/session.ts)
+- [apps/electron/src/renderer/lib/provider-icons.ts](apps/electron/src/renderer/lib/provider-icons.ts)
+- [apps/electron/src/renderer/pages/ChatPage.tsx](apps/electron/src/renderer/pages/ChatPage.tsx)
+- [packages/server-core/src/sessions/SessionManager.ts](packages/server-core/src/sessions/SessionManager.ts)
+- [packages/shared/src/sessions/persistence-queue.ts](packages/shared/src/sessions/persistence-queue.ts)
 
 </details>
 
+
+
 ## Purpose and Scope
 
-This page covers the complete lifecycle of a session: creation, initialization, message flow, agent event processing, JSONL persistence, lazy loading, branching, sharing, and deletion. The central orchestrator is the `SessionManager` class in `apps/electron/src/main/sessions.ts`.
+This page covers the complete lifecycle of a session: creation, initialization, message flow, agent event processing, JSONL persistence, lazy loading, branching, sharing, and deletion. The central orchestrator is the `SessionManager` class.
 
-For the IPC channels used to trigger these operations, see [2.6](#2.6). For the on-disk directory layout under `~/.craft-agent/`, see [2.8](#2.8). For the agent backends that process messages, see [2.3](#2.3). For the web viewer used in sharing, see [2.10](#2.10).
+For the IPC channels used to trigger these operations, see [2.6](). For the on-disk directory layout under `~/.craft-agent/`, see [2.8](). For the agent backends that process messages, see [2.3](). For the web viewer used in sharing, see [2.10]().
 
 ---
 
@@ -25,74 +27,63 @@ For the IPC channels used to trigger these operations, see [2.6](#2.6). For the 
 
 Three session representations exist at different layers of the stack:
 
-| Representation   | Defined In                                | Purpose                                                        |
-| ---------------- | ----------------------------------------- | -------------------------------------------------------------- |
-| `ManagedSession` | `apps/electron/src/main/sessions.ts:553`  | Runtime state: agent instance, message queue, processing flags |
-| `StoredSession`  | `packages/shared/src/sessions/storage.ts` | Persisted format, written to JSONL                             |
-| `Session`        | `apps/electron/src/shared/types.ts:349`   | Renderer-visible subset, transmitted over IPC                  |
-| `SessionHeader`  | `packages/shared/src/sessions/jsonl.ts`   | First JSONL line: pre-computed metadata for fast list loading  |
+| Representation | Defined In | Purpose |
+|---|---|---|
+| `ManagedSession` | `packages/server-core/src/sessions/SessionManager.ts` | Runtime state: agent instance, message queue, processing flags |
+| `StoredSession` | `packages/shared/src/sessions/storage.ts` | Persisted format, written to JSONL |
+| `Session` | `packages/shared/src/protocol/index.ts` | Renderer-visible subset, transmitted over IPC |
+| `SessionHeader` | `packages/shared/src/sessions/jsonl.ts` | First JSONL line: pre-computed metadata for fast list loading |
 
-**`ManagedSession`** ([`apps/electron/src/main/sessions.ts:553-697`]()) is the authoritative in-memory object. Persistent fields (`name`, `labels`, `permissionMode`, `model`, etc.) overlap with disk storage; runtime-only fields are never written to disk:
+**`ManagedSession`** is the authoritative in-memory object managed by `SessionManager` [packages/server-core/src/sessions/SessionManager.ts:144-190](). Persistent fields (`name`, `labels`, `permissionMode`, `model`, etc.) overlap with disk storage; runtime-only fields are never written to disk:
 
-| Field                  | Type                    | Notes                                                      |
-| ---------------------- | ----------------------- | ---------------------------------------------------------- |
-| `agent`                | `AgentInstance \| null` | Lazy-created on first `sendMessage()`                      |
-| `isProcessing`         | `boolean`               | `true` while agent turn is running                         |
-| `stopRequested`        | `boolean?`              | Set by `cancelProcessing()` to drain event loop gracefully |
-| `processingGeneration` | `number`                | Monotonic counter; detects stale requests                  |
-| `messageQueue`         | `Array<{...}>`          | Messages queued while `isProcessing` is `true`             |
-| `messagesLoaded`       | `boolean`               | `false` until messages are lazy-loaded from JSONL          |
-| `streamingText`        | `string`                | Accumulates in-progress `text_delta` chunks                |
-| `tokenRefreshManager`  | `TokenRefreshManager`   | Per-session OAuth token refresh with rate limiting         |
-| `agentReady`           | `Promise<void>?`        | Resolved when agent instance is initialized                |
-| `connectionLocked`     | `boolean?`              | Set after first agent creation; blocks connection changes  |
+| Field | Type | Notes |
+|---|---|---|
+| `agent` | `AgentBackend \| null` | Lazy-created on first `sendMessage()` [packages/server-core/src/sessions/SessionManager.ts:161-161]() |
+| `isProcessing` | `boolean` | `true` while agent turn is running [packages/server-core/src/sessions/SessionManager.ts:152-152]() |
+| `stopRequested` | `boolean?` | Set by `cancelProcessing()` to drain event loop gracefully [packages/server-core/src/sessions/SessionManager.ts:153-153]() |
+| `processingGeneration` | `number` | Monotonic counter; detects stale requests [packages/server-core/src/sessions/SessionManager.ts:154-154]() |
+| `messageQueue` | `Array<{...}>` | Messages queued while `isProcessing` is `true` [packages/server-core/src/sessions/SessionManager.ts:155-155]() |
+| `messagesLoaded` | `boolean` | `false` until messages are lazy-loaded from JSONL [packages/server-core/src/sessions/SessionManager.ts:151-151]() |
+| `streamingText` | `string` | Accumulates in-progress `text_delta` chunks [packages/server-core/src/sessions/SessionManager.ts:158-158]() |
+| `tokenRefreshManager` | `TokenRefreshManager` | Per-session OAuth token refresh with rate limiting [packages/server-core/src/sessions/SessionManager.ts:173-173]() |
+| `agentReady` | `Promise<void>?` | Resolved when agent instance is initialized [packages/server-core/src/sessions/SessionManager.ts:162-162]() |
+| `connectionLocked` | `boolean?` | Set after first agent creation; blocks connection changes [packages/server-core/src/sessions/SessionManager.ts:166-166]() |
 
-**`createManagedSession()`** ([`apps/electron/src/main/sessions.ts:704-734`]()) constructs a `ManagedSession` by spreading all fields from any session-like source (metadata, config, or stored session), so new persistent fields propagate automatically.
+**`managedToSession()`** [packages/server-core/src/sessions/SessionManager.ts:356-374]() converts a `ManagedSession` to the renderer-side `Session` type, using `pickSessionFields()` for persistent fields and adding runtime context like `workspaceId` and `sessionFolderPath`.
 
-**`managedToSession()`** ([`apps/electron/src/main/sessions.ts:758-776`]()) converts a `ManagedSession` to the renderer-side `Session` type, using `pickSessionFields()` for persistent fields and adding `workspaceId`, `workspaceName`, and `sessionFolderPath`.
-
-Sources: `apps/electron/src/main/sessions.ts:553-776`, `apps/electron/src/shared/types.ts:349-430`
+Sources: [packages/server-core/src/sessions/SessionManager.ts:144-374](), [packages/shared/src/protocol/index.ts:1-100]()
 
 ---
 
 ## JSONL Persistence Format
 
 Sessions are stored at:
-
-```
-{workspaceRootPath}/sessions/{sessionId}/session.jsonl
-```
+`{workspaceRootPath}/sessions/{sessionId}/session.jsonl`
 
 **File structure:**
+- **Line 1** — `SessionHeader`: all metadata plus pre-computed fields (`messageCount`, `preview`, `lastMessageRole`, `lastFinalMessageId`, `tokenUsage`) [packages/shared/src/sessions/jsonl.ts:41-52]()
+- **Lines 2+** — One `StoredMessage` per line (JSON-serialized) [packages/shared/src/sessions/jsonl.ts:12-26]()
 
-- **Line 1** — `SessionHeader`: all metadata plus pre-computed fields (`messageCount`, `preview`, `lastMessageRole`, `lastFinalMessageId`, `tokenUsage`)
-- **Lines 2+** — One `StoredMessage` per line (JSON-serialized)
+**Portability**: `makeSessionPathPortable()` [packages/shared/src/sessions/jsonl.ts:28-39]() replaces absolute session directory paths with the `{{SESSION_PATH}}` token before writing. `expandSessionPath()` restores them on read.
 
-**Portability**: `makeSessionPathPortable()` ([`packages/shared/src/sessions/jsonl.ts:28-39`]()) replaces absolute session directory paths with the `{{SESSION_PATH}}` token before writing. `expandSessionPath()` restores them on read. This makes sessions portable across machines.
+**Atomic writes**: `SessionPersistenceQueue` [packages/shared/src/sessions/persistence-queue.ts:59-167]() handles atomic writes by writing to a `.tmp` file and then renaming. This prevents corrupt partial files.
 
-**Atomic writes**: `writeSessionJsonl()` ([`packages/shared/src/sessions/jsonl.ts:121-135`]()) writes to `session.jsonl.tmp`, then renames to `session.jsonl`. This prevents corrupt partial files if the process crashes mid-write.
+**Fast list loading**: `readSessionHeader()` [packages/shared/src/sessions/jsonl.ts:54-70]() uses low-level `readSync` to read only the first 8 KB of each file, parsing just the header line. This makes `listSessions()` fast across large workspaces.
 
-**Fast list loading**: `readSessionHeader()` ([`packages/shared/src/sessions/jsonl.ts:54-70`]()) uses low-level `readSync` to read only the first 8 KB of each file, parsing just the header line. This makes `listSessions()` fast across large workspaces.
+**Persistence queue**: `sessionPersistenceQueue` [packages/shared/src/sessions/persistence-queue.ts:59-167]() debounces writes during active sessions. It ensures that rapid successive flushes do not write to the same `.tmp` file concurrently [packages/shared/src/sessions/persistence-queue.ts:55-58]().
 
-**Persistence queue**: `sessionPersistenceQueue` debounces writes during active sessions. `saveSession()` ([`packages/shared/src/sessions/storage.ts:305-308`]()) enqueues and immediately flushes. During streaming, rapid in-turn saves are coalesced via `persistenceQueue.enqueue()`.
-
-**Resilient parsing**: `parseMessagesResilient()` ([`packages/shared/src/sessions/jsonl.ts:257-269`]()) skips corrupted/truncated lines instead of failing the entire session load.
-
-**Session subdirectories** created alongside `session.jsonl`:
-
-| Directory         | Contents                                     |
-| ----------------- | -------------------------------------------- |
-| `attachments/`    | File attachments (images, PDFs, Office docs) |
-| `plans/`          | Plan markdown files (Safe Mode)              |
-| `data/`           | `transform_data` tool JSON output            |
-| `long_responses/` | Summarized large tool results                |
-| `downloads/`      | Binary files from API responses              |
+**Session subdirectories** created alongside `session.jsonl` [packages/shared/src/sessions/storage.ts:211-223]():
+- `attachments/`: File attachments (images, PDFs, Office docs)
+- `plans/`: Plan markdown files (Safe Mode)
+- `data/`: `transform_data` tool JSON output
+- `long_responses/`: Summarized large tool results
+- `downloads/`: Binary files from API responses
 
 **Diagram: JSONL write and read pipeline**
 
 ```mermaid
 flowchart LR
-    subgraph "Write Path"
+    subgraph "Write Path (SessionPersistenceQueue)"
         WS["StoredSession\
 (in-memory)"]
         CSH["createSessionHeader()\
@@ -130,39 +121,30 @@ skip corrupted lines"]
     FINAL --> RSJ --> ESP --> PMR --> SS
 ```
 
-Sources: `packages/shared/src/sessions/jsonl.ts:1-270`, `packages/shared/src/sessions/storage.ts:296-315`
+Sources: [packages/shared/src/sessions/jsonl.ts:1-270](), [packages/shared/src/sessions/storage.ts:296-315](), [packages/shared/src/sessions/persistence-queue.ts:59-167]()
 
 ---
 
 ## Session Creation
 
-**IPC flow:** Renderer calls `IPC_CHANNELS.CREATE_SESSION` → `ipcMain.handle` ([`apps/electron/src/main/ipc.ts:297-302`]()) → `sessionManager.createSession(workspaceId, options)`.
+The `SessionManager.createSession(workspaceId, options)` [packages/server-core/src/sessions/SessionManager.ts:488-518]() orchestrates creation.
 
-`createStoredSession()` ([`packages/shared/src/sessions/storage.ts:177-238`]()) handles the disk side:
-
+`createStoredSession()` [packages/shared/src/sessions/storage.ts:177-238]() handles the disk side:
 1. Ensures the sessions directory exists.
-2. Generates a human-readable session ID via `generateUniqueSessionId()` — format: `YYMMDD-adjective-noun` (e.g., `260111-swift-river`), checked against existing IDs for uniqueness.
-3. Creates the session directory with all subdirectories (`plans/`, `attachments/`, `long_responses/`, `data/`, `downloads/`).
-4. Sets `sdkCwd` — the directory the SDK uses for its transcript store. This is **immutable**: even if `workingDirectory` changes later, `sdkCwd` stays fixed to preserve conversation continuity.
+2. Generates a human-readable session ID via `generateSessionId()` [packages/shared/src/sessions/storage.ts:182-182]().
+3. Creates the session directory with all subdirectories (`plans/`, `attachments/`, etc.).
+4. Sets `sdkCwd` — the directory the SDK uses for its transcript store. This is **immutable** to preserve conversation continuity.
 5. Writes an empty `StoredSession` to JSONL.
 
-`sessionManager.createSession()` then wraps the result in `createManagedSession()` and inserts it into `this.sessions`.
+`SessionManager` then wraps the result in `createManagedSession()` and inserts it into its internal `sessions` map [packages/server-core/src/sessions/SessionManager.ts:515-515]().
 
-**`CreateSessionOptions`** ([`apps/electron/src/shared/types.ts:436-468`]()) key fields:
+**`CreateSessionOptions`** key fields [packages/shared/src/protocol/index.ts:1-100]():
+- `permissionMode`: Override workspace default (`safe`/`ask`/`allow-all`).
+- `workingDirectory`: Initial CWD for agent Bash commands.
+- `llmConnection`: LLM connection slug (locked after first message).
+- `branchFromSessionId` + `branchFromMessageId`: Branch from a point in another session.
 
-| Field                                         | Effect                                                     |
-| --------------------------------------------- | ---------------------------------------------------------- |
-| `name`                                        | Pre-set name (AI-generated after first message if omitted) |
-| `permissionMode`                              | Override workspace default (`safe`/`ask`/`allow-all`)      |
-| `workingDirectory`                            | Initial CWD for agent Bash commands                        |
-| `model`                                       | Per-session model override                                 |
-| `llmConnection`                               | LLM connection slug (locked after first message)           |
-| `hidden`                                      | Exclude from session list (e.g., mini edit sessions)       |
-| `branchFromSessionId` + `branchFromMessageId` | Branch from a point in another session                     |
-| `enabledSourceSlugs`                          | Pre-select sources for this session                        |
-| `labels`                                      | Initial label set                                          |
-
-Sources: `apps/electron/src/main/ipc.ts:297-302`, `packages/shared/src/sessions/storage.ts:177-238`, `apps/electron/src/shared/types.ts:436-468`
+Sources: [packages/server-core/src/sessions/SessionManager.ts:488-518](), [packages/shared/src/sessions/storage.ts:177-238](), [packages/shared/src/protocol/index.ts:1-100]()
 
 ---
 
@@ -203,39 +185,33 @@ messagesLoaded = true"
     SM-->>Renderer: "Session with messages"
 ```
 
-**`initGate`** ([`apps/electron/src/main/sessions.ts:834`]()) is an `InitGate` instance. IPC handlers call `sessionManager.waitForInit()` before returning data, preventing empty session lists during startup races.
+**`initGate`** [packages/server-core/src/sessions/SessionManager.ts:210-210]() is an `InitGate` instance. IPC handlers call `sessionManager.waitForInit()` before returning data, preventing empty session lists during startup races.
 
-**`messageLoadingPromises: Map<string, Promise<void>>`** ([`apps/electron/src/main/sessions.ts:826`]()) deduplicates concurrent lazy-load requests: two simultaneous `GET_SESSION_MESSAGES` calls for the same session share a single disk read.
+**`messageLoadingPromises: Map<string, Promise<void>>`** [packages/server-core/src/sessions/SessionManager.ts:202-202]() deduplicates concurrent lazy-load requests: two simultaneous `GET_SESSION_MESSAGES` calls for the same session share a single disk read.
 
-Sources: `apps/electron/src/main/sessions.ts:800-842`, `apps/electron/src/main/ipc.ts:141-174`, `packages/shared/src/sessions/storage.ts:343-384`
+Sources: [packages/server-core/src/sessions/SessionManager.ts:192-210](), [packages/shared/src/sessions/storage.ts:343-384]()
 
 ---
 
 ## Message Flow
 
-The `SEND_MESSAGE` IPC handler returns immediately with `{ started: true }`; all results stream back via `SESSION_EVENT`.
+The `sendMessage` flow in `SessionManager` [packages/server-core/src/sessions/SessionManager.ts:792-950]() handles the agent turn.
 
 **Diagram: sendMessage pipeline (renderer → agent → renderer)**
 
 ```mermaid
 sequenceDiagram
     participant Renderer as "Renderer"
-    participant IPC as "ipc.ts\
-SEND_MESSAGE handler"
     participant SM as "SessionManager\
 .sendMessage()"
     participant Agent as "AgentBackend\
 (agent.chat())"
-    participant PQ as "sessionPersistenceQueue"
+    participant PQ as "SessionPersistenceQueue"
     participant Disk as "session.jsonl"
 
-    Renderer->>IPC: "SEND_MESSAGE\
-(sessionId, message, attachments, options)"
-    IPC->>SM: "sendMessage() — fire and forget"
-    IPC-->>Renderer: "{ started: true } (immediate return)"
-
+    Renderer->>SM: "sendMessage(sessionId, message, attachments, options)"
+    
     SM->>SM: "lazy-create AgentBackend if agent == null\
-buildServersFromSources()\
 refreshOAuthTokensIfNeeded()"
     SM->>SM: "append user Message to messages[]\
 PQ.enqueue()"
@@ -258,48 +234,17 @@ PQ.enqueue()"
     SM->>SM: "append assistant Message\
 PQ.enqueue()\
 updateBadgeCount()\
-evaluateAutoLabels()\
-generateTitle() if needed"
+evaluateAutoLabels()"
     SM->>PQ: "flush(sessionId)"
-    PQ->>Disk: "writeSessionJsonl() (atomic)"
+    PQ->>Disk: "write() (atomic temp file)"
     SM-->>Renderer: "SESSION_EVENT: complete {tokenUsage, hasUnread}"
 ```
 
-**Delta batching**: `pendingDeltas: Map<string, PendingDelta>` and `deltaFlushTimers` ([`apps/electron/src/main/sessions.ts:803-806`]()) batch `text_delta` events at `DELTA_BATCH_INTERVAL_MS = 50` ms, reducing IPC event frequency from potentially 50+/sec to ~20/sec.
+**Delta batching**: `pendingDeltas: Map<string, PendingDelta>` and `deltaFlushTimers` [packages/server-core/src/sessions/SessionManager.ts:214-215]() batch `text_delta` events at `DELTA_BATCH_INTERVAL_MS = 50` ms.
 
-**Monotonic timestamps**: `SessionManager.monotonic()` ([`apps/electron/src/main/sessions.ts:857-860`]()) ensures strictly increasing message timestamps: if `Date.now()` collides with the previous value, it increments by 1.
+**Message interruption and queuing**: If a new message arrives while `isProcessing` is `true`, the current turn is interrupted via `cancelProcessing()` [packages/server-core/src/sessions/SessionManager.ts:1145-1175](), and the new message is pushed to `ManagedSession.messageQueue`.
 
-**Message interruption and queuing**: If a new message arrives while `isProcessing` is `true`, the current turn is interrupted via `cancelProcessing()`, the new message is pushed to `ManagedSession.messageQueue`, and when the interrupted turn completes the queued message is automatically dispatched.
-
-**Agent creation**: The `AgentBackend` is created lazily on the first `sendMessage()`. The `connectionLocked` flag is set after the first agent creation to prevent switching LLM connections mid-session. `agentReady: Promise<void>` lets background operations (e.g., title generation) wait for the agent to be fully initialized.
-
-Sources: `apps/electron/src/main/sessions.ts:792-806`, `apps/electron/src/main/ipc.ts:313-340`, `apps/electron/src/shared/types.ts:481-533`
-
----
-
-## Session Events Reference
-
-The `SessionEvent` union type ([`apps/electron/src/shared/types.ts:481-533`]()) defines all events pushed from main to renderer over `IPC_CHANNELS.SESSION_EVENT`:
-
-| Event Type                            | Key Fields                                               | Trigger                           |
-| ------------------------------------- | -------------------------------------------------------- | --------------------------------- |
-| `user_message`                        | `message`, `status: accepted\|queued\|processing`        | User message accepted             |
-| `text_delta`                          | `delta`, `turnId`                                        | Streaming text chunk              |
-| `text_complete`                       | `text`, `isIntermediate`, `parentToolUseId`, `messageId` | Text block finalized              |
-| `tool_start`                          | `toolName`, `toolUseId`, `toolInput`, `toolDisplayMeta`  | Agent invokes tool                |
-| `tool_result`                         | `toolUseId`, `result`, `isError`                         | Tool returns result               |
-| `complete`                            | `tokenUsage`, `hasUnread`                                | Turn finishes                     |
-| `interrupted`                         | `message`, `queuedMessages`                              | Turn cancelled                    |
-| `permission_request`                  | `request: PermissionRequest`                             | Agent needs user approval         |
-| `credential_request`                  | `request: CredentialRequest`                             | Source needs credentials          |
-| `permission_mode_changed`             | `permissionMode`, `previousPermissionMode`               | Mode transition                   |
-| `status`                              | `message`, `statusType`                                  | Agent status (e.g., `compacting`) |
-| `title_generated`                     | `title`                                                  | AI session name generated         |
-| `error` / `typed_error`               | `error`                                                  | Processing error                  |
-| `session_created` / `session_deleted` | `sessionId`                                              | Multi-window sync                 |
-| `usage_update`                        | `tokenUsage.inputTokens`, `contextWindow`                | Real-time context display         |
-
-Sources: `apps/electron/src/shared/types.ts:481-533`
+Sources: [packages/server-core/src/sessions/SessionManager.ts:792-950](), [packages/server-core/src/sessions/SessionManager.ts:214-215](), [packages/server-core/src/sessions/SessionManager.ts:1145-1175]()
 
 ---
 
@@ -307,38 +252,12 @@ Sources: `apps/electron/src/shared/types.ts:481-533`
 
 `hasUnread: boolean` is the single source of truth for the "NEW" badge.
 
-- Set to `true` in the `complete` event handler when the user is **not** actively viewing the session.
-- Set to `false` when the user navigates to the session (and `isProcessing` is `false`).
-- `activeViewingSession: Map<string, string>` ([`apps/electron/src/main/sessions.ts:832`]()) tracks `workspaceId → sessionId` for the currently viewed session.
-- Updated via `SESSION_COMMAND { type: 'setActiveViewing', workspaceId }` when the user navigates to a session.
-- `markSessionRead()` / `markSessionUnread()` are explicit overrides.
-- `getUnreadSummary()` returns `UnreadSummary` ([`apps/electron/src/shared/types.ts:196-203`]()) with `byWorkspace` counts and `hasUnreadByWorkspace` booleans for workspace selector indicators.
+- `activeViewingSession: Map<string, string>` [packages/server-core/src/sessions/SessionManager.ts:208-208]() tracks `workspaceId → sessionId` for the currently viewed session.
+- Set to `true` in the `complete` event handler when the user is **not** actively viewing the session [packages/server-core/src/sessions/SessionManager.ts:940-940]().
+- `getUnreadSummary()` [packages/server-core/src/sessions/SessionManager.ts:468-486]() returns counts and indicators for workspace selectors.
+- The renderer uses `onSetActiveViewingSession` [apps/electron/src/renderer/pages/ChatPage.tsx:125-125]() to inform the main process which session is being viewed, triggering unread state updates.
 
-Sources: `apps/electron/src/main/sessions.ts:828-832`, `apps/electron/src/shared/types.ts:196-203`
-
----
-
-## Session Metadata Operations
-
-All metadata changes flow through the `SESSION_COMMAND` IPC handler ([`apps/electron/src/main/ipc.ts:390-468`]()):
-
-| Command Type              | `SessionManager` Method                     | Disk Effect                                  |
-| ------------------------- | ------------------------------------------- | -------------------------------------------- |
-| `flag` / `unflag`         | `flagSession()` / `unflagSession()`         | `isFlagged` in JSONL header                  |
-| `archive` / `unarchive`   | `archiveSession()` / `unarchiveSession()`   | `isArchived`, `archivedAt`                   |
-| `rename`                  | `renameSession()`                           | `name` in JSONL header                       |
-| `setSessionStatus`        | `setSessionStatus()`                        | `sessionStatus`                              |
-| `setLabels`               | `setSessionLabels()`                        | `labels[]`                                   |
-| `setPermissionMode`       | `setSessionPermissionMode()`                | `permissionMode`                             |
-| `setThinkingLevel`        | `setSessionThinkingLevel()`                 | `thinkingLevel`                              |
-| `setSources`              | `setSessionSources()`                       | `enabledSourceSlugs`                         |
-| `updateWorkingDirectory`  | `updateWorkingDirectory()`                  | `workingDirectory`                           |
-| `setConnection`           | `setSessionConnection()`                    | `llmConnection` (locked after first message) |
-| `markRead` / `markUnread` | `markSessionRead()` / `markSessionUnread()` | `hasUnread`, `lastReadMessageId`             |
-
-All methods call `updateSessionMetadata()` ([`packages/shared/src/sessions/storage.ts:524-567`]()) which does: `loadSession()` → mutate fields → `saveSession()`.
-
-Sources: `apps/electron/src/main/ipc.ts:390-468`, `packages/shared/src/sessions/storage.ts:524-603`
+Sources: [packages/server-core/src/sessions/SessionManager.ts:208-208](), [packages/server-core/src/sessions/SessionManager.ts:468-486](), [packages/server-core/src/sessions/SessionManager.ts:940-940](), [apps/electron/src/renderer/pages/ChatPage.tsx:123-128]()
 
 ---
 
@@ -346,87 +265,32 @@ Sources: `apps/electron/src/main/ipc.ts:390-468`, `packages/shared/src/sessions/
 
 A branch creates a new session as a copy of a source session up to a specific message.
 
-**Creation inputs** via `CreateSessionOptions` ([`apps/electron/src/shared/types.ts:462-467`]()):
+**Creation inputs** via `CreateSessionOptions` [packages/shared/src/protocol/index.ts:1-100]():
+- `branchFromSessionId`: source session.
+- `branchFromMessageId`: copy messages up to and including this ID.
 
-- `branchFromSessionId` — source session
-- `branchFromMessageId` — copy messages up to and including this ID
-
-**Stored on `ManagedSession`** ([`apps/electron/src/main/sessions.ts:679-683`]()):
-
+**Stored on `ManagedSession`** [packages/server-core/src/sessions/SessionManager.ts:179-183]():
 - `branchFromMessageId`
-- `branchFromSdkSessionId` — SDK-level session ID for conversation continuity fork
-- `branchFromSessionPath` — source session's storage path for backends that need it
+- `branchFromSdkSessionId`: SDK-level session ID for conversation continuity fork.
+- `branchFromSessionPath`: source session's storage path.
 
-`resolveSupportsBranching()` ([`apps/electron/src/main/sessions.ts:739-747`]()) returns `agent.supportsBranching` if the agent is live, otherwise defaults to `true`. The renderer uses this to conditionally show the branch UI.
+`resolveSupportsBranching()` [packages/server-core/src/sessions/SessionManager.ts:337-345]() returns `agent.supportsBranching` if the agent is live.
 
-`rollbackFailedBranchCreation()` ([`apps/electron/src/main/session-branch-cleanup.ts`]()) cleans up partially written files if branch creation fails mid-way.
-
-Sources: `apps/electron/src/main/sessions.ts:679-683`, `apps/electron/src/main/sessions.ts:739-747`, `apps/electron/src/shared/types.ts:462-467`
-
----
-
-## Sharing
-
-Sessions can be shared to the web viewer application ([2.10](#2.10)).
-
-**Flow**:
-
-1. `SESSION_COMMAND { type: 'shareToViewer' }` → `sessionManager.shareToViewer(sessionId)`
-2. Full session transcript is uploaded to the viewer service.
-3. `sharedUrl` and `sharedId` are stored in `ManagedSession` and persisted via `updateSessionMetadata()`.
-4. `SESSION_EVENT { type: 'session_shared', sharedUrl }` is emitted to all windows.
-
-`updateShare()` re-uploads the current state of a shared session. `revokeShare()` deletes it from the viewer and clears `sharedUrl`/`sharedId`, emitting `session_unshared`.
-
-During share/revoke operations, `isAsyncOperationOngoing = true` is set on the managed session, which causes a shimmer effect on the session title in the sidebar.
-
-Sources: `apps/electron/src/shared/types.ts:494-495`, `apps/electron/src/shared/types.ts:207-212`, `apps/electron/src/main/sessions.ts` (shareToViewer/updateShare/revokeShare methods)
+Sources: [packages/server-core/src/sessions/SessionManager.ts:179-183](), [packages/server-core/src/sessions/SessionManager.ts:337-345](), [packages/shared/src/protocol/index.ts:1-100]()
 
 ---
 
 ## Deletion
 
-`IPC_CHANNELS.DELETE_SESSION` → `sessionManager.deleteSession(sessionId)` ([`apps/electron/src/main/ipc.ts:305-307`]()):
-
+`SessionManager.deleteSession(sessionId)` [packages/server-core/src/sessions/SessionManager.ts:520-542]():
 1. Calls `cancelProcessing()` if the session is currently active.
 2. Removes the entry from `this.sessions: Map<string, ManagedSession>`.
-3. Calls `deleteStoredSession()` → `rmSync(sessionDir, { recursive: true })` — removes the entire session folder including all attachments, plans, and data files.
-4. Emits `SESSION_EVENT { type: 'session_deleted', sessionId }` to all windows for multi-window sync.
+3. Calls `deleteStoredSession()` [packages/shared/src/sessions/storage.ts:429-441]() → `rmSync(sessionDir, { recursive: true })`.
+4. Emits `SESSION_EVENT { type: 'session_deleted', sessionId }` for multi-window sync.
 
-**Archived session pruning**: `deleteOldArchivedSessions()` ([`packages/shared/src/sessions/storage.ts:746-762`]()) is called with a configurable `retentionDays` value. It uses `archivedAt` (falling back to `lastUsedAt`) to determine eligibility.
+**Archived session pruning**: `deleteOldArchivedSessions()` [packages/shared/src/sessions/storage.ts:746-762]() is called based on `retentionDays`.
 
-Sources: `apps/electron/src/main/ipc.ts:305-307`, `packages/shared/src/sessions/storage.ts:429-441`, `packages/shared/src/sessions/storage.ts:746-762`
-
----
-
-## Session Lifecycle State Machine
-
-```mermaid
-stateDiagram-v2
-    [*] --> "Idle_NotLoaded" : "createSession()\
-messagesLoaded=false"
-    "Idle_NotLoaded" --> "Idle_Loaded" : "getSession()\
-GET_SESSION_MESSAGES\
-readSessionJsonl()"
-    "Idle_Loaded" --> "Processing" : "sendMessage()\
-isProcessing=true"
-    "Processing" --> "Idle_Loaded" : "complete event\
-isProcessing=false"
-    "Processing" --> "Interrupted" : "cancelProcessing()\
-stopRequested=true"
-    "Interrupted" --> "Processing" : "messageQueue non-empty\
-next message dispatched"
-    "Interrupted" --> "Idle_Loaded" : "messageQueue empty"
-    "Idle_Loaded" --> "Archived" : "archiveSession()\
-isArchived=true"
-    "Archived" --> "Idle_Loaded" : "unarchiveSession()"
-    "Idle_Loaded" --> "[*]" : "deleteSession()\
-rmSync(sessionDir)"
-    "Archived" --> "[*]" : "deleteSession() or\
-deleteOldArchivedSessions()"
-```
-
-Sources: `apps/electron/src/main/sessions.ts:553-697`, `packages/shared/src/sessions/storage.ts:429-441`, `packages/shared/src/sessions/storage.ts:608-624`
+Sources: [packages/server-core/src/sessions/SessionManager.ts:520-542](), [packages/shared/src/sessions/storage.ts:429-441](), [packages/shared/src/sessions/storage.ts:746-762]()
 
 ---
 
@@ -437,23 +301,19 @@ Sources: `apps/electron/src/main/sessions.ts:553-697`, `packages/shared/src/sess
 ```mermaid
 flowchart TD
     subgraph "Renderer Process"
-        UI["React UI\
-(ChatDisplay, SessionList)"]
+        UI["ChatPage.tsx\
+(useAppShellContext)"]
         EA["window.electronAPI\
 (preload contextBridge)"]
     end
 
-    subgraph "Main Process: sessions.ts"
+    subgraph "Main Process: SessionManager.ts"
         SM["SessionManager\
 class"]
         MS["ManagedSession\
 interface"]
-        AB["AgentInstance\
-(AgentBackend)"]
-        MCP["McpClientPool\
-(mcpPool field)"]
-        PS["McpPoolServer\
-(poolServer field)"]
+        AB["AgentBackend\
+(agent field)"]
         TRM["TokenRefreshManager\
 (tokenRefreshManager field)"]
         PD["pendingDeltas Map\
@@ -464,12 +324,10 @@ interface"]
 (workspaceId->sessionId)"]
         IG["InitGate\
 (initGate)"]
-        PEB["PrivilegedExecutionBroker\
-(privilegedExecutionBroker)"]
     end
 
     subgraph "packages/shared/src/sessions/"
-        SPQ["sessionPersistenceQueue\
+        SPQ["SessionPersistenceQueue\
 (persistence-queue.ts)"]
         WJ["writeSessionJsonl()\
 (jsonl.ts)"]
@@ -492,28 +350,20 @@ interface"]
 Header + StoredMessage lines"]
         ATT["attachments/"]
         PL["plans/"]
-        DT["data/"]
     end
 
     UI -- "IPC: SEND_MESSAGE\
-CREATE_SESSION\
-DELETE_SESSION\
-SESSION_COMMAND" --> SM
-    SM -- "IPC: SESSION_EVENT\
-(text_delta, tool_start,\
-complete, etc.)" --> EA
+CREATE_SESSION" --> SM
+    SM -- "IPC: SESSION_EVENT" --> EA
     EA --> UI
 
     SM -- "1..N" --> MS
     MS --> AB
-    MS --> MCP
-    MS --> PS
     MS --> TRM
     SM --> PD
     SM --> ML
     SM --> AVS
     SM --> IG
-    SM --> PEB
 
     SM --> SPQ
     SPQ --> WJ
@@ -533,7 +383,6 @@ complete, etc.)" --> EA
 
     JSONL -.- ATT
     JSONL -.- PL
-    JSONL -.- DT
 ```
 
-Sources: `apps/electron/src/main/sessions.ts:799-837`, `packages/shared/src/sessions/storage.ts:1-115`, `packages/shared/src/sessions/jsonl.ts:1-270`, `apps/electron/src/main/ipc.ts:138-340`
+Sources: [packages/server-core/src/sessions/SessionManager.ts:144-215](), [packages/shared/src/sessions/storage.ts:1-115](), [packages/shared/src/sessions/jsonl.ts:1-270](), [packages/shared/src/sessions/persistence-queue.ts:59-167]()

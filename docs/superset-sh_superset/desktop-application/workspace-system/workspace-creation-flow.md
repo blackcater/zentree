@@ -19,6 +19,8 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
+
+
 This page documents the UI flow and state management for creating new workspaces through the `NewWorkspaceModal` component. This covers project selection, branch configuration, prompt input, and the final workspace creation submission process.
 
 For the underlying Git worktree implementation details, see [2.6.2](#2.6.2). For GitHub pull request integration, see [2.6.5](#2.6.5). For workspace runtime management after creation, see the Workspace System overview at [2.6](#2.6).
@@ -39,20 +41,19 @@ graph TB
     DraftProvider["NewWorkspaceModalDraftProvider<br/>React Context"]
     Content["NewWorkspaceModalContent"]
     PromptGroup["PromptGroup"]
-
+    
     Trigger -->|"openModal(projectId?)"| Store
     Store -->|"isOpen: true<br/>preSelectedProjectId"| Modal
     Modal -->|"wraps"| DraftProvider
     DraftProvider -->|"provides draft state"| Content
     Content -->|"renders"| PromptGroup
-
+    
     PromptGroup -->|"updateDraft()"| DraftProvider
     DraftProvider -->|"closeModal()"| Store
     Store -->|"isOpen: false"| Modal
 ```
 
 **Sources:**
-
 - [apps/desktop/src/renderer/stores/new-workspace-modal.ts:1-37]()
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/NewWorkspaceModal.tsx:1-98]()
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/NewWorkspaceModalDraftContext.tsx:1-216]()
@@ -65,15 +66,14 @@ graph TB
 
 The `NewWorkspaceModalStore` manages the modal's open/closed state and optional project pre-selection:
 
-| State Field             | Type             | Purpose                               |
-| ----------------------- | ---------------- | ------------------------------------- |
-| `isOpen`                | `boolean`        | Controls Dialog visibility            |
-| `preSelectedProjectId`  | `string \| null` | Pre-selects project when modal opens  |
-| `openModal(projectId?)` | `function`       | Opens modal with optional project     |
-| `closeModal()`          | `function`       | Closes modal and clears pre-selection |
+| State Field | Type | Purpose |
+|-------------|------|---------|
+| `isOpen` | `boolean` | Controls Dialog visibility |
+| `preSelectedProjectId` | `string \| null` | Pre-selects project when modal opens |
+| `openModal(projectId?)` | `function` | Opens modal with optional project |
+| `closeModal()` | `function` | Closes modal and clears pre-selection |
 
 **Sources:**
-
 - [apps/desktop/src/renderer/stores/new-workspace-modal.ts:4-27]()
 
 ### Draft Context State
@@ -85,7 +85,7 @@ The `NewWorkspaceModalDraftProvider` maintains all user input state during works
 ```mermaid
 graph LR
     Draft["NewWorkspaceModalDraft"]
-
+    
     Draft --> selectedProjectId["selectedProjectId: string | null"]
     Draft --> prompt["prompt: string"]
     Draft --> baseBranch["baseBranch: string | null"]
@@ -101,7 +101,6 @@ graph LR
 The draft also tracks `draftVersion` (incremented on each update) and `resetKey` (incremented when draft is fully reset) for lifecycle management.
 
 **Sources:**
-
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/NewWorkspaceModalDraftContext.tsx:27-64]()
 
 ---
@@ -116,7 +115,7 @@ graph TB
     DialogContent["DialogContent"]
     Content["NewWorkspaceModalContent"]
     PromptGroup["PromptGroup"]
-
+    
     subgraph "PromptGroup Children"
         ProjectPicker["ProjectPickerPill"]
         BaseBranch["BaseBranchPickerInline"]
@@ -126,7 +125,7 @@ graph TB
         IssueLinkCommand["IssueLinkCommand"]
         PRLinkCommand["PRLinkCommand"]
     end
-
+    
     Modal --> DraftProvider
     Modal --> PromptInputProvider
     Modal --> DialogContent
@@ -142,7 +141,6 @@ graph TB
 ```
 
 **Sources:**
-
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/NewWorkspaceModal.tsx:45-97]()
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/NewWorkspaceModalContent/NewWorkspaceModalContent.tsx:13-96]()
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx:107-912]()
@@ -164,7 +162,7 @@ flowchart TD
     CheckCurrentValid{"Current draft.selectedProjectId<br/>exists in recents?"}
     SelectFirst["updateDraft()<br/>selectedProjectId = recents[0]"]
     End["Project Selected"]
-
+    
     Start --> CheckPreSelected
     CheckPreSelected -->|Yes| CheckExists
     CheckPreSelected -->|No| CheckCurrentValid
@@ -177,22 +175,20 @@ flowchart TD
 ```
 
 **Sources:**
-
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/NewWorkspaceModalContent/NewWorkspaceModalContent.tsx:41-76]()
 
 ### ProjectPickerPill Component
 
 The `ProjectPickerPill` displays the selected project with its thumbnail and provides a dropdown to switch projects:
 
-| Feature   | Implementation                                                                        |
-| --------- | ------------------------------------------------------------------------------------- |
-| Display   | `ProjectThumbnail` with name and chevron icon                                         |
-| Search    | `CommandInput` filters projects by name                                               |
-| Actions   | "Open project" → triggers import flow<br/>"New project" → navigates to `/new-project` |
-| Thumbnail | Shows project icon, GitHub avatar, or colored placeholder                             |
+| Feature | Implementation |
+|---------|----------------|
+| Display | `ProjectThumbnail` with name and chevron icon |
+| Search | `CommandInput` filters projects by name |
+| Actions | "Open project" → triggers import flow<br/>"New project" → navigates to `/new-project` |
+| Thumbnail | Shows project icon, GitHub avatar, or colored placeholder |
 
 **Sources:**
-
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx:144-240]()
 
 ---
@@ -215,7 +211,7 @@ flowchart TD
     UseProjectSetting["Use project.workspaceBaseBranch"]
     UseDefault["Use branchData.defaultBranch"]
     End["Return baseBranch"]
-
+    
     Start --> CheckExplicit
     CheckExplicit -->|Yes| UseExplicit
     CheckExplicit -->|No| CheckProjectSetting
@@ -229,7 +225,6 @@ flowchart TD
 ```
 
 **Sources:**
-
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx:508-513]()
 - [apps/desktop/src/renderer/lib/workspaceBaseBranch.ts]() (referenced)
 
@@ -237,17 +232,16 @@ flowchart TD
 
 Displays the current base branch and allows selection from a filterable list:
 
-| Feature      | Details                                              |
-| ------------ | ---------------------------------------------------- |
-| Display      | Shows branch name with git branch icon               |
-| Loading      | Skeleton placeholder while fetching                  |
+| Feature | Details |
+|---------|---------|
+| Display | Shows branch name with git branch icon |
+| Loading | Skeleton placeholder while fetching |
 | Filter Modes | "All" or "Worktrees" (filters to existing worktrees) |
-| Search       | Client-side substring filtering (case-insensitive)   |
-| Metadata     | Shows last commit date, "default" badge              |
-| Sorting      | Default branch first, then by commit date            |
+| Search | Client-side substring filtering (case-insensitive) |
+| Metadata | Shows last commit date, "default" badge |
+| Sorting | Default branch first, then by commit date |
 
 **Sources:**
-
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx:242-384]()
 
 ### Branch Name Generation
@@ -266,7 +260,7 @@ flowchart TD
     AddPrefix["branchPreview = prefix/slug"]
     UseSlug["branchPreview = slug"]
     End["Display in UI"]
-
+    
     Start --> CheckEdited
     CheckEdited -->|Yes| UseDraft
     CheckEdited -->|No| GenerateSlug
@@ -285,7 +279,6 @@ The prefix is resolved through `resolveBranchPrefix()` with the following preced
 3. Modes: `"none"`, `"author"`, `"github"`, `"custom"`
 
 **Sources:**
-
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx:515-526]()
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx:475-487]()
 
@@ -305,7 +298,7 @@ graph TB
     Tools["PromptInputTools"]
     Submit["PromptInputSubmit<br/>Arrow icon button"]
     Attachments["PromptInputAttachments<br/>File preview pills"]
-
+    
     PromptInput --> Textarea
     PromptInput --> Attachments
     PromptInput --> Footer
@@ -317,17 +310,16 @@ graph TB
 
 **Key Features:**
 
-| Feature            | Implementation                                                          |
-| ------------------ | ----------------------------------------------------------------------- |
-| Multi-line input   | `PromptInputTextarea` with auto-resize                                  |
-| File attachments   | Max 5 files, 10MB each                                                  |
-| Keyboard shortcuts | Cmd/Ctrl+Enter to submit                                                |
-| Agent selection    | Persisted to localStorage with key `"lastSelectedWorkspaceCreateAgent"` |
-| Linked issues      | Pills displayed above textarea                                          |
-| Linked PR          | Replaces base branch UI when set                                        |
+| Feature | Implementation |
+|---------|----------------|
+| Multi-line input | `PromptInputTextarea` with auto-resize |
+| File attachments | Max 5 files, 10MB each |
+| Keyboard shortcuts | Cmd/Ctrl+Enter to submit |
+| Agent selection | Persisted to localStorage with key `"lastSelectedWorkspaceCreateAgent"` |
+| Linked issues | Pills displayed above textarea |
+| Linked PR | Replaces base branch UI when set |
 
 **Sources:**
-
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx:743-860]()
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx:78-87]()
 
@@ -345,7 +337,7 @@ flowchart TD
     CheckEnabled{"Agent enabled<br/>in agentPresets?"}
     UseFallback["selectedAgent = 'none'"]
     Ready["Agent Selection Ready"]
-
+    
     Start --> CheckStorage
     CheckStorage -->|Yes| CheckValid
     CheckStorage -->|No| UseDefault
@@ -359,7 +351,6 @@ flowchart TD
 ```
 
 **Sources:**
-
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx:432-439]()
 
 ---
@@ -377,7 +368,6 @@ The `IssueLinkCommand` component allows searching and linking Linear issues:
 - First issue slug used for branch name generation
 
 **Sources:**
-
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx:830-836]()
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx:680-689]()
 
@@ -394,7 +384,7 @@ sequenceDiagram
     participant PRLinkCommand
     participant tRPC
     participant GitHubCLI as gh CLI
-
+    
     User->>PlusMenu: Click "Link pull request"
     PlusMenu->>PRLinkCommand: setPRLinkOpen(true)
     PRLinkCommand->>tRPC: projects.listPullRequests.useQuery()
@@ -407,13 +397,11 @@ sequenceDiagram
 ```
 
 When a PR is linked:
-
 - Replaces base branch UI with "based off PR #123"
 - Triggers `createFromPr` mutation instead of `createWorktree`
 - Branch name auto-generated as `"pr-{number}"` if no prompt
 
 **Sources:**
-
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PRLinkCommand/PRLinkCommand.tsx:37-160]()
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx:872-904]()
 - [apps/desktop/src/lib/trpc/routers/projects/projects.ts:303-361]()
@@ -437,7 +425,7 @@ flowchart TD
     CreateFromPR["createFromPr.mutateAsyncWithSetup()"]
     CreateWorkspace["createWorkspace.mutateAsyncWithPendingSetup()"]
     CloseModal["closeModal()<br/>toast.promise()"]
-
+    
     Submit --> CheckProject
     CheckProject -->|No| ErrorNoProject
     CheckProject -->|Yes| ConvertAttachments
@@ -450,7 +438,6 @@ flowchart TD
 ```
 
 **Sources:**
-
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx:572-670]()
 
 ### File Attachment Conversion
@@ -467,25 +454,23 @@ Files are converted from blob URLs to data URLs before submission:
 ```
 
 **Sources:**
-
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx:553-595]()
 
 ### Agent Launch Request Building
 
 The `buildPromptAgentLaunchRequest()` utility constructs the agent launch payload:
 
-| Parameter       | Value                               |
-| --------------- | ----------------------------------- |
-| `workspaceId`   | `"pending-workspace"` (placeholder) |
-| `source`        | `"new-workspace"`                   |
+| Parameter | Value |
+|-----------|-------|
+| `workspaceId` | `"pending-workspace"` (placeholder) |
+| `source` | `"new-workspace"` |
 | `selectedAgent` | Current agent selection or `"none"` |
-| `prompt`        | Trimmed prompt text                 |
-| `initialFiles`  | Converted file attachments          |
-| `taskSlug`      | First linked issue slug (if any)    |
-| `configsById`   | Indexed agent configurations        |
+| `prompt` | Trimmed prompt text |
+| `initialFiles` | Converted file attachments |
+| `taskSlug` | First linked issue slug (if any) |
+| `configsById` | Indexed agent configurations |
 
 **Sources:**
-
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx:538-551]()
 
 ### Workspace Creation Mutations
@@ -501,7 +486,7 @@ sequenceDiagram
     participant tRPC
     participant ProjectsRouter
     participant Git as Git Operations
-
+    
     UI->>Hook: mutateAsyncWithPendingSetup({<br/>  projectId, name?, prompt?,<br/>  branchName?, baseBranch?<br/>}, {agentLaunchRequest})
     Hook->>tRPC: workspaces.createWorktree()
     tRPC->>ProjectsRouter: createWorktree procedure
@@ -526,7 +511,7 @@ sequenceDiagram
     participant tRPC
     participant WorkspacesRouter
     participant Git as Git/GitHub CLI
-
+    
     UI->>Hook: mutateAsyncWithSetup({<br/>  projectId, prUrl<br/>}, agentLaunchRequest)
     Hook->>tRPC: workspaces.createFromPr()
     tRPC->>WorkspacesRouter: createFromPr procedure
@@ -540,7 +525,6 @@ sequenceDiagram
 ```
 
 **Sources:**
-
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx:608-653]()
 - [apps/desktop/src/renderer/react-query/workspaces/useCreateWorkspace.ts]() (referenced)
 - [apps/desktop/src/renderer/react-query/workspaces/useCreateFromPr.ts]() (referenced)
@@ -559,7 +543,7 @@ flowchart TD
     CheckSuccess{"Promise<br/>resolved?"}
     ResetDraft["resetDraftIfVersion(submitDraftVersion)"]
     End["End"]
-
+    
     Invoke --> CaptureVersion
     CaptureVersion --> Close
     Close --> ShowToast
@@ -571,13 +555,11 @@ flowchart TD
 ```
 
 **Version-Based Reset:**
-
 - Captures `draftVersion` before submission
 - Only resets draft if version unchanged
 - Prevents resetting if user opened modal again while creation was in progress
 
 **Sources:**
-
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/NewWorkspaceModalDraftContext.tsx:139-156]()
 
 ---
@@ -586,15 +568,14 @@ flowchart TD
 
 The `PromptGroupAdvancedOptions` component (currently referenced but not rendered in the standard flow) would provide:
 
-| Option                  | Purpose                        |
-| ----------------------- | ------------------------------ |
-| Branch name override    | Manual branch name entry       |
-| Base branch selection   | Override resolved base branch  |
-| Edit prefix button      | Navigate to settings           |
+| Option | Purpose |
+|--------|---------|
+| Branch name override | Manual branch name entry |
+| Base branch selection | Override resolved base branch |
+| Edit prefix button | Navigate to settings |
 | Run setup script toggle | Control setup script execution |
 
 **Sources:**
-
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions/PromptGroupAdvancedOptions.tsx:27-215]()
 
 ---
@@ -614,7 +595,7 @@ graph TB
     RemoteData["remoteBranchData"]
     Resolve["branchData = remoteBranchData ?? localBranchData"]
     Display["Render BaseBranchPickerInline"]
-
+    
     Component --> LocalQuery
     Component --> RemoteQuery
     LocalQuery --> LocalData
@@ -625,13 +606,11 @@ graph TB
 ```
 
 This pattern provides:
-
 - **Instant feedback**: Local refs displayed immediately (no network)
 - **Fresh data**: Remote data replaces local when available
 - **Offline support**: Falls back to cached refs if network unavailable
 
 **Sources:**
-
 - [apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx:450-465]()
 - [apps/desktop/src/lib/trpc/routers/projects/projects.ts:385-539]() (getBranchesLocal)
 - [apps/desktop/src/lib/trpc/routers/projects/projects.ts:542-724]() (getBranches)
@@ -649,7 +628,6 @@ The workspace creation flow provides a streamlined UI for:
 5. **Optimistic feedback** with toast notifications and draft state management
 
 The modal architecture separates concerns between:
-
 - **Zustand store** for modal lifecycle (open/close)
 - **React Context** for draft state and mutations
 - **tRPC queries** for branch/project/PR data

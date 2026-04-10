@@ -16,12 +16,13 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
+
+
 Harnss employs a multi-tiered settings system designed to balance persistence, performance, and user experience across both the Electron main process and the React renderer. The system handles everything from low-level binary paths for AI engines to high-level UI preferences like "Liquid Glass" transparency and theme selection.
 
 ### Settings System Overview
 
 The configuration architecture is split into two primary domains:
-
 1.  **Main Process Settings (`AppSettings`)**: Persisted in `settings.json` within the user data directory. These are critical for app startup, such as update policies and AI engine binary locations [electron/src/lib/app-settings.ts:8-9]().
 2.  **Renderer UI Settings**: Managed via `localStorage` and the `useSettings` hook. These cover UI state like panel widths, active tools, and layout modes [src/hooks/useSettings.ts:7-11]().
 
@@ -30,7 +31,6 @@ The configuration architecture is split into two primary domains:
 The following diagram illustrates the flow of settings from storage to the UI components.
 
 **Settings Data Flow**
-
 ```mermaid
 graph TD
     subgraph "Main Process (Node.js)"
@@ -43,7 +43,7 @@ graph TD
         LS -->|Props| GS["GeneralSettings.tsx"]
         LS -->|Props| NS["NotificationsSettings.tsx"]
         LS -->|Props| ADV["AdvancedSettings.tsx"]
-
+        
         USE_SET["useSettings.ts"] <-->|localStorage| BROWSER["Browser Storage"]
         USE_SET -->|Context/Props| AL["AppLayout.tsx"]
     end
@@ -51,7 +51,6 @@ graph TD
     SV -->|updateAppSettings| AS_SET["window.claude.settings.set"]
     AS_SET -->|fs.writeFileSync| JSON
 ```
-
 Sources: [electron/src/lib/app-settings.ts:95-126](), [src/components/SettingsView.tsx:119-132](), [src/hooks/useSettings.ts:7-31]()
 
 ---
@@ -79,7 +78,6 @@ For a deep dive into storage locations and the optimistic update pattern, see **
 The `SettingsView` component serves as the central hub for user configuration. It utilizes a modular navigation sidebar defined by `NAV_ITEMS`, routing users between specialized sub-components [src/components/SettingsView.tsx:43-55]().
 
 **Settings Entity Mapping**
-
 ```mermaid
 classDiagram
     class SettingsView {
@@ -110,16 +108,14 @@ classDiagram
     SettingsView *-- AdvancedSettings
     SettingsView *-- AgentSettings
 ```
-
 Sources: [src/components/SettingsView.tsx:33-55](), [src/components/SettingsView.tsx:142-205]()
 
 #### Configuration Sections
-
-- **General**: Core app behavior like the default chat limit and voice dictation mode [src/components/settings/GeneralSettings.tsx]().
-- **Appearance**: Controls the visual "Island" vs "Flat" layout, theme (light/dark/system), and macOS "Liquid Glass" transparency [src/components/settings/AppearanceSettings.tsx]().
-- **Notifications**: Granular control over OS notifications and sounds for events like "Session Complete" or "Permission Required" [src/components/settings/NotificationsSettings.tsx]().
-- **Advanced**: Low-level engine configurations, including custom binary paths for `claude` and `codex` executables [src/components/settings/AdvancedSettings.tsx:133-168]().
-- **About**: Displays the current version and project credits [src/components/settings/AboutSettings.tsx:88-100]().
+*   **General**: Core app behavior like the default chat limit and voice dictation mode [src/components/settings/GeneralSettings.tsx]().
+*   **Appearance**: Controls the visual "Island" vs "Flat" layout, theme (light/dark/system), and macOS "Liquid Glass" transparency [src/components/settings/AppearanceSettings.tsx]().
+*   **Notifications**: Granular control over OS notifications and sounds for events like "Session Complete" or "Permission Required" [src/components/settings/NotificationsSettings.tsx]().
+*   **Advanced**: Low-level engine configurations, including custom binary paths for `claude` and `codex` executables [src/components/settings/AdvancedSettings.tsx:133-168]().
+*   **About**: Displays the current version and project credits [src/components/settings/AboutSettings.tsx:88-100]().
 
 For details on UI components and specific appearance toggles, see **[Settings UI: Appearance, Notifications & Advanced](#7.2)**.
 

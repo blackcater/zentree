@@ -33,6 +33,8 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
+
+
 This document describes the Electron desktop application's startup sequence, initialization order, window state restoration, and shutdown handling. It covers the main process initialization from app launch through window creation and IPC setup.
 
 For build configuration and packaging, see [Build and Release System](#2.2). For auto-update behavior after initialization, see [Auto-Update System](#2.3). For IPC communication patterns, see [IPC and tRPC Communication](#2.5).
@@ -44,7 +46,7 @@ For build configuration and packaging, see [Build and Release System](#2.2). For
 The desktop application follows a multi-stage initialization process:
 
 1. **Pre-Ready Phase**: Protocol registration, single instance lock, environment setup
-2. **Ready Phase**: Sentry, app state, database migrations, terminal reconciliation
+2. **Ready Phase**: Sentry, app state, database migrations, terminal reconciliation  
 3. **Window Creation**: Main window, IPC setup, notifications server, menu
 4. **Post-Window**: Auto-updater, tray, deep link processing
 
@@ -58,11 +60,11 @@ The main process manages native system integration while the renderer process ha
 
 The Electron app has three separate Node.js processes, each with its own entry point:
 
-| Process            | Entry Point                                | Purpose                                               |
-| ------------------ | ------------------------------------------ | ----------------------------------------------------- |
-| **Main Process**   | `src/main/index.ts`                        | Application lifecycle, window management, native APIs |
-| **Terminal Host**  | `src/main/terminal-host/index.ts`          | Persistent terminal session daemon                    |
-| **PTY Subprocess** | `src/main/terminal-host/pty-subprocess.ts` | Individual shell process wrapper                      |
+| Process | Entry Point | Purpose |
+|---------|-------------|---------|
+| **Main Process** | `src/main/index.ts` | Application lifecycle, window management, native APIs |
+| **Terminal Host** | `src/main/terminal-host/index.ts` | Persistent terminal session daemon |
+| **PTY Subprocess** | `src/main/terminal-host/pty-subprocess.ts` | Individual shell process wrapper |
 
 These entry points are configured in the electron-vite build:
 
@@ -89,25 +91,25 @@ sequenceDiagram
     OS->>Main: Launch app
     Main->>Main: "Register protocol scheme<br/>(superset://)"
     Main->>Main: "Request single instance lock"
-
+    
     alt Second instance detected
         Main->>OS: "Exit (lock denied)"
     end
-
+    
     Main->>Main: "Wait for app.whenReady()"
-
+    
     Note over Main: "Ready event fires"
-
+    
     Main->>Main: "Register protocol handler<br/>(superset-icon://)"
     Main->>Main: "initSentry()"
     Main->>AppState: "initAppState()"
     AppState-->>Main: "State loaded from lowdb"
-
+    
     Main->>Terminal: "reconcileDaemonSessions()"
     Terminal-->>Main: "Orphaned sessions restored"
-
+    
     Main->>Main: "setupAgentHooks()"
-
+    
     Main->>Window: "makeAppSetup(() => MainWindow())"
     Window->>Window: "Load saved window state"
     Window->>Window: "Create BrowserWindow"
@@ -119,11 +121,11 @@ sequenceDiagram
     Renderer-->>Window: "did-finish-load event"
     Window->>Window: "Restore zoom, maximize state"
     Window->>Window: "window.show()"
-
+    
     Main->>Main: "setupAutoUpdater()"
     Main->>Main: "initTray()"
     Main->>Main: "Process pending deep links"
-
+    
     Note over Main,Renderer: "App fully initialized"
 ```
 
@@ -170,24 +172,24 @@ Once `app.whenReady()` resolves, the main initialization sequence begins:
 ```mermaid
 graph TB
     Ready["app.whenReady()"]
-
+    
     Ready --> Protocol["Register protocol handler<br/>superset-icon://"]
     Protocol --> IconDir["ensureProjectIconsDir()"]
     IconDir --> Sentry["initSentry()"]
     Sentry --> AppState["initAppState()"]
-
+    
     AppState --> LoadState["Load from lowdb<br/>~/.superset/app-state.json"]
     LoadState --> Migrate["Run migrations if needed"]
-
+    
     Migrate --> Terminal["reconcileDaemonSessions()"]
     Terminal --> CheckOrphan["Check terminal metadata<br/>for orphaned sessions"]
     CheckOrphan --> Restore["Restore scrollback<br/>from disk"]
-
+    
     Restore --> Agent["setupAgentHooks()"]
     Agent --> Window["makeAppSetup(() => MainWindow())"]
-
+    
     Window --> PostWindow["Post-window initialization"]
-
+    
     style Ready fill:#f9f9f9
     style AppState fill:#f9f9f9
     style Terminal fill:#f9f9f9
@@ -223,33 +225,33 @@ The main window creation is handled by `MainWindow()`, which returns a configure
 ```mermaid
 graph TB
     MainWindow["MainWindow()"]
-
+    
     MainWindow --> LoadState["loadWindowState()"]
     LoadState --> Bounds["getInitialWindowBounds()"]
-
+    
     Bounds --> CreateWindow["createWindow()<br/>BrowserWindow constructor"]
     CreateWindow --> Menu["createApplicationMenu()"]
     Menu --> MenuHotkeys["registerMenuHotkeyUpdates()"]
-
+    
     MenuHotkeys --> IPC["Create or attach IPC handler"]
-
+    
     IPC --> CheckSingleton{{"Singleton IPC<br/>handler exists?"}}
     CheckSingleton -->|No| CreateIPC["createIPCHandler()<br/>with AppRouter"]
     CheckSingleton -->|Yes| AttachIPC["ipcHandler.attachWindow()"]
-
+    
     CreateIPC --> NotifServer["Start notifications server<br/>port 3002"]
     AttachIPC --> NotifServer
-
+    
     NotifServer --> NotifMgr["new NotificationManager()"]
     NotifMgr --> NotifEvents["Setup notification events"]
-
+    
     NotifEvents --> RepaintFix["Setup GPU repaint fix<br/>(macOS Sequoia)"]
     RepaintFix --> LoadURL["loadURL() or loadFile()"]
-
+    
     LoadURL --> DidFinish["Wait for did-finish-load"]
     DidFinish --> RestoreZoom["Restore zoom level"]
     RestoreZoom --> ShowWindow["window.show()"]
-
+    
     style CreateWindow fill:#f9f9f9
     style CreateIPC fill:#f9f9f9
     style NotifMgr fill:#f9f9f9
@@ -301,21 +303,21 @@ After the main window is created, final initialization tasks run:
 ```mermaid
 graph LR
     Window["Main window created"]
-
+    
     Window --> AutoUpdate["setupAutoUpdater()"]
     Window --> Tray["initTray()"]
     Window --> DeepLink["Process pending deep links"]
-
+    
     AutoUpdate --> Check["Check for updates<br/>(4-hour interval)"]
     Tray --> TrayIcon["System tray icon<br/>with menu"]
     DeepLink --> Auth["Authentication callbacks"]
     DeepLink --> Nav["Navigation routes"]
-
+    
     Check --> Ready["App fully initialized"]
     TrayIcon --> Ready
     Auth --> Ready
     Nav --> Ready
-
+    
     style Window fill:#f9f9f9
     style Ready fill:#f9f9f9
 ```
@@ -357,11 +359,11 @@ The main process exposes functionality to the renderer via a tRPC router with 20
 ```mermaid
 graph TB
     Renderer["Renderer Process"]
-
+    
     Renderer <--> IPC["IPC Handler<br/>(trpc-electron)"]
-
+    
     IPC <--> AppRouter["AppRouter<br/>(createAppRouter)"]
-
+    
     AppRouter --> Auth["authRouter"]
     AppRouter --> Window["windowRouter"]
     AppRouter --> Projects["projectsRouter"]
@@ -376,12 +378,12 @@ graph TB
     AppRouter --> Config["configRouter"]
     AppRouter --> AiChat["aiChatRouter"]
     AppRouter --> Others["...16 more routers"]
-
+    
     Auth --> AuthLib["Auth utilities"]
     Window --> WinLib["Window management"]
     Terminal --> TermLib["Terminal manager"]
     Projects --> GitLib["Git operations"]
-
+    
     style AppRouter fill:#f9f9f9
     style IPC fill:#f9f9f9
 ```
@@ -405,7 +407,6 @@ Environment variables are injected at build time through the Vite configuration:
 **Renderer Process**: [apps/desktop/electron.vite.config.ts:146-191]()
 
 This includes:
-
 - API URLs (`NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_STREAMS_URL`, etc.)
 - Analytics keys (PostHog)
 - Error tracking (Sentry DSN)
@@ -430,22 +431,22 @@ sequenceDiagram
     participant Dialog as "Confirmation Dialog"
     participant Window as "Main Window"
     participant Tray as "Tray Icon"
-
+    
     User->>Main: "Quit command<br/>(Cmd+Q, menu, etc.)"
     Main->>Main: "before-quit event fires"
-
+    
     alt isQuitting flag set
         Main->>Main: "Already quitting, skip"
     else Not yet quitting
         Main->>Main: "Check skipConfirmation flag"
         Main->>Main: "Check isDev mode"
         Main->>Main: "Get confirmOnQuit setting"
-
+        
         alt Should confirm
             Main->>Dialog: "Show confirmation dialog"
             Dialog-->>User: "Are you sure you want to quit?"
             User->>Dialog: "Quit or Cancel"
-
+            
             alt User clicked Cancel
                 Dialog-->>Main: "response = 1"
                 Main->>Main: "event.preventDefault()"
@@ -457,7 +458,7 @@ sequenceDiagram
         else Skip confirmation
             Main->>Main: "Set isQuitting = true"
         end
-
+        
         alt isQuitting = true
             Main->>Tray: "disposeTray()"
             Tray-->>Main: "Tray destroyed"
@@ -491,7 +492,6 @@ When the main window closes, it saves state and cleans up resources:
 [apps/desktop/src/main/windows/main.ts:246-268]()
 
 The window close event:
-
 1. Saves window bounds and zoom level
 2. Stops the notifications server
 3. Disposes the notification manager
@@ -532,7 +532,6 @@ A special "Dev" menu provides utilities for testing:
 [apps/desktop/src/main/lib/menu.ts:121-154]()
 
 This includes:
-
 - Reset terminal state (clears all terminal history and metadata)
 - Simulate update states (downloading, ready, error)
 
@@ -602,20 +601,19 @@ Windows that become visible again need a repaint to fix compositor issues:
 
 ## Initialization Timing Summary
 
-| Phase           | Timing    | Key Actions                                     |
-| --------------- | --------- | ----------------------------------------------- |
-| **Launch**      | T+0ms     | Protocol registration, single instance check    |
-| **Pre-Ready**   | T+0-500ms | Wait for Electron ready event                   |
-| **Ready**       | T+500ms   | Protocol handler, Sentry, app state load        |
-| **Database**    | T+600ms   | Run migrations, load settings                   |
-| **Terminal**    | T+700ms   | Reconcile orphaned sessions, restore scrollback |
-| **Window**      | T+800ms   | Create window, setup IPC, start notifications   |
-| **Renderer**    | T+1000ms  | Load HTML, initialize React, mount components   |
-| **Post-Window** | T+1500ms  | Auto-updater, tray, deep links                  |
-| **Fully Ready** | T+2000ms  | All systems operational                         |
+| Phase | Timing | Key Actions |
+|-------|--------|-------------|
+| **Launch** | T+0ms | Protocol registration, single instance check |
+| **Pre-Ready** | T+0-500ms | Wait for Electron ready event |
+| **Ready** | T+500ms | Protocol handler, Sentry, app state load |
+| **Database** | T+600ms | Run migrations, load settings |
+| **Terminal** | T+700ms | Reconcile orphaned sessions, restore scrollback |
+| **Window** | T+800ms | Create window, setup IPC, start notifications |
+| **Renderer** | T+1000ms | Load HTML, initialize React, mount components |
+| **Post-Window** | T+1500ms | Auto-updater, tray, deep links |
+| **Fully Ready** | T+2000ms | All systems operational |
 
 These are approximate timings on a modern Mac with SSD. Actual times vary based on:
-
 - Number of orphaned terminal sessions to restore
 - Database migration complexity
 - Cold vs warm Electron/Chromium startup

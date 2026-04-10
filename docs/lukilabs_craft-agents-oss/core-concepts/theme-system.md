@@ -5,12 +5,16 @@
 
 The following files were used as context for generating this wiki page:
 
-- [packages/shared/package.json](packages/shared/package.json)
-- [packages/shared/src/agent/diagnostics.ts](packages/shared/src/agent/diagnostics.ts)
+- [apps/electron/src/main/onboarding.ts](apps/electron/src/main/onboarding.ts)
+- [apps/electron/src/renderer/index.css](apps/electron/src/renderer/index.css)
+- [apps/electron/src/renderer/pages/settings/AppSettingsPage.tsx](apps/electron/src/renderer/pages/settings/AppSettingsPage.tsx)
+- [apps/electron/src/shared/types.ts](apps/electron/src/shared/types.ts)
+- [bun.lock](bun.lock)
 - [packages/shared/src/config/storage.ts](packages/shared/src/config/storage.ts)
-- [packages/shared/src/utils/summarize.ts](packages/shared/src/utils/summarize.ts)
 
 </details>
+
+
 
 The theme system provides cascading theme configuration at both application and workspace levels, allowing users to customize the visual appearance of Craft Agents globally or on a per-workspace basis. Workspace themes override application-level defaults, enabling context-specific styling for different projects.
 
@@ -18,47 +22,47 @@ For information about general workspace configuration, see [Workspaces](#4.1). F
 
 ## Purpose and Scope
 
-The theme system controls the visual presentation of the Craft Agents desktop application through JSON configuration files. It has three components:
+The theme system controls the visual presentation of the Craft Agents desktop application through JSON configuration files and a 6-color CSS variable system. It has three components:
 
-1. **Preset themes** — bundled named themes (e.g., `dracula`, `nord`) stored at `~/.craft-agent/themes/`, synced from app resources on launch.
-2. **App-level overrides** — fine-grained color overrides written to `~/.craft-agent/theme.json` (`ThemeOverrides`).
-3. **Workspace-level themes** — per-workspace theme configuration that overrides the app-level defaults.
+1.  **Preset themes** — bundled named themes (e.g., `dracula`, `nord`) stored at `~/.craft-agent/themes/`, synced from app resources on launch. [packages/shared/src/config/storage.ts:931-973]()
+2.  **App-level overrides** — fine-grained color overrides written to `~/.craft-agent/theme.json` (`ThemeOverrides`). [packages/shared/src/config/storage.ts:897-914]()
+3.  **Workspace-level themes** — per-workspace theme configuration that overrides the app-level defaults. [apps/electron/src/shared/types.ts:200-201]()
 
-The `colorTheme` field in `StoredConfig` (stored in `~/.craft-agent/config.json`) holds the ID of the selected preset theme.
+The `colorTheme` field in `StoredConfig` (stored in `~/.craft-agent/config.json`) holds the ID of the selected preset theme. [packages/shared/src/config/storage.ts:63-63]()
 
-Sources: [packages/shared/src/config/storage.ts:877-914]()
+Sources: [packages/shared/src/config/storage.ts:51-87](), [packages/shared/src/config/storage.ts:897-973](), [apps/electron/src/shared/types.ts:200-201]()
 
 ## Theme Configuration Hierarchy
 
-Theme configuration follows a three-tier structure:
+Theme configuration follows a three-tier structure. The final visual state is rendered using CSS Custom Properties (Variables) defined in the renderer's global styles. [apps/electron/src/renderer/index.css:84-100]()
 
-| Level                   | Location                                           | Type                | Priority |
-| ----------------------- | -------------------------------------------------- | ------------------- | -------- |
-| **Preset selection**    | `colorTheme` field in `~/.craft-agent/config.json` | `string` (theme ID) | Base     |
-| **App-level overrides** | `~/.craft-agent/theme.json`                        | `ThemeOverrides`    | Middle   |
-| **Workspace overrides** | Workspace `config.json` theme fields               | Workspace-scoped    | Highest  |
+| Level | Location | Type | Priority |
+| :--- | :--- | :--- | :--- |
+| **Preset selection** | `colorTheme` field in `~/.craft-agent/config.json` | `string` (theme ID) | Base |
+| **App-level overrides** | `~/.craft-agent/theme.json` | `ThemeOverrides` | Middle |
+| **Workspace overrides** | Workspace `config.json` theme fields | Workspace-scoped | Highest |
 
-Preset themes live at `~/.craft-agent/themes/<id>.json` and are represented by the `ThemeFile` type. The selected preset is identified by the `colorTheme` string ID. Fine-grained `ThemeOverrides` written to `theme.json` apply on top of the preset.
+Preset themes live at `~/.craft-agent/themes/<id>.json`. The selected preset is identified by the `colorTheme` string ID. Fine-grained `ThemeOverrides` written to `theme.json` apply on top of the preset.
 
 **Theme Configuration Hierarchy**
 
 ```mermaid
 graph TB
-    subgraph "config.json (StoredConfig)"
+    subgraph "config.json [StoredConfig]"
         colorTheme["colorTheme: string (e.g. 'dracula')"]
     end
 
     subgraph "~/.craft-agent/themes/"
-        draculaJSON["dracula.json (ThemeFile)"]
-        nordJSON["nord.json (ThemeFile)"]
-        defaultJSON["default.json (ThemeFile)"]
+        draculaJSON["dracula.json [ThemeFile]"]
+        nordJSON["nord.json [ThemeFile]"]
+        defaultJSON["default.json [ThemeFile]"]
     end
 
     subgraph "~/.craft-agent/"
-        themeJSON["theme.json (ThemeOverrides)"]
+        themeJSON["theme.json [ThemeOverrides]"]
     end
 
-    subgraph "Workspace"
+    subgraph "Workspace [WorkspaceConfig]"
         wsTheme["workspace config.json (theme fields)"]
     end
 
@@ -68,48 +72,49 @@ graph TB
     wsTheme -->|"workspace overrides"| Resolved
 ```
 
-Sources: [packages/shared/src/config/storage.ts:880-881](), [packages/shared/src/config/storage.ts:1143-1164]()
+Sources: [packages/shared/src/config/storage.ts:63-63](), [packages/shared/src/config/storage.ts:897-914](), [packages/shared/src/config/storage.ts:1143-1164]()
 
-## Types
+## 6-Color System Implementation
 
-The theme system uses three TypeScript types, all imported from `packages/shared/src/config/theme.ts`:
+The application uses a 6-color system defined in `oklch` for perceptual uniformity. These are registered as animatable properties in the renderer to allow smooth transitions during theme changes. [apps/electron/src/renderer/index.css:21-64]()
 
-| Type             | Purpose                                                                     |
-| ---------------- | --------------------------------------------------------------------------- |
-| `ThemeFile`      | Schema for a preset theme JSON file (colors, name, `backgroundImage`, etc.) |
-| `ThemeOverrides` | Partial override object written to `~/.craft-agent/theme.json`              |
-| `PresetTheme`    | Runtime object: `{ id: string, path: string, theme: ThemeFile }`            |
+| Variable | Role | Code Entity |
+| :--- | :--- | :--- |
+| `--background` | Light/dark surface | `initial-value: oklch(0.98 0.003 265)` |
+| `--foreground` | Text and icons | `initial-value: oklch(0.185 0.01 270)` |
+| `--accent` | Brand purple (Auto mode) | `initial-value: oklch(0.62 0.13 293)` |
+| `--info` | Amber (Ask mode) | `initial-value: oklch(0.65 0.16 70)` |
+| `--success` | Green (Connected state) | `initial-value: oklch(0.55 0.17 145)` |
+| `--destructive` | Red (Errors/Failed) | `initial-value: oklch(0.55 0.22 27)` |
 
-The `PresetTheme` objects returned by `loadPresetThemes()` have their `backgroundImage` field resolved from relative paths to data URLs by `resolveThemeBackgroundImage()`, because `file://` URLs are blocked in the renderer when running on localhost in dev mode.
+These variables are used to derive variants like `--foreground-50` (50% mix toward background) or `--success-text` (mixed toward foreground for legibility). [apps/electron/src/renderer/index.css:131-152]()
 
-Sources: [packages/shared/src/config/storage.ts:877-878](), [packages/shared/src/config/storage.ts:1039-1075]()
+Sources: [apps/electron/src/renderer/index.css:21-161]()
 
 ## File Locations
 
-| File                              | Description                                      |
-| --------------------------------- | ------------------------------------------------ |
-| `~/.craft-agent/config.json`      | Contains `colorTheme` field (selected preset ID) |
-| `~/.craft-agent/theme.json`       | App-level `ThemeOverrides`                       |
-| `~/.craft-agent/themes/`          | Directory of preset `ThemeFile` JSON files       |
-| `~/.craft-agent/themes/<id>.json` | Individual preset theme (e.g., `dracula.json`)   |
+| File | Description |
+| :--- | :--- |
+| `~/.craft-agent/config.json` | Contains `colorTheme` field (selected preset ID) |
+| `~/.craft-agent/theme.json` | App-level `ThemeOverrides` |
+| `~/.craft-agent/themes/` | Directory of preset `ThemeFile` JSON files |
+| `~/.craft-agent/config-defaults.json` | Fallback values including `colorTheme: 'default'` |
 
-Sources: [packages/shared/src/config/storage.ts:880-881]()
+Sources: [packages/shared/src/config/storage.ts:89-90](), [packages/shared/src/config/storage.ts:103-123]()
 
-## Preset Themes
+## Preset Themes Lifecycle
 
-Preset themes are bundled with the application inside the Electron resources directory and synced to `~/.craft-agent/themes/` on every launch via `ensurePresetThemes()`. The sync logic in `packages/shared/src/config/storage.ts` uses `getBundledAssetsDir('themes')` to locate the bundled source.
+Preset themes are bundled with the application and synced to `~/.craft-agent/themes/` on launch via `ensurePresetThemes()`. [packages/shared/src/config/storage.ts:931-973]()
 
 **Sync behavior (per bundled file):**
 
-| Condition                                  | Action                              |
-| ------------------------------------------ | ----------------------------------- |
-| File does not exist on disk                | Copy from bundle                    |
-| File exists but fails `isValidThemeFile()` | Copy from bundle (auto-heal)        |
-| File exists and is valid                   | Skip (preserve user customizations) |
+| Condition | Action |
+| :--- | :--- |
+| File does not exist on disk | Copy from bundle |
+| File exists but fails `isValidThemeFile()` | Copy from bundle (auto-heal) |
+| File exists and is valid | Skip (preserve user customizations) |
 
-User-created custom theme files with non-bundled filenames are never touched. The `resetPresetTheme(id)` function lets the user restore a bundled preset to its default by overwriting the disk copy.
-
-Presets are sorted in the UI with `default` first, then alphabetically by `theme.name`.
+The `resetPresetTheme(id)` function allows restoring a bundled preset to its default by overwriting the disk copy. [packages/shared/src/config/storage.ts:1112-1137]()
 
 **Preset Theme Lifecycle**
 
@@ -132,20 +137,9 @@ and isValidThemeFile()?"}
 
 Sources: [packages/shared/src/config/storage.ts:931-973](), [packages/shared/src/config/storage.ts:979-1013](), [packages/shared/src/config/storage.ts:1112-1137]()
 
-## Background Image Resolution
-
-`ThemeFile` supports a `backgroundImage` field. When loading preset themes, `resolveThemeBackgroundImage()` converts relative paths to base64 data URLs:
-
-- If `backgroundImage` has a URL scheme (e.g., `https://`, `data:`), it is used as-is.
-- If it is a relative path, the function reads the image file relative to the theme JSON's directory, encodes it as base64, and returns a `data:<mime>;base64,...` URL.
-
-This is necessary because the Electron renderer running on `localhost` in dev mode cannot load `file://` URLs directly.
-
-Sources: [packages/shared/src/config/storage.ts:1039-1075]()
-
 ## Storage Functions
 
-All theme I/O is implemented in `packages/shared/src/config/storage.ts`:
+All theme I/O is implemented in `packages/shared/src/config/storage.ts`. These functions interact with the Electron main process handlers which are then exposed to the renderer via `ElectronAPI`. [apps/electron/src/shared/types.ts:212-220]()
 
 **Storage and Retrieval Functions**
 
@@ -160,13 +154,12 @@ graph LR
         resetPresetTheme["resetPresetTheme(id): boolean"]
         getColorTheme["getColorTheme(): string"]
         setColorTheme["setColorTheme(themeId): void"]
-        getAppThemesDir["getAppThemesDir(): string"]
     end
 
-    subgraph "Disk"
+    subgraph "Disk Entities"
         APP_THEME_FILE["~/.craft-agent/theme.json"]
         APP_THEMES_DIR["~/.craft-agent/themes/"]
-        configJSON["~/.craft-agent/config.json (colorTheme field)"]
+        configJSON["~/.craft-agent/config.json [StoredConfig]"]
     end
 
     loadAppTheme -->|"reads"| APP_THEME_FILE
@@ -177,127 +170,22 @@ graph LR
     resetPresetTheme -->|"overwrites in"| APP_THEMES_DIR
     getColorTheme -->|"reads"| configJSON
     setColorTheme -->|"writes"| configJSON
-    getAppThemesDir -->|"returns path to"| APP_THEMES_DIR
 ```
 
-| Function               | Description                                                                                         |
-| ---------------------- | --------------------------------------------------------------------------------------------------- |
-| `loadAppTheme()`       | Reads `ThemeOverrides` from `~/.craft-agent/theme.json`; returns `null` if absent                   |
-| `saveAppTheme(theme)`  | Writes `ThemeOverrides` to `~/.craft-agent/theme.json`                                              |
-| `loadPresetThemes()`   | Returns all `PresetTheme[]` from `~/.craft-agent/themes/`, sorted (`default` first)                 |
-| `loadPresetTheme(id)`  | Returns a single `PresetTheme` by ID (filename without `.json`)                                     |
-| `ensurePresetThemes()` | Syncs bundled presets to disk; runs once per app session                                            |
-| `resetPresetTheme(id)` | Overwrites a preset file with the bundled version                                                   |
-| `getColorTheme()`      | Returns selected preset ID from `StoredConfig.colorTheme`; defaults to `loadConfigDefaults()` value |
-| `setColorTheme(id)`    | Persists selected preset ID to `StoredConfig.colorTheme` in `config.json`                           |
+| Function | Description |
+| :--- | :--- |
+| `loadAppTheme()` | Reads `ThemeOverrides` from `~/.craft-agent/theme.json`. |
+| `saveAppTheme(theme)` | Writes `ThemeOverrides` to `~/.craft-agent/theme.json`. |
+| `loadPresetThemes()` | Returns all `PresetTheme[]` from `~/.craft-agent/themes/`, sorted. |
+| `getColorTheme()` | Returns selected preset ID from `StoredConfig.colorTheme`. |
+| `setColorTheme(id)` | Persists selected preset ID to `StoredConfig.colorTheme`. |
 
-Sources: [packages/shared/src/config/storage.ts:897-914](), [packages/shared/src/config/storage.ts:1147-1164]()
+Sources: [packages/shared/src/config/storage.ts:897-914](), [packages/shared/src/config/storage.ts:1143-1164]()
 
 ## Integration with Workspace System
 
-Workspace-level theme configuration is stored as part of each workspace's `config.json` (see page 4.1 for workspace config structure). The workspace theme fields override the application-level preset and `ThemeOverrides`. For more on workspace configuration in general, see page 2.8.
+Workspace-level theme configuration is stored as part of each workspace's `config.json`. The workspace theme fields override the application-level preset and `ThemeOverrides`. While app-level themes are managed in `packages/shared/src/config/storage.ts`, workspace-level loading is handled by the workspace config system. [packages/shared/src/config/storage.ts:7-11]()
 
-The theme system's storage module (`packages/shared/src/config/storage.ts`) handles only app-level theme data. Workspace-level theme loading is handled by the workspace config system (`packages/shared/src/workspaces/storage.ts`).
+The renderer consumes these settings to update the application appearance. The `AppSettingsPage` and `AppearanceSettingsPage` (referenced in comments) provide the user interface for these modifications. [apps/electron/src/renderer/pages/settings/AppSettingsPage.tsx:11-13]()
 
-## Color Theme Selection
-
-The `colorTheme` field in `StoredConfig` is a string ID referencing one of the preset theme files in `~/.craft-agent/themes/`. For example, `"colorTheme": "dracula"` selects `~/.craft-agent/themes/dracula.json`.
-
-- `getColorTheme()` reads this field from `StoredConfig`; falls back to the default specified in `config-defaults.json` via `loadConfigDefaults()`.
-- `setColorTheme(themeId)` writes the new selection back to `config.json`.
-- The default preset ID is `"default"` (corresponding to `default.json`).
-
-Sources: [packages/shared/src/config/storage.ts:1143-1164](), [packages/shared/src/config/storage.ts:56-57]()
-
-## Theme Validation
-
-The function `isValidThemeFile(path)` (from `packages/shared/src/config/validators.ts`) is used during preset theme sync to detect corrupt or invalid JSON files. A file that fails validation is overwritten with the bundled version (auto-heal). This prevents a corrupt user-edited preset from permanently breaking the theme picker.
-
-Sources: [packages/shared/src/config/storage.ts:962]()
-
-## Relationship to UI Components
-
-The theme system integrates with the UI layer through the `@craft-agent/ui` package. The main process loads theme data using `loadPresetThemes()` and `loadAppTheme()` and sends it to the renderer via IPC. The renderer stores it in Jotai atoms and applies it through Tailwind CSS classes and inline styles.
-
-**Theme Data Flow (Main Process to Renderer)**
-
-```mermaid
-graph TB
-    subgraph "packages/shared/src/config/storage.ts"
-        loadPresetThemes["loadPresetThemes()"]
-        loadAppTheme["loadAppTheme()"]
-        getColorTheme["getColorTheme()"]
-    end
-
-    subgraph "Electron Main Process"
-        IPCHandler["IPC Handler (theme-related channels)"]
-    end
-
-    subgraph "Electron Renderer"
-        ReactRoot["App.tsx"]
-        JotaiAtom["Jotai atom (themeAtom)"]
-        UIPackage["@craft-agent/ui components"]
-        Tailwind["Tailwind CSS v4"]
-    end
-
-    loadPresetThemes --> IPCHandler
-    loadAppTheme --> IPCHandler
-    getColorTheme --> IPCHandler
-
-    IPCHandler -->|"IPC response"| ReactRoot
-    ReactRoot --> JotaiAtom
-    JotaiAtom --> UIPackage
-    UIPackage --> Tailwind
-```
-
-Sources: [packages/shared/src/config/storage.ts:897-1013]()
-
-## Theme Override Pattern
-
-The override pattern allows selective customization without full duplication:
-
-**Application Theme Example:**
-
-```json
-{
-  "colors": {
-    "primary": "#3b82f6",
-    "secondary": "#64748b",
-    "background": "#ffffff"
-  },
-  "spacing": {
-    "sessionGap": "8px",
-    "sidebarWidth": "240px"
-  }
-}
-```
-
-**Workspace Theme Example (Partial Override):**
-
-```json
-{
-  "colors": {
-    "primary": "#10b981"
-  }
-}
-```
-
-**Resulting Merged Theme:**
-
-```json
-{
-  "colors": {
-    "primary": "#10b981", // Overridden
-    "secondary": "#64748b", // Inherited
-    "background": "#ffffff" // Inherited
-  },
-  "spacing": {
-    "sessionGap": "8px", // Inherited
-    "sidebarWidth": "240px" // Inherited
-  }
-}
-```
-
-This pattern minimizes configuration maintenance and ensures workspace themes stay synchronized with application-level updates for properties they don't explicitly override.
-
-**Sources:** [README.md:290-299]()
+Sources: [packages/shared/src/config/storage.ts:7-11](), [apps/electron/src/renderer/pages/settings/AppSettingsPage.tsx:1-13]()

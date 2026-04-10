@@ -6,7 +6,7 @@
 The following files were used as context for generating this wiki page:
 
 - [apps/desktop/src/lib/trpc/routers/ui-state/index.ts](apps/desktop/src/lib/trpc/routers/ui-state/index.ts)
-- [apps/desktop/src/renderer/routes/\_authenticated/\_dashboard/workspace/$workspaceId/page.tsx](apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/page.tsx)
+- [apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/page.tsx](apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/page.tsx)
 - [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupItem.tsx](apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupItem.tsx)
 - [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupStrip.tsx](apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupStrip.tsx)
 - [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabContentContextMenu.tsx](apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabContentContextMenu.tsx)
@@ -28,6 +28,8 @@ The following files were used as context for generating this wiki page:
 - [apps/desktop/src/shared/tabs-types.ts](apps/desktop/src/shared/tabs-types.ts)
 
 </details>
+
+
 
 This page documents the UI components that render and manage tabs in the Superset desktop application. Tabs are containers that hold one or more panes in a Mosaic layout. The tab system includes the horizontal tab strip (GroupStrip), individual tab buttons (GroupItem), the add tab button with presets, and the content area that displays either a TabView or EmptyTabView.
 
@@ -52,7 +54,7 @@ graph TB
     FileViewerPane["FileViewerPane"]
     ChatMastraPane["ChatMastraPane"]
     BrowserPane["BrowserPane"]
-
+    
     TabsContent -->|"no tabs"| EmptyTabView
     TabsContent -->|"has active tab"| TabView
     GroupStrip --> GroupItem
@@ -64,7 +66,7 @@ graph TB
     Mosaic --> FileViewerPane
     Mosaic --> ChatMastraPane
     Mosaic --> BrowserPane
-
+    
     EmptyTabView -.->|"creates tabs via"| useTabsStore["useTabsStore"]
     GroupStrip -.->|"reads/writes"| useTabsStore
     TabView -.->|"reads/writes"| useTabsStore
@@ -78,12 +80,12 @@ The `TabsContent` component is the top-level coordinator that determines what to
 
 ### Responsibilities
 
-| Responsibility        | Implementation                                                           |
-| --------------------- | ------------------------------------------------------------------------ |
+| Responsibility | Implementation |
+|----------------|----------------|
 | Active tab resolution | Uses `resolveActiveTabIdForWorkspace` to find the correct tab to display |
-| Empty state detection | Renders `EmptyTabView` when no active tab exists                         |
-| Tab validation        | Ensures the resolved tab belongs to the current workspace                |
-| State subscription    | Subscribes to `tabs`, `activeTabIds`, and `tabHistoryStacks` from store  |
+| Empty state detection | Renders `EmptyTabView` when no active tab exists |
+| Tab validation | Ensures the resolved tab belongs to the current workspace |
+| State subscription | Subscribes to `tabs`, `activeTabIds`, and `tabHistoryStacks` from store |
 
 ### Resolution Logic
 
@@ -96,7 +98,7 @@ graph LR
     ValidateWorkspace{"tab.workspaceId<br/>matches?"}
     RenderTabView["Render TabView"]
     RenderEmpty["Render EmptyTabView"]
-
+    
     Start --> GetActiveId
     GetActiveId --> CheckId
     CheckId -->|"null"| RenderEmpty
@@ -107,7 +109,6 @@ graph LR
 ```
 
 The active tab resolution follows a priority order defined in `resolveActiveTabIdForWorkspace`:
-
 1. Current `activeTabIds[workspaceId]` (if valid)
 2. Most recent tab from `tabHistoryStacks[workspaceId]` (if valid)
 3. First tab in workspace by iteration order
@@ -131,7 +132,7 @@ graph TB
     Spacer["Spacer div<br/>(when overflow)"]
     AddButton["AddTabButton<br/>(pinned to right)"]
     OverflowAddButton["AddTabButton<br/>(fixed position)"]
-
+    
     Container --> ScrollContainer
     Container --> OverflowAddButton
     ScrollContainer --> TabsTrack
@@ -144,13 +145,13 @@ graph TB
 
 ### Key Features
 
-| Feature                       | Description                                              | Implementation                                                                        |
-| ----------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Horizontal overflow detection | Detects when tabs exceed container width                 | ResizeObserver on both container and track elements                                   |
-| Status aggregation            | Shows highest-priority status from all panes in tab      | `pickHigherStatus` reducer over pane statuses                                         |
-| Chat title sync               | Syncs Electric SQL chat session titles to tab/pane names | `useLiveQuery` on `chatSessions` collection with `setTabAutoTitle`/`setPaneAutoTitle` |
-| Preset bar toggle             | Shows/hides preset bar via settings                      | `getShowPresetsBar` and `setShowPresetsBar` mutations                                 |
-| Compact button mode           | Toggles between expanded and compact add button          | `getUseCompactTerminalAddButton` setting                                              |
+| Feature | Description | Implementation |
+|---------|-------------|----------------|
+| Horizontal overflow detection | Detects when tabs exceed container width | ResizeObserver on both container and track elements |
+| Status aggregation | Shows highest-priority status from all panes in tab | `pickHigherStatus` reducer over pane statuses |
+| Chat title sync | Syncs Electric SQL chat session titles to tab/pane names | `useLiveQuery` on `chatSessions` collection with `setTabAutoTitle`/`setPaneAutoTitle` |
+| Preset bar toggle | Shows/hides preset bar via settings | `getShowPresetsBar` and `setShowPresetsBar` mutations |
+| Compact button mode | Toggles between expanded and compact add button | `getUseCompactTerminalAddButton` setting |
 
 ### Status Aggregation
 
@@ -159,20 +160,19 @@ The component computes a `tabStatusMap` that aggregates all pane statuses within
 ```typescript
 // From GroupStrip.tsx:125-135
 const tabStatusMap = useMemo(() => {
-  const result = new Map<string, ActivePaneStatus>()
+  const result = new Map<string, ActivePaneStatus>();
   for (const pane of Object.values(panes)) {
-    if (!pane.status || pane.status === 'idle') continue
-    const higher = pickHigherStatus(result.get(pane.tabId), pane.status)
-    if (higher !== 'idle') {
-      result.set(pane.tabId, higher)
+    if (!pane.status || pane.status === "idle") continue;
+    const higher = pickHigherStatus(result.get(pane.tabId), pane.status);
+    if (higher !== "idle") {
+      result.set(pane.tabId, higher);
     }
   }
-  return result
-}, [panes])
+  return result;
+}, [panes]);
 ```
 
 Status priorities are defined in `STATUS_PRIORITY` from `shared/tabs-types.ts`:
-
 - `permission` (3) - highest priority
 - `working` (2)
 - `review` (1)
@@ -190,7 +190,7 @@ sequenceDiagram
     participant Panes as panes (from store)
     participant ES as Electric SQL
     participant Store as useTabsStore
-
+    
     GS->>Panes: Extract chat-mastra panes
     GS->>GS: Build chatSessionTargets map
     GS->>ES: useLiveQuery(sessionIds)
@@ -221,7 +221,7 @@ graph TB
     DisplayMode["Display mode<br/>(button)"]
     StatusBadge["StatusIndicator"]
     CloseButton["Close button<br/>(hover only)"]
-
+    
     GroupItem --> DragSource
     GroupItem --> DropTarget
     GroupItem --> ContextMenu
@@ -229,7 +229,7 @@ graph TB
     GroupItem -->|"!isEditing?"| DisplayMode
     DisplayMode --> StatusBadge
     DisplayMode --> CloseButton
-
+    
     DragSource -.->|"item: {tabId, index}"| DragSystem["react-dnd system"]
     DropTarget -.->|"accepts TAB_TYPE"| TabReordering["onReorder callback"]
     DropTarget -.->|"accepts WINDOW"| PaneMovement["onPaneDrop callback"]
@@ -239,10 +239,10 @@ graph TB
 
 The component supports two types of drops:
 
-| Drop Type      | Item Type               | Behavior               | Implementation                                          |
-| -------------- | ----------------------- | ---------------------- | ------------------------------------------------------- |
-| Tab reordering | `TAB_TYPE`              | Reorders tabs by index | Calls `onReorder(fromIndex, toIndex)` in hover callback |
-| Pane movement  | `MosaicDragType.WINDOW` | Moves pane to this tab | Calls `onPaneDrop(paneId)` in drop callback             |
+| Drop Type | Item Type | Behavior | Implementation |
+|-----------|-----------|----------|----------------|
+| Tab reordering | `TAB_TYPE` | Reorders tabs by index | Calls `onReorder(fromIndex, toIndex)` in hover callback |
+| Pane movement | `MosaicDragType.WINDOW` | Moves pane to this tab | Calls `onPaneDrop(paneId)` in drop callback |
 
 The drag source sets up the tab as draggable:
 
@@ -256,8 +256,8 @@ const [{ isDragging }, drag, preview] = useDrag(
       isDragging: monitor.isDragging(),
     }),
   }),
-  [tab.id, index]
-)
+  [tab.id, index],
+);
 ```
 
 The drop target accepts both types and uses `getItemType()` to distinguish:
@@ -265,14 +265,10 @@ The drop target accepts both types and uses `getItemType()` to distinguish:
 ```typescript
 // From GroupItem.tsx:96-105
 hover: (item, monitor) => {
-  const itemType = monitor.getItemType()
-  if (
-    itemType === TAB_TYPE &&
-    item.index !== undefined &&
-    item.index !== index
-  ) {
-    onReorder?.(item.index, index)
-    item.index = index // Update for next hover
+  const itemType = monitor.getItemType();
+  if (itemType === TAB_TYPE && item.index !== undefined && item.index !== index) {
+    onReorder?.(item.index, index);
+    item.index = index; // Update for next hover
   }
 }
 ```
@@ -290,7 +286,7 @@ stateDiagram-v2
     Editing --> Display: Enter key (save)
     Editing --> Display: Escape key (cancel)
     Editing --> Display: Blur (save)
-
+    
     note right of Editing
         Focus input on mount
         Select text
@@ -304,11 +300,11 @@ The edit value is trimmed and only saved if it differs from the current display 
 
 ### Context Menu Actions
 
-| Action         | Icon          | Behavior                                   |
-| -------------- | ------------- | ------------------------------------------ |
-| Rename         | `LuPencil`    | Enters inline edit mode                    |
-| Mark as Unread | `LuEyeOff`    | Sets all panes in tab to `"review"` status |
-| Close          | `HiMiniXMark` | Removes the tab                            |
+| Action | Icon | Behavior |
+|--------|------|----------|
+| Rename | `LuPencil` | Enters inline edit mode |
+| Mark as Unread | `LuEyeOff` | Sets all panes in tab to `"review"` status |
+| Close | `HiMiniXMark` | Removes the tab |
 
 **Sources:** [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupItem.tsx:248-263]()
 
@@ -325,10 +321,10 @@ graph LR
     Setting["useCompactAddButton setting"]
     CompactMode["Compact Mode<br/>(single + button)"]
     ExpandedMode["Expanded Mode<br/>(Terminal/Chat/Browser buttons)"]
-
+    
     Setting -->|"true"| CompactMode
     Setting -->|"false"| ExpandedMode
-
+    
     CompactMode -->|"click"| DropdownMenu["Dropdown with all options"]
     ExpandedMode -->|"direct click"| QuickAction["Terminal/Chat/Browser action"]
     ExpandedMode -->|"chevron click"| DropdownMenu
@@ -338,12 +334,12 @@ graph LR
 
 In expanded mode, the button splits into multiple segments:
 
-| Segment | Label           | Action            | Style                       |
-| ------- | --------------- | ----------------- | --------------------------- |
-| 1       | Terminal + icon | `onAddTerminal()` | `rounded-r-none`            |
-| 2       | Chat + icon     | `onAddChat()`     | `rounded-none border-l-0`   |
-| 3       | Browser + icon  | `onAddBrowser()`  | `rounded-none border-l-0`   |
-| 4       | Chevron down    | Opens dropdown    | `rounded-l-none border-l-0` |
+| Segment | Label | Action | Style |
+|---------|-------|--------|-------|
+| 1 | Terminal + icon | `onAddTerminal()` | `rounded-r-none` |
+| 2 | Chat + icon | `onAddChat()` | `rounded-none border-l-0` |
+| 3 | Browser + icon | `onAddBrowser()` | `rounded-none border-l-0` |
+| 4 | Chevron down | Opens dropdown | `rounded-l-none border-l-0` |
 
 ### Dropdown Menu Content
 
@@ -356,11 +352,11 @@ graph TB
     PresetsInline["Inline preset items<br/>(if !showPresetsBar)"]
     PresetsSubmenu["PresetsSubmenu component<br/>(if !showPresetsBar)"]
     Settings["Settings checkboxes"]
-
+    
     Dropdown -->|"compact mode only"| CompactItems
     Dropdown -->|"!showPresetsBar"| PresetsSubmenu
     Dropdown --> Settings
-
+    
     Settings --> ShowPresetsBar["Show Preset Bar<br/>(onToggleShowPresetsBar)"]
     Settings --> UseCompact["Use Compact Button<br/>(onToggleCompactAddButton)"]
 ```
@@ -380,12 +376,12 @@ graph TB
     Icons["Preset icons<br/>(getPresetIcon)"]
     Hotkeys["Hotkey shortcuts<br/>(PRESET_HOTKEY_IDS)"]
     Config["Configure Presets item"]
-
+    
     Sub --> PresetItems
     PresetItems --> Icons
     PresetItems --> Hotkeys
     Sub --> Config
-
+    
     Icons -.->|"based on preset name"| IconMap["icon mapping"]
     Hotkeys -.->|"indices 0-9"| HotkeyIds["PRESET_1..PRESET_10"]
 ```
@@ -417,19 +413,19 @@ The `TabView` component renders the active tab's content using `react-mosaic-com
 ```mermaid
 graph TB
     TabView["TabView Component"]
-
+    
     LayoutValidation["Layout Validation<br/>(cleanLayout)"]
     MosaicRender["Mosaic Component<br/>(renderTile callback)"]
     LayoutChange["Layout Change Handler<br/>(onChange callback)"]
     PaneRouting["Pane Type Routing<br/>(renderPane callback)"]
     AutoRemove["Auto-remove on Empty<br/>(useEffect)"]
-
+    
     TabView --> LayoutValidation
     TabView --> MosaicRender
     TabView --> LayoutChange
     TabView --> PaneRouting
     TabView --> AutoRemove
-
+    
     LayoutValidation -.->|"removes invalid pane IDs"| CleanedLayout["cleanedLayout"]
     MosaicRender -.->|"for each pane ID"| PaneRouting
     LayoutChange -.->|"on split/close"| UpdateStore["updateTabLayout"]
@@ -440,16 +436,15 @@ graph TB
 
 The `renderPane` callback routes each pane ID to the appropriate component based on its type:
 
-| Pane Type       | Component        | Props Passed                         |
-| --------------- | ---------------- | ------------------------------------ |
-| `"terminal"`    | `TabPane`        | Standard pane props + workspace ID   |
-| `"file-viewer"` | `FileViewerPane` | Standard pane props + worktree path  |
-| `"chat-mastra"` | `ChatMastraPane` | Standard pane props + workspace ID   |
-| `"webview"`     | `BrowserPane`    | Standard pane props                  |
-| `"devtools"`    | `DevToolsPane`   | Standard pane props + target pane ID |
+| Pane Type | Component | Props Passed |
+|-----------|-----------|--------------|
+| `"terminal"` | `TabPane` | Standard pane props + workspace ID |
+| `"file-viewer"` | `FileViewerPane` | Standard pane props + worktree path |
+| `"chat-mastra"` | `ChatMastraPane` | Standard pane props + workspace ID |
+| `"webview"` | `BrowserPane` | Standard pane props |
+| `"devtools"` | `DevToolsPane` | Standard pane props + target pane ID |
 
 Standard pane props include:
-
 - `paneId`, `path`, `tabId`
 - `splitPaneAuto`, `splitPaneHorizontal`, `splitPaneVertical`
 - `removePane`, `setFocusedPane`
@@ -471,7 +466,7 @@ sequenceDiagram
     participant Mosaic as react-mosaic-component
     participant Handler as handleLayoutChange
     participant Store as useTabsStore
-
+    
     Mosaic->>Handler: onChange(newLayout)
     Handler->>Store: getState() [fresh data]
     Handler->>Handler: Extract old pane IDs
@@ -496,14 +491,14 @@ The component validates the layout against valid pane IDs and automatically remo
 
 ```typescript
 // From TabView/index.tsx:86-94
-const validPaneIds = new Set(Object.keys(tabPanes))
-const cleanedLayout = cleanLayout(tab.layout, validPaneIds)
+const validPaneIds = new Set(Object.keys(tabPanes));
+const cleanedLayout = cleanLayout(tab.layout, validPaneIds);
 
 useEffect(() => {
   if (!cleanedLayout) {
-    removeTab(tab.id)
+    removeTab(tab.id);
   }
-}, [cleanedLayout, removeTab, tab.id])
+}, [cleanedLayout, removeTab, tab.id]);
 ```
 
 The `cleanLayout` function recursively removes any pane IDs from the Mosaic tree that don't exist in the valid set, collapsing branches as needed.
@@ -525,14 +520,14 @@ graph TB
     Actions["EmptyTabActionButton[]<br/>(map over actions)"]
     DeleteButton["Delete workspace button<br/>(text button)"]
     Dialog["DeleteWorkspaceDialog<br/>(modal)"]
-
+    
     Container --> Inner
     Inner --> Logo
     Inner --> ActionsGrid
     Inner --> DeleteButton
     Inner --> Dialog
     ActionsGrid --> Actions
-
+    
     Logo -.->|"themed"| Theme["activeTheme.type"]
     Actions -.->|"each action"| ActionConfig["label, icon, hotkey, onClick"]
 ```
@@ -541,16 +536,15 @@ graph TB
 
 The component builds an array of actions based on available features:
 
-| Action ID      | Label         | Icon                  | Hotkey        | Always Shown                   |
-| -------------- | ------------- | --------------------- | ------------- | ------------------------------ |
-| `terminal`     | Open Terminal | `BsTerminalPlus`      | `NEW_GROUP`   | Yes                            |
-| `new-agent`    | Open Chat     | `TbMessageCirclePlus` | `NEW_CHAT`    | Yes                            |
-| `open-browser` | Open Browser  | `TbWorld`             | `NEW_BROWSER` | Yes                            |
-| `open-in-app`  | Open in {App} | `LuExternalLink`      | `OPEN_IN_APP` | If `defaultExternalApp` exists |
-| `search-files` | Search Files  | `LuSearch`            | `QUICK_OPEN`  | Yes                            |
+| Action ID | Label | Icon | Hotkey | Always Shown |
+|-----------|-------|------|--------|--------------|
+| `terminal` | Open Terminal | `BsTerminalPlus` | `NEW_GROUP` | Yes |
+| `new-agent` | Open Chat | `TbMessageCirclePlus` | `NEW_CHAT` | Yes |
+| `open-browser` | Open Browser | `TbWorld` | `NEW_BROWSER` | Yes |
+| `open-in-app` | Open in {App} | `LuExternalLink` | `OPEN_IN_APP` | If `defaultExternalApp` exists |
+| `search-files` | Search Files | `LuSearch` | `QUICK_OPEN` | Yes |
 
 Each button is rendered as an `EmptyTabActionButton` component that displays:
-
 - Icon on the left
 - Label text
 - Hotkey hint on the right (using `Kbd` components)
@@ -566,14 +560,14 @@ graph LR
     Button["Button<br/>(variant=ghost)"]
     Left["Left section"]
     Right["Right section"]
-
+    
     Button --> Left
     Button --> Right
-
+    
     Left --> Icon["Icon in p-1 rounded"]
     Left --> Label["Text label"]
     Right --> KbdGroup["KbdGroup"]
-
+    
     KbdGroup --> Kbds["Kbd components<br/>(map over display array)"]
 ```
 
@@ -594,26 +588,26 @@ graph TB
     AddTabButton["AddTabButton"]
     TabView["TabView"]
     EmptyTabView["EmptyTabView"]
-
+    
     Store["useTabsStore"]
-
+    
     GroupStrip -->|"reads"| Tabs["tabs"]
     GroupStrip -->|"reads"| Panes["panes"]
     GroupStrip -->|"reads"| ActiveIds["activeTabIds"]
     GroupStrip -->|"reads"| History["tabHistoryStacks"]
-
+    
     GroupStrip -->|"calls"| SetActive["setActiveTab"]
     GroupStrip -->|"calls"| Remove["removeTab"]
     GroupStrip -->|"calls"| Rename["renameTab"]
     GroupStrip -->|"calls"| Reorder["reorderTabs"]
     GroupStrip -->|"calls"| SetStatus["setPaneStatus"]
     GroupStrip -->|"calls"| MoveTo["movePaneToTab / movePaneToNewTab"]
-
+    
     TabView -->|"calls"| UpdateLayout["updateTabLayout"]
     TabView -->|"calls"| RemovePane["removePane"]
-
+    
     EmptyTabView -->|"calls"| AddTab["addTab / addChatMastraTab / addBrowserTab"]
-
+    
     Store -.->|"provides"| Tabs
     Store -.->|"provides"| Panes
     Store -.->|"provides"| ActiveIds
@@ -624,13 +618,13 @@ graph TB
 
 ### Store Actions Used by UI Components
 
-| Component      | Actions Called                                                                                                                                                   |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GroupStrip`   | `setActiveTab`, `removeTab`, `renameTab`, `reorderTabs`, `setPaneStatus`, `movePaneToTab`, `movePaneToNewTab`, `setTabAutoTitle`, `setPaneAutoTitle`             |
-| `GroupItem`    | (Actions passed down from `GroupStrip`)                                                                                                                          |
-| `AddTabButton` | (Calls passed from `GroupStrip`: `addTab`, `addChatMastraTab`, `addBrowserTab`, `openPreset`)                                                                    |
-| `TabView`      | `updateTabLayout`, `removePane`, `removeTab`, `splitPaneAuto`, `splitPaneHorizontal`, `splitPaneVertical`, `setFocusedPane`, `movePaneToTab`, `movePaneToNewTab` |
-| `EmptyTabView` | `addTab`, `addChatMastraTab`, `addBrowserTab`                                                                                                                    |
+| Component | Actions Called |
+|-----------|----------------|
+| `GroupStrip` | `setActiveTab`, `removeTab`, `renameTab`, `reorderTabs`, `setPaneStatus`, `movePaneToTab`, `movePaneToNewTab`, `setTabAutoTitle`, `setPaneAutoTitle` |
+| `GroupItem` | (Actions passed down from `GroupStrip`) |
+| `AddTabButton` | (Calls passed from `GroupStrip`: `addTab`, `addChatMastraTab`, `addBrowserTab`, `openPreset`) |
+| `TabView` | `updateTabLayout`, `removePane`, `removeTab`, `splitPaneAuto`, `splitPaneHorizontal`, `splitPaneVertical`, `setFocusedPane`, `movePaneToTab`, `movePaneToNewTab` |
+| `EmptyTabView` | `addTab`, `addChatMastraTab`, `addBrowserTab` |
 
 **Sources:** [apps/desktop/src/renderer/stores/tabs/store.ts:106-1410]()
 
@@ -643,23 +637,22 @@ graph TB
     Container["scrollContainerRef<br/>(overflow container)"]
     Track["tabsTrackRef<br/>(tabs track)"]
     Observer["ResizeObserver"]
-
+    
     Container --> Compare["Compare widths"]
     Track --> Compare
     Observer -->|"observes"| Container
     Observer -->|"observes"| Track
     Observer -->|"on resize"| UpdateOverflow["updateOverflow()"]
-
+    
     Compare -->|"track > container"| SetTrue["setHasHorizontalOverflow(true)"]
     Compare -->|"track <= container"| SetFalse["setHasHorizontalOverflow(false)"]
-
+    
     SetTrue --> ShowSpacer["Show spacer in track"]
     SetTrue --> ShowFixed["Show fixed AddTabButton"]
     SetFalse --> ShowInline["Show inline AddTabButton"]
 ```
 
 When overflow is detected:
-
 1. A spacer `div` is added to the end of the scrollable track to reserve space
 2. The `AddTabButton` is rendered in a fixed position outside the scroll container
 3. This ensures the add button remains visible and accessible even when many tabs exist
@@ -670,11 +663,11 @@ When overflow is detected:
 
 Components adapt their appearance based on the active theme from `useTheme()`:
 
-| Component        | Theme Usage                                                                               |
-| ---------------- | ----------------------------------------------------------------------------------------- |
-| `TabView`        | Sets Mosaic `className` to `"mosaic-theme-light"` or `"mosaic-theme-dark"`                |
-| `EmptyTabView`   | Adjusts logo opacity/brightness: `opacity-85` (dark) or `brightness-0 opacity-75` (light) |
-| `PresetsSubmenu` | Uses `useIsDarkTheme()` to select light/dark preset icons                                 |
+| Component | Theme Usage |
+|-----------|-------------|
+| `TabView` | Sets Mosaic `className` to `"mosaic-theme-light"` or `"mosaic-theme-dark"` |
+| `EmptyTabView` | Adjusts logo opacity/brightness: `opacity-85` (dark) or `brightness-0 opacity-75` (light) |
+| `PresetsSubmenu` | Uses `useIsDarkTheme()` to select light/dark preset icons |
 
 The Mosaic theme classes are defined in `apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/mosaic-theme.css` and override react-mosaic-component's default styles to match Superset's design system.
 

@@ -6,7 +6,7 @@
 The following files were used as context for generating this wiki page:
 
 - [apps/desktop/src/lib/trpc/routers/ui-state/index.ts](apps/desktop/src/lib/trpc/routers/ui-state/index.ts)
-- [apps/desktop/src/renderer/routes/\_authenticated/\_dashboard/workspace/$workspaceId/page.tsx](apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/page.tsx)
+- [apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/page.tsx](apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/page.tsx)
 - [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupItem.tsx](apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupItem.tsx)
 - [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupStrip.tsx](apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupStrip.tsx)
 - [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabContentContextMenu.tsx](apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabContentContextMenu.tsx)
@@ -29,6 +29,8 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
+
+
 ## Purpose and Scope
 
 The File Viewer Pane is a specialized pane type within the Tab and Pane System that displays file contents in three distinct modes: raw (source code editing), rendered (markdown/image preview), and diff (change visualization). This document covers the file viewer architecture, state management, view mode switching, file operations (loading/saving), and conflict resolution.
@@ -48,7 +50,6 @@ The file viewer pane is one of five pane types (`"terminal" | "webview" | "file-
 - **File path retargeting**: automatically updates paths when files are renamed/moved
 
 **Key Characteristics:**
-
 - **Single workspace scope**: File viewer panes always belong to a workspace and operate on files within that workspace's worktree
 - **Transient positioning**: `initialLine` and `initialColumn` are applied once when opening a file, then discarded (not persisted)
 - **Automatic pinning**: panes automatically pin themselves when the user makes edits to prevent accidental replacement
@@ -75,7 +76,7 @@ graph TB
         InitialColumn["initialColumn?: number<br/>(transient, applied once)"]
         DisplayName["displayName?: string<br/>(for remote URLs)"]
     end
-
+    
     subgraph "Pane Interface (shared/tabs-types.ts)"
         PaneId["id: string"]
         TabId["tabId: string"]
@@ -83,7 +84,7 @@ graph TB
         PaneName["name: string<br/>(derived from filename)"]
         FileViewerRef["fileViewer?: FileViewerState"]
     end
-
+    
     PaneType --> FileViewerRef
     FileViewerRef --> FilePath
     FileViewerRef --> ViewMode
@@ -93,7 +94,6 @@ graph TB
 ```
 
 **State Persistence:**
-
 - `initialLine` and `initialColumn` are **intentionally omitted** from persistence (see `fileViewerStateSchema` in [apps/desktop/src/lib/trpc/routers/ui-state/index.ts:18-28]())
 - These fields are transient — applied once when the pane opens, then discarded
 - All other fields persist across app restarts via the UI state tRPC router
@@ -110,53 +110,52 @@ graph TB
     FileViewerPane["FileViewerPane<br/>(FileViewerPane.tsx)"]
     FileViewerToolbar["FileViewerToolbar<br/>(toolbar component)"]
     FileViewerContent["FileViewerContent<br/>(content router)"]
-
+    
     subgraph "Content Renderers"
         CodeEditor["CodeEditor<br/>(raw mode)"]
         MarkdownRenderer["MarkdownRenderer<br/>(rendered mode)"]
         LightDiffViewer["LightDiffViewer<br/>(diff mode)"]
         ImageViewer["Image Viewer<br/>(img tag)"]
     end
-
+    
     subgraph "Hooks"
         useFileContent["useFileContent<br/>(data fetching)"]
         useFileSave["useFileSave<br/>(save logic)"]
         useMarkdownSearch["useMarkdownSearch<br/>(find in markdown)"]
     end
-
+    
     subgraph "Context Menus"
         FileEditorContextMenu["FileEditorContextMenu<br/>(raw mode)"]
         DiffViewerContextMenu["DiffViewerContextMenu<br/>(diff mode)"]
         MarkdownContextMenu["Markdown Context Menu<br/>(rendered mode)"]
     end
-
+    
     subgraph "Dialogs"
         UnsavedChangesDialog["UnsavedChangesDialog"]
         FileSaveConflictDialog["FileSaveConflictDialog"]
     end
-
+    
     TabView -->|"renderPane(paneId, path)"| FileViewerPane
     FileViewerPane --> FileViewerToolbar
     FileViewerPane --> FileViewerContent
     FileViewerPane --> UnsavedChangesDialog
     FileViewerPane --> FileSaveConflictDialog
-
+    
     FileViewerContent -->|"viewMode='raw'"| CodeEditor
     FileViewerContent -->|"viewMode='rendered'"| MarkdownRenderer
     FileViewerContent -->|"viewMode='rendered' + image"| ImageViewer
     FileViewerContent -->|"viewMode='diff'"| LightDiffViewer
-
+    
     FileViewerPane --> useFileContent
     FileViewerPane --> useFileSave
     FileViewerPane --> useMarkdownSearch
-
+    
     CodeEditor --> FileEditorContextMenu
     LightDiffViewer --> DiffViewerContextMenu
     MarkdownRenderer --> MarkdownContextMenu
 ```
 
 **Component Hierarchy:**
-
 1. `TabView` ([apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/index.tsx:156-193]()) routes `"file-viewer"` panes to `FileViewerPane`
 2. `FileViewerPane` ([apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/FileViewerPane.tsx:58-712]()) is the orchestrator component that:
    - Manages state (dirty tracking, conflict detection, mode switching)
@@ -177,42 +176,41 @@ Sources: [apps/desktop/src/renderer/screens/main/components/WorkspaceView/Conten
 ```mermaid
 graph TB
     Start["resolveFileViewerMode()"]
-
+    
     HasExplicit{"viewMode<br/>provided?"}
     IsImage{"isImageFile()?"}
     HasDiff{"diffCategory<br/>exists?"}
     IsNewFile{"isNewFile(fileStatus)?"}
     HasRendered{"hasRenderedPreview()?"}
-
+    
     ReturnExplicit["return viewMode"]
     ReturnRendered1["return 'rendered'"]
     ReturnRaw1["return 'raw'"]
     ReturnDiff["return 'diff'"]
     ReturnRendered2["return 'rendered'"]
     ReturnRaw2["return 'raw'"]
-
+    
     Start --> HasExplicit
     HasExplicit -->|"yes"| ReturnExplicit
     HasExplicit -->|"no"| IsImage
-
+    
     IsImage -->|"yes"| ReturnRendered1
     IsImage -->|"no"| HasDiff
-
+    
     HasDiff -->|"yes"| IsNewFile
     HasDiff -->|"no"| HasRendered
-
+    
     IsNewFile -->|"yes"| HasRendered
     IsNewFile -->|"no"| ReturnDiff
-
+    
     HasRendered -->|"yes"| ReturnRendered2
     HasRendered -->|"no"| ReturnRaw2
-
+    
     HasRendered -->|"yes (no diff)"| ReturnRendered2
     HasRendered -->|"no (no diff)"| ReturnRaw2
 ```
 
 **View Mode Logic** ([apps/desktop/src/renderer/stores/tabs/utils.ts:18-40]()):
-
 1. If `viewMode` explicitly provided → use it
 2. If file is an image → always `"rendered"` (no meaningful diff for binary files)
 3. If `diffCategory` exists and file is **not** new → `"diff"`
@@ -220,11 +218,11 @@ graph TB
 5. If file has rendered preview (markdown, etc.) → `"rendered"`
 6. Otherwise → `"raw"`
 
-| View Mode    | Description                        | Use Case                                 |
-| ------------ | ---------------------------------- | ---------------------------------------- |
-| `"raw"`      | Monaco-based code editor           | Editing source files, viewing plain text |
-| `"rendered"` | Markdown renderer or `<img>` tag   | Previewing markdown docs, images         |
-| `"diff"`     | Side-by-side or inline diff viewer | Reviewing uncommitted/committed changes  |
+| View Mode | Description | Use Case |
+|-----------|-------------|----------|
+| `"raw"` | Monaco-based code editor | Editing source files, viewing plain text |
+| `"rendered"` | Markdown renderer or `<img>` tag | Previewing markdown docs, images |
+| `"diff"` | Side-by-side or inline diff viewer | Reviewing uncommitted/committed changes |
 
 Sources: [apps/desktop/src/renderer/stores/tabs/utils.ts:18-40](), [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/components/FileViewerContent/FileViewerContent.tsx:162-262]()
 
@@ -251,42 +249,40 @@ Sources: [apps/desktop/src/renderer/screens/main/components/WorkspaceView/Conten
 ```mermaid
 graph TB
     useFileContent["useFileContent hook"]
-
+    
     subgraph "Raw Mode Queries"
         RawQuery["trpc.filesystem.readFile"]
         RawResult["rawFileData:<br/>{ ok: true, content: string }<br/>| { ok: false, reason: 'too-large' | 'binary' | 'not-found' | 'is-directory' }"]
     end
-
+    
     subgraph "Image Mode Queries"
         ImageQuery["trpc.filesystem.readFileAsDataUrl"]
         ImageResult["imageData:<br/>{ ok: true, dataUrl: string, byteLength: number }<br/>| { ok: false, reason: ... }"]
     end
-
+    
     subgraph "Diff Mode Queries"
         DiffQuery["trpc.changes.getGitFileContents<br/>trpc.changes.getGitOriginalContent"]
         DiffResult["diffData:<br/>{ original: string, modified: string, language: string }"]
     end
-
+    
     useFileContent --> RawQuery
     useFileContent --> ImageQuery
     useFileContent --> DiffQuery
-
+    
     RawQuery --> RawResult
     ImageQuery --> ImageResult
     DiffQuery --> DiffResult
-
+    
     RawResult -.->|"stores in"| originalContentRef["originalContentRef.current"]
     DiffResult -.->|"stores in"| originalDiffContentRef["originalDiffContentRef.current"]
 ```
 
 **Loading Strategy:**
-
 - **Conditional fetching**: Only queries relevant to the current `viewMode` are enabled
 - **Reference caching**: Content stored in refs (`originalContentRef`, `originalDiffContentRef`) for dirty state comparison
 - **Error handling**: Each query type returns a discriminated union with `ok: boolean` for graceful error UI
 
 **Query Details:**
-
 - `trpc.filesystem.readFile`: Returns file content as string or error reason (too-large, binary, not-found, is-directory)
 - `trpc.filesystem.readFileAsDataUrl`: For images, returns base64 data URL
 - `trpc.changes.getGitFileContents`: For diffs, fetches both original and modified versions with language detection
@@ -303,14 +299,14 @@ sequenceDiagram
     participant tRPC
     participant FileSystem
     participant Dialog
-
+    
     User->>FileViewerPane: Edit content (Cmd+S)
     FileViewerPane->>FileViewerPane: Set isDirty = true
     FileViewerPane->>useFileSave: handleSaveRaw()
-
+    
     useFileSave->>useFileSave: Get editor content
     useFileSave->>tRPC: filesystem.writeFile({ content, revision })
-
+    
     alt Success (no conflict)
         tRPC->>FileSystem: Write file
         FileSystem-->>tRPC: { ok: true, newRevision }
@@ -325,7 +321,6 @@ sequenceDiagram
 ```
 
 **Save Process:**
-
 1. Editor content captured via `editorRef.current?.getValue()`
 2. `writeFile` mutation called with current content and `revision` (last known file modification time)
 3. Backend checks if file modified since last read (optimistic concurrency control)
@@ -333,7 +328,6 @@ sequenceDiagram
 5. If conflict → `FileSaveConflictDialog` displayed (see below)
 
 **Dirty State Tracking:**
-
 - `isDirty`: Boolean flag indicating unsaved changes
 - `originalContentRef.current`: Reference snapshot of last loaded/saved content
 - `draftContentRef.current`: Current editor content (updated on each keystroke)
@@ -347,21 +341,19 @@ Sources: [apps/desktop/src/renderer/screens/main/components/WorkspaceView/Conten
 
 When the file on disk has been modified since it was last loaded (detected via `revision` mismatch), the `FileSaveConflictDialog` presents three resolution options:
 
-| Option              | Behavior                                           |
-| ------------------- | -------------------------------------------------- |
-| **Overwrite**       | Discard disk changes, write local content          |
+| Option | Behavior |
+|--------|----------|
+| **Overwrite** | Discard disk changes, write local content |
 | **Compare in Diff** | Open diff viewer to review changes before deciding |
-| **Reload**          | Discard local changes, reload disk content         |
+| **Reload** | Discard local changes, reload disk content |
 
 **Conflict Detection:**
-
 - Each file read operation stores a `revision` (last modified timestamp)
 - Each write operation includes the expected `revision`
 - Backend compares expected vs actual revision before writing
 - Mismatch triggers `{ ok: false, reason: "conflict", diskContent }` response
 
 **User Experience:**
-
 - Conflict dialog is non-blocking (can continue editing)
 - "Compare in Diff" opens a temporary diff pane showing local vs disk
 - Resolution choice clears the conflict state and dirty flag
@@ -414,7 +406,6 @@ stateDiagram-v2
 ```
 
 **Auto-Pin Triggers:**
-
 1. **Editing**: Any content modification sets `isPinned = true` (see [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/FileViewerPane.tsx:234-238]())
 2. **Manual pin**: User clicks pin icon in toolbar
 3. **Open in new tab**: `openInNewTab` option always creates pinned panes
@@ -440,7 +431,6 @@ Three specialized context menus provide mode-appropriate actions:
 ### FileEditorContextMenu (Raw Mode)
 
 **Available Actions:**
-
 - **Clipboard**: Cut, Copy, Paste (with Cmd+X/C/V shortcuts)
 - **Select All**: Cmd+A
 - **Copy Path**: Copy absolute file path to clipboard
@@ -453,7 +443,6 @@ Sources: [apps/desktop/src/renderer/screens/main/components/WorkspaceView/Conten
 ### DiffViewerContextMenu (Diff Mode)
 
 **Available Actions:**
-
 - **Copy**: Copy selected diff text
 - **Select All**: Select all diff content
 - **Copy Path**: Copy file path
@@ -467,7 +456,6 @@ Sources: [apps/desktop/src/renderer/screens/main/components/WorkspaceView/Conten
 ### Markdown Context Menu (Rendered Mode)
 
 Uses the same `EditorContextMenu` wrapper but with limited actions:
-
 - **Copy**: Copy selected markdown text
 - **Select All**
 - **Copy Path**
@@ -487,7 +475,6 @@ The `FileViewerToolbar` component ([FileViewerToolbar.tsx]) provides mode-specif
 ### Mode Switcher
 
 Segmented control to switch between view modes:
-
 - **Raw**: Source code editor
 - **Diff**: Change visualization (only enabled if `diffCategory` present)
 - **Rendered**: Markdown/image preview (only enabled if file has rendered preview)
@@ -496,11 +483,11 @@ Switching is blocked if `isDirty` (shows unsaved changes dialog first).
 
 ### View Mode-Specific Actions
 
-| Mode         | Actions                                                                               |
-| ------------ | ------------------------------------------------------------------------------------- |
-| **Raw**      | Save (Cmd+S), Pin/Unpin                                                               |
-| **Diff**     | View mode toggle (inline/side-by-side), Hide/Show unchanged regions, Edit at location |
-| **Rendered** | Pin/Unpin, Search (markdown only)                                                     |
+| Mode | Actions |
+|------|---------|
+| **Raw** | Save (Cmd+S), Pin/Unpin |
+| **Diff** | View mode toggle (inline/side-by-side), Hide/Show unchanged regions, Edit at location |
+| **Rendered** | Pin/Unpin, Search (markdown only) |
 
 ### Status Indicators
 
@@ -519,8 +506,10 @@ Sources: [apps/desktop/src/renderer/screens/main/components/WorkspaceView/Conten
 File viewer panes are created via the `addFileViewerPane` action:
 
 ```typescript
-addFileViewerPane: (workspaceId: string, options: AddFileViewerPaneOptions) =>
-  string // returns paneId
+addFileViewerPane: (
+  workspaceId: string,
+  options: AddFileViewerPaneOptions
+) => string // returns paneId
 ```
 
 **Options Interface:**
@@ -543,7 +532,6 @@ Sources: [apps/desktop/src/renderer/stores/tabs/types.ts:68-90](), [apps/desktop
 ### Changes Panel Integration
 
 The Changes panel (sidebar) uses `addFileViewerPane` to open files:
-
 - Clicking a changed file → opens in preview mode with appropriate `diffCategory`
 - Clicking line numbers in diff snippets → opens at specific line via `line` option
 - Respects user's file open mode preference (new tab vs reuse)
@@ -551,7 +539,6 @@ The Changes panel (sidebar) uses `addFileViewerPane` to open files:
 ### Command Palette Integration
 
 Quick Open (Cmd+P) and Keyword Search (Cmd+Shift+F) both open files via `addFileViewerPane`:
-
 - Always opens at specific line/column when search result provides it
 - Respects file open mode preference
 - Automatically pins if opening from search (user explicitly selected it)
@@ -559,7 +546,6 @@ Quick Open (Cmd+P) and Keyword Search (Cmd+Shift+F) both open files via `addFile
 ### File System Events
 
 File viewer panes subscribe to workspace file events via `useWorkspaceFileEvents`:
-
 - **Rename/Move**: Updates `filePath` via `retargetFileViewerPaths`
 - **Change**: Invalidates file content queries (triggers reload)
 - **Delete**: Pane shows "file not found" error
@@ -579,36 +565,36 @@ sequenceDiagram
     participant FileViewerPane
     participant useFileContent
     participant tRPC
-
+    
     User->>ChangesPanel: Click file in changes
     ChangesPanel->>TabsStore: addFileViewerPane({ filePath, diffCategory })
-
+    
     alt Preview pane exists
         TabsStore->>TabsStore: Reuse pane (update fileViewer state)
     else No preview pane
         TabsStore->>TabsStore: Create new pane
     end
-
+    
     TabsStore-->>ChangesPanel: Return paneId
-
+    
     Note over FileViewerPane: Component mounts/updates
-
+    
     FileViewerPane->>useFileContent: Fetch file (viewMode='diff')
     useFileContent->>tRPC: changes.getGitFileContents
     tRPC-->>useFileContent: { original, modified, language }
     useFileContent-->>FileViewerPane: diffData
-
+    
     FileViewerPane->>FileViewerPane: Render diff viewer
-
+    
     User->>FileViewerPane: Switch to raw mode
     FileViewerPane->>FileViewerPane: Update pane.fileViewer.viewMode
     FileViewerPane->>useFileContent: Fetch file (viewMode='raw')
     useFileContent->>tRPC: filesystem.readFile
     tRPC-->>useFileContent: { ok: true, content }
-
+    
     User->>FileViewerPane: Edit content
     FileViewerPane->>FileViewerPane: isDirty = true, isPinned = true
-
+    
     User->>FileViewerPane: Save (Cmd+S)
     FileViewerPane->>tRPC: filesystem.writeFile({ content, revision })
     tRPC-->>FileViewerPane: { ok: true, newRevision }
@@ -616,7 +602,6 @@ sequenceDiagram
 ```
 
 **Key State Transitions:**
-
 1. Pane created (or reused) via `addFileViewerPane`
 2. `FileViewerPane` component mounts, reads `fileViewer` state
 3. `useFileContent` fetches content based on `viewMode`

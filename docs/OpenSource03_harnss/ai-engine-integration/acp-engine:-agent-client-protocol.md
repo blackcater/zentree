@@ -22,6 +22,8 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
+
+
 The **ACP Engine** enables Harnss to integrate with agents that implement the [Agent Client Protocol](https://github.com/agentclientprotocol/protocol). This protocol allows Harnss to spawn external agent processes (such as Gemini CLI or Goose), communicate via a standardized JSON-RPC-like stream, and provide the agent with local capabilities like file system access and MCP server connectivity.
 
 ## Process Spawning and Lifecycle
@@ -29,19 +31,15 @@ The **ACP Engine** enables Harnss to integrate with agents that implement the [A
 ACP agents are managed in the Electron main process via `acp-sessions.ts`. When a session starts, Harnss resolves the agent's binary and spawns it as a child process.
 
 ### Binary Resolution
-
 Harnss supports three methods for launching ACP agents:
-
 1.  **Registry-managed**: Binaries discovered or downloaded into the app's data directory [electron/src/lib/agent-registry.ts:11-28]().
 2.  **System PATH**: Standard executables found via `which` or `where` [electron/src/lib/agent-registry.ts:123-136]().
 3.  **npx**: Ephemeral execution for Node-based agents [electron/src/ipc/acp-sessions.ts:86-91]().
 
 ### Connection Setup
-
 Once spawned, the main process establishes a `ClientSideConnection` using the ACP SDK [electron/src/ipc/acp-sessions.ts:15-20](). Communication occurs over `stdin` and `stdout` using an `ndJsonStream` (Newline Delimited JSON) [electron/src/ipc/acp-sessions.ts:50-53]().
 
 ### Session Entry Structure
-
 Each active ACP agent is tracked in an `ACPSessionEntry` [electron/src/ipc/acp-sessions.ts:50-68]():
 | Field | Description |
 | :--- | :--- |
@@ -58,23 +56,18 @@ Each active ACP agent is tracked in an `ACPSessionEntry` [electron/src/ipc/acp-s
 The `acp-adapter.ts` and `useACP.ts` hook act as a normalization layer, translating ACP-specific events into the UI-agnostic shapes used by the Harnss renderer.
 
 ### Tool Input Normalization
-
 ACP agents often wrap operations in shell commands (e.g., `["/bin/zsh", "-lc", "cat file.ts"]`). The `normalizeToolInput` function transforms these into structured fields compatible with Harnss tool renderers like `ReadContent` or `EditContent` [src/lib/acp-adapter.ts:15-39]().
 
 ### Turn Lifecycle
-
 The `useACP` hook manages the state of a conversation turn [src/hooks/useACP.ts:34-47]():
-
 1.  **Streaming**: `agent_message_chunk` and `agent_thought_chunk` events are buffered in `ACPStreamingBuffer` [src/hooks/useACP.ts:62-65]().
 2.  **Tool Calls**: `tool_call` events trigger the creation of a `tool_call` message in the UI [src/hooks/useACP.ts:133-136]().
 3.  **Completion**: The turn completes when the agent sends a `message_stop` or equivalent stop reason [src/types/protocol.ts:71-73]().
 
 ### ACP Data Flow
-
 This diagram illustrates the flow from a process event to a UI update.
 
 **ACP Event Propagation Diagram**
-
 ```mermaid
 graph TD
     subgraph "Main Process (Electron)"
@@ -90,7 +83,6 @@ graph TD
         G --> H["ChatView / MessageBubble"]
     end
 ```
-
 **Sources:** [electron/src/ipc/acp-sessions.ts:118-136](), [src/hooks/useACP.ts:157-162](), [src/lib/acp-adapter.ts:15-30]()
 
 ## Permission Behaviors
@@ -119,12 +111,12 @@ ACP supports session persistence via `loadSession`. When Harnss restarts, it att
 
 ACP agents can spawn background tasks (subagents). These are tracked via the `BackgroundAgentStore` [src/lib/background-agent-store.ts:28-30]().
 
-| Event Type          | Store Action                                                                                                                    |
-| :------------------ | :------------------------------------------------------------------------------------------------------------------------------ |
-| `task_started`      | Creates a "pending" agent entry in the store [src/lib/background-agent-store.ts:71-75]().                                       |
-| `task_progress`     | Updates token usage, duration, and AI-generated summaries [src/lib/background-agent-store.ts:150-155]().                        |
-| `tool_progress`     | Updates the "current tool" label and elapsed time in the `BackgroundAgentsPanel` [src/lib/background-agent-store.ts:181-185](). |
-| `task_notification` | Marks the agent as `completed` or `error` and captures the final output file [src/lib/background-agent-store.ts:197-202]().     |
+| Event Type | Store Action |
+| :--- | :--- |
+| `task_started` | Creates a "pending" agent entry in the store [src/lib/background-agent-store.ts:71-75](). |
+| `task_progress` | Updates token usage, duration, and AI-generated summaries [src/lib/background-agent-store.ts:150-155](). |
+| `tool_progress` | Updates the "current tool" label and elapsed time in the `BackgroundAgentsPanel` [src/lib/background-agent-store.ts:181-185](). |
+| `task_notification` | Marks the agent as `completed` or `error` and captures the final output file [src/lib/background-agent-store.ts:197-202](). |
 
 **Sources:** [src/lib/background-agent-store.ts:28-56](), [src/hooks/useBackgroundAgents.ts:19-33](), [src/components/BackgroundAgentsPanel.tsx:58-75]()
 
@@ -133,7 +125,6 @@ ACP agents can spawn background tasks (subagents). These are tracked via the `Ba
 The following diagram maps protocol concepts to specific code entities within the Harnss engine.
 
 **ACP Entity Mapping Diagram**
-
 ```mermaid
 classDiagram
     class ACP_Protocol_Event {
@@ -159,5 +150,4 @@ classDiagram
     Renderer_Entities ..> Main_Process_Entities : "Invokes via IPC"
     Renderer_Entities ..> ACP_Protocol_Event : "Translates"
 ```
-
 **Sources:** [electron/src/ipc/acp-sessions.ts:50-68](), [src/hooks/useACP.ts:34-47](), [src/lib/acp-adapter.ts:15-30]()

@@ -6,7 +6,7 @@
 The following files were used as context for generating this wiki page:
 
 - [apps/desktop/src/lib/trpc/routers/ui-state/index.ts](apps/desktop/src/lib/trpc/routers/ui-state/index.ts)
-- [apps/desktop/src/renderer/routes/\_authenticated/\_dashboard/workspace/$workspaceId/page.tsx](apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/page.tsx)
+- [apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/page.tsx](apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/page.tsx)
 - [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupItem.tsx](apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupItem.tsx)
 - [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupStrip.tsx](apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupStrip.tsx)
 - [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabContentContextMenu.tsx](apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabContentContextMenu.tsx)
@@ -28,6 +28,8 @@ The following files were used as context for generating this wiki page:
 - [apps/desktop/src/shared/tabs-types.ts](apps/desktop/src/shared/tabs-types.ts)
 
 </details>
+
+
 
 ## Purpose and Scope
 
@@ -53,13 +55,13 @@ graph TB
     Chat["Chat Pane<br/>type: 'chat'"]
     WebView["Browser Pane<br/>type: 'webview'"]
     DevTools["DevTools Pane<br/>type: 'devtools'"]
-
+    
     Pane --> Terminal
     Pane --> FileViewer
     Pane --> Chat
     Pane --> WebView
     Pane --> DevTools
-
+    
     Terminal --> TerminalState["status: PaneStatus<br/>cwd: string | null<br/>cwdConfirmed: boolean<br/>initialCwd?: string"]
     FileViewer --> FileViewerState["fileViewer: FileViewerState<br/>filePath: string<br/>viewMode: raw | diff | rendered<br/>isPinned: boolean<br/>diffCategory?: ChangeCategory<br/>diffLayout: inline | side-by-side"]
     Chat --> ChatState["chat: ChatPaneState<br/>sessionId: string | null<br/>launchConfig?: ChatLaunchConfig"]
@@ -67,13 +69,13 @@ graph TB
     DevTools --> DevToolsState["devtools: DevToolsPaneState<br/>targetPaneId: string"]
 ```
 
-| Type          | Purpose                      | Primary Use Case                                    | State Extension                                 |
-| ------------- | ---------------------------- | --------------------------------------------------- | ----------------------------------------------- |
-| `terminal`    | Interactive shell session    | Running commands, agents, builds                    | `status`, `cwd`, `initialCwd`                   |
-| `file-viewer` | File content display/editing | Viewing diffs, editing files, markdown preview      | `fileViewer` object with mode and path          |
-| `chat`        | AI chat interface            | Conversational AI assistance with workspace context | `chat` object with session ID and launch config |
-| `webview`     | Embedded browser             | In-app web browsing, previewing web apps            | `browser` object with navigation history        |
-| `devtools`    | Browser developer tools      | Debugging webview panes                             | `devtools` object with target pane reference    |
+| Type | Purpose | Primary Use Case | State Extension |
+|------|---------|------------------|-----------------|
+| `terminal` | Interactive shell session | Running commands, agents, builds | `status`, `cwd`, `initialCwd` |
+| `file-viewer` | File content display/editing | Viewing diffs, editing files, markdown preview | `fileViewer` object with mode and path |
+| `chat` | AI chat interface | Conversational AI assistance with workspace context | `chat` object with session ID and launch config |
+| `webview` | Embedded browser | In-app web browsing, previewing web apps | `browser` object with navigation history |
+| `devtools` | Browser developer tools | Debugging webview panes | `devtools` object with target pane reference |
 
 Sources: [apps/desktop/src/shared/tabs-types.ts:10-16](), [apps/desktop/src/shared/tabs-types.ts:129-145](), [apps/desktop/src/renderer/stores/tabs/types.ts:9-16]()
 
@@ -85,7 +87,7 @@ The `TabView` component's `renderPane` callback routes pane rendering based on t
 graph LR
     renderPane["renderPane(paneId, path)"]
     CheckType{"pane.type?"}
-
+    
     renderPane --> CheckType
     CheckType -->|"'file-viewer'"| FileViewerPane["FileViewerPane component"]
     CheckType -->|"'chat'"| ChatPane["ChatPane component"]
@@ -108,20 +110,20 @@ Every pane, regardless of type, shares a common base structure with type-specifi
 
 ```typescript
 interface Pane {
-  id: string // Unique identifier (e.g., "pane-1234567890-abc")
-  tabId: string // Parent tab reference
-  type: PaneType // "terminal" | "file-viewer" | "chat" | "webview" | "devtools"
-  name: string // Display name (e.g., "Terminal", "App.tsx", "Chat")
-  userTitle?: string // User-defined custom title
-  status?: PaneStatus // Agent/terminal status for UI indicators
-  isNew?: boolean // If true, shows "new" indicator in UI
-  cwd?: string | null // Current working directory (terminals only)
-  cwdConfirmed?: boolean // If true, cwd is from OSC 7 escape sequence
-  initialCwd?: string // Initial working directory override
-  fileViewer?: FileViewerState // File viewer configuration
-  chat?: ChatPaneState // Chat session configuration
-  browser?: BrowserPaneState // Browser navigation state
-  devtools?: DevToolsPaneState // DevTools target reference
+  id: string;              // Unique identifier (e.g., "pane-1234567890-abc")
+  tabId: string;           // Parent tab reference
+  type: PaneType;          // "terminal" | "file-viewer" | "chat" | "webview" | "devtools"
+  name: string;            // Display name (e.g., "Terminal", "App.tsx", "Chat")
+  userTitle?: string;      // User-defined custom title
+  status?: PaneStatus;     // Agent/terminal status for UI indicators
+  isNew?: boolean;         // If true, shows "new" indicator in UI
+  cwd?: string | null;     // Current working directory (terminals only)
+  cwdConfirmed?: boolean;  // If true, cwd is from OSC 7 escape sequence
+  initialCwd?: string;     // Initial working directory override
+  fileViewer?: FileViewerState;  // File viewer configuration
+  chat?: ChatPaneState;    // Chat session configuration
+  browser?: BrowserPaneState;    // Browser navigation state
+  devtools?: DevToolsPaneState;  // DevTools target reference
 }
 ```
 
@@ -144,28 +146,28 @@ The `status` field drives UI indicators for agent/terminal activity. It uses a f
 ```mermaid
 stateDiagram-v2
     [*] --> idle: Pane created
-
+    
     idle --> permission: Agent requests user approval
     idle --> working: Agent starts execution
-
+    
     permission --> working: User grants permission<br/>(setActiveTab click)
     permission --> idle: User dismisses
-
+    
     working --> review: Agent completes task
     working --> idle: User stops agent
-
+    
     review --> idle: User acknowledges<br/>(setActiveTab click)
-
+    
     note right of permission
         Shows permission dialog
         Orange indicator
     end note
-
+    
     note right of working
         Shows "agent working"
         Persists until stopped
     end note
-
+    
     note right of review
         Shows "review needed"
         Green attention indicator
@@ -174,13 +176,13 @@ stateDiagram-v2
 
 **Status Transitions**
 
-| From         | To           | Trigger                        | Location                             |
-| ------------ | ------------ | ------------------------------ | ------------------------------------ |
-| `idle`       | `permission` | Agent requests approval        | `setPaneStatus` action               |
-| `permission` | `working`    | User clicks tab (auto-grant)   | `setActiveTab` [store.ts:219-222]()  |
-| `working`    | `review`     | Agent emits completion event   | `setPaneStatus` action               |
-| `review`     | `idle`       | User clicks tab (acknowledge)  | `setActiveTab` [store.ts:215-218]()  |
-| `working`    | `idle`       | App restart (transient status) | Persist `merge` [store.ts:930-933]() |
+| From | To | Trigger | Location |
+|------|------|---------|----------|
+| `idle` | `permission` | Agent requests approval | `setPaneStatus` action |
+| `permission` | `working` | User clicks tab (auto-grant) | `setActiveTab` [store.ts:219-222]() |
+| `working` | `review` | Agent emits completion event | `setPaneStatus` action |
+| `review` | `idle` | User clicks tab (acknowledge) | `setActiveTab` [store.ts:215-218]() |
+| `working` | `idle` | App restart (transient status) | Persist `merge` [store.ts:930-933]() |
 
 **Important Invariant**: The `working` status is **not** cleared by clicking the tab. It persists until the agent explicitly stops or the user manually stops it, ensuring users don't accidentally dismiss long-running tasks.
 
@@ -201,13 +203,12 @@ graph LR
     Options["CreatePaneOptions<br/>initialCommands?: string[]<br/>initialCwd?: string"]
     GenerateId["generateId('pane')"]
     CreateObject["Create Pane object<br/>type: 'terminal'<br/>name: 'Terminal'<br/>isNew: true"]
-
+    
     Options --> GenerateId
     GenerateId --> CreateObject
 ```
 
 Terminal panes are created when:
-
 1. User clicks "New Tab" → `addTab` creates tab + initial terminal pane
 2. User splits a pane → `splitPaneVertical/Horizontal/Auto` creates new terminal
 3. User runs a command in a new pane → passes `initialCommands` and `initialCwd`
@@ -230,10 +231,10 @@ graph TB
     CreateChatPane["createChatPane(tabId, options)"]
     GeneratePaneId["generateId('pane')"]
     GenerateSessionId["crypto.randomUUID()"]
-
+    
     CreateChatPane --> GeneratePaneId
     CreateChatPane --> GenerateSessionId
-
+    
     AddChatTab --> CreateChatTabWithPane
     CreateChatTabWithPane --> GenerateTabId
     CreateChatTabWithPane --> CreateChatPane
@@ -265,7 +266,6 @@ The `createChatPane` function ([apps/desktop/src/renderer/stores/tabs/utils.ts:2
 **Chat Launch Configuration**
 
 The `launchConfig` field supports pre-populating chat sessions with:
-
 - `initialPrompt`: First message to send automatically
 - `draftInput`: Text to pre-fill in the input box
 - `initialFiles`: Attachments to include with the first message
@@ -284,7 +284,7 @@ graph LR
     FindPane["Lookup pane in state.panes"]
     ValidateType{"pane.chat exists?"}
     UpdateState["Update pane.chat.sessionId"]
-
+    
     SwitchSession --> FindPane
     FindPane --> ValidateType
     ValidateType -->|Yes| UpdateState
@@ -305,27 +305,27 @@ File viewer panes have more complex creation logic due to the preview vs pinned 
 graph TB
     Start["addFileViewerPane(workspaceId, options)"]
     ResolveTab["Resolve active tab<br/>via resolveActiveTabIdForWorkspace"]
-
+    
     CheckExistingPinned["Find existing pinned pane<br/>same filePath + diffCategory?"]
     FocusExisting["Focus existing pane<br/>return paneId"]
-
+    
     CheckPreview["Find existing unpinned<br/>(preview) pane?"]
     SameFile{"Same file?"}
     PinPreview["Pin the preview pane<br/>isPinned: true"]
     ReplacePreview["Replace preview content<br/>keep pane, update fileViewer"]
-
+    
     CreateNew["Create new file-viewer pane<br/>via createFileViewerPane"]
     AddToLayout["Add to tab layout (50% split)"]
-
+    
     Start --> ResolveTab
     ResolveTab --> CheckExistingPinned
     CheckExistingPinned -->|Found| FocusExisting
     CheckExistingPinned -->|Not found| CheckPreview
-
+    
     CheckPreview -->|Found| SameFile
     SameFile -->|Yes| PinPreview
     SameFile -->|No| ReplacePreview
-
+    
     CheckPreview -->|Not found| CreateNew
     CreateNew --> AddToLayout
 ```
@@ -333,7 +333,6 @@ graph TB
 **Preview vs Pinned Logic**
 
 The system implements a "single preview slot" pattern per tab:
-
 - **Pinned panes**: Permanent until explicitly closed. Multiple pinned panes can coexist.
 - **Preview panes**: Temporary, shown with italic name. Only one preview pane per tab; clicking another file replaces it.
 - **Pin on click again**: Clicking the same file in the preview pane pins it.
@@ -354,7 +353,7 @@ graph TB
     CheckImage{"isImageFile(filePath)?"}
     CheckDiff{"diffCategory<br/>present?"}
     CheckRendered{"hasRenderedPreview(filePath)?"}
-
+    
     ResolveMode --> CheckExplicit
     CheckExplicit -->|Yes| ReturnExplicit["Return viewMode"]
     CheckExplicit -->|No| CheckImage
@@ -367,7 +366,6 @@ graph TB
 ```
 
 File viewer state includes:
-
 - `filePath`: Worktree-relative file path
 - `viewMode`: `"raw" | "diff" | "rendered"`
 - `isPinned`: `false` for preview, `true` for permanent
@@ -395,10 +393,10 @@ graph TB
     CreateBrowserPane["createBrowserPane(tabId, options?)"]
     GeneratePaneId["generateId('pane')"]
     DefaultUrl["url = options?.url ?? 'about:blank'"]
-
+    
     CreateBrowserPane --> GeneratePaneId
     CreateBrowserPane --> DefaultUrl
-
+    
     AddBrowserTab --> CreateBrowserTabWithPane
     CreateBrowserTabWithPane --> GenerateTabId
     CreateBrowserTabWithPane --> CreateBrowserPane
@@ -438,7 +436,7 @@ graph LR
     TruncateHistory["Truncate history array<br/>from currentIndex + 1"]
     AppendEntry["Append new history entry"]
     IncrementIndex["historyIndex++"]
-
+    
     UpdateBrowserUrl --> CurrentIndex
     CurrentIndex --> TruncateHistory
     TruncateHistory --> AppendEntry
@@ -446,7 +444,6 @@ graph LR
 ```
 
 Navigation history supports:
-
 - `navigateBrowserHistory(paneId, direction)` - Back/forward navigation ([apps/desktop/src/renderer/stores/tabs/store.ts:1348-1377]())
 - `updateBrowserUrl(paneId, url, title, faviconUrl?)` - Record new navigation ([apps/desktop/src/renderer/stores/tabs/store.ts:1316-1346]())
 - `updateBrowserLoading(paneId, isLoading)` - Loading state indicator ([apps/desktop/src/renderer/stores/tabs/store.ts:1379-1391]())
@@ -468,7 +465,7 @@ graph TB
     CreateDevToolsPane["createDevToolsPane(tabId, browserPaneId)"]
     GeneratePaneId["generateId('pane')"]
     AddToLayout["Add to layout at path<br/>or split with browser pane"]
-
+    
     OpenDevToolsPane --> ValidateBrowser
     ValidateBrowser --> CreateDevToolsPane
     CreateDevToolsPane --> GeneratePaneId
@@ -501,7 +498,7 @@ graph LR
     FindDevTools["Find all panes where<br/>devtools.targetPaneId === browserPaneId"]
     CollectIds["Add to paneIdsToRemove"]
     RemoveAll["Remove all collected panes"]
-
+    
     RemovePane --> FindDevTools
     FindDevTools --> CollectIds
     CollectIds --> RemoveAll
@@ -517,38 +514,38 @@ The preview mechanism reduces tab clutter by allowing users to quickly browse fi
 
 ### Behavior Comparison
 
-| Aspect             | Preview Pane                                       | Pinned Pane            |
-| ------------------ | -------------------------------------------------- | ---------------------- |
-| Visual indicator   | Italic filename + "preview" label                  | Normal filename        |
-| Replacement        | Replaced by next file click                        | Persists until closed  |
-| Edit behavior      | Auto-pins on edit ([FileViewerPane.tsx:133-137]()) | Already pinned         |
-| Double-click       | Pins the pane                                      | No-op                  |
-| Single-click again | Pins the pane                                      | No-op (already pinned) |
-| Toolbar icon       | Shows pin icon to manually pin                     | No pin icon            |
+| Aspect | Preview Pane | Pinned Pane |
+|--------|--------------|-------------|
+| Visual indicator | Italic filename + "preview" label | Normal filename |
+| Replacement | Replaced by next file click | Persists until closed |
+| Edit behavior | Auto-pins on edit ([FileViewerPane.tsx:133-137]()) | Already pinned |
+| Double-click | Pins the pane | No-op |
+| Single-click again | Pins the pane | No-op (already pinned) |
+| Toolbar icon | Shows pin icon to manually pin | No pin icon |
 
 ### State Transitions
 
 ```mermaid
 stateDiagram-v2
     [*] --> PreviewSlotEmpty: No file viewers in tab
-
+    
     PreviewSlotEmpty --> Preview: User single-clicks file A
     Preview --> Pinned: User clicks file A again
     Preview --> Pinned: User edits content
     Preview --> Pinned: User manually pins
     Preview --> PreviewReplace: User clicks different file B
-
+    
     PreviewReplace --> Preview: Replace content, keep pane
-
+    
     Pinned --> Closed: User closes pane
     Closed --> PreviewSlotEmpty: Last file viewer closed
-
+    
     note right of Preview
         isPinned: false
         Italic name in toolbar
         Reusable slot
     end note
-
+    
     note right of Pinned
         isPinned: true
         Normal name
@@ -559,9 +556,8 @@ stateDiagram-v2
 **Implementation Details**
 
 The search for reusable preview panes ([apps/desktop/src/renderer/stores/tabs/store.ts:585-592]()) filters for:
-
 ```typescript
-p?.type === 'file-viewer' && p.fileViewer && !p.fileViewer.isPinned
+p?.type === "file-viewer" && p.fileViewer && !p.fileViewer.isPinned
 ```
 
 When a preview pane is found and it's the same file ([apps/desktop/src/renderer/stores/tabs/store.ts:604-608]()), the system just focuses it. If it's a different file, the content is replaced ([apps/desktop/src/renderer/stores/tabs/store.ts:641-675]()).
@@ -581,29 +577,29 @@ graph TB
     RemovePane["removePane(paneId)"]
     FindPane["Lookup pane in state.panes"]
     FindTab["Find parent tab via pane.tabId"]
-
+    
     CheckLast{"isLastPaneInTab?"}
     RemoveTab["Remove entire tab<br/>via removeTab"]
-
+    
     GetAdjacent["Get adjacent pane ID<br/>for focus fallback"]
     KillTerminal{"pane.type === 'terminal'?"}
     KillSession["killTerminalForPane(paneId)"]
-
+    
     UpdateLayout["removePaneFromLayout<br/>collapse binary tree"]
     DeletePane["Delete from panes map"]
     UpdateFocus["Set focused pane to adjacent"]
-
+    
     RemovePane --> FindPane
     FindPane --> FindTab
     FindTab --> CheckLast
     CheckLast -->|Yes| RemoveTab
     CheckLast -->|No| GetAdjacent
-
+    
     GetAdjacent --> KillTerminal
     KillTerminal -->|Yes| KillSession
     KillTerminal -->|No| UpdateLayout
     KillSession --> UpdateLayout
-
+    
     UpdateLayout --> DeletePane
     DeletePane --> UpdateFocus
 ```
@@ -613,7 +609,6 @@ graph TB
 **Terminal Cleanup**
 
 When removing a terminal pane, `killTerminalForPane` is called to:
-
 1. Send exit signal to the terminal host daemon
 2. Clean up IPC subscriptions
 3. Remove history listeners
@@ -643,7 +638,6 @@ setFocusedPane(tabId: string, paneId: string)
 ```
 
 Updates `focusedPaneIds[tabId]` to track which pane has focus. This is used for:
-
 - Keyboard navigation (next/prev pane hotkeys)
 - Terminal input routing
 - Visual focus indicator in `BasePaneWindow`
@@ -675,7 +669,6 @@ updatePaneCwd(paneId: string, cwd: string | null, confirmed: boolean)
 ```
 
 Updates current working directory for terminal panes. The `confirmed` flag distinguishes:
-
 - **confirmed = true**: CWD from OSC 7 escape sequence (shell integration)
 - **confirmed = false**: CWD from heuristic (initial spawn directory)
 
@@ -690,12 +683,10 @@ pinPane(paneId: string)
 ```
 
 Converts a preview file-viewer pane to a pinned pane by setting `fileViewer.isPinned = true`. Includes guards to:
-
 - Ignore non-file-viewer panes
 - Skip if already pinned (no-op)
 
 This is called when:
-
 - User manually clicks the pin icon in the toolbar
 - User edits content in an unpinned file viewer (auto-pin)
 - User clicks the same file twice in the preview pane
@@ -710,7 +701,6 @@ clearPaneInitialData(paneId: string)
 ```
 
 These operations manage the lifecycle of transient initialization data:
-
 - `markPaneAsUsed`: Clears the `isNew` flag, removing the "new" UI indicator
 - `clearPaneInitialData`: Removes `initialCommands` and `initialCwd` after consumption
 
@@ -734,7 +724,7 @@ graph LR
     GetPane["state.panes[paneId]"]
     Validate{"pane.chat exists?"}
     UpdateSession["Update pane.chat.sessionId"]
-
+    
     SwitchSession --> GetPane
     GetPane --> Validate
     Validate -->|Yes| UpdateSession
@@ -788,7 +778,6 @@ File viewer panes extend the base with a rich `fileViewer` object:
 ```
 
 The file viewer implementation ([FileViewerPane.tsx]()) reads these fields to:
-
 - Fetch file content via tRPC (`readWorkingFile` or `getFileContents`)
 - Configure Monaco editor or DiffViewer
 - Show appropriate toolbar controls (mode toggle, diff options)

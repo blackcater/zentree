@@ -5,282 +5,175 @@
 
 The following files were used as context for generating this wiki page:
 
-- [.github/workflows/\_build-reusable.yml](.github/workflows/_build-reusable.yml)
-- [.github/workflows/build-manual.yml](.github/workflows/build-manual.yml)
-- [bun.lock](bun.lock)
-- [src/index.ts](src/index.ts)
-- [src/utils/configureChromium.ts](src/utils/configureChromium.ts)
-- [tests/integration/autoUpdate.integration.test.ts](tests/integration/autoUpdate.integration.test.ts)
-- [tests/unit/autoUpdaterService.test.ts](tests/unit/autoUpdaterService.test.ts)
-- [tests/unit/test_acp_connection_disconnect.ts](tests/unit/test_acp_connection_disconnect.ts)
-- [vitest.config.ts](vitest.config.ts)
+- [src/process/agent/acp/AcpDetector.ts](src/process/agent/acp/AcpDetector.ts)
+- [src/process/channels/plugins/telegram/TelegramPlugin.ts](src/process/channels/plugins/telegram/TelegramPlugin.ts)
+- [src/process/utils/resetPasswordCLI.ts](src/process/utils/resetPasswordCLI.ts)
+- [src/process/worker/acp.ts](src/process/worker/acp.ts)
+- [src/server.ts](src/server.ts)
+- [tests/unit/acpDetector.test.ts](tests/unit/acpDetector.test.ts)
+- [tests/unit/common/appEnv.test.ts](tests/unit/common/appEnv.test.ts)
+- [tests/unit/directoryApi.test.ts](tests/unit/directoryApi.test.ts)
+- [tests/unit/extensions/extensionLoader.test.ts](tests/unit/extensions/extensionLoader.test.ts)
+- [tests/unit/process/utils/resetPasswordCLI.test.ts](tests/unit/process/utils/resetPasswordCLI.test.ts)
+- [tests/unit/process/utils/shellEnvDiagnostics.test.ts](tests/unit/process/utils/shellEnvDiagnostics.test.ts)
 
 </details>
 
-This page documents the command-line interface (CLI) features available in AionUi: the startup flags that control application mode, the `--resetpass` password reset utility, and environment variable overrides. For details on how the application modes work internally once started, see [Application Modes](#3.1). For the WebUI server architecture that `--webui` activates, see [WebUI Server Architecture](#3.5).
+
+
+This page documents the command-line interface (CLI) features available in AionUi: the startup flags that control application mode, the `--resetpass` password reset utility, and the environment diagnostics tools. These utilities allow for headless server management, database recovery, and system troubleshooting without a graphical interface.
 
 ---
 
 ## CLI Flags Overview
 
-AionUi's executable binary accepts a set of flags that modify its startup behavior. These flags are parsed by the main process at launch.
+AionUi's entry points (both Electron and standalone server) accept flags that modify startup behavior. In the standalone server mode (`src/server.ts`), these are parsed directly from `process.argv` [src/server.ts:24-26]().
 
-| Flag           | Argument     | Description                                                                    |
-| -------------- | ------------ | ------------------------------------------------------------------------------ |
-| `--webui`      | none         | Start the embedded Express web server instead of rendering the Electron window |
-| `--remote`     | none         | Bind the WebUI server to `0.0.0.0` (allows LAN access)                         |
-| `--port`       | `<number>`   | Override the default WebUI listen port                                         |
-| `--resetpass`  | `[username]` | Reset the password for a WebUI user (default: `admin`)                         |
-| `--no-sandbox` | none         | Required in sandboxed environments such as Termux/proot-Ubuntu                 |
+| Flag | Argument | Description |
+|---|---|---|
+| `--webui` | none | Start the embedded Express web server (default in `server.ts`) [src/server.ts:113]() |
+| `--remote` | none | Bind the WebUI server to `0.0.0.0` (allows LAN access) [src/server.ts:25]() |
+| `--resetpass` | `[username]` | Reset the password for a specific user (defaults to `admin`) [src/server.ts:84-90]() |
+| `--no-sandbox` | none | Disables Chromium sandbox; required in certain Linux/Android environments |
 
-Sources: [WEBUI_GUIDE.md:596-603](), [WEBUI_GUIDE.md:606-673]()
-
----
-
-## WebUI Mode Flags
-
-### `--webui`
-
-Starts AionUi without its native Electron window. Instead it launches an embedded Express HTTP server and serves the React UI over the browser. By default the server listens on `localhost:25808` (the port may vary; check terminal output).
-
-**Platform invocation examples:**
-
-| Platform               | Command                                                  |
-| ---------------------- | -------------------------------------------------------- |
-| Windows                | `"C:\Program Files\AionUi\AionUi.exe" --webui`           |
-| macOS                  | `/Applications/AionUi.app/Contents/MacOS/AionUi --webui` |
-| Linux (deb)            | `aionui --webui`                                         |
-| Linux (AppImage)       | `./AionUi-*.AppImage --webui`                            |
-| Android (Termux/proot) | `AionUi --no-sandbox --webui`                            |
-
-Sources: [WEBUI_GUIDE.md:29-140]()
-
-### `--remote`
-
-When combined with `--webui`, binds the server to `0.0.0.0` instead of `127.0.0.1`, making it reachable from other devices on the same network.
-
-```
-aionui --webui --remote
-```
-
-> **Security note**: Remote mode exposes the server to the local network. Use only on trusted networks. JWT-based authentication is still enforced (see [Authentication](#9)).
-
-Sources: [WEBUI_GUIDE.md:426-448]()
-
-### `--port`
-
-Overrides the default listen port:
-
-```
-aionui --webui --port 8080
-```
-
-Sources: [WEBUI_GUIDE.md:353-356](), [WEBUI_GUIDE.md:566-568]()
+Sources: [src/server.ts:24-90]()
 
 ---
 
-## Environment Variables
+## WebUI Server Management
 
-Environment variables can substitute for or supplement CLI flags. CLI flags take highest precedence, followed by environment variables, then the `webui.config.json` file.
+### Standalone Server (`src/server.ts`)
 
-| Variable              | Effect                                                                 |
-| --------------------- | ---------------------------------------------------------------------- |
-| `AIONUI_PORT`         | Sets the WebUI listen port                                             |
-| `AIONUI_ALLOW_REMOTE` | `true` is equivalent to passing `--remote`                             |
-| `AIONUI_HOST`         | Setting to `0.0.0.0` has the same effect as `AIONUI_ALLOW_REMOTE=true` |
+The `src/server.ts` file serves as the entry point for running AionUi without Electron. It handles initialization of core subsystems like storage, extensions, and channels before starting the Express server.
 
-Sources: [WEBUI_GUIDE.md:549-568]()
+**Initialization Sequence:**
+1. **Platform Registration**: Registers Node-specific services via `register-node` [src/server.ts:10]().
+2. **Storage**: Initializes the data directory (respects `DATA_DIR` env var) [src/server.ts:93]().
+3. **Extension Registry**: Scans and loads all installed extensions [src/server.ts:97]().
+4. **Channel Manager**: Initializes communication plugins (Telegram, etc.) [src/server.ts:104]().
+5. **Bridge**: Sets up the non-Electron IPC bridge via `initBridgeStandalone` [src/server.ts:110]().
+6. **Server Start**: Launches the WebUI on the specified port [src/server.ts:113]().
 
----
+Sources: [src/server.ts:1-118]()
 
-## User Configuration File (`webui.config.json`)
+### Environment Overrides
 
-From v1.5.0 onwards, persistent WebUI startup preferences can be stored in a `webui.config.json` file in the Electron user-data directory.
+The server respects several environment variables for configuration:
 
-| Platform | Path                                                     |
-| -------- | -------------------------------------------------------- |
-| Windows  | `%APPDATA%/AionUi/webui.config.json`                     |
-| macOS    | `~/Library/Application Support/AionUi/webui.config.json` |
-| Linux    | `~/.config/AionUi/webui.config.json`                     |
+| Variable | Description | Source |
+|---|---|---|
+| `PORT` | Sets the WebUI listen port (default: 3000) | [src/server.ts:24]() |
+| `ALLOW_REMOTE` | Set to `true` to enable remote access (equivalent to `--remote`) | [src/server.ts:25]() |
+| `DATA_DIR` | Custom path for database and configuration storage | [src/server.ts:92-93]() |
 
-Example contents:
-
-```json
-{
-  "port": 8080,
-  "allowRemote": true
-}
-```
-
-Sources: [WEBUI_GUIDE.md:572-592]()
+Sources: [src/server.ts:24-93]()
 
 ---
 
-## Password Reset — `--resetpass`
+## Password Reset Utility (`--resetpass`)
 
 ### Overview
 
-The `--resetpass` flag is used to recover access to a WebUI account when the password has been forgotten. It operates directly on the SQLite database without starting the full application.
+The `--resetpass` utility allows administrators to recover access to the WebUI by generating a new random password for a specified account. It operates directly on the SQLite database using the `getDatabase()` abstraction [src/process/utils/resetPasswordCLI.ts:87]().
 
-```
-aionui --resetpass [username]
-```
+**Execution Logic:**
+- **Username Resolution**: If no username follows the flag, it defaults to `admin` [src/process/utils/resetPasswordCLI.ts:62-70]().
+- **Database Check**: Verifies the database is initialized and contains users [src/process/utils/resetPasswordCLI.ts:88-103]().
+- **Password Generation**: Creates a 12-character alphanumeric string [src/process/utils/resetPasswordCLI.ts:53-60]().
+- **Security Rotation**: In addition to updating the `password_hash` using `bcryptjs` (10 rounds), it generates a new 64-byte `jwt_secret` to invalidate all existing sessions [src/process/utils/resetPasswordCLI.ts:133-145]().
 
-If `username` is omitted, it defaults to `admin`. The command:
+Sources: [src/process/utils/resetPasswordCLI.ts:1-172]()
 
-1. Locates the database file at `<dataPath>/aionui.db`
-2. Verifies the `users` table exists
-3. Looks up the specified username
-4. Generates a new random 12-character alphanumeric password
-5. Hashes it with bcrypt (salt rounds = 10)
-6. Updates `password_hash` in the database
-7. Rotates `jwt_secret` (invalidating all existing sessions)
-8. Prints the new password to the terminal
+### Implementation Diagram
 
-> **Warning**: All existing JWT tokens are invalidated immediately when `jwt_secret` is rotated. Every active browser session must re-authenticate.
-
-Sources: [src/utils/resetPasswordCLI.ts:69-158]()
-
----
-
-### `resetPasswordCLI` Implementation
-
-The implementation lives in `src/utils/resetPasswordCLI.ts` and is invoked by the main process when it detects the `--resetpass` flag.
-
-**Key functions and their roles:**
-
-| Symbol              | Location                                 | Role                                                               |
-| ------------------- | ---------------------------------------- | ------------------------------------------------------------------ |
-| `resetPasswordCLI`  | [src/utils/resetPasswordCLI.ts:69-158]() | Main entry point; orchestrates the full reset sequence             |
-| `hashPassword`      | [src/utils/resetPasswordCLI.ts:49-51]()  | Wrapper around `bcrypt.hash` with salt rounds = 10                 |
-| `hashPasswordAsync` | [src/utils/resetPasswordCLI.ts:36-45]()  | Promise wrapper for the callback-based `bcrypt.hash`               |
-| `generatePassword`  | [src/utils/resetPasswordCLI.ts:54-61]()  | Generates a 12-character alphanumeric password using `Math.random` |
-| `getDataPath`       | (imported from `@process/utils`)         | Returns the platform-appropriate user data directory               |
-| `ensureDirectory`   | (imported from `@process/utils`)         | Creates the directory if it does not exist                         |
-
-Sources: [src/utils/resetPasswordCLI.ts:1-60]()
-
----
-
-### Execution Flow Diagram
-
-**`resetPasswordCLI` execution sequence**
+**`resetPasswordCLI` sequence and data flow**
 
 ```mermaid
 sequenceDiagram
-    participant "CLI" as "aionui --resetpass"
-    participant "resetPasswordCLI" as "resetPasswordCLI()"
-    participant "BetterSqlite3" as "BetterSqlite3(dbPath)"
-    participant "bcrypt" as "bcryptjs"
+    participant CLI as "aionui --resetpass"
+    participant RPC as "resetPasswordCLI()"
+    participant DB as "DatabaseService"
+    participant BC as "bcryptjs"
 
-    "CLI"->"resetPasswordCLI": "invoke with username"
-    "resetPasswordCLI"->"resetPasswordCLI": "getDataPath() → dbPath"
-    "resetPasswordCLI"->"resetPasswordCLI": "ensureDirectory(dir)"
-    "resetPasswordCLI"->"BetterSqlite3": "open aionui.db"
-    "BetterSqlite3"-->"resetPasswordCLI": "db handle"
-    "resetPasswordCLI"->"BetterSqlite3": "SELECT from sqlite_master WHERE name='users'"
-    alt "table missing"
-        "BetterSqlite3"-->"resetPasswordCLI": "undefined"
-        "resetPasswordCLI"->"CLI": "log error + process.exit(1)"
+    CLI->>RPC: "invoke(username)"
+    RPC->>DB: "getDatabase()"
+    RPC->>DB: "getUserByUsername(username)"
+    alt "User Not Found"
+        DB-->>RPC: "null"
+        RPC->>CLI: "Log available users & exit"
+    else "User Found"
+        RPC->>RPC: "generatePassword()"
+        RPC->>BC: "hash(password, 10)"
+        BC-->>RPC: "hashedPassword"
+        RPC->>DB: "updateUserPassword(id, hashedPassword)"
+        RPC->>DB: "updateUserJwtSecret(id, newSecret)"
+        RPC->>CLI: "Print New Credentials"
     end
-    "resetPasswordCLI"->"BetterSqlite3": "SELECT * FROM users WHERE username=?"
-    alt "user not found"
-        "BetterSqlite3"-->"resetPasswordCLI": "undefined"
-        "resetPasswordCLI"->"CLI": "list users + process.exit(1)"
-    end
-    "resetPasswordCLI"->"resetPasswordCLI": "generatePassword() → newPassword"
-    "resetPasswordCLI"->"bcrypt": "hash(newPassword, 10)"
-    "bcrypt"-->"resetPasswordCLI": "hashedPassword"
-    "resetPasswordCLI"->"resetPasswordCLI": "crypto.randomBytes(64) → newJwtSecret"
-    "resetPasswordCLI"->"BetterSqlite3": "UPDATE users SET password_hash=? WHERE id=?"
-    "resetPasswordCLI"->"BetterSqlite3": "UPDATE users SET jwt_secret=? WHERE id=?"
-    "resetPasswordCLI"->"CLI": "print new password to stdout"
-    "resetPasswordCLI"->"BetterSqlite3": "db.close()"
+    RPC->>DB: "closeDatabase()"
 ```
 
-Sources: [src/utils/resetPasswordCLI.ts:69-158]()
+Sources: [src/process/utils/resetPasswordCLI.ts:78-172]()
 
 ---
 
-### Code Entity Map
+## System Diagnostics
 
-**How CLI flags map to code and system components**
+Upon startup, the server utility executes `logEnvironmentDiagnostics` to aid in troubleshooting environment issues [src/server.ts:29]().
+
+### Diagnostics Features
+- **Tool Discovery**: Uses `resolveToolInfo` to locate binaries like `node`, `git`, `python`, and `npm` on the system PATH, capturing their paths and versions [src/process/utils/shellEnv.ts:139-191]().
+- **Resource Monitoring**: Logs system memory (formatted via `formatBytes`) and CPU architecture [src/process/utils/shellEnv.ts:49-70]().
+- **Path Validation**: Verifies the presence of critical directories using `fs.existsSync` [src/process/utils/shellEnv.ts:34-37]().
+
+Sources: [src/process/utils/shellEnv.ts:1-200](), [src/server.ts:29]()
+
+---
+
+## CLI Entity Mapping
+
+**Mapping CLI inputs to internal Code Entities**
 
 ```mermaid
 flowchart TD
-    binary["aionui binary"]
-    flag_webui["--webui flag"]
-    flag_remote["--remote flag"]
-    flag_port["--port flag"]
-    flag_resetpass["--resetpass flag"]
+    subgraph "CLI Entry"
+        ARGV["process.argv"]
+    end
 
-    binary --> flag_webui
-    binary --> flag_remote
-    binary --> flag_port
-    binary --> flag_resetpass
+    subgraph "Logic Controllers"
+        SERVER["src/server.ts\
+main()"]
+        RESET["src/process/utils/resetPasswordCLI.ts\
+resetPasswordCLI()"]
+        DIAG["src/process/utils/shellEnv.ts\
+logEnvironmentDiagnostics()"]
+    end
 
-    flag_webui --> webui_mode["WebUI application mode\
-(see page 3.1)"]
-    flag_remote --> remote_bind["server binds to 0.0.0.0\
-(see page 3.5)"]
-    flag_port --> port_override["overrides default port 25808"]
-    flag_resetpass --> resetPasswordCLI["resetPasswordCLI()\
-src/utils/resetPasswordCLI.ts"]
+    subgraph "System Entities"
+        DB_S["DatabaseService\
+(SQLite)"]
+        STORE["initStorage()"]
+        WEB["startWebServerWithInstance()"]
+    end
 
-    resetPasswordCLI --> getDataPath["getDataPath()\
-@process/utils"]
-    resetPasswordCLI --> BetterSqlite3["BetterSqlite3\
-aionui.db"]
-    resetPasswordCLI --> bcryptjs["bcryptjs.hash()"]
-    resetPasswordCLI --> crypto["crypto.randomBytes()\
-new jwt_secret"]
-
-    getDataPath --> dbpath["aionui.db\
- platform data dir"]
+    ARGV -- "--resetpass" --> RESET
+    ARGV -- "--webui" --> SERVER
+    SERVER --> DIAG
+    SERVER --> STORE
+    SERVER --> WEB
+    RESET --> DB_S
+    WEB -.-> DB_S
 ```
 
-Sources: [src/utils/resetPasswordCLI.ts:69-158](), [WEBUI_GUIDE.md:596-673]()
+Sources: [src/server.ts:83-118](), [src/process/utils/resetPasswordCLI.ts:78-172](), [src/process/utils/shellEnv.ts:197-205]()
 
 ---
 
-## Linux systemd Service
+## Signal Handling and Shutdown
 
-For running AionUi as a persistent background service on Linux, a systemd unit file can be created at `/etc/systemd/system/aionui-webui.service`:
+The CLI server implements robust shutdown logic to prevent database corruption. It registers handlers for `SIGINT` and `SIGTERM` at the top level [src/server.ts:80-81]().
 
-```ini
-[Unit]
-Description=AionUi WebUI Service
-After=network.target
+- **Graceful Shutdown**: Attempts to shut down the `ChannelManager`, terminates WebSocket clients, and closes the Express server [src/server.ts:58-71]().
+- **Database Safety**: Explicitly calls `closeDatabase()` to ensure SQLite checkpoints the Write-Ahead Log (WAL) file [src/server.ts:66]().
+- **Force Exit**: If a second signal is received, it forces an immediate exit after a final database closure attempt [src/server.ts:49-54]().
 
-[Service]
-Type=simple
-User=YOUR_USERNAME
-ExecStart=/opt/AionUi/aionui --webui --remote
-Restart=on-failure
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable and start:
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable aionui-webui.service
-sudo systemctl start aionui-webui.service
-```
-
-Sources: [WEBUI_GUIDE.md:186-215]()
-
----
-
-## Precedence Rules
-
-When the same setting (e.g. port, remote access) is specified in multiple places, AionUi uses this priority order:
-
-```
-CLI flag  >  Environment variable  >  webui.config.json
-```
-
-Sources: [WEBUI_GUIDE.md:589-592]()
+Sources: [src/server.ts:48-81]()

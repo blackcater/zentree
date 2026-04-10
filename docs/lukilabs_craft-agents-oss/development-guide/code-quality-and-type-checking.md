@@ -6,407 +6,222 @@
 The following files were used as context for generating this wiki page:
 
 - [package.json](package.json)
+- [packages/shared/src/agent/backend/__tests__/factory.test.ts](packages/shared/src/agent/backend/__tests__/factory.test.ts)
+- [packages/shared/src/config/__tests__/llm-connections.test.ts](packages/shared/src/config/__tests__/llm-connections.test.ts)
 
 </details>
 
-This page documents the type checking, linting, and testing infrastructure used to maintain code quality across the Craft Agents codebase. For information about building and packaging the application, see [Build System](#5.2). For information about working with packages and their dependencies, see [Working with Packages](#5.4).
+
+
+This page documents the type checking, linting, and testing infrastructure used to maintain code quality across the Craft Agents codebase. For information about building and packaging the application, see [Build System](). For information about working with packages and their dependencies, see [Working with Packages]().
 
 ## Overview
 
 The codebase employs three primary quality control mechanisms:
 
-- **TypeScript** for static type checking with strict mode enabled
-- **ESLint** for code style and pattern enforcement with TypeScript-aware rules
-- **Bun** as the test runner for unit and integration tests
+- **TypeScript** for static type checking with strict mode enabled.
+- **ESLint** for code style and pattern enforcement with TypeScript-aware rules.
+- **Bun** as the primary test runner for unit and integration tests, alongside specialized Python tests for document tools.
 
 All quality checks are designed to work within the monorepo structure and respect workspace boundaries.
 
 ## TypeScript Configuration
 
-The project uses TypeScript 5.0+ with strict type checking enabled. Type checking is configured at the package level rather than globally, allowing each package to maintain its own `tsconfig.json` while sharing common settings.
+The project uses TypeScript with strict type checking enabled. Type checking is configured at the package level, allowing each package to maintain its own `tsconfig.json` while sharing common settings.
 
 ### Type Checking Scripts
 
-The root `package.json` defines two type checking scripts:
+The root `package.json` defines several type checking scripts to validate different layers of the monorepo:
 
-| Script          | Packages Checked                                                  | Notes                                                  |
-| --------------- | ----------------------------------------------------------------- | ------------------------------------------------------ |
-| `typecheck`     | `packages/shared`                                                 | Quick check on the shared package only                 |
-| `typecheck:all` | `packages/core`, `packages/shared`, `packages/session-tools-core` | Full sequential check across all foundational packages |
+| Script | Packages Checked | Command |
+|--------|-----------------|---------|
+| `typecheck` | `packages/shared` | `cd packages/shared && bun run tsc --noEmit` |
+| `typecheck:all` | Core foundational packages | Sequential `tsc --noEmit` across `core`, `shared`, `server-core`, `server`, `session-tools-core`, `apps/electron`, and `ui`. |
+| `typecheck:electron` | `apps/electron` | `cd apps/electron && bun run typecheck` |
+| `typecheck:staged` | Staged Git files | `bash scripts/typecheck-staged.sh` |
+| `viewer:typecheck` | `apps/viewer` | `cd apps/viewer && bun run typecheck` |
+| `webui:typecheck` | `apps/webui` | `cd apps/webui && bun run typecheck` |
 
-Both scripts invoke `tsc --noEmit`, which validates types without emitting output files.
-
-Sources: [package.json:14-15]()
+**Sources:** [package.json:24-27](), [package.json:35](), [package.json:75](), [package.json:81]()
 
 ### Why Selective Type Checking
 
-Type checking focuses on `packages/core`, `packages/shared`, and `packages/session-tools-core` because:
+The `typecheck:all` script is the most comprehensive, covering:
+1. **Foundational Packages**: `shared`, `core`, and `session-tools-core` contain logic consumed across all apps.
+2. **Server Layer**: `server` and `server-core` handle the headless agent execution.
+3. **UI & Apps**: `ui` (component library) and `apps/electron` (the main desktop client).
 
-1. These contain the foundational types and business logic consumed across all applications
-2. The Electron app (`apps/electron`) is type-checked during build via `esbuild`
-3. Vite-based apps (`viewer`, `marketing`) perform type checking during their build process
-4. MCP server binaries use the shared package types and don't require separate explicit checks
-
-### Peer Dependencies Pattern
-
-Both `core` and `shared` packages declare AI SDKs as peer dependencies rather than direct dependencies:
-
-```json
-"peerDependencies": {
-  "@anthropic-ai/claude-agent-sdk": ">=0.2.19",
-  "@anthropic-ai/sdk": ">=0.70.0",
-  "@modelcontextprotocol/sdk": ">=1.0.0"
-}
-```
-
-This pattern ensures:
-
-- **Single version resolution**: Only one version of each SDK exists in the dependency tree
-- **Type consistency**: TypeScript sees the same SDK types across all packages
-- **Version flexibility**: Applications can control SDK versions without conflicts
-
-**Sources:** [packages/core/package.json:14-18](), [packages/shared/package.json:71-76]()
+**Sources:** [package.json:27]()
 
 ## Type Checking Flow
 
-The following diagram maps the `typecheck` and `typecheck:all` scripts to the packages they validate.
+The following diagram maps the `typecheck` scripts to the packages they validate.
 
-**Diagram: `tsc --noEmit` Targets by Script**
+**Diagram: Type Check Execution Flow**
 
 ```mermaid
 graph TB
-    subgraph "Root Scripts (package.json)"
-        TypecheckCmd["typecheck"]
-        TypecheckAllCmd["typecheck:all"]
+    subgraph "CLI_Entry_Points"
+        TCS["typecheck"]
+        TCA["typecheck:all"]
+        TCE["typecheck:electron"]
+        TCV["viewer:typecheck"]
+        TCW["webui:typecheck"]
     end
 
-    subgraph "packages/core"
-        CoreTSConfig["tsconfig.json"]
-        CoreSrc["src/**/*.ts"]
-        CoreTSConfig -->|"tsc --noEmit"| CoreSrc
+    subgraph "Package_Layer"
+        Shared["packages/shared"]
+        Core["packages/core"]
+        STC["packages/session-tools-core"]
+        UI["packages/ui"]
     end
 
-    subgraph "packages/shared"
-        SharedTSConfig["tsconfig.json"]
-        SharedSrc["src/**/*.ts"]
-        SharedPeerDeps["peerDependencies: @anthropic-ai/*, @modelcontextprotocol/sdk"]
-        SharedTSConfig -->|"tsc --noEmit"| SharedSrc
-        SharedPeerDeps -.type imports.-> SharedSrc
+    subgraph "Application_Layer"
+        Electron["apps/electron"]
+        Server["packages/server"]
+        Viewer["apps/viewer"]
+        WebUI["apps/webui"]
     end
 
-    subgraph "packages/session-tools-core"
-        STCTSConfig["tsconfig.json"]
-        STCSrc["src/**/*.ts"]
-        STCTSConfig -->|"tsc --noEmit"| STCSrc
-    end
+    TCS --> Shared
+    TCE --> Electron
+    TCV --> Viewer
+    TCW --> WebUI
 
-    subgraph "apps/electron"
-        ElectronEsbuild["esbuild (build-time)"]
-        ElectronSrc["src/**/*.ts(x)"]
-        ElectronEsbuild -->|"implicit type check"| ElectronSrc
-    end
-
-    TypecheckCmd --> SharedTSConfig
-    TypecheckAllCmd --> CoreTSConfig
-    TypecheckAllCmd --> SharedTSConfig
-    TypecheckAllCmd --> STCTSConfig
+    TCA --> Core
+    TCA --> Shared
+    TCA --> STC
+    TCA --> UI
+    TCA --> Electron
+    TCA --> Server
 ```
 
-Sources: [package.json:14-15](), [packages/core/package.json:14-18](), [packages/shared/package.json:71-76]()
+**Sources:** [package.json:24-27](), [package.json:35](), [package.json:75](), [package.json:81]()
 
 ## ESLint Configuration
 
-The codebase uses ESLint with TypeScript-specific plugins to enforce code quality standards. Linting is configured separately for different parts of the monorepo.
+The codebase uses ESLint with TypeScript-specific plugins to enforce code quality standards. Linting is configured separately for different parts of the monorepo to handle different environments (Node.js vs. Browser/React).
 
 ### Lint Scripts
 
-| Script          | Target            | Command                                                         |
-| --------------- | ----------------- | --------------------------------------------------------------- |
-| `lint:electron` | `apps/electron`   | `cd apps/electron && bun run lint`                              |
-| `lint:shared`   | `packages/shared` | `npx eslint .`                                                  |
-| `lint:ui`       | `packages/ui`     | `npx eslint .`                                                  |
-| `lint`          | All three         | Runs `lint:electron`, `lint:shared`, and `lint:ui` sequentially |
+| Script | Target | Command |
+|--------|--------|---------|
+| `lint:electron` | `apps/electron` | `cd apps/electron && bun run lint` |
+| `lint:shared` | `packages/shared` | `npx eslint .` |
+| `lint:ui` | `packages/ui` | `npx eslint .` |
+| `lint:ipc-sends` | IPC Security | `bash scripts/check-raw-sends.sh` |
+| `lint` | **Full Suite** | Runs all the above scripts sequentially. |
 
-Sources: [package.json:16-19]()
+**Sources:** [package.json:43-47]()
 
-### ESLint Plugins
+### Specialized Linting: IPC Security
+The `lint:ipc-sends` script executes `scripts/check-raw-sends.sh`. This is a specialized check to ensure that IPC communication follows the established security patterns, preventing unsafe raw sends from the renderer process.
 
-The following ESLint packages are installed at the root level and shared across all lint targets:
+**Sources:** [package.json:43]()
 
-| Package                            | Purpose                             |
-| ---------------------------------- | ----------------------------------- |
-| `@typescript-eslint/parser`        | Parses TypeScript syntax for ESLint |
-| `@typescript-eslint/eslint-plugin` | TypeScript-specific linting rules   |
-| `eslint-plugin-react`              | React component best practices      |
-| `eslint-plugin-react-hooks`        | Enforces Rules of Hooks             |
+## Testing Infrastructure
 
-Sources: [package.json:72-73](), [package.json:76-78]()
+The project primarily uses [Bun](https://bun.sh) as its test runner, providing fast execution and built-in TypeScript support. It also includes Python-based smoke tests for document processing tools.
 
-### Linting Architecture
+### Test Suites
 
-**Diagram: ESLint Scope per `lint:*` Script**
+| Suite | Script | Purpose |
+|-------|--------|---------|
+| **Core Logic** | `test` | Runs `bun test` and executes all `*.isolated.ts` tests in the repo. |
+| **Shared Config** | `test:shared:config` | Validates LLM connections, storage migrations, and startup logic. |
+| **Document Tools** | `test:doc-tools` | Python unit tests for PDF, XLSX, DOCX, and image processing tools. |
+| **Full Validation** | `validate:dev` | Runs `typecheck:all`, `test:shared:all`, and `test:doc-tools`. |
 
-```mermaid
-graph TB
-    subgraph "Root devDependencies (package.json)"
-        TSParser["@typescript-eslint/parser"]
-        TSPlugin["@typescript-eslint/eslint-plugin"]
-        ReactPlugin["eslint-plugin-react"]
-        HooksPlugin["eslint-plugin-react-hooks"]
-    end
+**Sources:** [package.json:23](), [package.json:38](), [package.json:40-41]()
 
-    subgraph "apps/electron"
-        ElectronLintCmd["lint:electron"]
-        ElectronConfig["eslint.config.*"]
-        ElectronFiles["src/**/*.ts / *.tsx"]
-        ElectronLintCmd --> ElectronConfig --> ElectronFiles
-        ElectronConfig -.uses.-> TSParser
-        ElectronConfig -.uses.-> TSPlugin
-        ElectronConfig -.uses.-> ReactPlugin
-        ElectronConfig -.uses.-> HooksPlugin
-    end
+### Agent & Connection Validation
+Tests in `packages/shared/src/agent/backend/__tests__/factory.test.ts` verify the integrity of the agent creation pipeline, including provider detection and backend mapping.
 
-    subgraph "packages/shared"
-        SharedLintCmd["lint:shared"]
-        SharedConfig["eslint.config.*"]
-        SharedFiles["src/**/*.ts"]
-        SharedLintCmd --> SharedConfig --> SharedFiles
-        SharedConfig -.uses.-> TSParser
-        SharedConfig -.uses.-> TSPlugin
-    end
-
-    subgraph "packages/ui"
-        UILintCmd["lint:ui"]
-        UIConfig["eslint.config.*"]
-        UIFiles["src/**/*.ts / *.tsx"]
-        UILintCmd --> UIConfig --> UIFiles
-        UIConfig -.uses.-> TSParser
-        UIConfig -.uses.-> TSPlugin
-        UIConfig -.uses.-> ReactPlugin
-        UIConfig -.uses.-> HooksPlugin
-    end
-
-    RootLint["lint"] --> ElectronLintCmd
-    RootLint --> SharedLintCmd
-    RootLint --> UILintCmd
-```
-
-Sources: [package.json:16-19](), [package.json:72-73](), [package.json:76-78]()
-
-### Why Separate Lint Configurations
-
-Each package maintains its own ESLint configuration because:
-
-1. **Different environments**: `apps/electron` and `packages/ui` contain React components, while `packages/shared` is pure TypeScript
-2. **Plugin requirements**: React-specific rules (`eslint-plugin-react`, `eslint-plugin-react-hooks`) only apply to packages with JSX
-3. **Rule customization**: Each package can tune rules for its specific context
-4. **Performance**: Smaller lint scopes produce faster feedback during development
-
-## Testing with Bun
-
-The project uses [Bun](https://bun.sh) as its test runner, providing fast execution and built-in TypeScript support.
-
-### Test Scripts
-
-| Location          | Script       | Command            |
-| ----------------- | ------------ | ------------------ |
-| Root              | `test`       | `bun test`         |
-| `packages/shared` | `test`       | `bun test`         |
-| `packages/shared` | `test:watch` | `bun test --watch` |
-
-**Sources:** [package.json:13](), [packages/shared/package.json:11-12]()
-
-### Test Execution Flow
-
-**Diagram: `bun test` Discovery and Execution**
+**Diagram: Agent Factory Test Coverage**
 
 ```mermaid
-graph LR
-    subgraph "Entry Points"
-        RootTest["test (root package.json)"]
-        SharedTest["test (packages/shared)"]
-        SharedWatch["test:watch (packages/shared)"]
+graph TD
+    subgraph "Test_Targets"
+        DF["detectProvider"]
+        CB["createBackend"]
+        GAP["getAvailableProviders"]
+        CTP["connectionTypeToProvider"]
     end
 
-    subgraph "bun test Runner"
-        BunRunner["bun test"]
-        TestFiles["**/*.test.ts / **/*.spec.ts / __tests__/**"]
-        BunRunner -->|"glob discovery"| TestFiles
+    subgraph "Code_Entities"
+        CA["ClaudeAgent"]
+        PA["PiAgent"]
+        LC["LlmConnection"]
+        BC["BackendConfig"]
     end
 
-    subgraph "Execution"
-        TSTransform["built-in TS transpilation"]
-        Results["pass / fail output"]
-        TestFiles --> TSTransform --> Results
-    end
-
-    RootTest --> BunRunner
-    SharedTest --> BunRunner
-    SharedWatch -->|"--watch"| BunRunner
+    DF -- "Validates_Auth_Types" --> BC
+    CB -- "Instantiates" --> CA
+    CB -- "Instantiates" --> PA
+    CTP -- "Maps" --> LC
 ```
 
-Sources: [package.json:13](), [packages/shared/package.json:11-12]()
+**Sources:** [packages/shared/src/agent/backend/__tests__/factory.test.ts:13-27](), [packages/shared/src/agent/backend/__tests__/factory.test.ts:88-103]()
 
-### Test File Patterns
+### Test Discovery & Execution
 
-Bun automatically discovers test files matching these patterns:
+**Diagram: Test Runner Architecture**
 
-- `**/*.test.ts`
-- `**/*.spec.ts`
-- Files in `__tests__` directories
+```mermaid
+graph TD
+    subgraph "Test_Runners"
+        BunRunner["Bun Test Runner"]
+        PyRunner["Python unittest"]
+    end
 
-No additional configuration is required as Bun includes TypeScript support out of the box.
+    subgraph "TypeScript_Tests"
+        SharedTests["packages/shared/tests/*.test.ts"]
+        IsolatedTests["**/*.isolated.ts"]
+        ConfigTests["packages/shared/src/config/__tests__/*.test.ts"]
+        AgentTests["packages/shared/src/agent/backend/__tests__/factory.test.ts"]
+    end
 
-### Watch Mode
+    subgraph "Tool_Smoke_Tests"
+        DocTools["apps.electron.resources.scripts.tests.test_*"]
+    end
 
-The `test:watch` script in `packages/shared` enables continuous testing during development:
+    BunRunner --> SharedTests
+    BunRunner --> IsolatedTests
+    BunRunner --> ConfigTests
+    BunRunner --> AgentTests
+    
+    PyRunner --> DocTools
 
-```bash
-cd packages/shared
-npm run test:watch
+    ValidateDev["validate:dev"] --> BunRunner
+    ValidateDev --> PyRunner
 ```
 
-This re-runs tests automatically when source files change, providing rapid feedback during development.
-
-**Sources:** [packages/shared/package.json:12]()
+**Sources:** [package.json:23](), [package.json:38-41](), [packages/shared/src/agent/backend/__tests__/factory.test.ts:10]()
 
 ## Quality Check Integration
 
-The following table summarizes the complete set of quality checks and their scopes:
+Before submitting changes, developers should run the full validation suite. This ensures that type safety is maintained across package boundaries and that no regressions are introduced in core logic or document processing tools.
 
-| Script           | Command                 | Scope                                                               |
-| ---------------- | ----------------------- | ------------------------------------------------------------------- |
-| `typecheck`      | `bun run typecheck`     | `packages/shared`                                                   |
-| `typecheck:all`  | `bun run typecheck:all` | `packages/core` + `packages/shared` + `packages/session-tools-core` |
-| `lint:electron`  | `bun run lint:electron` | `apps/electron`                                                     |
-| `lint:shared`    | `bun run lint:shared`   | `packages/shared`                                                   |
-| `lint:ui`        | `bun run lint:ui`       | `packages/ui`                                                       |
-| `lint`           | `bun run lint`          | All three lint targets                                              |
-| `test`           | `bun run test`          | All test files in workspace                                         |
-| Build type check | Via `esbuild` / Vite    | Implicit during build                                               |
-
-Sources: [package.json:13-19]()
-
-## Peer Dependency Type Safety
-
-The peer dependency pattern ensures type safety across package boundaries. Here's how it works:
-
-**Diagram: Peer Dependency Type Resolution**
-
-```mermaid
-graph TB
-    subgraph "Root Installation"
-        RootNodeModules["node_modules/<br/>@anthropic-ai/claude-agent-sdk@0.2.37<br/>@anthropic-ai/sdk@0.71.1<br/>@modelcontextprotocol/sdk@1.24.3"]
-    end
-
-    subgraph "packages/core"
-        CorePeerDeps["peerDependencies:<br/>@anthropic-ai/claude-agent-sdk: >=0.2.19<br/>@anthropic-ai/sdk: >=0.70.0<br/>@modelcontextprotocol/sdk: >=1.0.0"]
-        CoreImports["import type {...} from '@anthropic-ai/sdk'"]
-
-        CorePeerDeps -.declares need for.-> RootNodeModules
-        CoreImports -.resolves to.-> RootNodeModules
-    end
-
-    subgraph "packages/shared"
-        SharedPeerDeps["peerDependencies:<br/>(same versions)"]
-        SharedImports["import type {...} from '@anthropic-ai/sdk'"]
-
-        SharedPeerDeps -.declares need for.-> RootNodeModules
-        SharedImports -.resolves to.-> RootNodeModules
-    end
-
-    subgraph "apps/electron"
-        ElectronDeps["dependencies:<br/>@anthropic-ai/claude-agent-sdk<br/>@anthropic-ai/sdk<br/>@modelcontextprotocol/sdk"]
-        ElectronImports["import type {...} from '@anthropic-ai/sdk'"]
-
-        ElectronDeps -->|"installs at root"| RootNodeModules
-        ElectronImports -.resolves to.-> RootNodeModules
-    end
-
-    TypeCheck["tsc --noEmit"]
-    TypeCheck -->|"sees single version"| CoreImports
-    TypeCheck -->|"sees single version"| SharedImports
-    TypeCheck -->|"no conflicts"| ElectronImports
-
-    style RootNodeModules fill:#f0f0f0
-    style TypeCheck fill:#e0e0e0
-```
-
-**Sources:** [packages/core/package.json:14-18](), [packages/shared/package.json:71-76](), [package.json:89-92]()
-
-### Type Conflict Prevention
-
-Without peer dependencies, this scenario could occur:
-
-1. `packages/core` depends on `@anthropic-ai/sdk@0.70.0`
-2. `packages/shared` depends on `@anthropic-ai/sdk@0.71.0`
-3. TypeScript sees two different type definitions for the same import
-4. Type errors occur when passing objects between packages
-
-With peer dependencies:
-
-1. Both `core` and `shared` declare they need `@anthropic-ai/sdk` >= some version
-2. The root `package.json` (or the consuming app) provides the exact version
-3. TypeScript sees exactly one set of types
-4. No conflicts occur
-
-## Pre-commit Hooks
-
-The project uses [Husky](https://typicode.github.io/husky/) for Git hooks. The `prepare` script [package.json:54]() configures Husky automatically after `bun install`. Pre-commit hooks can be used to run linting and type checking on staged files before a commit is accepted.
-
-Sources: [package.json:54](), [package.json:83]()
-
-## Common Workflows
-
-### Before Committing Changes
+### Pre-submission Workflow
 
 ```bash
-bun run typecheck:all   # type-check core + shared + session-tools-core
-bun run lint            # lint electron + shared + ui
-bun run test            # run all tests
+# Run full type checking across all packages
+bun run typecheck:all
+
+# Run all linting including IPC security checks
+bun run lint
+
+# Run the complete validation suite (Types + Bun Tests + Python Tests)
+bun run validate:dev
 ```
 
-### During Development
+**Sources:** [package.json:27](), [package.json:41](), [package.json:47]()
 
+### Continuous Development
+For rapid feedback during development of the shared logic:
 ```bash
-# Continuous test feedback
-cd packages/shared
-bun run test:watch
-
-# Quick type check on shared only
-bun run typecheck
+# Run specific tests for LLM connections and models
+bun run test:shared:all
 ```
 
-### Before Opening a PR
-
-```bash
-bun run typecheck:all && bun run lint && bun run test
-```
-
-### Isolating Type Errors in a Package
-
-Run `tsc --noEmit` directly inside the failing package for detailed error output:
-
-```bash
-cd packages/shared
-bun run tsc --noEmit
-```
-
-Sources: [package.json:13-19]()
-
-## Integration with Build System
-
-Type checking integrates with the build system differently for each application:
-
-| Application         | Build Tool | Type Checking          |
-| ------------------- | ---------- | ---------------------- |
-| Electron (main)     | esbuild    | Build-time via esbuild |
-| Electron (renderer) | esbuild    | Build-time via esbuild |
-| Viewer              | Vite       | Build-time via Vite    |
-| Marketing           | Vite       | Build-time via Vite    |
-
-All build tools perform type checking during the build process, ensuring that production builds are type-safe even if manual type checking is skipped.
-
-For more details on the build system, see [Build System](#5.2).
-
-**Sources:** [package.json:21-26,36-45]()
+**Sources:** [package.json:39]()

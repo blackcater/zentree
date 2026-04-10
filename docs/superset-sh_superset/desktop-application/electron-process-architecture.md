@@ -33,6 +33,8 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
+
+
 ## Purpose and Scope
 
 This document describes the multi-process architecture of the Superset desktop application built with Electron. It covers the separation between main process (Node.js), renderer process (Chromium), and preload scripts, along with their security boundaries, build configuration, and inter-process communication mechanisms.
@@ -52,24 +54,24 @@ graph TB
     Main["Main Process<br/>(Node.js/Electron)"]
     Preload["Preload Scripts<br/>(Sandboxed Node.js)"]
     Renderer["Renderer Process<br/>(Chromium/Browser)"]
-
+    
     TerminalHost["Terminal Host Daemon<br/>(Node.js subprocess)"]
     PTY["PTY Subprocess<br/>(node-pty)"]
     GitWorker["Git Task Worker<br/>(Worker Thread)"]
     HostService["Host Service<br/>(HTTP/tRPC Server)"]
-
+    
     Main -->|"spawns"| TerminalHost
     Main -->|"creates Worker"| GitWorker
     Main -->|"spawns per-org"| HostService
     TerminalHost -->|"spawns"| PTY
-
+    
     Main -->|"creates BrowserWindow"| Renderer
     Main -->|"loads into context"| Preload
     Preload -->|"exposes IPC APIs"| Renderer
-
+    
     Renderer -.->|"IPC via contextBridge"| Preload
     Preload -.->|"ipcRenderer"| Main
-
+    
     style Main fill:#f9f9f9
     style Renderer fill:#f9f9f9
     style Preload fill:#f9f9f9
@@ -77,15 +79,15 @@ graph TB
 
 **Sources:** [apps/desktop/electron.vite.config.ts:99-118]()
 
-| Process        | Runtime                    | Purpose                                               | Privileges                               |
-| -------------- | -------------------------- | ----------------------------------------------------- | ---------------------------------------- |
-| Main           | Node.js + Electron APIs    | App lifecycle, native integrations, system operations | Full system access                       |
-| Renderer       | Chromium V8                | React UI, user interactions                           | Sandboxed browser context                |
-| Preload        | Node.js (context isolated) | Secure IPC bridge                                     | Limited Node.js APIs via `contextBridge` |
-| Terminal Host  | Node.js subprocess         | Persistent terminal session management                | Same as main, runs independently         |
-| PTY Subprocess | Node.js subprocess         | Individual terminal shell instances                   | Spawned by terminal host                 |
-| Git Worker     | Worker thread              | Heavy Git operations                                  | Runs in separate thread                  |
-| Host Service   | Node.js subprocess         | Per-organization HTTP/tRPC server                     | Runs independently per org               |
+| Process | Runtime | Purpose | Privileges |
+|---------|---------|---------|------------|
+| Main | Node.js + Electron APIs | App lifecycle, native integrations, system operations | Full system access |
+| Renderer | Chromium V8 | React UI, user interactions | Sandboxed browser context |
+| Preload | Node.js (context isolated) | Secure IPC bridge | Limited Node.js APIs via `contextBridge` |
+| Terminal Host | Node.js subprocess | Persistent terminal session management | Same as main, runs independently |
+| PTY Subprocess | Node.js subprocess | Individual terminal shell instances | Spawned by terminal host |
+| Git Worker | Worker thread | Heavy Git operations | Runs in separate thread |
+| Host Service | Node.js subprocess | Per-organization HTTP/tRPC server | Runs independently per org |
 
 ---
 
@@ -98,7 +100,7 @@ The main process is the application's privileged backend running in Node.js. It 
 ```mermaid
 graph TB
     Entry["apps/desktop/src/main/index.ts"]
-
+    
     Entry --> AppReady["app.whenReady()"]
     AppReady --> RegisterProtocols["Register custom protocols<br/>superset-icon://<br/>superset-font://"]
     AppReady --> InitSentry["initSentry()"]
@@ -110,9 +112,9 @@ graph TB
     AppReady --> CreateWindow["makeAppSetup() -> MainWindow()"]
     AppReady --> SetupAutoUpdater["setupAutoUpdater()"]
     AppReady --> InitTray["initTray()"]
-
+    
     CreateWindow --> ProcessDeepLink["Process pending deep link"]
-
+    
     style Entry fill:#f9f9f9
 ```
 
@@ -139,13 +141,13 @@ The main process is bundled into multiple entry points for different subprocess 
 ```mermaid
 graph LR
     ViteConfig["electron.vite.config.ts<br/>main.build.rollupOptions.input"]
-
+    
     ViteConfig --> MainIndex["index.ts<br/>(main entry)"]
     ViteConfig --> TerminalHost["terminal-host/index.ts<br/>(daemon process)"]
     ViteConfig --> PTYSubprocess["terminal-host/pty-subprocess.ts<br/>(PTY wrapper)"]
     ViteConfig --> GitWorker["git-task-worker.ts<br/>(worker thread)"]
     ViteConfig --> HostService["host-service/index.ts<br/>(org HTTP server)"]
-
+    
     style ViteConfig fill:#f9f9f9
 ```
 
@@ -170,4 +172,3 @@ Main process uses `process.env` at runtime, validated via `@t3-oss/env-core`:
 export const env = createEnv({
   server: {
     NODE_ENV: z.enum(["development", "production", "test\
-```

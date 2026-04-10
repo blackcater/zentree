@@ -5,323 +5,197 @@
 
 The following files were used as context for generating this wiki page:
 
-- [.github/workflows/\_build-reusable.yml](.github/workflows/_build-reusable.yml)
-- [.github/workflows/build-manual.yml](.github/workflows/build-manual.yml)
+- [.github/workflows/build-and-release.yml](.github/workflows/build-and-release.yml)
 - [bun.lock](bun.lock)
+- [electron-builder.yml](electron-builder.yml)
+- [package.json](package.json)
+- [scripts/README.md](scripts/README.md)
+- [scripts/afterPack.js](scripts/afterPack.js)
+- [scripts/afterSign.js](scripts/afterSign.js)
+- [scripts/build-with-builder.js](scripts/build-with-builder.js)
+- [scripts/rebuildNativeModules.js](scripts/rebuildNativeModules.js)
+- [src/common/platform/ElectronPlatformServices.ts](src/common/platform/ElectronPlatformServices.ts)
+- [src/common/platform/IPlatformServices.ts](src/common/platform/IPlatformServices.ts)
+- [src/common/platform/NodePlatformServices.ts](src/common/platform/NodePlatformServices.ts)
+- [src/common/platform/index.ts](src/common/platform/index.ts)
 - [src/index.ts](src/index.ts)
-- [src/utils/configureChromium.ts](src/utils/configureChromium.ts)
-- [tests/integration/autoUpdate.integration.test.ts](tests/integration/autoUpdate.integration.test.ts)
-- [tests/unit/autoUpdaterService.test.ts](tests/unit/autoUpdaterService.test.ts)
-- [tests/unit/test_acp_connection_disconnect.ts](tests/unit/test_acp_connection_disconnect.ts)
-- [vitest.config.ts](vitest.config.ts)
+- [src/process/index.ts](src/process/index.ts)
+- [src/process/utils/configureChromium.ts](src/process/utils/configureChromium.ts)
+- [src/process/utils/initBridgeStandalone.ts](src/process/utils/initBridgeStandalone.ts)
+- [tests/unit/deepLink.test.ts](tests/unit/deepLink.test.ts)
+- [tests/unit/platform/platformRegistry.test.ts](tests/unit/platform/platformRegistry.test.ts)
+- [tests/unit/process/utils/configureChromium.test.ts](tests/unit/process/utils/configureChromium.test.ts)
+- [tests/unit/tray.test.ts](tests/unit/tray.test.ts)
+- [tests/unit/webuiConfig.test.ts](tests/unit/webuiConfig.test.ts)
 
 </details>
 
-This page covers how AionUi uses Electron: the main process entry point, window creation, `BrowserWindow` configuration, app lifecycle events, and the split between the main and renderer processes. For information about inter-process communication between the main and renderer, see [3.3](#3.3). For the WebUI server that replaces the window in headless mode, see [3.5](#3.5). For build packaging configuration, see [11](#11).
+
+
+This page explains how AionUi utilizes the Electron framework to provide a cross-platform desktop experience, including window management, deep linking protocols, system tray integration, and Chrome DevTools Protocol (CDP) configuration.
 
 ---
 
 ## Process Architecture
 
-AionUi follows the standard Electron three-process model.
+AionUi follows the standard Electron process model but introduces a specialized initialization sequence in `src/index.ts` to handle environment isolation and Chromium flag configuration before the app is fully ready.
 
-**App Entry Point: BrowserWindow and Process Architecture**
+**App Entry Point: Initialization Flow**
 
 ```mermaid
 graph TD
   pkg["package.json\
 main: ./out/main/index.js"]
+  confChrom["configureChromium.ts\
+(Sets App Name & Flags)"]
   main["src/index.ts\
-(main process)"]
+(Main Process)"]
+  initProc["initializeProcess()\
+(src/process/index.ts)"]
   preload["out/preload/index.js\
-(preload script)"]
+(Preload Script)"]
   renderer["out/renderer/index.html\
-(React renderer)"]
+(React Renderer)"]
 
   pkg --> main
-  main -->|"new BrowserWindow(webPreferences.preload)"| preload
+  main -->|"import"| confChrom
+  main -->|"calls"| initProc
+  main -->|"new BrowserWindow"| preload
   main -->|"loadFile / loadURL"| renderer
-  preload -->|"contextBridge / ipcRenderer"| renderer
-  renderer -->|"ipcBridge invoke/on"| preload
-  preload -->|"ipcMain channels"| main
 ```
 
-| Layer          | Source          | Output                    | Role                                      |
-| -------------- | --------------- | ------------------------- | ----------------------------------------- |
-| Main process   | `src/index.ts`  | `out/main/index.js`       | App lifecycle, native APIs, IPC providers |
-| Preload script | `src/preload/`  | `out/preload/index.js`    | Secure bridge between renderer and main   |
-| Renderer       | `src/renderer/` | `out/renderer/index.html` | React UI, runs in Chromium                |
+| Component | Source | Role |
+|---|---|---|
+| **Environment Setup** | [src/process/utils/configureChromium.ts:14-24]() | Isolates `userData` for development (`AionUi-Dev`) vs production. |
+| **Main Process** | [src/index.ts:17-60]() | Manages app lifecycle, native APIs, and single-instance locks. |
+| **Process Init** | [src/process/index.ts:25-49]() | Asynchronously initializes storage, extensions, and channel managers. |
 
-Sources: [src/index.ts:1-20](), [package.json:6-6](), [electron-builder.yml:13-17]()
+Sources: [src/index.ts:7-25](), [src/process/utils/configureChromium.ts:14-24](), [src/process/index.ts:25-49]()
 
 ---
 
-## Application Lifecycle
+## Application Lifecycle & Window Management
 
-The lifecycle is controlled entirely from `src/index.ts`. The central async function `handleAppReady` runs after `app.whenReady()` resolves and forks into three modes based on CLI flags.
+The application lifecycle is managed in `src/index.ts`. AionUi supports a single-instance lock to ensure that protocol URLs or second launches are piped back to the primary instance.
 
-**`handleAppReady` Flow with Code Entities**
+### Single Instance & Deep Linking
+AionUi registers the `aionui://` protocol scheme. When a second instance is started (e.g., by clicking a deep link), the `second-instance` event captures the URL and passes it to `handleDeepLinkUrl`.
 
-```mermaid
-flowchart TD
-  ready["app.whenReady()"]
-  handle["handleAppReady()"]
-  initProc["initializeProcess()"]
-
-  modeCheck{"Mode flags"}
-  resetpass["isResetPasswordMode\
---resetpass flag"]
-  webui["isWebUIMode\
---webui flag"]
-  desktop["default (GUI mode)"]
-
-  resetpassFn["resetPasswordCLI(username)\
-then app.quit()"]
-  webuiFn["startWebServer(resolvedPort, allowRemote)"]
-  createWin["createWindow()"]
-
-  postInit["initializeAcpDetector()\
-loadShellEnvironmentAsync()\
-powerMonitor.on('resume', ...)"]
-
-  ready --> handle
-  handle --> initProc
-  initProc --> modeCheck
-  modeCheck --> resetpass --> resetpassFn
-  modeCheck --> webui --> webuiFn
-  modeCheck --> desktop --> createWin
-  resetpassFn -.->|"skipped"| postInit
-  webuiFn --> postInit
-  createWin --> postInit
-```
-
-Sources: [src/index.ts:268-340]()
-
-### CLI Flag Parsing
-
-Two helpers parse flags from both `process.argv` and `app.commandLine`:
-
-- `hasSwitch(flag)` — checks for `--flag` in argv or via `app.commandLine.hasSwitch`
-- `getSwitchValue(flag)` — reads `--flag=value` or `--flag value` form
-
-[src/index.ts:75-93]()
-
-The three mode flags derived from these helpers:
-
-| Variable              | Flag          | Effect                                       |
-| --------------------- | ------------- | -------------------------------------------- |
-| `isWebUIMode`         | `--webui`     | Starts Express+WS server instead of a window |
-| `isRemoteMode`        | `--remote`    | Binds server to `0.0.0.0`                    |
-| `isResetPasswordMode` | `--resetpass` | Runs `resetPasswordCLI` then quits           |
-
-Sources: [src/index.ts:164-166]()
-
----
-
-## Window Creation
-
-`createWindow()` is called only in standard GUI mode. It creates a single `BrowserWindow` named `mainWindow`.
-
-**`createWindow()` — Key Calls and Side Effects**
+**Deep Link Data Flow**
 
 ```mermaid
 sequenceDiagram
-  participant main as "src/index.ts"
-  participant screen as "electron.screen"
-  participant BW as "BrowserWindow"
-  participant adapter as "initMainAdapterWithWindow"
-  participant menu as "setupApplicationMenu"
-  participant zoom as "applyZoomToWindow"
-  participant wmaxl as "registerWindowMaximizeListeners"
-  participant updater as "autoUpdaterService.initialize"
+  participant OS as "Operating System"
+  participant App as "AionUi (Main Instance)"
+  participant DL as "deepLink.ts"
+  participant IPC as "ipcBridge.deepLink"
+  participant UI as "Renderer (React)"
 
-  main->>screen: "getPrimaryDisplay().workAreaSize"
-  screen-->>main: "screenWidth, screenHeight"
-  main->>BW: "new BrowserWindow({width: 80%, height: 80%, ...})"
-  BW-->>main: "mainWindow"
-  main->>adapter: "initMainAdapterWithWindow(mainWindow)"
-  main->>menu: "setupApplicationMenu()"
-  main->>zoom: "applyZoomToWindow(mainWindow)"
-  main->>wmaxl: "registerWindowMaximizeListeners(mainWindow)"
-  main->>updater: "dynamic import + initialize(statusBroadcast)"
+  OS->>App: "aionui://add-provider?apiKey=sk-..."
+  App->>DL: "handleDeepLinkUrl(url)"
+  DL->>DL: "parseDeepLinkUrl(url)"
+  Note over DL: "Decodes base64 'data' param if present"
+  DL->>IPC: "received.emit({ action, params })"
+  IPC->>UI: "Subscribed listener triggers"
 ```
 
-Sources: [src/index.ts:170-256]()
+| Function | File | Description |
+|---|---|---|
+| `handleDeepLinkUrl` | [src/process/utils/deepLink.ts:101-119]() | Routes URLs to the active window or queues them if no window exists. |
+| `parseDeepLinkUrl` | [src/process/utils/deepLink.ts:54-99]() | Parses the action and query parameters, including base64 `data` payloads. |
+| `requestSingleInstanceLock` | [src/index.ts:70-74]() | Ensures only one instance of the application runs. |
 
-### `BrowserWindow` Configuration
+Sources: [src/index.ts:68-97](), [src/process/utils/deepLink.ts:54-119]()
+
+---
+
+## System Tray Integration
+
+The system tray provides quick access to active tasks and recent conversations. It is managed by `src/process/utils/tray.ts`.
+
+**Tray Implementation Entities**
 
 ```mermaid
-graph LR
-  bw["BrowserWindow config"]
-  size["width: screenWidth × 0.8\
-height: screenHeight × 0.8"]
-  menu["autoHideMenuBar: true"]
-  mac["macOS:\
-titleBarStyle: hidden\
-trafficLightPosition: x=10 y=10"]
-  other["Windows / Linux:\
-frame: false"]
-  wp["webPreferences"]
-  preload["preload: out/preload/index.js"]
-  wv["webviewTag: true"]
-
-  bw --> size
-  bw --> menu
-  bw --> mac
-  bw --> other
-  bw --> wp
-  wp --> preload
-  wp --> wv
+classDiagram
+  class TrayManager {
+    +createOrUpdateTray()
+    +destroyTray()
+    +refreshTrayMenu()
+    +setCloseToTrayEnabled(bool)
+  }
+  class TrayMenu {
+    +ShowMainWindow
+    +RecentConversations
+    +ActiveTasks
+    +Quit
+  }
+  TrayManager ..> TrayMenu : "buildFromTemplate"
 ```
 
-| Property                | Value                                            | Reason                                                 |
-| ----------------------- | ------------------------------------------------ | ------------------------------------------------------ |
-| `width` / `height`      | 80% of `screen.getPrimaryDisplay().workAreaSize` | Comfortable default on high-DPI displays               |
-| `autoHideMenuBar`       | `true`                                           | Cleaner look; menu accessible via Alt key              |
-| `titleBarStyle` (macOS) | `'hidden'`                                       | Custom title bar with traffic lights at `{x:10, y:10}` |
-| `frame` (Windows/Linux) | `false`                                          | Custom frameless window                                |
-| `webviewTag`            | `true`                                           | Required for the HTML preview panel                    |
-| `preload`               | `path.join(__dirname, '../preload/index.js')`    | Exposes `ipcBridge` safely to renderer                 |
+- **Close to Tray**: Controlled via `getCloseToTrayEnabled()`. If enabled, closing the main window hides it instead of quitting [src/process/utils/tray.ts:257-270]().
+- **Dynamic Menu**: The menu is refreshed via `refreshTrayMenu()` to show current AI worker tasks from `workerTaskManager` and recent chat history from `getDatabase()` [src/process/utils/tray.ts:121-145]().
 
-Sources: [src/index.ts:197-214]()
+Sources: [src/process/utils/tray.ts:93-270](), [tests/unit/tray.test.ts:163-232]()
 
 ---
 
-## URL Loading — Development vs Production
+## Chrome DevTools Protocol (CDP)
 
-After the window is created, the renderer content is loaded differently depending on whether the app is packaged:
+AionUi can expose a CDP remote debugging port. This allows external tools (like `chrome-devtools-mcp`) to connect to and automate the Electron instance.
+
+### Configuration and Multi-Instance Support
+CDP settings are persisted in `userData/cdp.config.json`. To prevent port conflicts when running multiple instances (e.g., Dev and Prod), AionUi maintains a registry file at `~/.aionui-cdp-registry.json`.
+
+| Feature | Logic |
+|---|---|
+| **Port Selection** | Scans `9230-9250`. If the preferred port is taken in the registry, it picks the next available [src/process/utils/configureChromium.ts:150-173](). |
+| **Registry Pruning** | On startup, it checks the PID of entries in the registry; if the process is dead, the entry is removed [src/process/utils/configureChromium.ts:140-147](). |
+| **Environment Toggle** | Enabled by default in dev mode; in production, it requires the `AIONUI_CDP_PORT` environment variable or explicit user config [src/process/utils/configureChromium.ts:223-235](). |
+
+**CDP Configuration Logic**
 
 ```mermaid
-flowchart LR
-  check{"app.isPackaged &&\
-ELECTRON_RENDERER_URL"}
-  dev["mainWindow.loadURL(\
-  process.env.ELECTRON_RENDERER_URL\
-)"]
-  prod["mainWindow.loadFile(\
-  out/renderer/index.html\
-)"]
-  devtools["mainWindow.webContents.openDevTools()\
-(dev only)"]
+flowchart TD
+  start["App Start"]
+  loadConf["loadCdpConfig()"]
+  checkDev{"isDevMode?"}
+  checkEnv{"AIONUI_CDP_PORT set?"}
+  findPort["findAvailablePort(preferred)"]
+  reg["registerInstance(port)"]
+  flag["appendSwitch('remote-debugging-port')"]
 
-  check -->|"dev"| dev --> devtools
-  check -->|"production"| prod
+  start --> loadConf
+  loadConf --> checkDev
+  checkDev -->|Yes| findPort
+  checkDev -->|No| checkEnv
+  checkEnv -->|Yes| findPort
+  checkEnv -->|No| skip["CDP Disabled"]
+  findPort --> reg --> flag
 ```
 
-- In development, `electron-vite dev` injects `ELECTRON_RENDERER_URL` pointing to the Vite HMR server.
-- In production, `loadFile` reads from the built `out/renderer/index.html`.
-- DevTools are opened automatically only when `!app.isPackaged`.
-
-Sources: [src/index.ts:241-256]()
+Sources: [src/process/utils/configureChromium.ts:53-187](), [tests/unit/process/utils/configureChromium.test.ts:142-189]()
 
 ---
 
-## App Lifecycle Events
+## Custom Asset Protocol
 
-Three global `app` events are registered in `src/index.ts`:
+AionUi registers a privileged protocol `aion-asset://` to handle local extension resources.
 
-| Event               | Handler behavior                                                                           |
-| ------------------- | ------------------------------------------------------------------------------------------ |
-| `window-all-closed` | Calls `app.quit()` on non-macOS, unless `isWebUIMode` is active (server must keep running) |
-| `activate`          | Re-creates the window on macOS if no windows are open and not in WebUI mode                |
-| `before-quit`       | Calls `WorkerManage.clear()` to stop AI workers; calls `getChannelManager().shutdown()`    |
+- **Purpose**: Bypasses browser security policies that prevent `http://localhost` (the renderer) from loading local `file://` URLs.
+- **Registration**: Occurs before `app.whenReady()` to ensure the scheme is recognized as secure and CORS-enabled.
 
-[src/index.ts:354-380]()
-
-A `powerMonitor.on('resume', ...)` handler is also registered after `handleAppReady` to trigger cron recovery when the system wakes from sleep. See [4.8](#4.8) for cron details.
+Sources: [src/index.ts:140-154](), [src/process/index.ts:25-30]()
 
 ---
 
-## Global Error Handling
+## Build and Native Modules
 
-Two Node.js process-level handlers are registered to prevent Electron from showing its default crash dialog:
+AionUi uses a complex build pipeline to manage native dependencies like `better-sqlite3`, `bcrypt`, and `node-pty`.
 
-- `process.on('uncaughtException', ...)` — suppresses the Electron error dialog in production
-- `process.on('unhandledRejection', ...)` — catches unhandled Promise rejections
+### Native Module Rebuilding
+Because Electron uses a different ABI than Node.js, native modules must be rebuilt. AionUi implements a unified utility in `scripts/rebuildNativeModules.js` that handles cross-architecture builds (e.g., building arm64 binaries on an x64 machine).
 
-[src/index.ts:60-73]()
+- **afterPack Hook**: The `scripts/afterPack.js` script triggers during the packaging phase to ensure the correct architecture-specific binaries are included in the ASAR [scripts/afterPack.js:17-40]().
+- **Incremental Builds**: The `scripts/build-with-builder.js` script uses MD5 hashing of source files to skip unnecessary Vite compilations [scripts/build-with-builder.js:46-87]().
 
----
-
-## PATH Correction (macOS / Linux)
-
-GUI apps launched from a dock or file manager on macOS and Linux inherit a limited `PATH` that excludes shell-initialized entries (`.bashrc`, `.zshrc`). AionUi corrects this with two steps:
-
-1. `fixPath()` from the `fix-path` package — sourced from the login shell
-2. Manual NVM path injection — reads `NVM_DIR/versions/node/*/bin` and prepends missing paths
-
-This ensures that AI agent subprocesses spawned from the main process (e.g., `gemini`, `claude`) can be found on `PATH`.
-
-[src/index.ts:28-49]()
-
----
-
-## Windows Installer Startup Handling
-
-```ts
-import electronSquirrelStartup from 'electron-squirrel-startup'
-if (electronSquirrelStartup) {
-  app.quit()
-}
-```
-
-`electron-squirrel-startup` handles Squirrel events during Windows installation and uninstallation (creating/removing shortcuts). When these events are active, the app quits immediately without initializing anything.
-
-[src/index.ts:52-54]()
-
----
-
-## Auto-Updater Initialization
-
-The auto-updater is initialized inside `createWindow()` using a dynamic import to avoid loading it until a window exists. The sequence:
-
-1. Dynamic imports of `autoUpdaterService` and `createAutoUpdateStatusBroadcast`
-2. `createAutoUpdateStatusBroadcast()` creates a pure emitter callback that calls `ipcBridge.autoUpdate.status.emit`
-3. `autoUpdaterService.initialize(statusBroadcast)` wires the callback
-4. After a 3-second delay, `autoUpdaterService.checkForUpdatesAndNotify()` runs
-
-The `AutoUpdaterService` class (in `src/process/services/autoUpdaterService.ts`) wraps `electron-updater`'s `autoUpdater` singleton. `autoDownload` is disabled so the user explicitly controls when the download begins.
-
-For full update UI and IPC detail, see [14](#14).
-
-Sources: [src/index.ts:222-236](), [src/process/services/autoUpdaterService.ts:42-51]()
-
----
-
-## IPC Bridge Registration at Window Level
-
-One IPC provider is registered directly in `src/index.ts` rather than in the `process/bridge` directory — the `openDevTools` provider:
-
-```
-ipcBridge.application.openDevTools.provider(() => {
-  mainWindow.webContents.openDevTools();
-  return Promise.resolve();
-});
-```
-
-This is done here rather than in a bridge module because it needs direct access to the `mainWindow` reference. All other IPC providers are initialized inside `initializeProcess()`. See [3.3](#3.3) for the full ipcBridge reference.
-
-[src/index.ts:261-266]()
-
----
-
-## Packaging Configuration Summary
-
-`electron-builder.yml` controls how the compiled output is packaged into distributable installers.
-
-| Setting              | Value                                          |
-| -------------------- | ---------------------------------------------- |
-| `appId`              | `com.aionui.app`                               |
-| `productName`        | `AionUi`                                       |
-| `directories.output` | `out/`                                         |
-| `asar.smartUnpack`   | `true`                                         |
-| macOS targets        | `dmg`, `zip`                                   |
-| Windows targets      | `nsis`, `zip`                                  |
-| Linux targets        | `deb`, `AppImage` (x64 + arm64)                |
-| `afterPack` hook     | `scripts/afterPack.js` (native module rebuild) |
-| `afterSign` hook     | `scripts/afterSign.js` (macOS notarization)    |
-| `publish.provider`   | `github` (iOfficeAI/AionUi)                    |
-
-Native modules (`better-sqlite3`, `bcrypt`, `node-pty`) are listed under `asarUnpack` so they remain on disk as real files instead of being embedded in the asar archive — required because they are `.node` binaries that must be loaded by path.
-
-Sources: [electron-builder.yml:1-210]()
+Sources: [scripts/rebuildNativeModules.js:69-82](), [scripts/afterPack.js:17-40](), [scripts/build-with-builder.js:46-87](), [electron-builder.yml:193-210]()

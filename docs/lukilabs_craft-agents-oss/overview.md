@@ -7,247 +7,185 @@ The following files were used as context for generating this wiki page:
 
 - [README.md](README.md)
 - [package.json](package.json)
+- [packages/shared/CLAUDE.md](packages/shared/CLAUDE.md)
 
 </details>
 
-This page introduces Craft Agents: its purpose, the Agent Native software philosophy it embodies, and a high-level map of the monorepo. For detailed architecture, see [Architecture](#2). For installation and first-run setup, see [Getting Started](#3).
+
+
+This page introduces Craft Agents: its purpose, the Agent Native software philosophy it embodies, and a high-level map of the monorepo. For detailed architecture, see [Architecture](). For installation and first-run setup, see [Getting Started]().
 
 ---
 
 ## What Craft Agents Is
 
-Craft Agents is an open-source desktop application for running AI agents against real workflows. It was built by the [craft.do](https://craft.do) team as the tool they use internally to work with agents — the project is self-hosted in the sense that Craft Agents is developed using Craft Agents.
+Craft Agents is an open-source desktop application for running AI agents against real-world workflows. It was built by the [craft.do](https://craft.do) team as a tool for intuitive multitasking, connecting to any API or service, and sharing sessions in a document-centric workflow. The project is "self-hosted" in the sense that the developers use Craft Agents to build Craft Agents. [README.md:14-23]()
 
-The core value proposition:
+### Core Value Proposition
 
-- **Multi-session inbox** with workflow status, flagging, and archiving
-- **Multiple LLM providers** in a single interface (Anthropic, Google AI Studio, GitHub Copilot, OpenAI, and any OpenAI-compatible endpoint)
-- **Sources**: connect MCP servers, REST APIs, and local filesystems with no manual config files
-- **Skills**: per-workspace instruction files that can be `@mention`ed mid-conversation
-- **Permission modes**: three-level gate (`safe` / `ask` / `allow-all`) with per-command and per-domain whitelisting
-- **Automations**: event-driven agent sessions triggered by labels, status changes, cron schedules, and tool use events
-- **Session sharing**: export conversation transcripts to a hosted web viewer
+*   **Multi-session Inbox**: A desktop interface with session management, status workflows, and flagging. [README.md:86-86]()
+*   **Multiple LLM Providers**: Support for Anthropic (API or Claude Max), Google AI Studio, ChatGPT Plus (Codex), GitHub Copilot, and OpenAI. [README.md:88-89]()
+*   **Sources**: Deep integration with Model Context Protocol (MCP) servers, REST APIs (Gmail, Slack, etc.), and local filesystems. [README.md:91-91]()
+*   **Skills**: Specialized agent instructions stored per-workspace that can be `@mention`ed in the chat. [README.md:97-97]()
+*   **Permission Modes**: A three-level security system (`safe`, `ask`, `allow-all`) to control agent actions. [README.md:92-92]()
+*   **Automations**: Event-driven agent sessions triggered by labels, cron schedules, or tool use. [README.md:99-99]()
 
-The project is licensed under Apache 2.0.
-
-Sources: [README.md:14-23]()
+Sources: [README.md:14-23](), [README.md:84-99]()
 
 ---
 
 ## Agent Native Software Philosophy
 
-Craft Agents is described as being built with _Agent Native software_ principles. In practice this means:
+Craft Agents is built on *Agent Native* principles, where the software is designed from the ground up to be navigated and configured by AI agents rather than just humans. [README.md:19-19]()
 
-| Principle                      | Implementation                                                                                                                                   |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Configuration via conversation | Connecting Linear, Slack, or a custom API is done by describing the intent to the agent — it reads docs, sets up credentials, and writes config. |
-| No restart required            | Sources, skills, and settings take effect immediately; `@mention` new resources mid-session.                                                     |
-| Self-modifying workflow        | The app itself is developed using Craft Agents — prompts replace code-editor interactions.                                                       |
-| Transparent tool use           | Every tool call, permission prompt, and file diff is surfaced in the UI, not hidden.                                                             |
+| Principle | Implementation in Code |
+| :--- | :--- |
+| **Natural Language Config** | Users tell the agent to "add Linear as a source." The agent finds APIs, reads docs, and configures the `Source` object. [README.md:29-32]() |
+| **No-Restart Updates** | Changes to skills, sources, or configurations take effect immediately without app restarts. [README.md:54-55]() |
+| **Contextual Awareness** | Agents can reference specific "Skills" (markdown files) via `@` mentions to gain specialized domain knowledge. [README.md:54-56]() |
+| **Transparent Agency** | Every tool call and file diff is surfaced to the user via `TurnCard` and `Multi-File Diff` views. [README.md:87-96]() |
 
-Sources: [README.md:14-58]()
+Sources: [README.md:14-58](), [README.md:84-100]()
 
 ---
 
 ## Supported LLM Providers
 
-Craft Agents routes agent work through two internal backends — `ClaudeAgent` (Claude Agent SDK) and `CopilotAgent`/`CraftAgent` (Pi SDK). See [Agent System](#2.3) for the routing logic.
+The system routes requests through specialized agent implementations. The primary routing logic differentiates between the Claude Agent SDK and the Pi SDK (used for Codex/Copilot/Gemini). [README.md:17-17]()
 
-| Provider                                | Auth Method                     | Backend                          |
-| --------------------------------------- | ------------------------------- | -------------------------------- |
-| Anthropic Claude                        | API key or Claude Max/Pro OAuth | `ClaudeAgent` (Claude Agent SDK) |
-| Google AI Studio                        | API key                         | Pi SDK                           |
-| ChatGPT Plus / Pro                      | Codex OAuth                     | Pi SDK                           |
-| GitHub Copilot                          | OAuth device code               | Pi SDK                           |
-| OpenRouter / Vercel AI Gateway / Ollama | Custom base URL + API key       | `ClaudeAgent` (custom endpoint)  |
+| Provider | Backend Implementation | Auth Mechanism |
+| :--- | :--- | :--- |
+| **Anthropic Claude** | `ClaudeAgent` | API Key or Claude Max OAuth |
+| **Google AI Studio** | `CraftAgent` (via Pi SDK) | API Key |
+| **ChatGPT Plus** | `CopilotAgent` (via Pi SDK) | Codex OAuth |
+| **GitHub Copilot** | `CopilotAgent` (via Pi SDK) | Device Code OAuth |
+| **OpenAI / Custom** | `ClaudeAgent` | API Key + Custom Base URL |
 
-Sources: [README.md:262-290]()
+Sources: [README.md:104-104](), [packages/shared/CLAUDE.md:29-31]()
 
 ---
 
 ## Monorepo Structure
 
-The repository is a Bun workspace monorepo. The root `package.json` declares workspaces at `packages/*` and `apps/*`.
+The repository is a Bun workspace monorepo. The root `package.json` manages dependencies and orchestrates the build pipeline across `apps/` and `packages/`. [package.json:1-21]()
 
-**Top-level layout:**
+### Package Dependency Graph
 
-```
-craft-agent/
-├── apps/
-│   ├── electron/          # Desktop application (Electron + React)
-│   └── viewer/            # Web viewer for shared session transcripts
-├── packages/
-│   ├── core/              # Shared TypeScript types
-│   ├── shared/            # Business logic (agents, auth, config, sessions, sources)
-│   ├── ui/                # Shared React component library (shadcn/ui + Tailwind)
-│   ├── mermaid/           # Mermaid diagram rendering integration
-│   ├── codex-types/       # Type definitions for Codex integration
-│   ├── session-tools-core/# Session-scoped tool utilities
-│   ├── bridge-mcp-server/ # MCP server subprocess bridge
-│   └── session-mcp-server/# Session-scoped MCP tools over stdio
-└── scripts/               # Build, release, and dev scripts
-```
-
-Sources: [README.md:153-171](), [package.json:7-11]()
-
-The following diagram maps the workspace packages to their roles and dependencies:
-
-**Package dependency graph**
+This diagram illustrates how the core logic in `packages/shared` flows into the primary application targets.
 
 ```mermaid
 graph TD
-  electronApp["apps/electron"]
-  viewer["apps/viewer"]
-  shared["packages/shared"]
-  core["packages/core"]
-  ui["packages/ui"]
-  mermaid["packages/mermaid"]
-  codexTypes["packages/codex-types"]
-  sessionToolsCore["packages/session-tools-core"]
-  bridgeMcp["packages/bridge-mcp-server"]
-  sessionMcp["packages/session-mcp-server"]
+  subgraph "Applications"
+    electronApp["apps/electron (Desktop)"]
+    webui["apps/webui (Browser Client)"]
+    viewer["apps/viewer (Share Site)"]
+    cli["apps/cli (Terminal)"]
+  end
+
+  subgraph "Core Logic & UI"
+    shared["packages/shared (Agents, Config, Sessions)"]
+    ui["packages/ui (React Components)"]
+    core["packages/core (Types)"]
+  end
+
+  subgraph "Specialized Packages"
+    mermaid["packages/mermaid"]
+    sessionTools["packages/session-tools-core"]
+    mcpBridge["packages/bridge-mcp-server"]
+    piAgentServer["packages/pi-agent-server"]
+  end
 
   electronApp --> shared
-  electronApp --> core
   electronApp --> ui
   electronApp --> mermaid
-  electronApp --> sessionToolsCore
-
-  viewer --> core
+  
+  webui --> shared
+  webui --> ui
+  
   viewer --> ui
-
+  viewer --> core
+  
   shared --> core
-  shared --> sessionToolsCore
-
-  sessionMcp --> sessionToolsCore
-  sessionMcp --> core
-
-  bridgeMcp --> core
-
-  ui --> core
+  shared --> sessionTools
+  
+  piAgentServer --> shared
+  cli --> shared
 ```
 
-Sources: [README.md:153-171](), [package.json:1-11]()
+Sources: [package.json:17-21](), [package.json:22-92](), [package.json:82-82]()
 
 ---
 
-## Key Subsystems at a Glance
+## System Architecture: Natural Language to Code
 
-The diagram below maps high-level user-visible concepts to the code packages and directories that implement them:
-
-**Concept-to-code map**
+The following diagram bridges user-facing concepts to the specific code entities that handle them within the `packages/shared` workspace.
 
 ```mermaid
 graph LR
-  subgraph "User Concepts"
-    sessions["Sessions"]
-    sources["Sources"]
-    skills["Skills"]
-    permissions["Permissions"]
-    automations["Automations"]
-    themes["Themes"]
-    statuses["Statuses"]
+  subgraph "Natural Language Space"
+    prompt["'Add Slack as a source'"]
+    mention["'@documentation'"]
+    status["'Mark as Done'"]
   end
 
-  subgraph "packages/shared/src/"
-    agentDir["agent/\
-ClaudeAgent CraftAgent CopilotAgent"]
-    sessionsDir["sessions/\
-SessionManager"]
-    sourcesDir["sources/\
-MCP API Local"]
-    authDir["auth/\
-OAuth tokens"]
-    configDir["config/\
-StoredConfig ConfigWatcher"]
-    credDir["credentials/\
-CredentialManager AES-256-GCM"]
-    statusDir["statuses/\
-Status system"]
+  subgraph "Code Entity Space (packages/shared)"
+    sourceManager["src/sources/ (Source Storage/Types)"]
+    skillLoader["src/config/ (Skills Management)"]
+    sessionManager["src/sessions/ (Session Persistence)"]
+    agentBase["src/agent/claude-agent.ts (ClaudeAgent)"]
   end
 
-  subgraph "apps/electron/src/"
-    mainDir["main/\
-IPC handlers"]
-    rendererDir["renderer/\
-React UI"]
-    preloadDir["preload/\
-contextBridge"]
+  subgraph "Infrastructure"
+    sqlite["JSONL Storage"]
+    mcp["MCP SDK Subprocesses"]
   end
 
-  sessions --> sessionsDir
-  sessions --> mainDir
-  sources --> sourcesDir
-  skills --> configDir
-  permissions --> agentDir
-  automations --> configDir
-  themes --> configDir
-  statuses --> statusDir
-
-  mainDir --> sessionsDir
-  mainDir --> agentDir
-  mainDir --> sourcesDir
-  rendererDir --> preloadDir
-  preloadDir --> mainDir
+  prompt --> agentBase
+  agentBase --> sourceManager
+  sourceManager --> mcp
+  
+  mention --> skillLoader
+  
+  status --> sessionManager
+  sessionManager --> sqlite
 ```
 
-Sources: [README.md:153-171]()
+Sources: [README.md:29-58](), [packages/shared/CLAUDE.md:9-15](), [package.json:17-21]()
 
 ---
 
-## Configuration on Disk
+## Configuration & Storage
 
-All runtime state lives under `~/.craft-agent/`. See [Storage & Configuration](#2.8) for the full schema reference.
+All application data is persisted in a standardized directory structure, typically located at `~/.craft-agent/`. [README.md:152-152]()
 
-```
-~/.craft-agent/
-├── config.json              # StoredConfig: workspaces, LLM connections
-├── credentials.enc          # AES-256-GCM encrypted credentials
-├── preferences.json         # UI preferences
-├── theme.json               # App-level theme
-└── workspaces/{id}/
-    ├── config.json          # Workspace settings
-    ├── theme.json           # Theme override
-    ├── automations.json     # Event-driven automations (version 2)
-    ├── sessions/            # JSONL session transcripts
-    ├── sources/             # Source configurations
-    ├── skills/              # Markdown skill files
-    └── statuses/            # Status definitions
-```
+| Path | Description | Code Reference |
+| :--- | :--- | :--- |
+| `config.json` | Global `StoredConfig` (LLM connections, workspaces) | `packages/shared/src/config/` [packages/shared/CLAUDE.md:13-13]() |
+| `credentials.enc` | AES-256-GCM encrypted API keys and OAuth tokens | `packages/shared/src/credentials/` [packages/shared/CLAUDE.md:14-14]() |
+| `workspaces/{id}/` | Isolated workspace data (sessions, skills, sources) | `packages/shared/src/workspaces/` |
+| `sessions/*.jsonl` | Append-only session transcripts | `packages/shared/src/sessions/` [packages/shared/CLAUDE.md:12-12]() |
 
-Sources: [README.md:292-311]()
+Sources: [README.md:117-128](), [package.json:38-38](), [packages/shared/CLAUDE.md:9-15]()
 
 ---
 
 ## Tech Stack Summary
 
-| Layer               | Technology                                 | Used In                                 |
-| ------------------- | ------------------------------------------ | --------------------------------------- |
-| Runtime             | [Bun](https://bun.sh/)                     | All packages                            |
-| Desktop shell       | Electron                                   | `apps/electron`                         |
-| UI framework        | React 18 + Vite                            | `apps/electron/renderer`, `apps/viewer` |
-| UI components       | shadcn/ui + Tailwind CSS v4                | `packages/ui`                           |
-| Main process build  | esbuild                                    | `scripts/electron-build-main.ts`        |
-| AI (Claude backend) | `@anthropic-ai/claude-agent-sdk`           | `packages/shared/src/agent/`            |
-| AI (Pi backend)     | `@mariozechner/pi-coding-agent`            | `packages/shared/src/agent/`            |
-| MCP protocol        | `@modelcontextprotocol/sdk`                | `packages/shared/src/sources/`          |
-| Credential storage  | AES-256-GCM (Node `crypto`)                | `packages/shared/src/credentials/`      |
-| Diagrams            | `beautiful-mermaid` via `packages/mermaid` | Renderer UI                             |
+The project utilizes a modern TypeScript stack optimized for high-performance agentic workflows.
 
-Sources: [README.md:376-386](), [package.json:56-143]()
+*   **Runtime**: [Bun](https://bun.sh) for package management and script execution. [package.json:23-27]()
+*   **Desktop**: [Electron](https://www.electronjs.org/) with a three-process architecture (Main, Preload, Renderer). [package.json:50-57]()
+*   **Frontend**: [React 18](https://react.dev/), [Vite](https://vitejs.dev/), and [Tailwind CSS](https://tailwindcss.com/). [package.json:73-80]()
+*   **Agent Logic**: Anthropic Claude Agent SDK and Pi SDK. [README.md:17-17]()
+*   **Bundling**: [esbuild](https://esbuild.github.io/) for the Electron main process and [Vite](https://vitejs.dev/) for the renderer. [package.json:12-12]()
+
+Sources: [package.json:1-16](), [README.md:153-171]()
 
 ---
 
 ## Where to Go Next
 
-| Topic                                          | Wiki Page                                 |
-| ---------------------------------------------- | ----------------------------------------- |
-| Full system architecture and process model     | [Architecture](#2)                        |
-| Monorepo package layout and inter-dependencies | [Package Structure](#2.1)                 |
-| Electron main/preload/renderer processes       | [Electron Application Architecture](#2.2) |
-| Agent backends and LLM routing                 | [Agent System](#2.3)                      |
-| MCP servers, REST APIs, OAuth                  | [External Service Integration](#2.4)      |
-| Installation                                   | [Installation](#3.1)                      |
-| Workspaces, sessions, sources, skills          | [Core Concepts](#4)                       |
-| Automations reference                          | [Hooks & Automation](#4.9)                |
-| Developer setup and scripts                    | [Development Setup](#5.1)                 |
+*   **[Architecture]()**: Deep dive into the Electron process model and IPC layer.
+*   **[Agent System]()**: Implementation details of `ClaudeAgent` and tool-use pipelines.
+*   **[External Service Integration]()**: How MCP servers and REST APIs are dynamically instantiated.
+*   **[Development Guide]()**: Setting up your environment and running the build pipeline.

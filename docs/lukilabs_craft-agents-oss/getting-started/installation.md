@@ -6,28 +6,31 @@
 The following files were used as context for generating this wiki page:
 
 - [README.md](README.md)
+- [scripts/install-server.sh](scripts/install-server.sh)
 
 </details>
 
-This page covers how to install Craft Agents on your machine, the first-launch experience, system requirements, and how to enable debug logging. For configuring the `~/.craft-agent/` directory and its files after installation, see [Environment Configuration](#3.2). For completing the provider authentication wizard that appears on first launch, see [Authentication Setup](#3.3).
+
+
+This page covers how to install Craft Agents on your machine, the first-launch experience, system requirements, and the headless server installation. For configuring the `~/.craft-agent/` directory and its files after installation, see [Environment Configuration](#3.2). For completing the provider authentication wizard that appears on first launch, see [Authentication Setup](#3.3).
 
 ---
 
 ## System Requirements
 
-| Requirement                | Details                                            |
-| -------------------------- | -------------------------------------------------- |
-| **OS**                     | macOS, Windows, Linux                              |
-| **Architecture**           | arm64 / x64 (macOS), x64 (Windows, Linux)          |
-| **Runtime (install)**      | None — pre-built binary                            |
-| **Runtime (source build)** | [Bun](https://bun.sh/)                             |
-| **Disk**                   | ~500 MB for app + `~/.craft-agent/` data directory |
+| Requirement | Details |
+|---|---|
+| **OS** | macOS, Windows, Linux [README.md:65-70]() |
+| **Architecture** | arm64 / x64 (macOS), x64 (Windows, Linux) [README.md:152]() |
+| **Runtime (install)** | None — pre-built binary |
+| **Runtime (source build)** | [Bun](https://bun.sh/) >= 1.0 [README.md:80](), [scripts/install-server.sh:7-36]() |
+| **Disk** | ~500 MB for app + `~/.craft-agent/` data directory |
 
 ---
 
 ## Installation Methods
 
-There are two supported installation paths: a one-line installer that downloads a pre-built binary, and a build-from-source path for developers.
+There are three supported installation paths: a one-line installer for the desktop app, a build-from-source path for developers, and a server-side installation for headless environments.
 
 **Installation paths overview:**
 
@@ -37,6 +40,7 @@ flowchart TD
   B --> C["One-line installer\
 (Recommended)"]
   B --> D["Build from source"]
+  B --> L["Headless Server"]
 
   C --> E["macOS / Linux\
 curl -fsSL install-app.sh | bash"]
@@ -47,17 +51,22 @@ irm install-app.ps1 | iex"]
   G --> H["bun install"]
   H --> I["bun run electron:start"]
 
+  L --> M["bash scripts/install-server.sh"]
+  M --> N["CRAFT_SERVER_TOKEN=... bun run packages/server/src/index.ts"]
+
   E --> J["Pre-built .app / .exe / binary"]
   F --> J
   I --> K["Electron dev build\
 (apps/electron)"]
 ```
 
-Sources: [README.md:62-83]()
+Sources: [README.md:61-83](), [scripts/install-server.sh:1-12]()
 
 ---
 
 ### One-Line Install (Recommended)
+
+The recommended way to install the desktop application is via the hosted installation scripts which automate platform detection and deployment.
 
 **macOS and Linux:**
 
@@ -71,13 +80,13 @@ curl -fsSL https://agents.craft.do/install-app.sh | bash
 irm https://agents.craft.do/install-app.ps1 | iex
 ```
 
-These scripts download the latest pre-built binary for your platform and architecture, then place the application in the standard installation directory. No additional runtime dependencies are needed.
-
 Sources: [README.md:63-73]()
 
 ---
 
 ### Build from Source
+
+For developers who wish to modify the codebase or contribute, the project uses a monorepo structure managed by Bun.
 
 ```bash
 git clone https://github.com/lukilabs/craft-agents-oss.git
@@ -86,15 +95,38 @@ bun install
 bun run electron:start
 ```
 
-`bun run electron:start` compiles both the main process (via esbuild) and the renderer (via Vite) and then launches the packaged Electron application. For hot-reload during development, use `bun run electron:dev` instead. For a full explanation of the build pipeline, see [Build System](#5.2).
+`bun run electron:start` triggers the build pipeline for the `apps/electron` package, which involves compiling the main process, preload scripts, and the React-based renderer.
 
 Sources: [README.md:75-83]()
 
 ---
 
+### Headless Server Installation
+
+Craft Agents can run as a headless server on a remote machine (e.g., a Linux VPS). This allows the desktop app to connect as a thin client to maintain long-running sessions.
+
+The `install-server.sh` script automates the setup:
+1. Verifies Bun installation [scripts/install-server.sh:29-33]().
+2. Installs dependencies using `bun install` [scripts/install-server.sh:54-56]().
+3. Builds subprocess servers via `server:build:subprocess` [scripts/install-server.sh:58-59]().
+4. Builds the Web UI via `webui:build` [scripts/install-server.sh:61-62]().
+5. Generates a unique `CRAFT_SERVER_TOKEN` for authentication [scripts/install-server.sh:68]().
+
+To run the server after installation:
+```bash
+CRAFT_SERVER_TOKEN=your_token_here \
+CRAFT_WEBUI_DIR=./apps/webui/dist \
+CRAFT_BUNDLED_ASSETS_ROOT=./apps/electron \
+bun run packages/server/src/index.ts
+```
+
+Sources: [README.md:150-163](), [scripts/install-server.sh:1-107]()
+
+---
+
 ## First-Launch Experience
 
-On the first launch, Craft Agents detects that no `~/.craft-agent/config.json` exists and opens the onboarding wizard.
+On the first launch, Craft Agents detects the absence of a valid configuration and initiates the onboarding flow to establish an LLM connection.
 
 **First-launch sequence mapped to code components:**
 
@@ -126,66 +158,32 @@ sequenceDiagram
 
 Sources: [README.md:101-107]()
 
-The onboarding wizard (`OnboardingWizard`, driven by the `useOnboarding` hook) guides you through:
-
-1. **Selecting an LLM provider** — Anthropic API key, Claude Max/Pro OAuth, Google AI Studio, ChatGPT Plus (Codex OAuth), or GitHub Copilot device code flow.
-2. **Entering credentials** — handled by `CredentialsStep`.
-3. **Creating a workspace** — the app creates a default workspace under `~/.craft-agent/workspaces/{id}/`.
-
-See [Authentication Setup](#3.3) for full details on each provider flow.
+The onboarding process involves:
+1. **Provider Selection**: Choosing between Anthropic, Google AI Studio, ChatGPT Plus, or GitHub Copilot [README.md:104]().
+2. **Credential Entry**: Providing API keys or completing OAuth flows [README.md:88-89]().
+3. **Workspace Initialization**: Setting up the initial environment for sessions [README.md:105]().
 
 ---
 
 ## LLM Provider Options at First Launch
 
-| Provider                         | Auth Method                     | Notes                                      |
-| -------------------------------- | ------------------------------- | ------------------------------------------ |
-| **Anthropic**                    | API key or Claude Max/Pro OAuth | Default; uses Claude Agent SDK             |
-| **Google AI Studio**             | API key                         | Gemini models with Google Search grounding |
-| **ChatGPT Plus / Pro**           | Codex OAuth                     | Requires active ChatGPT subscription       |
-| **GitHub Copilot**               | OAuth device code               | Requires active Copilot subscription       |
-| **OpenRouter / Ollama / Custom** | API key + custom endpoint       | Via the Anthropic API key connection path  |
+Craft Agents supports multiple high-performance LLM backends. Users can configure multiple connections and set per-workspace defaults.
 
-Sources: [README.md:261-291]()
+| Provider | Auth Method | Notes |
+|---|---|---|
+| **Anthropic** | API key or Claude Max/Pro OAuth | Primary provider; powers the Claude Agent experience [README.md:89-104]() |
+| **Google AI Studio** | API key | Access to Gemini models [README.md:104]() |
+| **ChatGPT Plus** | Codex OAuth | Integration with OpenAI models [README.md:104]() |
+| **GitHub Copilot** | OAuth device code | Uses Copilot's specialized models [README.md:104]() |
 
----
-
-## Debug Logging
-
-Debug logs can be enabled by launching the packaged application with the `-- --debug` flag (note the double-dash separator required by Electron's argument parser).
-
-**Platform launch commands:**
-
-| Platform    | Command                                                                           |
-| ----------- | --------------------------------------------------------------------------------- |
-| **macOS**   | `/Applications/Craft\ Agents.app/Contents/MacOS/Craft\ Agents -- --debug`         |
-| **Windows** | `& "$env:LOCALAPPDATA\Programs\@craft-agentelectron\Craft Agents.exe" -- --debug` |
-| **Linux**   | `./craft-agents -- --debug`                                                       |
-
-**Log file locations:**
-
-```mermaid
-flowchart LR
-  A["--debug flag"] --> B["Electron Main Process\
-(apps/electron/src/main)"]
-  B --> C["macOS\
-~/Library/Logs/@craft-agent/electron/main.log"]
-  B --> D["Windows\
-%APPDATA%\\@craft-agent\\electron\\logs\\main.log"]
-  B --> E["Linux\
-~/.config/@craft-agent/electron/logs/main.log"]
-```
-
-In development (`bun run electron:dev`), verbose logging is enabled automatically without the `--debug` flag.
-
-Sources: [README.md:388-411]()
+Sources: [README.md:88-89](), [README.md:104]()
 
 ---
 
 ## After Installation
 
-Once installed and launched:
-
-- All application data is stored under `~/.craft-agent/`. See [Environment Configuration](#3.2) for the full directory layout and config file reference.
-- The first-launch wizard saves your LLM connection into `~/.craft-agent/config.json` as an `LlmConnection` entry.
-- A default workspace is created under `~/.craft-agent/workspaces/{id}/`.
+Once the application is running:
+- **Data Directory**: All local state, including sessions and workspace configs, is stored in `~/.craft-agent/` [README.md:117]().
+- **Default Workspace**: A workspace is automatically generated to house your first sessions [README.md:105]().
+- **Instant Configuration**: New skills or sources mentioned with `@` are activated instantly without requiring an app restart [README.md:54-55]().
+- **Permission Modes**: The app starts in a default permission mode (typically `ask` / "Ask to Edit") which prompts for approval before the agent performs write operations [README.md:129-135]().

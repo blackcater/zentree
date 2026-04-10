@@ -5,23 +5,14 @@
 
 The following files were used as context for generating this wiki page:
 
-- [.github/workflows/build-and-release.yml](.github/workflows/build-and-release.yml)
-- [electron-builder.yml](electron-builder.yml)
-- [package.json](package.json)
 - [readme.md](readme.md)
 - [readme_ch.md](readme_ch.md)
-- [readme_es.md](readme_es.md)
-- [readme_jp.md](readme_jp.md)
-- [readme_ko.md](readme_ko.md)
-- [readme_pt.md](readme_pt.md)
-- [readme_tr.md](readme_tr.md)
-- [readme_tw.md](readme_tw.md)
-- [resources/wechat_group4.png](resources/wechat_group4.png)
-- [resources/windows-installer-arm64.nsh](resources/windows-installer-arm64.nsh)
-- [resources/windows-installer-x64.nsh](resources/windows-installer-x64.nsh)
-- [scripts/build-with-builder.js](scripts/build-with-builder.js)
+- [resources/Image_Generation.gif](resources/Image_Generation.gif)
+- [src/renderer/pages/guid/index.tsx](src/renderer/pages/guid/index.tsx)
 
 </details>
+
+
 
 This guide walks you through installing AionUi, completing the initial setup, and creating your first AI-powered conversation. By the end, you'll understand how to select agents, configure models, and start working with AI on your local machine.
 
@@ -33,14 +24,14 @@ This guide walks you through installing AionUi, completing the initial setup, an
 
 Before installing AionUi, verify your system meets these minimum requirements:
 
-| Component            | Requirement                                                                 |
-| -------------------- | --------------------------------------------------------------------------- |
+| Component | Requirement |
+|-----------|-------------|
 | **Operating System** | macOS 10.15+, Windows 10+, or Linux (Ubuntu 18.04+, Debian 10+, Fedora 32+) |
-| **Memory**           | 4GB RAM minimum (8GB recommended)                                           |
-| **Storage**          | 500MB available disk space                                                  |
-| **Runtime**          | Node.js 22+ (for development builds)                                        |
+| **Memory** | 4GB RAM minimum (8GB recommended) |
+| **Storage** | 500MB available disk space |
+| **Runtime** | Node.js 22+ (for development builds) |
 
-**Sources**: [readme.md:483-489](), [package.json:7-8]()
+**Sources**: [readme.md:10](), [readme.md:483-489]()
 
 ---
 
@@ -50,68 +41,27 @@ Before installing AionUi, verify your system meets these minimum requirements:
 
 AionUi provides platform-specific installers through GitHub Releases. The build system produces the following artifacts:
 
-```mermaid
-graph LR
-    Release["GitHub Release<br/>github.com/iOfficeAI/AionUi/releases"]
+**Platform-Specific Artifacts**:
+- **macOS**: `.dmg` (notarized) and `.zip` (universal or arch-specific).
+- **Windows**: `.exe` (NSIS installer) and `.zip` (portable).
+- **Linux**: `.deb` (Debian/Ubuntu) and `.AppImage`.
 
-    Release -->|macOS| DMG["DMG Archive<br/>AionUi-{version}-darwin-{arch}.dmg"]
-    Release -->|macOS| ZIP_MAC["ZIP Archive<br/>AionUi-{version}-darwin-{arch}.zip"]
-    Release -->|Windows| NSIS["NSIS Installer<br/>AionUi-{version}-win-{arch}.exe"]
-    Release -->|Windows| ZIP_WIN["ZIP Archive<br/>AionUi-{version}-win-{arch}.zip"]
-    Release -->|Linux| DEB["Debian Package<br/>AionUi-{version}-linux-{arch}.deb"]
-    Release -->|Linux| APPIMAGE["AppImage<br/>AionUi-{version}-linux-{arch}.AppImage"]
+**Sources**: [readme.md:27-30](), [readme.md:490-502]()
 
-    DMG --> MAC_INSTALL["Install to /Applications"]
-    NSIS --> WIN_INSTALL["Install to Program Files"]
-    DEB --> LINUX_INSTALL["Install to /usr/local"]
-    APPIMAGE --> PORTABLE["Run Directly<br/>No Installation"]
+### Development Setup
+For developers building from source, AionUi uses `bun` for package management and development tasks.
+
+```powershell
+# 1. Install dependencies
+bun install
+
+# 2. Start development server
+bun run dev
 ```
 
-**Installation by Platform**:
+The application uses `electron-vite` for compilation and `electron-builder` for packaging. During development, the `main` process and `renderer` process are compiled separately but orchestrated by the dev server.
 
-#### macOS
-
-```bash
-# Option 1: Homebrew (recommended)
-brew install aionui
-
-# Option 2: Download DMG
-# 1. Download .dmg from releases
-# 2. Open DMG file
-# 3. Drag AionUi.app to Applications folder
-```
-
-The DMG is code-signed and notarized using Apple's developer certificate. The notarization process is configured in [.github/workflows/\_build-reusable.yml]() with timeout tolerance for CI environments.
-
-#### Windows
-
-```bash
-# Option 1: NSIS Installer (recommended)
-# 1. Download .exe from releases
-# 2. Run installer
-# 3. Follow installation wizard
-
-# Option 2: ZIP Archive (portable)
-# 1. Download .zip
-# 2. Extract to desired location
-# 3. Run AionUi.exe
-```
-
-The NSIS installer includes architecture detection to prevent mismatched installations. The detection script is located at [resources/windows-installer-x64.nsh]() for x64 and [resources/windows-installer-arm64.nsh]() for ARM64.
-
-#### Linux
-
-```bash
-# Debian/Ubuntu (DEB package)
-sudo dpkg -i AionUi-*.deb
-sudo apt-get install -f  # Install dependencies
-
-# AppImage (any distribution)
-chmod +x AionUi-*.AppImage
-./AionUi-*.AppImage
-```
-
-**Sources**: [readme.md:490-502](), [electron-builder.yml:104-175](), [.github/workflows/build-and-release.yml:19-33]()
+**Sources**: [readme.md:504-515](), [readme.md:530-535]()
 
 ---
 
@@ -119,103 +69,30 @@ chmod +x AionUi-*.AppImage
 
 ### Application Startup Flow
 
-When you launch AionUi for the first time, the application initializes several subsystems before presenting the UI:
-
-```mermaid
-graph TD
-    Launch["Application Launch<br/>src/index.ts"]
-    Launch --> InitStorage["Initialize Storage<br/>ConfigStorage<br/>ChatStorage<br/>EnvStorage"]
-    InitStorage --> CheckAuth["Check Authentication<br/>authService"]
-
-    CheckAuth -->|Authenticated| LoadConfig["Load Configuration<br/>agent.config<br/>assistant.*.defaultModel"]
-    CheckAuth -->|Not Authenticated| ShowAuth["Show Auth UI<br/>Login Options"]
-
-    ShowAuth --> GoogleAuth["Google OAuth<br/>USE_GEMINI/LOGIN_WITH_GOOGLE"]
-    ShowAuth --> APIKeyAuth["API Key Input<br/>Any Provider"]
-
-    GoogleAuth --> StoreTokens["Store OAuth Tokens<br/>ConfigStorage"]
-    APIKeyAuth --> ValidateKey["Validate API Key<br/>Test Request"]
-
-    StoreTokens --> LoadConfig
-    ValidateKey --> LoadConfig
-
-    LoadConfig --> InitBridge["Initialize IPC Bridge<br/>ipcBridge.providers<br/>ipcBridge.emitters"]
-    InitBridge --> ShowGuid["Navigate to Guid Page<br/>/guid route"]
-    ShowGuid --> Ready["Ready for<br/>Conversation Creation"]
-```
+When you launch AionUi, the application initializes several subsystems. The `GuidPage` serves as the entry point for new users, facilitating agent selection and initial configuration [src/renderer/pages/guid/index.tsx:7]().
 
 **Authentication Methods**:
 
-AionUi supports three authentication approaches:
+AionUi supports multiple authentication approaches to provide "Zero Setup" capabilities:
+- **Google OAuth**: Integrated Gemini access for a "Login with Google" experience [readme.md:79]().
+- **API Key**: Manual entry for providers like OpenAI, Anthropic, or DeepSeek. AionUi supports 20+ AI platforms [readme.md:186]().
+- **Local/Self-Hosted**: Support for Ollama, LM Studio, or local gateways [readme.md:183-185]().
 
-| Method               | Use Case                         | Configuration Storage                     |
-| -------------------- | -------------------------------- | ----------------------------------------- |
-| **Google OAuth**     | Free Gemini access via Google AI | OAuth tokens in `ConfigStorage`           |
-| **Google Vertex AI** | Enterprise Gemini via GCP        | Service account credentials               |
-| **API Key**          | Any supported platform           | Provider-specific keys in `ConfigStorage` |
-
-The authentication state is managed by `authService` and persisted in the configuration storage system built by `buildStorage()` factory function.
-
-**Sources**: [src/index.ts]() (main process initialization), [Architecture Diagram 1]() (Application Core section), [Architecture Diagram 3]() (Configuration Storage Layer)
+**Sources**: [src/renderer/pages/guid/index.tsx:7](), [readme.md:74-81](), [readme.md:174-187]()
 
 ---
 
 ## Model Provider Configuration
 
-### Adding Your First Model Provider
+AionUi acts as a unified interface for various AI backends.
 
-Before creating a conversation, you need to configure at least one model provider. The configuration system supports 20+ platforms through a unified `IProvider` interface:
+### Protocol Auto-Detection
+The system simplifies setup by auto-detecting protocols. Users can paste an API key or a endpoint URL, and AionUi identifies the provider:
+- **Gemini**: Native integration with Google's generative language API [readme.md:180]().
+- **OpenAI-Compatible**: Support for any provider following the OpenAI chat completion schema [readme.md:181]().
+- **Anthropic**: Support for Claude models via API keys [readme.md:182]().
 
-```mermaid
-graph TB
-    SettingsUI["Settings UI<br/>src/renderer/pages/settings/ModeSettings.tsx"]
-    SettingsUI -->|User clicks Add| AddModal["AddPlatformModal<br/>Platform Selection"]
-
-    AddModal --> DetectProtocol["protocolDetector<br/>Auto-identify API Type"]
-    DetectProtocol --> URLMatch["URL Pattern Match<br/>gemini.googleapis.com<br/>api.openai.com<br/>api.anthropic.com"]
-    DetectProtocol --> KeyMatch["API Key Format<br/>AIza...<br/>sk-...<br/>sk-ant-..."]
-    DetectProtocol --> Probe["API Probe<br/>/v1/models<br/>/v1/messages"]
-
-    URLMatch --> SuggestPlatform["Suggest Platform<br/>platform switch"]
-    KeyMatch --> SuggestPlatform
-    Probe --> SuggestPlatform
-
-    SuggestPlatform --> FetchModels["fetchModelList<br/>Retrieve Available Models"]
-    FetchModels --> SaveConfig["Save to ConfigStorage<br/>agent.config<br/>IProvider[]"]
-
-    SaveConfig --> ValidateCapabilities["Tag Model Capabilities<br/>text, vision, function_calling<br/>image_generation, web_search"]
-```
-
-**Provider Configuration Steps**:
-
-1. **Open Settings**: Navigate to Settings → Mode Settings
-2. **Add Platform**: Click "Add Platform" button
-3. **Platform Detection**:
-   - Enter API endpoint URL or select from presets
-   - Paste API key
-   - System auto-detects protocol (OpenAI-compatible, Anthropic, Gemini, etc.)
-4. **Fetch Models**: System queries provider's model list endpoint
-5. **Configure Capabilities**: Each model is tagged with capabilities:
-   - `text`: Basic chat
-   - `vision`: Image input support
-   - `function_calling`: Tool execution
-   - `image_generation`: Image creation (e.g., Imagen via Gemini)
-   - `web_search`: Integrated search
-   - `reasoning`: Advanced reasoning (e.g., o1 models)
-
-**Example Provider Configurations**:
-
-| Platform      | Base URL                                    | Key Format    | Capabilities Auto-Detected |
-| ------------- | ------------------------------------------- | ------------- | -------------------------- |
-| **Gemini**    | `https://generativelanguage.googleapis.com` | `AIzaSy...`   | Yes, from model metadata   |
-| **OpenAI**    | `https://api.openai.com`                    | `sk-proj-...` | Yes, from `/v1/models`     |
-| **Anthropic** | `https://api.anthropic.com`                 | `sk-ant-...`  | Yes, from `/v1/messages`   |
-| **Ollama**    | `http://localhost:11434`                    | None (local)  | Yes, from `/api/tags`      |
-| **NewAPI**    | Custom gateway URL                          | Gateway key   | Yes, proxied from upstream |
-
-The provider configuration is persisted in `ConfigStorage` under the `agent.config` key and hot-reloaded by active agents without requiring restart.
-
-**Sources**: [Architecture Diagram 3]() (Model Provider Categories, Protocol Detection System), [readme.md:106-138]()
+**Sources**: [readme.md:174-187](), [readme.md:74-81]()
 
 ---
 
@@ -223,217 +100,90 @@ The provider configuration is persisted in `ConfigStorage` under the `agent.conf
 
 ### Agent Selection Flow
 
-Conversations in AionUi start from the Guid page (`/guid` route), which acts as the agent/model selection interface:
+Conversations start from the **Guid Page** (`src/renderer/pages/guid/GuidPage.tsx`). This interface allows users to choose between built-in agents and external CLI agents [src/renderer/pages/guid/index.tsx:7]().
+
+**Code Entity Space to Natural Language Space**
+The following diagram maps UI selection concepts to their underlying code implementations and agent types:
 
 ```mermaid
 graph TD
-    GuidPage["Guid Page<br/>/guid route<br/>src/renderer/pages/guid"]
+    subgraph "Natural Language Space (UI)"
+        UIAgent["Agent Selection List"]
+        UIModel["Model Selection"]
+        UIAssistant["Assistant Preset (PPT/Word)"]
+    end
 
-    GuidPage --> LoadProviders["Load Providers<br/>ConfigStorage.getProviders"]
-    LoadProviders --> FilterCapabilities["Filter by Capabilities<br/>ModelCapability[]"]
+    subgraph "Code Entity Space"
+        GuidPage["GuidPage.tsx"]
+        GeminiAgent["GeminiAgentManager"]
+        AcpAgent["AcpConnection"]
+        Assistant["Assistant Presets"]
+    end
 
-    FilterCapabilities --> BuiltInAgent["Built-in Agent<br/>GeminiAgent<br/>aioncli-core"]
-    FilterCapabilities --> ACPAgent["ACP Agents<br/>AcpAgent<br/>CLI Detection"]
-    FilterCapabilities --> CodexAgent["Codex Agent<br/>CodexAgent<br/>WebSocket/Gateway"]
-    FilterCapabilities --> OpenClawAgent["OpenClaw Agent<br/>OpenClawAgent<br/>HTTP/WebSocket"]
-    FilterCapabilities --> NanobotAgent["Nanobot Agent<br/>NanobotAgent<br/>Simplified"]
-
-    BuiltInAgent --> SelectModel["User Selects Model<br/>TProviderWithModel"]
-    ACPAgent --> SelectModel
-    CodexAgent --> SelectModel
-    OpenClawAgent --> SelectModel
-    NanobotAgent --> SelectModel
-
-    SelectModel --> ConfigureWorkspace["Configure Workspace<br/>Select Directory"]
-    ConfigureWorkspace --> CreateConv["IPC: conversation.create<br/>ipcBridge.invoke"]
-
-    CreateConv --> InitManager["Initialize Agent Manager<br/>GeminiAgentManager<br/>AcpAgentManager<br/>CodexAgentManager<br/>etc."]
-    InitManager --> InitDB["Create Database Record<br/>ConversationManageWithDB<br/>conversations table"]
-    InitDB --> Navigate["Navigate to Conversation<br/>/conversation/:id"]
+    UIAgent -->|Selects| GuidPage
+    UIModel -->|Configures| GeminiAgent
+    UIAssistant -->|Loads| Assistant
+    
+    GuidPage -->|Initializes| GeminiAgent
+    GuidPage -->|Initializes| AcpAgent
+    Assistant -->|Wraps| AcpAgent
 ```
 
-**Conversation Creation Process**:
+**Sources**: [src/renderer/pages/guid/index.tsx:7](), [readme.md:65](), [readme.md:142-145]()
 
-1. **Launch Guid Page**: Application opens to `/guid` route after authentication
-2. **View Available Agents**:
-   - **Built-in Agent**: Zero-configuration Gemini-powered agent with full capabilities
-   - **ACP Agents**: Auto-detected CLI tools (Claude Code, Qwen Code, etc.)
-   - **Codex Agent**: If Codex CLI or gateway is configured
-   - **OpenClaw Agent**: Gateway-based agent for remote OpenClaw servers
-   - **Nanobot Agent**: Simplified agent for basic tasks
+### Agent Types
+AionUi categorizes agents into several backends:
+1. **Built-in Agent**: The zero-configuration engine based on Gemini [readme.md:74-81]().
+2. **Multi-Agent (ACP)**: Supports external CLI tools like `Claude Code`, `Codex`, and `Qwen Code` [readme.md:142-145]().
+3. **Office Assistants**: Specialized agents for `PPT`, `Word`, and `Excel` powered by `OfficeCLI` [readme.md:87-91]().
 
-3. **Select Model**: Choose a model from configured providers, filtered by required capabilities
+**Conversation Initialization Flow**:
+1. **Discovery**: AionUi auto-detects installed CLI agents on the system [readme.md:167]().
+2. **Selection**: User chooses an agent and model via the `GuidPage` UI.
+3. **Execution**: The system spawns the agent process (for CLI) or initializes the internal worker (for Gemini).
 
-4. **Configure Workspace** (optional): Select a local directory for agent file operations
-
-5. **Create Conversation**: Click create button, which triggers:
-
-   ```typescript
-   // IPC call from renderer to main process
-   ipcBridge.invoke('conversation.create', {
-     type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot',
-     extra: {
-       platform: 'gemini',
-       model: 'gemini-2.0-flash-exp',
-       workspacePath: '/Users/username/projects',
-     },
-   })
-   ```
-
-6. **Initialize Agent**: Main process creates the appropriate agent manager and initializes the agent instance
-
-7. **Database Record**: Conversation metadata is written to SQLite `conversations` table:
-   ```sql
-   INSERT INTO conversations (id, type, extra, created_at)
-   VALUES (uuid, 'gemini', json_extra, timestamp)
-   ```
-
-**Conversation Types**:
-
-AionUi uses a discriminated union type `TChatConversation` to represent different conversation types:
-
-| Type               | Agent Manager          | Connection Handler   | Protocol                          |
-| ------------------ | ---------------------- | -------------------- | --------------------------------- |
-| `gemini`           | `GeminiAgentManager`   | `GeminiClient`       | HTTP REST (Google AI / Vertex AI) |
-| `acp`              | `AcpAgentManager`      | `AcpConnection`      | JSON-RPC over stdio               |
-| `codex`            | `CodexAgentManager`    | `CodexConnection`    | WebSocket                         |
-| `openclaw-gateway` | `OpenClawAgentManager` | `OpenClawConnection` | HTTP/WebSocket                    |
-| `nanobot`          | `NanobotAgentManager`  | N/A (built-in)       | Direct                            |
-
-Each type includes a `type` discriminator field and an `extra` field containing type-specific configuration (model, platform, workspace, etc.).
-
-**Sources**: [Architecture Diagram 2]() (Agent Managers section), [Architecture Diagram 3]() (Runtime Agent Selection), [Architecture Diagram 5]() (conversation.create flow), [readme.md:74-103]()
+**Sources**: [readme.md:157-171](), [readme.md:87-91](), [src/renderer/pages/guid/index.tsx:7]()
 
 ---
 
 ## Basic Conversation Workflow
 
-### Sending Your First Message
+### Message Transformation and Persistence
 
-Once a conversation is created, the application navigates to `/conversation/:id`, which renders the `ChatLayout` component with message input and display:
+When a message is sent, it follows a structured path from the UI to the AI backend and into local storage.
 
 ```mermaid
-graph TD
-    ChatLayout["ChatLayout Component<br/>src/renderer/layouts/ChatLayout"]
-    ChatLayout --> MessageList["MessageList<br/>Virtualized Display"]
-    ChatLayout --> SendBox["SendBox Component<br/>Agent-Specific Impl"]
-    ChatLayout --> WorkspacePanel["Workspace Panel<br/>File Tree"]
-    ChatLayout --> PreviewPanel["Preview Panel<br/>File Viewer"]
+graph LR
+    subgraph "UI Layer"
+        SendBox["SendBox Component"]
+        MsgList["MessageList Component"]
+    end
 
-    SendBox --> UserInput["User Types Message<br/>+ Optional File Attachments"]
-    UserInput --> InvokeIPC["IPC: conversation.sendMessage<br/>ipcBridge.invoke"]
+    subgraph "Main Process"
+        IpcBridge["ipcBridge"]
+        AgentManager["AgentManager (Gemini/ACP)"]
+    end
 
-    InvokeIPC --> AgentManager["Route to Agent Manager<br/>GeminiAgentManager.sendMessage<br/>AcpAgentManager.sendMessage<br/>etc."]
+    subgraph "Storage Layer"
+        SQLite[("SQLite DB")]
+    end
 
-    AgentManager --> AddUserMsg["Add User Message to DB<br/>ConversationManageWithDB<br/>addMessage()"]
-    AgentManager --> InitAgent["Get/Create Agent Instance<br/>Map<conversation_id, Agent>"]
-
-    InitAgent --> StreamResponse["Agent Streams Response<br/>responseStream events"]
-    StreamResponse --> Buffer["Message Queue<br/>2-second debounce"]
-    Buffer --> BatchWrite["Batch DB Write<br/>addOrUpdateMessage()"]
-
-    StreamResponse --> UpdateUI["Real-time UI Update<br/>IPC: responseStream listener"]
-    UpdateUI --> MessageList
-
-    StreamResponse --> ToolCall["Tool Execution<br/>File ops, web search, etc."]
-    ToolCall --> Approval["Check ApprovalStore<br/>Session-level cache"]
-    Approval -->|Cached| Execute["Execute Tool"]
-    Approval -->|Not Cached| ConfirmUI["Show Confirmation UI<br/>allow_once, allow_always"]
-    ConfirmUI --> CacheDecision["Update ApprovalStore"]
-    CacheDecision --> Execute
-
-    Execute --> FileOps["File Operations<br/>FileOperationHandler"]
-    FileOps --> WorkspacePanel
-    FileOps --> PreviewPanelUpdate["Stream to Preview<br/>fileStream.contentUpdate"]
-    PreviewPanelUpdate --> PreviewPanel
+    SendBox -->|User Input| IpcBridge
+    IpcBridge -->|Command| AgentManager
+    AgentManager -->|Stream Response| IpcBridge
+    IpcBridge -->|Update UI| MsgList
+    AgentManager -->|Persist| SQLite
 ```
 
-**Message Flow Sequence**:
+**Persistence Implementation**:
+AionUi uses a local SQLite database to store conversation history. It features a batching mechanism to handle streaming data efficiently, ensuring that rapid updates from the AI don't overwhelm the disk I/O.
 
-1. **User Input**: Type message in `SendBox`, optionally attach files via drag-and-drop or file selector
+**Sources**: [readme.md:57-66](), [readme.md:23]()
 
-2. **IPC Invocation**:
+### Understanding Agent Modes
+Agents can run in different operational modes depending on user needs:
+- **Cowork Mode**: The AI works alongside the user, requesting approval for file operations or web searches [readme.md:57-62]().
+- **Autonomous (24/7)**: Using Cron-based scheduling for unattended tasks [readme.md:64]().
+- **Team Mode**: Coordinating multiple agents to solve complex problems.
 
-   ```typescript
-   await ipcBridge.invoke('conversation.sendMessage', {
-     conversationId: 'uuid',
-     message: 'Write a Python script to analyze CSV data',
-     files: [{ path: '/path/to/data.csv', uploadFile: File }],
-   })
-   ```
-
-3. **Agent Routing**: Main process routes message to appropriate agent manager based on conversation type
-
-4. **Immediate DB Write**: User message is immediately persisted to `messages` table for durability
-
-5. **Agent Processing**: Agent processes message and begins streaming response events:
-
-   ```typescript
-   // Event types emitted by agents
-   { type: 'text', text: 'Let me analyze that...' }
-   { type: 'tool_call', name: 'read_file', args: {path: 'data.csv'} }
-   { type: 'tool_result', result: 'file contents...' }
-   ```
-
-6. **UI Updates**: Renderer receives `responseStream` events via IPC and updates `MessageList` in real-time
-
-7. **Tool Execution**: When agent requests tool use:
-   - **Permission Check**: Consult `ApprovalStore` for cached decision
-   - **User Confirmation**: If not cached, show confirmation modal with options:
-     - `allow_once`: Allow this single tool call
-     - `allow_always`: Allow all tool calls in this session
-     - `allow_always_tool`: Allow this specific tool for all future calls
-     - `allow_always_server`: Allow all tools from this MCP server
-   - **Execute**: Perform file operation, web search, or MCP tool call
-   - **Update UI**: File changes stream to `PreviewPanel`, workspace refreshes
-
-8. **Batched Persistence**: Agent response chunks are batched with 2-second debounce before writing to database to prevent thrashing during streaming
-
-**Key Component References**:
-
-- **SendBox**: [src/renderer/components/SendBox]() - Message input with file attachments
-- **MessageList**: [src/renderer/components/MessageList]() - Virtualized message display
-- **PreviewPanel**: [src/renderer/components/PreviewPanel]() - File preview with syntax highlighting
-- **ipcBridge**: [src/preload/ipcBridge.ts]() - IPC communication layer
-- **ApprovalStore**: Main process - Permission caching for tool execution
-
-**Sources**: [Architecture Diagram 2]() (complete diagram), [Architecture Diagram 5]() (Message Persistence Flow, File Operation Flow), [readme.md:204-393]()
-
----
-
-## Understanding Agent Modes
-
-AionUi operates in three distinct modes, selectable at startup via command-line flags:
-
-| Mode        | Launch Command          | Use Case                  | Main Window                         |
-| ----------- | ----------------------- | ------------------------- | ----------------------------------- |
-| **Desktop** | `npm start` or app icon | Standard desktop usage    | BrowserWindow with system tray      |
-| **WebUI**   | `npm run webui`         | Remote access via browser | Express server on configurable port |
-| **CLI**     | `npm run resetpass`     | Password reset utility    | Headless (exits after operation)    |
-
-**Desktop Mode** (default): Full Electron application with native window management, system tray integration, and deep linking support via `aionui://` protocol.
-
-**WebUI Mode**: Runs Express server for browser-based access from remote devices. Supports:
-
-- LAN access: `http://localhost:3000`
-- Remote access: Via port forwarding or reverse proxy
-- QR code login for mobile devices
-- Authentication via JWT tokens
-
-**CLI Mode**: Utility mode for administrative tasks like password reset. Useful for troubleshooting authentication issues.
-
-**Sources**: [Architecture Diagram 1]() (Operational Modes), [package.json:11-17]() (run scripts), [readme.md:182-202]()
-
----
-
-## Next Steps
-
-Now that you have AionUi installed and your first conversation created, you can:
-
-- **Configure Additional Model Providers**: Add more platforms in Settings → Mode Settings. See [Model Configuration & API Management](#4.7)
-- **Set Up MCP Tools**: Enable external tools via Model Context Protocol. See [MCP Integration](#4.6)
-- **Enable WebUI**: Configure remote access for mobile devices. See [WebUI Server Architecture](#3.5)
-- **Explore Assistants**: Use built-in professional assistants (PPTX Generator, UI/UX Pro Max, etc.). See [Assistant Presets & Skills](#4.8)
-- **Schedule Automated Tasks**: Set up cron-based task execution. See [Cron & Scheduled Tasks](#4.9)
-
-For development setup and contribution guidelines, see [Development Environment](#11.6).
+**Sources**: [readme.md:57-66](), [readme.md:23]()

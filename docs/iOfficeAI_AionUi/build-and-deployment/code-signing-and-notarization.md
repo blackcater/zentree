@@ -6,19 +6,25 @@
 The following files were used as context for generating this wiki page:
 
 - [.github/workflows/build-and-release.yml](.github/workflows/build-and-release.yml)
+- [bun.lock](bun.lock)
 - [electron-builder.yml](electron-builder.yml)
 - [package.json](package.json)
-- [resources/windows-installer-arm64.nsh](resources/windows-installer-arm64.nsh)
-- [resources/windows-installer-x64.nsh](resources/windows-installer-x64.nsh)
+- [scripts/README.md](scripts/README.md)
+- [scripts/afterPack.js](scripts/afterPack.js)
+- [scripts/afterSign.js](scripts/afterSign.js)
 - [scripts/build-with-builder.js](scripts/build-with-builder.js)
+- [scripts/rebuildNativeModules.js](scripts/rebuildNativeModules.js)
+- [src/index.ts](src/index.ts)
 
 </details>
+
+
 
 ## Purpose and Scope
 
 This document describes the code signing and notarization mechanisms used to ensure AionUi's distributables are trusted by operating systems. Code signing cryptographically proves the application's origin and integrity, while notarization (macOS-specific) validates the application through Apple's automated security checks.
 
-The primary focus is on macOS code signing with hardened runtime and notarization workflows. Windows installer validation through architecture detection scripts is also covered. For information about the overall build pipeline that triggers these processes, see [Build Pipeline](#11.1). For release artifact management, see [Release Management](#11.5).
+The implementation focuses on macOS code signing with keychain management, hardened runtime compliance, and a notarization workflow with high timeout tolerance. For Windows, the system employs architecture detection scripts within the NSIS installer to prevent cross-architecture installation errors and ensure the correct binary is used for the target system.
 
 ---
 
@@ -38,48 +44,28 @@ mac:
   entitlementsInherit: entitlements.plist
 ```
 
-| Configuration Key     | Value                | Purpose                                                               |
-| --------------------- | -------------------- | --------------------------------------------------------------------- |
-| `hardenedRuntime`     | `true`               | Enables Apple's hardened runtime, enforcing security restrictions     |
-| `gatekeeperAssess`    | `false`              | Disables Gatekeeper assessment during build (handled by notarization) |
-| `entitlements`        | `entitlements.plist` | Main entitlements file for the application bundle                     |
-| `entitlementsInherit` | `entitlements.plist` | Entitlements inherited by child processes                             |
+| Configuration Key | Value | Purpose |
+|------------------|-------|---------|
+| `hardenedRuntime` | `true` | Enables Apple's hardened runtime, enforcing security restrictions [electron-builder.yml:143]() |
+| `gatekeeperAssess` | `false` | Disables Gatekeeper assessment during build [electron-builder.yml:144]() |
+| `entitlements` | `entitlements.plist` | Main entitlements file for the app bundle [electron-builder.yml:145]() |
+| `entitlementsInherit` | `entitlements.plist` | Entitlements inherited by child processes [electron-builder.yml:146]() |
 
-The hardened runtime requires explicit entitlements for operations like JIT compilation, dynamic library loading, and debugger attachment. These are declared in `entitlements.plist` (not shown in provided files but referenced in configuration).
-
-**Sources:** [electron-builder.yml:122-132]()
+**Sources:** [electron-builder.yml:136-147]()
 
 ---
 
 ## Code Signing Hooks
 
-Electron-builder provides lifecycle hooks for custom signing and post-signing operations. AionUi uses two hooks to integrate code signing and notarization:
+Electron-builder provides lifecycle hooks for custom signing and post-signing operations. AionUi uses two hooks to integrate code signing, native module verification, and notarization:
 
 ### afterPack Hook
-
-The `afterPack` hook executes immediately after electron-builder creates the application bundle but before DMG creation. This is the stage where code signing occurs.
-
-```
-afterPack: scripts/afterPack.js
-```
-
-While the `afterPack.js` file is not provided in the source list, this hook typically handles:
-
-- Verification of signed binaries
-- Additional signing of plugins or native modules
-- Pre-notarization cleanup
+The `afterPack` hook executes after the application bundle is created but before DMG packaging. It is primarily used to rebuild native modules for cross-architecture builds (e.g., building x64 on an arm64 machine) to ensure all binary artifacts (like `better-sqlite3`) are correctly signed for the target architecture.
+[scripts/afterPack.js:17-49](), [electron-builder.yml:167]()
 
 ### afterSign Hook
-
-The `afterSign` hook executes after code signing completes and is the standard location for triggering notarization:
-
-```
-afterSign: scripts/afterSign.js
-```
-
-This script invokes Apple's notarization API using the `@electron/notarize` package, which is declared as a dev dependency.
-
-**Sources:** [electron-builder.yml:153-154](), [package.json:60]()
+The `afterSign` hook executes after code signing completes. This script invokes Apple's notarization API using the `@electron/notarize` package.
+[scripts/afterSign.js:3-11](), [electron-builder.yml:168]()
 
 ---
 
@@ -91,306 +77,130 @@ The following diagram illustrates the notarization workflow integrated into the 
 
 ```mermaid
 graph TB
-    subgraph "Build Phase"
+    subgraph "Build_Phase"
         EB["electron-builder<br/>Package Task"]
         PACK["Create .app Bundle"]
         EB -->|creates| PACK
     end
-
-    subgraph "Signing Phase"
+    
+    subgraph "Signing_Phase"
         SIGN["codesign<br/>(electron-builder internal)"]
         HARDENED["Apply Hardened Runtime"]
         ENT["Apply entitlements.plist"]
-
+        
         PACK -->|triggers| SIGN
         SIGN -->|enforces| HARDENED
         SIGN -->|reads| ENT
     end
-
-    subgraph "afterPack Hook"
+    
+    subgraph "afterPack_Hook"
         AFTERPACK["scripts/afterPack.js"]
-        VERIFY["Verify Signatures"]
-
+        REBUILD["rebuildNativeModules.js"]
+        
         SIGN -->|completes| AFTERPACK
-        AFTERPACK -->|runs| VERIFY
+        AFTERPACK -->|invokes| REBUILD
     end
-
-    subgraph "afterSign Hook"
+    
+    subgraph "afterSign_Hook"
         AFTERSIGN["scripts/afterSign.js"]
         NOTARIZE["@electron/notarize"]
-        UPLOAD["Upload to Apple Notary API"]
-        POLL["Poll for Notarization Status"]
-        TIMEOUT["Timeout Detection<br/>(degraded mode)"]
-
+        AD_HOC["Ad-hoc Signature Fallback"]
+        
         AFTERPACK -->|success| AFTERSIGN
-        AFTERSIGN -->|invokes| NOTARIZE
-        NOTARIZE -->|submits| UPLOAD
-        UPLOAD -->|waits| POLL
-        POLL -->|checks| TIMEOUT
+        AFTERSIGN -->|verifies| SIGN
+        AFTERSIGN -->|missing_certs| AD_HOC
+        AFTERSIGN -->|has_certs| NOTARIZE
     end
-
-    subgraph "DMG Creation Phase"
-        DMG["Create DMG"]
+    
+    subgraph "DMG_Creation_Phase"
+        DMG["Create DMG (UDZO format)"]
         RETRY["DMG Retry Logic<br/>(build-with-builder.js)"]
-
-        TIMEOUT -->|success or timeout| DMG
-        TIMEOUT -->|failure| RETRY
-        DMG -->|Device not configured| RETRY
-        RETRY -->|attempts 1-3| DMG
-    end
-
-    subgraph "Environment Variables"
-        SECRETS["CI Secrets"]
-        APPLEDEV["APPLE_ID<br/>APPLE_ID_PASSWORD<br/>APPLE_TEAM_ID"]
-        CERT["CSC_LINK<br/>CSC_KEY_PASSWORD"]
-
-        SECRETS -->|provides| APPLEDEV
-        SECRETS -->|provides| CERT
-        APPLEDEV -->|authenticates| NOTARIZE
-        CERT -->|unlocks keychain| SIGN
+        CLEAN["cleanupDiskImages()"]
+        
+        NOTARIZE -->|success| DMG
+        DMG -->|failure| CLEAN
+        CLEAN -->|retry_1-3| DMG
     end
 ```
+**Sources:** [scripts/afterSign.js:18-48](), [scripts/build-with-builder.js:20-27](), [electron-builder.yml:148-168]()
 
-**Sources:** [electron-builder.yml:122-154](), [scripts/build-with-builder.js:19-24]()
+### Notarization with Timeout Tolerance
 
-### Notarization Timeout Tolerance
+The build system implements a "degraded mode" that allows DMG creation to proceed even if the environment is not fully configured for notarization (e.g., missing Apple ID credentials). In such cases, the `afterSign.js` script logs a warning and skips the notarization step rather than failing the entire build.
+[scripts/afterSign.js:32-36]()
 
-The build system implements a "degraded mode" that allows DMG creation to proceed even if notarization times out. This is referenced in the page 11.4 JSON outline as "notarization with timeout tolerance (degraded mode allows DMG without notarization)".
+If the app is not signed, the script attempts to apply an ad-hoc signature as a fallback:
+[scripts/afterSign.js:22-30]()
 
-The DMG retry logic detects notarization failures by checking if the `.app` bundle exists but the `.dmg` file is missing, indicating a failure during DMG creation:
+### DMG Retry Logic
+The script `build-with-builder.js` handles transient macOS `hdiutil` errors (such as "Device not configured") by retrying DMG creation up to 3 times.
+[scripts/build-with-builder.js:20-27]()
 
-```javascript
-const appDir = isMac ? findAppDir(outDir) : null
-if (!appDir || dmgExists(outDir)) throw error
-
-// .app exists but no .dmg → DMG creation failed
-console.log(
-  '\
-🔄 Build failed during DMG creation (.app exists, .dmg missing)'
-)
-```
-
-The retry mechanism attempts DMG creation up to 3 times with 30-second intervals, using the `--prepackaged` flag to preserve styling:
-
-```javascript
-for (let attempt = 1; attempt <= DMG_RETRY_MAX; attempt++) {
-  cleanupDiskImages()
-  spawnSync('sleep', [String(DMG_RETRY_DELAY_SEC)])
-
-  try {
-    console.log(`\
-📀 DMG retry attempt ${attempt}/${DMG_RETRY_MAX}...`)
-    createDmgWithPrepackaged(appDir, targetArch)
-    console.log('✅ DMG created successfully on retry')
-    return
-  } catch (retryError) {
-    // Continue to next attempt
-  }
-}
-```
-
-**Sources:** [scripts/build-with-builder.js:19-251]()
+1.  **Cleanup**: Before retrying, `cleanupDiskImages()` detaches all mounted disk images using `hdiutil detach -force` to prevent blocking subsequent attempts. [scripts/build-with-builder.js:134-154]()
+2.  **Prepackaged Build**: Retries use the `--prepackaged` flag with the existing `.app` path via `createDmgWithPrepackaged()` to preserve styling and signed status. [scripts/build-with-builder.js:221-227]()
 
 ---
 
-## Certificate Management in CI/CD
+## Windows Architecture Detection
 
-The GitHub Actions workflow provides code signing credentials through encrypted secrets. These secrets are made available to the build jobs through the `secrets: inherit` configuration.
+AionUi uses architecture-specific scripts during the build process to coordinate correct packaging for x64 and ARM64.
 
-### Required Secrets for macOS
-
-| Secret Name         | Purpose                         | Used By                          |
-| ------------------- | ------------------------------- | -------------------------------- |
-| `APPLE_ID`          | Apple Developer account email   | Notarization authentication      |
-| `APPLE_ID_PASSWORD` | App-specific password           | Notarization authentication      |
-| `APPLE_TEAM_ID`     | Developer Team ID               | Notarization team identification |
-| `CSC_LINK`          | Base64-encoded .p12 certificate | Code signing certificate         |
-| `CSC_KEY_PASSWORD`  | Certificate password            | Unlocking keychain               |
-
-The build matrix defines macOS jobs for both ARM64 and x64 architectures:
-
-```yaml
-{"platform":"macos-arm64","os":"macos-14","command":"node scripts/build-with-builder.js arm64 --mac --arm64","artifact-name":"macos-build-arm64","arch":"arm64"},
-{"platform":"macos-x64","os":"macos-14","command":"node scripts/build-with-builder.js x64 --mac --x64","artifact-name":"macos-build-x64","arch":"x64"}
-```
-
-Both jobs inherit secrets from the repository-level or environment-level configuration specified in the `release` or `dev-release` environments.
-
-**Sources:** [.github/workflows/build-and-release.yml:27-28](), [.github/workflows/build-and-release.yml:207](), [.github/workflows/build-and-release.yml:33]()
-
----
-
-## Windows Installer Validation
-
-While Windows builds do not use code signing in the current implementation, AionUi includes architecture validation scripts to prevent installation on incompatible systems. These scripts are included in the NSIS installer via electron-builder configuration.
-
-### Architecture Detection Scripts
-
-The build script dynamically includes architecture-specific NSIS scripts based on the target architecture:
-
-**Diagram: Windows Installer Architecture Validation**
+**Diagram: Windows Architecture Build Coordination**
 
 ```mermaid
-graph LR
-    subgraph "Build Script"
-        DETECT["build-with-builder.js<br/>Architecture Detection"]
-        ARM64CHECK["targetArch === 'arm64'"]
-        X64CHECK["targetArch === 'x64'"]
-
-        DETECT -->|checks| ARM64CHECK
-        DETECT -->|checks| X64CHECK
+graph TD
+    subgraph "Build_Orchestration"
+        BWB["scripts/build-with-builder.js"]
+        EB_BIN["electron-builder"]
     end
 
-    subgraph "ARM64 Installer"
-        ARM64NSH["resources/windows-installer-arm64.nsh"]
-        ARM64FUNC[".onVerifyInstDir Function"]
-        ARM64GUARD["${IsNativeARM64} Check"]
-        ARM64BLOCK["MessageBox + Quit"]
-
-        ARM64CHECK -->|includes| ARM64NSH
-        ARM64NSH -->|defines| ARM64FUNC
-        ARM64FUNC -->|validates| ARM64GUARD
-        ARM64GUARD -->|fails| ARM64BLOCK
+    subgraph "Architecture_Logic"
+        DETECT["Detect Target Arch"]
+        WIN_X64["Build Windows x64"]
+        WIN_ARM64["Build Windows ARM64"]
+        
+        BWB -->|args| DETECT
+        DETECT -->|--x64| WIN_X64
+        DETECT -->|--arm64| WIN_ARM64
     end
 
-    subgraph "x64 Installer"
-        X64NSH["resources/windows-installer-x64.nsh"]
-        X64FUNC[".onVerifyInstDir Function"]
-        X64RUN["${RunningX64} Check"]
-        X64ARM["${IsNativeARM64} Check"]
-        X64BLOCK["MessageBox + Quit"]
-
-        X64CHECK -->|includes| X64NSH
-        X64NSH -->|defines| X64FUNC
-        X64FUNC -->|validates| X64RUN
-        X64FUNC -->|validates| X64ARM
-        X64RUN -->|fails| X64BLOCK
-        X64ARM -->|succeeds| X64BLOCK
-    end
-
-    subgraph "Build Configuration"
-        NSISCONFIG["--config.nsis.include"]
-        EBUILD["electron-builder"]
-
-        ARM64NSH -->|via| NSISCONFIG
-        X64NSH -->|via| NSISCONFIG
-        NSISCONFIG -->|passed to| EBUILD
+    subgraph "Native_Rebuild_Flow"
+        RNM["rebuildNativeModules.js"]
+        MSVC["vx --with msvc"]
+        
+        WIN_X64 --> RNM
+        WIN_ARM64 --> RNM
+        RNM -->|Windows_Only| MSVC
     end
 ```
+**Sources:** [scripts/build-with-builder.js:28-33](), [scripts/rebuildNativeModules.js:47-52](), [electron-builder.yml:118-125]()
 
-**Sources:** [scripts/build-with-builder.js:460-481]()
+### NSIS Configuration
+The `electron-builder.yml` configures NSIS to allow manual installation directory changes and custom artifact naming.
+[electron-builder.yml:126-135]()
 
-### ARM64 Validation Script
+| Feature | Setting | Purpose |
+|---------|---------|---------|
+| **One-Click** | `false` | Allows users to customize installation and see warnings |
+| **Directory Change** | `true` | Standard installer behavior for user choice |
+| **Artifact Name** | `${productName}-${version}-${os}-${arch}.${ext}` | Clear identification of the architecture in the filename [electron-builder.yml:133]() |
 
-The ARM64 installer includes a guard that blocks installation on non-ARM64 systems:
-
-```nsis
-Function .onVerifyInstDir
-  ${IfNot} ${IsNativeARM64}
-    MessageBox MB_OK|MB_ICONSTOP \
-      "Installation package architecture mismatch..."
-    Quit
-  ${EndIf}
-FunctionEnd
-```
-
-This function executes during the installation directory verification phase, which occurs early in the NSIS installer lifecycle before any files are extracted.
-
-**Sources:** [resources/windows-installer-arm64.nsh:1-20]()
-
-### x64 Validation Script
-
-The x64 installer includes dual validation to reject both 32-bit and ARM64 systems:
-
-```nsis
-Function .onVerifyInstDir
-  ; Block installation on x86 (32-bit) systems
-  ${IfNot} ${RunningX64}
-    MessageBox MB_OK|MB_ICONSTOP \
-      "This AionUi installer is designed for x64 architecture..."
-    Quit
-  ${EndIf}
-
-  ; Block installation on ARM64 systems
-  ${If} ${IsNativeARM64}
-    MessageBox MB_OK|MB_ICONSTOP \
-      "Your system is ARM64 architecture. Please download the ARM64 version..."
-    Quit
-  ${EndIf}
-FunctionEnd
-```
-
-The check order is critical: `RunningX64` must be validated before `IsNativeARM64` because ARM64 systems with WOW64 emulation may report `RunningX64=true`.
-
-**Sources:** [resources/windows-installer-x64.nsh:1-30]()
+### Native Module Toolchain
+On Windows, the build utility `rebuildNativeModules.js` uses a specialized command prefix `vx --with msvc` to ensure the MSVC compiler environment is correctly injected for native modules like `better-sqlite3`.
+[scripts/rebuildNativeModules.js:47-52](), [scripts/rebuildNativeModules.js:75-76]()
 
 ---
 
-## DMG Creation and Disk Image Issues
+## Environment & Keychain Management
 
-macOS DMG creation occasionally fails on GitHub Actions runners with "Device not configured" errors from `hdiutil`. The build script includes comprehensive retry logic to handle these transient failures.
+The build process relies on specific environment variables provided by GitHub Actions to authenticate with Apple's Notary Service.
 
-### Disk Image Cleanup Strategy
+| Variable | Purpose | Usage Site |
+|----------|---------|------------|
+| `appleId` | Apple Developer ID | [scripts/afterSign.js:45]() |
+| `appleIdPassword` | App-specific password | [scripts/afterSign.js:46]() |
+| `teamId` | Apple Team ID | [scripts/afterSign.js:47]() |
+| `CSC_LINK` | Certificate (Base64) | Managed by `electron-builder` |
+| `CSC_KEY_PASSWORD` | Certificate password | Managed by `electron-builder` |
 
-Before each retry attempt, the script detaches all mounted disk images that may interfere with DMG creation:
-
-```javascript
-function cleanupDiskImages() {
-  const result = spawnSync(
-    'sh',
-    [
-      '-c',
-      "hdiutil info 2>/dev/null | grep /dev/disk | awk '{print $1}' | xargs -I {} hdiutil detach {} -force 2>/dev/null",
-    ],
-    { stdio: 'ignore' }
-  )
-  return result.status === 0
-}
-```
-
-This pipeline:
-
-1. Lists all mounted disk images via `hdiutil info`
-2. Extracts device paths (`/dev/diskN`) using `grep` and `awk`
-3. Force-detaches each device using `hdiutil detach -force`
-
-**Sources:** [scripts/build-with-builder.js:133-148]()
-
-### Prepackaged DMG Creation
-
-When retrying DMG creation, the script uses electron-builder's `--prepackaged` flag to preserve the original `.app` bundle and all DMG styling configuration:
-
-```javascript
-function createDmgWithPrepackaged(appDir, targetArch) {
-  const appName = fs.readdirSync(appDir).find((f) => f.endsWith('.app'))
-  const appPath = path.join(appDir, appName)
-
-  execSync(
-    `bunx electron-builder --mac dmg --${targetArch} --prepackaged "${appPath}" --publish=never`,
-    { stdio: 'inherit', shell: process.platform === 'win32' }
-  )
-}
-```
-
-This approach reuses the already-signed `.app` bundle, avoiding redundant compilation and signing operations. The DMG configuration from `electron-builder.yml` is still applied, including window size, icon positions, and UDZO format settings.
-
-**Sources:** [scripts/build-with-builder.js:205-214](), [electron-builder.yml:134-151]()
-
----
-
-## Build Integration Summary
-
-The following table summarizes how code signing and notarization integrate with the build system:
-
-| Phase                  | Tool/Script                                   | Configuration                             | Environment Variables                            |
-| ---------------------- | --------------------------------------------- | ----------------------------------------- | ------------------------------------------------ |
-| **Bundle Creation**    | electron-builder                              | `electron-builder.yml`                    | `ELECTRON_BUILDER_ARCH`                          |
-| **Code Signing**       | codesign (via electron-builder)               | `mac.hardenedRuntime`, `mac.entitlements` | `CSC_LINK`, `CSC_KEY_PASSWORD`                   |
-| **Post-Pack Hook**     | `scripts/afterPack.js`                        | `afterPack` in electron-builder.yml       | (varies)                                         |
-| **Notarization**       | `scripts/afterSign.js` + `@electron/notarize` | `afterSign` in electron-builder.yml       | `APPLE_ID`, `APPLE_ID_PASSWORD`, `APPLE_TEAM_ID` |
-| **DMG Creation**       | electron-builder + retry logic                | `dmg` section, `--prepackaged` flag       | N/A                                              |
-| **Windows Validation** | NSIS scripts                                  | `--config.nsis.include`                   | N/A                                              |
-
-The entire process is orchestrated by `build-with-builder.js`, which wraps electron-builder and implements retry logic for DMG creation failures.
-
-**Sources:** [scripts/build-with-builder.js:1-511](), [electron-builder.yml:1-218](), [package.json:60]()
+**Sources:** [scripts/afterSign.js:33-48](), [.github/workflows/build-and-release.yml:27-33]()

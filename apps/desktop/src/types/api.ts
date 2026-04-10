@@ -4,3 +4,7 @@ export interface AppInfo {
 	electron: boolean
 	platform: string
 }
+
+export namespace API {
+	export interface ChatAPI {}
+}

@@ -6,7 +6,7 @@
 The following files were used as context for generating this wiki page:
 
 - [apps/desktop/src/lib/trpc/routers/ui-state/index.ts](apps/desktop/src/lib/trpc/routers/ui-state/index.ts)
-- [apps/desktop/src/renderer/routes/\_authenticated/\_dashboard/workspace/$workspaceId/page.tsx](apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/page.tsx)
+- [apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/page.tsx](apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/page.tsx)
 - [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupItem.tsx](apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupItem.tsx)
 - [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupStrip.tsx](apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupStrip.tsx)
 - [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabContentContextMenu.tsx](apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabContentContextMenu.tsx)
@@ -29,12 +29,13 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
+
+
 ## Overview
 
 The desktop application implements a comprehensive hotkey system that provides keyboard shortcuts across workspace navigation, tab management, pane operations, and window controls. The system is designed with platform-awareness, automatically converting macOS shortcuts (using `meta`) to Windows/Linux equivalents (using `ctrl+shift`). Hotkeys integrate with both the Electron application menu and renderer-side keyboard event handlers.
 
 The hotkey system consists of:
-
 - **HOTKEYS Constant** - Central definition of all shortcuts with platform defaults
 - **HotkeysState** - Per-platform overrides stored in app state
 - **Application Menu** - Native menu with accelerators derived from hotkeys
@@ -59,7 +60,7 @@ graph TB
         defineHotkey["defineHotkey()<br/>Platform defaults"]
         deriveNonMacDefault["deriveNonMacDefault()<br/>meta → ctrl+shift"]
     end
-
+    
     subgraph "Main Process"
         AppState["appState.data.hotkeysState<br/>HotkeysState"]
         getMenuAccelerator["getMenuAccelerator()<br/>ID → Electron format"]
@@ -67,22 +68,22 @@ graph TB
         registerMenuHotkeyUpdates["registerMenuHotkeyUpdates()"]
         hotkeysEmitter["hotkeysEmitter<br/>'change' events"]
     end
-
+    
     subgraph "Renderer Process"
         useAppHotkey["useAppHotkey hook<br/>Keyboard listeners"]
         matchesHotkeyEvent["matchesHotkeyEvent()<br/>Event matching"]
         ActionHandlers["Action Handlers<br/>Workspace/Tab/Pane ops"]
     end
-
+    
     HOTKEYS --> defineHotkey
     defineHotkey --> deriveNonMacDefault
     deriveNonMacDefault --> AppState
-
+    
     AppState --> getMenuAccelerator
     getMenuAccelerator --> createApplicationMenu
     hotkeysEmitter --> registerMenuHotkeyUpdates
     registerMenuHotkeyUpdates --> createApplicationMenu
-
+    
     AppState --> useAppHotkey
     useAppHotkey --> matchesHotkeyEvent
     matchesHotkeyEvent --> ActionHandlers
@@ -99,35 +100,35 @@ The `HOTKEYS` constant in `shared/hotkeys.ts` defines all keyboard shortcuts wit
 ```typescript
 export const HOTKEYS = {
   JUMP_TO_WORKSPACE_1: defineHotkey({
-    keys: 'meta+1',
-    label: 'Switch to Workspace 1',
-    category: 'Workspace',
+    keys: "meta+1",
+    label: "Switch to Workspace 1",
+    category: "Workspace",
   }),
   // ... 40+ more shortcuts
-} as const satisfies Record<string, HotkeyDefinition>
+} as const satisfies Record<string, HotkeyDefinition>;
 ```
 
 **HotkeyDefinition Interface:**
 
-| Field         | Type                                     | Description                                      |
-| ------------- | ---------------------------------------- | ------------------------------------------------ |
-| `label`       | `string`                                 | Human-readable name for display                  |
-| `category`    | `HotkeyCategory`                         | Grouping (Workspace/Layout/Terminal/Window/Help) |
-| `description` | `string?`                                | Optional detailed description                    |
-| `defaults`    | `Record<HotkeyPlatform, string \| null>` | Per-platform default bindings                    |
-| `isHidden`    | `boolean?`                               | Hide from settings UI if true                    |
+| Field | Type | Description |
+|-------|------|-------------|
+| `label` | `string` | Human-readable name for display |
+| `category` | `HotkeyCategory` | Grouping (Workspace/Layout/Terminal/Window/Help) |
+| `description` | `string?` | Optional detailed description |
+| `defaults` | `Record<HotkeyPlatform, string \| null>` | Per-platform default bindings |
+| `isHidden` | `boolean?` | Hide from settings UI if true |
 
 **Categories:**
 
 The system organizes shortcuts into five categories:
 
-| Category    | Purpose                            | Example Shortcuts                       |
-| ----------- | ---------------------------------- | --------------------------------------- |
-| `Workspace` | Workspace navigation and creation  | `JUMP_TO_WORKSPACE_1`, `NEXT_WORKSPACE` |
-| `Layout`    | Sidebar and split-pane management  | `TOGGLE_SIDEBAR`, `SPLIT_RIGHT`         |
-| `Terminal`  | Terminal operations and navigation | `NEW_GROUP`, `FIND_IN_TERMINAL`         |
-| `Window`    | Window-level operations            | `CLOSE_WINDOW`, `OPEN_IN_APP`           |
-| `Help`      | Help and settings access           | `SHOW_HOTKEYS`                          |
+| Category | Purpose | Example Shortcuts |
+|----------|---------|-------------------|
+| `Workspace` | Workspace navigation and creation | `JUMP_TO_WORKSPACE_1`, `NEXT_WORKSPACE` |
+| `Layout` | Sidebar and split-pane management | `TOGGLE_SIDEBAR`, `SPLIT_RIGHT` |
+| `Terminal` | Terminal operations and navigation | `NEW_GROUP`, `FIND_IN_TERMINAL` |
+| `Window` | Window-level operations | `CLOSE_WINDOW`, `OPEN_IN_APP` |
+| `Help` | Help and settings access | `SHOW_HOTKEYS` |
 
 Sources: [apps/desktop/src/shared/hotkeys.ts:365-561](), [apps/desktop/src/shared/hotkeys.ts:10-28]()
 
@@ -146,7 +147,7 @@ flowchart TD
     AddAlt["Also add alt"]
     NoMeta["Keep as-is"]
     Result["Non-Mac Default"]
-
+    
     MacShortcut --> HasMeta
     HasMeta -->|Yes| AddCtrlShift
     HasMeta -->|No| NoMeta
@@ -159,12 +160,12 @@ flowchart TD
 
 **Examples:**
 
-| macOS Shortcut  | Windows/Linux Shortcut | Reasoning                                               |
-| --------------- | ---------------------- | ------------------------------------------------------- |
-| `meta+d`        | `ctrl+shift+d`         | `meta` → `ctrl+shift`                                   |
-| `meta+shift+d`  | `ctrl+shift+alt+d`     | `meta` → `ctrl+shift`, already has `shift` so add `alt` |
-| `meta+1`        | `ctrl+shift+1`         | Direct conversion                                       |
-| `meta+alt+left` | `ctrl+shift+alt+left`  | Preserves `alt`                                         |
+| macOS Shortcut | Windows/Linux Shortcut | Reasoning |
+|----------------|------------------------|-----------|
+| `meta+d` | `ctrl+shift+d` | `meta` → `ctrl+shift` |
+| `meta+shift+d` | `ctrl+shift+alt+d` | `meta` → `ctrl+shift`, already has `shift` so add `alt` |
+| `meta+1` | `ctrl+shift+1` | Direct conversion |
+| `meta+alt+left` | `ctrl+shift+alt+left` | Preserves `alt` |
 
 **Implementation:**
 
@@ -180,15 +181,15 @@ The `HotkeysState` stores per-platform overrides to defaults. This state is pers
 
 ```typescript
 interface HotkeysState {
-  version: number
-  byPlatform: Record<HotkeyPlatform, Partial<Record<HotkeyId, string | null>>>
+  version: number;
+  byPlatform: Record<HotkeyPlatform, Partial<Record<HotkeyId, string | null>>>;
 }
 ```
 
 **Platform Types:**
 
 ```typescript
-type HotkeyPlatform = 'darwin' | 'win32' | 'linux'
+type HotkeyPlatform = "darwin" | "win32" | "linux";
 ```
 
 **Effective Hotkey Resolution:**
@@ -233,7 +234,7 @@ sequenceDiagram
     participant State as appState.data.hotkeysState
     participant Convert as toElectronAccelerator()
     participant Menu as Menu.buildFromTemplate()
-
+    
     Main->>Create: Call on startup
     Create->>Get: getMenuAccelerator("CLOSE_WINDOW")
     Get->>State: Read byPlatform overrides
@@ -249,21 +250,21 @@ sequenceDiagram
 
 The `toElectronAccelerator` function ([apps/desktop/src/shared/hotkeys.ts:735-763]()) converts canonical hotkey format to Electron's accelerator syntax:
 
-| Canonical Format | Electron Accelerator | Notes                 |
-| ---------------- | -------------------- | --------------------- |
-| `meta+shift+w`   | `Command+Shift+W`    | macOS                 |
-| `ctrl+shift+w`   | `Ctrl+Shift+W`       | Windows/Linux         |
-| `meta+slash`     | `Command+/`          | Special key mapping   |
-| `meta+left`      | `Command+Left`       | Arrow key capitalized |
+| Canonical Format | Electron Accelerator | Notes |
+|------------------|---------------------|-------|
+| `meta+shift+w` | `Command+Shift+W` | macOS |
+| `ctrl+shift+w` | `Ctrl+Shift+W` | Windows/Linux |
+| `meta+slash` | `Command+/` | Special key mapping |
+| `meta+left` | `Command+Left` | Arrow key capitalized |
 
 **Menu Registration:**
 
 The `registerMenuHotkeyUpdates` function ([apps/desktop/src/main/lib/menu.ts:31-37]()) sets up a listener on `hotkeysEmitter` to rebuild the menu when hotkey bindings change:
 
 ```typescript
-hotkeysEmitter.on('change', () => {
-  createApplicationMenu()
-})
+hotkeysEmitter.on("change", () => {
+  createApplicationMenu();
+});
 ```
 
 This ensures the menu accelerators stay synchronized with any hotkey customizations.
@@ -285,7 +286,7 @@ flowchart TD
     CheckKey{"Key<br/>matches?"}
     Execute["Execute action"]
     Ignore["Ignore event"]
-
+    
     KeyPress --> Listener
     Listener --> Match
     Match --> CheckMods
@@ -318,14 +319,14 @@ The hotkey system enforces reserved shortcuts to prevent conflicts with terminal
 
 These shortcuts are blocked because they provide essential terminal functionality:
 
-| Shortcut | Purpose      | Why Reserved                 |
-| -------- | ------------ | ---------------------------- |
-| `ctrl+c` | Send SIGINT  | Kill running process         |
-| `ctrl+d` | Send EOF     | Exit shell/REPL              |
-| `ctrl+z` | Send SIGTSTP | Suspend process              |
+| Shortcut | Purpose | Why Reserved |
+|----------|---------|--------------|
+| `ctrl+c` | Send SIGINT | Kill running process |
+| `ctrl+d` | Send EOF | Exit shell/REPL |
+| `ctrl+z` | Send SIGTSTP | Suspend process |
 | `ctrl+s` | Flow control | Pause terminal output (XOFF) |
 | `ctrl+q` | Flow control | Resume terminal output (XON) |
-| `ctrl+\` | Send SIGQUIT | Force quit with core dump    |
+| `ctrl+\` | Send SIGQUIT | Force quit with core dump |
 
 The `TERMINAL_RESERVED_CHORDS` set ([apps/desktop/src/shared/hotkeys.ts:109-116]()) defines these shortcuts. The `isTerminalReservedHotkey` function checks if a shortcut conflicts with terminal input.
 
@@ -333,21 +334,20 @@ The `TERMINAL_RESERVED_CHORDS` set ([apps/desktop/src/shared/hotkeys.ts:109-116]
 
 Platform-specific shortcuts that the OS handles directly:
 
-| Platform      | Shortcut          | OS Function           |
-| ------------- | ----------------- | --------------------- |
-| macOS         | `meta+q`          | Quit application      |
-| macOS         | `meta+space`      | Spotlight search      |
-| macOS         | `meta+tab`        | Application switcher  |
-| Windows       | `alt+f4`          | Close window          |
-| Windows       | `ctrl+alt+delete` | System interrupt menu |
-| Windows/Linux | `alt+tab`         | Application switcher  |
+| Platform | Shortcut | OS Function |
+|----------|----------|-------------|
+| macOS | `meta+q` | Quit application |
+| macOS | `meta+space` | Spotlight search |
+| macOS | `meta+tab` | Application switcher |
+| Windows | `alt+f4` | Close window |
+| Windows | `ctrl+alt+delete` | System interrupt menu |
+| Windows/Linux | `alt+tab` | Application switcher |
 
 The `OS_RESERVED_CHORDS` map ([apps/desktop/src/shared/hotkeys.ts:118-122]()) tracks these per-platform. The `isOsReservedHotkey` function prevents assignment of these shortcuts.
 
 **Primary Modifier Enforcement:**
 
 All app hotkeys must include `ctrl` or `meta` as a primary modifier. This rule ensures:
-
 1. **No terminal conflicts** - Single-key shortcuts (like `a`, `b`) won't intercept typing
 2. **Consistent behavior** - Shortcuts work even when terminal has focus
 3. **Discoverability** - Users expect app shortcuts to use modifier keys
@@ -357,7 +357,7 @@ The `hotkeyFromKeyboardEvent` function ([apps/desktop/src/shared/hotkeys.ts:256-
 ```typescript
 // App hotkeys must include ctrl or meta to avoid conflicts with terminal input
 if (!event.ctrlKey && !event.metaKey) {
-  return null
+  return null;
 }
 ```
 
@@ -373,8 +373,8 @@ Triggers actions from menu item clicks. Used when users select menu items or cli
 
 **Events:**
 
-| Event             | Payload      | Purpose                                         |
-| ----------------- | ------------ | ----------------------------------------------- |
+| Event | Payload | Purpose |
+|-------|---------|---------|
 | `"open-settings"` | `"keyboard"` | Opens settings dialog to keyboard shortcuts tab |
 
 Example usage in menu creation ([apps/desktop/src/main/lib/menu.ts:102-107]()):
@@ -395,16 +395,16 @@ Notifies that hotkey bindings have changed, triggering menu rebuilds.
 
 **Events:**
 
-| Event      | Payload | Purpose                       |
-| ---------- | ------- | ----------------------------- |
-| `"change"` | None    | Hotkey bindings were modified |
+| Event | Payload | Purpose |
+|-------|---------|---------|
+| `"change"` | None | Hotkey bindings were modified |
 
 The `registerMenuHotkeyUpdates` function ([apps/desktop/src/main/lib/menu.ts:31-37]()) listens for changes:
 
 ```typescript
-hotkeysEmitter.on('change', () => {
-  createApplicationMenu()
-})
+hotkeysEmitter.on("change", () => {
+  createApplicationMenu();
+});
 ```
 
 This ensures menu accelerators stay synchronized when users customize hotkeys (future feature).
@@ -413,21 +413,20 @@ Sources: [apps/desktop/src/main/lib/menu.ts:31-37](), [apps/desktop/src/main/lib
 
 ## Complete Reference Table
 
-| Category           | Shortcut      | Action             | Context                |
-| ------------------ | ------------- | ------------------ | ---------------------- |
-| **Workspace**      | `⌘ ⌥ ←`       | Previous Workspace | Any workspace active   |
-| **Workspace**      | `⌘ ⌥ →`       | Next Workspace     | Any workspace active   |
-| **Tab Management** | `⌘ T`         | New Tab            | Workspace active       |
-| **Tab Management** | `⌘ W`         | Close Tab          | Tab selected           |
-| **Tab Navigation** | `⌘ ⌥ ↑`       | Previous Tab       | Multiple tabs exist    |
-| **Tab Navigation** | `⌘ ⌥ ↓`       | Next Tab           | Multiple tabs exist    |
-| **Tab Navigation** | `⌘ 1` - `⌘ 9` | Jump to Tab 1-9    | Tab at position exists |
-| **Split View**     | `⌘ D`         | Split Vertical     | Tab selected           |
-| **Split View**     | `⌘ ⇧ D`       | Split Horizontal   | Tab selected           |
-| **UI Toggle**      | `⌘ S`         | Toggle Sidebar     | Always available       |
+| Category | Shortcut | Action | Context |
+|----------|----------|--------|---------|
+| **Workspace** | `⌘ ⌥ ←` | Previous Workspace | Any workspace active |
+| **Workspace** | `⌘ ⌥ →` | Next Workspace | Any workspace active |
+| **Tab Management** | `⌘ T` | New Tab | Workspace active |
+| **Tab Management** | `⌘ W` | Close Tab | Tab selected |
+| **Tab Navigation** | `⌘ ⌥ ↑` | Previous Tab | Multiple tabs exist |
+| **Tab Navigation** | `⌘ ⌥ ↓` | Next Tab | Multiple tabs exist |
+| **Tab Navigation** | `⌘ 1` - `⌘ 9` | Jump to Tab 1-9 | Tab at position exists |
+| **Split View** | `⌘ D` | Split Vertical | Tab selected |
+| **Split View** | `⌘ ⇧ D` | Split Horizontal | Tab selected |
+| **UI Toggle** | `⌘ S` | Toggle Sidebar | Always available |
 
 **Platform Notes:**
-
 - `⌘` represents the Command key on macOS and Ctrl key on Windows/Linux
 - `⌥` represents the Option/Alt key on macOS and Alt key on Windows/Linux
 - `⇧` represents the Shift key

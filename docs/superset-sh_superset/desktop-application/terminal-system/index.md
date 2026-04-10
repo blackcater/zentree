@@ -36,12 +36,13 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
+
+
 ## Purpose and Scope
 
 The Terminal System provides integrated terminal emulation within the Superset desktop application. It implements a multi-process architecture that enables terminal sessions to persist across app restarts, tracks ports opened by terminal processes, and maintains terminal state including scrollback, working directory, and mode flags.
 
 This page provides a high-level overview of the terminal system architecture and its core components. For detailed coverage of specific subsystems, see:
-
 - [Terminal Architecture Overview](#2.8.1) for multi-layer design patterns
 - [Terminal Session Lifecycle](#2.8.2) for session state management
 - [Terminal UI Components](#2.8.3) for xterm.js integration
@@ -65,42 +66,42 @@ graph TB
         XtermJS["xterm.js<br/>Terminal Emulator"]
         TRPCClient["tRPC Client<br/>electronTrpc.terminal.*"]
     end
-
+    
     subgraph "Main Process"
         TRPCRouter["Terminal Router<br/>apps/desktop/src/lib/trpc/routers/terminal"]
         SessionManager["Session Manager<br/>WorkspaceRuntimeRegistry"]
         PortManager["PortManager<br/>apps/desktop/src/main/lib/terminal/port-manager.ts"]
     end
-
+    
     subgraph "Terminal Host Daemon"
         DaemonSession["Session Class<br/>apps/desktop/src/main/terminal-host/session.ts"]
         HeadlessEmulator["HeadlessEmulator<br/>apps/desktop/src/main/lib/terminal-host/headless-emulator.ts"]
         HistoryWriter["HistoryWriter<br/>apps/desktop/src/main/lib/terminal-history.ts"]
     end
-
+    
     subgraph "Subprocess"
         PTYSubprocess["PTY Subprocess<br/>pty-subprocess.js"]
         NodePTY["node-pty IPty<br/>Shell Process"]
     end
-
+    
     subgraph "Persistent Storage"
         DiskHistory["~/.superset/terminal-history/<br/>workspaceId/paneId/"]
     end
-
+    
     Terminal --> XtermJS
     Terminal --> TRPCClient
     TRPCClient -->|stream, write, resize| TRPCRouter
     TRPCRouter --> SessionManager
     SessionManager --> DaemonSession
     SessionManager --> PortManager
-
+    
     DaemonSession --> HeadlessEmulator
     DaemonSession --> HistoryWriter
     DaemonSession -->|IPC frames| PTYSubprocess
     PTYSubprocess --> NodePTY
-
+    
     HistoryWriter -->|append| DiskHistory
-
+    
     PortManager -->|scan PIDs| NodePTY
 ```
 
@@ -114,15 +115,14 @@ Sources: [apps/desktop/src/renderer/screens/main/components/WorkspaceView/Conten
 
 The terminal UI is built using `xterm.js` and wrapped in a React component that manages lifecycle, subscriptions, and user interactions.
 
-| Component                  | Location                                                                                                                | Purpose                                                             |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `Terminal.tsx`             | [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/Terminal.tsx]()       | Main React component, manages xterm instance and tRPC subscriptions |
-| `createTerminalInstance()` | [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/helpers.ts:175-306]() | Creates xterm.js instance with addons and event handlers            |
-| `setupKeyboardHandler()`   | [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/helpers.ts:525-694]() | Custom keyboard event handling for shortcuts and terminal input     |
-| `setupPasteHandler()`      | [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/helpers.ts:383-515]() | Bracketed paste mode and chunked paste handling                     |
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `Terminal.tsx` | [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/Terminal.tsx]() | Main React component, manages xterm instance and tRPC subscriptions |
+| `createTerminalInstance()` | [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/helpers.ts:175-306]() | Creates xterm.js instance with addons and event handlers |
+| `setupKeyboardHandler()` | [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/helpers.ts:525-694]() | Custom keyboard event handling for shortcuts and terminal input |
+| `setupPasteHandler()` | [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/helpers.ts:383-515]() | Bracketed paste mode and chunked paste handling |
 
 **Key Features:**
-
 - GPU-accelerated rendering via WebGL addon with fallback to DOM renderer
 - Font ligatures support via LigaturesAddon
 - Multi-line link detection for URLs and file paths
@@ -150,12 +150,12 @@ graph LR
         Detach["detach<br/>Disconnect client"]
         ClearScrollback["clearScrollback<br/>Clear terminal history"]
     end
-
+    
     subgraph "Session State"
         Sessions["Map<paneId, Session>"]
         EventEmitter["EventEmitter<br/>data:paneId, exit:paneId"]
     end
-
+    
     CreateOrAttach -->|creates/returns| Sessions
     Write -->|writes to| Sessions
     Stream -->|subscribes to| EventEmitter
@@ -164,16 +164,16 @@ graph LR
 
 **Environment Variables Set Per Session:**
 
-| Variable                  | Purpose                                             |
-| ------------------------- | --------------------------------------------------- |
-| `SUPERSET_PANE_ID`        | Unique pane identifier for the terminal             |
-| `SUPERSET_TAB_ID`         | Parent tab identifier                               |
-| `SUPERSET_WORKSPACE_ID`   | Workspace the terminal belongs to                   |
-| `SUPERSET_WORKSPACE_NAME` | Workspace name for scripts                          |
-| `SUPERSET_WORKSPACE_PATH` | Worktree path for the workspace                     |
-| `SUPERSET_ROOT_PATH`      | Main repository path                                |
-| `SUPERSET_PORT`           | Hooks server port for agent notifications           |
-| `PATH`                    | Prepended with `~/.superset/bin` for agent wrappers |
+| Variable | Purpose |
+|----------|---------|
+| `SUPERSET_PANE_ID` | Unique pane identifier for the terminal |
+| `SUPERSET_TAB_ID` | Parent tab identifier |
+| `SUPERSET_WORKSPACE_ID` | Workspace the terminal belongs to |
+| `SUPERSET_WORKSPACE_NAME` | Workspace name for scripts |
+| `SUPERSET_WORKSPACE_PATH` | Worktree path for the workspace |
+| `SUPERSET_ROOT_PATH` | Main repository path |
+| `SUPERSET_PORT` | Hooks server port for agent notifications |
+| `PATH` | Prepended with `~/.superset/bin` for agent wrappers |
 
 Sources: [apps/desktop/src/lib/trpc/routers/terminal/terminal.ts:34-47](), [apps/desktop/src/lib/trpc/routers/terminal/terminal.ts:59-193]()
 
@@ -194,34 +194,33 @@ graph TB
         Clients["attachedClients: Map<Socket><br/>Connected renderers"]
         History["historyWriter: HistoryWriter<br/>Disk persistence"]
     end
-
+    
     subgraph "Emulator Write Queue"
         Queue["emulatorWriteQueue: string[]<br/>Pending writes"]
         Budget["Time-budgeted processing<br/>5ms with clients, 25ms without"]
         Boundary["Snapshot boundary waiters<br/>Consistent point-in-time state"]
     end
-
+    
     subgraph "PTY Subprocess IPC"
         FrameDecoder["PtySubprocessFrameDecoder<br/>Parse framed messages"]
         Frames["Ready, Spawned, Data,<br/>Exit, Error"]
     end
-
+    
     SessionState --> Subprocess
     SessionState --> Emulator
     SessionState --> Clients
     SessionState --> History
-
+    
     Subprocess -->|stdout| FrameDecoder
     FrameDecoder -->|frames| Frames
     Frames -->|Data frames| Queue
     Queue -->|time-budgeted| Emulator
-
+    
     Emulator -->|snapshot| Boundary
     History -->|writes| Emulator
 ```
 
 **Session Persistence Flow:**
-
 1. **Spawn**: `Session.spawn()` creates PTY subprocess, sends spawn command
 2. **Data Flow**: PTY output → framed IPC → emulator write queue → HeadlessEmulator
 3. **Snapshot**: Emulator tracks modes, CWD, scrollback; generates ANSI snapshot
@@ -239,18 +238,17 @@ The `HeadlessEmulator` wraps `@xterm/headless` to track terminal modes and gener
 
 **Tracked Terminal Modes:**
 
-| Mode                    | Escape Sequence  | Purpose                                  |
-| ----------------------- | ---------------- | ---------------------------------------- |
-| `applicationCursorKeys` | `CSI ? 1 h/l`    | Arrow keys send application sequences    |
-| `bracketedPaste`        | `CSI ? 2004 h/l` | Paste wrapped in `\x1b[200~...\x1b[201~` |
-| `alternateScreen`       | `CSI ? 1049 h/l` | Full-screen apps (vim, less)             |
-| `mouseTrackingNormal`   | `CSI ? 1000 h/l` | Mouse click tracking                     |
-| `mouseSgr`              | `CSI ? 1006 h/l` | SGR mouse encoding                       |
-| `focusReporting`        | `CSI ? 1004 h/l` | Report focus in/out events               |
-| `cursorVisible`         | `CSI ? 25 h/l`   | Show/hide cursor                         |
+| Mode | Escape Sequence | Purpose |
+|------|----------------|---------|
+| `applicationCursorKeys` | `CSI ? 1 h/l` | Arrow keys send application sequences |
+| `bracketedPaste` | `CSI ? 2004 h/l` | Paste wrapped in `\x1b[200~...\x1b[201~` |
+| `alternateScreen` | `CSI ? 1049 h/l` | Full-screen apps (vim, less) |
+| `mouseTrackingNormal` | `CSI ? 1000 h/l` | Mouse click tracking |
+| `mouseSgr` | `CSI ? 1006 h/l` | SGR mouse encoding |
+| `focusReporting` | `CSI ? 1004 h/l` | Report focus in/out events |
+| `cursorVisible` | `CSI ? 25 h/l` | Show/hide cursor |
 
 **CWD Tracking:**
-
 - Parses `OSC 7 ; file://hostname/path BEL` sequences
 - Shells emit this via `PROMPT_COMMAND` or equivalent hooks
 - Enables terminal to resume in correct directory after restart
@@ -273,7 +271,7 @@ sequenceDiagram
     participant Router as Terminal Router
     participant Stream as tRPC Stream
     participant UI as Terminal.tsx
-
+    
     Shell->>PTY: Write output
     PTY->>PTY: Frame as Data message
     PTY->>Daemon: IPC frame (type=Data)
@@ -300,7 +298,7 @@ sequenceDiagram
     participant Daemon as Session (Daemon)
     participant PTY as PTY Subprocess
     participant Shell
-
+    
     UI->>UI: xterm.onData(input)
     UI->>Write: writeRef.current({ paneId, data })
     Write->>Router: terminal.write.mutate()
@@ -323,29 +321,28 @@ Sources: [apps/desktop/src/lib/trpc/routers/terminal/terminal.ts:195-234](), [ap
 ```mermaid
 stateDiagram-v2
     [*] --> Creating: createOrAttach()
-
+    
     Creating --> ColdRestore: History found,<br/>no endedAt
     Creating --> WarmAttach: Daemon session exists
     Creating --> NewSession: No existing session
-
+    
     ColdRestore --> RestoredMode: Load scrollback from disk
     RestoredMode --> Running: User clicks "Start Shell"
-
+    
     WarmAttach --> Running: Reattach to daemon session
     NewSession --> Running: Spawn PTY subprocess
-
+    
     Running --> Running: Data, resize, write operations
     Running --> Exited: PTY process exits
     Running --> Killed: User/system kill signal
-
+    
     Exited --> [*]: Clean shutdown,<br/>history closed
     Killed --> [*]: Forced termination,<br/>history closed
-
+    
     RestoredMode --> [*]: User closes without starting
 ```
 
 **Session Creation Flow:**
-
 1. **Check Cold Restore**: Read `~/.superset/terminal-history/{workspaceId}/{paneId}/meta.json`
    - If exists and `!endedAt` → cold restore mode
    - If `endedAt` → clean shutdown, no restore
@@ -364,13 +361,12 @@ The `PortManager` automatically detects TCP ports opened by terminal processes a
 
 **Port Scanning Strategy:**
 
-| Platform    | Command                             | Filtering                                            |
-| ----------- | ----------------------------------- | ---------------------------------------------------- |
+| Platform | Command | Filtering |
+|----------|---------|-----------|
 | macOS/Linux | `lsof -p {pids} -iTCP -sTCP:LISTEN` | PID validation (lsof ignores -p if PIDs don't exist) |
-| Windows     | `netstat -ano`                      | Parse output, filter by PID set                      |
+| Windows | `netstat -ano` | Parse output, filter by PID set |
 
 **Detection Methods:**
-
 1. **Periodic Scan**: Every 2.5 seconds, scan all session process trees
 2. **Hint-Based Scan**: Detect output patterns (`listening on port X`, `server started on :X`) → scan after 500ms
 
@@ -378,13 +374,13 @@ The `PortManager` automatically detects TCP ports opened by terminal processes a
 
 ```typescript
 interface DetectedPort {
-  port: number // TCP port number
-  pid: number // Process ID
-  processName: string // Process command name
-  paneId: string // Terminal pane ID
-  workspaceId: string // Workspace ID
-  detectedAt: number // Timestamp
-  address: string // Bind address (0.0.0.0, 127.0.0.1, etc.)
+  port: number;           // TCP port number
+  pid: number;            // Process ID
+  processName: string;    // Process command name
+  paneId: string;         // Terminal pane ID
+  workspaceId: string;    // Workspace ID
+  detectedAt: number;     // Timestamp
+  address: string;        // Bind address (0.0.0.0, 127.0.0.1, etc.)
 }
 ```
 
@@ -412,17 +408,16 @@ Terminal scrollback is persisted to disk to enable "cold restore" after app/syst
 
 ```typescript
 interface SessionMetadata {
-  cwd: string // Working directory
-  cols: number // Terminal columns
-  rows: number // Terminal rows
-  startedAt: string // ISO timestamp
-  endedAt?: string // ISO timestamp (missing = unclean shutdown)
-  exitCode?: number // Process exit code
+  cwd: string;          // Working directory
+  cols: number;         // Terminal columns
+  rows: number;         // Terminal rows
+  startedAt: string;    // ISO timestamp
+  endedAt?: string;     // ISO timestamp (missing = unclean shutdown)
+  exitCode?: number;    // Process exit code
 }
 ```
 
 **Write Strategy:**
-
 - **Append-only**: `HistoryWriter` opens append stream, writes PTY output
 - **Backpressure handling**: Queues up to 256KB in memory, drops beyond
 - **Size cap**: 5MB per session, drops additional output with warning
@@ -430,7 +425,6 @@ interface SessionMetadata {
 - **Unclean shutdown**: `endedAt` missing → enables cold restore
 
 **Cold Restore Detection:**
-
 1. Check if `meta.json` exists
 2. Check if `endedAt` is missing
 3. If both true → load `scrollback.bin` and `meta.json.cwd`
@@ -453,7 +447,6 @@ The system detects when the user clears scrollback (Cmd+K in most shells) to res
 - **RIS Sequence** (`ESC c`): NOT detected as clear (TUI apps use for repaints)
 
 When clear is detected:
-
 1. Dispose current HeadlessEmulator
 2. Create fresh emulator instance
 3. Extract content after clear sequence
@@ -465,23 +458,22 @@ Parses `CSI ? {mode} h` (DECSET) and `CSI ? {mode} l` (DECRST) sequences:
 
 ```typescript
 const MODE_MAP: Record<number, keyof TerminalModes> = {
-  1: 'applicationCursorKeys',
-  6: 'originMode',
-  7: 'autoWrap',
-  25: 'cursorVisible',
-  47: 'alternateScreen', // Legacy
-  1000: 'mouseTrackingNormal',
-  1006: 'mouseSgr',
-  1049: 'alternateScreen', // Modern
-  2004: 'bracketedPaste',
+  1: "applicationCursorKeys",
+  6: "originMode",
+  7: "autoWrap",
+  25: "cursorVisible",
+  47: "alternateScreen",      // Legacy
+  1000: "mouseTrackingNormal",
+  1006: "mouseSgr",
+  1049: "alternateScreen",    // Modern
+  2004: "bracketedPaste",
   // ... (see source for full list)
-}
+};
 ```
 
 **CWD Extraction:**
 
 Parses `OSC 7 ; file://hostname/path BEL` sequences:
-
 - Shell emits via `PROMPT_COMMAND` (bash) or `precmd` (zsh)
 - Path is NOT URL-encoded in the sequence
 - Enables terminal to track current directory for session restore
@@ -494,14 +486,14 @@ Sources: [apps/desktop/src/main/lib/terminal-escape-filter.ts:1-46](), [apps/des
 
 The terminal system integrates with other Superset subsystems:
 
-| System               | Integration Point             | Purpose                               |
-| -------------------- | ----------------------------- | ------------------------------------- |
-| **Tab/Pane System**  | `useTabsStore`, paneId        | Terminal panes live in mosaic layout  |
+| System | Integration Point | Purpose |
+|--------|------------------|---------|
+| **Tab/Pane System** | `useTabsStore`, paneId | Terminal panes live in mosaic layout |
 | **Workspace System** | `workspaceId`, workspace path | CWD resolution, environment variables |
-| **Settings System**  | Font, theme, presets          | Terminal appearance and behavior      |
-| **Agent System**     | `~/.superset/bin` in PATH     | Intercept agent commands              |
-| **Git System**       | Workspace path, CWD           | Commands run in worktree context      |
-| **File System**      | Drag-and-drop, file links     | Shell-escaped path insertion          |
-| **Theme System**     | Terminal colors, theme type   | Light/dark mode, custom themes        |
+| **Settings System** | Font, theme, presets | Terminal appearance and behavior |
+| **Agent System** | `~/.superset/bin` in PATH | Intercept agent commands |
+| **Git System** | Workspace path, CWD | Commands run in worktree context |
+| **File System** | Drag-and-drop, file links | Shell-escaped path insertion |
+| **Theme System** | Terminal colors, theme type | Light/dark mode, custom themes |
 
 Sources: [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/Terminal.tsx:39-83](), [apps/desktop/src/lib/trpc/routers/terminal/terminal.ts:113-139]()

@@ -36,8 +36,8 @@ The following files were used as context for generating this wiki page:
 - [apps/desktop/src/main/lib/auto-updater.ts](apps/desktop/src/main/lib/auto-updater.ts)
 - [apps/desktop/src/renderer/env.renderer.ts](apps/desktop/src/renderer/env.renderer.ts)
 - [apps/desktop/src/renderer/index.html](apps/desktop/src/renderer/index.html)
-- [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx)
-- [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts)
+- [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider.tsx)
+- [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts](apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts)
 - [apps/desktop/vite/helpers.ts](apps/desktop/vite/helpers.ts)
 - [apps/web/src/app/auth/desktop/success/page.tsx](apps/web/src/app/auth/desktop/success/page.tsx)
 - [apps/web/src/trpc/react.tsx](apps/web/src/trpc/react.tsx)
@@ -49,6 +49,8 @@ The following files were used as context for generating this wiki page:
 - [scripts/lint.sh](scripts/lint.sh)
 
 </details>
+
+
 
 This document provides a comprehensive inventory of the technologies, frameworks, libraries, and tools used throughout the Superset codebase. It focuses on the production runtime dependencies, build tools, and infrastructure that power the Desktop application, backend API, and supporting services. For architectural patterns and system design, see [Architecture Overview](#1.1).
 
@@ -63,7 +65,7 @@ The entire Superset monorepo is built on **TypeScript 5.9** and uses **Bun 1.3.6
 ```mermaid
 graph TB
     ROOT["Root<br/>(Bun workspaces)"]
-
+    
     subgraph "Apps"
         DESKTOP["apps/desktop<br/>Electron + React"]
         API["apps/api<br/>Next.js 16"]
@@ -72,7 +74,7 @@ graph TB
         MARKETING["apps/marketing<br/>Next.js 16"]
         MOBILE["apps/mobile<br/>React Native + Expo"]
     end
-
+    
     subgraph "Shared Packages"
         DB["packages/db<br/>Drizzle + Neon"]
         LOCAL_DB["packages/local-db<br/>Drizzle + SQLite"]
@@ -81,31 +83,31 @@ graph TB
         UI["packages/ui<br/>Radix UI"]
         CHAT["packages/chat-mastra<br/>Mastra AI"]
     end
-
+    
     ROOT --> DESKTOP
     ROOT --> API
     ROOT --> WEB
     ROOT --> ADMIN
     ROOT --> MARKETING
     ROOT --> MOBILE
-
+    
     ROOT --> DB
     ROOT --> LOCAL_DB
     ROOT --> TRPC
     ROOT --> AUTH
     ROOT --> UI
     ROOT --> CHAT
-
+    
     DESKTOP --> LOCAL_DB
     DESKTOP --> TRPC
     DESKTOP --> AUTH
     DESKTOP --> UI
     DESKTOP --> CHAT
-
+    
     API --> DB
     API --> TRPC
     API --> AUTH
-
+    
     WEB --> TRPC
     WEB --> AUTH
     WEB --> UI
@@ -113,12 +115,12 @@ graph TB
 
 **Core Language & Runtime:**
 
-| Technology | Version        | Usage                                       |
-| ---------- | -------------- | ------------------------------------------- |
-| TypeScript | 5.9.3          | All code (main, renderer, preload, backend) |
-| Bun        | 1.3.6          | Package manager, dev tooling, scripts       |
-| Node.js    | (via Electron) | Main process runtime                        |
-| React      | 19.2.0         | UI framework for all apps                   |
+| Technology | Version | Usage |
+|------------|---------|-------|
+| TypeScript | 5.9.3 | All code (main, renderer, preload, backend) |
+| Bun | 1.3.6 | Package manager, dev tooling, scripts |
+| Node.js | (via Electron) | Main process runtime |
+| React | 19.2.0 | UI framework for all apps |
 
 **Sources:** [package.json:16](), [apps/desktop/package.json:187](), [apps/api/package.json:46]()
 
@@ -142,30 +144,30 @@ graph TB
         HOST_SERVICE["host-service<br/>Local tRPC server"]
         GIT_WORKER["git-task-worker<br/>Worker thread"]
     end
-
+    
     subgraph "Preload Context"
         PRELOAD["src/preload/index.ts"]
         TRPC_BRIDGE["trpc-electron@0.1.2<br/>IPC bridge"]
         CONTEXT_BRIDGE["contextBridge API"]
     end
-
+    
     subgraph "Renderer Process (Chromium)"
         REACT_APP["React 19.2.0"]
         VITE["electron-vite@4.0.0<br/>Build tool"]
     end
-
+    
     ELECTRON --> MAIN_ENTRY
     MAIN_ENTRY --> TERMINAL_HOST
     MAIN_ENTRY --> PTY_SUBPROCESS
     MAIN_ENTRY --> HOST_SERVICE
     MAIN_ENTRY --> GIT_WORKER
-
+    
     MAIN_ENTRY --> PRELOAD
     PRELOAD --> TRPC_BRIDGE
     PRELOAD --> CONTEXT_BRIDGE
-
+    
     CONTEXT_BRIDGE --> REACT_APP
-
+    
     VITE --> MAIN_ENTRY
     VITE --> PRELOAD
     VITE --> REACT_APP
@@ -192,12 +194,12 @@ graph LR
     QUERY["@tanstack/react-query@5.90.19"]
     TABLE["@tanstack/react-table@8.21.3"]
     VIRTUAL["@tanstack/react-virtual@3.13.18"]
-
+    
     REACT --> ROUTER
     REACT --> QUERY
     REACT --> TABLE
     REACT --> VIRTUAL
-
+    
     ROUTER --> ROUTES["src/renderer/routes/<br/>File-based routing"]
     QUERY --> TRPC_CLIENT["tRPC Client"]
     TABLE --> UI_COMPONENTS["Table Components"]
@@ -206,14 +208,14 @@ graph LR
 
 **Key Libraries:**
 
-| Library                 | Version | Purpose                                        |
-| ----------------------- | ------- | ---------------------------------------------- |
-| react                   | 19.2.0  | UI framework                                   |
-| react-dom               | 19.2.0  | DOM rendering                                  |
-| @tanstack/react-router  | 1.147.3 | File-based routing with `src/renderer/routes/` |
-| @tanstack/react-query   | 5.90.19 | Server state management, tRPC integration      |
-| @tanstack/react-table   | 8.21.3  | Data tables                                    |
-| @tanstack/react-virtual | 3.13.18 | Virtualized scrolling                          |
+| Library | Version | Purpose |
+|---------|---------|---------|
+| react | 19.2.0 | UI framework |
+| react-dom | 19.2.0 | DOM rendering |
+| @tanstack/react-router | 1.147.3 | File-based routing with `src/renderer/routes/` |
+| @tanstack/react-query | 5.90.19 | Server state management, tRPC integration |
+| @tanstack/react-table | 8.21.3 | Data tables |
+| @tanstack/react-virtual | 3.13.18 | Virtualized scrolling |
 
 **Sources:** [apps/desktop/package.json:187-217](), [apps/desktop/electron.vite.config.ts:217-226]()
 
@@ -224,15 +226,15 @@ graph LR
 ```mermaid
 graph TB
     ZUSTAND["zustand@5.0.8"]
-
+    
     TABS_STORE["useTabsStore<br/>Tab & pane state"]
     SETTINGS_STORE["useSettingsStore<br/>User preferences"]
     SIDEBAR_STORE["useSidebarStore<br/>UI state"]
-
+    
     ZUSTAND --> TABS_STORE
     ZUSTAND --> SETTINGS_STORE
     ZUSTAND --> SIDEBAR_STORE
-
+    
     TABS_STORE --> PERSISTENCE["Middleware:<br/>persist, devtools"]
     SETTINGS_STORE --> PERSISTENCE
 ```
@@ -252,18 +254,18 @@ graph TB
     RADIX["@radix-ui/react-*<br/>Headless primitives"]
     SHADCN["@superset/ui<br/>Styled components"]
     CUSTOM["Custom Components"]
-
+    
     RADIX --> SHADCN
     SHADCN --> CUSTOM
-
+    
     RADIX --> DIALOG["Dialog"]
     RADIX --> DROPDOWN["Dropdown"]
     RADIX --> TOOLTIP["Tooltip"]
-
+    
     SHADCN --> BUTTON["Button"]
     SHADCN --> INPUT["Input"]
     SHADCN --> CARD["Card"]
-
+    
     CUSTOM --> TERMINAL_UI["Terminal UI"]
     CUSTOM --> FILE_TREE["File Tree"]
     CUSTOM --> MOSAIC["Mosaic Layout"]
@@ -271,7 +273,7 @@ graph TB
 
 **Key Libraries:**
 
-- **@radix-ui/react-\***: Unstyled, accessible UI primitives (Dialog, Dropdown, etc.) ([apps/desktop/package.json:79-80]())
+- **@radix-ui/react-***: Unstyled, accessible UI primitives (Dialog, Dropdown, etc.) ([apps/desktop/package.json:79-80]())
 - **@superset/ui**: Shared component library built on Radix ([packages/ui/package.json:1-93]())
 - **react-mosaic-component@6.1.1**: Tiled window layout system ([apps/desktop/package.json:194]())
 - **framer-motion@12.23.26**: Animation library ([apps/desktop/package.json:163]())
@@ -290,17 +292,17 @@ graph TB
     ADDONS["XTerm Addons"]
     NODE_PTY["node-pty@1.1.0"]
     DAEMON["terminal-host<br/>Persistent daemon"]
-
+    
     XTERM --> ADDONS
     ADDONS --> FIT["@xterm/addon-fit<br/>Auto-sizing"]
     ADDONS --> WEBGL["@xterm/addon-webgl<br/>GPU rendering"]
     ADDONS --> LIGATURES["@xterm/addon-ligatures<br/>Font ligatures"]
     ADDONS --> SEARCH["@xterm/addon-search<br/>In-terminal search"]
     ADDONS --> SERIALIZE["@xterm/addon-serialize<br/>Session persistence"]
-
+    
     NODE_PTY --> DAEMON
     DAEMON --> PTY_SUBPROC["pty-subprocess<br/>Shell instances"]
-
+    
     XTERM --> RENDERER["Terminal Component"]
     DAEMON --> IPC["IPC to Main Process"]
     IPC --> RENDERER
@@ -326,22 +328,22 @@ graph TB
 graph TB
     CM_VIEW["@codemirror/view@6.39.16"]
     CM_STATE["@codemirror/state@6.5.4"]
-
+    
     LANG["Language Modes"]
     THEME["@codemirror/theme-one-dark"]
     COMMANDS["@codemirror/commands"]
     SEARCH["@codemirror/search"]
-
+    
     CM_VIEW --> EDITOR["File Viewer<br/>Read-only editor"]
     CM_STATE --> EDITOR
-
+    
     LANG --> JS["JavaScript/TypeScript"]
     LANG --> PY["Python"]
     LANG --> RUST["Rust"]
     LANG --> GO["Go"]
     LANG --> SQL["SQL"]
     LANG --> MORE["10+ more languages"]
-
+    
     LANG --> EDITOR
     THEME --> EDITOR
     COMMANDS --> EDITOR
@@ -352,7 +354,7 @@ graph TB
 
 - **@codemirror/view**: Editor UI and rendering ([apps/desktop/package.json:63]())
 - **@codemirror/state**: Editor state management ([apps/desktop/package.json:61]())
-- **@codemirror/lang-\***: Language support for JavaScript, Python, Rust, Go, SQL, CSS, HTML, Markdown, JSON, YAML, PHP, Java, C++ ([apps/desktop/package.json:44-57]())
+- **@codemirror/lang-***: Language support for JavaScript, Python, Rust, Go, SQL, CSS, HTML, Markdown, JSON, YAML, PHP, Java, C++ ([apps/desktop/package.json:44-57]())
 - **@codemirror/theme-one-dark**: Dark theme ([apps/desktop/package.json:62]())
 
 **Sources:** [apps/desktop/package.json:44-63]()
@@ -368,24 +370,24 @@ graph TB
 ```mermaid
 graph LR
     RENDERER["Renderer Process"]
-
+    
     subgraph "IPC Channel"
         ELECTRON_TRPC["electronTrpc<br/>IPC transport"]
     end
-
+    
     subgraph "HTTP Channel"
         TRPC_CLIENT["trpcClient<br/>HTTP transport"]
     end
-
+    
     MAIN_PROCESS["Main Process<br/>tRPC routers"]
     API_SERVER["API Server<br/>api.superset.sh"]
-
+    
     RENDERER --> ELECTRON_TRPC
     RENDERER --> TRPC_CLIENT
-
+    
     ELECTRON_TRPC --> MAIN_PROCESS
     TRPC_CLIENT --> API_SERVER
-
+    
     MAIN_PROCESS --> WORKSPACES_ROUTER["workspaces"]
     MAIN_PROCESS --> PROJECTS_ROUTER["projects"]
     MAIN_PROCESS --> TERMINAL_ROUTER["terminal"]
@@ -394,13 +396,13 @@ graph LR
 
 **tRPC Stack:**
 
-| Package           | Version | Purpose                                   |
-| ----------------- | ------- | ----------------------------------------- |
-| @trpc/server      | 11.7.1  | Server-side tRPC implementation           |
-| @trpc/client      | 11.7.1  | Client-side tRPC queries/mutations        |
-| @trpc/react-query | 11.7.1  | React hooks for tRPC                      |
-| trpc-electron     | 0.1.2   | IPC transport for Electron                |
-| superjson         | 2.2.5   | JSON superset with Date, Map, Set support |
+| Package | Version | Purpose |
+|---------|---------|---------|
+| @trpc/server | 11.7.1 | Server-side tRPC implementation |
+| @trpc/client | 11.7.1 | Client-side tRPC queries/mutations |
+| @trpc/react-query | 11.7.1 | React hooks for tRPC |
+| trpc-electron | 0.1.2 | IPC transport for Electron |
+| superjson | 2.2.5 | JSON superset with Date, Map, Set support |
 
 **Sources:** [apps/desktop/package.json:130-132](), [apps/desktop/package.json:211]()
 
@@ -415,20 +417,20 @@ graph TB
         COLLECTIONS["@tanstack/electric-db-collection@0.2.39"]
         LIVE_QUERY["useLiveQuery hooks"]
     end
-
+    
     subgraph "Backend"
         PROXY["API /api/electric proxy<br/>Auth + WHERE clause"]
         ELECTRIC_SERVER["Electric SQL<br/>Fly.io<br/>electricsql/electric:1.4.13"]
         POSTGRES["Neon PostgreSQL"]
     end
-
+    
     LIVE_QUERY --> COLLECTIONS
     COLLECTIONS --> ELECTRIC_CLIENT
-
+    
     ELECTRIC_CLIENT -->|"Shape requests<br/>+ JWT auth"| PROXY
     PROXY -->|"Authenticated shapes<br/>+ organizationId filter"| ELECTRIC_SERVER
     ELECTRIC_SERVER <-->|"Logical replication"| POSTGRES
-
+    
     ELECTRIC_SERVER -.->|"Real-time changes"| ELECTRIC_CLIENT
 ```
 
@@ -441,7 +443,7 @@ graph TB
 
 **Shape Subscription Example:**
 
-Collections are defined per organization in [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:105-406](). Each collection subscribes to a PostgreSQL table filtered by `organizationId`:
+Collections are defined per organization in [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:105-406](). Each collection subscribes to a PostgreSQL table filtered by `organizationId`:
 
 ```typescript
 // Example: tasks collection
@@ -451,7 +453,7 @@ const tasks = createCollection(
     shapeOptions: {
       url: electricUrl,
       params: {
-        table: 'tasks',
+        table: "tasks",
         organizationId, // Server-side WHERE filter
       },
       headers: electricHeaders,
@@ -460,14 +462,14 @@ const tasks = createCollection(
     getKey: (item) => item.id,
     onInsert: async ({ transaction }) => {
       // Write-through to PostgreSQL via tRPC
-      const result = await apiClient.task.create.mutate(item)
-      return { txid: result.txid } // Reconcile with Electric
+      const result = await apiClient.task.create.mutate(item);
+      return { txid: result.txid }; // Reconcile with Electric
     },
-  })
-)
+  }),
+);
 ```
 
-**Sources:** [apps/desktop/package.json:68](), [apps/desktop/src/renderer/routes/\_authenticated/providers/CollectionsProvider/collections.ts:105-406](), [fly.toml:1-33]()
+**Sources:** [apps/desktop/package.json:68](), [apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts:105-406](), [fly.toml:1-33]()
 
 ### Local Database (SQLite)
 
@@ -478,14 +480,14 @@ graph TB
     DRIZZLE["drizzle-orm@0.45.1"]
     BETTER_SQLITE["better-sqlite3@12.6.2"]
     LOCAL_DB_PKG["@superset/local-db"]
-
+    
     DRIZZLE --> BETTER_SQLITE
     DRIZZLE --> LOCAL_DB_PKG
-
+    
     LOCAL_DB_PKG --> SCHEMA["Schema:<br/>settings, projects,<br/>workspaces, worktrees"]
-
+    
     SCHEMA --> MIGRATIONS["drizzle/ migrations"]
-
+    
     BETTER_SQLITE --> DB_FILE["~/.superset/local.db"]
 ```
 
@@ -497,7 +499,6 @@ graph TB
 - **drizzle-kit@0.31.8**: Schema migrations tool ([packages/local-db/package.json:17]())
 
 **Local Tables:**
-
 - `settings`: User preferences and configuration
 - `projects`: Git repository metadata
 - `workspaces`: Worktree instances
@@ -516,14 +517,14 @@ graph TB
     DRIZZLE["drizzle-orm@0.45.1"]
     NEON["@neondatabase/serverless@1.0.2"]
     DB_PKG["@superset/db"]
-
+    
     DRIZZLE --> NEON
     DRIZZLE --> DB_PKG
-
+    
     DB_PKG --> SCHEMA["Schema:<br/>organizations, members,<br/>tasks, projects, workspaces,<br/>chat_sessions, etc."]
-
+    
     SCHEMA --> MIGRATIONS["packages/db/drizzle/<br/>SQL migrations"]
-
+    
     NEON --> NEON_DB["Neon PostgreSQL<br/>Serverless driver"]
 ```
 
@@ -549,36 +550,36 @@ graph TB
     MASTRA_CORE["@mastra/core@1.3.0"]
     MASTRACODE["mastracode@0.4.0"]
     AI_SDK["ai@6.0.0"]
-
+    
     ANTHROPIC["@ai-sdk/anthropic@3.0.43"]
     OPENAI["@ai-sdk/openai@3.0.36"]
-
+    
     CHAT_PKG["@superset/chat-mastra"]
     MCP["@superset/desktop-mcp<br/>MCP tools"]
-
+    
     MASTRA_CORE --> CHAT_PKG
     MASTRACODE --> CHAT_PKG
     AI_SDK --> CHAT_PKG
-
+    
     ANTHROPIC --> CHAT_PKG
     OPENAI --> CHAT_PKG
-
+    
     CHAT_PKG --> MCP
-
+    
     CHAT_PKG --> SERVICE["ChatMastraService<br/>TRPC router"]
     SERVICE --> RUNTIME["MastraCode Runtime<br/>Code execution"]
 ```
 
 **Key Technologies:**
 
-| Package               | Version      | Purpose                                                           |
-| --------------------- | ------------ | ----------------------------------------------------------------- |
-| @mastra/core          | 1.3.0        | AI agent framework ([apps/desktop/package.json:74]())             |
-| mastracode            | 0.4.0        | Sandboxed code execution ([apps/desktop/package.json:177]())      |
-| ai                    | 6.0.0        | Vercel AI SDK for streaming ([apps/desktop/package.json:146]())   |
-| @ai-sdk/anthropic     | 3.0.43       | Claude models ([apps/desktop/package.json:38]())                  |
-| @ai-sdk/openai        | 3.0.36       | OpenAI models ([apps/desktop/package.json:39]())                  |
-| @superset/desktop-mcp | workspace:\* | MCP tool definitions ([packages/desktop-mcp/package.json:1-24]()) |
+| Package | Version | Purpose |
+|---------|---------|---------|
+| @mastra/core | 1.3.0 | AI agent framework ([apps/desktop/package.json:74]()) |
+| mastracode | 0.4.0 | Sandboxed code execution ([apps/desktop/package.json:177]()) |
+| ai | 6.0.0 | Vercel AI SDK for streaming ([apps/desktop/package.json:146]()) |
+| @ai-sdk/anthropic | 3.0.43 | Claude models ([apps/desktop/package.json:38]()) |
+| @ai-sdk/openai | 3.0.36 | OpenAI models ([apps/desktop/package.json:39]()) |
+| @superset/desktop-mcp | workspace:* | MCP tool definitions ([packages/desktop-mcp/package.json:1-24]()) |
 
 **Custom Mastra Build:** The project uses forked Mastra packages from `github.com/superset-sh/mastra` with Superset-specific patches ([package.json:49-51]()).
 
@@ -595,17 +596,17 @@ graph TB
 ```mermaid
 graph TB
     NEXT["next@16.0.10"]
-
+    
     API_ROUTES["API Routes"]
     TRPC_ENDPOINT["/api/trpc"]
     ELECTRIC_PROXY["/api/electric"]
     WEBHOOKS["Webhooks<br/>/api/webhooks/*"]
-
+    
     NEXT --> API_ROUTES
     API_ROUTES --> TRPC_ENDPOINT
     API_ROUTES --> ELECTRIC_PROXY
     API_ROUTES --> WEBHOOKS
-
+    
     TRPC_ENDPOINT --> TRPC_SERVER["@trpc/server@11.7.1"]
     ELECTRIC_PROXY --> ELECTRIC_CLIENT_API["Electric SQL Proxy"]
     WEBHOOKS --> LINEAR["Linear"]
@@ -631,20 +632,20 @@ graph TB
 ```mermaid
 graph TB
     BETTER_AUTH["better-auth@1.4.18"]
-
+    
     OAUTH["@better-auth/oauth-provider"]
     STRIPE_PLUGIN["@better-auth/stripe"]
     EXPO_PLUGIN["@better-auth/expo"]
-
+    
     BETTER_AUTH --> OAUTH
     BETTER_AUTH --> STRIPE_PLUGIN
     BETTER_AUTH --> EXPO_PLUGIN
-
+    
     OAUTH --> GOOGLE["Google OAuth"]
     OAUTH --> GITHUB["GitHub OAuth"]
-
+    
     STRIPE_PLUGIN --> SUBSCRIPTIONS["Subscription sync"]
-
+    
     BETTER_AUTH --> JWT["JWT tokens<br/>for Desktop"]
     BETTER_AUTH --> SESSIONS["Session cookies<br/>for Web/Admin"]
 ```
@@ -667,21 +668,21 @@ graph TB
 ```mermaid
 graph TB
     API["API Server"]
-
+    
     LINEAR["@linear/sdk@68.1.0"]
     OCTOKIT["@octokit/rest@22.0.1<br/>@octokit/webhooks@14.2.0<br/>@octokit/app@16.1.2"]
     SLACK["@slack/web-api@7.13.0"]
     STRIPE["stripe@20.2.0"]
     ANTHROPIC["@anthropic-ai/sdk@0.78.0"]
     TAVILY["@tavily/core@0.7.1"]
-
+    
     API --> LINEAR
     API --> OCTOKIT
     API --> SLACK
     API --> STRIPE
     API --> ANTHROPIC
     API --> TAVILY
-
+    
     LINEAR --> LINEAR_TASKS["Task sync"]
     OCTOKIT --> GH_REPOS["Repository + PR sync"]
     SLACK --> NOTIFICATIONS["Notifications"]
@@ -692,14 +693,14 @@ graph TB
 
 **Key Integrations:**
 
-| Service   | SDK                      | Purpose                                                        |
-| --------- | ------------------------ | -------------------------------------------------------------- |
-| Linear    | @linear/sdk@68.1.0       | Issue tracking sync ([apps/api/package.json:18]())             |
-| GitHub    | @octokit/rest@22.0.1     | Repository and PR management ([apps/api/package.json:20-22]()) |
-| Slack     | @slack/web-api@7.13.0    | Notifications and webhooks ([apps/api/package.json:25]())      |
-| Stripe    | stripe@20.2.0            | Billing and subscriptions ([apps/api/package.json:49]())       |
-| Anthropic | @anthropic-ai/sdk@0.78.0 | Claude AI models ([apps/api/package.json:14]())                |
-| Tavily    | @tavily/core@0.7.1       | AI web search ([apps/api/package.json:32]())                   |
+| Service | SDK | Purpose |
+|---------|-----|---------|
+| Linear | @linear/sdk@68.1.0 | Issue tracking sync ([apps/api/package.json:18]()) |
+| GitHub | @octokit/rest@22.0.1 | Repository and PR management ([apps/api/package.json:20-22]()) |
+| Slack | @slack/web-api@7.13.0 | Notifications and webhooks ([apps/api/package.json:25]()) |
+| Stripe | stripe@20.2.0 | Billing and subscriptions ([apps/api/package.json:49]()) |
+| Anthropic | @anthropic-ai/sdk@0.78.0 | Claude AI models ([apps/api/package.json:14]()) |
+| Tavily | @tavily/core@0.7.1 | AI web search ([apps/api/package.json:32]()) |
 
 **Sources:** [apps/api/package.json:14-49]()
 
@@ -712,9 +713,9 @@ graph TB
     QSTASH["@upstash/qstash@2.8.4"]
     REDIS["@upstash/redis@1.34.3"]
     RATELIMIT["@upstash/ratelimit@2.0.4"]
-
+    
     QSTASH --> JOBS["Background Jobs:<br/>sync tasks, send emails,<br/>process webhooks"]
-
+    
     REDIS --> KV["Key-Value Storage"]
     RATELIMIT --> API_LIMITS["API rate limiting"]
 ```
@@ -739,15 +740,15 @@ graph TB
 graph TB
     BUN["Bun 1.3.6<br/>Package manager"]
     TURBO["turbo@2.8.7<br/>Build orchestration"]
-
+    
     BUN --> INSTALL["bun install<br/>Workspaces"]
     BUN --> SCRIPTS["Scripts & tooling"]
-
+    
     TURBO --> BUILD["turbo build"]
     TURBO --> DEV["turbo dev"]
     TURBO --> TYPECHECK["turbo typecheck"]
     TURBO --> TEST["turbo test"]
-
+    
     BUILD --> CACHE["Turborepo cache"]
 ```
 
@@ -771,28 +772,28 @@ graph TB
         VITE_PLUGINS["Vite Plugins"]
         TSC["TypeScript 5.9.3"]
     end
-
+    
     subgraph "Native Modules"
         COPY_SCRIPT["copy-native-modules.ts<br/>Materialize symlinks"]
         VALIDATE_SCRIPT["validate-native-runtime.ts<br/>Guard against bundling"]
     end
-
+    
     subgraph "Package Phase"
         ELECTRON_BUILDER["electron-builder@26.4.0"]
         CODE_SIGN["Code signing<br/>macOS/Windows"]
         ASAR["ASAR archive<br/>+ unpacked natives"]
     end
-
+    
     ELECTRON_VITE --> VITE_PLUGINS
     VITE_PLUGINS --> TSC
-
+    
     TSC --> COPY_SCRIPT
     COPY_SCRIPT --> VALIDATE_SCRIPT
-
+    
     VALIDATE_SCRIPT --> ELECTRON_BUILDER
     ELECTRON_BUILDER --> CODE_SIGN
     CODE_SIGN --> ASAR
-
+    
     ASAR --> DMG["DMG (macOS)"]
     ASAR --> APPIMAGE["AppImage (Linux)"]
     ASAR --> NSIS["NSIS installer (Windows)"]
@@ -801,7 +802,6 @@ graph TB
 **Vite Configuration:**
 
 The build is configured in [apps/desktop/electron.vite.config.ts:1-264]() with three separate entry points:
-
 - **Main process**: [apps/desktop/electron.vite.config.ts:47-127]()
 - **Preload scripts**: [apps/desktop/electron.vite.config.ts:129-158]()
 - **Renderer process**: [apps/desktop/electron.vite.config.ts:160-263]()
@@ -832,42 +832,42 @@ graph TB
         TYPECHECK["TypeScript check"]
         BUILD["Build verification"]
     end
-
+    
     subgraph "Preview Deployments (Per PR)"
         NEON_BRANCH["Neon branch"]
         ELECTRIC_FLY["Electric Fly.io app"]
         VERCEL_PREVIEWS["Vercel previews<br/>5 apps"]
     end
-
+    
     subgraph "Production Deployments (main branch)"
         NEON_MIGRATE["Run migrations"]
         DEPLOY_VERCEL["Deploy 5 apps"]
         DEPLOY_ELECTRIC["Update Electric"]
     end
-
+    
     subgraph "Desktop Releases"
         STABLE_TAG["desktop-v* tag"]
         CANARY_CRON["Cron every 12h"]
-
+        
         BUILD_DESKTOP["build-desktop.yml<br/>macOS, Linux, Windows"]
         GITHUB_RELEASE["Create GitHub Release"]
         AUTO_UPDATE["electron-updater feeds"]
     end
-
+    
     PR --> SHERIF
     PR --> LINT
     PR --> TEST
     PR --> TYPECHECK
     PR --> BUILD
-
+    
     PR --> NEON_BRANCH
     NEON_BRANCH --> ELECTRIC_FLY
     NEON_BRANCH --> VERCEL_PREVIEWS
-
+    
     MAIN --> NEON_MIGRATE
     MAIN --> DEPLOY_VERCEL
     MAIN --> DEPLOY_ELECTRIC
-
+    
     STABLE_TAG --> BUILD_DESKTOP
     CANARY_CRON --> BUILD_DESKTOP
     BUILD_DESKTOP --> GITHUB_RELEASE
@@ -876,15 +876,15 @@ graph TB
 
 **Workflow Files:**
 
-| Workflow                   | Trigger          | Purpose                                                                         |
-| -------------------------- | ---------------- | ------------------------------------------------------------------------------- |
-| ci.yml                     | Push, PR         | Run sherif, lint, test, typecheck, build ([.github/workflows/ci.yml:1-133]())   |
-| deploy-preview.yml         | PR open/sync     | Deploy preview environments ([.github/workflows/deploy-preview.yml:1-659]())    |
-| deploy-production.yml      | Push to main     | Deploy to production ([.github/workflows/deploy-production.yml:1-533]())        |
-| build-desktop.yml          | Reusable         | Build Desktop for all platforms ([.github/workflows/build-desktop.yml:1-256]()) |
-| release-desktop.yml        | `desktop-v*` tag | Stable Desktop release ([.github/workflows/release-desktop.yml:1-147]())        |
-| release-desktop-canary.yml | Cron (12h)       | Canary Desktop release ([.github/workflows/release-desktop-canary.yml:1-158]()) |
-| cleanup-preview.yml        | PR closed        | Delete preview resources ([.github/workflows/cleanup-preview.yml:1-58]())       |
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| ci.yml | Push, PR | Run sherif, lint, test, typecheck, build ([.github/workflows/ci.yml:1-133]()) |
+| deploy-preview.yml | PR open/sync | Deploy preview environments ([.github/workflows/deploy-preview.yml:1-659]()) |
+| deploy-production.yml | Push to main | Deploy to production ([.github/workflows/deploy-production.yml:1-533]()) |
+| build-desktop.yml | Reusable | Build Desktop for all platforms ([.github/workflows/build-desktop.yml:1-256]()) |
+| release-desktop.yml | `desktop-v*` tag | Stable Desktop release ([.github/workflows/release-desktop.yml:1-147]()) |
+| release-desktop-canary.yml | Cron (12h) | Canary Desktop release ([.github/workflows/release-desktop-canary.yml:1-158]()) |
+| cleanup-preview.yml | PR closed | Delete preview resources ([.github/workflows/cleanup-preview.yml:1-58]()) |
 
 **Sources:** [.github/workflows/ci.yml:1-133](), [.github/workflows/deploy-preview.yml:1-659](), [.github/workflows/build-desktop.yml:1-256]()
 
@@ -905,36 +905,36 @@ graph TB
         MARKETING_PROD["superset.sh<br/>Next.js Marketing"]
         DOCS_PROD["docs.superset.sh<br/>Next.js Docs"]
     end
-
+    
     subgraph "Fly.io"
         ELECTRIC_PROD["Electric SQL<br/>superset-electric"]
     end
-
+    
     subgraph "Neon"
         POSTGRES_PROD["PostgreSQL<br/>Main branch"]
         POSTGRES_PREVIEW["PostgreSQL<br/>PR branches"]
     end
-
+    
     subgraph "Cloudflare Workers"
         ELECTRIC_PROXY["electric-proxy<br/>Edge auth proxy"]
     end
-
+    
     subgraph "Desktop Distribution"
         GITHUB_RELEASES["GitHub Releases<br/>Auto-update feed"]
         STABLE_CHANNEL["Stable (desktop-v*)"]
         CANARY_CHANNEL["Canary (desktop-canary)"]
     end
-
+    
     API_PROD --> POSTGRES_PROD
     API_PROD --> ELECTRIC_PROD
     WEB_PROD --> API_PROD
     ADMIN_PROD --> API_PROD
-
+    
     ELECTRIC_PROD --> POSTGRES_PROD
-
+    
     DESKTOP_APP["Desktop App"] --> ELECTRIC_PROXY
     ELECTRIC_PROXY --> ELECTRIC_PROD
-
+    
     DESKTOP_APP --> GITHUB_RELEASES
     GITHUB_RELEASES --> STABLE_CHANNEL
     GITHUB_RELEASES --> CANARY_CHANNEL
@@ -942,17 +942,17 @@ graph TB
 
 **Infrastructure Components:**
 
-| Service          | Platform           | Purpose                   | Configuration                             |
-| ---------------- | ------------------ | ------------------------- | ----------------------------------------- |
-| API              | Vercel             | Backend API and tRPC      | [apps/api/package.json]()                 |
-| Web              | Vercel             | Browser application       | [apps/web/package.json]()                 |
-| Admin            | Vercel             | Admin dashboard           | [apps/admin/package.json]()               |
-| Marketing        | Vercel             | Marketing site            | [apps/marketing/package.json]()           |
-| Docs             | Vercel             | Documentation             | [apps/docs/package.json]()                |
-| Electric SQL     | Fly.io             | Real-time sync service    | [fly.toml:1-33]()                         |
-| Electric Proxy   | Cloudflare Workers | Auth gateway for Electric | [apps/electric-proxy/]()                  |
-| PostgreSQL       | Neon               | Primary database          | Via GitHub Actions                        |
-| Desktop Releases | GitHub Releases    | Auto-update feed          | [.github/workflows/release-desktop.yml]() |
+| Service | Platform | Purpose | Configuration |
+|---------|----------|---------|---------------|
+| API | Vercel | Backend API and tRPC | [apps/api/package.json]() |
+| Web | Vercel | Browser application | [apps/web/package.json]() |
+| Admin | Vercel | Admin dashboard | [apps/admin/package.json]() |
+| Marketing | Vercel | Marketing site | [apps/marketing/package.json]() |
+| Docs | Vercel | Documentation | [apps/docs/package.json]() |
+| Electric SQL | Fly.io | Real-time sync service | [fly.toml:1-33]() |
+| Electric Proxy | Cloudflare Workers | Auth gateway for Electric | [apps/electric-proxy/]() |
+| PostgreSQL | Neon | Primary database | Via GitHub Actions |
+| Desktop Releases | GitHub Releases | Auto-update feed | [.github/workflows/release-desktop.yml]() |
 
 **Vercel Deployment:** All Next.js apps use `vercel@50.22.1` CLI for builds ([.github/workflows/deploy-production.yml:9]()).
 
@@ -970,26 +970,26 @@ graph TB
         SENTRY["@sentry/electron@7.7.0<br/>@sentry/nextjs@10.36.0"]
         SENTRY_VITE["@sentry/vite-plugin<br/>Sourcemap upload"]
     end
-
+    
     subgraph "Analytics"
         POSTHOG["posthog-js@1.310.1<br/>posthog-node@5.24.7"]
     end
-
+    
     subgraph "Session Recording"
         OUTLIT["@outlit/browser@1.4.3<br/>@outlit/node@1.4.3"]
     end
-
+    
     DESKTOP["Desktop App"] --> SENTRY
     DESKTOP --> POSTHOG
     DESKTOP --> OUTLIT
-
+    
     API["API Server"] --> SENTRY
     API --> POSTHOG
-
+    
     WEB["Web/Admin Apps"] --> SENTRY
     WEB --> POSTHOG
     WEB --> OUTLIT
-
+    
     SENTRY_VITE --> SENTRY
 ```
 
@@ -1019,23 +1019,23 @@ graph TB
 ```mermaid
 graph TB
     ROOT_ENV[".env<br/>Monorepo root"]
-
+    
     subgraph "Main Process"
         MAIN_ENV["src/main/env.main.ts<br/>@t3-oss/env-core"]
     end
-
+    
     subgraph "Renderer Process"
         RENDERER_ENV["src/renderer/env.renderer.ts<br/>Build-time injection"]
     end
-
+    
     subgraph "API Server"
         API_ENV["apps/api/src/env.ts<br/>@t3-oss/env-nextjs"]
     end
-
+    
     ROOT_ENV --> MAIN_ENV
     ROOT_ENV --> RENDERER_ENV
     ROOT_ENV --> API_ENV
-
+    
     MAIN_ENV --> RUNTIME["process.env<br/>Node.js runtime"]
     RENDERER_ENV --> BUILD_TIME["Vite define<br/>Compile-time strings"]
     API_ENV --> NEXTJS["Next.js runtime"]
@@ -1049,11 +1049,9 @@ graph TB
 - **dotenv@17.3.1**: Load `.env` files ([apps/desktop/package.json:156]())
 
 **Main Process Variables:**
-
 - `NODE_ENV`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_ELECTRIC_URL`, `SENTRY_DSN_DESKTOP`, `NEXT_PUBLIC_POSTHOG_KEY` ([apps/desktop/src/main/env.main.ts:13-28]())
 
 **API Variables:**
-
 - `DATABASE_URL`, `ELECTRIC_URL`, `ELECTRIC_SECRET`, OAuth credentials, API keys for all external services ([apps/api/src/env.ts:10-49]())
 
 **Validation:** Env validation runs at build time and fails the build if required variables are missing ([apps/desktop/electron.vite.config.ts:25-26]()).
@@ -1066,49 +1064,49 @@ graph TB
 
 ### Desktop Application
 
-| Category      | Key Technologies                                             |
-| ------------- | ------------------------------------------------------------ |
-| Runtime       | Electron 40.2.1, Node.js (via Electron), React 19.2.0        |
-| Build         | electron-vite 4.0.0, Vite 7.1.3, TypeScript 5.9.3            |
-| Packaging     | electron-builder 26.4.0, electron-updater 6.7.3              |
-| UI Framework  | React 19.2.0, TanStack Router 1.147.3                        |
-| Components    | Radix UI, @superset/ui, react-mosaic-component 6.1.1         |
-| Styling       | Tailwind CSS 4.1.18, Framer Motion 12.23.26                  |
-| State         | Zustand 5.0.8, TanStack Query 5.90.19                        |
-| Communication | tRPC 11.7.1, trpc-electron 0.1.2                             |
-| Data Sync     | Electric SQL 1.5.12, @tanstack/electric-db-collection 0.2.39 |
-| Local DB      | Drizzle ORM 0.45.1, better-sqlite3 12.6.2                    |
-| Terminal      | XTerm.js 6.1.0-beta.148, node-pty 1.1.0                      |
-| Editor        | CodeMirror 6.x with 15+ language modes                       |
-| AI            | Mastra 1.3.0, mastracode 0.4.0, Anthropic SDK 0.78.0         |
-| Observability | Sentry 7.7.0, PostHog 1.310.1, Outlit 1.4.3                  |
+| Category | Key Technologies |
+|----------|-----------------|
+| Runtime | Electron 40.2.1, Node.js (via Electron), React 19.2.0 |
+| Build | electron-vite 4.0.0, Vite 7.1.3, TypeScript 5.9.3 |
+| Packaging | electron-builder 26.4.0, electron-updater 6.7.3 |
+| UI Framework | React 19.2.0, TanStack Router 1.147.3 |
+| Components | Radix UI, @superset/ui, react-mosaic-component 6.1.1 |
+| Styling | Tailwind CSS 4.1.18, Framer Motion 12.23.26 |
+| State | Zustand 5.0.8, TanStack Query 5.90.19 |
+| Communication | tRPC 11.7.1, trpc-electron 0.1.2 |
+| Data Sync | Electric SQL 1.5.12, @tanstack/electric-db-collection 0.2.39 |
+| Local DB | Drizzle ORM 0.45.1, better-sqlite3 12.6.2 |
+| Terminal | XTerm.js 6.1.0-beta.148, node-pty 1.1.0 |
+| Editor | CodeMirror 6.x with 15+ language modes |
+| AI | Mastra 1.3.0, mastracode 0.4.0, Anthropic SDK 0.78.0 |
+| Observability | Sentry 7.7.0, PostHog 1.310.1, Outlit 1.4.3 |
 
 ### Backend Services
 
-| Category      | Key Technologies                                |
-| ------------- | ----------------------------------------------- |
-| Framework     | Next.js 16.0.10, React 19.2.0                   |
-| API           | tRPC 11.7.1, superjson 2.2.5                    |
-| Database      | Drizzle ORM 0.45.1, Neon serverless 1.0.2       |
-| Real-time     | Electric SQL 1.4.13 (Fly.io)                    |
-| Auth          | better-auth 1.4.18, jose 6.1.3                  |
-| Payments      | Stripe 20.2.0                                   |
-| Integrations  | Linear SDK 68.1.0, Octokit 22.0.1, Slack 7.13.0 |
-| AI            | Anthropic SDK 0.78.0, Tavily 0.7.1              |
-| Queue         | Upstash QStash 2.8.4, Upstash Redis 1.34.3      |
-| Observability | Sentry 10.36.0, PostHog (node) 5.24.7           |
+| Category | Key Technologies |
+|----------|-----------------|
+| Framework | Next.js 16.0.10, React 19.2.0 |
+| API | tRPC 11.7.1, superjson 2.2.5 |
+| Database | Drizzle ORM 0.45.1, Neon serverless 1.0.2 |
+| Real-time | Electric SQL 1.4.13 (Fly.io) |
+| Auth | better-auth 1.4.18, jose 6.1.3 |
+| Payments | Stripe 20.2.0 |
+| Integrations | Linear SDK 68.1.0, Octokit 22.0.1, Slack 7.13.0 |
+| AI | Anthropic SDK 0.78.0, Tavily 0.7.1 |
+| Queue | Upstash QStash 2.8.4, Upstash Redis 1.34.3 |
+| Observability | Sentry 10.36.0, PostHog (node) 5.24.7 |
 
 ### Infrastructure
 
-| Category        | Key Technologies                             |
-| --------------- | -------------------------------------------- |
-| Package Manager | Bun 1.3.6                                    |
-| Monorepo        | Turbo 2.8.7, Bun workspaces                  |
-| Linting         | Biome 2.4.2                                  |
-| CI/CD           | GitHub Actions                               |
-| Hosting         | Vercel (Next.js apps), Fly.io (Electric SQL) |
-| Database        | Neon PostgreSQL                              |
-| Edge            | Cloudflare Workers (Electric proxy)          |
-| Distribution    | GitHub Releases (Desktop auto-updates)       |
+| Category | Key Technologies |
+|----------|-----------------|
+| Package Manager | Bun 1.3.6 |
+| Monorepo | Turbo 2.8.7, Bun workspaces |
+| Linting | Biome 2.4.2 |
+| CI/CD | GitHub Actions |
+| Hosting | Vercel (Next.js apps), Fly.io (Electric SQL) |
+| Database | Neon PostgreSQL |
+| Edge | Cloudflare Workers (Electric proxy) |
+| Distribution | GitHub Releases (Desktop auto-updates) |
 
 **Sources:** [apps/desktop/package.json:1-251](), [apps/api/package.json:1-62](), [package.json:1-56](), [fly.toml:1-33]()

@@ -5,237 +5,158 @@
 
 The following files were used as context for generating this wiki page:
 
-- [README.md](README.md)
-- [packages/shared/src/skills/index.ts](packages/shared/src/skills/index.ts)
-- [packages/shared/src/skills/storage.ts](packages/shared/src/skills/storage.ts)
-- [packages/shared/src/skills/types.ts](packages/shared/src/skills/types.ts)
+- [apps/electron/src/renderer/components/app-shell/ChatDisplay.tsx](apps/electron/src/renderer/components/app-shell/ChatDisplay.tsx)
+- [packages/shared/package.json](packages/shared/package.json)
+- [packages/shared/src/agent/session-scoped-tools.ts](packages/shared/src/agent/session-scoped-tools.ts)
+- [packages/shared/src/prompts/system.ts](packages/shared/src/prompts/system.ts)
+- [packages/ui/src/components/chat/TurnCard.tsx](packages/ui/src/components/chat/TurnCard.tsx)
 
 </details>
 
-This page describes what skills are, how they are stored on disk, the `SKILL.md` file format, source priority resolution, and how skills are loaded and injected into the agent system prompt. For information on how automations can reference skills via `@mentions`, see [Hooks & Automation](#4.9). For source-level integration triggered by skills, see [Sources](#4.3).
+
+
+Skills are per-workspace or per-project markdown instruction files that extend or focus an agent's behavior for specific task domains. They are stored as discrete directories containing a `SKILL.md` file with YAML frontmatter and a Markdown body. Skills are referenced via `@mention` in the chat input, which triggers the injection of their content into the agent's system prompt and activates any required tools or sources.
 
 ---
 
 ## What Skills Are
 
-A skill is a named Markdown file containing specialized instructions for the agent. When a skill is activated for a session, its content is injected into the agent's system prompt, extending or focusing its behavior for a particular task domain (e.g., "Python code reviewer", "Git commit formatter", "API integration helper").
+A skill is a reusable set of instructions. When a skill is activated for a session, its content is appended to the agent's system prompt. This allows users to create specialized personas (e.g., "@ui-reviewer", "@git-expert") without modifying the core agent logic. 
 
-Skills are scoped per workspace and are referenced in the chat input using `@<skill-slug>` mentions. Changes to skill files take effect immediately — no restart is needed.
+Skills are dynamic: changes to the underlying `SKILL.md` files are reflected immediately in new sessions or message turns without requiring an application restart.
 
-Sources: [README.md:97-98](), [packages/shared/src/skills/types.ts:1-8]()
+Sources: [packages/shared/package.json:33-33](), [packages/shared/package.json:59-59]()
 
 ---
 
-## Directory Layout
+## Directory Layout and Storage
 
-Each skill is a directory containing a single `SKILL.md` file and an optional icon file. Skills can live in three locations, each corresponding to a different scope:
+Skills are organized into directories. Each directory must contain a `SKILL.md` file. The system supports three scopes of skills, resolved in a specific priority order:
 
-| Scope     | Path                                            | Priority |
-| --------- | ----------------------------------------------- | -------- |
-| Global    | `~/.agents/skills/{slug}/`                      | Lowest   |
-| Workspace | `~/.craft-agent/workspaces/{id}/skills/{slug}/` | Medium   |
-| Project   | `{projectRoot}/.agents/skills/{slug}/`          | Highest  |
+| Scope | Location | Description |
+| :--- | :--- | :--- |
+| **Project** | `{projectRoot}/.agents/skills/{slug}/` | High priority; specific to a codebase. |
+| **Workspace** | `~/.craft-agent/workspaces/{id}/skills/{slug}/` | Medium priority; specific to a Craft workspace. |
+| **Global** | `~/.agents/skills/{slug}/` | Low priority; available across all workspaces. |
 
-Skills with the same slug in a higher-priority scope override those from lower-priority scopes.
-
-**Skill directory layout (one skill):**
-
-```
+### File Structure
+```text
 skills/
-└── my-skill/
-    ├── SKILL.md       # Required: frontmatter + instruction body
-    └── icon.png       # Optional: icon file (auto-downloaded if URL specified)
+└── python-expert/
+    ├── SKILL.md       # Required: contains frontmatter and instructions
+    └── icon.png       # Optional: local cached icon file
 ```
 
-Sources: [packages/shared/src/skills/storage.ts:33-36](), [README.md:309]()
+Sources: [packages/shared/src/prompts/system.ts:41-41](), [packages/shared/src/prompts/system.ts:62-71]()
 
 ---
 
-## `SKILL.md` Format
+## The `SKILL.md` Format
 
-Each skill file uses YAML frontmatter (parsed by [`gray-matter`](https://github.com/jonschlinkert/gray-matter)) followed by a Markdown body containing the actual agent instructions.
+Skill files use YAML frontmatter for metadata and standard Markdown for the instruction set.
 
+### Frontmatter Schema
+The frontmatter is parsed into a `SkillMetadata` object. Key fields include:
+- `name`: The display name in the UI.
+- `description`: A brief summary of the skill's purpose.
+- `icon`: An emoji or an HTTPS URL.
+- `globs`: File patterns that, when matched in the working directory, can auto-suggest the skill.
+- `alwaysAllow`: A list of tool patterns (e.g., `Bash(*)`) that are pre-approved when this skill is active.
+- `requiredSources`: Slugs of data sources (MCP, API, etc.) that must be enabled for this skill to function.
+
+### Example `SKILL.md`
 ```markdown
 ---
-name: Python Code Reviewer
-description: Reviews Python code for style, correctness, and performance.
-icon: 🐍
-globs:
-  - '**/*.py'
+name: Documentation Specialist
+description: Expert at writing technical wiki pages.
+icon: 📚
 alwaysAllow:
-  - Bash(grep:*)
+  - Bash(ls)
+  - READ_FILE
 requiredSources:
-  - github
+  - internal-docs-mcp
 ---
-
-When reviewing Python code, follow PEP 8 conventions.
-Check for type annotation completeness and test coverage.
-...
+You are a technical writer. When asked to document code:
+1. Analyze the file structure.
+2. Use Mermaid diagrams for architecture.
+3. Cite line numbers using the standard syntax.
 ```
 
-### Frontmatter Fields
-
-| Field             | Type       | Required | Description                                                        |
-| ----------------- | ---------- | -------- | ------------------------------------------------------------------ |
-| `name`            | `string`   | ✅       | Display name shown in skill list                                   |
-| `description`     | `string`   | ✅       | Short description shown in skill list                              |
-| `icon`            | `string`   | —        | Emoji (rendered directly) or URL (auto-downloaded to `icon.{ext}`) |
-| `globs`           | `string[]` | —        | File patterns that auto-trigger this skill                         |
-| `alwaysAllow`     | `string[]` | —        | Tool patterns automatically approved when skill is active          |
-| `requiredSources` | `string[]` | —        | Source slugs auto-enabled when skill is invoked                    |
-
-The `icon` field accepts only an emoji or an HTTPS URL. Relative paths and inline SVG are rejected by `validateIconValue`.
-
-Sources: [packages/shared/src/skills/types.ts:11-29](), [packages/shared/src/skills/storage.ts:62-95]()
+Sources: [packages/shared/src/prompts/system.ts:13-14](), [packages/shared/src/prompts/system.ts:154-173]()
 
 ---
 
-## Skill Source Priority
+## Skill Resolution and Injection
 
-**Skill source resolution diagram:**
+The system resolves skills by merging the three scopes. If a slug exists in both "Project" and "Workspace" scopes, the "Project" version takes precedence.
 
+### Technical Data Flow: From Mention to Prompt
+When a user types `@mention` in the `ChatInputZone`, the `ChatDisplay` passes the selected `skillSlugs` to the message sending pipeline. These are then processed by the agent backend to modify the system prompt.
+
+**Code Entity Mapping: Skill Resolution**
 ```mermaid
 flowchart TD
-    A["loadAllSkills(workspaceRoot, projectRoot)"] --> B["1. Load global skills\
-~/.agents/skills/"]
-    B --> C["skillsBySlug.set(slug, skill)"]
-    C --> D["2. Load workspace skills\
-~/.craft-agent/workspaces/{id}/skills/"]
-    D --> E["skillsBySlug.set(slug, skill)\
-(overrides global)"]
-    E --> F{"projectRoot\
-provided?"}
-    F -- "Yes" --> G["3. Load project skills\
-{projectRoot}/.agents/skills/"]
-    G --> H["skillsBySlug.set(slug, skill)\
-(overrides workspace)"]
-    F -- "No" --> I["Return merged skill list"]
-    H --> I
-```
-
-Sources: [packages/shared/src/skills/storage.ts:200-222]()
-
-When loading a single skill by slug efficiently (without scanning all skills), `loadSkillBySlug` checks project → workspace → global in order and returns the first match.
-
-Sources: [packages/shared/src/skills/storage.ts:232-246]()
-
----
-
-## Key Code Entities
-
-**Skills module structure:**
-
-```mermaid
-flowchart LR
-    subgraph "packages/shared/src/skills/"
-        types["types.ts\
----\
-SkillMetadata\
-LoadedSkill\
-SkillSource\
-AGENTS_PLUGIN_NAME"]
-        storage["storage.ts\
----\
-loadAllSkills()\
-loadWorkspaceSkills()\
-loadSkillBySlug()\
-loadSkillFromDir()\
-parseSkillFile()\
-deleteSkill()\
-skillExists()\
-listSkillSlugs()\
-downloadSkillIcon()"]
-        index["index.ts\
-(re-exports)"]
+    subgraph "Natural Language Space"
+        Input["User types '@doc-gen' in ChatInputZone"]
     end
 
-    index --> types
-    index --> storage
-    storage --> types
+    subgraph "Code Entity Space"
+        Mention["@mention detection in RichTextInput"]
+        Handler["ChatDisplay.onSendMessage(..., skillSlugs)"]
+        SysPrompt["getWorkingDirectoryContext() in system.ts"]
+        Loader["readProjectContextFile()"]
+        Agent["BaseAgent.process()"]
+    end
 
-    workspacesStorage["workspaces/storage.ts\
-getWorkspaceSkillsPath()"] --> storage
-    iconUtils["utils/icon.ts\
-validateIconValue()\
-findIconFile()\
-downloadIcon()"] --> storage
+    Input --> Mention
+    Mention --> Handler
+    Handler --> SysPrompt
+    SysPrompt --> Loader
+    Loader -->|Inject SKILL.md content| Agent
 ```
-
-Sources: [packages/shared/src/skills/index.ts:1-20](), [packages/shared/src/skills/storage.ts:1-30]()
-
-### Core Types
-
-- **`SkillMetadata`** — The parsed YAML frontmatter fields (`name`, `description`, `globs`, `alwaysAllow`, `icon`, `requiredSources`). Defined in [packages/shared/src/skills/types.ts:11-29]().
-- **`LoadedSkill`** — A fully loaded skill object combining `slug`, `metadata`, `content` (body text), `iconPath`, `path`, and `source`. Defined in [packages/shared/src/skills/types.ts:46-59]().
-- **`SkillSource`** — Union type `'global' | 'workspace' | 'project'` identifying which scope the skill was loaded from. Defined in [packages/shared/src/skills/types.ts:32]().
-- **`AGENTS_PLUGIN_NAME`** — The constant `'.agents'` used as the plugin name when registering global and project skills with the SDK, since both `~/.agents/` and `{project}/.agents/` share the same `basename`. Defined in [packages/shared/src/skills/types.ts:41-42]().
-
-### Storage Functions
-
-| Function              | Signature                                                   | Description                                                  |
-| --------------------- | ----------------------------------------------------------- | ------------------------------------------------------------ |
-| `loadAllSkills`       | `(workspaceRoot, projectRoot?) → LoadedSkill[]`             | Loads skills from all three scopes with priority merge       |
-| `loadWorkspaceSkills` | `(workspaceRoot) → LoadedSkill[]`                           | Loads only workspace-scoped skills                           |
-| `loadSkillBySlug`     | `(workspaceRoot, slug, projectRoot?) → LoadedSkill \| null` | Loads one skill by slug; O(1) lookup                         |
-| `loadSkill`           | `(workspaceRoot, slug) → LoadedSkill \| null`               | Loads one workspace-scoped skill                             |
-| `deleteSkill`         | `(workspaceRoot, slug) → boolean`                           | Removes the skill directory recursively                      |
-| `skillExists`         | `(workspaceRoot, slug) → boolean`                           | Checks whether a skill directory and `SKILL.md` are present  |
-| `listSkillSlugs`      | `(workspaceRoot) → string[]`                                | Returns slugs of all valid workspace skills                  |
-| `downloadSkillIcon`   | `(skillDir, iconUrl) → Promise<string \| null>`             | Downloads an icon URL to `icon.{ext}` in the skill directory |
-
-Sources: [packages/shared/src/skills/storage.ts:100-354]()
+Sources: [apps/electron/src/renderer/components/app-shell/ChatDisplay.tsx:130-130](), [packages/shared/src/prompts/system.ts:182-190](), [packages/shared/src/prompts/system.ts:154-160]()
 
 ---
 
-## @mention Injection
+## UI Integration
 
-In the chat input field, typing `@` presents a picker that includes skill names. When a skill is selected:
+The `ChatDisplay` component manages the state of active skills and provides the autocomplete interface via `RichTextInput`.
 
-1. The skill slug is embedded in the message as an `@mention`.
-2. At session start (or when the mention is processed), the corresponding `SKILL.md` body is resolved using `loadSkillBySlug` and injected into the agent system prompt.
-3. If the skill's `requiredSources` field lists source slugs, those sources are automatically activated for the session.
-4. If the skill's `alwaysAllow` field lists tool patterns, those tools are auto-approved without user confirmation for the duration of the session.
+### Component Architecture
+The UI facilitates skill interaction through several specialized components:
+- **ChatInputZone**: Captures the `@mention` and maintains the list of `LoadedSkill` objects.
+- **TurnCard**: When a skill is used in a message, the `TurnCard` renders the assistant's response which may have been influenced by that skill's instructions.
+- **Skill Selection**: Available skills are passed to the renderer via `ChatDisplayProps`.
 
+**UI to Code Association**
 ```mermaid
-sequenceDiagram
-    participant "User" as User
-    participant "FreeFormInput" as Input
-    participant "loadSkillBySlug()" as Loader
-    participant "Agent System Prompt" as Prompt
-    participant "Session Sources" as Sources
+flowchart LR
+    subgraph "Renderer UI Components"
+        CD["ChatDisplay.tsx"]
+        CIZ["ChatInputZone.tsx"]
+        TC["TurnCard.tsx"]
+    end
 
-    User->>Input: "@python-reviewer Fix this file"
-    Input->>Loader: "resolve slug = python-reviewer"
-    Loader-->>Input: "LoadedSkill { content, requiredSources, alwaysAllow }"
-    Input->>Prompt: "Inject SKILL.md body"
-    Input->>Sources: "Activate requiredSources[]"
+    subgraph "Main Process / Shared Logic"
+        Types["LoadedSkill Interface"]
+        Storage["skills/storage.ts"]
+    end
+
+    CD -->|Passes skills to| CIZ
+    CIZ -->|Triggers mention for| Types
+    CD -->|Renders turns via| TC
+    Types --- Storage
 ```
-
-Sources: [README.md:55](), [packages/shared/src/skills/types.ts:17-28](), [packages/shared/src/skills/storage.ts:232-246]()
-
----
-
-## Icon Handling
-
-Icons are optional and support two formats:
-
-- **Emoji** — Stored as a string in the `icon` frontmatter field and rendered directly in the UI.
-- **URL** — Validated by `validateIconValue`, then downloaded by `downloadSkillIcon` and saved as `icon.{ext}` alongside `SKILL.md`. The local file path is resolved by `findIconFile` at load time.
-
-The helper `skillNeedsIconDownload` returns `true` when a skill has a URL icon but no corresponding local icon file has been downloaded yet.
-
-Sources: [packages/shared/src/skills/storage.ts:333-354](), [packages/shared/src/skills/types.ts:21-26]()
+Sources: [apps/electron/src/renderer/components/app-shell/ChatDisplay.tsx:178-180](), [packages/ui/src/components/chat/TurnCard.tsx:58-63](), [packages/shared/src/agent/session-scoped-tools.ts:104-106]()
 
 ---
 
-## Creating and Managing Skills
+## Automated Discovery (Context Files)
 
-Skills can be created by directly writing a `SKILL.md` file into the appropriate directory, or by asking the agent to create one. The agent reads its own skill directories and writes conforming files. Because skills are plain files on disk, editing them in any text editor takes effect immediately on the next session that references them.
+Beyond explicit `@mentions`, the system automatically looks for "Project Context Files" which function as implicit skills for a specific directory.
+- **Patterns**: The system searches for `agents.md` or `claude.md` (case-insensitive).
+- **Recursion**: In monorepos, it searches recursively up to `MAX_CONTEXT_FILES` (30), excluding common directories like `node_modules` or `dist`.
+- **Caching**: The glob walk is cached in `contextFileCache` with a 5-minute TTL to prevent performance degradation in large repositories.
+- **Injection**: These files are automatically read and included in the prompt via `readProjectContextFile` to provide immediate context about the codebase.
 
-The README documents the workflow:
-
-> "How do I create a new skill? Describe what the skill should do, give it context. The agent takes care of the rest."
-
-> "Do I need to restart after changes? No. Everything is instant. Mention new skills or sources with `@`, even mid-conversation."
-
-Sources: [README.md:51-55]()
+Sources: [packages/shared/src/prompts/system.ts:23-35](), [packages/shared/src/prompts/system.ts:41-41](), [packages/shared/src/prompts/system.ts:79-81](), [packages/shared/src/prompts/system.ts:94-101]()

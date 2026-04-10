@@ -6,7 +6,7 @@
 The following files were used as context for generating this wiki page:
 
 - [apps/desktop/src/lib/trpc/routers/ui-state/index.ts](apps/desktop/src/lib/trpc/routers/ui-state/index.ts)
-- [apps/desktop/src/renderer/routes/\_authenticated/\_dashboard/workspace/$workspaceId/page.tsx](apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/page.tsx)
+- [apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/page.tsx](apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/page.tsx)
 - [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupItem.tsx](apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupItem.tsx)
 - [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupStrip.tsx](apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupStrip.tsx)
 - [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabContentContextMenu.tsx](apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabContentContextMenu.tsx)
@@ -29,6 +29,8 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
+
+
 This document describes the Zustand-based state management system for tabs and panes in the desktop application. The tab store manages workspace-scoped tabs, their mosaic layouts, individual panes (terminal, file-viewer, chat), and maintains navigation history. For information about tab UI components and rendering, see [2.7.6](#2.7.6). For pane lifecycle and types, see [2.7.3](#2.7.3). For the Mosaic layout system, see [2.7.4](#2.7.4).
 
 Sources: [apps/desktop/src/renderer/stores/tabs/store.ts:1-1272](), [apps/desktop/src/renderer/stores/tabs/types.ts:1-150]()
@@ -45,12 +47,12 @@ graph TB
         persist["persist middleware"]
         trpcStorage["trpcTabsStorage"]
     end
-
+    
     subgraph "Store Instance"
         useTabsStore["useTabsStore"]
         getState["useTabsStore.getState()"]
     end
-
+    
     subgraph "State Structure"
         TabsState["TabsState"]
         tabs["tabs: Tab[]"]
@@ -59,7 +61,7 @@ graph TB
         focusedPaneIds["focusedPaneIds: Record&lt;tabId, paneId&gt;"]
         tabHistoryStacks["tabHistoryStacks: Record&lt;workspaceId, tabId[]&gt;"]
     end
-
+    
     subgraph "Actions"
         addTab["addTab()"]
         removeTab["removeTab()"]
@@ -68,16 +70,16 @@ graph TB
         setActiveTab["setActiveTab()"]
         updateTabLayout["updateTabLayout()"]
     end
-
+    
     create --> devtools
     devtools --> persist
     persist --> trpcStorage
     persist --> useTabsStore
-
+    
     useTabsStore --> getState
     useTabsStore --> TabsState
     useTabsStore --> Actions
-
+    
     TabsState --> tabs
     TabsState --> panes
     TabsState --> activeTabIds
@@ -99,13 +101,13 @@ The store is created with a three-layer middleware stack:
 
 The `TabsState` interface defines five core properties that work together to manage the tab/pane system.
 
-| Property           | Type                             | Purpose                                 |
-| ------------------ | -------------------------------- | --------------------------------------- |
-| `tabs`             | `Tab[]`                          | Array of all tabs across all workspaces |
-| `panes`            | `Record<string, Pane>`           | Map of pane IDs to pane objects         |
-| `activeTabIds`     | `Record<string, string \| null>` | Current active tab per workspace        |
-| `focusedPaneIds`   | `Record<string, string>`         | Current focused pane per tab            |
-| `tabHistoryStacks` | `Record<string, string[]>`       | MRU history of tabs per workspace       |
+| Property | Type | Purpose |
+|----------|------|---------|
+| `tabs` | `Tab[]` | Array of all tabs across all workspaces |
+| `panes` | `Record<string, Pane>` | Map of pane IDs to pane objects |
+| `activeTabIds` | `Record<string, string \| null>` | Current active tab per workspace |
+| `focusedPaneIds` | `Record<string, string>` | Current focused pane per tab |
+| `tabHistoryStacks` | `Record<string, string[]>` | MRU history of tabs per workspace |
 
 Sources: [apps/desktop/src/renderer/stores/tabs/types.ts:27-29](), [apps/desktop/src/shared/tabs-types.ts:161-167]()
 
@@ -115,12 +117,12 @@ Each `Tab` contains:
 
 ```typescript
 interface Tab extends BaseTab {
-  id: string // Unique identifier
-  name: string // Auto-generated or derived from panes
-  userTitle?: string // User-provided override
-  workspaceId: string // Parent workspace
-  layout: MosaicNode<string> // Tree structure of pane IDs
-  createdAt: number // Timestamp
+  id: string;              // Unique identifier
+  name: string;            // Auto-generated or derived from panes
+  userTitle?: string;      // User-provided override
+  workspaceId: string;     // Parent workspace
+  layout: MosaicNode<string>; // Tree structure of pane IDs
+  createdAt: number;       // Timestamp
 }
 ```
 
@@ -134,18 +136,18 @@ Each `Pane` contains type-specific state:
 
 ```typescript
 interface Pane {
-  id: string
-  tabId: string
-  type: PaneType // "terminal" | "file-viewer" | "chat"
-  name: string
-  isNew?: boolean // First-time pane indicator
-  status?: PaneStatus // Agent lifecycle status
-  initialCommands?: string[] // Commands to run on creation
-  initialCwd?: string // Working directory
-  cwd?: string | null // Current directory (OSC-7 tracked)
-  cwdConfirmed?: boolean // True if OSC-7, false if seeded
-  fileViewer?: FileViewerState
-  chat?: ChatPaneState
+  id: string;
+  tabId: string;
+  type: PaneType;              // "terminal" | "file-viewer" | "chat"
+  name: string;
+  isNew?: boolean;             // First-time pane indicator
+  status?: PaneStatus;         // Agent lifecycle status
+  initialCommands?: string[];  // Commands to run on creation
+  initialCwd?: string;         // Working directory
+  cwd?: string | null;         // Current directory (OSC-7 tracked)
+  cwdConfirmed?: boolean;      // True if OSC-7, false if seeded
+  fileViewer?: FileViewerState;
+  chat?: ChatPaneState;
 }
 ```
 
@@ -173,11 +175,11 @@ graph LR
         persistMiddleware["persist middleware"]
         trpcTabsStorage["trpcTabsStorage"]
     end
-
+    
     subgraph "IPC Layer"
         trpcClient["tRPC Client<br/>(electron-trpc)"]
     end
-
+    
     subgraph "Main Process"
         uiStateRouter["ui-state router"]
         tabsGet["uiState.tabs.get()"]
@@ -185,7 +187,7 @@ graph LR
         appState["appState (lowdb)"]
         stateJson["app-state.json"]
     end
-
+    
     ZustandStore --> persistMiddleware
     persistMiddleware --> trpcTabsStorage
     trpcTabsStorage --> trpcClient
@@ -203,11 +205,11 @@ Sources: [apps/desktop/src/renderer/stores/tabs/store.ts:160-1267](), [apps/desk
 
 The `trpcTabsStorage` adapter implements the Zustand persist storage interface:
 
-| Method         | tRPC Call                   | Purpose                      |
-| -------------- | --------------------------- | ---------------------------- |
-| `getItem()`    | `uiState.tabs.get.query()`  | Load state from main process |
-| `setItem()`    | `uiState.tabs.set.mutate()` | Save state to main process   |
-| `removeItem()` | (no-op)                     | Not used for this store      |
+| Method | tRPC Call | Purpose |
+|--------|-----------|---------|
+| `getItem()` | `uiState.tabs.get.query()` | Load state from main process |
+| `setItem()` | `uiState.tabs.set.mutate()` | Save state to main process |
+| `removeItem()` | (no-op) | Not used for this store |
 
 Sources: [apps/desktop/src/renderer/lib/trpc-storage.ts]()
 
@@ -228,34 +230,34 @@ graph TB
         migrate["migrate(state, version)"]
         merge["merge(persisted, current)"]
     end
-
+    
     subgraph "Migration v1 → v2"
         v1["Version 1<br/>needsAttention: boolean"]
         v2Migration["Migrate needsAttention → status"]
         v2["Version 2<br/>status: PaneStatus"]
     end
-
+    
     subgraph "Migration v2 → v3"
         v2b["Version 2<br/>isLocked: boolean"]
         v3Migration["Migrate isLocked → isPinned"]
         v3["Version 3<br/>isPinned: boolean"]
     end
-
+    
     subgraph "Merge Logic"
         clearTransient["Clear transient statuses<br/>(working, permission)"]
         sanitizePointers["Sanitize tab pointers<br/>workspace-scoped"]
         resolveActive["Resolve active tabs<br/>per workspace"]
     end
-
+    
     version --> migrate
     migrate --> v1
     v1 --> v2Migration
     v2Migration --> v2
-
+    
     migrate --> v2b
     v2b --> v3Migration
     v3Migration --> v3
-
+    
     migrate --> merge
     merge --> clearTransient
     clearTransient --> sanitizePointers
@@ -272,9 +274,9 @@ Converted boolean attention flag to a multi-state status enum:
 if (version < 2 && state.panes) {
   for (const pane of Object.values(state.panes)) {
     if (legacyPane.needsAttention === true) {
-      pane.status = 'review'
+      pane.status = "review";
     }
-    delete legacyPane.needsAttention
+    delete legacyPane.needsAttention;
   }
 }
 ```
@@ -289,8 +291,8 @@ Renamed file viewer locking mechanism to "pinned" terminology:
 if (version < 3 && state.panes) {
   for (const pane of Object.values(state.panes)) {
     if (pane.fileViewer) {
-      pane.fileViewer.isPinned = legacyFileViewer.isLocked ?? true
-      delete legacyFileViewer.isLocked
+      pane.fileViewer.isPinned = legacyFileViewer.isLocked ?? true;
+      delete legacyFileViewer.isLocked;
     }
   }
 }
@@ -324,29 +326,29 @@ graph TB
         generateTabName["generateTabName(existingTabs)"]
         updateHistory["Update history stack"]
     end
-
+    
     subgraph "Tab Removal"
         removeTab["removeTab(tabId)"]
         getPaneIdsForTab["getPaneIdsForTab(panes, tabId)"]
         killTerminal["killTerminalForPane(paneId)"]
         findNextTab["findNextTab(state, tabId)"]
     end
-
+    
     subgraph "Tab Activation"
         setActiveTab["setActiveTab(workspaceId, tabId)"]
         acknowledgedStatus["acknowledgedStatus(status)"]
         clearAttention["Clear attention for tab panes"]
     end
-
+    
     addTab --> createTabWithPane
     createTabWithPane --> generateId
     createTabWithPane --> generateTabName
     addTab --> updateHistory
-
+    
     removeTab --> getPaneIdsForTab
     removeTab --> killTerminal
     removeTab --> findNextTab
-
+    
     setActiveTab --> acknowledgedStatus
     setActiveTab --> clearAttention
 ```
@@ -399,29 +401,29 @@ graph TB
         addPaneToLayout["Build new MosaicNode<br/>with row split"]
         deriveTabName["deriveTabName(panes, tabId)"]
     end
-
+    
     subgraph "Pane Removal"
         removePane["removePane(paneId)"]
         isLastPaneInTab["isLastPaneInTab(panes, tabId)"]
         getAdjacentPaneId["getAdjacentPaneId(layout, paneId)"]
         removePaneFromLayout["removePaneFromLayout(layout, paneId)"]
     end
-
+    
     subgraph "File Viewer Panes"
         addFileViewerPane["addFileViewerPane(workspaceId, options)"]
         createFileViewerPane["createFileViewerPane(tabId, options)"]
         resolveActiveTab["resolveActiveTabIdForWorkspace()"]
         reusePreviewPane["Reuse unpinned pane<br/>or create new"]
     end
-
+    
     addPane --> createPane
     addPane --> addPaneToLayout
     addPane --> deriveTabName
-
+    
     removePane --> isLastPaneInTab
     removePane --> getAdjacentPaneId
     removePane --> removePaneFromLayout
-
+    
     addFileViewerPane --> resolveActiveTab
     addFileViewerPane --> reusePreviewPane
     addFileViewerPane --> createFileViewerPane
@@ -468,11 +470,11 @@ Sources: [apps/desktop/src/renderer/stores/tabs/store.ts:527-748]()
 
 Split operations create new terminal panes by dividing the layout tree at a specific path:
 
-| Operation             | Direction  | Split Type          |
-| --------------------- | ---------- | ------------------- |
-| `splitPaneVertical`   | `"row"`    | Left/right split    |
-| `splitPaneHorizontal` | `"column"` | Top/bottom split    |
-| `splitPaneAuto`       | (dynamic)  | Based on dimensions |
+| Operation | Direction | Split Type |
+|-----------|-----------|------------|
+| `splitPaneVertical` | `"row"` | Left/right split |
+| `splitPaneHorizontal` | `"column"` | Top/bottom split |
+| `splitPaneAuto` | (dynamic) | Based on dimensions |
 
 All splits use `updateTree()` from react-mosaic-component to modify the layout at the specified path.
 
@@ -489,19 +491,19 @@ graph TB
         updateTargetLayout["Add to target tab layout"]
         updatePaneTabId["Update pane.tabId reference"]
     end
-
+    
     subgraph "Move to New Tab"
         movePaneToNewTab["movePaneToNewTab(paneId)"]
         checkLastPane["isLastPaneInTab()<br/>Already in own tab?"]
         createNewTab["Generate new tab<br/>with pane as layout"]
         removeFromSource["Remove from source layout"]
     end
-
+    
     movePaneToTab --> moveLogic
     moveLogic --> updateSourceLayout
     moveLogic --> updateTargetLayout
     moveLogic --> updatePaneTabId
-
+    
     movePaneToNewTab --> checkLastPane
     movePaneToNewTab --> createNewTab
     movePaneToNewTab --> removeFromSource
@@ -515,12 +517,12 @@ Both operations re-derive tab names for affected tabs after the move to reflect 
 
 The store provides query helpers for common access patterns:
 
-| Selector             | Parameters    | Returns        | Purpose                        |
-| -------------------- | ------------- | -------------- | ------------------------------ |
-| `getTabsByWorkspace` | `workspaceId` | `Tab[]`        | Filter tabs for workspace      |
-| `getActiveTab`       | `workspaceId` | `Tab \| null`  | Get active tab with resolution |
-| `getPanesForTab`     | `tabId`       | `Pane[]`       | Get all panes in tab           |
-| `getFocusedPane`     | `tabId`       | `Pane \| null` | Get focused pane in tab        |
+| Selector | Parameters | Returns | Purpose |
+|----------|------------|---------|---------|
+| `getTabsByWorkspace` | `workspaceId` | `Tab[]` | Filter tabs for workspace |
+| `getActiveTab` | `workspaceId` | `Tab \| null` | Get active tab with resolution |
+| `getPanesForTab` | `tabId` | `Pane[]` | Get all panes in tab |
+| `getFocusedPane` | `tabId` | `Pane \| null` | Get focused pane in tab |
 
 These selectors encapsulate common queries and ensure consistent resolution logic (especially `getActiveTab` which uses `resolveActiveTabIdForWorkspace()`).
 
@@ -534,14 +536,14 @@ Components subscribe to specific slices of state to minimize re-renders:
 
 ```typescript
 // Subscribe to active tab for a workspace
-const activeTab = useTabsStore((s) => s.getActiveTab(workspaceId))
+const activeTab = useTabsStore((s) => s.getActiveTab(workspaceId));
 
 // Subscribe to focused pane for a tab
-const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId])
+const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId]);
 
 // Subscribe to specific pane properties
-const paneName = useTabsStore((s) => s.panes[paneId]?.name)
-const paneStatus = useTabsStore((s) => s.panes[paneId]?.status)
+const paneName = useTabsStore((s) => s.panes[paneId]?.name);
+const paneStatus = useTabsStore((s) => s.panes[paneId]?.status);
 ```
 
 Sources: [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/index.tsx:10-28](), [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/TabPane.tsx:59-60]()
@@ -551,19 +553,19 @@ Sources: [apps/desktop/src/renderer/screens/main/components/WorkspaceView/Conten
 Actions are called directly from the store:
 
 ```typescript
-const { addTab, removeTab, setActiveTab } = useTabsStore()
+const { addTab, removeTab, setActiveTab } = useTabsStore();
 
 // Create new tab
 const { tabId, paneId } = addTab(workspaceId, {
   initialCwd: '/path/to/dir',
-  initialCommands: ['npm install'],
-})
+  initialCommands: ['npm install']
+});
 
 // Activate tab
-setActiveTab(workspaceId, tabId)
+setActiveTab(workspaceId, tabId);
 
 // Remove tab
-removeTab(tabId)
+removeTab(tabId);
 ```
 
 Sources: [apps/desktop/src/renderer/stores/tabs/store.ts:68-150]()
@@ -573,15 +575,12 @@ Sources: [apps/desktop/src/renderer/stores/tabs/store.ts:68-150]()
 Use `getState()` to access fresh state in callbacks where closure staleness is a concern:
 
 ```typescript
-const handleLayoutChange = useCallback(
-  (newLayout) => {
-    // Get fresh state to avoid stale closure issues
-    const state = useTabsStore.getState()
-    const freshTab = state.tabs.find((t) => t.id === tabId)
-    // ... use fresh state
-  },
-  [tabId]
-)
+const handleLayoutChange = useCallback((newLayout) => {
+  // Get fresh state to avoid stale closure issues
+  const state = useTabsStore.getState();
+  const freshTab = state.tabs.find(t => t.id === tabId);
+  // ... use fresh state
+}, [tabId]);
 ```
 
 This pattern is critical for drag-drop operations where state may change between callback creation and invocation.

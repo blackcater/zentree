@@ -6,7 +6,7 @@
 The following files were used as context for generating this wiki page:
 
 - [apps/desktop/src/lib/trpc/routers/ui-state/index.ts](apps/desktop/src/lib/trpc/routers/ui-state/index.ts)
-- [apps/desktop/src/renderer/routes/\_authenticated/\_dashboard/workspace/$workspaceId/page.tsx](apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/page.tsx)
+- [apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/page.tsx](apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/page.tsx)
 - [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupItem.tsx](apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupItem.tsx)
 - [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupStrip.tsx](apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/GroupStrip/GroupStrip.tsx)
 - [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabContentContextMenu.tsx](apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabContentContextMenu.tsx)
@@ -29,6 +29,8 @@ The following files were used as context for generating this wiki page:
 
 </details>
 
+
+
 ## Purpose and Scope
 
 This document explains the pane tiling system that enables flexible split-screen terminal and file viewer layouts within tabs. The system uses the `react-mosaic-component` library to manage a binary tree layout structure where panes can be split horizontally or vertically and rearranged via drag-and-drop.
@@ -49,31 +51,31 @@ graph TB
     Mosaic["Mosaic&lt;string&gt;<br/>(from react-mosaic-component)"]
     RenderTile["renderTile callback"]
     OnChange["onChange callback"]
-
+    
     TabsStore["useTabsStore<br/>tabs, panes, focusedPaneIds"]
     TabLayout["tab.layout: MosaicNode&lt;string&gt;"]
-
+    
     TabPane["TabPane<br/>(Terminal panes)"]
     FileViewerPane["FileViewerPane<br/>(File viewer panes)"]
-
+    
     BasePaneWindow["BasePaneWindow"]
     MosaicWindow["MosaicWindow<br/>(from react-mosaic-component)"]
-
+    
     TabView --> Mosaic
     TabView --> TabsStore
     TabsStore --> TabLayout
     TabLayout --> Mosaic
-
+    
     Mosaic --> RenderTile
     Mosaic --> OnChange
-
+    
     RenderTile -->|"paneId + path"| TabPane
     RenderTile -->|"paneId + path"| FileViewerPane
-
+    
     TabPane --> BasePaneWindow
     FileViewerPane --> BasePaneWindow
     BasePaneWindow --> MosaicWindow
-
+    
     OnChange -->|"updateTabLayout"| TabsStore
 ```
 
@@ -84,7 +86,6 @@ graph TB
 ## Binary Tree Layout Structure
 
 The mosaic layout is stored as a `MosaicNode<string>` (from `react-mosaic-component`, used in [apps/desktop/src/renderer/stores/tabs/types.ts:1]() and [apps/desktop/src/renderer/stores/tabs/store.ts:1]()), which is either:
-
 - A **leaf node**: A string representing a paneId
 - A **branch node**: An object with structure `{ direction: 'row' | 'column', first: MosaicNode, second: MosaicNode, splitPercentage?: number }`
 
@@ -95,12 +96,12 @@ graph TB
     Right["Branch<br/>direction: 'column'<br/>splitPercentage: 60"]
     RightTop["Leaf<br/>paneId: 'pane-def'"]
     RightBottom["Leaf<br/>paneId: 'pane-ghi'"]
-
+    
     Root -->|first| Left
     Root -->|second| Right
     Right -->|first| RightTop
     Right -->|second| RightBottom
-
+    
     subgraph "Visual Layout"
         VisualRoot["┌───────┬─────────┐"]
         VisualL["│ pane- │  pane-  │"]
@@ -113,7 +114,6 @@ graph TB
 ```
 
 The `direction` property determines split orientation:
-
 - `'row'`: Horizontal split (left/right panes)
 - `'column'`: Vertical split (top/bottom panes)
 
@@ -127,20 +127,20 @@ The `splitPercentage` (optional, defaults to 50) controls the division ratio bet
 
 Each pane in the mosaic tree has a unique path represented as `MosaicBranch[]` (from `react-mosaic-component`, used in [apps/desktop/src/renderer/stores/tabs/types.ts:1]() and passed to split operations), where `MosaicBranch` is a type alias for `'first' | 'second'`. This path describes the traversal from root to the pane's leaf node.
 
-| Path                            | Description                                 |
-| ------------------------------- | ------------------------------------------- |
-| `[]`                            | Root node (single pane, no splits)          |
-| `['first']`                     | First child of root split                   |
-| `['second']`                    | Second child of root split                  |
-| `['second', 'first']`           | First child of root's second branch         |
+| Path | Description |
+|------|-------------|
+| `[]` | Root node (single pane, no splits) |
+| `['first']` | First child of root split |
+| `['second']` | Second child of root split |
+| `['second', 'first']` | First child of root's second branch |
 | `['first', 'second', 'second']` | Second child of first branch's second child |
 
 The path is passed to `BasePaneWindow` and used for split operations:
 
 ```typescript
 // When splitting a pane, the path identifies where to insert the new branch
-splitPaneAuto(tabId: string, sourcePaneId: string,
-              dimensions: { width: number; height: number },
+splitPaneAuto(tabId: string, sourcePaneId: string, 
+              dimensions: { width: number; height: number }, 
               path?: MosaicBranch[])
 ```
 
@@ -162,7 +162,7 @@ graph LR
     CheckDimensions["Check dimensions<br/>width vs height"]
     SplitVertical["splitPaneVertical<br/>(row split)"]
     SplitHorizontal["splitPaneHorizontal<br/>(column split)"]
-
+    
     SplitAuto --> CheckDimensions
     CheckDimensions -->|"width > height"| SplitVertical
     CheckDimensions -->|"width ≤ height"| SplitHorizontal
@@ -220,7 +220,6 @@ export const extractPaneIdsFromLayout = (
 ```
 
 Used to:
-
 - Validate pane membership in a tab ([apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/index.tsx:56-59]())
 - Detect removed panes during layout changes ([apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/index.tsx:98-106]())
 - Clear attention status for panes in a tab ([apps/desktop/src/renderer/stores/tabs/store.ts:325]())
@@ -237,7 +236,6 @@ export const cleanLayout = (
 ```
 
 Recursively prunes:
-
 - Leaf nodes with invalid paneIds
 - Branch nodes where both children become null after pruning
 - Returns null if entire tree becomes invalid
@@ -292,31 +290,31 @@ The `TabView` component ([apps/desktop/src/renderer/screens/main/components/Work
 ```mermaid
 graph TB
     TabViewProps["TabView<br/>Props: tab"]
-
+    
     ExtractPanes["Extract pane IDs<br/>from tab.layout"]
     FilterPanes["Filter panes map<br/>by paneIds in layout"]
     CleanLayout["cleanLayout()<br/>Remove invalid panes"]
-
+    
     RenderCallback["renderTile callback"]
     ChangeCallback["handleLayoutChange"]
-
+    
     RoutePane["Route by pane.type"]
     TabPane["TabPane"]
     FileViewerPane["FileViewerPane"]
-
+    
     UpdateStore["updateTabLayout()<br/>Remove orphaned panes"]
     AutoRemoveTab["Auto-remove tab<br/>if no panes remain"]
-
+    
     TabViewProps --> ExtractPanes
     ExtractPanes --> FilterPanes
     FilterPanes --> CleanLayout
     CleanLayout --> RenderCallback
     CleanLayout --> AutoRemoveTab
-
+    
     RenderCallback --> RoutePane
     RoutePane --> TabPane
     RoutePane --> FileViewerPane
-
+    
     ChangeCallback --> UpdateStore
     UpdateStore --> AutoRemoveTab
 ```
@@ -345,27 +343,27 @@ Key responsibilities:
 graph TB
     BasePaneWindow["BasePaneWindow"]
     Props["Props<br/>paneId, path, tabId<br/>splitPaneAuto, removePane<br/>setFocusedPane"]
-
+    
     MosaicWindow["MosaicWindow&lt;string&gt;<br/>from react-mosaic-component"]
-
+    
     ContainerRef["containerRef<br/>for dimension detection"]
     SplitOrientation["useSplitOrientation<br/>auto/horizontal/vertical"]
-
+    
     DragHandlers["Drag handlers<br/>onDragStart, onDragEnd"]
     DragPaneStore["useDragPaneStore<br/>draggingPaneId<br/>draggingSourceTabId"]
-
+    
     RenderToolbar["renderToolbar()<br/>Custom toolbar content"]
     Children["children<br/>Terminal/FileViewer content"]
-
+    
     BasePaneWindow --> Props
     BasePaneWindow --> MosaicWindow
     BasePaneWindow --> ContainerRef
     BasePaneWindow --> SplitOrientation
     BasePaneWindow --> DragHandlers
-
+    
     MosaicWindow --> RenderToolbar
     MosaicWindow --> Children
-
+    
     DragHandlers --> DragPaneStore
     SplitOrientation --> ContainerRef
 ```
@@ -392,11 +390,11 @@ The component is used by both `TabPane` ([apps/desktop/src/renderer/screens/main
 
 The mosaic system integrates with `react-dnd` (via `dragDropManager` from [apps/desktop/src/renderer/lib/dnd.ts]() passed to the `Mosaic` component at [apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/index.tsx:229]()) for pane movement both within and across tabs:
 
-| Component        | Role                | DnD Integration                                                       |
-| ---------------- | ------------------- | --------------------------------------------------------------------- |
-| `BasePaneWindow` | Draggable pane      | Sets `draggingPaneId` and `draggingSourceTabId` in `useDragPaneStore` |
-| `MosaicWindow`   | Built-in drop zones | Handles drops within same tab (split/swap operations)                 |
-| Tab system       | Cross-tab drops     | See [2.7.5](#2.7.5) for details                                       |
+| Component | Role | DnD Integration |
+|-----------|------|-----------------|
+| `BasePaneWindow` | Draggable pane | Sets `draggingPaneId` and `draggingSourceTabId` in `useDragPaneStore` |
+| `MosaicWindow` | Built-in drop zones | Handles drops within same tab (split/swap operations) |
+| Tab system | Cross-tab drops | See [2.7.5](#2.7.5) for details |
 
 The `MosaicWindow` component from `react-mosaic-component` provides built-in drop zones for rearranging panes within a tab. For cross-tab movement, see the drag-and-drop system described in [2.7.5](#2.7.5).
 
@@ -406,8 +404,8 @@ The `useDragPaneStore` Zustand store tracks ephemeral drag state to enable cross
 
 ```typescript
 interface DragPaneState {
-  draggingPaneId: string | null // Currently dragging pane
-  draggingSourceTabId: string | null // Source tab of dragged pane
+  draggingPaneId: string | null;        // Currently dragging pane
+  draggingSourceTabId: string | null;   // Source tab of dragged pane
 }
 ```
 
@@ -430,7 +428,7 @@ graph LR
     TrpcStorage["trpcTabsStorage<br/>custom storage adapter"]
     TrpcMutation["uiState.tabs.set<br/>tRPC mutation"]
     AppState["appState.data.tabsState<br/>lowdb JSON file"]
-
+    
     UserAction --> UpdateStore
     UpdateStore --> TabsStore
     TabsStore --> PersistMiddleware
@@ -449,14 +447,14 @@ The Zustand persist middleware ([apps/desktop/src/renderer/stores/tabs/store.ts:
 
 The application applies custom CSS via `mosaic-theme.css` ([apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/index.tsx:2]()) to override react-mosaic's default styles:
 
-| Selector                                        | Customization                                       |
-| ----------------------------------------------- | --------------------------------------------------- |
-| `.mosaic-window`                                | Border: 0.5px solid `--color-border`, no box-shadow |
-| `.mosaic-window-toolbar`                        | Background: `--color-tertiary`, height: 28px        |
-| `.mosaic-window-focused .mosaic-window-toolbar` | Background: `--color-secondary`                     |
-| `.mosaic-window-controls`                       | Opacity: 0 by default, 1 on hover/focus             |
-| `.mosaic-split`                                 | Transparent background, custom cursor               |
-| `.drop-target-hover`                            | Blue overlay with opacity during drop preview       |
+| Selector | Customization |
+|----------|---------------|
+| `.mosaic-window` | Border: 0.5px solid `--color-border`, no box-shadow |
+| `.mosaic-window-toolbar` | Background: `--color-tertiary`, height: 28px |
+| `.mosaic-window-focused .mosaic-window-toolbar` | Background: `--color-secondary` |
+| `.mosaic-window-controls` | Opacity: 0 by default, 1 on hover/focus |
+| `.mosaic-split` | Transparent background, custom cursor |
+| `.drop-target-hover` | Blue overlay with opacity during drop preview |
 
 The `.mosaic-theme-dark` class is applied to the root `Mosaic` component to scope these overrides ([apps/desktop/src/renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/index.tsx:228]()).
 
@@ -471,21 +469,21 @@ The `TabContentContextMenu` component provides right-click actions for panes:
 ```mermaid
 graph TB
     ContextMenu["TabContentContextMenu"]
-
+    
     SplitH["Split Horizontally<br/>onSplitHorizontal"]
     SplitV["Split Vertically<br/>onSplitVertical"]
     Clear["Clear Terminal<br/>onClearTerminal"]
     Scroll["Scroll to Bottom<br/>onScrollToBottom"]
     MoveToTab["Move to Tab<br/>submenu"]
     Close["Close Terminal<br/>onClosePane"]
-
+    
     ContextMenu --> SplitH
     ContextMenu --> SplitV
     ContextMenu --> Clear
     ContextMenu --> Scroll
     ContextMenu --> MoveToTab
     ContextMenu --> Close
-
+    
     MoveToTab --> ExistingTabs["List available tabs"]
     MoveToTab --> NewTab["New Tab option"]
 ```
