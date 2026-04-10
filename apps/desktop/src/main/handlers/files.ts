@@ -3,7 +3,6 @@ import * as path from 'node:path'
 
 import { Container } from '@/shared/di'
 import { ElectronRpcServer } from '@/shared/rpc/electron'
-
 import type { API } from '@/types/api'
 
 // ---------------------------------------------------------------------------

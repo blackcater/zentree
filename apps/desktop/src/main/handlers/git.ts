@@ -2,7 +2,6 @@ import simpleGit, { type SimpleGit } from 'simple-git'
 
 import { Container } from '@/shared/di'
 import { ElectronRpcServer } from '@/shared/rpc/electron'
-
 import type { API } from '@/types/api'
 
 export class GitHandler implements API.GitAPI {

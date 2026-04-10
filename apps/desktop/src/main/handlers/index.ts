@@ -5,9 +5,9 @@ import { GitHandler } from './git'
 import { WindowHandler } from './window'
 
 export function registerHandlers() {
-  AppHandler.registerHandlers()
-  FilesHandler.registerHandlers()
-  GitHandler.registerHandlers()
-  BrowserHandler.registerHandlers()
-  WindowHandler.registerHandlers()
+	AppHandler.registerHandlers()
+	FilesHandler.registerHandlers()
+	GitHandler.registerHandlers()
+	BrowserHandler.registerHandlers()
+	WindowHandler.registerHandlers()
 }

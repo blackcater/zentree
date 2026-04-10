@@ -1,8 +1,8 @@
 import { BrowserView, BrowserWindow } from 'electron'
 
-import type { API } from '@/types/api'
 import { Container } from '@/shared/di'
 import { ElectronRpcServer } from '@/shared/rpc/electron'
+import type { API } from '@/types/api'
 
 interface BrowserInstance {
 	id: string

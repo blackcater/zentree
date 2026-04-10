@@ -14,7 +14,7 @@ export interface ChatPageProps {
 	threadId?: string
 }
 
-export function ChatPage({ threadId }: Readonly<ChatPageProps>) {
+export function ChatPage({ threadId: _threadId }: Readonly<ChatPageProps>) {
 	const { defaultLayout, onLayoutChanged } = useDefaultLayout({
 		id: 'layout-thread',
 		storage: localStorage,
