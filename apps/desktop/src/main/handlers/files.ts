@@ -4,13 +4,13 @@ import * as path from 'node:path'
 import { Container } from '@/shared/di'
 import { ElectronRpcServer } from '@/shared/rpc/electron'
 
-import type { FileNode, SearchResult } from './files.schema'
+import type { API } from '@/types/api'
 
 // ---------------------------------------------------------------------------
 // Handler class - implementation + type source of truth
 // ---------------------------------------------------------------------------
 
-export class FilesHandler {
+export class FilesHandler implements API.FilesAPI {
 	static readonly #skippedDirs: Array<{ path: string; error: string }> = []
 
 	static #logSkipped(dir: string, error: string): void {
@@ -23,12 +23,12 @@ export class FilesHandler {
 
 	async list(
 		dirPath: string
-	): Promise<{ files: FileNode[]; error?: string }> {
+	): Promise<{ files: API.FileNode[]; error?: string }> {
 		try {
 			const entries = await fs.readdir(dirPath, { withFileTypes: true })
-			const files: FileNode[] = entries.map((entry): FileNode => {
+			const files: API.FileNode[] = entries.map((entry): API.FileNode => {
 				const fullPath = path.join(dirPath, entry.name)
-				const result: FileNode = {
+				const result: API.FileNode = {
 					name: entry.name,
 					path: fullPath,
 					type: entry.isDirectory() ? 'directory' : 'file',
@@ -54,9 +54,9 @@ export class FilesHandler {
 	async search(
 		query: string,
 		rootPath: string
-	): Promise<{ results: SearchResult[]; skippedCount: number }> {
+	): Promise<{ results: API.SearchResult[]; skippedCount: number }> {
 		FilesHandler.#skippedDirs.length = 0
-		const results: SearchResult[] = []
+		const results: API.SearchResult[] = []
 		const maxResults = 100
 		const maxDepth = 20
 		const visitedDirs = new Set<string>()
